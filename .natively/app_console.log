@@ -28605,3 +28605,1008 @@ We recommend you instead use a development build to avoid limitations. Learn mor
 [2026-02-01T20:10:00.284Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.down", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16
 [2026-02-01T20:10:00.299Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
 [2026-02-01T20:10:00.346Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FACC15, size: 12
+[2026-02-01T20:18:36.199Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-02-01T20:18:36.211Z] [Web] [WARN] GoTrueClient@sb-embntaqwlwmgazvrglaf-auth-token:1 (2.90.1) 2026-02-01T20:18:36.210Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[2026-02-01T20:18:36.380Z] [Web] [WARN] Route "./integrations/supabase/client.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-02-01T20:18:36.214Z] [Web] [WARN] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-02-01T20:18:36.223Z] [Web] [WARN] "textShadow*" style props are deprecated. Use "textShadow".
+[2026-02-01T20:18:36.210Z] [Web] [LOG] [Supabase] Initializing client...
+[2026-02-01T20:18:36.380Z] [Web] [WARN] Route "./integrations/supabase/types.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-02-01T20:18:36.422Z] [Web] [WARN] [Layout children]: No route named "crear" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:18:36.420Z] [Web] [LOG] [AvatarContext v145.0] 🎨 Provider initialized
+[2026-02-01T20:18:36.423Z] [Web] [WARN] [Layout children]: No route named "editar" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:18:36.425Z] [Web] [WARN] [Layout children]: No route named "social" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:18:36.426Z] [Web] [WARN] [Layout children]: No route named "admin" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:18:36.424Z] [Web] [WARN] [Layout children]: No route named "perfil" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:18:36.225Z] [Web] [WARN] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-02-01T20:18:36.426Z] [Web] [WARN] [Layout children]: No route named "chat" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:18:36.427Z] [Web] [WARN] [Layout children]: No route named "gestion" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:18:36.428Z] [Web] [WARN] [Layout children]: No route named "empleo" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:18:36.429Z] [Web] [WARN] [Layout children]: No route named "legal" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:18:36.431Z] [Web] [WARN] [Layout children]: No route named "solicitudes" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:18:36.438Z] [Web] [LOG] [Index] ⏳ Cargando...
+[2026-02-01T20:18:36.445Z] [Web] [LOG] [Index] 🏠 Estado: {"hasUser":false,"loading":true}
+[2026-02-01T20:18:36.500Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /explorar
+[2026-02-01T20:18:36.513Z] [Web] [LOG] [Explorar v295.0] ✅ Filtered: 0 → Unique: 0 (removed 0 duplicates)
+[2026-02-01T20:18:36.582Z] [Web] [WARN] Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+[2026-02-01T20:18:36.614Z] [Web] [LOG] [FloatingTabBar v283.0] ⚡ PROFILE ICON FIX - Shows icon immediately when not logged in (avatarUrl: null)
+[2026-02-01T20:18:36.456Z] [Web] [LOG] [AvatarContext v145.0] ❌ No user logged in, clearing avatar
+[2026-02-01T20:18:36.650Z] [Web] [LOG] [Favoritos v298.0] 📝 Search query changed: 
+[2026-02-01T20:18:36.482Z] [Web] [LOG] [Index] 🏠 Estado: {"hasUser":false,"loading":false}
+[2026-02-01T20:18:36.449Z] [Web] [LOG] [FilterContext] 🔍 LOADING DYNAMIC FILTER OPTIONS
+[2026-02-01T20:18:36.430Z] [Web] [WARN] [Layout children]: No route named "soporte" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:18:36.636Z] [Web] [LOG] [Explorar v295.0] 📍 Step 1: Requesting location permission...
+[2026-02-01T20:18:36.667Z] [Web] [LOG] [Empleo v94.0] Cargando ofertas...
+[2026-02-01T20:18:36.446Z] [Web] [LOG] [Index] 🔍 Checking URL hash: 
+[2026-02-01T20:18:36.450Z] [Web] [LOG] [FilterContext] 🔍 Querying DISTINCT values from active locals...
+[2026-02-01T20:18:36.457Z] [Web] [LOG] [RootLayout v141.0] 🚀 App starting...
+[2026-02-01T20:18:36.448Z] [Web] [LOG] [FilterContext] 🔍 ========================================
+[2026-02-01T20:18:36.454Z] [Web] [LOG] [GlobalData v289.0] 🚀 Initializing...
+[2026-02-01T20:18:36.601Z] [Web] [WARN] props.pointerEvents is deprecated. Use style.pointerEvents
+[2026-02-01T20:18:36.458Z] [Web] [LOG] [RootLayout v141.0] 📱 Platform: web
+[2026-02-01T20:18:36.464Z] [Web] [LOG] [GlobalData v289.0] 📦 No cache available - data will load on-demand
+[2026-02-01T20:18:36.831Z] [Web] [LOG] [Explorar v295.0] 🎯 Step 5: Marking location as READY - intelligent preload will start
+[2026-02-01T20:18:36.502Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-01T20:18:36.554Z] [Web] [LOG] [Favoritos v298.0] 🔍 Filtering locales client-side, search: 
+[2026-02-01T20:18:36.659Z] [Web] [LOG] [AdminLayout] 🔍 Checking admin access...
+[2026-02-01T20:18:36.511Z] [Web] [LOG] [Explorar v295.0] 🔍 Filtering locales - total loaded: 0
+[2026-02-01T20:18:36.645Z] [Web] [LOG] [Eventos v296.0] Cargando eventos...
+[2026-02-01T20:18:36.447Z] [Web] [LOG] [FilterContext] 🚀 Initializing dynamic filter options...
+[2026-02-01T20:18:36.831Z] [Web] [LOG] [Explorar v295.0] ✅ Step 4: Valid location set: {"lat":43.0767,"lng":-8.4077}
+[2026-02-01T20:18:36.780Z] [Web] [LOG] [Explorar v295.0] 📍 Step 2: Getting current position...
+[2026-02-01T20:18:36.663Z] [Web] [LOG] [AdminLayout] ❌ No user found, redirecting silently
+[2026-02-01T20:18:36.831Z] [Web] [LOG] [Explorar v295.0] 📍 Step 3: Location obtained: {"lat":43.0767,"lng":-8.4077}
+[2026-02-01T20:18:36.654Z] [Web] [LOG] [Favoritos v298.0] Displaying 0 of 0 locales
+[2026-02-01T20:18:36.671Z] [Web] [LOG] [Empleo v94.0] Cargando perfiles profesionales...
+[2026-02-01T20:18:36.641Z] [Web] [LOG] [Eventos v296.0] 📝 Search query changed: 
+[2026-02-01T20:18:36.455Z] [Web] [LOG] [GlobalData v289.0] 📦 Loading from cache...
+[2026-02-01T20:18:36.556Z] [Web] [LOG] [Favoritos v298.0] ✅ Filtered 0 locales from 0
+[2026-02-01T20:18:36.451Z] [Web] [LOG] [FilterContext] 🔍 ✅ FIXED: Removed estado_solicitud filter
+[2026-02-01T20:18:36.478Z] [Web] [LOG] [Index] 🚀 Redirigiendo a explorar
+[2026-02-01T20:18:36.830Z] [Web] [LOG] [Favoritos v298.0] User location obtained: {"latitude":43.0767,"longitude":-8.4077,"altitude":null,"accuracy":10362,"altitudeAccuracy":null,"heading":null,"speed":null}
+[2026-02-01T20:18:36.856Z] [Web] [LOG] [Explorar v295.0] 🚀 Location is ready - starting intelligent preload...
+[2026-02-01T20:18:36.632Z] [Web] [LOG] [Explorar v295.0] 📝 Search query changed: 
+[2026-02-01T20:18:36.452Z] [Web] [LOG] [FilterContext] 📡 Setting up real-time subscription for filter options...
+[2026-02-01T20:18:36.830Z] [Web] [LOG] [Home v101.0] ✅ Ubicación obtenida: {"lat":43.0767,"lng":-8.4077}
+[2026-02-01T20:18:36.880Z] [Web] [LOG] [Explorar v295.0] ⚡ First load - showing skeleton UI
+[2026-02-01T20:18:37.007Z] [Web] [LOG] [FilterContext] ✅ Clientela: 6 - ["estudiantes","familias","grupos","ninos_bienvenidos","parejas","turistas"]
+[2026-02-01T20:18:37.059Z] [Web] [LOG] [Explorar v295.0] 📦 Background: Preloading other categories in parallel...
+[2026-02-01T20:18:36.860Z] [Web] [LOG] [Explorar v295.0] 🚀 Starting intelligent category preload...
+[2026-02-01T20:18:36.888Z] [Web] [LOG] [Explorar v295.0] 📍 Using location params: {"user_lat":43.0767,"user_lng":-8.4077}
+[2026-02-01T20:18:37.007Z] [Web] [LOG] [FilterContext] ✅ Tipos: 8 - ["bar","cafe","cocteleria","discoteca","lounge","pub","restaurante","sala_conciertos"]
+[2026-02-01T20:18:36.868Z] [Web] [LOG] [Explorar v295.0] 📥 Preloading category: todas
+[2026-02-01T20:18:37.007Z] [Web] [LOG] [FilterContext] ✅ Servicios: 21 - ["accesible_silla_ruedas","almuerzo","aparcamiento","cafe","cena","cerveza","cocteles","comida_vegetariana","deportes_tv","desayuno","dj","entrega_domicilio","musica_vivo","opciones_veganas","pago_efectivo","pago_tarjetas","para_llevar","sin_gluten","terraza_exterior","vino","wifi_gratis"]
+[2026-02-01T20:18:37.007Z] [Web] [LOG] [FilterContext] ✅ Provincias: 1 - ["A Coruña"]
+[2026-02-01T20:18:37.007Z] [Web] [LOG] [FilterContext] ✅ Comunidades: 1 - ["España"]
+[2026-02-01T20:18:37.007Z] [Web] [LOG] [FilterContext] ✅ DYNAMIC OPTIONS LOADED:
+[2026-02-01T20:18:37.062Z] [Web] [LOG] [Explorar v295.0] ✅ Loaded 20 locales from server
+[2026-02-01T20:18:37.060Z] [Web] [LOG] [Explorar v295.0] 📥 Preloading category: cafe
+[2026-02-01T20:18:36.976Z] [Web] [LOG] [Empleo v94.0] Ofertas cargadas: 0
+[2026-02-01T20:18:36.892Z] [Web] [LOG] [Explorar v295.0] 🎯 hasValidLocation: true
+[2026-02-01T20:18:37.237Z] [Web] [LOG] [RootLayout v141.0] 🎨 Hiding splash screen...
+[2026-02-01T20:18:37.059Z] [Web] [LOG] [Explorar v295.0] ✅ "Todas" category loaded - user can now see content instantly
+[2026-02-01T20:18:37.061Z] [Web] [LOG] [Explorar v295.0] 📥 Preloading category: discoteca
+[2026-02-01T20:18:37.007Z] [Web] [LOG] [FilterContext] ✅ Ambientes: 8 - ["acogedor","animado","de_moda","elegante","familiar","juvenil","moderno","tranquilo"]
+[2026-02-01T20:18:36.967Z] [Web] [LOG] [Eventos v296.0] Eventos cargados: 0
+[2026-02-01T20:18:37.059Z] [Web] [LOG] [Explorar v295.0] ✅ Preloaded 20 locales for category: todas
+[2026-02-01T20:18:37.061Z] [Web] [LOG] [Explorar v295.0] 📥 Preloading category: pub
+[2026-02-01T20:18:36.896Z] [Web] [LOG] [Explorar v295.0] 📊 Requesting offset: 0 limit: 20
+[2026-02-01T20:18:37.083Z] [Web] [LOG] [Explorar v295.0] 🎯 Updating displayed locales - count: 20
+[2026-02-01T20:18:37.060Z] [Web] [LOG] [Explorar v295.0] 📥 Preloading category: bar
+[2026-02-01T20:18:36.872Z] [Web] [LOG] [Explorar v295.0] 🚀 loadLocales called - page: 1 append: false locationReady: true
+[2026-02-01T20:18:37.002Z] [Web] [LOG] [FilterContext] 📊 Processing 544 active locals...
+[2026-02-01T20:18:36.864Z] [Web] [LOG] [Explorar v295.0] 🎯 PRIORITY: Loading "Todas" category first...
+[2026-02-01T20:18:37.065Z] [Web] [LOG] [Explorar v295.0] 🔍 Filtering locales - total loaded: 20
+[2026-02-01T20:18:37.063Z] [Web] [LOG] [Explorar v295.0] 📊 Got 20 locales, expected 20 - hasMore: true
+[2026-02-01T20:18:36.884Z] [Web] [LOG] [Explorar v295.0] 📡 Loading page 1 from server (no cache available)...
+[2026-02-01T20:18:37.063Z] [Web] [LOG] [Explorar v295.0] 🔄 Replacing with 20 locales
+[2026-02-01T20:18:36.976Z] [Web] [LOG] [Empleo v94.0] Perfiles cargados: 0
+[2026-02-01T20:18:37.226Z] [Web] [LOG] [Explorar v295.0] ✅ Preloaded 6 locales for category: cafe
+[2026-02-01T20:18:36.876Z] [Web] [LOG] [Explorar v295.0] 🔄 Filters changed, resetting...
+[2026-02-01T20:18:37.237Z] [Web] [LOG] [RootLayout v141.0] ✅ Splash screen hidden
+[2026-02-01T20:18:37.060Z] [Web] [LOG] [Explorar v295.0] 📥 Preloading category: restaurante
+[2026-02-01T20:18:37.061Z] [Web] [LOG] [Explorar v295.0] 📥 Preloading category: cocteleria
+[2026-02-01T20:18:37.006Z] [Web] [LOG] [FilterContext] ✅ ========================================
+[2026-02-01T20:18:37.067Z] [Web] [LOG] [Explorar v295.0] ✅ Filtered: 20 → Unique: 20 (removed 0 duplicates)
+[2026-02-01T20:18:37.251Z] [Web] [LOG] [Explorar v295.0] 🔍 Applying debounced search
+[2026-02-01T20:18:37.278Z] [Web] [LOG] [Explorar v295.0] ✅ Loaded 0 active events in bulk
+[2026-02-01T20:18:37.251Z] [Web] [LOG] [Eventos v296.0] 🔍 Applying debounced search
+[2026-02-01T20:18:37.278Z] [Web] [LOG] [Explorar v295.0] 📥 Setting isLoadingMore = false
+[2026-02-01T20:18:37.323Z] [Web] [LOG] [Explorar v295.0] 🎉 User can now switch between categories INSTANTLY with zero loading time
+[2026-02-01T20:18:37.292Z] [Web] [LOG] [Explorar v295.0] ✅ Preloaded 0 locales for category: discoteca
+[2026-02-01T20:18:37.323Z] [Web] [LOG] [Explorar v295.0] ✅ All categories preloaded successfully!
+[2026-02-01T20:18:37.314Z] [Web] [LOG] [Explorar v295.0] ✅ Preloaded 0 locales for category: cocteleria
+[2026-02-01T20:18:37.251Z] [Web] [LOG] [Favoritos v298.0] 🔍 Applying debounced search
+[2026-02-01T20:18:37.321Z] [Web] [LOG] [Explorar v295.0] ✅ Preloaded 2 locales for category: pub
+[2026-02-01T20:18:37.323Z] [Web] [LOG] [Explorar v295.0] ✅ Preloaded 17 locales for category: bar
+[2026-02-01T20:18:37.300Z] [Web] [LOG] [Explorar v295.0] ✅ Preloaded 11 locales for category: restaurante
+[2026-02-01T20:20:00.022Z] [Web] [LOG] [FloatingTabBar v283.0] ⚡ INSTANT TAP: "explorar" -> /(tabs)/explorar
+[2026-02-01T20:20:00.073Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /explorar
+[2026-02-01T20:19:58.337Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /favoritos
+[2026-02-01T20:19:58.796Z] [Web] [LOG] [FloatingTabBar v283.0] ⚡ PROFILE ICON FIX - Shows icon immediately when not logged in (avatarUrl: null)
+[2026-02-01T20:19:59.535Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /social
+[2026-02-01T20:19:58.349Z] [Web] [LOG] [FloatingTabBar v283.0] ⚡ PROFILE ICON FIX - Shows icon immediately when not logged in (avatarUrl: null)
+[2026-02-01T20:19:58.316Z] [Web] [LOG] [FloatingTabBar v283.0] ⚡ INSTANT TAP: "favoritos" -> /(tabs)/favoritos
+[2026-02-01T20:20:00.120Z] [Web] [LOG] [FloatingTabBar v283.0] ⚡ PROFILE ICON FIX - Shows icon immediately when not logged in (avatarUrl: null)
+[2026-02-01T20:19:54.280Z] [Web] [LOG] [Explorar v295.0] ✅ Display updated with 20 venues
+[2026-02-01T20:19:58.773Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /eventos
+[2026-02-01T20:19:59.535Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-01T20:19:58.755Z] [Web] [LOG] [FloatingTabBar v283.0] ⚡ INSTANT TAP: "eventos" -> /(tabs)/eventos
+[2026-02-01T20:19:59.546Z] [Web] [LOG] [FloatingTabBar v283.0] ⚡ PROFILE ICON FIX - Shows icon immediately when not logged in (avatarUrl: null)
+[2026-02-01T20:20:00.074Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-01T20:19:59.518Z] [Web] [LOG] [FloatingTabBar v283.0] ⚡ INSTANT TAP: "social" -> /(tabs)/social
+[2026-02-01T20:19:58.774Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-01T20:19:58.337Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-01T20:21:09.084Z] [Web] [LOG] [Favoritos v300.0] 🔍 Filtering locales client-side, search: 
+[2026-02-01T20:21:09.089Z] [Web] [LOG] [Favoritos v300.0] 📝 Search query changed: 
+[2026-02-01T20:21:09.091Z] [Web] [LOG] [Favoritos v300.0] Displaying 0 of 0 locales
+[2026-02-01T20:21:09.085Z] [Web] [LOG] [Favoritos v300.0] ✅ Filtered 0 locales from 0
+[2026-02-01T20:21:09.400Z] [Web] [LOG] [Favoritos v300.0] 🔍 Applying debounced search
+[2026-02-01T20:21:09.092Z] [Web] [LOG] [Favoritos v300.0] User location obtained: {"latitude":43.0767,"longitude":-8.4077,"altitude":null,"accuracy":10362,"altitudeAccuracy":null,"heading":null,"speed":null}
+[2026-02-01T20:22:09.741Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "arrow.triangle.turn.up.right.diamond.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:09.700Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:09.818Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-02-01T20:22:09.668Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:09.834Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /favoritos
+[2026-02-01T20:22:09.986Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:09.728Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 20
+[2026-02-01T20:22:09.713Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:09.661Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-02-01T20:22:09.966Z] [iOS] [LOG] [FloatingTabBar v283.0] ⚡ PROFILE ICON FIX - Shows icon immediately when not logged in (avatarUrl: present)
+[2026-02-01T20:22:09.734Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-02-01T20:22:09.687Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:09.972Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:09.608Z] [iOS] [LOG] [FloatingTabBar v283.0] ⚡ INSTANT TAP: "favoritos" -> /(tabs)/favoritos
+[2026-02-01T20:22:09.840Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-01T20:22:09.693Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:09.681Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:09.747Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 14
+[2026-02-01T20:22:09.992Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.2.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:09.674Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:22:09.720Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FACC15, size: 12
+[2026-02-01T20:22:09.706Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:09.979Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-02-01T20:22:12.543Z] [iOS] [LOG] [FloatingTabBar v283.0] ⚡ INSTANT TAP: "favoritos" -> /(tabs)/favoritos
+[2026-02-01T20:22:12.588Z] [iOS] [LOG] [Favoritos v298.0] 🔍 Filtering locales client-side, search: 
+[2026-02-01T20:22:12.671Z] [iOS] [LOG] [Favoritos v298.0] 📝 Search query changed: 
+[2026-02-01T20:22:12.596Z] [iOS] [LOG] [Favoritos v298.0] ✅ Filtered 0 locales from 0
+[2026-02-01T20:22:13.046Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-02-01T20:22:13.084Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:12.674Z] [iOS] [LOG] [InternalBytecode.js:1] [Favoritos v298.0] Cargando locales guardados...
+[2026-02-01T20:22:13.009Z] [iOS] [LOG] [InternalBytecode.js:1] [Favoritos v298.0] Locales guardados cargados: 1
+[2026-02-01T20:22:13.220Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 20
+[2026-02-01T20:22:13.231Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "arrow.triangle.turn.up.right.diamond.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:12.974Z] [iOS] [LOG] [Favoritos v298.0] 🔍 Applying debounced search
+[2026-02-01T20:22:13.225Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-02-01T20:22:12.722Z] [iOS] [LOG] [Favoritos v298.0] Displaying 0 of 0 locales
+[2026-02-01T20:22:13.215Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FACC15, size: 12
+[2026-02-01T20:22:12.733Z] [iOS] [LOG] [InternalBytecode.js:1] [Favoritos v298.0] User location obtained: {"accuracy":4.395014,"longitude":-8.42311409869605,"altitude":268.0170687920335,"speed":-1,"altitudeAccuracy":44.45713748781816,"latitude":43.04087769110201,"heading":-1}
+[2026-02-01T20:22:13.095Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:13.090Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:13.026Z] [iOS] [LOG] [Favoritos v298.0] 🔍 Filtering locales client-side, search: 
+[2026-02-01T20:22:13.060Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:22:13.066Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:13.072Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:13.077Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:13.101Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: #6B7280, size: 64
+[2026-02-01T20:22:13.107Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-02-01T20:22:13.036Z] [iOS] [LOG] [Favoritos v298.0] ✅ Filtered 1 locales from 1
+[2026-02-01T20:22:13.053Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:13.158Z] [iOS] [LOG] [Favoritos v298.0] Displaying 1 of 1 locales
+[2026-02-01T20:22:13.297Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-02-01T20:22:13.302Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:13.319Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:13.324Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:13.334Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:13.307Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:22:13.408Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-02-01T20:22:13.339Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:13.312Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:13.329Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:28.487Z] [iOS] [WARN] [Layout children]: No route named "editar" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:22:28.511Z] [iOS] [WARN] [Layout children]: No route named "chat" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:22:28.354Z] [iOS] [WARN] Route "./integrations/supabase/types.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-02-01T20:22:28.690Z] [iOS] [LOG] [InternalBytecode.js:1] [FilterContext] 🔍 ✅ FIXED: Removed estado_solicitud filter
+[2026-02-01T20:22:28.503Z] [iOS] [WARN] [Layout children]: No route named "social" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:22:28.738Z] [iOS] [LOG] [FilterContext] 📡 Setting up real-time subscription for filter options...
+[2026-02-01T20:22:28.682Z] [iOS] [LOG] [FilterContext] 🚀 Initializing dynamic filter options...
+[2026-02-01T20:22:28.684Z] [iOS] [LOG] [InternalBytecode.js:1] [FilterContext] 🔍 ========================================
+[2026-02-01T20:22:28.793Z] [iOS] [LOG] [RootLayout v141.0] 🚀 App starting...
+[2026-02-01T20:22:28.552Z] [iOS] [WARN] [Layout children]: No route named "soporte" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:22:27.988Z] [iOS] [WARN] `expo-notifications` functionality is not fully supported in Expo Go:
+We recommend you instead use a development build to avoid limitations. Learn more: https://expo.fyi/dev-client.
+[2026-02-01T20:22:28.743Z] [iOS] [LOG] [InternalBytecode.js:1] [GlobalData v289.0] 🚀 Initializing...
+[2026-02-01T20:22:28.463Z] [iOS] [LOG] [AvatarContext v145.0] 🎨 Provider initialized
+[2026-02-01T20:22:28.745Z] [iOS] [LOG] [InternalBytecode.js:1] [GlobalData v289.0] 📦 Loading from cache...
+[2026-02-01T20:22:28.495Z] [iOS] [WARN] [Layout children]: No route named "perfil" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:22:28.688Z] [iOS] [LOG] [InternalBytecode.js:1] [FilterContext] 🔍 Querying DISTINCT values from active locals...
+[2026-02-01T20:22:28.347Z] [iOS] [WARN] Route "./integrations/supabase/client.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-02-01T20:22:28.520Z] [iOS] [WARN] [Layout children]: No route named "admin" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:22:28.544Z] [iOS] [WARN] [Layout children]: No route named "legal" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:22:28.580Z] [iOS] [LOG] [Index] ⏳ Cargando...
+[2026-02-01T20:22:28.838Z] [iOS] [LOG] [RootLayout v141.0] 📱 Platform: ios
+[2026-02-01T20:22:28.686Z] [iOS] [LOG] [InternalBytecode.js:1] [FilterContext] 🔍 LOADING DYNAMIC FILTER OPTIONS
+[2026-02-01T20:22:27.968Z] [iOS] [WARN] expo-notifications: Android Push notifications (remote notifications) functionality provided by expo-notifications was removed from Expo Go with the release of SDK 53. Use a development build instead of Expo Go. Read more at https://docs.expo.dev/develop/development-builds/introduction/.
+[2026-02-01T20:22:28.560Z] [iOS] [WARN] [Layout children]: No route named "solicitudes" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:22:28.858Z] [iOS] [LOG] [InternalBytecode.js:1] [GlobalData v289.0] 📦 No cache available - data will load on-demand
+[2026-02-01T20:22:28.748Z] [iOS] [LOG] [InternalBytecode.js:1] [AvatarContext v145.0] ❌ No user logged in, clearing avatar
+[2026-02-01T20:22:27.822Z] [iOS] [LOG] Running "main" with {"rootTag":21,"initialProps":{"exp":{"manifestString":"{\"extra\":{\"eas\":{},\"scopeKey\":\"@anonymous\\/BarLive-80b57246-bda0-4712-ba65-bb4bd633e84f\",\"expoClient\":{\"scheme\":\"BarLive\",\"slug\":\"BarLive\",\"plugins\":[\"expo-font\",\"expo-router\",\"expo-web-browser\"],\"newArchEnabled\":true,\"android\":{\"edgeToEdgeEnabled\":true,\"package\":\"com.anonymous.Natively\",\"adaptiveIcon\":{\"foregroundImageUrl\":\"http:\\/\\/5h1emjo-anonymous-8081.exp.direct\\/assets\\/.\\/assets\\/images\\/natively-dark.png\",\"foregroundImage\":\".\\/assets\\/images\\/natively-dark.png\",\"backgroundColor\":\"#000000\"}},\"extra\":{\"router\":{}},\"icon\":\".\\/assets\\/images\\/natively-dark.png\",\"_internal\":{\"packageJsonPath\":\"\\/expo-project\\/package.json\",\"projectRoot\":\"\\/expo-project\",\"staticConfigPath\":\"\\/expo-project\\/app.json\",\"pluginHistory\":{\"expo-web-browser\":{\"name\":\"expo-web-browser\",\"version\":\"15.0.10\"},\"expo-font\":{\"name\":\"expo-font\",\"version\":\"14.0.10\"}},\"isDebug\":true,\"dynamicConfigPath\":{}},\"name\":\"BarLive\",\"version\":\"1.0.0\",\"experiments\":{\"typedRoutes\":true},\"iconUrl\":\"http:\\/\\/5h1emjo-anonymous-8081.exp.direct\\/assets\\/.\\/assets\\/images\\/natively-dark.png\",\"hostUri\":\"5h1emjo-anonymous-8081.exp.direct\",\"userInterfaceStyle\":\"automatic\",\"orientation\":\"portrait\",\"web\":{\"favicon\":\".\\/assets\\/images\\/final_quest_240x240.png\",\"bundler\":\"metro\"},\"ios\":{\"infoPlist\":{\"ITSAppUsesNonExemptEncryption\":false},\"bundleIdentifier\":\"com.anonymous.Natively\",\"supportsTablet\":true},\"sdkVersion\":\"54.0.0\",\"platforms\":[\"ios\",\"android\",\"web\"],\"splash\":{\"resizeMode\":\"contain\",\"backgroundColor\":\"#000000\",\"image\":\".\\/assets\\/images\\/natively-dark.png\",\"imageUrl\":\"http:\\/\\/5h1emjo-anonymous-8081.exp.direct\\/assets\\/.\\/assets\\/images\\/natively-dark.png\"}},\"expoGo\":{\"developer\":{\"projectRoot\":\"\\/expo-project\",\"tool\":\"expo-cli\"},\"mainModuleName\":\"index.ts\",\"packagerOpts\":{\"dev\":true},\"debuggerHost\":\"5h1emjo-anonymous-8081.exp.direct\"}},\"id\":\"63c938f6-6c0d-4683-a6b5-b4294c0f61ec\",\"metadata\":{},\"runtimeVersion\":\"exposdk:54.0.0\",\"createdAt\":\"2026-02-01T20:22:17.175Z\",\"launchAsset\":{\"key\":\"bundle\",\"contentType\":\"application\\/javascript\",\"url\":\"http:\\/\\/5h1emjo-anonymous-8081.exp.direct\\/index.ts.bundle?platform=ios&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable\"},\"isVerified\":true,\"assets\":[]}","shell":false,"initialUri":"exp://5h1emjo-anonymous-8081.exp.direct","appOwnership":"expo"}},"fabric":true}
+[2026-02-01T20:22:27.922Z] [iOS] [LOG] [Supabase] Initializing client...
+[2026-02-01T20:22:28.479Z] [iOS] [WARN] [Layout children]: No route named "crear" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:22:28.528Z] [iOS] [WARN] [Layout children]: No route named "gestion" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:22:28.536Z] [iOS] [WARN] [Layout children]: No route named "empleo" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/configuracion","social/favoritos","social/hashtag","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-ultra-simple","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-01T20:22:28.636Z] [iOS] [LOG] [Index] 🏠 Estado: {"hasUser":false,"loading":true}
+[2026-02-01T20:22:28.948Z] [iOS] [LOG] [RootLayout v141.0] 🎨 Hiding splash screen...
+[2026-02-01T20:22:29.079Z] [iOS] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ ========================================
+[2026-02-01T20:22:29.066Z] [iOS] [LOG] [InternalBytecode.js:1] [FilterContext] 📊 Processing 544 active locals...
+[2026-02-01T20:22:29.082Z] [iOS] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ Tipos: 8 - ["bar","cafe","cocteleria","discoteca","lounge","pub","restaurante","sala_conciertos"]
+[2026-02-01T20:22:29.081Z] [iOS] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ DYNAMIC OPTIONS LOADED:
+[2026-02-01T20:22:29.089Z] [iOS] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ Provincias: 1 - ["A Coruña"]
+[2026-02-01T20:22:29.552Z] [iOS] [LOG] [Favoritos v300.0] ✅ Filtered 0 locales from 0
+[2026-02-01T20:22:29.545Z] [iOS] [LOG] [Favoritos v300.0] 🔍 Filtering locales client-side, search: 
+[2026-02-01T20:22:29.232Z] [iOS] [LOG] [Index] 🏠 Estado: {"hasUser":true,"userEmail":"jorgepereznoyagh@gmail.com","userRole":"admin","loading":false}
+[2026-02-01T20:22:28.949Z] [iOS] [LOG] [InternalBytecode.js:1] [RootLayout v141.0] ✅ Splash screen hidden
+[2026-02-01T20:22:29.088Z] [iOS] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ Comunidades: 1 - ["España"]
+[2026-02-01T20:22:29.087Z] [iOS] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ Clientela: 6 - ["estudiantes","familias","grupos","ninos_bienvenidos","parejas","turistas"]
+[2026-02-01T20:22:29.085Z] [iOS] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ Ambientes: 8 - ["acogedor","animado","de_moda","elegante","familiar","juvenil","moderno","tranquilo"]
+[2026-02-01T20:22:29.179Z] [iOS] [LOG] [Index] 🚀 Redirigiendo a explorar
+[2026-02-01T20:22:29.381Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:29.084Z] [iOS] [LOG] [InternalBytecode.js:1] [FilterContext] ✅ Servicios: 21 - ["accesible_silla_ruedas","almuerzo","aparcamiento","cafe","cena","cerveza","cocteles","comida_vegetariana","deportes_tv","desayuno","dj","entrega_domicilio","musica_vivo","opciones_veganas","pago_efectivo","pago_tarjetas","para_llevar","sin_gluten","terraza_exterior","vino","wifi_gratis"]
+[2026-02-01T20:22:29.234Z] [iOS] [LOG] [InternalBytecode.js:1] [AvatarContext v145.0] 🔄 Loading avatar for user: 4f3ce732-f479-43f2-acb2-e92831c6bec0
+[2026-02-01T20:22:29.172Z] [iOS] [LOG] [AvatarContext v145.0] 🎨 Provider initialized
+[2026-02-01T20:22:29.388Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-02-01T20:22:29.406Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:22:29.447Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:29.343Z] [iOS] [LOG] [Explorar v295.0] 🔍 Filtering locales - total loaded: 0
+[2026-02-01T20:22:29.279Z] [iOS] [LOG] [AvatarContext v145.0] 🔔 Setting up real-time subscription for user: 4f3ce732-f479-43f2-acb2-e92831c6bec0
+[2026-02-01T20:22:29.362Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:29.316Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /explorar
+[2026-02-01T20:22:29.427Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:29.322Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-01T20:22:29.350Z] [iOS] [LOG] [Explorar v295.0] ✅ Filtered: 0 → Unique: 0 (removed 0 duplicates)
+[2026-02-01T20:22:29.369Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:29.440Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:29.434Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:29.375Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.down", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:29.420Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:29.412Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:29.397Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:29.573Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus.app", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:29.567Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:29.644Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "link", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:29.586Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "message.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:29.673Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bookmark", OUTLINED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:29.628Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "gearshape.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:29.637Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 13.68
+[2026-02-01T20:22:29.596Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:29.579Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bell.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:29.679Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.crop.square", OUTLINED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:29.709Z] [iOS] [LOG] [AdminAccess] Checking admin access: {"email":"jorgepereznoyagh@gmail.com","role":"admin","hasAdminRole":true,"isAuthorizedEmail":true,"hasAccess":true}
+[2026-02-01T20:22:29.692Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "photo.on.rectangle", OUTLINED, mode: monochrome, color: #6B7280, size: 48
+[2026-02-01T20:22:29.652Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "pencil", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:29.659Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus.circle.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:29.741Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.grid.3x3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-02-01T20:22:29.792Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-02-01T20:22:29.726Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cart.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-02-01T20:22:29.686Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "briefcase.fill", FILLED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:29.812Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #666, size: 24
+[2026-02-01T20:22:29.853Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:29.667Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.grid.3x3", OUTLINED, mode: monochrome, color: #14B8A6, size: 24
+[2026-02-01T20:22:29.774Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:29.800Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.circle.fill", FILLED, mode: monochrome, color: rgb(0, 122, 255), size: 24
+[2026-02-01T20:22:29.806Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "phone.fill", FILLED, mode: monochrome, color: #666, size: 24
+[2026-02-01T20:22:29.957Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📍 Step 1: Requesting location permission...
+[2026-02-01T20:22:29.860Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:29.847Z] [iOS] [LOG] [FloatingTabBar v283.0] ⚡ PROFILE ICON FIX - Shows icon immediately when not logged in (avatarUrl: null)
+[2026-02-01T20:22:30.055Z] [iOS] [LOG] [InternalBytecode.js:1] [Favoritos v300.0] Cargando locales guardados...
+[2026-02-01T20:22:30.110Z] [iOS] [LOG] [InternalBytecode.js:1] [MomentoCarousel] 🔄 Loading momento authors...
+[2026-02-01T20:22:30.498Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus", OUTLINED, mode: monochrome, color: rgb(0, 122, 255), size: 24
+[2026-02-01T20:22:30.005Z] [iOS] [LOG] [InternalBytecode.js:1] [Eventos v296.0] Cargando eventos...
+[2026-02-01T20:22:29.954Z] [iOS] [LOG] [Explorar v295.0] 📝 Search query changed: 
+[2026-02-01T20:22:29.879Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.7), size: 22
+[2026-02-01T20:22:30.052Z] [iOS] [LOG] [Favoritos v300.0] 📝 Search query changed: 
+[2026-02-01T20:22:30.741Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📍 Step 2: Getting current position...
+[2026-02-01T20:22:30.744Z] [iOS] [LOG] [InternalBytecode.js:1] [Perfil v103.0] 📡 No cache, loading from database...
+[2026-02-01T20:22:30.149Z] [iOS] [LOG] [InternalBytecode.js:1] [Empleo v94.0] Cargando perfiles profesionales...
+[2026-02-01T20:22:30.002Z] [iOS] [LOG] [Eventos v296.0] 📝 Search query changed: 
+[2026-02-01T20:22:30.145Z] [iOS] [LOG] [InternalBytecode.js:1] [Empleo v94.0] Cargando ofertas...
+[2026-02-01T20:22:30.103Z] [iOS] [LOG] [Favoritos v300.0] Displaying 0 of 0 locales
+[2026-02-01T20:22:30.656Z] [iOS] [LOG] [InternalBytecode.js:1] [AdminIndex v142.0] ✅ Admin permissions verified for: jorgepereznoyagh@gmail.com
+[2026-02-01T20:22:30.116Z] [iOS] [LOG] [InternalBytecode.js:1] [Social v100.0] Loading posts for user 4f3ce732-f479-43f2-acb2-e92831c6bec0 (NORMAL), page 1
+[2026-02-01T20:22:29.866Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:30.743Z] [iOS] [LOG] [InternalBytecode.js:1] [ProfileCache] ⏰ Cache expired for user:4f3ce732-f479-43f2-acb2-e92831c6bec0 (age: 811s)
+[2026-02-01T20:22:29.873Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.2.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:30.746Z] [iOS] [LOG] [InternalBytecode.js:1] [Perfil v103.0] 🔄 Loading profile data...
+[2026-02-01T20:22:30.492Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "gear", OUTLINED, mode: monochrome, color: rgb(0, 122, 255), size: 24
+[2026-02-01T20:22:30.142Z] [iOS] [LOG] [InternalBytecode.js:1] [AdminLayout] ✅ Admin access granted for: jorgepereznoyagh@gmail.com
+[2026-02-01T20:22:30.106Z] [iOS] [LOG] [InternalBytecode.js:1] [UnifiedMomentoAvatar v53.0] 🔍 Checking momentos for: {"userId":"4f3ce732-f479-43f2-acb2-e92831c6bec0"}
+[2026-02-01T20:22:30.651Z] [iOS] [LOG] [InternalBytecode.js:1] [AdminIndex v142.0] 🔍 Checking admin permissions...
+[2026-02-01T20:22:30.134Z] [iOS] [LOG] [InternalBytecode.js:1] [GestionScreen v245.0] Loading locales for user: 4f3ce732-f479-43f2-acb2-e92831c6bec0
+[2026-02-01T20:22:30.139Z] [iOS] [LOG] [InternalBytecode.js:1] [AdminLayout] 📋 Permission check: {"email":"jorgepereznoyagh@gmail.com","role":"admin","isAdmin":true,"isAuthorizedEmail":true,"hasAccess":true,"authorizedEmails":["jorgepereznoyagh@gmail.com"]}
+[2026-02-01T20:22:30.653Z] [iOS] [LOG] [InternalBytecode.js:1] [AdminIndex v142.0] 📋 Permission check: {"email":"jorgepereznoyagh@gmail.com","role":"admin","isAdmin":true,"isAuthorizedEmail":true,"hasAccess":true}
+[2026-02-01T20:22:30.137Z] [iOS] [LOG] [InternalBytecode.js:1] [AdminLayout] 🔍 Checking admin access...
+[2026-02-01T20:22:30.128Z] [iOS] [LOG] [InternalBytecode.js:1] [Perfil v103.0] ⚡ Loading from cache...
+[2026-02-01T20:22:30.760Z] [iOS] [LOG] [Explorar v295.0] 🔍 Applying debounced search
+[2026-02-01T20:22:30.760Z] [iOS] [LOG] [Eventos v296.0] 🔍 Applying debounced search
+[2026-02-01T20:22:30.839Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:30.800Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.2.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:30.771Z] [iOS] [LOG] [AvatarContext v145.0] 🎨 Provider initialized
+[2026-02-01T20:22:30.795Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:30.764Z] [iOS] [LOG] [InternalBytecode.js:1] [AvatarContext v145.0] ✅ Avatar loaded: {"userId":"4f3ce732-f479-43f2-acb2-e92831c6bec0","hasAvatar":true,"urlPreview":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v"}
+[2026-02-01T20:22:30.814Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] ✅ Step 4: Valid location set: {"lat":43.040870873086554,"lng":-8.423124751476461}
+[2026-02-01T20:22:30.824Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:30.869Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:30.817Z] [iOS] [LOG] [InternalBytecode.js:1] [Favoritos v300.0] User location obtained: {"altitude":274.1900285034181,"latitude":43.04087796219849,"longitude":-8.423113921874718,"altitudeAccuracy":30.00018844149006,"heading":-1,"accuracy":7.095014,"speed":-1}
+[2026-02-01T20:22:30.816Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 🎯 Step 5: Marking location as READY - intelligent preload will start
+[2026-02-01T20:22:30.829Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:30.966Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📡 Loading page 1 from server (no cache available)...
+[2026-02-01T20:22:30.813Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📍 Step 3: Location obtained: {"lat":43.040870873086554,"lng":-8.423124751476461}
+[2026-02-01T20:22:30.854Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:22:30.761Z] [iOS] [LOG] [Favoritos v300.0] 🔍 Applying debounced search
+[2026-02-01T20:22:30.785Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:30.859Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:31.111Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "message.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:30.988Z] [iOS] [LOG] [Explorar v295.0] 🔍 Filtering locales - total loaded: 0
+[2026-02-01T20:22:31.117Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:30.780Z] [iOS] [LOG] [FloatingTabBar v283.0] ⚡ PROFILE ICON FIX - Shows icon immediately when not logged in (avatarUrl: present)
+[2026-02-01T20:22:30.879Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:30.844Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-02-01T20:22:30.864Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:30.849Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:30.790Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:30.959Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 🚀 loadLocales called - page: 1 append: false locationReady: true
+[2026-02-01T20:22:30.834Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.down", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:30.950Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 🎯 PRIORITY: Loading "Todas" category first...
+[2026-02-01T20:22:30.972Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 🎯 hasValidLocation: true
+[2026-02-01T20:22:30.874Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:30.974Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📊 Requesting offset: 0 limit: 20
+[2026-02-01T20:22:30.945Z] [iOS] [LOG] [Explorar v295.0] 🚀 Location is ready - starting intelligent preload...
+[2026-02-01T20:22:30.885Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:30.969Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📍 Using location params: {"user_lat":43.040870873086554,"user_lng":-8.423124751476461}
+[2026-02-01T20:22:30.961Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 🔄 Filters changed, resetting...
+[2026-02-01T20:22:30.948Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 🚀 Starting intelligent category preload...
+[2026-02-01T20:22:31.100Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus.app", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:31.095Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:31.150Z] [iOS] [LOG] [InternalBytecode.js:1] [Favoritos v300.0] Locales guardados cargados: 1
+[2026-02-01T20:22:30.964Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] ⚡ First load - showing skeleton UI
+[2026-02-01T20:22:31.105Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bell.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:31.160Z] [iOS] [LOG] [InternalBytecode.js:1] [Empleo v94.0] Ofertas cargadas: 0
+[2026-02-01T20:22:30.994Z] [iOS] [LOG] [Explorar v295.0] ✅ Filtered: 0 → Unique: 0 (removed 0 duplicates)
+[2026-02-01T20:22:31.149Z] [iOS] [LOG] [InternalBytecode.js:1] [UnifiedMomentoAvatar v53.0] ℹ️ No momentos found
+[2026-02-01T20:22:31.159Z] [iOS] [LOG] [InternalBytecode.js:1] [GestionScreen v245.0] No locales found for user
+[2026-02-01T20:22:31.087Z] [iOS] [LOG] [InternalBytecode.js:1] [ShoppingCart v244.0] Cart items count: 0
+[2026-02-01T20:22:30.954Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📥 Preloading category: todas
+[2026-02-01T20:22:31.178Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-01T20:22:31.201Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:31.216Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:22:31.248Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:31.374Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: #6B7280, size: 64
+[2026-02-01T20:22:31.227Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:31.211Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:31.153Z] [iOS] [LOG] [InternalBytecode.js:1] [SolicitudStatus v2.0] Loaded request: undefined
+[2026-02-01T20:22:31.232Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:31.162Z] [iOS] [LOG] [InternalBytecode.js:1] [Empleo v94.0] Perfiles cargados: 0
+[2026-02-01T20:22:31.436Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 13.68
+[2026-02-01T20:22:31.493Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cart.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-02-01T20:22:31.221Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:31.206Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-02-01T20:22:31.694Z] [iOS] [LOG] [InternalBytecode.js:1] [UnifiedMomentoAvatar v53.0] 🔍 Checking momentos for: {"userId":"4f3ce732-f479-43f2-acb2-e92831c6bec0"}
+[2026-02-01T20:22:31.191Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:31.318Z] [iOS] [LOG] [Favoritos v300.0] ✅ Filtered 1 locales from 1
+[2026-02-01T20:22:31.168Z] [iOS] [LOG] [AvatarContext v145.0] 🎨 Provider initialized
+[2026-02-01T20:22:31.173Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /explorar
+[2026-02-01T20:22:31.186Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:31.237Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:31.575Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.2.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:31.431Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "gearshape.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:31.196Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.down", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:31.499Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-02-01T20:22:31.243Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:31.312Z] [iOS] [LOG] [Favoritos v300.0] 🔍 Filtering locales client-side, search: 
+[2026-02-01T20:22:31.570Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:31.783Z] [iOS] [LOG] [InternalBytecode.js:1] [FavoritesContext v289.0] 📥 Loading favorites for user: 4f3ce732-f479-43f2-acb2-e92831c6bec0
+[2026-02-01T20:22:31.481Z] [iOS] [LOG] [AdminAccess] Checking admin access: {"email":"jorgepereznoyagh@gmail.com","role":"admin","hasAdminRole":true,"isAuthorizedEmail":true,"hasAccess":true}
+[2026-02-01T20:22:31.691Z] [iOS] [LOG] [Favoritos v300.0] Displaying 1 of 1 locales
+[2026-02-01T20:22:31.707Z] [iOS] [LOG] [InternalBytecode.js:1] [AdminIndex v142.0] 🔍 Checking admin permissions...
+[2026-02-01T20:22:31.458Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.grid.3x3", OUTLINED, mode: monochrome, color: #14B8A6, size: 24
+[2026-02-01T20:22:31.714Z] [iOS] [LOG] [InternalBytecode.js:1] [AdminIndex v142.0] ✅ Admin permissions verified for: jorgepereznoyagh@gmail.com
+[2026-02-01T20:22:31.380Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-02-01T20:22:31.442Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "link", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:31.729Z] [iOS] [LOG] [InternalBytecode.js:1] [Perfil v103.0] 🔄 Loading profile data...
+[2026-02-01T20:22:31.726Z] [iOS] [LOG] [InternalBytecode.js:1] [ProfileCache] ⏰ Cache expired for user:4f3ce732-f479-43f2-acb2-e92831c6bec0 (age: 812s)
+[2026-02-01T20:22:31.453Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus.circle.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:31.515Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2", OUTLINED, mode: monochrome, color: #6B7280, size: 64
+[2026-02-01T20:22:31.539Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "briefcase.fill", FILLED, mode: monochrome, color: #6B7280, size: 64
+[2026-02-01T20:22:31.723Z] [iOS] [LOG] [InternalBytecode.js:1] [AdminLayout] ✅ Admin access granted for: jorgepereznoyagh@gmail.com
+[2026-02-01T20:22:31.721Z] [iOS] [LOG] [InternalBytecode.js:1] [AdminLayout] 📋 Permission check: {"email":"jorgepereznoyagh@gmail.com","role":"admin","isAdmin":true,"isAuthorizedEmail":true,"hasAccess":true,"authorizedEmails":["jorgepereznoyagh@gmail.com"]}
+[2026-02-01T20:22:31.555Z] [iOS] [LOG] [FloatingTabBar v283.0] ⚡ PROFILE ICON FIX - Shows icon immediately when not logged in (avatarUrl: present)
+[2026-02-01T20:22:31.800Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-02-01T20:22:31.719Z] [iOS] [LOG] [InternalBytecode.js:1] [AdminLayout] 🔍 Checking admin access...
+[2026-02-01T20:22:31.565Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:31.527Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:31.463Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bookmark", OUTLINED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:31.727Z] [iOS] [LOG] [InternalBytecode.js:1] [Perfil v103.0] 📡 No cache, loading from database...
+[2026-02-01T20:22:31.789Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FACC15, size: 12
+[2026-02-01T20:22:31.795Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:31.448Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "pencil", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:31.806Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "arrow.triangle.turn.up.right.diamond.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:31.510Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus.circle.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-02-01T20:22:31.473Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "briefcase.fill", FILLED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:31.701Z] [iOS] [LOG] [InternalBytecode.js:1] [Perfil v103.0] ⚡ Loading from cache...
+[2026-02-01T20:22:31.710Z] [iOS] [LOG] [InternalBytecode.js:1] [AdminIndex v142.0] 📋 Permission check: {"email":"jorgepereznoyagh@gmail.com","role":"admin","isAdmin":true,"isAuthorizedEmail":true,"hasAccess":true}
+[2026-02-01T20:22:31.504Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "crown.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-02-01T20:22:31.468Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.crop.square", OUTLINED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:31.644Z] [iOS] [LOG] [InternalBytecode.js:1] [Favoritos v300.0] Cargando locales guardados...
+[2026-02-01T20:22:31.704Z] [iOS] [LOG] [InternalBytecode.js:1] [GestionScreen v245.0] Loading locales for user: 4f3ce732-f479-43f2-acb2-e92831c6bec0
+[2026-02-01T20:22:31.560Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:31.908Z] [iOS] [LOG] [InternalBytecode.js:1] [MomentoCarousel] ℹ️ No active momentos found
+[2026-02-01T20:22:31.911Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] ✅ Loaded 20 locales from server
+[2026-02-01T20:22:31.913Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 🔄 Replacing with 20 locales
+[2026-02-01T20:22:31.941Z] [iOS] [LOG] [InternalBytecode.js:1] [Favoritos v300.0] Locales guardados cargados: 1
+[2026-02-01T20:22:31.929Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📥 Preloading category: pub
+[2026-02-01T20:22:31.921Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] ✅ "Todas" category loaded - user can now see content instantly
+[2026-02-01T20:22:31.920Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] ✅ Preloaded 20 locales for category: todas
+[2026-02-01T20:22:31.979Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:31.994Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:22:31.924Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📥 Preloading category: cafe
+[2026-02-01T20:22:31.922Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📦 Background: Preloading other categories in parallel...
+[2026-02-01T20:22:31.914Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📊 Got 20 locales, expected 20 - hasMore: true
+[2026-02-01T20:22:31.969Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:31.999Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:32.105Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:31.952Z] [iOS] [LOG] [Explorar v295.0] 🔍 Filtering locales - total loaded: 20
+[2026-02-01T20:22:31.931Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📥 Preloading category: cocteleria
+[2026-02-01T20:22:32.025Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:31.984Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-02-01T20:22:32.004Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:32.020Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:32.209Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 32
+[2026-02-01T20:22:32.146Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 13.68
+[2026-02-01T20:22:31.926Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📥 Preloading category: restaurante
+[2026-02-01T20:22:31.958Z] [iOS] [LOG] [Explorar v295.0] ✅ Filtered: 20 → Unique: 20 (removed 0 duplicates)
+[2026-02-01T20:22:32.038Z] [iOS] [LOG] [Favoritos v300.0] 🔍 Filtering locales client-side, search: 
+[2026-02-01T20:22:32.140Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "gearshape.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:31.933Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📥 Preloading category: discoteca
+[2026-02-01T20:22:31.939Z] [iOS] [LOG] [InternalBytecode.js:1] [UnifiedMomentoAvatar v53.0] ℹ️ No momentos found
+[2026-02-01T20:22:32.014Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:32.009Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:31.964Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:31.989Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:32.123Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:32.100Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FACC15, size: 12
+[2026-02-01T20:22:31.974Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.down", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:32.204Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.3.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 32
+[2026-02-01T20:22:31.927Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📥 Preloading category: bar
+[2026-02-01T20:22:32.183Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "briefcase.fill", FILLED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:32.178Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.crop.square", OUTLINED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:32.130Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "message.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:32.094Z] [iOS] [LOG] [InternalBytecode.js:1] [FavoritesContext v289.0] 📥 Loading favorites for user: 4f3ce732-f479-43f2-acb2-e92831c6bec0
+[2026-02-01T20:22:32.044Z] [iOS] [LOG] [Favoritos v300.0] ✅ Filtered 1 locales from 1
+[2026-02-01T20:22:32.199Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "arrow.clockwise", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-02-01T20:22:32.241Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2.fill", FILLED, mode: monochrome, color: #10B981, size: 32
+[2026-02-01T20:22:32.135Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bell.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:32.163Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus.circle.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:32.214Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar.badge.plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 32
+[2026-02-01T20:22:32.219Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "photo.stack.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 32
+[2026-02-01T20:22:32.157Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "pencil", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:32.261Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.badge.plus.fill", FILLED, mode: monochrome, color: #EC4899, size: 32
+[2026-02-01T20:22:32.335Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "lifepreserver.fill", FILLED, mode: monochrome, color: #10B981, size: 32
+[2026-02-01T20:22:32.173Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bookmark", OUTLINED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:32.151Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "link", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:32.272Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #F59E0B, size: 32
+[2026-02-01T20:22:32.325Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "doc.text.fill", FILLED, mode: monochrome, color: #3B82F6, size: 32
+[2026-02-01T20:22:32.345Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "flag.fill", FILLED, mode: monochrome, color: #EF4444, size: 32
+[2026-02-01T20:22:32.303Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar.badge.plus", OUTLINED, mode: monochrome, color: #8B5CF6, size: 32
+[2026-02-01T20:22:32.470Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.crop.circle.badge.xmark", OUTLINED, mode: monochrome, color: #EF4444, size: 32
+[2026-02-01T20:22:32.356Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chart.line.uptrend.xyaxis", OUTLINED, mode: monochrome, color: #8B5CF6, size: 32
+[2026-02-01T20:22:32.314Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.circle.fill", FILLED, mode: monochrome, color: #F59E0B, size: 32
+[2026-02-01T20:22:32.449Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "eurosign.circle.fill", FILLED, mode: monochrome, color: #EF4444, size: 32
+[2026-02-01T20:22:32.230Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.3.fill", FILLED, mode: monochrome, color: #3B82F6, size: 32
+[2026-02-01T20:22:32.397Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash.circle.fill", FILLED, mode: monochrome, color: #EF4444, size: 32
+[2026-02-01T20:22:32.377Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #EC4899, size: 32
+[2026-02-01T20:22:32.629Z] [iOS] [LOG] [Explorar v295.0] 🎯 Updating displayed locales - count: 20
+[2026-02-01T20:22:32.418Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "exclamationmark.triangle.fill", FILLED, mode: monochrome, color: #EF4444, size: 32
+[2026-02-01T20:22:32.387Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash.circle.fill", FILLED, mode: monochrome, color: #DC2626, size: 32
+[2026-02-01T20:22:32.189Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.stack.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:32.168Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.grid.3x3", OUTLINED, mode: monochrome, color: #14B8A6, size: 24
+[2026-02-01T20:22:32.886Z] [iOS] [LOG] [AuthContext v289.0] 📱 Starting background push notification registration...
+[2026-02-01T20:22:32.282Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "list.bullet.rectangle", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-02-01T20:22:32.366Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.arrow.down.fill", FILLED, mode: monochrome, color: #06B6D4, size: 32
+[2026-02-01T20:22:32.251Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.badge.key.fill", FILLED, mode: monochrome, color: #8B5CF6, size: 32
+[2026-02-01T20:22:32.225Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "creditcard.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 32
+[2026-02-01T20:22:32.675Z] [iOS] [LOG] [Favoritos v300.0] Displaying 1 of 1 locales
+[2026-02-01T20:22:32.889Z] [iOS] [LOG] [InternalBytecode.js:1] [Notifications] 🔔 Iniciando registro de notificaciones...
+[2026-02-01T20:22:32.293Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "creditcard.and.123", OUTLINED, mode: monochrome, color: #6366F1, size: 32
+[2026-02-01T20:22:32.235Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:32.428Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "xmark.shield.fill", FILLED, mode: monochrome, color: #6B7280, size: 32
+[2026-02-01T20:22:32.538Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-02-01T20:22:32.438Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash.slash.fill", FILLED, mode: monochrome, color: #DC2626, size: 32
+[2026-02-01T20:22:32.460Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "externaldrive.fill", FILLED, mode: monochrome, color: #6366F1, size: 32
+[2026-02-01T20:22:32.408Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "doc.on.doc.fill", FILLED, mode: monochrome, color: #F59E0B, size: 32
+[2026-02-01T20:22:32.480Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "lock.shield.fill", FILLED, mode: monochrome, color: #DC2626, size: 32
+[2026-02-01T20:22:32.830Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 14
+[2026-02-01T20:22:32.905Z] [iOS] [WARN] [InternalBytecode.js:1] [Notifications]    1. npx eas project:init
+[2026-02-01T20:22:32.900Z] [iOS] [LOG] [Explorar v295.0] ✅ Display updated with 20 venues
+[2026-02-01T20:22:32.902Z] [iOS] [LOG] [InternalBytecode.js:1] [Notifications] 📋 Estado de permisos: granted
+[2026-02-01T20:22:32.904Z] [iOS] [WARN] [InternalBytecode.js:1] [Notifications] Para configurar:
+[2026-02-01T20:22:32.916Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] ✅ Preloaded 0 locales for category: cocteleria
+[2026-02-01T20:22:32.908Z] [iOS] [LOG] [InternalBytecode.js:1] [GestionScreen v245.0] No locales found for user
+[2026-02-01T20:22:32.913Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 📥 Setting isLoadingMore = false
+[2026-02-01T20:22:32.923Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] ✅ Preloaded 17 locales for category: bar
+[2026-02-01T20:22:32.903Z] [iOS] [WARN] [InternalBytecode.js:1] [Notifications] ⚠️ EAS Project ID no configurado
+[2026-02-01T20:22:32.926Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] ✅ All categories preloaded successfully!
+[2026-02-01T20:22:32.918Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] ✅ Preloaded 12 locales for category: restaurante
+[2026-02-01T20:22:32.936Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:32.907Z] [iOS] [WARN] [InternalBytecode.js:1] [Notifications]    2. npx eas build --profile development --platform android
+[2026-02-01T20:22:32.976Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:32.966Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:22:32.951Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:32.912Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] ✅ Loaded 0 active events in bulk
+[2026-02-01T20:22:32.910Z] [iOS] [LOG] [InternalBytecode.js:1] [FavoritesContext v289.0] ✅ Loaded 1 favorites
+[2026-02-01T20:22:32.914Z] [iOS] [LOG] [InternalBytecode.js:1] [Social v100.0] ✅ Loaded friends locations: 0
+[2026-02-01T20:22:32.956Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-02-01T20:22:32.928Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] 🎉 User can now switch between categories INSTANTLY with zero loading time
+[2026-02-01T20:22:32.992Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:33.713Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bookmark", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-02-01T20:22:32.922Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] ✅ Preloaded 4 locales for category: cafe
+[2026-02-01T20:22:32.971Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:32.925Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] ✅ Preloaded 4 locales for category: pub
+[2026-02-01T20:22:33.825Z] [iOS] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocLwip6UL-...","safeImageUrl":"valid","avatarTimestamp":null,"imageError":false,"shouldShowImage":true}
+[2026-02-01T20:22:32.946Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.down", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:33.008Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FACC15, size: 12
+[2026-02-01T20:22:32.981Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:32.941Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:32.961Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:32.997Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:33.671Z] [iOS] [LOG] [useInteractionContext] 🎭 Interaction context: {"interactionUserId":"4f3ce732-f479-43f2-acb2-e92831c6bec0","interactionType":"usuario","interactionLocalId":null,"isInteractingAsLocal":false,"displayName":"Jorge Pérez","displayAvatar":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/avatars/4f3ce732-f479-43f2-acb2-e92831c6bec0/4f3ce732-f479-43f2-acb2-e92831c6bec0-1768716683513.png"}
+[2026-02-01T20:22:32.920Z] [iOS] [LOG] [InternalBytecode.js:1] [Explorar v295.0] ✅ Preloaded 2 locales for category: discoteca
+[2026-02-01T20:22:33.685Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "ellipsis", OUTLINED, mode: monochrome, color: #111827, size: 24
+[2026-02-01T20:22:33.645Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus.app", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:32.986Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:33.662Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:33.181Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 20
+[2026-02-01T20:22:33.019Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-02-01T20:22:33.679Z] [iOS] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":null,"imageError":false,"shouldShowImage":true}
+[2026-02-01T20:22:34.024Z] [iOS] [LOG] [AdminAccess] Checking admin access: {"email":"jorgepereznoyagh@gmail.com","role":"admin","hasAdminRole":true,"isAuthorizedEmail":true,"hasAccess":true}
+[2026-02-01T20:22:33.641Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:33.708Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-02-01T20:22:33.024Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "arrow.triangle.turn.up.right.diamond.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:33.003Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #92400E, size: 12
+[2026-02-01T20:22:33.692Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 100
+[2026-02-01T20:22:34.035Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-02-01T20:22:33.743Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-02-01T20:22:33.655Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "message.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:33.703Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "message", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-02-01T20:22:33.650Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bell.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:33.864Z] [iOS] [LOG] [PostLikesAvatars v101.0] 📊 Generating text: {"currentUserHasLiked":false,"currentTotalLikes":2,"tempProfilesCount":0,"otherUsersCount":0}
+[2026-02-01T20:22:33.014Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:33.722Z] [iOS] [LOG] [PostLikesAvatars v101.0] 📊 Generating text: {"currentUserHasLiked":false,"currentTotalLikes":1,"tempProfilesCount":0,"otherUsersCount":0}
+[2026-02-01T20:22:34.088Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.3.fill", FILLED, mode: monochrome, color: #3B82F6, size: 32
+[2026-02-01T20:22:34.040Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "crown.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-02-01T20:22:33.698Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 26
+[2026-02-01T20:22:34.030Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cart.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-02-01T20:22:34.273Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "exclamationmark.triangle.fill", FILLED, mode: monochrome, color: #EF4444, size: 32
+[2026-02-01T20:22:34.045Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus.circle.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-02-01T20:22:34.093Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:34.078Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "photo.stack.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 32
+[2026-02-01T20:22:34.153Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "creditcard.and.123", OUTLINED, mode: monochrome, color: #6366F1, size: 32
+[2026-02-01T20:22:34.113Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.badge.key.fill", FILLED, mode: monochrome, color: #8B5CF6, size: 32
+[2026-02-01T20:22:34.058Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "arrow.clockwise", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-02-01T20:22:34.143Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "list.bullet.rectangle", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-02-01T20:22:34.068Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 32
+[2026-02-01T20:22:34.098Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2.fill", FILLED, mode: monochrome, color: #10B981, size: 32
+[2026-02-01T20:22:34.050Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2", OUTLINED, mode: monochrome, color: #6B7280, size: 64
+[2026-02-01T20:22:34.962Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 Setting up real-time subscription for post: 14f812e4-c91f-4125-aab5-f3e34ab83041
+[2026-02-01T20:22:34.063Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.3.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 32
+[2026-02-01T20:22:35.063Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 localLikes changed for post: b959cda2-cc22-4207-aa79-fe55dd912816 {"count":0,"users":[]}
+[2026-02-01T20:22:34.133Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #F59E0B, size: 32
+[2026-02-01T20:22:34.531Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ℹ️ No likes to display, clearing tempProfiles
+[2026-02-01T20:22:34.769Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 Setting up real-time subscription for post: 37012199-e849-4a1a-943d-58cb11e8ae2d
+[2026-02-01T20:22:34.676Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 localLikes changed for post: 37012199-e849-4a1a-943d-58cb11e8ae2d {"count":0,"users":[]}
+[2026-02-01T20:22:35.353Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v102.0] 🔄 Loading initial likes for post: 6913b70e-134c-47bb-8da1-71efc73a2ec5
+[2026-02-01T20:22:35.490Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] 📡 Subscription status: SUBSCRIBED
+[2026-02-01T20:22:34.333Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "lock.shield.fill", FILLED, mode: monochrome, color: #DC2626, size: 32
+[2026-02-01T20:22:34.073Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar.badge.plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 32
+[2026-02-01T20:22:34.173Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.circle.fill", FILLED, mode: monochrome, color: #F59E0B, size: 32
+[2026-02-01T20:22:34.213Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chart.line.uptrend.xyaxis", OUTLINED, mode: monochrome, color: #8B5CF6, size: 32
+[2026-02-01T20:22:34.163Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar.badge.plus", OUTLINED, mode: monochrome, color: #8B5CF6, size: 32
+[2026-02-01T20:22:34.123Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.badge.plus.fill", FILLED, mode: monochrome, color: #EC4899, size: 32
+[2026-02-01T20:22:35.207Z] [iOS] [LOG] [PublicacionCard v102.0] 🔄 Setting up real-time subscription for post: b959cda2-cc22-4207-aa79-fe55dd912816
+[2026-02-01T20:22:34.576Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 Setting up real-time subscription for post: 663ba04f-7930-461b-b50c-1c1252a9dd78
+[2026-02-01T20:22:34.313Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "externaldrive.fill", FILLED, mode: monochrome, color: #6366F1, size: 32
+[2026-02-01T20:22:34.083Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "creditcard.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 32
+[2026-02-01T20:22:34.203Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "flag.fill", FILLED, mode: monochrome, color: #EF4444, size: 32
+[2026-02-01T20:22:34.193Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "lifepreserver.fill", FILLED, mode: monochrome, color: #10B981, size: 32
+[2026-02-01T20:22:35.157Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 Setting up real-time subscription for post: b959cda2-cc22-4207-aa79-fe55dd912816
+[2026-02-01T20:22:34.293Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash.slash.fill", FILLED, mode: monochrome, color: #DC2626, size: 32
+[2026-02-01T20:22:34.243Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash.circle.fill", FILLED, mode: monochrome, color: #DC2626, size: 32
+[2026-02-01T20:22:34.263Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "doc.on.doc.fill", FILLED, mode: monochrome, color: #F59E0B, size: 32
+[2026-02-01T20:22:34.283Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "xmark.shield.fill", FILLED, mode: monochrome, color: #6B7280, size: 32
+[2026-02-01T20:22:34.528Z] [iOS] [LOG] [PostLikesAvatars v101.0] ✅ State updated: {"userLiked":false,"totalLikes":0}
+[2026-02-01T20:22:35.349Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 Setting up real-time subscription for post: 6913b70e-134c-47bb-8da1-71efc73a2ec5
+[2026-02-01T20:22:34.627Z] [iOS] [LOG] [PublicacionCard v102.0] 🔄 Setting up real-time subscription for post: 663ba04f-7930-461b-b50c-1c1252a9dd78
+[2026-02-01T20:22:35.255Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 localLikes changed for post: 6913b70e-134c-47bb-8da1-71efc73a2ec5 {"count":0,"users":[]}
+[2026-02-01T20:22:34.303Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "eurosign.circle.fill", FILLED, mode: monochrome, color: #EF4444, size: 32
+[2026-02-01T20:22:34.427Z] [iOS] [LOG] [InternalBytecode.js:1] [UnifiedMomentoAvatar v53.0] 🔍 Checking momentos for: {"userId":"4f3ce732-f479-43f2-acb2-e92831c6bec0"}
+[2026-02-01T20:22:34.183Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "doc.text.fill", FILLED, mode: monochrome, color: #3B82F6, size: 32
+[2026-02-01T20:22:34.223Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.arrow.down.fill", FILLED, mode: monochrome, color: #06B6D4, size: 32
+[2026-02-01T20:22:34.323Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.crop.circle.badge.xmark", OUTLINED, mode: monochrome, color: #EF4444, size: 32
+[2026-02-01T20:22:34.431Z] [iOS] [LOG] [InternalBytecode.js:1] [MomentoCarousel] 🔄 Loading momento authors...
+[2026-02-01T20:22:35.014Z] [iOS] [LOG] [PublicacionCard v102.0] 🔄 Setting up real-time subscription for post: 14f812e4-c91f-4125-aab5-f3e34ab83041
+[2026-02-01T20:22:34.819Z] [iOS] [LOG] [PublicacionCard v102.0] 🔄 Setting up real-time subscription for post: 37012199-e849-4a1a-943d-58cb11e8ae2d
+[2026-02-01T20:22:35.484Z] [iOS] [LOG] [MiniFoodPlateAvatar v48.0] ✅ Image loaded successfully: https://embntaqwlwmgazvrglaf.supabase.co/storage/v
+[2026-02-01T20:22:34.253Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash.circle.fill", FILLED, mode: monochrome, color: #EF4444, size: 32
+[2026-02-01T20:22:34.773Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v102.0] 🔄 Loading initial likes for post: 37012199-e849-4a1a-943d-58cb11e8ae2d
+[2026-02-01T20:22:35.493Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v102.0] 📡 Subscription status: SUBSCRIBED
+[2026-02-01T20:22:35.161Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v102.0] 🔄 Loading initial likes for post: b959cda2-cc22-4207-aa79-fe55dd912816
+[2026-02-01T20:22:34.233Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #EC4899, size: 32
+[2026-02-01T20:22:34.968Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v102.0] 🔄 Loading initial likes for post: 14f812e4-c91f-4125-aab5-f3e34ab83041
+[2026-02-01T20:22:35.515Z] [iOS] [LOG] [MiniFoodPlateAvatar v48.0] ✅ Image loaded successfully: https://lh3.googleusercontent.com/a/ACg8ocLwip6UL-
+[2026-02-01T20:22:34.581Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v102.0] 🔄 Loading initial likes for post: 663ba04f-7930-461b-b50c-1c1252a9dd78
+[2026-02-01T20:22:34.868Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 localLikes changed for post: 14f812e4-c91f-4125-aab5-f3e34ab83041 {"count":0,"users":[]}
+[2026-02-01T20:22:35.399Z] [iOS] [LOG] [PublicacionCard v102.0] 🔄 Setting up real-time subscription for post: 6913b70e-134c-47bb-8da1-71efc73a2ec5
+[2026-02-01T20:22:34.482Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 localLikes changed for post: 663ba04f-7930-461b-b50c-1c1252a9dd78 {"count":0,"users":[]}
+[2026-02-01T20:22:35.542Z] [iOS] [LOG] [AuthContext v289.0] 📱 Starting background push notification registration...
+[2026-02-01T20:22:35.544Z] [iOS] [LOG] [InternalBytecode.js:1] [Notifications] 🔔 Iniciando registro de notificaciones...
+[2026-02-01T20:22:35.549Z] [iOS] [LOG] [InternalBytecode.js:1] [Eventos v296.0] Eventos cargados: 0
+[2026-02-01T20:22:35.572Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:35.587Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-02-01T20:22:35.567Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:35.597Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:22:35.559Z] [iOS] [WARN] [InternalBytecode.js:1] [Notifications]    2. npx eas build --profile development --platform android
+[2026-02-01T20:22:35.556Z] [iOS] [WARN] [InternalBytecode.js:1] [Notifications] Para configurar:
+[2026-02-01T20:22:35.555Z] [iOS] [WARN] [InternalBytecode.js:1] [Notifications] ⚠️ EAS Project ID no configurado
+[2026-02-01T20:22:35.554Z] [iOS] [LOG] [InternalBytecode.js:1] [Notifications] 📋 Estado de permisos: granted
+[2026-02-01T20:22:35.550Z] [iOS] [LOG] [InternalBytecode.js:1] [Social v100.0] ✅ Loaded friends locations: 0
+[2026-02-01T20:22:35.624Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:35.602Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:35.558Z] [iOS] [WARN] [InternalBytecode.js:1] [Notifications]    1. npx eas project:init
+[2026-02-01T20:22:35.551Z] [iOS] [LOG] [InternalBytecode.js:1] [FavoritesContext v289.0] ✅ Loaded 1 favorites
+[2026-02-01T20:22:36.382Z] [iOS] [LOG] [InternalBytecode.js:1] [UnifiedMomentoAvatar v53.0] 🔍 Checking momentos for: {"userId":"4f3ce732-f479-43f2-acb2-e92831c6bec0"}
+[2026-02-01T20:22:36.212Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar", OUTLINED, mode: monochrome, color: #6B7280, size: 64
+[2026-02-01T20:22:35.629Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:35.592Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:35.577Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.down", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:36.308Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "message.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:35.609Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:35.640Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FACC15, size: 12
+[2026-02-01T20:22:35.614Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:36.303Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bell.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:35.656Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "arrow.triangle.turn.up.right.diamond.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:36.298Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus.app", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:36.370Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-02-01T20:22:35.582Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:36.314Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:35.619Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:35.660Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 14
+[2026-02-01T20:22:36.293Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:35.635Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #92400E, size: 12
+[2026-02-01T20:22:35.650Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-02-01T20:22:35.802Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 20
+[2026-02-01T20:22:36.386Z] [iOS] [LOG] [InternalBytecode.js:1] [MomentoCarousel] 🔄 Loading momento authors...
+[2026-02-01T20:22:35.645Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:36.436Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v102.0] ✅ Loaded initial likes: 2
+[2026-02-01T20:22:36.437Z] [iOS] [LOG] [InternalBytecode.js:1] [MomentoCarousel] ℹ️ No active momentos found
+[2026-02-01T20:22:36.467Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 26
+[2026-02-01T20:22:36.438Z] [iOS] [LOG] [InternalBytecode.js:1] [TagDisplay] Loaded tags: 0
+[2026-02-01T20:22:36.477Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-02-01T20:22:36.461Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 100
+[2026-02-01T20:22:36.716Z] [iOS] [LOG] [PostLikesAvatars v101.0] ✅ State updated: {"userLiked":true,"totalLikes":2}
+[2026-02-01T20:22:36.721Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ✅ OPTIMISTIC: User avatar added instantly
+[2026-02-01T20:22:36.456Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "ellipsis", OUTLINED, mode: monochrome, color: #111827, size: 24
+[2026-02-01T20:22:36.860Z] [iOS] [LOG] [PostLikesAvatars v101.0] 📊 Generating text: {"currentUserHasLiked":true,"currentTotalLikes":1,"tempProfilesCount":1,"otherUsersCount":0}
+[2026-02-01T20:22:36.842Z] [iOS] [LOG] [PostLikesAvatars v101.0] 📊 Generating text: {"currentUserHasLiked":true,"currentTotalLikes":2,"tempProfilesCount":1,"otherUsersCount":0}
+[2026-02-01T20:22:36.451Z] [iOS] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-01-18T06:11:24.429709+00:00","imageError":false,"shouldShowImage":true}
+[2026-02-01T20:22:36.472Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "message", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-02-01T20:22:36.928Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 26
+[2026-02-01T20:22:36.671Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 localLikes changed for post: 663ba04f-7930-461b-b50c-1c1252a9dd78 {"count":2,"users":["4f3ce732-f479-43f2-acb2-e92831c6bec0","a5def648-6df3-47ae-885e-d15d0a0266ae"]}
+[2026-02-01T20:22:36.816Z] [iOS] [LOG] [PostLikesAvatars v101.0] ✅ State updated: {"userLiked":true,"totalLikes":1}
+[2026-02-01T20:22:36.440Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v102.0] ✅ Loaded initial likes: 1
+[2026-02-01T20:22:36.824Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] 🔍 Fetching user data in background for: ["4f3ce732-f479-43f2-acb2-e92831c6bec0"]
+[2026-02-01T20:22:36.719Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ➕ OPTIMISTIC: Adding current user profile IMMEDIATELY
+[2026-02-01T20:22:36.527Z] [iOS] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocLwip6UL-...","safeImageUrl":"valid","avatarTimestamp":"2025-12-29T11:51:00.075733+00:00","imageError":false,"shouldShowImage":true}
+[2026-02-01T20:22:37.235Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 localLikes changed for post: b959cda2-cc22-4207-aa79-fe55dd912816 {"count":2,"users":["4f3ce732-f479-43f2-acb2-e92831c6bec0","f730677c-1778-4db2-b945-a62b35264dfe"]}
+[2026-02-01T20:22:36.943Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bookmark", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-02-01T20:22:36.724Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] 🔍 Fetching user data in background for: ["4f3ce732-f479-43f2-acb2-e92831c6bec0","a5def648-6df3-47ae-885e-d15d0a0266ae"]
+[2026-02-01T20:22:36.482Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bookmark", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-02-01T20:22:36.888Z] [iOS] [LOG] [MiniFoodPlateAvatar v48.0] ✅ Image loaded successfully: https://embntaqwlwmgazvrglaf.supabase.co/storage/v
+[2026-02-01T20:22:36.770Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 localLikes changed for post: 37012199-e849-4a1a-943d-58cb11e8ae2d {"count":1,"users":["4f3ce732-f479-43f2-acb2-e92831c6bec0"]}
+[2026-02-01T20:22:36.901Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v102.0] ✅ Loaded initial likes: 2
+[2026-02-01T20:22:36.895Z] [iOS] [LOG] [MiniFoodPlateAvatar v48.0] ✅ Image loaded successfully: https://lh3.googleusercontent.com/a/ACg8ocLwip6UL-
+[2026-02-01T20:22:36.917Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "ellipsis", OUTLINED, mode: monochrome, color: #111827, size: 24
+[2026-02-01T20:22:36.899Z] [iOS] [LOG] [InternalBytecode.js:1] [TagDisplay] Loaded tags: 0
+[2026-02-01T20:22:37.189Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] 🔍 Fetching user data in background for: ["f730677c-1778-4db2-b945-a62b35264dfe","4f3ce732-f479-43f2-acb2-e92831c6bec0"]
+[2026-02-01T20:22:36.922Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 100
+[2026-02-01T20:22:37.289Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] 🔍 Fetching user data in background for: ["4f3ce732-f479-43f2-acb2-e92831c6bec0","f730677c-1778-4db2-b945-a62b35264dfe"]
+[2026-02-01T20:22:36.938Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-02-01T20:22:37.136Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 localLikes changed for post: 14f812e4-c91f-4125-aab5-f3e34ab83041 {"count":2,"users":["f730677c-1778-4db2-b945-a62b35264dfe","4f3ce732-f479-43f2-acb2-e92831c6bec0"]}
+[2026-02-01T20:22:36.933Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "message", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-02-01T20:22:37.184Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ➕ OPTIMISTIC: Adding current user profile IMMEDIATELY
+[2026-02-01T20:22:37.181Z] [iOS] [LOG] [PostLikesAvatars v101.0] ✅ State updated: {"userLiked":true,"totalLikes":2}
+[2026-02-01T20:22:37.187Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ✅ OPTIMISTIC: User avatar added instantly
+[2026-02-01T20:22:36.912Z] [iOS] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocLwip6UL-...","safeImageUrl":"valid","avatarTimestamp":"2025-12-29T11:51:00.075733+00:00","imageError":false,"shouldShowImage":true}
+[2026-02-01T20:22:36.950Z] [iOS] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-01-18T06:11:24.429709+00:00","imageError":false,"shouldShowImage":true}
+[2026-02-01T20:22:37.043Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-02-01T20:22:37.355Z] [iOS] [LOG] [InternalBytecode.js:1] [Social v100.0] ✅ Loaded unread counts: {"notifications":39,"messages":0}
+[2026-02-01T20:22:37.357Z] [iOS] [LOG] [InternalBytecode.js:1] [TagDisplay] Loaded tags: 0
+[2026-02-01T20:22:37.359Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v102.0] ✅ Loaded initial likes: 1
+[2026-02-01T20:22:37.375Z] [iOS] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-01-18T06:11:24.429709+00:00","imageError":false,"shouldShowImage":true}
+[2026-02-01T20:22:37.380Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "ellipsis", OUTLINED, mode: monochrome, color: #111827, size: 24
+[2026-02-01T20:22:37.395Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "message", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-02-01T20:22:37.503Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 localLikes changed for post: 6913b70e-134c-47bb-8da1-71efc73a2ec5 {"count":1,"users":["4f3ce732-f479-43f2-acb2-e92831c6bec0"]}
+[2026-02-01T20:22:37.360Z] [iOS] [LOG] [InternalBytecode.js:1] [MomentoCarousel] ℹ️ No active momentos found
+[2026-02-01T20:22:37.390Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 26
+[2026-02-01T20:22:37.400Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-02-01T20:22:37.361Z] [iOS] [LOG] [InternalBytecode.js:1] [UnifiedMomentoAvatar v53.0] ℹ️ No momentos found
+[2026-02-01T20:22:37.369Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:37.575Z] [iOS] [LOG] [PostLikesAvatars v101.0] 📊 Generating text: {"currentUserHasLiked":true,"currentTotalLikes":1,"tempProfilesCount":1,"otherUsersCount":0}
+[2026-02-01T20:22:37.385Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 100
+[2026-02-01T20:22:37.586Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ✅ Loaded 1 like users
+[2026-02-01T20:22:37.788Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-02-01T20:22:37.554Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ✅ OPTIMISTIC: User avatar added instantly
+[2026-02-01T20:22:37.557Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] 🔍 Fetching user data in background for: ["4f3ce732-f479-43f2-acb2-e92831c6bec0"]
+[2026-02-01T20:22:37.456Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-02-01T20:22:37.808Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:37.821Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:37.549Z] [iOS] [LOG] [PostLikesAvatars v101.0] ✅ State updated: {"userLiked":true,"totalLikes":1}
+[2026-02-01T20:22:37.827Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:37.963Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-01T20:22:37.551Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ➕ OPTIMISTIC: Adding current user profile IMMEDIATELY
+[2026-02-01T20:22:37.860Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-02-01T20:22:38.113Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.2.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:37.795Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:22:37.405Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bookmark", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-02-01T20:22:37.591Z] [iOS] [LOG] [InternalBytecode.js:1] [UnifiedMomentoAvatar v53.0] ℹ️ No momentos found
+[2026-02-01T20:22:37.957Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /favoritos
+[2026-02-01T20:22:37.848Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FACC15, size: 12
+[2026-02-01T20:22:37.854Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 20
+[2026-02-01T20:22:38.087Z] [iOS] [LOG] [FloatingTabBar v283.0] ⚡ PROFILE ICON FIX - Shows icon immediately when not logged in (avatarUrl: present)
+[2026-02-01T20:22:37.840Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:37.587Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ✅ Loaded 2 like users
+[2026-02-01T20:22:37.599Z] [iOS] [LOG] [PostLikesAvatars v101.0] 📊 Generating text: {"currentUserHasLiked":true,"currentTotalLikes":2,"tempProfilesCount":2,"otherUsersCount":1}
+[2026-02-01T20:22:37.941Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-02-01T20:22:37.714Z] [iOS] [LOG] [PostLikesAvatars v101.0] 📊 Generating text: {"currentUserHasLiked":true,"currentTotalLikes":1,"tempProfilesCount":1,"otherUsersCount":0}
+[2026-02-01T20:22:37.707Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ✅ Loaded 1 like users
+[2026-02-01T20:22:37.802Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:22:38.106Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:37.834Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:37.814Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:38.094Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:37.760Z] [iOS] [LOG] [FloatingTabBar v283.0] ⚡ INSTANT TAP: "favoritos" -> /(tabs)/favoritos
+[2026-02-01T20:22:38.100Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-02-01T20:22:37.873Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 14
+[2026-02-01T20:22:37.867Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "arrow.triangle.turn.up.right.diamond.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:38.424Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "message.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:38.434Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bell.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:38.451Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 13.68
+[2026-02-01T20:22:38.476Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.grid.3x3", OUTLINED, mode: monochrome, color: #14B8A6, size: 24
+[2026-02-01T20:22:38.442Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "gearshape.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:38.465Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "pencil", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:38.471Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus.circle.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:38.755Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "message.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:38.481Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bookmark", OUTLINED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:38.458Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "link", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:38.811Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bookmark", OUTLINED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:38.822Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "briefcase.fill", FILLED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:38.787Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "link", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:38.764Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bell.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:38.834Z] [iOS] [LOG] [InternalBytecode.js:1] [Perfil v103.0] ✅ Profile data loaded and cached
+[2026-02-01T20:22:38.486Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.crop.square", OUTLINED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:38.806Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.grid.3x3", OUTLINED, mode: monochrome, color: #14B8A6, size: 24
+[2026-02-01T20:22:38.800Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus.circle.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:38.780Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 13.68
+[2026-02-01T20:22:38.827Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.stack.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:38.491Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "briefcase.fill", FILLED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:38.795Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "pencil", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:38.817Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.crop.square", OUTLINED, mode: monochrome, color: #6B7280, size: 24
+[2026-02-01T20:22:38.833Z] [iOS] [LOG] [InternalBytecode.js:1] [ProfileCache] 💾 Cached user:4f3ce732-f479-43f2-acb2-e92831c6bec0 (4 posts)
+[2026-02-01T20:22:38.772Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "gearshape.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:38.497Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.stack.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:22:42.658Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /detalle/local
+[2026-02-01T20:22:42.645Z] [iOS] [LOG] [InternalBytecode.js:1] [DetalleLocal v281.0] 🔍 Requesting location permissions...
+[2026-02-01T20:22:42.914Z] [iOS] [LOG] [DetalleLocal v281.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-02-01T20:22:42.951Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #fff, size: 18
+[2026-02-01T20:22:42.926Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "xmark", OUTLINED, mode: monochrome, color: #fff, size: 20
+[2026-02-01T20:22:42.990Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-02-01T20:22:42.710Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:43.043Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "creditcard.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:43.001Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #fff, size: 22
+[2026-02-01T20:22:43.006Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.fill", FILLED, mode: monochrome, color: #3B82F6, size: 20
+[2026-02-01T20:22:42.754Z] [iOS] [LOG] [DetalleLocal v281.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-02-01T20:22:43.083Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #8B5CF6, size: 16
+[2026-02-01T20:22:42.956Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #fff, size: 18
+[2026-02-01T20:22:42.636Z] [iOS] [LOG] [DetalleLocal v281.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-02-01T20:22:43.024Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:42.704Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:42.932Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.arrow.up", OUTLINED, mode: monochrome, color: #fff, size: 22
+[2026-02-01T20:22:42.664Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-01T20:22:43.033Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:43.168Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #14B8A6, size: 16
+[2026-02-01T20:22:42.961Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin.circle.fill", FILLED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:22:43.019Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:43.078Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #8B5CF6, size: 20
+[2026-02-01T20:22:43.038Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "banknote", OUTLINED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:43.098Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chart.bar.fill", FILLED, mode: monochrome, color: #F59E0B, size: 20
+[2026-02-01T20:22:42.969Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2", OUTLINED, mode: monochrome, color: #14B8A6, size: 16
+[2026-02-01T20:22:43.048Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:42.717Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:42.698Z] [iOS] [LOG] [FloatingTabBar v283.0] ⚡ PROFILE ICON FIX - Shows icon immediately when not logged in (avatarUrl: present)
+[2026-02-01T20:22:42.895Z] [iOS] [LOG] [InternalBytecode.js:1] [DetalleLocal v281.0] ✅ Local loaded: {"id":"c1da8816-3741-467e-94e6-5c9ec105460b","nombre":"Bar A Coviña","propietario_id":null,"rating":0,"google_rating":4.6}
+[2026-02-01T20:22:43.093Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.3.fill", FILLED, mode: monochrome, color: #EC4899, size: 16
+[2026-02-01T20:22:42.979Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin.circle.fill", FILLED, mode: monochrome, color: #fff, size: 22
+[2026-02-01T20:22:42.996Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cube.fill", FILLED, mode: monochrome, color: #fff, size: 24
+[2026-02-01T20:22:42.974Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-02-01T20:22:42.985Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "phone.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-02-01T20:22:42.937Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FFD700, size: 16
+[2026-02-01T20:22:42.745Z] [iOS] [LOG] [InternalBytecode.js:1] [DetalleLocal v281.0] ✅ Location permission granted, getting position...
+[2026-02-01T20:22:42.943Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 22
+[2026-02-01T20:22:42.723Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.2.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:43.014Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 20
+[2026-02-01T20:22:43.088Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.2.fill", FILLED, mode: monochrome, color: #EC4899, size: 20
+[2026-02-01T20:22:42.748Z] [iOS] [LOG] [InternalBytecode.js:1] [DetalleLocal v281.0] 📍 User location obtained
+[2026-02-01T20:22:43.322Z] [iOS] [LOG] [DetalleLocal v281.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-02-01T20:22:43.339Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FFD700, size: 16
+[2026-02-01T20:22:43.372Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2", OUTLINED, mode: monochrome, color: #14B8A6, size: 16
+[2026-02-01T20:22:43.334Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.arrow.up", OUTLINED, mode: monochrome, color: #fff, size: 22
+[2026-02-01T20:22:43.344Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 22
+[2026-02-01T20:22:43.382Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin.circle.fill", FILLED, mode: monochrome, color: #fff, size: 22
+[2026-02-01T20:22:43.387Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "phone.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-02-01T20:22:43.377Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-02-01T20:22:43.351Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #fff, size: 18
+[2026-02-01T20:22:43.329Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "xmark", OUTLINED, mode: monochrome, color: #fff, size: 20
+[2026-02-01T20:22:43.392Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-02-01T20:22:43.365Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #14B8A6, size: 16
+[2026-02-01T20:22:43.356Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #fff, size: 18
+[2026-02-01T20:22:43.418Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:43.437Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "banknote", OUTLINED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:43.442Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "creditcard.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:43.407Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.fill", FILLED, mode: monochrome, color: #3B82F6, size: 20
+[2026-02-01T20:22:43.585Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-02-01T20:22:43.710Z] [iOS] [LOG] [InternalBytecode.js:1] [DetalleLocal v281.0] 📊 Using Google rating: 4.6
+[2026-02-01T20:22:43.514Z] [iOS] [LOG] [DetalleLocal v281.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-02-01T20:22:43.553Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin.circle.fill", FILLED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:22:43.361Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin.circle.fill", FILLED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:22:43.397Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cube.fill", FILLED, mode: monochrome, color: #fff, size: 24
+[2026-02-01T20:22:43.476Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #8B5CF6, size: 20
+[2026-02-01T20:22:43.447Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:43.413Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 20
+[2026-02-01T20:22:43.548Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #fff, size: 18
+[2026-02-01T20:22:43.402Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #fff, size: 22
+[2026-02-01T20:22:43.432Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:43.527Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.arrow.up", OUTLINED, mode: monochrome, color: #fff, size: 22
+[2026-02-01T20:22:43.508Z] [iOS] [LOG] [InternalBytecode.js:1] [DetalleLocal v281.0] ✅ Loaded checked-in users: 0
+[2026-02-01T20:22:43.491Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.3.fill", FILLED, mode: monochrome, color: #EC4899, size: 16
+[2026-02-01T20:22:43.423Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:43.558Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #14B8A6, size: 16
+[2026-02-01T20:22:43.495Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chart.bar.fill", FILLED, mode: monochrome, color: #F59E0B, size: 20
+[2026-02-01T20:22:43.486Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.2.fill", FILLED, mode: monochrome, color: #EC4899, size: 20
+[2026-02-01T20:22:43.522Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "xmark", OUTLINED, mode: monochrome, color: #fff, size: 20
+[2026-02-01T20:22:43.568Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-02-01T20:22:43.537Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 22
+[2026-02-01T20:22:43.481Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #8B5CF6, size: 16
+[2026-02-01T20:22:43.595Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #fff, size: 22
+[2026-02-01T20:22:43.563Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2", OUTLINED, mode: monochrome, color: #14B8A6, size: 16
+[2026-02-01T20:22:43.532Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FFD700, size: 16
+[2026-02-01T20:22:43.791Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cube.fill", FILLED, mode: monochrome, color: #fff, size: 24
+[2026-02-01T20:22:43.766Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2", OUTLINED, mode: monochrome, color: #14B8A6, size: 16
+[2026-02-01T20:22:43.740Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 22
+[2026-02-01T20:22:43.544Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #fff, size: 18
+[2026-02-01T20:22:43.895Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FFD700, size: 20
+[2026-02-01T20:22:43.573Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin.circle.fill", FILLED, mode: monochrome, color: #fff, size: 22
+[2026-02-01T20:22:43.709Z] [iOS] [LOG] [InternalBytecode.js:1] [DetalleLocal v281.0] ✅ Loaded unified reviews: {"barlive":0,"google":5,"total":5}
+[2026-02-01T20:22:43.775Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin.circle.fill", FILLED, mode: monochrome, color: #fff, size: 22
+[2026-02-01T20:22:43.729Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.arrow.up", OUTLINED, mode: monochrome, color: #fff, size: 22
+[2026-02-01T20:22:43.831Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "banknote", OUTLINED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:43.770Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-02-01T20:22:43.761Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #14B8A6, size: 16
+[2026-02-01T20:22:43.880Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.2.fill", FILLED, mode: monochrome, color: #EC4899, size: 20
+[2026-02-01T20:22:43.580Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "phone.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-02-01T20:22:43.796Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.right", OUTLINED, mode: monochrome, color: #fff, size: 22
+[2026-02-01T20:22:43.875Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #8B5CF6, size: 16
+[2026-02-01T20:22:43.590Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cube.fill", FILLED, mode: monochrome, color: #fff, size: 24
+[2026-02-01T20:22:43.816Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:43.801Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.fill", FILLED, mode: monochrome, color: #3B82F6, size: 20
+[2026-02-01T20:22:43.811Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:43.724Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "xmark", OUTLINED, mode: monochrome, color: #fff, size: 20
+[2026-02-01T20:22:43.786Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-02-01T20:22:43.746Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #fff, size: 18
+[2026-02-01T20:22:43.717Z] [iOS] [LOG] [DetalleLocal v281.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-02-01T20:22:43.734Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FFD700, size: 16
+[2026-02-01T20:22:43.931Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus.circle.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-02-01T20:22:43.756Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin.circle.fill", FILLED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:22:43.870Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #8B5CF6, size: 20
+[2026-02-01T20:22:43.807Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 20
+[2026-02-01T20:22:43.885Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.3.fill", FILLED, mode: monochrome, color: #EC4899, size: 16
+[2026-02-01T20:22:43.835Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "creditcard.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:43.890Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chart.bar.fill", FILLED, mode: monochrome, color: #F59E0B, size: 20
+[2026-02-01T20:22:43.826Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:43.781Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "phone.fill", FILLED, mode: monochrome, color: #fff, size: 20
+[2026-02-01T20:22:43.751Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #fff, size: 18
+[2026-02-01T20:22:43.901Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:22:43.840Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 16
+[2026-02-01T20:22:57.708Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /favoritos
+[2026-02-01T20:22:57.746Z] [iOS] [LOG] [FloatingTabBar v283.0] ⚡ PROFILE ICON FIX - Shows icon immediately when not logged in (avatarUrl: present)
+[2026-02-01T20:22:57.715Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-01T20:22:57.752Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "calendar", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:22:57.758Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-02-01T20:22:57.765Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:22:57.771Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.2.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 24
+[2026-02-01T20:23:00.228Z] [iOS] [LOG] [InternalBytecode.js:1] [Favoritos v300.0] 🔄 Manual refresh triggered
+[2026-02-01T20:23:00.242Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-02-01T20:23:00.230Z] [iOS] [LOG] [InternalBytecode.js:1] [Favoritos v300.0] Cargando locales guardados...
+[2026-02-01T20:23:00.291Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FACC15, size: 12
+[2026-02-01T20:23:00.274Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.254Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:23:00.427Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:23:00.269Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.432Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:23:00.296Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 20
+[2026-02-01T20:23:00.421Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-02-01T20:23:00.264Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.249Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:23:00.284Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.259Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.437Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.457Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.279Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.301Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-02-01T20:23:01.445Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-02-01T20:23:00.462Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.781Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.409Z] [iOS] [LOG] [Favoritos v300.0] 🔍 Filtering locales client-side, search: 
+[2026-02-01T20:23:00.452Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.359Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-02-01T20:23:00.401Z] [iOS] [LOG] [InternalBytecode.js:1] [FavoritesContext v289.0] 📥 Loading favorites for user: 4f3ce732-f479-43f2-acb2-e92831c6bec0
+[2026-02-01T20:23:00.416Z] [iOS] [LOG] [Favoritos v300.0] ✅ Filtered 1 locales from 1
+[2026-02-01T20:23:00.746Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:23:00.813Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-02-01T20:23:00.731Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.399Z] [iOS] [LOG] [InternalBytecode.js:1] [Favoritos v300.0] Locales guardados cargados: 1
+[2026-02-01T20:23:00.756Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:23:00.306Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "arrow.triangle.turn.up.right.diamond.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:23:00.823Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 14
+[2026-02-01T20:23:00.311Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 14
+[2026-02-01T20:23:00.766Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.447Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.472Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FACC15, size: 12
+[2026-02-01T20:23:00.442Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.477Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 20
+[2026-02-01T20:23:00.803Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FACC15, size: 12
+[2026-02-01T20:23:00.787Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.589Z] [iOS] [LOG] [Favoritos v300.0] Displaying 1 of 1 locales
+[2026-02-01T20:23:00.798Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #92400E, size: 12
+[2026-02-01T20:23:00.964Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 20
+[2026-02-01T20:23:00.761Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:23:00.818Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "arrow.triangle.turn.up.right.diamond.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:23:00.776Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.751Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-02-01T20:23:00.741Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.down", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:23:00.771Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.723Z] [iOS] [LOG] [InternalBytecode.js:1] [FavoritesContext v289.0] ✅ Loaded 1 favorites
+[2026-02-01T20:23:00.792Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.736Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:00.808Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:23:01.473Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:01.460Z] [iOS] [LOG] [InternalBytecode.js:1] [FavoritesContext v289.0] ✅ Loaded 1 favorites
+[2026-02-01T20:23:01.467Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "building.2.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:01.482Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "map.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-02-01T20:23:01.504Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "cup.and.saucer.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:01.560Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "location.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 14
+[2026-02-01T20:23:01.487Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-02-01T20:23:01.524Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:01.529Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "music.note", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:01.545Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:23:01.499Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #14B8A6, size: 18
+[2026-02-01T20:23:01.493Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "slider.horizontal.3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-02-01T20:23:01.550Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mappin", OUTLINED, mode: monochrome, color: #6B7280, size: 14
+[2026-02-01T20:23:01.514Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "wineglass.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:01.477Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.down", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:23:01.519Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "mug.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:01.702Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 20
+[2026-02-01T20:23:01.556Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "arrow.triangle.turn.up.right.diamond.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-02-01T20:23:01.540Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #FACC15, size: 12
+[2026-02-01T20:23:01.509Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "fork.knife", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-01T20:23:01.535Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "star.fill", FILLED, mode: monochrome, color: #92400E, size: 12
