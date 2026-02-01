@@ -62,3 +62,28 @@ export const calcularPorcentaje = (valor: number, total: number): number => {
   if (total === 0) return 0;
   return Math.round((valor / total) * 100);
 };
+
+/**
+ * ✅ NEW v310.0: Instagram-style follower count formatter
+ * 
+ * Formats follower counts like Instagram:
+ * - Less than 1,000: Shows full number (e.g., "523")
+ * - 1,000 to 999,999: Shows in thousands with "k" (e.g., "1.2k", "5k")
+ * - 1,000,000 or more: Shows in millions with "M" (e.g., "2.3M")
+ * 
+ * Rounds down like Instagram (Math.floor)
+ * 
+ * @param count - The follower count to format
+ * @returns Formatted string ready for display
+ */
+export const formatFollowersCount = (count: number): string => {
+  if (count < 1000) {
+    return count.toString();
+  } else if (count < 1_000_000) {
+    const kCount = Math.floor(count / 100) / 10;
+    return kCount % 1 === 0 ? `${Math.floor(kCount)}k` : `${kCount}k`;
+  } else {
+    const mCount = Math.floor(count / 100_000) / 10;
+    return mCount % 1 === 0 ? `${Math.floor(mCount)}M` : `${mCount}M`;
+  }
+};

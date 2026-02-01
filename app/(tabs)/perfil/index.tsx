@@ -31,6 +31,7 @@ import { profileCache } from '@/utils/profileCache';
 import UnifiedMomentoAvatar from '@/components/common/UnifiedMomentoAvatar';
 import { scaleFontSize } from '@/utils/androidScaling';
 import SolicitudPropiedadStatus from '@/components/perfil/SolicitudPropiedadStatus';
+import { formatFollowersCount } from '@/utils/formatters';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -72,9 +73,15 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v109.0 - COMPACT SPACING & SCROLL BOUNDARY
+ * ✅ PROFILE SCREEN v110.0 - COMPACT LAYOUT & INSTAGRAM-STYLE COUNTERS
  * 
- * NEW CHANGES v109.0:
+ * NEW CHANGES v110.0:
+ * - ✅ FIXED: Counters moved below username for better visual hierarchy
+ * - ✅ FIXED: Counter size reduced for more compact design
+ * - ✅ FIXED: Instagram-style follower count formatting (1.2k, 2.3M)
+ * - ✅ IMPROVED: More professional and modern layout
+ * 
+ * Previous changes v109.0:
  * - ✅ FIXED: Reduced margin between profile section and icon menu (from 16px to 4px)
  * - ✅ FIXED: Implemented scroll boundary to prevent overscroll beyond top
  * - ✅ FIXED: Header stays in position without showing white space
@@ -162,7 +169,7 @@ export default function PerfilScreen() {
         setUnreadMessages(totalUnread);
       }
     } catch (error) {
-      console.error('[Perfil v109.0] Error loading unread counts:', error);
+      console.error('[Perfil v110.0] Error loading unread counts:', error);
     }
   }, [userId]);
 
@@ -176,14 +183,14 @@ export default function PerfilScreen() {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('[Perfil v109.0] ❌ Error loading cart count:', error);
+        console.error('[Perfil v110.0] ❌ Error loading cart count:', error);
         return;
       }
 
-      console.log('[Perfil v109.0] 🛒 Cart items count:', count);
+      console.log('[Perfil v110.0] 🛒 Cart items count:', count);
       setCartItemsCount(count || 0);
     } catch (error) {
-      console.error('[Perfil v109.0] ❌ Error loading cart count:', error);
+      console.error('[Perfil v110.0] ❌ Error loading cart count:', error);
     }
   }, [userId, isPropietario]);
 
@@ -203,7 +210,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v109.0] Error loading current local:', error);
+        console.error('[Perfil v110.0] Error loading current local:', error);
         return;
       }
 
@@ -218,7 +225,7 @@ export default function PerfilScreen() {
         setCheckInInfo(null);
       }
     } catch (error) {
-      console.error('[Perfil v109.0] Error loading current local:', error);
+      console.error('[Perfil v110.0] Error loading current local:', error);
     }
   }, [userId]);
 
@@ -277,7 +284,7 @@ export default function PerfilScreen() {
         return [];
       }
     } catch (error) {
-      console.error('[Perfil v109.0] Error cargando posts:', error);
+      console.error('[Perfil v110.0] Error cargando posts:', error);
       return [];
     }
   }, [userId]);
@@ -340,7 +347,7 @@ export default function PerfilScreen() {
         setSavedPosts([]);
       }
     } catch (error) {
-      console.error('[Perfil v109.0] Error cargando favoritos:', error);
+      console.error('[Perfil v110.0] Error cargando favoritos:', error);
     }
   }, [userId]);
 
@@ -419,7 +426,7 @@ export default function PerfilScreen() {
 
       setTaggedPosts(postsWithStatus);
     } catch (error) {
-      console.error('[Perfil v109.0] Error cargando etiquetados:', error);
+      console.error('[Perfil v110.0] Error cargando etiquetados:', error);
       setTaggedPosts([]);
     }
   }, [userId]);
@@ -436,7 +443,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v109.0] Error loading professional profile:', error);
+        console.error('[Perfil v110.0] Error loading professional profile:', error);
       }
 
       if (data) {
@@ -445,7 +452,7 @@ export default function PerfilScreen() {
         setPerfilProfesional(null);
       }
     } catch (error) {
-      console.error('[Perfil v109.0] Error loading professional profile:', error);
+      console.error('[Perfil v110.0] Error loading professional profile:', error);
     } finally {
       setLoadingEmpleo(false);
     }
@@ -456,7 +463,7 @@ export default function PerfilScreen() {
 
     try {
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v109.0] 🔄 Loading profile data...');
+        console.log('[Perfil v110.0] 🔄 Loading profile data...');
       }
 
       await loadUnreadCounts();
@@ -474,7 +481,7 @@ export default function PerfilScreen() {
       const seguidosCount = userFollowsCount || 0;
 
       if (seguidoresError) {
-        console.error('[Perfil v109.0] Error loading seguidores count:', seguidoresError);
+        console.error('[Perfil v110.0] Error loading seguidores count:', seguidoresError);
       }
 
       const seguidoresCount = seguidoresData || 0;
@@ -504,10 +511,10 @@ export default function PerfilScreen() {
       }
 
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v109.0] ✅ Profile data loaded and cached');
+        console.log('[Perfil v110.0] ✅ Profile data loaded and cached');
       }
     } catch (error) {
-      console.error('[Perfil v109.0] Error cargando datos:', error);
+      console.error('[Perfil v110.0] Error cargando datos:', error);
     } finally {
       setRefreshing(false);
     }
@@ -517,22 +524,22 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const loadCachedData = async () => {
-      console.log('[Perfil v109.0] ⚡ Loading from cache...');
+      console.log('[Perfil v110.0] ⚡ Loading from cache...');
       const cached = await profileCache.get(userId, 'user');
       
       if (cached) {
-        console.log('[Perfil v109.0] ⚡⚡⚡ INSTANT LOAD from cache');
+        console.log('[Perfil v110.0] ⚡⚡⚡ INSTANT LOAD from cache');
         setSeguidores(cached.stats.seguidores);
         setSeguidos(cached.stats.seguidos);
         setPublicaciones(cached.stats.posts);
         setPosts(cached.posts);
         
         setTimeout(() => {
-          console.log('[Perfil v109.0] 🔄 Background refresh...');
+          console.log('[Perfil v110.0] 🔄 Background refresh...');
           cargarDatosPerfil(true);
         }, 100);
       } else {
-        console.log('[Perfil v109.0] 📡 No cache, loading from database...');
+        console.log('[Perfil v110.0] 📡 No cache, loading from database...');
         cargarDatosPerfil(false);
       }
     };
@@ -559,7 +566,7 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const subscription = supabase
-      .channel('profile-updates-v109')
+      .channel('profile-updates-v110')
       .on(
         'postgres_changes',
         {
@@ -606,7 +613,7 @@ export default function PerfilScreen() {
     if (!userId || !isPropietario) return;
 
     const subscription = supabase
-      .channel('cart-updates-v109')
+      .channel('cart-updates-v110')
       .on(
         'postgres_changes',
         {
@@ -616,7 +623,7 @@ export default function PerfilScreen() {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          console.log('[Perfil v109.0] 🛒 Cart updated, reloading count...');
+          console.log('[Perfil v110.0] 🛒 Cart updated, reloading count...');
           loadCartItemsCount();
         }
       )
@@ -697,7 +704,7 @@ export default function PerfilScreen() {
   };
 
   const handleCartCheckout = async (items: any[], total: number) => {
-    console.log('[Perfil v109.0] 💳 Checkout requested:', { items: items.length, total });
+    console.log('[Perfil v110.0] 💳 Checkout requested:', { items: items.length, total });
     Alert.alert(
       'Pago en Desarrollo',
       `Total a pagar: €${total.toFixed(2)}\n\nLa integración con Stripe está en desarrollo.`,
@@ -730,7 +737,7 @@ export default function PerfilScreen() {
               setCheckInInfo(null);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
-              console.error('[Perfil v109.0] Error exiting local:', error);
+              console.error('[Perfil v110.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -786,6 +793,10 @@ export default function PerfilScreen() {
     );
   };
 
+  const seguidoresFormatted = formatFollowersCount(seguidores);
+  const seguidosFormatted = formatFollowersCount(seguidos);
+  const publicacionesFormatted = formatFollowersCount(publicaciones);
+
   const renderProfileHeader = () => {
     return (
       <View style={styles.profileSection}>
@@ -814,7 +825,23 @@ export default function PerfilScreen() {
             {user?.username && (
               <Text style={[styles.profileUsername, { fontSize: scaleFontSize(15) }]}>@{user.username}</Text>
             )}
+            
+            <View style={styles.statsContainerCompact}>
+              <View style={styles.statItemCompact}>
+                <Text style={[styles.statNumberCompact, { fontSize: scaleFontSize(15) }]}>{publicacionesFormatted}</Text>
+                <Text style={[styles.statLabelCompact, { fontSize: scaleFontSize(11) }]}>publicaciones</Text>
+              </View>
+              <TouchableOpacity style={styles.statItemCompact} onPress={handleSeguidores}>
+                <Text style={[styles.statNumberCompact, { fontSize: scaleFontSize(15) }]}>{seguidoresFormatted}</Text>
+                <Text style={[styles.statLabelCompact, { fontSize: scaleFontSize(11) }]}>seguidores</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.statItemCompact} onPress={handleSeguidos}>
+                <Text style={[styles.statNumberCompact, { fontSize: scaleFontSize(15) }]}>{seguidosFormatted}</Text>
+                <Text style={[styles.statLabelCompact, { fontSize: scaleFontSize(11) }]}>siguiendo</Text>
+              </TouchableOpacity>
+            </View>
           </View>
+          
           {(isPropietario || ownedLocals.length > 0) && (
             <TouchableOpacity 
               style={styles.switchProfileButton}
@@ -935,23 +962,6 @@ export default function PerfilScreen() {
             </LinearGradient>
           </View>
         )}
-
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { fontSize: scaleFontSize(22) }]}>{publicaciones}</Text>
-            <Text style={[styles.statLabel, { fontSize: scaleFontSize(14) }]}>Publicaciones</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <TouchableOpacity style={styles.statItem} onPress={handleSeguidores}>
-            <Text style={[styles.statNumber, { fontSize: scaleFontSize(22) }]}>{seguidores}</Text>
-            <Text style={[styles.statLabel, { fontSize: scaleFontSize(14) }]}>Seguidores</Text>
-          </TouchableOpacity>
-          <View style={styles.statDivider} />
-          <TouchableOpacity style={styles.statItem} onPress={handleSeguidos}>
-            <Text style={[styles.statNumber, { fontSize: scaleFontSize(22) }]}>{seguidos}</Text>
-            <Text style={[styles.statLabel, { fontSize: scaleFontSize(14) }]}>Siguiendo</Text>
-          </TouchableOpacity>
-        </View>
 
         <View style={styles.actionButtons}>
           <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
@@ -1484,7 +1494,7 @@ const styles = StyleSheet.create({
   },
   profileHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 12,
     position: 'relative',
   },
@@ -1499,6 +1509,24 @@ const styles = StyleSheet.create({
   },
   profileUsername: {
     color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: 8,
+  },
+  statsContainerCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  statItemCompact: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  statNumberCompact: {
+    fontWeight: '700',
+    color: colors.headerText,
+  },
+  statLabelCompact: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontWeight: '500',
   },
   switchProfileButton: {
     padding: 8,
@@ -1708,7 +1736,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
     backgroundColor: colors.cardBackground,
-    marginTop: 4,
+    marginTop: 0,
   },
   tab: {
     flex: 1,
