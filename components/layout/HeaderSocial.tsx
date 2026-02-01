@@ -14,19 +14,19 @@ interface HeaderSocialProps {
 }
 
 /**
- * ✅ HEADER SOCIAL v115.0 - BADGE & ICON ALIGNMENT FIX
+ * ✅ HEADER SOCIAL v116.0 - ICON ALIGNMENT FIX
  * 
- * NEW CHANGES v115.0:
+ * NEW CHANGES v116.0:
+ * - ✅ FIXED: All icons now properly aligned horizontally with consistent padding
+ * - ✅ FIXED: Removed extra padding that caused misalignment
+ * - ✅ IMPROVED: Consistent icon container sizing for perfect alignment
+ * 
+ * Previous changes v115.0:
  * - ✅ FIXED: Badge properly centered with better positioning (top: -6, right: -8)
  * - ✅ FIXED: Badge text centered with textAlign and proper padding
  * - ✅ FIXED: Search icon aligned with other icons (removed extra padding)
  * - ✅ FIXED: Messages icon positioned between search and notifications
  * - ✅ IMPROVED: Icon order: + (left) | search | messages | notifications (right)
- * 
- * Previous changes v114.0:
- * - ✅ FIXED: Notification badge no longer cuts off with multi-digit numbers
- * - ✅ IMPROVED: Badge positioning with proper overflow space
- * - ✅ IMPROVED: Increased minWidth to 22 for better multi-digit display
  */
 
 export default function HeaderSocial({ 
@@ -35,6 +35,8 @@ export default function HeaderSocial({
   onCreatePost 
 }: HeaderSocialProps) {
   const router = useRouter();
+
+  const iconSize = Platform.OS === 'android' ? 20 : 24;
 
   return (
     <LinearGradient
@@ -52,7 +54,7 @@ export default function HeaderSocial({
           <IconSymbol 
             ios_icon_name="plus" 
             android_material_icon_name="add" 
-            size={Platform.OS === 'android' ? 20 : 24} 
+            size={iconSize} 
             color={colors.headerText} 
           />
         </TouchableOpacity>
@@ -61,7 +63,7 @@ export default function HeaderSocial({
           <TouchableOpacity 
             style={styles.headerButton}
             onPress={() => {
-              console.log('[HeaderSocial v115.0] 🔍 Navigating to full-page search');
+              console.log('[HeaderSocial v116.0] 🔍 Navigating to full-page search');
               router.push('/social/search');
             }}
             activeOpacity={0.7}
@@ -69,7 +71,7 @@ export default function HeaderSocial({
             <IconSymbol 
               ios_icon_name="magnifyingglass" 
               android_material_icon_name="search" 
-              size={Platform.OS === 'android' ? 20 : 24} 
+              size={iconSize} 
               color={colors.headerText} 
             />
           </TouchableOpacity>
@@ -83,7 +85,7 @@ export default function HeaderSocial({
               <IconSymbol 
                 ios_icon_name="message.fill" 
                 android_material_icon_name="message" 
-                size={Platform.OS === 'android' ? 20 : 24} 
+                size={iconSize} 
                 color={colors.headerText} 
               />
               {unreadMessages > 0 && (
@@ -105,7 +107,7 @@ export default function HeaderSocial({
               <IconSymbol 
                 ios_icon_name="bell.fill" 
                 android_material_icon_name="notifications" 
-                size={Platform.OS === 'android' ? 20 : 24} 
+                size={iconSize} 
                 color={colors.headerText} 
               />
               {unreadNotifications > 0 && (
@@ -143,35 +145,38 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headerButton: {
+    // ✅ FIX v116.0: Consistent padding for all icons
     padding: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   iconContainer: {
     position: 'relative',
-    // ✅ FIX v115.0: Reduced padding for better alignment
-    paddingTop: 6,
-    paddingRight: 8,
+    // ✅ FIX v116.0: Consistent padding for badge positioning
+    paddingTop: 4,
+    paddingRight: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   badge: {
     position: 'absolute',
-    // ✅ FIX v115.0: Better positioning for proper centering
-    top: -6,
-    right: -8,
+    top: -4,
+    right: -6,
     backgroundColor: '#EF4444',
     borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    minWidth: 18,
+    height: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 5,
+    paddingHorizontal: 4,
     borderWidth: 2,
     borderColor: colors.headerGradientStart,
   },
   badgeText: {
     fontWeight: '700',
     color: colors.white,
-    fontSize: scaleFontSize(10),
-    // ✅ FIX v115.0: Center text properly
+    fontSize: scaleFontSize(9),
     textAlign: 'center',
-    lineHeight: Platform.OS === 'android' ? scaleFontSize(10) + 2 : scaleFontSize(10) + 4,
+    lineHeight: Platform.OS === 'android' ? scaleFontSize(9) + 4 : scaleFontSize(9) + 5,
   },
 });
