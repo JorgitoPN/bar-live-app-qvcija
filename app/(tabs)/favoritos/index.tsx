@@ -42,8 +42,8 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 
 const ITEMS_PER_PAGE = 20;
 
-// ✅ FIX v298.0: REMOVED title from header - more compact design
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 190 : 250;
+// ✅ FIX v299.0: REMOVED title + REDUCED EMPTY SPACE - ultra compact header
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 160 : 200;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -71,20 +71,18 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v298.0 - TITLE REMOVED FROM HEADER + PADDING FIX
+ * ✅ FAVORITOS SCREEN v299.0 - ULTRA COMPACT HEADER (NO EMPTY SPACE)
  * 
- * NEW CHANGES v298.0:
+ * NEW CHANGES v299.0:
+ * - ✅ REMOVED: Empty space that title occupied in header
+ * - ✅ COMPACT: Header height ultra reduced (160px Android, 200px iOS)
+ * - ✅ CLEAN: Maximum screen space for content
+ * - ✅ OPTIMIZED: Reduced padding to eliminate unnecessary gaps
+ * 
+ * Previous fixes v298.0:
  * - ✅ REMOVED: Page title "Locales Favoritos" from header (CONFIRMED)
  * - ✅ FIXED: paddingHorizontal16 typo -> paddingHorizontal: 16
- * - ✅ COMPACT: Header height reduced (190px Android, 250px iOS)
- * - ✅ CLEAN: More screen space for content
  * - ✅ CONSISTENT: Matches user request to remove all page titles
- * 
- * Previous fixes v288.0:
- * - ✅ CRITICAL: Eliminated getEstadoLocal() calls that were blocking UI thread
- * - ✅ PERFORMANCE: Now uses pre-calculated estaAbierto from backend
- * - ✅ OPTIMIZATION: Removed expensive time calculations on every render
- * - ✅ ANDROID FIX: Improved initial load performance
  */
 
 export default function FavoritosScreen() {
@@ -1070,25 +1068,25 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     backgroundColor: colors.background,
   },
-  // ✅ FIX v298.0: More compact header padding (no title)
+  // ✅ FIX v299.0: Ultra compact header padding (no title, no empty space)
   headerGradient: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
-    paddingBottom: Platform.OS === 'android' ? 6 : 12,
+    paddingBottom: Platform.OS === 'android' ? 4 : 8,
     paddingHorizontal: 16,
   },
-  // ✅ FIX v298.0: Header without title (for login screen)
+  // ✅ FIX v299.0: Header without title (for login screen)
   headerWithoutTitle: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
-    paddingBottom: Platform.OS === 'android' ? 6 : 12,
+    paddingBottom: Platform.OS === 'android' ? 4 : 8,
     paddingHorizontal: 16,
   },
-  // ✅ FIX v298.0: Header top without title - just clear filters
+  // ✅ FIX v299.0: Header top without title - just clear filters (minimal height)
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'android' ? 6 : 8,
-    minHeight: 32,
+    marginBottom: Platform.OS === 'android' ? 4 : 6,
+    minHeight: 28,
   },
   clearFiltersHeaderButton: {
     flexDirection: 'row',
@@ -1103,12 +1101,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
-  // ✅ FIX v271.0: Search row with proper alignment (same as Explorar)
+  // ✅ FIX v299.0: Search row with minimal spacing (ultra compact)
   compactSearchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: Platform.OS === 'android' ? 6 : 8,
+    marginBottom: Platform.OS === 'android' ? 4 : 6,
   },
   // ✅ FIX v271.0: Search container with FIXED HEIGHT (40px) - same as Explorar
   searchContainer: {
@@ -1140,7 +1138,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoriesScroll: {
-    marginBottom: Platform.OS === 'android' ? 6 : 8,
+    marginBottom: Platform.OS === 'android' ? 4 : 6,
     marginRight: -16,
   },
   categoriesContent: {
