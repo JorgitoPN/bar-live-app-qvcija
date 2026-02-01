@@ -6,6 +6,7 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   registerForPushNotifications,
   savePushToken,
@@ -34,6 +35,17 @@ interface Notification {
   data?: any;
 }
 
+/**
+ * ✅ NOTIFICACIONES SCREEN v2.0 - BARLIVE DESIGN SYSTEM
+ * 
+ * NEW CHANGES v2.0:
+ * - ✅ REDESIGNED: Applied Barlive color palette with gradient headers
+ * - ✅ IMPROVED: Modern card-based design with proper spacing
+ * - ✅ IMPROVED: Visual hierarchy with gradient accents
+ * - ✅ IMPROVED: Better contrast and readability
+ * - ✅ IMPROVED: Consistent with app's visual identity
+ */
+
 export default function Notificaciones() {
   const router = useRouter();
   const { user } = useAuth();
@@ -60,7 +72,7 @@ export default function Notificaciones() {
     }
 
     try {
-      console.log('[Notificaciones] Cargando notificaciones del usuario...');
+      console.log('[Notificaciones v2.0] Cargando notificaciones del usuario...');
       
       const { data, error } = await supabase
         .from('notifications')
@@ -70,13 +82,13 @@ export default function Notificaciones() {
         .limit(50);
 
       if (error) {
-        console.error('[Notificaciones] Error cargando notificaciones:', error);
+        console.error('[Notificaciones v2.0] Error cargando notificaciones:', error);
       } else {
-        console.log('[Notificaciones] Notificaciones cargadas:', data?.length || 0);
+        console.log('[Notificaciones v2.0] Notificaciones cargadas:', data?.length || 0);
         setNotifications(data || []);
       }
     } catch (error) {
-      console.error('[Notificaciones] Error en loadNotifications:', error);
+      console.error('[Notificaciones v2.0] Error en loadNotifications:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -105,13 +117,13 @@ export default function Notificaciones() {
         });
       }
     } catch (error) {
-      console.error('[Notificaciones] Error cargando configuración:', error);
+      console.error('[Notificaciones v2.0] Error cargando configuración:', error);
     }
   }, [user]);
 
   const setupPushNotifications = useCallback(async () => {
     if (!user || !pushAvailable) {
-      console.log('[Notificaciones] Push notifications no disponibles');
+      console.log('[Notificaciones v2.0] Push notifications no disponibles');
       return;
     }
 
@@ -153,7 +165,7 @@ export default function Notificaciones() {
         );
       }
     } catch (error) {
-      console.error('[Notificaciones] Error marcando como leída:', error);
+      console.error('[Notificaciones v2.0] Error marcando como leída:', error);
     }
   };
 
@@ -171,7 +183,7 @@ export default function Notificaciones() {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       }
     } catch (error) {
-      console.error('[Notificaciones] Error marcando todas como leídas:', error);
+      console.error('[Notificaciones v2.0] Error marcando todas como leídas:', error);
     }
   };
 
@@ -189,7 +201,7 @@ export default function Notificaciones() {
         setNotifications(prev => prev.filter(n => n.id !== notificationId));
       }
     } catch (error) {
-      console.error('[Notificaciones] Error eliminando notificación:', error);
+      console.error('[Notificaciones v2.0] Error eliminando notificación:', error);
     }
   };
 
@@ -264,7 +276,6 @@ export default function Notificaciones() {
     }
   };
 
-  // ✅ ANDROID SCALING: Icon sizes
   const backIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
   const infoIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
   const warningIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
@@ -285,36 +296,49 @@ export default function Notificaciones() {
     onValueChange: (value: boolean) => void;
   }) => (
     <View style={{
-      backgroundColor: colors.card,
-      borderRadius: 12,
-      padding: 16,
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      padding: 18,
       marginBottom: 12,
       flexDirection: 'row',
       alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+        },
+        android: {
+          elevation: 1,
+        },
+      }),
     }}>
       <View style={{
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: colors.primary + '20',
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: colors.primary + '15',
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 12,
+        marginRight: 14,
       }}>
-        <Text style={{ fontSize: scaleFontSize(20) }}>{icon}</Text>
+        <Text style={{ fontSize: scaleFontSize(22) }}>{icon}</Text>
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: scaleFontSize(16), fontWeight: '600', color: colors.text, marginBottom: 4 }}>
           {title}
         </Text>
-        <Text style={{ fontSize: scaleFontSize(13), color: colors.textSecondary }}>
+        <Text style={{ fontSize: scaleFontSize(13), color: colors.textSecondary, lineHeight: 18 }}>
           {description}
         </Text>
       </View>
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: colors.border, true: colors.primary + '80' }}
+        trackColor={{ false: colors.cardBorder, true: colors.primary + '60' }}
         thumbColor={value ? colors.primary : colors.textSecondary}
       />
     </View>
@@ -341,58 +365,85 @@ export default function Notificaciones() {
           );
         }}
         style={{
-          backgroundColor: notification.read ? colors.card : colors.primary + '10',
-          borderRadius: 12,
+          backgroundColor: notification.read ? colors.cardBackground : colors.primary + '08',
+          borderRadius: 16,
           padding: 16,
           marginBottom: 12,
           flexDirection: 'row',
           alignItems: 'flex-start',
-          borderLeftWidth: 3,
+          borderLeftWidth: 4,
           borderLeftColor: notification.read ? 'transparent' : colors.primary,
+          borderWidth: 1,
+          borderColor: notification.read ? colors.cardBorder : colors.primary + '30',
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 3,
+            },
+            android: {
+              elevation: notification.read ? 0 : 1,
+            },
+          }),
         }}
       >
         <View style={{
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          backgroundColor: colors.primary + '20',
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: notification.read ? colors.cardBorder : colors.primary + '20',
           alignItems: 'center',
           justifyContent: 'center',
-          marginRight: 12,
+          marginRight: 14,
         }}>
-          <Text style={{ fontSize: scaleFontSize(20) }}>{notificationIcon}</Text>
+          <Text style={{ fontSize: scaleFontSize(22) }}>{notificationIcon}</Text>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={{
             fontSize: scaleFontSize(15),
-            fontWeight: notification.read ? '400' : '600',
+            fontWeight: notification.read ? '500' : '700',
             color: colors.text,
-            marginBottom: 4,
+            marginBottom: 6,
+            lineHeight: 20,
           }}>
             {notification.title}
           </Text>
           <Text style={{
             fontSize: scaleFontSize(14),
             color: colors.textSecondary,
-            marginBottom: 6,
+            marginBottom: 8,
+            lineHeight: 19,
           }}>
             {notification.body}
           </Text>
           <Text style={{
             fontSize: scaleFontSize(12),
-            color: colors.textSecondary,
+            color: colors.textTertiary,
+            fontWeight: '500',
           }}>
             {timeAgo}
           </Text>
         </View>
         {!notification.read && (
           <View style={{
-            width: 8,
-            height: 8,
-            borderRadius: 4,
+            width: 10,
+            height: 10,
+            borderRadius: 5,
             backgroundColor: colors.primary,
-            marginLeft: 8,
-            marginTop: 6,
+            marginLeft: 10,
+            marginTop: 8,
+            ...Platform.select({
+              ios: {
+                shadowColor: colors.primary,
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.5,
+                shadowRadius: 4,
+              },
+              android: {
+                elevation: 2,
+              },
+            }),
           }} />
         )}
       </TouchableOpacity>
@@ -414,11 +465,21 @@ export default function Notificaciones() {
     if (!user) {
       return (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-          <Text style={{ fontSize: scaleFontSize(48), marginBottom: 16 }}>🔔</Text>
-          <Text style={{ fontSize: scaleFontSize(18), fontWeight: '600', color: colors.text, marginBottom: 8, textAlign: 'center' }}>
+          <View style={{
+            width: 100,
+            height: 100,
+            borderRadius: 50,
+            backgroundColor: colors.primary + '15',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 24,
+          }}>
+            <Text style={{ fontSize: scaleFontSize(48) }}>🔔</Text>
+          </View>
+          <Text style={{ fontSize: scaleFontSize(20), fontWeight: '700', color: colors.text, marginBottom: 12, textAlign: 'center' }}>
             Inicia sesión para ver tus notificaciones
           </Text>
-          <Text style={{ fontSize: scaleFontSize(14), color: colors.textSecondary, textAlign: 'center' }}>
+          <Text style={{ fontSize: scaleFontSize(15), color: colors.textSecondary, textAlign: 'center', lineHeight: 22 }}>
             Recibe actualizaciones sobre likes, comentarios, seguidores y más
           </Text>
         </View>
@@ -428,11 +489,21 @@ export default function Notificaciones() {
     if (notifications.length === 0) {
       return (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-          <Text style={{ fontSize: scaleFontSize(48), marginBottom: 16 }}>🔕</Text>
-          <Text style={{ fontSize: scaleFontSize(18), fontWeight: '600', color: colors.text, marginBottom: 8, textAlign: 'center' }}>
+          <View style={{
+            width: 100,
+            height: 100,
+            borderRadius: 50,
+            backgroundColor: colors.cardBorder,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 24,
+          }}>
+            <Text style={{ fontSize: scaleFontSize(48) }}>🔕</Text>
+          </View>
+          <Text style={{ fontSize: scaleFontSize(20), fontWeight: '700', color: colors.text, marginBottom: 12, textAlign: 'center' }}>
             No tienes notificaciones
           </Text>
-          <Text style={{ fontSize: scaleFontSize(14), color: colors.textSecondary, textAlign: 'center' }}>
+          <Text style={{ fontSize: scaleFontSize(15), color: colors.textSecondary, textAlign: 'center', lineHeight: 22 }}>
             Cuando recibas likes, comentarios o seguidores, aparecerán aquí
           </Text>
         </View>
@@ -442,7 +513,7 @@ export default function Notificaciones() {
     return (
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -456,14 +527,26 @@ export default function Notificaciones() {
           <TouchableOpacity
             onPress={markAllAsRead}
             style={{
-              backgroundColor: colors.primary,
-              borderRadius: 12,
-              padding: 12,
+              borderRadius: 14,
+              padding: 14,
               alignItems: 'center',
-              marginBottom: 16,
+              marginBottom: 20,
+              overflow: 'hidden',
             }}
           >
-            <Text style={{ fontSize: scaleFontSize(14), fontWeight: '600', color: '#FFFFFF' }}>
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
+            />
+            <Text style={{ fontSize: scaleFontSize(15), fontWeight: '700', color: '#FFFFFF' }}>
               Marcar todas como leídas ({unreadCount})
             </Text>
           </TouchableOpacity>
@@ -476,20 +559,31 @@ export default function Notificaciones() {
 
   const renderSettingsTab = () => {
     return (
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
         {!pushAvailable && Platform.OS === 'android' && (
           <TouchableOpacity
             onPress={() => router.push('/perfil/notificaciones-info')}
             style={{
-              backgroundColor: colors.warning + '20',
-              borderRadius: 12,
-              padding: 16,
+              backgroundColor: colors.warning + '15',
+              borderRadius: 16,
+              padding: 18,
               marginBottom: 24,
               borderWidth: 1,
-              borderColor: colors.warning,
+              borderColor: colors.warning + '40',
+              ...Platform.select({
+                ios: {
+                  shadowColor: colors.warning,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                },
+                android: {
+                  elevation: 1,
+                },
+              }),
             }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
               <IconSymbol
                 ios_icon_name="exclamationmark.triangle.fill"
                 android_material_icon_name="warning"
@@ -497,10 +591,10 @@ export default function Notificaciones() {
                 color={colors.warning}
               />
               <Text style={{
-                fontSize: scaleFontSize(14),
-                fontWeight: '600',
+                fontSize: scaleFontSize(15),
+                fontWeight: '700',
                 color: colors.text,
-                marginLeft: 8,
+                marginLeft: 10,
                 flex: 1,
               }}>
                 Notificaciones Push No Disponibles
@@ -512,7 +606,7 @@ export default function Notificaciones() {
                 color={colors.textSecondary}
               />
             </View>
-            <Text style={{ fontSize: scaleFontSize(13), color: colors.textSecondary, lineHeight: 18 }}>
+            <Text style={{ fontSize: scaleFontSize(13), color: colors.textSecondary, lineHeight: 19 }}>
               Las notificaciones push requieren un development build en Android. 
               Toca para más información.
             </Text>
@@ -523,24 +617,36 @@ export default function Notificaciones() {
           <TouchableOpacity
             onPress={testNotification}
             style={{
-              backgroundColor: colors.primary,
-              borderRadius: 12,
+              borderRadius: 14,
               padding: 16,
               alignItems: 'center',
               marginBottom: 24,
+              overflow: 'hidden',
             }}
           >
-            <Text style={{ fontSize: scaleFontSize(16), fontWeight: '600', color: '#FFFFFF' }}>
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
+            />
+            <Text style={{ fontSize: scaleFontSize(16), fontWeight: '700', color: '#FFFFFF' }}>
               🔔 Probar Notificación
             </Text>
           </TouchableOpacity>
         )}
 
         <Text style={{
-          fontSize: scaleFontSize(18),
-          fontWeight: '600',
+          fontSize: scaleFontSize(20),
+          fontWeight: '700',
           color: colors.text,
-          marginBottom: 16,
+          marginBottom: 18,
         }}>
           Preferencias de Notificaciones
         </Text>
@@ -603,12 +709,23 @@ export default function Notificaciones() {
 
         {pushToken && (
           <View style={{
-            backgroundColor: colors.success + '20',
-            borderRadius: 12,
-            padding: 16,
+            backgroundColor: colors.success + '15',
+            borderRadius: 16,
+            padding: 18,
             marginTop: 24,
             borderWidth: 1,
-            borderColor: colors.success,
+            borderColor: colors.success + '40',
+            ...Platform.select({
+              ios: {
+                shadowColor: colors.success,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+              },
+              android: {
+                elevation: 1,
+              },
+            }),
           }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <IconSymbol
@@ -618,10 +735,10 @@ export default function Notificaciones() {
                 color={colors.success}
               />
               <Text style={{
-                fontSize: scaleFontSize(14),
-                fontWeight: '600',
+                fontSize: scaleFontSize(15),
+                fontWeight: '700',
                 color: colors.text,
-                marginLeft: 8,
+                marginLeft: 10,
               }}>
                 Notificaciones Push Activas
               </Text>
@@ -634,17 +751,20 @@ export default function Notificaciones() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{
-        paddingTop: Platform.OS === 'android' ? 48 : 60,
-        backgroundColor: colors.card,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
-      }}>
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={{
+          paddingTop: Platform.OS === 'android' ? 48 : 60,
+          paddingBottom: 16,
+        }}
+      >
         <View style={{
           flexDirection: 'row',
           alignItems: 'center',
           paddingHorizontal: 16,
-          paddingBottom: 16,
+          marginBottom: 16,
         }}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -654,10 +774,10 @@ export default function Notificaciones() {
               ios_icon_name="chevron.left"
               android_material_icon_name="arrow_back"
               size={backIconSize}
-              color={colors.text}
+              color={colors.headerText}
             />
           </TouchableOpacity>
-          <Text style={{ fontSize: scaleFontSize(20), fontWeight: '600', color: colors.text, flex: 1 }}>
+          <Text style={{ fontSize: scaleFontSize(24), fontWeight: '700', color: colors.headerText, flex: 1 }}>
             Notificaciones
           </Text>
           <TouchableOpacity
@@ -667,7 +787,7 @@ export default function Notificaciones() {
               ios_icon_name="info.circle"
               android_material_icon_name="info"
               size={infoIconSize}
-              color={colors.primary}
+              color={colors.headerText}
             />
           </TouchableOpacity>
         </View>
@@ -675,22 +795,22 @@ export default function Notificaciones() {
         <View style={{
           flexDirection: 'row',
           paddingHorizontal: 16,
-          paddingBottom: 8,
+          gap: 8,
         }}>
           <TouchableOpacity
             onPress={() => setActiveTab('notifications')}
             style={{
               flex: 1,
               paddingVertical: 12,
-              borderBottomWidth: 2,
-              borderBottomColor: activeTab === 'notifications' ? colors.primary : 'transparent',
+              borderRadius: 12,
+              backgroundColor: activeTab === 'notifications' ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
               alignItems: 'center',
             }}
           >
             <Text style={{
               fontSize: scaleFontSize(15),
-              fontWeight: activeTab === 'notifications' ? '600' : '400',
-              color: activeTab === 'notifications' ? colors.primary : colors.textSecondary,
+              fontWeight: activeTab === 'notifications' ? '700' : '500',
+              color: colors.headerText,
             }}>
               Notificaciones {unreadCount > 0 && `(${unreadCount})`}
             </Text>
@@ -700,21 +820,21 @@ export default function Notificaciones() {
             style={{
               flex: 1,
               paddingVertical: 12,
-              borderBottomWidth: 2,
-              borderBottomColor: activeTab === 'settings' ? colors.primary : 'transparent',
+              borderRadius: 12,
+              backgroundColor: activeTab === 'settings' ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
               alignItems: 'center',
             }}
           >
             <Text style={{
               fontSize: scaleFontSize(15),
-              fontWeight: activeTab === 'settings' ? '600' : '400',
-              color: activeTab === 'settings' ? colors.primary : colors.textSecondary,
+              fontWeight: activeTab === 'settings' ? '700' : '500',
+              color: colors.headerText,
             }}>
               Configuración
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </LinearGradient>
 
       {activeTab === 'notifications' ? renderNotificationsTab() : renderSettingsTab()}
     </View>
