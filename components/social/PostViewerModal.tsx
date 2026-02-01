@@ -208,6 +208,12 @@ export default function PostViewerModal({
   }, [visible, allPostIds, initialPostId, singlePost, hideTagIcon]);
 
   const loadInitialLikes = useCallback(async (postId: string) => {
+    // ✅ CRITICAL FIX v158.1: Validate postId before querying
+    if (!postId || postId === 'undefined') {
+      console.warn('[PostViewerModal v158.1] ⚠️ Cannot load likes with invalid postId:', postId);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('likes')
@@ -215,11 +221,19 @@ export default function PostViewerModal({
         .eq('post_id', postId);
 
       if (!error && data) {
-        setLocalLikes(prev => new Map(prev).set(postId, data));
-        console.log('[PostViewerModal v157.0] ✅ Loaded initial likes for post:', postId, 'count:', data.length);
+        // ✅ CRITICAL FIX v158.1: Filter out invalid usuario_id values
+        const validLikes = data.filter(like => 
+          like.usuario_id && 
+          like.usuario_id !== 'undefined' && 
+          typeof like.usuario_id === 'string' && 
+          like.usuario_id.length > 0
+        );
+        
+        setLocalLikes(prev => new Map(prev).set(postId, validLikes));
+        console.log('[PostViewerModal v158.1] ✅ Loaded initial likes for post:', postId, 'count:', validLikes.length, '(filtered from', data.length, ')');
       }
     } catch (error) {
-      console.error('[PostViewerModal v157.0] Error loading initial likes:', error);
+      console.error('[PostViewerModal v158.1] Error loading initial likes:', error);
     }
   }, []);
 
