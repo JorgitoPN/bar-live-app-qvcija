@@ -74,9 +74,14 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v293.0 - COMPACT HEADER REDESIGN
+ * ✅ EXPLORAR SCREEN v294.0 - SPACING FIX
  * 
- * NEW CHANGES v293.0:
+ * NEW CHANGES v294.0:
+ * - ✅ SPACING: Added margin between "¿Tienes un local?" banner and mode selector
+ * - ✅ VISUAL: Banner and selector no longer stuck together (pegados)
+ * - ✅ IMPROVED: Better visual separation with 12px margin on both sides
+ * 
+ * Previous changes v293.0:
  * - ✅ REMOVED: Page title "Explorar" from header
  * - ✅ RELOCATED: "¿Tienes un local?" banner moved to header top row
  * - ✅ COMPACT: Banner now sits next to mode selector and map button
@@ -1704,6 +1709,7 @@ const styles = StyleSheet.create({
     marginBottom: Platform.OS === 'android' ? 6 : 8,
   },
   // ✅ NEW v293.0: "¿Tienes un local?" banner in header top row
+  // ✅ FIX v294.0: Added marginRight to separate from mode selector
   claimBannerInHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1714,16 +1720,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     flex: 1,
     maxWidth: '60%',
+    marginRight: 12, // ✅ Added margin to separate from mode selector
   },
   claimBannerInHeaderText: {
     fontWeight: '600',
     color: colors.headerText,
     flexShrink: 1,
   },
+  // ✅ FIX v294.0: Added marginLeft to separate from banner
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginLeft: 12, // ✅ Added margin to separate from banner
   },
   modeSelectorButton: {
     flexDirection: 'row',
