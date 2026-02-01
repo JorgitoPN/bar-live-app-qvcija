@@ -14,16 +14,17 @@ interface HeaderSocialProps {
 }
 
 /**
- * ✅ HEADER SOCIAL v111.0 - SMALLER ICONS
+ * ✅ HEADER SOCIAL v112.0 - CREATE POST ICON REPOSITIONED
  * 
- * NEW CHANGES v111.0:
+ * NEW CHANGES v112.0:
+ * - ✅ MOVED: "+" icon moved to LEFT side of header (first position)
+ * - ✅ SIMPLIFIED: Changed to simple "+" icon (add instead of add_circle)
+ * - ✅ CLEAN: Simpler, more minimal design as requested
+ * 
+ * Previous changes v111.0:
  * - ✅ REDUCED: Icon sizes made smaller (20px Android, 24px iOS)
  * - ✅ COMPACT: More compact header appearance
  * - ✅ CONSISTENT: Matches user request for smaller icons
- * 
- * Previous fixes v110.0:
- * - ✅ REMOVED: Page title "Social" from header
- * - ✅ CLEAN: More compact header with just action buttons
  */
 
 export default function HeaderSocial({ 
@@ -41,17 +42,15 @@ export default function HeaderSocial({
       style={styles.header}
     >
       <View style={styles.headerActions}>
+        {/* ✅ v112.0: Create post button moved to LEFT (first position) with simple "+" icon */}
         <TouchableOpacity 
           style={styles.headerButton}
-          onPress={() => {
-            console.log('[HeaderSocial v111.0] 🔍 Navigating to full-page search');
-            router.push('/social/search');
-          }}
+          onPress={onCreatePost}
           activeOpacity={0.7}
         >
           <IconSymbol 
-            ios_icon_name="magnifyingglass" 
-            android_material_icon_name="search" 
+            ios_icon_name="plus" 
+            android_material_icon_name="add" 
             size={Platform.OS === 'android' ? 20 : 24} 
             color={colors.headerText} 
           />
@@ -59,12 +58,15 @@ export default function HeaderSocial({
 
         <TouchableOpacity 
           style={styles.headerButton}
-          onPress={onCreatePost}
+          onPress={() => {
+            console.log('[HeaderSocial v112.0] 🔍 Navigating to full-page search');
+            router.push('/social/search');
+          }}
           activeOpacity={0.7}
         >
           <IconSymbol 
-            ios_icon_name="plus.app" 
-            android_material_icon_name="add_circle" 
+            ios_icon_name="magnifyingglass" 
+            android_material_icon_name="search" 
             size={Platform.OS === 'android' ? 20 : 24} 
             color={colors.headerText} 
           />
