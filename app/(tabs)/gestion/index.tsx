@@ -57,9 +57,14 @@ interface LocalConSuscripcion {
 }
 
 /**
- * ✅ GESTION SCREEN v244.0 - SHOPPING CART IN HEADER + ADMIN ACCESS TO PLANS
+ * ✅ GESTION SCREEN v245.0 - TITLE REMOVED FROM HEADER
  * 
- * NEW FEATURES v244.0:
+ * NEW CHANGES v245.0:
+ * - ✅ REMOVED: Page title "Gestión de Locales" from header
+ * - ✅ CLEAN: More compact header with just shopping cart
+ * - ✅ CONSISTENT: Matches user request to remove all page titles
+ * 
+ * Previous features v244.0:
  * - ✅ Shopping cart icon in header (owner mode)
  * - ✅ Cart navigates to full-screen page (not modal)
  * - ✅ Admin can access "Ver Planes" without owning a local
@@ -83,7 +88,7 @@ export default function GestionScreen() {
     }
 
     try {
-      console.log('[GestionScreen v244.0] Loading locales for user:', user.id);
+      console.log('[GestionScreen v245.0] Loading locales for user:', user.id);
       
       // Get user's locals
       const { data: localesData, error: localesError } = await supabase
@@ -93,19 +98,19 @@ export default function GestionScreen() {
         .eq('activo', true);
 
       if (localesError) {
-        console.error('[GestionScreen v244.0] Error loading locales:', localesError);
+        console.error('[GestionScreen v245.0] Error loading locales:', localesError);
         setLoading(false);
         return;
       }
 
       if (!localesData || localesData.length === 0) {
-        console.log('[GestionScreen v244.0] No locales found for user');
+        console.log('[GestionScreen v245.0] No locales found for user');
         setLocales([]);
         setLoading(false);
         return;
       }
 
-      console.log('[GestionScreen v244.0] Found', localesData.length, 'locales');
+      console.log('[GestionScreen v245.0] Found', localesData.length, 'locales');
 
       // Get subscriptions and active events for each local
       const localesConSuscripcion: LocalConSuscripcion[] = await Promise.all(
@@ -196,9 +201,9 @@ export default function GestionScreen() {
       );
 
       setLocales(localesConSuscripcion);
-      console.log('[GestionScreen v244.0] Locales loaded successfully');
+      console.log('[GestionScreen v245.0] Locales loaded successfully');
     } catch (error) {
-      console.error('[GestionScreen v244.0] Error:', error);
+      console.error('[GestionScreen v245.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -225,11 +230,11 @@ export default function GestionScreen() {
   };
 
   const handleVerPlanes = () => {
-    console.log('[GestionScreen v244.0] Ver Planes clicked - Admin:', isAdmin, 'Locales:', locales.length);
+    console.log('[GestionScreen v245.0] Ver Planes clicked - Admin:', isAdmin, 'Locales:', locales.length);
     
     // ✅ NEW v244.0: Admins can access plans even without locals
     if (isAdmin) {
-      console.log('[GestionScreen v244.0] Admin accessing plans in verification mode');
+      console.log('[GestionScreen v245.0] Admin accessing plans in verification mode');
       router.push('/gestion/planes-suscripcion?adminMode=true');
       return;
     }
@@ -250,14 +255,13 @@ export default function GestionScreen() {
   if (loading) {
     return (
       <View style={commonStyles.container}>
+        {/* ✅ NEW v245.0: Header WITHOUT title - just shopping cart */}
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={commonStyles.headerGradient}
+          style={styles.headerWithoutTitle}
         >
-          <Text style={[commonStyles.headerTitle, { fontSize: scaleFontSize(Platform.OS === 'android' ? 24 : 32) }]}>Gestión</Text>
-          {/* ✅ NEW v244.0: Shopping cart in header */}
           <View style={styles.headerActions}>
             <ShoppingCart />
           </View>
@@ -271,14 +275,13 @@ export default function GestionScreen() {
 
   return (
     <View style={commonStyles.container}>
+      {/* ✅ NEW v245.0: Header WITHOUT title - just shopping cart */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={commonStyles.headerGradient}
+        style={styles.headerWithoutTitle}
       >
-        <Text style={[commonStyles.headerTitle, { fontSize: scaleFontSize(Platform.OS === 'android' ? 24 : 32) }]}>Gestión de Locales</Text>
-        {/* ✅ NEW v244.0: Shopping cart in header */}
         <View style={styles.headerActions}>
           <ShoppingCart />
         </View>
@@ -389,10 +392,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // ✅ NEW v245.0: Compact header without title
+  headerWithoutTitle: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+  },
   headerActions: {
-    position: 'absolute',
-    right: 20,
-    top: Platform.OS === 'ios' ? 60 : 50,
+    flexDirection: 'row',
+    gap: 16,
   },
   headerSection: {
     padding: 20,

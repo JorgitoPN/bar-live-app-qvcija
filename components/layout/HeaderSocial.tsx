@@ -14,20 +14,18 @@ interface HeaderSocialProps {
 }
 
 /**
- * ✅ HEADER SOCIAL v109.0 - ANDROID COMPACT HEADERS
+ * ✅ HEADER SOCIAL v110.0 - TITLE REMOVED FROM HEADER
  * 
- * NEW FIXES v109.0:
+ * NEW CHANGES v110.0:
+ * - ✅ REMOVED: Page title "Social" from header
+ * - ✅ CLEAN: More compact header with just action buttons
+ * - ✅ CONSISTENT: Matches user request to remove all page titles
+ * 
+ * Previous fixes v109.0:
  * - ✅ COMPACT: Android header now uses compact padding (36px top, 12px bottom)
  * - ✅ COMPACT: Android header title reduced to 20sp (matching venue cards)
  * - ✅ COMPACT: Android header icons reduced to 24dp (more compact)
  * - ✅ SPACE SAVING: Headers take less vertical space on Android
- * 
- * Previous features maintained (v108.0):
- * - ✅ NAVIGATION: Search button now navigates to /social/search (full page)
- * - ✅ NO MODAL: Removed SearchModal component usage
- * - ✅ BETTER UX: Full-page search provides better navigation consistency
- * - ✅ Fixed + icon on Android: Changed from "add_box" to "add_circle" (valid Material icon)
- * - ✅ All icons use valid Material Icons names
  */
 
 export default function HeaderSocial({ 
@@ -44,115 +42,94 @@ export default function HeaderSocial({
       end={{ x: 1, y: 0 }}
       style={styles.header}
     >
-      <View style={styles.headerContent}>
-        <Text style={[
-          styles.headerTitle,
-          // ✅ FIX v109.0: Compact header title on Android (20sp instead of 30sp)
-          { fontSize: Platform.OS === 'android' ? 20 : 32 }
-        ]}>
-          Social
-        </Text>
-        <View style={styles.headerActions}>
-          {/* ✅ NEW v108.0: Navigate to full-page search instead of modal */}
-          <TouchableOpacity 
-            style={styles.headerButton}
-            onPress={() => {
-              console.log('[HeaderSocial v108.0] 🔍 Navigating to full-page search');
-              router.push('/social/search');
-            }}
-            activeOpacity={0.7}
-          >
-            <IconSymbol 
-              ios_icon_name="magnifyingglass" 
-              android_material_icon_name="search" 
-              // ✅ FIX v109.0: Compact icon size on Android (24dp instead of 28dp)
-              size={Platform.OS === 'android' ? 24 : 28} 
-              color={colors.headerText} 
-            />
-          </TouchableOpacity>
+      {/* ✅ NEW v110.0: Header WITHOUT title - just action buttons */}
+      <View style={styles.headerActions}>
+        {/* ✅ Navigate to full-page search */}
+        <TouchableOpacity 
+          style={styles.headerButton}
+          onPress={() => {
+            console.log('[HeaderSocial v110.0] 🔍 Navigating to full-page search');
+            router.push('/social/search');
+          }}
+          activeOpacity={0.7}
+        >
+          <IconSymbol 
+            ios_icon_name="magnifyingglass" 
+            android_material_icon_name="search" 
+            size={Platform.OS === 'android' ? 24 : 28} 
+            color={colors.headerText} 
+          />
+        </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.headerButton}
-            onPress={onCreatePost}
-            activeOpacity={0.7}
-          >
+        <TouchableOpacity 
+          style={styles.headerButton}
+          onPress={onCreatePost}
+          activeOpacity={0.7}
+        >
+          <IconSymbol 
+            ios_icon_name="plus.app" 
+            android_material_icon_name="add_circle" 
+            size={Platform.OS === 'android' ? 24 : 28} 
+            color={colors.headerText} 
+          />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.headerButton}
+          onPress={() => router.push('/(tabs)/perfil/notificaciones')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.iconContainer}>
             <IconSymbol 
-              ios_icon_name="plus.app" 
-              android_material_icon_name="add_circle" 
-              // ✅ FIX v109.0: Compact icon size on Android (24dp instead of 28dp)
+              ios_icon_name="bell.fill" 
+              android_material_icon_name="notifications" 
               size={Platform.OS === 'android' ? 24 : 28} 
               color={colors.headerText} 
             />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.headerButton}
-            onPress={() => router.push('/(tabs)/perfil/notificaciones')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.iconContainer}>
-              <IconSymbol 
-                ios_icon_name="bell.fill" 
-                android_material_icon_name="notifications" 
-                // ✅ FIX v109.0: Compact icon size on Android (24dp instead of 28dp)
-                size={Platform.OS === 'android' ? 24 : 28} 
-                color={colors.headerText} 
-              />
-              {unreadNotifications > 0 && (
-                <View style={styles.badge}>
-                  <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
-                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.headerButton}
-            onPress={() => router.push('/(tabs)/perfil/chats')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.iconContainer}>
-              <IconSymbol 
-                ios_icon_name="message.fill" 
-                android_material_icon_name="message" 
-                // ✅ FIX v109.0: Compact icon size on Android (24dp instead of 28dp)
-                size={Platform.OS === 'android' ? 24 : 28} 
-                color={colors.headerText} 
-              />
-              {unreadMessages > 0 && (
-                <View style={styles.badge}>
-                  <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
-                    {unreadMessages > 99 ? '99+' : unreadMessages}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
-        </View>
+            {unreadNotifications > 0 && (
+              <View style={styles.badge}>
+                <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
+                  {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                </Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.headerButton}
+          onPress={() => router.push('/(tabs)/perfil/chats')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.iconContainer}>
+            <IconSymbol 
+              ios_icon_name="message.fill" 
+              android_material_icon_name="message" 
+              size={Platform.OS === 'android' ? 24 : 28} 
+              color={colors.headerText} 
+            />
+            {unreadMessages > 0 && (
+              <View style={styles.badge}>
+                <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
+                  {unreadMessages > 99 ? '99+' : unreadMessages}
+                </Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
       </View>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  // ✅ NEW v110.0: Compact header without title
   header: {
-    // ✅ FIX v109.0: Compact padding on Android (36px top, 12px bottom)
     paddingTop: Platform.OS === 'android' ? 36 : 50,
     paddingBottom: Platform.OS === 'android' ? 12 : 16,
     paddingHorizontal: 20,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerTitle: {
-    fontWeight: 'bold',
-    color: colors.headerText,
-    // ✅ FIX v109.0: Compact title size on Android (20sp instead of 32sp)
-    fontSize: Platform.OS === 'android' ? 20 : 32,
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
   },
   headerActions: {
     flexDirection: 'row',

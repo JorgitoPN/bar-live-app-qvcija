@@ -39,8 +39,8 @@ import {
 
 const { width } = Dimensions.get('window');
 
-// ✅ FIX v277.0: REDUCED header height for compact Android headers
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 280;
+// ✅ FIX v296.0: REMOVED title from header - more compact design
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 260;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -89,43 +89,19 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v279.0 - ANDROID UI CLEANUP + CATEGORY BUTTON TEXT FIX
+ * ✅ EVENTOS SCREEN v296.0 - TITLE REMOVED FROM HEADER
  * 
- * NEW FIXES v279.0:
+ * NEW CHANGES v296.0:
+ * - ✅ REMOVED: Page title "Eventos" from header
+ * - ✅ COMPACT: Header height reduced (200px Android, 260px iOS)
+ * - ✅ CLEAN: More screen space for content
+ * - ✅ CONSISTENT: Matches user request to remove all page titles
+ * 
+ * Previous fixes v279.0:
  * - ✅ FIXED: Category button text sizes adjusted with scaleFontSize (11sp on Android)
  * - ✅ FIXED: Removed ALL white shadows/boxes on Android (elevation: 0)
  * - ✅ FIXED: Clean visual appearance without white overlays
  * - ✅ FIXED: Platform-specific shadow styling (iOS shadows, Android no elevation)
- * 
- * Previous fixes maintained (v277.0):
- * - ✅ FIXED: Android headers now use COMPACT font sizes (matching venue cards)
- * - ✅ FIXED: Header title reduced from 24sp to 20sp on Android
- * - ✅ FIXED: Headers take less vertical space on Android
- * 
- * Previous fixes maintained (v275.0):
- * - ✅ FIXED: SAME margin as Explorar page (10-11px between header and first event)
- * - ✅ FIXED: Consistent spacing across all pages
- * - ✅ FIXED: No more excessive whitespace at the top
- * 
- * Previous features maintained (v272.0):
- * - ✅ ENABLED: Animated header now hides on scroll down, shows on scroll up (same as Favoritos)
- * - ✅ FIXED: Proper scroll event handling with Animated.event
- * - ✅ FIXED: Header animation synchronized with scroll position
- * - ✅ Category icon buttons use EXACT same sizes as Explorar page (36-40px)
- * - ✅ Using compact category button style with smaller labels (11-12px)
- * - ✅ Consistent sizing across all pages (Explorar, Eventos, Favoritos, Mapa)
- * - ✅ ANIMATED HEADER: Same collapsing behavior as Explorar page
- * - ✅ CONSISTENT DESIGN: Matches Explorar header structure
- * - ✅ SMOOTH ANIMATIONS: Header hides on scroll down, shows on scroll up
- * - ✅ SEARCH & FILTER: Same height for search input and filter button (40px)
- * - ✅ FIXED: NO component functions (HeaderContent removed)
- * - ✅ FIXED: TextInput is DIRECTLY in return JSX (no wrapper functions)
- * - ✅ FIXED: Controlled component with value={searchQuery}
- * - ✅ FIXED: Debounce with useEffect + cleanup (300ms)
- * - ✅ FIXED: Separate states: searchQuery (immediate) vs debouncedQuery (filtered)
- * - ✅ FIXED: ScrollView has keyboardShouldPersistTaps="handled"
- * - ✅ FIXED: TextInput has blurOnSubmit={false}
- * - ✅ FIXED: Same architecture as working Explorar screen
  */
 
 export default function EventosScreen() {
@@ -158,10 +134,10 @@ export default function EventosScreen() {
 
   // ✅ CRITICAL FIX v242.0: Debounce with cleanup (300ms) - same as Explorar
   useEffect(() => {
-    console.log('[Eventos v279.0] 📝 Search query changed:', searchQuery);
+    console.log('[Eventos v296.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Eventos v279.0] 🔍 Applying debounced search');
+      console.log('[Eventos v296.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -189,7 +165,7 @@ export default function EventosScreen() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Eventos v279.0] Cargando eventos...');
+      console.log('[Eventos v296.0] Cargando eventos...');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -221,11 +197,11 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos v279.0] Error cargando eventos:', error);
+        console.error('[Eventos v296.0] Error cargando eventos:', error);
         return;
       }
 
-      console.log('[Eventos v279.0] Eventos cargados:', data?.length || 0);
+      console.log('[Eventos v296.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
         let localCategories: string[] = [];
@@ -260,7 +236,7 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos v279.0] Error:', error);
+      console.error('[Eventos v296.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -272,7 +248,7 @@ export default function EventosScreen() {
   }, [cargarEventos]);
 
   const onRefresh = () => {
-    console.log('[Eventos v279.0] 🔄 Manual refresh triggered');
+    console.log('[Eventos v296.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     cargarEventos();
   };
@@ -319,7 +295,7 @@ export default function EventosScreen() {
   });
 
   const limpiarFiltros = () => {
-    console.log('[Eventos v279.0] 🧹 Clearing all filters');
+    console.log('[Eventos v296.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setProvinciaSeleccionada('Todas');
@@ -409,7 +385,7 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos v279.0] Deleting event:', eventoId);
+              console.log('[Eventos v296.0] Deleting event:', eventoId);
               
               const { error } = await supabase
                 .from('eventos')
@@ -417,14 +393,14 @@ export default function EventosScreen() {
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos v279.0] Error deleting event:', error);
+                console.error('[Eventos v296.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos v279.0] Error deleting event:', error);
+              console.error('[Eventos v296.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -481,15 +457,7 @@ export default function EventosScreen() {
           end={{ x: 1, y: 0 }}
           style={styles.headerGradient}
         >
-          <Text style={[
-            commonStyles.headerTitle, 
-            { 
-              color: colors.white,
-              fontSize: scaleFontSize(32),
-            }
-          ]}>
-            Eventos
-          </Text>
+          {/* ✅ NEW v296.0: Header WITHOUT title - just search and filters */}
 
           {/* ✅ FIX v268.0: Search input and filter button with SAME HEIGHT (40px) */}
           <View style={styles.compactSearchRow}>
@@ -517,7 +485,7 @@ export default function EventosScreen() {
               {searchQuery.length > 0 && (
                 <TouchableOpacity 
                   onPress={() => {
-                    console.log('[Eventos v279.0] 🧹 Clearing search');
+                    console.log('[Eventos v296.0] 🧹 Clearing search');
                     setSearchQuery('');
                     setDebouncedQuery('');
                   }}
@@ -632,7 +600,7 @@ export default function EventosScreen() {
           contentContainerStyle={[
             styles.eventosContainer,
             { 
-              // ✅ FIX v275.0: SAME margin as Explorar (10-11px)
+              // ✅ FIX v296.0: Adjusted margin for new compact header height (no title)
               marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 10 : HEADER_MAX_HEIGHT + 11,
               paddingTop: 16,
               paddingBottom: getContentBottomPadding(100),
@@ -927,6 +895,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     backgroundColor: colors.background,
   },
+  // ✅ NEW v296.0: More compact header padding (no title)
   headerGradient: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
     paddingBottom: Platform.OS === 'android' ? 6 : 12,
@@ -937,7 +906,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 16,
     marginBottom: Platform.OS === 'android' ? 6 : 8,
   },
   // ✅ FIX v268.0: Search container with FIXED HEIGHT (40px)

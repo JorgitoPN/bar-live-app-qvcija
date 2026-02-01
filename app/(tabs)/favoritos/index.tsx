@@ -42,8 +42,8 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 
 const ITEMS_PER_PAGE = 20;
 
-// ✅ FIX v280.0: REDUCED margin by HALF for tighter spacing between header and first card
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 210 : 270;
+// ✅ FIX v297.0: REMOVED title from header - more compact design
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 190 : 250;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -71,42 +71,19 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v288.0 - ANDROID PERFORMANCE OPTIMIZATION
+ * ✅ FAVORITOS SCREEN v297.0 - TITLE REMOVED FROM HEADER
  * 
- * NEW FIXES v288.0:
+ * NEW CHANGES v297.0:
+ * - ✅ REMOVED: Page title "Locales Favoritos" from header
+ * - ✅ COMPACT: Header height reduced (190px Android, 250px iOS)
+ * - ✅ CLEAN: More screen space for content
+ * - ✅ CONSISTENT: Matches user request to remove all page titles
+ * 
+ * Previous fixes v288.0:
  * - ✅ CRITICAL: Eliminated getEstadoLocal() calls that were blocking UI thread
  * - ✅ PERFORMANCE: Now uses pre-calculated estaAbierto from backend
  * - ✅ OPTIMIZATION: Removed expensive time calculations on every render
  * - ✅ ANDROID FIX: Improved initial load performance
- * 
- * Previous fixes maintained (v280.0):
- * - ✅ FIXED: REDUCED margin by HALF (from 16px to 8px paddingTop) for tighter spacing between header and first card
- * - ✅ FIXED: HEADER_MAX_HEIGHT reduced by 10px on both platforms for closer header-to-content spacing
- * 
- * Previous fixes maintained (v279.0):
- * - ✅ FIXED: Category filter button text sizes adjusted with scaleFontSize for consistency
- * - ✅ FIXED: Removed ALL white shadows/boxes on Android (elevation: 0 for category buttons)
- * - ✅ FIXED: Platform-specific shadow styling (iOS shadows, Android minimal/no elevation)
- * - ✅ FIXED: Clean visual appearance on Android without white overlays
- * - ✅ Category icon buttons use EXACT same sizes as Explorar page (36-40px)
- * - ✅ Using compact category button style with smaller labels (11-12px)
- * - ✅ ANIMATED HEADER: Same collapsing behavior as Explorar page
- * - ✅ CONSISTENT DESIGN: Matches Explorar header structure
- * - ✅ SMOOTH ANIMATIONS: Header hides on scroll down, shows on scroll up
- * - ✅ SEARCH & FILTER: Same height for search input and filter button (40px)
- * - ✅ OPTIMISTIC UI: Uses FavoritesContext for instant heart icon updates
- * - ✅ NO LOADING INDICATORS: Heart icon changes immediately
- * - ✅ BACKGROUND SYNC: Server request happens asynchronously
- * - ✅ ERROR HANDLING: Reverts UI state if server request fails
- * - ✅ REAL-TIME UPDATES: Listens to favorites changes and reloads list
- * - ✅ FIXED: NO component functions (HeaderContent removed)
- * - ✅ FIXED: TextInput is DIRECTLY in return JSX (no wrapper functions)
- * - ✅ FIXED: Controlled component with value={searchQuery}
- * - ✅ FIXED: Debounce with useEffect + cleanup (300ms)
- * - ✅ FIXED: Separate states: searchQuery (immediate) vs debouncedQuery (filtered)
- * - ✅ FIXED: FlatList has keyboardShouldPersistTaps="handled"
- * - ✅ FIXED: TextInput has blurOnSubmit={false}
- * - ✅ FIXED: Same architecture as working Explorar screen
  */
 
 export default function FavoritosScreen() {
@@ -142,10 +119,10 @@ export default function FavoritosScreen() {
 
   // ✅ CRITICAL FIX v241.0: Debounce with cleanup (300ms)
   useEffect(() => {
-    console.log('[Favoritos v279.0] 📝 Search query changed:', searchQuery);
+    console.log('[Favoritos v297.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Favoritos v279.0] 🔍 Applying debounced search');
+      console.log('[Favoritos v297.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -165,10 +142,10 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Favoritos v279.0] User location obtained:', location.coords);
+          console.log('[Favoritos v297.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Favoritos v279.0] Error getting location:', error);
+        console.error('[Favoritos v297.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -194,7 +171,7 @@ export default function FavoritosScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Favoritos v279.0] Error checking social profiles:', error);
+      console.error('[Favoritos v297.0] Error checking social profiles:', error);
     }
   }, []);
 
@@ -206,7 +183,7 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos v279.0] Cargando locales guardados...');
+      console.log('[Favoritos v297.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -266,12 +243,12 @@ export default function FavoritosScreen() {
         
         setAllSavedLocales(formattedLocales);
         
-        console.log('[Favoritos v279.0] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos v297.0] Locales guardados cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Favoritos v279.0] Error cargando locales guardados:', error);
+      console.error('[Favoritos v297.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
@@ -283,7 +260,7 @@ export default function FavoritosScreen() {
       loadSavedLocales();
 
       const savedLocalesChannel = supabase
-        .channel('user-saved-locales-changes-v279')
+        .channel('user-saved-locales-changes-v297')
         .on(
           'postgres_changes',
           {
@@ -293,7 +270,7 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Favoritos v279.0] Saved locales changed, reloading...');
+            console.log('[Favoritos v297.0] Saved locales changed, reloading...');
             loadSavedLocales();
           }
         )
@@ -308,7 +285,7 @@ export default function FavoritosScreen() {
   // ✅ FIX v271.0: Separate effect for recalculating distances when location changes
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
-      console.log('[Favoritos v279.0] Recalculating distances with new user location');
+      console.log('[Favoritos v297.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -328,7 +305,7 @@ export default function FavoritosScreen() {
   // ✅ CRITICAL v241.0: Client-side filtering (triggered by debouncedQuery)
   const filteredLocales = useMemo(() => {
     const query = debouncedQuery.toLowerCase().trim();
-    console.log('[Favoritos v279.0] 🔍 Filtering locales client-side, search:', query);
+    console.log('[Favoritos v297.0] 🔍 Filtering locales client-side, search:', query);
     let filtered = [...allSavedLocales];
 
     if (query) {
@@ -361,7 +338,7 @@ export default function FavoritosScreen() {
       filtered = filtered.filter(local => local.provincia === provinciaSeleccionada);
     }
 
-    console.log('[Favoritos v279.0] ✅ Filtered', filtered.length, 'locales from', allSavedLocales.length);
+    console.log('[Favoritos v297.0] ✅ Filtered', filtered.length, 'locales from', allSavedLocales.length);
     return filtered;
   }, [debouncedQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
@@ -371,7 +348,7 @@ export default function FavoritosScreen() {
     setDisplayedLocales(firstPage);
     setHasMore(filteredLocales.length > firstPage.length);
     
-    console.log('[Favoritos v279.0] Displaying', firstPage.length, 'of', filteredLocales.length, 'locales');
+    console.log('[Favoritos v297.0] Displaying', firstPage.length, 'of', filteredLocales.length, 'locales');
   }, [filteredLocales, currentPage]);
 
   const loadMoreLocales = useCallback(() => {
@@ -384,12 +361,12 @@ export default function FavoritosScreen() {
       setCurrentPage(nextPage);
       setLoadingMore(false);
       
-      console.log('[Favoritos v279.0] Cargando más locales, página:', nextPage);
+      console.log('[Favoritos v297.0] Cargando más locales, página:', nextPage);
     }, 300);
   }, [currentPage, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Favoritos v279.0] 🔄 Manual refresh triggered');
+    console.log('[Favoritos v297.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setDebouncedQuery('');
@@ -402,7 +379,7 @@ export default function FavoritosScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Favoritos v279.0] 🧹 Clearing all filters');
+    console.log('[Favoritos v297.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setSelectedCategory('todas');
@@ -425,23 +402,23 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
-      console.log('[Favoritos v279.0] User not authenticated');
+      console.log('[Favoritos v297.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
-      console.log('[Favoritos v279.0] No local ID');
+      console.log('[Favoritos v297.0] No local ID');
       return;
     }
 
-    console.log('[Favoritos v279.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
+    console.log('[Favoritos v297.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
     
     // ✅ OPTIMISTIC UI: toggleFavorite updates UI instantly
     const success = await toggleFavorite(localId);
     
     if (success) {
-      console.log('[Favoritos v279.0] ✅ Favorite toggle completed - reloading list');
+      console.log('[Favoritos v297.0] ✅ Favorite toggle completed - reloading list');
       // Reload the list to remove the item if it was unfavorited
       await loadSavedLocales();
     }
@@ -608,7 +585,7 @@ export default function FavoritosScreen() {
           <TouchableOpacity
             style={styles.favoritoButton}
             onPress={(e) => {
-              console.log('[Favoritos v279.0] 👆 User tapped favorite button for local:', item.id);
+              console.log('[Favoritos v297.0] 👆 User tapped favorite button for local:', item.id);
               handleToggleFavorito(item.id, e);
             }}
           >
@@ -743,12 +720,11 @@ export default function FavoritosScreen() {
   if (!user) {
     return (
       <View style={styles.container}>
+        {/* ✅ NEW v297.0: Header WITHOUT title */}
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.headerGradient}
-        >
-          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Locales Favoritos</Text>
-        </LinearGradient>
+          style={styles.headerWithoutTitle}
+        />
 
         <LoginPrompt
           title="Inicia sesión para ver tus favoritos"
@@ -763,12 +739,11 @@ export default function FavoritosScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
+        {/* ✅ NEW v297.0: Header WITHOUT title */}
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.headerGradient}
-        >
-          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Locales Favoritos</Text>
-        </LinearGradient>
+          style={styles.headerWithoutTitle}
+        />
 
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -799,8 +774,8 @@ export default function FavoritosScreen() {
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.headerGradient}
         >
+          {/* ✅ NEW v297.0: Header top WITHOUT title - just clear filters button */}
           <View style={styles.headerTop}>
-            <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>Locales Favoritos</Text>
             {activeFiltersCount > 0 && (
               <TouchableOpacity 
                 style={styles.clearFiltersHeaderButton}
@@ -837,7 +812,7 @@ export default function FavoritosScreen() {
               {searchQuery.length > 0 && (
                 <TouchableOpacity 
                   onPress={() => {
-                    console.log('[Favoritos v279.0] 🧹 Clearing search');
+                    console.log('[Favoritos v297.0] 🧹 Clearing search');
                     setSearchQuery('');
                     setDebouncedQuery('');
                   }}
@@ -934,7 +909,7 @@ export default function FavoritosScreen() {
         contentContainerStyle={[
           styles.listContent,
           { 
-            // ✅ FIX v280.0: REDUCED margin by HALF for tighter spacing between header and first card
+            // ✅ FIX v297.0: Adjusted margin for new compact header height (no title)
             marginTop: HEADER_MAX_HEIGHT,
             paddingTop: 8,
             paddingBottom: getContentBottomPadding(100),
@@ -1094,22 +1069,25 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     backgroundColor: colors.background,
   },
+  // ✅ NEW v297.0: More compact header padding (no title)
   headerGradient: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
     paddingBottom: Platform.OS === 'android' ? 6 : 12,
     paddingHorizontal: 16,
   },
+  // ✅ NEW v297.0: Header without title (for login screen)
+  headerWithoutTitle: {
+    paddingTop: Platform.OS === 'android' ? 36 : 50,
+    paddingBottom: Platform.OS === 'android' ? 6 : 12,
+    paddingHorizontal: 16,
+  },
+  // ✅ NEW v297.0: Header top without title - just clear filters
   headerTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     marginBottom: Platform.OS === 'android' ? 6 : 8,
-  },
-  headerTitle: {
-    fontWeight: 'bold',
-    color: colors.headerText,
-    // ✅ FIX v277.0: Compact header title on Android (20sp instead of 24sp)
-    fontSize: Platform.OS === 'android' ? 20 : 32,
+    minHeight: 32,
   },
   clearFiltersHeaderButton: {
     flexDirection: 'row',
@@ -1646,7 +1624,7 @@ const styles = StyleSheet.create({
   },
   provinciaItem: {
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal16,
     borderRadius: 8,
     backgroundColor: colors.background,
   },
