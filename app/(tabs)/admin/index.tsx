@@ -44,9 +44,14 @@ function hasAdminAccess(user: any): boolean {
 }
 
 /**
- * ✅ ADMIN INDEX SCREEN v141.0 - ANDROID SCALING COMPLETE
+ * ✅ ADMIN INDEX SCREEN v142.0 - TITLE REMOVED FROM HEADER
  * 
- * CRITICAL FIXES v141.0 (ANDROID ONLY):
+ * NEW CHANGES v142.0:
+ * - ✅ REMOVED: Page title "Panel de Administración" from header
+ * - ✅ CLEAN: More compact header with just refresh button
+ * - ✅ CONSISTENT: Matches user request to remove all page titles
+ * 
+ * Previous fixes v141.0 (ANDROID ONLY):
  * - ✅ All font sizes use scaleFontSize() for consistency
  * - ✅ All icon sizes use scaleIconSize() for proper proportions
  * - ✅ Header title size standardized (28px on Android)
@@ -73,17 +78,17 @@ export default function AdminIndexScreen() {
   // ✅ FIXED: Strict admin permission check with email verification
   useEffect(() => {
     const checkPermissions = async () => {
-      console.log('[AdminIndex v141.0] 🔍 Checking admin permissions...');
+      console.log('[AdminIndex v142.0] 🔍 Checking admin permissions...');
       
       // Wait for auth to finish loading
       if (authLoading) {
-        console.log('[AdminIndex v141.0] ⏳ Waiting for auth to load...');
+        console.log('[AdminIndex v142.0] ⏳ Waiting for auth to load...');
         return;
       }
 
       // If no user, silently redirect
       if (!user) {
-        console.log('[AdminIndex v141.0] ❌ No user found, redirecting silently');
+        console.log('[AdminIndex v142.0] ❌ No user found, redirecting silently');
         router.replace('/(tabs)/explorar' as any);
         return;
       }
@@ -92,7 +97,7 @@ export default function AdminIndexScreen() {
       const isAdmin = user.rol_app === 'admin';
       const isAuthorizedEmail = user.email === ADMIN_EMAIL;
 
-      console.log('[AdminIndex v141.0] 📋 Permission check:', {
+      console.log('[AdminIndex v142.0] 📋 Permission check:', {
         email: user.email,
         role: user.rol_app,
         isAdmin,
@@ -102,12 +107,12 @@ export default function AdminIndexScreen() {
 
       // User must have admin role AND be the authorized email
       if (!isAdmin || !isAuthorizedEmail) {
-        console.log('[AdminIndex v141.0] ❌ Access denied - redirecting silently');
+        console.log('[AdminIndex v142.0] ❌ Access denied - redirecting silently');
         router.replace('/(tabs)/explorar' as any);
         return;
       }
 
-      console.log('[AdminIndex v141.0] ✅ Admin permissions verified for:', user.email);
+      console.log('[AdminIndex v142.0] ✅ Admin permissions verified for:', user.email);
       setPermissionChecked(true);
       cargarEstadisticas();
     };
@@ -147,7 +152,7 @@ export default function AdminIndexScreen() {
         suscripcionesActivas: suscripcionesActivas || 0,
       });
     } catch (error) {
-      console.error('[AdminIndex v141.0] Error cargando estadísticas:', error);
+      console.error('[AdminIndex v142.0] Error cargando estadísticas:', error);
     } finally {
       setLoading(false);
     }
@@ -168,7 +173,7 @@ export default function AdminIndexScreen() {
               Alert.alert('✅ Éxito', 'Impersonación finalizada. Has vuelto a tu cuenta de administrador.');
               router.replace('/(tabs)/admin' as any);
             } catch (error) {
-              console.error('[AdminIndex v141.0] Error finalizando impersonación:', error);
+              console.error('[AdminIndex v142.0] Error finalizando impersonación:', error);
               Alert.alert('Error', 'No se pudo finalizar la impersonación');
             }
           },
@@ -402,14 +407,11 @@ export default function AdminIndexScreen() {
 
   return (
     <View style={styles.container}>
+      {/* ✅ NEW v142.0: Header WITHOUT title - just refresh button */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
       >
-        <View style={styles.headerContent}>
-          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(Platform.OS === 'android' ? 24 : 28) }]}>Panel de Administración</Text>
-          <Text style={[styles.headerSubtitle, { fontSize: scaleFontSize(15) }]}>Bienvenido, {user?.nombre}</Text>
-        </View>
         <TouchableOpacity style={styles.refreshButton} onPress={cargarEstadisticas}>
           <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={scaleIconSize(24)} color={colors.headerText} />
         </TouchableOpacity>
@@ -530,25 +532,14 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginTop: 16,
   },
+  // ✅ NEW v142.0: Compact header without title
   header: {
     paddingTop: Platform.OS === 'android' ? 44 : 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerContent: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  headerSubtitle: {
-    color: colors.headerText,
-    opacity: 0.9,
-    marginTop: 4,
+    justifyContent: 'flex-end',
   },
   refreshButton: {
     padding: 8,
