@@ -72,18 +72,16 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v104.0 - SCROLLABLE HEADER + COMPACT PROFILE SECTION
+ * ✅ PROFILE SCREEN v105.0 - SMALLER HEADER ICONS
  * 
- * NEW CHANGES v104.0:
+ * NEW CHANGES v105.0:
+ * - ✅ REDUCED: Header icon sizes made smaller (20px Android, 24px iOS)
+ * - ✅ COMPACT: More compact header appearance
+ * - ✅ CONSISTENT: Matches Social page icon sizes
+ * 
+ * Previous fixes v104.0:
  * - ✅ SCROLLABLE: Header now scrolls with content (not fixed)
  * - ✅ COMPACT: Profile section reduced vertical spacing
- * - ✅ OPTIMIZED: Reduced padding and margins throughout profile header
- * - ✅ CLEAN: More content visible without scrolling
- * 
- * Previous fixes v103.0:
- * - ✅ REMOVED: Page title "Mi Perfil" from header
- * - ✅ FIXED: Notification badge styling matches Social page
- * - ✅ FIXED: Icon sizes match Social page (24px Android, 28px iOS)
  */
 
 export default function PerfilScreen() {
@@ -161,7 +159,7 @@ export default function PerfilScreen() {
         setUnreadMessages(totalUnread);
       }
     } catch (error) {
-      console.error('[Perfil v103.0] Error loading unread counts:', error);
+      console.error('[Perfil v105.0] Error loading unread counts:', error);
     }
   }, [userId]);
 
@@ -175,14 +173,14 @@ export default function PerfilScreen() {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('[Perfil v103.0] ❌ Error loading cart count:', error);
+        console.error('[Perfil v105.0] ❌ Error loading cart count:', error);
         return;
       }
 
-      console.log('[Perfil v103.0] 🛒 Cart items count:', count);
+      console.log('[Perfil v105.0] 🛒 Cart items count:', count);
       setCartItemsCount(count || 0);
     } catch (error) {
-      console.error('[Perfil v103.0] ❌ Error loading cart count:', error);
+      console.error('[Perfil v105.0] ❌ Error loading cart count:', error);
     }
   }, [userId, isPropietario]);
 
@@ -202,7 +200,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v103.0] Error loading current local:', error);
+        console.error('[Perfil v105.0] Error loading current local:', error);
         return;
       }
 
@@ -217,7 +215,7 @@ export default function PerfilScreen() {
         setCheckInInfo(null);
       }
     } catch (error) {
-      console.error('[Perfil v103.0] Error loading current local:', error);
+      console.error('[Perfil v105.0] Error loading current local:', error);
     }
   }, [userId]);
 
@@ -276,7 +274,7 @@ export default function PerfilScreen() {
         return [];
       }
     } catch (error) {
-      console.error('[Perfil v103.0] Error cargando posts:', error);
+      console.error('[Perfil v105.0] Error cargando posts:', error);
       return [];
     }
   }, [userId]);
@@ -339,7 +337,7 @@ export default function PerfilScreen() {
         setSavedPosts([]);
       }
     } catch (error) {
-      console.error('[Perfil v103.0] Error cargando favoritos:', error);
+      console.error('[Perfil v105.0] Error cargando favoritos:', error);
     }
   }, [userId]);
 
@@ -418,7 +416,7 @@ export default function PerfilScreen() {
 
       setTaggedPosts(postsWithStatus);
     } catch (error) {
-      console.error('[Perfil v103.0] Error cargando etiquetados:', error);
+      console.error('[Perfil v105.0] Error cargando etiquetados:', error);
       setTaggedPosts([]);
     }
   }, [userId]);
@@ -435,7 +433,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v103.0] Error loading professional profile:', error);
+        console.error('[Perfil v105.0] Error loading professional profile:', error);
       }
 
       if (data) {
@@ -444,7 +442,7 @@ export default function PerfilScreen() {
         setPerfilProfesional(null);
       }
     } catch (error) {
-      console.error('[Perfil v103.0] Error loading professional profile:', error);
+      console.error('[Perfil v105.0] Error loading professional profile:', error);
     } finally {
       setLoadingEmpleo(false);
     }
@@ -455,7 +453,7 @@ export default function PerfilScreen() {
 
     try {
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v103.0] 🔄 Loading profile data...');
+        console.log('[Perfil v105.0] 🔄 Loading profile data...');
       }
 
       await loadUnreadCounts();
@@ -473,7 +471,7 @@ export default function PerfilScreen() {
       const seguidosCount = userFollowsCount || 0;
 
       if (seguidoresError) {
-        console.error('[Perfil v103.0] Error loading seguidores count:', seguidoresError);
+        console.error('[Perfil v105.0] Error loading seguidores count:', seguidoresError);
       }
 
       const seguidoresCount = seguidoresData || 0;
@@ -503,10 +501,10 @@ export default function PerfilScreen() {
       }
 
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v103.0] ✅ Profile data loaded and cached');
+        console.log('[Perfil v105.0] ✅ Profile data loaded and cached');
       }
     } catch (error) {
-      console.error('[Perfil v103.0] Error cargando datos:', error);
+      console.error('[Perfil v105.0] Error cargando datos:', error);
     } finally {
       setRefreshing(false);
     }
@@ -516,22 +514,22 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const loadCachedData = async () => {
-      console.log('[Perfil v103.0] ⚡ Loading from cache...');
+      console.log('[Perfil v105.0] ⚡ Loading from cache...');
       const cached = await profileCache.get(userId, 'user');
       
       if (cached) {
-        console.log('[Perfil v103.0] ⚡⚡⚡ INSTANT LOAD from cache');
+        console.log('[Perfil v105.0] ⚡⚡⚡ INSTANT LOAD from cache');
         setSeguidores(cached.stats.seguidores);
         setSeguidos(cached.stats.seguidos);
         setPublicaciones(cached.stats.posts);
         setPosts(cached.posts);
         
         setTimeout(() => {
-          console.log('[Perfil v103.0] 🔄 Background refresh...');
+          console.log('[Perfil v105.0] 🔄 Background refresh...');
           cargarDatosPerfil(true);
         }, 100);
       } else {
-        console.log('[Perfil v103.0] 📡 No cache, loading from database...');
+        console.log('[Perfil v105.0] 📡 No cache, loading from database...');
         cargarDatosPerfil(false);
       }
     };
@@ -558,7 +556,7 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const subscription = supabase
-      .channel('profile-updates-v103')
+      .channel('profile-updates-v105')
       .on(
         'postgres_changes',
         {
@@ -605,7 +603,7 @@ export default function PerfilScreen() {
     if (!userId || !isPropietario) return;
 
     const subscription = supabase
-      .channel('cart-updates-v103')
+      .channel('cart-updates-v105')
       .on(
         'postgres_changes',
         {
@@ -615,7 +613,7 @@ export default function PerfilScreen() {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          console.log('[Perfil v103.0] 🛒 Cart updated, reloading count...');
+          console.log('[Perfil v105.0] 🛒 Cart updated, reloading count...');
           loadCartItemsCount();
         }
       )
@@ -696,7 +694,7 @@ export default function PerfilScreen() {
   };
 
   const handleCartCheckout = async (items: any[], total: number) => {
-    console.log('[Perfil v103.0] 💳 Checkout requested:', { items: items.length, total });
+    console.log('[Perfil v105.0] 💳 Checkout requested:', { items: items.length, total });
     Alert.alert(
       'Pago en Desarrollo',
       `Total a pagar: €${total.toFixed(2)}\n\nLa integración con Stripe está en desarrollo.`,
@@ -729,7 +727,7 @@ export default function PerfilScreen() {
               setCheckInInfo(null);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
-              console.error('[Perfil v103.0] Error exiting local:', error);
+              console.error('[Perfil v105.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -972,7 +970,6 @@ export default function PerfilScreen() {
   if (!user) {
     return (
       <View style={commonStyles.container}>
-        {/* ✅ FIX v103.0: Header WITHOUT title - just gradient background */}
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -1022,7 +1019,6 @@ export default function PerfilScreen() {
 
   return (
     <View style={commonStyles.container}>
-      {/* ✅ FIX v104.0: Scrollable content with header inside ScrollView */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
@@ -1033,7 +1029,6 @@ export default function PerfilScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* ✅ FIX v104.0: Header scrolls with content (not fixed) */}
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -1046,7 +1041,7 @@ export default function PerfilScreen() {
                 <IconSymbol 
                   ios_icon_name="message.fill" 
                   android_material_icon_name="message" 
-                  size={Platform.OS === 'android' ? 24 : 28} 
+                  size={Platform.OS === 'android' ? 20 : 24} 
                   color={colors.headerText} 
                 />
                 {unreadMessages > 0 && (
@@ -1063,7 +1058,7 @@ export default function PerfilScreen() {
                 <IconSymbol 
                   ios_icon_name="bell.fill" 
                   android_material_icon_name="notifications" 
-                  size={Platform.OS === 'android' ? 24 : 28} 
+                  size={Platform.OS === 'android' ? 20 : 24} 
                   color={colors.headerText} 
                 />
                 {unreadNotifications > 0 && (
@@ -1084,14 +1079,13 @@ export default function PerfilScreen() {
               <IconSymbol 
                 ios_icon_name="gearshape.fill" 
                 android_material_icon_name="settings" 
-                size={Platform.OS === 'android' ? 24 : 28} 
+                size={Platform.OS === 'android' ? 20 : 24} 
                 color={colors.headerText} 
               />
             </TouchableOpacity>
           </View>
         </LinearGradient>
 
-        {/* ✅ FIX v104.0: Compact profile section */}
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -1101,7 +1095,6 @@ export default function PerfilScreen() {
           {renderProfileHeader()}
         </LinearGradient>
 
-        {/* ✅ Show ownership request status if exists */}
         {userId && (
           <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
             <SolicitudPropiedadStatus userId={userId} />
@@ -1354,7 +1347,6 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     paddingBottom: 100,
   },
-  // ✅ FIX v104.0: Scrollable header (scrolls with content)
   scrollableHeader: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
     paddingBottom: Platform.OS === 'android' ? 8 : 12,
@@ -1362,33 +1354,27 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'flex-end',
   },
-  // ✅ FIX v104.0: Header without title (for login screen)
   headerWithoutTitle: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
     paddingBottom: Platform.OS === 'android' ? 8 : 12,
     paddingHorizontal: 20,
   },
-  // ✅ FIX v104.0: Compact profile header gradient (reduced padding)
   profileHeaderGradient: {
     paddingTop: 12,
     paddingBottom: 16,
     paddingHorizontal: 20,
   },
-  // ✅ FIX v104.0: Header actions with SAME GAP as Social (8px)
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  // ✅ FIX v104.0: Header button with SAME PADDING as Social (4px)
   headerButton: {
     padding: 4,
   },
-  // ✅ FIX v103.0: Icon container for badge positioning (SAME as Social)
   iconContainer: {
     position: 'relative',
   },
-  // ✅ FIX v103.0: Badge styling EXACTLY matching Social page (no cutoff)
   badge: {
     position: 'absolute',
     top: -6,
@@ -1461,11 +1447,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
   },
-  // ✅ FIX v104.0: Compact profile section (reduced padding)
   profileSection: {
     paddingTop: 0,
   },
-  // ✅ FIX v104.0: Compact impersonation banner
   impersonationBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1483,19 +1467,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
-  // ✅ FIX v104.0: Compact profile header (reduced margin)
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
     position: 'relative',
   },
-  // ✅ FIX v104.0: Compact profile info (reduced margin)
   profileInfo: {
     flex: 1,
     marginLeft: 16,
   },
-  // ✅ FIX v104.0: Compact profile name (reduced margin)
   profileName: {
     fontWeight: 'bold',
     color: colors.headerText,
@@ -1504,19 +1485,16 @@ const styles = StyleSheet.create({
   profileUsername: {
     color: 'rgba(255, 255, 255, 0.9)',
   },
-  // ✅ FIX v104.0: Compact switch button (reduced padding)
   switchProfileButton: {
     padding: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 20,
   },
-  // ✅ FIX v104.0: Compact bio (reduced line height and margin)
   profileBio: {
     color: colors.headerText,
     lineHeight: 20,
     marginBottom: 12,
   },
-  // ✅ FIX v104.0: Compact website container (reduced margin)
   websiteContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1527,7 +1505,6 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     fontWeight: '500',
   },
-  // ✅ FIX v104.0: Compact current local card (reduced margin)
   currentLocalCompact: {
     marginBottom: 14,
     borderRadius: 14,
@@ -1538,11 +1515,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  // ✅ FIX v104.0: Compact gradient padding
   currentLocalCompactGradient: {
     padding: 12,
   },
-  // ✅ FIX v104.0: Compact header (reduced margin)
   currentLocalCompactHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1554,7 +1529,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  // ✅ FIX v104.0: Compact pulse container (reduced size)
   pulseContainer: {
     position: 'relative',
     width: 24,
@@ -1581,7 +1555,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 0.3,
   },
-  // ✅ FIX v104.0: Compact live badge (reduced padding)
   liveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1593,7 +1566,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.4)',
   },
-  // ✅ FIX v104.0: Compact live dot (reduced size)
   liveDot: {
     width: 5,
     height: 5,
@@ -1605,7 +1577,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
-  // ✅ FIX v104.0: Compact content (reduced padding and margin)
   currentLocalCompactContent: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1615,7 +1586,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     gap: 8,
   },
-  // ✅ FIX v104.0: Compact image wrapper (reduced size)
   currentLocalCompactImageWrapper: {
     width: 44,
     height: 44,
@@ -1634,13 +1604,11 @@ const styles = StyleSheet.create({
   currentLocalCompactInfo: {
     flex: 1,
   },
-  // ✅ FIX v104.0: Compact name (reduced margin)
   currentLocalCompactName: {
     fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 2,
   },
-  // ✅ FIX v104.0: Compact meta (reduced gap and margin)
   currentLocalCompactMeta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1658,7 +1626,6 @@ const styles = StyleSheet.create({
   currentLocalCompactArrow: {
     justifyContent: 'center',
   },
-  // ✅ FIX v104.0: Compact exit button (reduced padding)
   exitLocalButtonCompact: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1676,7 +1643,6 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     letterSpacing: 0.3,
   },
-  // ✅ FIX v104.0: Compact stats container (reduced margin and padding)
   statsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1688,7 +1654,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  // ✅ FIX v104.0: Compact stat number (reduced margin)
   statNumber: {
     fontWeight: 'bold',
     color: colors.headerText,
@@ -1697,18 +1662,15 @@ const styles = StyleSheet.create({
   statLabel: {
     color: 'rgba(255, 255, 255, 0.9)',
   },
-  // ✅ FIX v104.0: Compact stat divider (reduced height)
   statDivider: {
     width: 1,
     height: 36,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
-  // ✅ FIX v104.0: Compact action buttons (reduced gap)
   actionButtons: {
     flexDirection: 'row',
     gap: 10,
   },
-  // ✅ FIX v104.0: Compact action button (reduced padding and border radius)
   actionButton: {
     flex: 1,
     flexDirection: 'row',
