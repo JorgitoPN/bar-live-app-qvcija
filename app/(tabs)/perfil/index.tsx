@@ -72,17 +72,17 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v106.0 - NOTIFICATION BADGE CUTOFF FIX
+ * ✅ PROFILE SCREEN v107.0 - NOTIFICATION BADGE CENTERING FIX
  * 
- * NEW CHANGES v106.0:
+ * NEW CHANGES v107.0:
+ * - ✅ FIXED: Badge properly centered with better positioning (top: -6, right: -8)
+ * - ✅ FIXED: Badge text centered with textAlign and proper line-height
+ * - ✅ IMPROVED: Better visual alignment for multi-digit numbers
+ * 
+ * Previous fixes v106.0:
  * - ✅ FIXED: Notification badge no longer cuts off with multi-digit numbers
- * - ✅ IMPROVED: Badge positioning with proper overflow space (top: -8, right: -10)
+ * - ✅ IMPROVED: Badge positioning with proper overflow space
  * - ✅ IMPROVED: Increased minWidth to 22 for better multi-digit display
- * - ✅ IMPROVED: Added extra padding to iconContainer for badge overflow
- * 
- * Previous fixes v105.0:
- * - ✅ REDUCED: Header icon sizes made smaller (20px Android, 24px iOS)
- * - ✅ COMPACT: More compact header appearance
  */
 
 export default function PerfilScreen() {
@@ -160,7 +160,7 @@ export default function PerfilScreen() {
         setUnreadMessages(totalUnread);
       }
     } catch (error) {
-      console.error('[Perfil v106.0] Error loading unread counts:', error);
+      console.error('[Perfil v107.0] Error loading unread counts:', error);
     }
   }, [userId]);
 
@@ -174,14 +174,14 @@ export default function PerfilScreen() {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('[Perfil v106.0] ❌ Error loading cart count:', error);
+        console.error('[Perfil v107.0] ❌ Error loading cart count:', error);
         return;
       }
 
-      console.log('[Perfil v106.0] 🛒 Cart items count:', count);
+      console.log('[Perfil v107.0] 🛒 Cart items count:', count);
       setCartItemsCount(count || 0);
     } catch (error) {
-      console.error('[Perfil v106.0] ❌ Error loading cart count:', error);
+      console.error('[Perfil v107.0] ❌ Error loading cart count:', error);
     }
   }, [userId, isPropietario]);
 
@@ -201,7 +201,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v106.0] Error loading current local:', error);
+        console.error('[Perfil v107.0] Error loading current local:', error);
         return;
       }
 
@@ -216,7 +216,7 @@ export default function PerfilScreen() {
         setCheckInInfo(null);
       }
     } catch (error) {
-      console.error('[Perfil v106.0] Error loading current local:', error);
+      console.error('[Perfil v107.0] Error loading current local:', error);
     }
   }, [userId]);
 
@@ -275,7 +275,7 @@ export default function PerfilScreen() {
         return [];
       }
     } catch (error) {
-      console.error('[Perfil v106.0] Error cargando posts:', error);
+      console.error('[Perfil v107.0] Error cargando posts:', error);
       return [];
     }
   }, [userId]);
@@ -338,7 +338,7 @@ export default function PerfilScreen() {
         setSavedPosts([]);
       }
     } catch (error) {
-      console.error('[Perfil v106.0] Error cargando favoritos:', error);
+      console.error('[Perfil v107.0] Error cargando favoritos:', error);
     }
   }, [userId]);
 
@@ -417,7 +417,7 @@ export default function PerfilScreen() {
 
       setTaggedPosts(postsWithStatus);
     } catch (error) {
-      console.error('[Perfil v106.0] Error cargando etiquetados:', error);
+      console.error('[Perfil v107.0] Error cargando etiquetados:', error);
       setTaggedPosts([]);
     }
   }, [userId]);
@@ -434,7 +434,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v106.0] Error loading professional profile:', error);
+        console.error('[Perfil v107.0] Error loading professional profile:', error);
       }
 
       if (data) {
@@ -443,7 +443,7 @@ export default function PerfilScreen() {
         setPerfilProfesional(null);
       }
     } catch (error) {
-      console.error('[Perfil v106.0] Error loading professional profile:', error);
+      console.error('[Perfil v107.0] Error loading professional profile:', error);
     } finally {
       setLoadingEmpleo(false);
     }
@@ -454,7 +454,7 @@ export default function PerfilScreen() {
 
     try {
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v106.0] 🔄 Loading profile data...');
+        console.log('[Perfil v107.0] 🔄 Loading profile data...');
       }
 
       await loadUnreadCounts();
@@ -472,7 +472,7 @@ export default function PerfilScreen() {
       const seguidosCount = userFollowsCount || 0;
 
       if (seguidoresError) {
-        console.error('[Perfil v106.0] Error loading seguidores count:', seguidoresError);
+        console.error('[Perfil v107.0] Error loading seguidores count:', seguidoresError);
       }
 
       const seguidoresCount = seguidoresData || 0;
@@ -502,10 +502,10 @@ export default function PerfilScreen() {
       }
 
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v106.0] ✅ Profile data loaded and cached');
+        console.log('[Perfil v107.0] ✅ Profile data loaded and cached');
       }
     } catch (error) {
-      console.error('[Perfil v106.0] Error cargando datos:', error);
+      console.error('[Perfil v107.0] Error cargando datos:', error);
     } finally {
       setRefreshing(false);
     }
@@ -515,22 +515,22 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const loadCachedData = async () => {
-      console.log('[Perfil v106.0] ⚡ Loading from cache...');
+      console.log('[Perfil v107.0] ⚡ Loading from cache...');
       const cached = await profileCache.get(userId, 'user');
       
       if (cached) {
-        console.log('[Perfil v106.0] ⚡⚡⚡ INSTANT LOAD from cache');
+        console.log('[Perfil v107.0] ⚡⚡⚡ INSTANT LOAD from cache');
         setSeguidores(cached.stats.seguidores);
         setSeguidos(cached.stats.seguidos);
         setPublicaciones(cached.stats.posts);
         setPosts(cached.posts);
         
         setTimeout(() => {
-          console.log('[Perfil v106.0] 🔄 Background refresh...');
+          console.log('[Perfil v107.0] 🔄 Background refresh...');
           cargarDatosPerfil(true);
         }, 100);
       } else {
-        console.log('[Perfil v106.0] 📡 No cache, loading from database...');
+        console.log('[Perfil v107.0] 📡 No cache, loading from database...');
         cargarDatosPerfil(false);
       }
     };
@@ -557,7 +557,7 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const subscription = supabase
-      .channel('profile-updates-v106')
+      .channel('profile-updates-v107')
       .on(
         'postgres_changes',
         {
@@ -604,7 +604,7 @@ export default function PerfilScreen() {
     if (!userId || !isPropietario) return;
 
     const subscription = supabase
-      .channel('cart-updates-v106')
+      .channel('cart-updates-v107')
       .on(
         'postgres_changes',
         {
@@ -614,7 +614,7 @@ export default function PerfilScreen() {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          console.log('[Perfil v106.0] 🛒 Cart updated, reloading count...');
+          console.log('[Perfil v107.0] 🛒 Cart updated, reloading count...');
           loadCartItemsCount();
         }
       )
@@ -695,7 +695,7 @@ export default function PerfilScreen() {
   };
 
   const handleCartCheckout = async (items: any[], total: number) => {
-    console.log('[Perfil v106.0] 💳 Checkout requested:', { items: items.length, total });
+    console.log('[Perfil v107.0] 💳 Checkout requested:', { items: items.length, total });
     Alert.alert(
       'Pago en Desarrollo',
       `Total a pagar: €${total.toFixed(2)}\n\nLa integración con Stripe está en desarrollo.`,
@@ -728,7 +728,7 @@ export default function PerfilScreen() {
               setCheckInInfo(null);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
-              console.error('[Perfil v106.0] Error exiting local:', error);
+              console.error('[Perfil v107.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -1047,7 +1047,7 @@ export default function PerfilScreen() {
                 />
                 {unreadMessages > 0 && (
                   <View style={styles.badge}>
-                    <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
+                    <Text style={styles.badgeText}>
                       {unreadMessages > 99 ? '99+' : unreadMessages}
                     </Text>
                   </View>
@@ -1064,7 +1064,7 @@ export default function PerfilScreen() {
                 />
                 {unreadNotifications > 0 && (
                   <View style={styles.badge}>
-                    <Text style={[styles.badgeText, { fontSize: scaleFontSize(10) }]}>
+                    <Text style={styles.badgeText}>
                       {unreadNotifications > 99 ? '99+' : unreadNotifications}
                     </Text>
                   </View>
@@ -1375,31 +1375,32 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     position: 'relative',
-    // ✅ FIX v106.0: Extra padding to prevent badge cutoff
-    paddingTop: 8,
-    paddingRight: 10,
+    // ✅ FIX v107.0: Reduced padding for better alignment
+    paddingTop: 6,
+    paddingRight: 8,
   },
   badge: {
     position: 'absolute',
-    // ✅ FIX v106.0: Adjusted positioning to prevent cutoff (was top: -6, right: -6)
-    top: -8,
-    right: -10,
+    // ✅ FIX v107.0: Better positioning for proper centering
+    top: -6,
+    right: -8,
     backgroundColor: '#EF4444',
-    borderRadius: 11,
-    // ✅ FIX v106.0: Increased minWidth for multi-digit numbers (was 20)
-    minWidth: 22,
-    height: 22,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 5,
     borderWidth: 2,
     borderColor: colors.headerGradientStart,
-    // ✅ FIX v106.0: Ensure badge is not clipped
-    overflow: 'visible',
   },
   badgeText: {
     fontWeight: '700',
     color: colors.white,
+    fontSize: scaleFontSize(10),
+    // ✅ FIX v107.0: Center text properly
+    textAlign: 'center',
+    lineHeight: Platform.OS === 'android' ? scaleFontSize(10) + 2 : scaleFontSize(10) + 4,
   },
   content: {
     flex: 1,
