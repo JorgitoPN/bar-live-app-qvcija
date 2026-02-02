@@ -37,6 +37,7 @@ import UnifiedMomentoAvatar from '@/components/common/UnifiedMomentoAvatar';
 import PermissionGuard from '@/components/social/PermissionGuard';
 import { scaleFontSize } from '@/utils/androidScaling';
 import LocalSolicitudStatus from '@/components/perfil/LocalSolicitudStatus';
+import { formatFollowersCount } from '@/utils/formatters';
 
 const SCREEN_VERSION = '98.0.0';
 

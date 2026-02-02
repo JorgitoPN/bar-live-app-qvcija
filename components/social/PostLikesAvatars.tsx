@@ -1,12 +1,11 @@
 
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { supabase } from '@/utils/supabase';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { LinearGradient } from 'expo-linear-gradient';
 import { scaleFontSize } from '@/utils/androidScaling';
 
 interface PostLikesAvatarsProps {
@@ -24,14 +23,17 @@ interface LikeUser {
 }
 
 /**
- * ✅ POST LIKES AVATARS v101.0 - FIXED INFINITE LOOP + ANDROID SCALING
+ * ✅ POST LIKES AVATARS v316.0 - FULL-SCREEN NAVIGATION
  * 
- * CRITICAL FIXES v101.0:
- * - ✅ FIXED: Removed circular dependencies causing "Maximum update depth exceeded"
- * - ✅ FIXED: Proper memoization with stable dependencies
- * - ✅ FIXED: Separated data loading from state updates
+ * NEW CHANGES v316.0:
+ * - ✅ Removed modal - now navigates to full-screen /social/likes page
+ * - ✅ Cleaner component with less state management
+ * - ✅ Better UX with dedicated full-screen page for likes list
+ * 
+ * Previous fixes maintained (v101.0):
+ * - ✅ Fixed infinite loop issues
+ * - ✅ Proper memoization with stable dependencies
  * - ✅ All text uses scaleFontSize() for Android consistency
- * - ✅ iOS design remains unchanged
  */
 
 export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }: PostLikesAvatarsProps) {
@@ -42,69 +44,19 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
   const [tempProfiles, setTempProfiles] = useState<LikeUser[]>([]);
   const initialProfilesRef = useRef<LikeUser[]>([]);
   
-  const [showModal, setShowModal] = useState(false);
-  const [allLikes, setAllLikes] = useState<LikeUser[]>([]);
-  const [loadingModal, setLoadingModal] = useState(false);
+
   
   const [currentTotalLikes, setCurrentTotalLikes] = useState(totalLikes);
   const [currentUserHasLiked, setCurrentUserHasLiked] = useState(false);
 
-  // ✅ CRITICAL FIX v101.0: Stable callback with minimal dependencies
-  const handleUserPress = useCallback((userId: string, tipo: 'usuario' | 'local') => {
-    setShowModal(false);
-    
-    if (tipo === 'usuario' && user && userId === user.id) {
-      router.push('/(tabs)/perfil');
-    } else if (tipo === 'local') {
-      router.push({
-        pathname: '/perfil/local',
-        params: { localId: userId },
-      });
-    } else {
-      router.push({
-        pathname: '/perfil/usuario',
-        params: { userId },
-      });
-    }
-  }, [user, router]); // ✅ FIXED: Include user to satisfy exhaustive-deps
-
-  // ✅ CRITICAL FIX v101.0: Stable callback with minimal dependencies
-  const loadAllLikes = useCallback(async () => {
-    try {
-      setLoadingModal(true);
-      const { data, error } = await supabase
-        .from('likes')
-        .select(`
-          usuario_id,
-          usuarios!likes_usuario_id_fkey(id, nombre, username, avatar)
-        `)
-        .eq('post_id', postId)
-        .order('created_at', { ascending: false });
-
-      if (!error && data) {
-        const users = data
-          .filter(like => like.usuarios)
-          .map((like: any) => ({
-            id: like.usuarios.id,
-            nombre: like.usuarios.nombre,
-            username: like.usuarios.username,
-            avatar: like.usuarios.avatar,
-            tipo: 'usuario' as const,
-          }));
-        setAllLikes(users);
-      }
-    } catch (error) {
-      console.error('[PostLikesAvatars v101.0] Error loading all likes:', error);
-    } finally {
-      setLoadingModal(false);
-    }
-  }, [postId]); // ✅ FIXED: Only depend on postId
-
-  // ✅ CRITICAL FIX v101.0: Stable callback
-  const handleOpenModal = useCallback(() => {
-    loadAllLikes();
-    setShowModal(true);
-  }, [loadAllLikes]);
+  // ✅ v316.0: Navigate to full-screen likes page
+  const handleOpenLikesPage = useCallback(() => {
+    console.log('[PostLikesAvatars v316.0] ❤️ Opening likes full-screen page for post:', postId);
+    router.push({
+      pathname: '/social/likes',
+      params: { postId },
+    });
+  }, [postId, router]);
 
   // ✅ CRITICAL FIX v101.0: Update state immediately when localLikes changes
   // This effect ONLY updates state, does NOT fetch data
@@ -282,6 +234,23 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
   }, [totalLikes, localLikes.length]);
 
+  // ✅ v316.0: Handle user press for inline username links
+  const handleUserPress = useCallback((userId: string, tipo: 'usuario' | 'local') => {
+    if (tipo === 'usuario' && user && userId === user.id) {
+      router.push('/(tabs)/perfil');
+    } else if (tipo === 'local') {
+      router.push({
+        pathname: '/perfil/local',
+        params: { localId: userId },
+      });
+    } else {
+      router.push({
+        pathname: '/perfil/usuario',
+        params: { userId },
+      });
+    }
+  }, [user, router]);
+
   // ✅ CRITICAL FIX v101.0: Memoize text generation with stable dependencies
   const getLikesText = useMemo(() => {
     const otherUsers = tempProfiles.filter(u => u.id !== user?.id);
@@ -320,7 +289,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         return (
           <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>
             A <Text style={styles.usernameLink}>ti</Text> y a{' '}
-            <Text style={styles.moreLink} onPress={handleOpenModal}>
+            <Text style={styles.moreLink} onPress={handleOpenLikesPage}>
               {others} {others === 1 ? 'persona más' : 'personas más'}
             </Text>
             {' '}les gusta esto
@@ -382,7 +351,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
             {firstUser}
           </Text>
           {' '}y a{' '}
-          <Text style={styles.moreLink} onPress={handleOpenModal}>
+          <Text style={styles.moreLink} onPress={handleOpenLikesPage}>
             {others} {others === 1 ? 'persona más' : 'personas más'}
           </Text>
           {' '}les gusta esto
@@ -395,7 +364,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
     
     return <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>{currentTotalLikes} me gusta</Text>;
-  }, [currentUserHasLiked, currentTotalLikes, tempProfiles, user?.id, handleUserPress, handleOpenModal]); // ✅ FIXED: Stable dependencies
+  }, [currentUserHasLiked, currentTotalLikes, tempProfiles, user?.id, handleUserPress, handleOpenLikesPage]); // ✅ FIXED: Stable dependencies
 
   // ✅ CRITICAL FIX v101.0: Memoize avatar rendering
   const avatarsDisplay = useMemo(() => {
@@ -420,90 +389,21 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     ));
   }, [tempProfiles]); // ✅ FIXED: Only depend on tempProfiles
 
-  // ✅ CRITICAL FIX v101.0: Stable renderLikeUser callback
-  const renderLikeUser = useCallback(({ item }: { item: LikeUser }) => (
-    <TouchableOpacity
-      style={styles.modalUserItem}
-      onPress={() => handleUserPress(item.id, item.tipo)}
-      activeOpacity={0.7}
-    >
-      {item.avatar ? (
-        <Image source={{ uri: item.avatar }} style={styles.modalAvatar} />
-      ) : (
-        <View style={[styles.modalAvatar, styles.avatarPlaceholder]}>
-          <Text style={[styles.avatarText, { fontSize: scaleFontSize(10) }]}>
-            {item.nombre.charAt(0).toUpperCase()}
-          </Text>
-        </View>
-      )}
-      <View style={styles.modalUserInfo}>
-        <Text style={[styles.modalUserName, { fontSize: scaleFontSize(15) }]}>{item.nombre}</Text>
-        {item.username && (
-          <Text style={[styles.modalUsername, { fontSize: scaleFontSize(13) }]}>@{item.username}</Text>
-        )}
-      </View>
-      {user && item.id === user.id && (
-        <View style={styles.youBadge}>
-          <Text style={[styles.youBadgeText, { fontSize: scaleFontSize(12) }]}>Tú</Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  ), [user, handleUserPress]); // ✅ FIXED: Include user to satisfy exhaustive-deps
-
   if (currentTotalLikes === 0) {
     return null;
   }
 
   return (
-    <>
-      <TouchableOpacity 
-        style={styles.container}
-        onPress={handleOpenModal}
-        activeOpacity={0.7}
-      >
-        <View style={styles.avatarsContainer}>
-          {avatarsDisplay}
-        </View>
-        {getLikesText}
-      </TouchableOpacity>
-
-      <Modal
-        visible={showModal}
-        transparent={false}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowModal(false)}
-      >
-        <View style={styles.modalContainer}>
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            style={styles.modalHeader}
-          >
-            <View style={styles.modalHeaderContent}>
-              <View style={{ width: 40 }} />
-              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(18) }]}>Me gusta</Text>
-              <TouchableOpacity onPress={() => setShowModal(false)} style={styles.closeButton}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
-
-          {loadingModal ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-          ) : (
-            <FlatList
-              data={allLikes}
-              renderItem={renderLikeUser}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.modalList}
-              showsVerticalScrollIndicator={false}
-            />
-          )}
-        </View>
-      </Modal>
-    </>
+    <TouchableOpacity 
+      style={styles.container}
+      onPress={handleOpenLikesPage}
+      activeOpacity={0.7}
+    >
+      <View style={styles.avatarsContainer}>
+        {avatarsDisplay}
+      </View>
+      {getLikesText}
+    </TouchableOpacity>
   );
 }
 
@@ -549,75 +449,5 @@ const styles = StyleSheet.create({
   moreLink: {
     fontWeight: '600',
     color: colors.textSecondary,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  modalHeader: {
-    paddingTop: 60,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  modalHeaderContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  modalTitle: {
-    fontWeight: '700',
-    color: colors.headerText,
-    flex: 1,
-    textAlign: 'center',
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalList: {
-    paddingVertical: 8,
-  },
-  modalUserItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-    backgroundColor: colors.cardBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  modalAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  modalUserInfo: {
-    flex: 1,
-  },
-  modalUserName: {
-    fontWeight: '600',
-    color: colors.text,
-  },
-  modalUsername: {
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  youBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  youBadgeText: {
-    fontWeight: '700',
-    color: '#fff',
   },
 });

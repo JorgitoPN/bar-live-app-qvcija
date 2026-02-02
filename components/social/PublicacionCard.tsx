@@ -27,7 +27,7 @@ import { useInteractionContext } from '@/hooks/useInteractionContext';
 import OptimizedImage from '@/components/common/OptimizedImage';
 import ParsedText from '@/components/social/ParsedText';
 import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
-import CommentsModal from '@/components/social/CommentsModal';
+
 import SharePostModal from '@/components/social/SharePostModal';
 import PostLikesAvatars from '@/components/social/PostLikesAvatars';
 import TagDisplay from '@/components/social/TagDisplay';
@@ -73,15 +73,16 @@ interface PublicacionCardProps {
 }
 
 /**
- * ✅ PUBLICACION CARD v102.0 - ANDROID ICON SCALING FIX
+ * ✅ PUBLICACION CARD v316.0 - FULL-SCREEN COMMENTS NAVIGATION
  * 
- * CRITICAL FIXES v102.0 (ANDROID ONLY):
- * - ✅ All icons now use scaleIconSize() for proper scaling
- * - ✅ Avatar size properly scaled (40px)
- * - ✅ Action button icons scaled correctly (26px)
- * - ✅ Three-dots icon uses "more_vert" on Android
+ * NEW CHANGES v316.0:
+ * - ✅ Comments now open in full-screen page instead of modal
+ * - ✅ Better UX with dedicated full-screen page for comments
+ * - ✅ Removed CommentsModal component usage
+ * 
+ * Previous fixes maintained (v102.0):
+ * - ✅ All icons use scaleIconSize() for proper scaling
  * - ✅ All text uses scaleFontSize() for consistency
- * - ✅ iOS design remains unchanged
  */
 
 const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
@@ -94,7 +95,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [commentsCount, setCommentsCount] = useState(post.comentarios_count || 0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [commentsModalVisible, setCommentsModalVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   
   const [showTags, setShowTags] = useState(false);
@@ -452,8 +452,15 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       Alert.alert('Inicia sesión', 'Para comentar necesitas registrarte en BarLive');
       return;
     }
-    setCommentsModalVisible(true);
-  }, [user]);
+    console.log('[PublicacionCard v316.0] 💬 Opening comments full-screen page for post:', post.id);
+    router.push({
+      pathname: '/social/comentarios',
+      params: { 
+        postId: post.id,
+        postAuthorId: post.autor_id,
+      },
+    });
+  }, [user, post.id, post.autor_id, router]);
 
   const handleShare = useCallback(async () => {
     if (!user) {
@@ -844,12 +851,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     setCurrentImageIndex(index);
   };
 
-  const handleCommentsUpdate = () => {
-    setCommentsCount(prev => prev + 1);
-    if (onUpdate) {
-      onUpdate();
-    }
-  };
+
 
   // ✅ CRITICAL FIX v102.0: Calculate scaled sizes for Android
   const avatarSize = Platform.OS === 'android' ? scaleIconSize(40) : 40;
@@ -1071,14 +1073,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           </Text>
         )}
       </TouchableOpacity>
-
-      <CommentsModal
-        visible={commentsModalVisible}
-        postId={post.id}
-        postAuthorId={post.autor_id}
-        onClose={() => setCommentsModalVisible(false)}
-        onCommentAdded={handleCommentsUpdate}
-      />
 
       <SharePostModal
         visible={shareModalVisible}
