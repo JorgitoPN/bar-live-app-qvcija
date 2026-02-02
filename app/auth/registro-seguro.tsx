@@ -577,6 +577,7 @@ export default function SecureRegistrationScreen() {
               <TouchableOpacity
                 style={styles.loginButton}
                 onPress={() => router.replace('/auth/login-secure')}
+                disabled={loading}
               >
                 <Text style={styles.loginButtonText}>
                   ¿Ya tienes cuenta? <Text style={styles.loginButtonTextBold}>Inicia sesión</Text>

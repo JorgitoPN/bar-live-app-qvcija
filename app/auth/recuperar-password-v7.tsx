@@ -53,7 +53,11 @@ export default function RecuperarPasswordV7Screen() {
       return;
     }
 
-    router.push('/auth/recuperar-password-token');
+    // ✅ FIX v325.0: Pass email as parameter to token screen
+    router.push({
+      pathname: '/auth/recuperar-password-token',
+      params: { email: email.trim().toLowerCase() },
+    });
   };
 
   const headerIconSize = getHeaderIconSize();

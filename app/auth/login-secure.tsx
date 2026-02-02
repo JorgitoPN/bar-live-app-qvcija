@@ -295,9 +295,10 @@ export default function SecureLoginScreen() {
   };
 
   const handleForgotPassword = () => {
+    // ✅ FIX v325.0: Always redirect to token-based password recovery
     if (email.trim() && validateEmail(email.trim())) {
       router.push({
-        pathname: '/auth/recuperar-password-v7',
+        pathname: '/auth/recuperar-password-token',
         params: { email: email.trim().toLowerCase() },
       });
     } else {

@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -30,9 +30,11 @@ import { getContentBottomPadding, getHeaderTitleSize, getHeaderIconSize, scaleFo
 
 export default function RecuperarPasswordTokenScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState('');
+  // ✅ FIX v325.0: Get email from params if provided
+  const [email, setEmail] = useState((params.email as string) || '');
+  const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [token, setToken] = useState(['', '', '', '', '', '']);
   const [validatingToken, setValidatingToken] = useState(false);

@@ -37,6 +37,9 @@ export default function ConfiguracionScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   
+  // ✅ FIX v325.0: Add logout loading state for immediate feedback
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
   // Notification settings
   const [notificacionesPush, setNotificacionesPush] = useState(true);
   const [notificacionesEmail, setNotificacionesEmail] = useState(true);
@@ -131,12 +134,24 @@ export default function ConfiguracionScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Configuracion v141.0] 🚪 Cerrando sesión...');
-              await signOut();
-              console.log('[Configuracion v141.0] ✅ Sesión cerrada, redirigiendo...');
+              // ✅ FIX v325.0: IMMEDIATE UI FEEDBACK - Show loading state instantly
+              console.log('[Configuracion v325.0] 🚪 Cerrando sesión - feedback inmediato...');
+              setIsLoggingOut(true);
+              
+              // Navigate immediately to explorar (user sees instant response)
               router.replace('/(tabs)/explorar');
+              
+              // Logout continues in background (non-blocking)
+              signOut().then(() => {
+                console.log('[Configuracion v325.0] ✅ Sesión cerrada en segundo plano');
+                setIsLoggingOut(false);
+              }).catch((error) => {
+                console.error('[Configuracion v325.0] ⚠️ Error cerrando sesión (non-critical):', error);
+                setIsLoggingOut(false);
+              });
             } catch (error) {
-              console.error('[Configuracion v141.0] ❌ Error cerrando sesión:', error);
+              console.error('[Configuracion v325.0] ❌ Error cerrando sesión:', error);
+              setIsLoggingOut(false);
               Alert.alert('Error', 'No se pudo cerrar la sesión');
             }
           },
@@ -243,30 +258,17 @@ export default function ConfiguracionScreen() {
   };
 
   const handleCambiarContrasena = () => {
-    Alert.alert(
-      'Cambiar Contraseña',
-      'Se enviará un correo electrónico con instrucciones para cambiar tu contraseña',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Enviar',
-          onPress: async () => {
-            try {
-              if (!user?.email) return;
+    // ✅ FIX v325.0: Redirect to token-based password recovery instead of using resetPasswordForEmail
+    // This fixes the TypeError: expected dynamic type 'boolean', but had type 'string'
+    if (!user?.email) {
+      Alert.alert('Error', 'No se pudo obtener tu correo electrónico');
+      return;
+    }
 
-              const { error } = await supabase.auth.resetPasswordForEmail(user.email);
-
-              if (error) throw error;
-
-              Alert.alert('Correo enviado', 'Revisa tu correo para cambiar tu contraseña');
-            } catch (error) {
-              console.error('[Configuracion v141.0] Error:', error);
-              Alert.alert('Error', 'No se pudo enviar el correo');
-            }
-          },
-        },
-      ]
-    );
+    router.push({
+      pathname: '/auth/recuperar-password-token',
+      params: { email: user.email },
+    });
   };
 
   const handleLimpiarCache = async () => {
@@ -669,8 +671,19 @@ export default function ConfiguracionScreen() {
 
         {/* Account actions */}
         <View style={styles.section}>
-          <TouchableOpacity style={styles.dangerButton} onPress={handleCerrarSesion}>
-            <Text style={[styles.dangerButtonText, { fontSize: scaleFontSize(16) }]}>Cerrar Sesión</Text>
+          <TouchableOpacity 
+            style={[styles.dangerButton, isLoggingOut && styles.dangerButtonDisabled]} 
+            onPress={handleCerrarSesion}
+            disabled={isLoggingOut}
+          >
+            {isLoggingOut ? (
+              <View style={styles.deletingContainer}>
+                <ActivityIndicator color="#DC2626" size="small" />
+                <Text style={[styles.dangerButtonText, { marginLeft: 8, fontSize: scaleFontSize(16) }]}>Cerrando sesión...</Text>
+              </View>
+            ) : (
+              <Text style={[styles.dangerButtonText, { fontSize: scaleFontSize(16) }]}>Cerrar Sesión</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity 
