@@ -73,9 +73,15 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 /**
- * ROOT LAYOUT v142.0 - FIXED IMPERSONATION PROVIDER
+ * ROOT LAYOUT v322.0 - MODAL NAVIGATION FIX
  * 
- * CRITICAL FIX v142.0:
+ * CRITICAL FIX v322.0:
+ * - ✅ Changed "Editar descripción" and "Gestionar etiquetas" to use presentation: 'modal'
+ * - ✅ These pages now open as modals ABOVE the post viewer, keeping it open in background
+ * - ✅ Proper modal behavior: post stays visible underneath
+ * - ✅ Closing these modals returns to the post viewer
+ * 
+ * Previous changes v142.0:
  * - ✅ Added ImpersonationProvider back (it exists and is needed by ModeContext)
  * - ✅ ImpersonationProvider must wrap ModeProvider
  * - ✅ Fixed "useImpersonation must be used within an ImpersonationProvider" error
@@ -83,14 +89,14 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 export default function RootLayout() {
   useEffect(() => {
-    console.log('[RootLayout v141.0] 🚀 App starting...');
-    console.log('[RootLayout v141.0] 📱 Platform:', Platform.OS);
+    console.log('[RootLayout v322.0] 🚀 App starting...');
+    console.log('[RootLayout v322.0] 📱 Platform:', Platform.OS);
     
     // ✅ CRITICAL FIX v25.0: Initialize Android-specific behavior
     let cleanupAndroid: (() => void) | undefined;
     
     if (Platform.OS === 'android') {
-      console.log('[RootLayout v141.0] 🤖 Initializing Android native behavior...');
+      console.log('[RootLayout v322.0] 🤖 Initializing Android native behavior...');
       try {
         cleanupAndroid = initializeAndroidBehavior();
       } catch (error) {
@@ -100,10 +106,10 @@ export default function RootLayout() {
 
     // Hide splash screen
     const timer = setTimeout(() => {
-      console.log('[RootLayout v141.0] 🎨 Hiding splash screen...');
+      console.log('[RootLayout v322.0] 🎨 Hiding splash screen...');
       SplashScreen.hideAsync()
         .then(() => {
-          console.log('[RootLayout v141.0] ✅ Splash screen hidden');
+          console.log('[RootLayout v322.0] ✅ Splash screen hidden');
         })
         .catch((error) => {
           console.error('[RootLayout] Error hiding splash screen:', error);
@@ -155,21 +161,37 @@ export default function RootLayout() {
                             <Stack.Screen name="perfil" options={{ headerShown: false }} />
                             <Stack.Screen name="social" options={{ headerShown: false }} />
                             
-                            {/* ✅ v319.0: Full-screen pages for tag management and edit description */}
+                            {/* ✅ v322.0: MODAL NAVIGATION - Pages open ABOVE post viewer */}
                             <Stack.Screen 
                               name="social/gestionar-etiquetas" 
                               options={{ 
-                                presentation: 'card',
+                                presentation: 'modal',
                                 headerShown: false,
-                                animation: 'slide_from_right',
+                                animation: 'slide_from_bottom',
                               }} 
                             />
                             <Stack.Screen 
                               name="social/editar-descripcion" 
                               options={{ 
-                                presentation: 'card',
+                                presentation: 'modal',
                                 headerShown: false,
-                                animation: 'slide_from_right',
+                                animation: 'slide_from_bottom',
+                              }} 
+                            />
+                            <Stack.Screen 
+                              name="social/comentarios" 
+                              options={{ 
+                                presentation: 'modal',
+                                headerShown: false,
+                                animation: 'slide_from_bottom',
+                              }} 
+                            />
+                            <Stack.Screen 
+                              name="social/likes" 
+                              options={{ 
+                                presentation: 'modal',
+                                headerShown: false,
+                                animation: 'slide_from_bottom',
                               }} 
                             />
                             <Stack.Screen 
