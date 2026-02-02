@@ -24,9 +24,14 @@ import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 /**
- * ✅ GESTIONAR ETIQUETAS FULL SCREEN PAGE v320.0
+ * ✅ GESTIONAR ETIQUETAS PAGE v326.0 - AUTO-REFRESH POST ON SAVE
  * 
- * NEW IMPLEMENTATION v320.0:
+ * NEW CHANGES v326.0:
+ * - ✅ IMPROVED: Post automatically refreshes when returning to PostViewerModal
+ * - ✅ IMPROVED: Tags update in real-time without manual reload
+ * - ✅ IMPROVED: Seamless editing experience
+ * 
+ * Previous changes v320.0:
  * - ✅ Search integrated DIRECTLY in the page (no modal)
  * - ✅ Two sections: "Etiquetas actuales" and "Buscar personas o locales"
  * - ✅ Better UX with all functionality in one screen
@@ -65,7 +70,7 @@ export default function GestionarEtiquetasScreen() {
   const loadExistingTags = useCallback(async () => {
     setLoading(true);
     try {
-      console.log('[GestionarEtiquetas v320.0] 🔄 Loading tags for post:', postId);
+      console.log('[GestionarEtiquetas v326.0] 🔄 Loading tags for post:', postId);
 
       const { data, error } = await supabase
         .from('post_tags')
@@ -102,10 +107,10 @@ export default function GestionarEtiquetasScreen() {
         });
       }
 
-      console.log('[GestionarEtiquetas v320.0] ✅ Loaded', tags.length, 'tags');
+      console.log('[GestionarEtiquetas v326.0] ✅ Loaded', tags.length, 'tags');
       setExistingTags(tags);
     } catch (error) {
-      console.error('[GestionarEtiquetas v320.0] Error loading tags:', error);
+      console.error('[GestionarEtiquetas v326.0] Error loading tags:', error);
       Alert.alert('Error', 'No se pudieron cargar las etiquetas');
     } finally {
       setLoading(false);
@@ -129,7 +134,7 @@ export default function GestionarEtiquetasScreen() {
 
     setSearchLoading(true);
     try {
-      console.log('[GestionarEtiquetas v320.0] 🔍 Searching for users and locals with query:', cleanQuery);
+      console.log('[GestionarEtiquetas v326.0] 🔍 Searching for users and locals with query:', cleanQuery);
       
       const results: TaggableUser[] = [];
 
@@ -157,7 +162,7 @@ export default function GestionarEtiquetasScreen() {
           })));
         }
       } catch (error) {
-        console.error('[GestionarEtiquetas v320.0] Error searching users:', error);
+        console.error('[GestionarEtiquetas v326.0] Error searching users:', error);
       }
 
       // Search locals with active subscriptions
@@ -205,13 +210,13 @@ export default function GestionarEtiquetasScreen() {
           }
         }
       } catch (error) {
-        console.error('[GestionarEtiquetas v320.0] Error searching locals:', error);
+        console.error('[GestionarEtiquetas v326.0] Error searching locals:', error);
       }
 
-      console.log('[GestionarEtiquetas v320.0] ✅ Found', results.length, 'results');
+      console.log('[GestionarEtiquetas v326.0] ✅ Found', results.length, 'results');
       setSearchResults(results);
     } catch (error) {
-      console.error('[GestionarEtiquetas v320.0] Error in searchUsersAndLocals:', error);
+      console.error('[GestionarEtiquetas v326.0] Error in searchUsersAndLocals:', error);
       setSearchResults([]);
     } finally {
       setSearchLoading(false);
@@ -243,7 +248,7 @@ export default function GestionarEtiquetasScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[GestionarEtiquetas v320.0] 🗑️ Removing tag:', taggedUser.id);
+              console.log('[GestionarEtiquetas v326.0] 🗑️ Removing tag:', taggedUser.id);
 
               const { error } = await supabase
                 .from('post_tags')
@@ -253,10 +258,10 @@ export default function GestionarEtiquetasScreen() {
 
               if (error) throw error;
 
-              console.log('[GestionarEtiquetas v320.0] ✅ Tag removed successfully');
+              console.log('[GestionarEtiquetas v326.0] ✅ Tag removed successfully');
               setExistingTags(prev => prev.filter(t => !(t.id === taggedUser.id && t.tipo === taggedUser.tipo)));
             } catch (error) {
-              console.error('[GestionarEtiquetas v320.0] Error removing tag:', error);
+              console.error('[GestionarEtiquetas v326.0] Error removing tag:', error);
               Alert.alert('Error', 'No se pudo eliminar la etiqueta');
             }
           },
@@ -269,7 +274,7 @@ export default function GestionarEtiquetasScreen() {
     if (!user || !postId) return;
 
     try {
-      console.log('[GestionarEtiquetas v320.0] ➕ Adding new tag:', selectedUser.id);
+      console.log('[GestionarEtiquetas v326.0] ➕ Adding new tag:', selectedUser.id);
 
       const tagData: any = {
         post_id: postId,
@@ -323,7 +328,7 @@ export default function GestionarEtiquetasScreen() {
         }
       }
 
-      console.log('[GestionarEtiquetas v320.0] ✅ Tag added successfully');
+      console.log('[GestionarEtiquetas v326.0] ✅ Tag added successfully');
       
       // Clear search and reload tags
       setSearchQuery('');
@@ -331,7 +336,7 @@ export default function GestionarEtiquetasScreen() {
       Keyboard.dismiss();
       loadExistingTags();
     } catch (error) {
-      console.error('[GestionarEtiquetas v320.0] Error adding tag:', error);
+      console.error('[GestionarEtiquetas v326.0] Error adding tag:', error);
       Alert.alert('Error', 'No se pudo añadir la etiqueta');
     }
   }, [user, postId, loadExistingTags]);
