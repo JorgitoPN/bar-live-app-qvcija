@@ -96,12 +96,12 @@ const PREDEFINED_MESSAGES = {
   ],
 };
 
-// Quick Public Messages
+// Quick Public Messages - EXPANDED
 const QUICK_PUBLIC_MESSAGES = [
   { id: 'q1', text: '¡Salud a todos! 🍻', emoji: '🍻' },
-  { id: 'q2', text: '¡Vaya temazo está sonando! 🎶', emoji: '🎶' },
-  { id: 'q3', text: '¡Qué ambientazo hay hoy! 🔥', emoji: '🔥' },
-  { id: 'q4', text: '¿Quién se pide la siguiente ronda? 🍺', emoji: '🍺' },
+  { id: 'q2', text: '¡Vaya temazo! 🎶', emoji: '🎶' },
+  { id: 'q3', text: '¡Qué ambientazo! 🔥', emoji: '🔥' },
+  { id: 'q4', text: '¿Quién pide ronda? 🥂', emoji: '🥂' },
 ];
 
 const PROXIMITY_THRESHOLD = 5; // meters
@@ -176,6 +176,14 @@ export default function SalaVirtualEnhancedScreen() {
   const [pendingInteractions, setPendingInteractions] = useState<PendingInteraction[]>([]);
   const [showAnimation, setShowAnimation] = useState(false);
   const [animationEmoji, setAnimationEmoji] = useState('');
+  const [floatingParticles, setFloatingParticles] = useState<Array<{
+    id: string;
+    emoji: string;
+    x: Animated.Value;
+    y: Animated.Value;
+    opacity: Animated.Value;
+    scale: Animated.Value;
+  }>>([]);
   
   const flatListRef = useRef<FlatList>(null);
   const chatChannelRef = useRef<RealtimeChannel | null>(null);
@@ -498,6 +506,14 @@ export default function SalaVirtualEnhancedScreen() {
           if (newMessage.is_private && newMessage.recipient_id === user.id && newMessage.tipo === 'predefinido') {
             triggerReceivedAnimation(newMessage.contenido);
           }
+
+          // Trigger floating reaction for quick public messages from others
+          if (!newMessage.is_private) {
+            const quickMsg = QUICK_PUBLIC_MESSAGES.find(m => m.text === newMessage.contenido);
+            if (quickMsg) {
+              triggerFloatingReaction(quickMsg.emoji);
+            }
+          }
         }
       })
       .on('broadcast', { event: 'user_joined' }, () => {
@@ -596,6 +612,12 @@ export default function SalaVirtualEnhancedScreen() {
 
       setMessages((prev) => [...prev, newMsg]);
       setNewMessage('');
+      
+      // Trigger floating reaction animation for quick messages
+      const quickMsg = QUICK_PUBLIC_MESSAGES.find(m => m.text === content);
+      if (quickMsg) {
+        triggerFloatingReaction(quickMsg.emoji);
+      }
       
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -713,6 +735,59 @@ export default function SalaVirtualEnhancedScreen() {
       animationOpacity.setValue(0);
     });
   };
+
+  const triggerFloatingReaction = useCallback((emoji: string) => {
+    // Create floating particles animation
+    const newParticles = Array.from({ length: 15 }, (_, index) => ({
+      id: `particle-${Date.now()}-${index}`,
+      emoji,
+      x: new Animated.Value(SCREEN_WIDTH / 2 + (Math.random() - 0.5) * 100),
+      y: new Animated.Value(SCREEN_HEIGHT),
+      opacity: new Animated.Value(1),
+      scale: new Animated.Value(0.5 + Math.random() * 0.5),
+    }));
+
+    setFloatingParticles(prev => [...prev, ...newParticles]);
+
+    newParticles.forEach((particle, index) => {
+      const delay = index * 80;
+      const duration = 2500 + Math.random() * 1000;
+      const targetY = SCREEN_HEIGHT * 0.1 + Math.random() * 150;
+      const targetX = particle.x._value + (Math.random() - 0.5) * 80;
+
+      Animated.parallel([
+        Animated.timing(particle.x, {
+          toValue: targetX,
+          duration,
+          delay,
+          useNativeDriver: true,
+        }),
+        Animated.timing(particle.y, {
+          toValue: targetY,
+          duration,
+          delay,
+          useNativeDriver: true,
+        }),
+        Animated.timing(particle.opacity, {
+          toValue: 0,
+          duration: duration * 0.7,
+          delay: delay + duration * 0.3,
+          useNativeDriver: true,
+        }),
+        Animated.timing(particle.scale, {
+          toValue: 1.2,
+          duration: duration * 0.5,
+          delay,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        // Remove particle after animation
+        setFloatingParticles(current => current.filter(p => p.id !== particle.id));
+      });
+    });
+
+    console.log(`[SalaVirtual Enhanced] Floating reaction triggered: ${emoji}`);
+  }, []);
 
   const handleUserPress = (selectedUser: ActiveUser) => {
     if (selectedUser.id === user?.id) return;
@@ -1465,6 +1540,27 @@ export default function SalaVirtualEnhancedScreen() {
             </Text>
           </Animated.View>
         )}
+
+        {/* Floating Particles for Reactions */}
+        {floatingParticles.map((particle) => (
+          <Animated.View
+            key={particle.id}
+            style={[
+              styles.floatingParticle,
+              {
+                transform: [
+                  { translateX: particle.x },
+                  { translateY: particle.y },
+                  { scale: particle.scale },
+                ],
+                opacity: particle.opacity,
+              },
+            ]}
+            pointerEvents="none"
+          >
+            <Text style={styles.floatingParticleEmoji}>{particle.emoji}</Text>
+          </Animated.View>
+        ))}
       </LinearGradient>
     </KeyboardAvoidingView>
   );
@@ -1703,7 +1799,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     gap: 6,
-    borderWidth: 1,
+    borderWidth: 2,
+    shadowColor: '#EC4899',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 8,
   },
   quickMessageEmoji: {
     fontSize: 18,
@@ -1820,13 +1921,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     borderWidth: 1,
+    opacity: 0.8,
   },
   checkOutButtonText: {
-    fontWeight: '700',
+    fontWeight: '600',
+    fontSize: scaleFontSize(14),
   },
   bubbleModalOverlay: {
     flex: 1,
@@ -1875,7 +1978,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 10,
     gap: 12,
-    borderWidth: 1,
+    borderWidth: 2,
+    shadowColor: '#EC4899',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 6,
   },
   bubbleEmoji: {
     fontSize: 24,
@@ -1902,5 +2010,15 @@ const styles = StyleSheet.create({
   animationText: {
     fontWeight: '800',
     textAlign: 'center',
+  },
+  floatingParticle: {
+    position: 'absolute',
+    zIndex: 999,
+  },
+  floatingParticleEmoji: {
+    fontSize: 32,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
 });
