@@ -11,6 +11,9 @@ import {
   Image,
   StatusBar,
   Alert,
+  TextInput,
+  Keyboard,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -19,19 +22,30 @@ import { supabase } from '@/utils/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import TaggingModalV5, { TaggableUser } from '@/components/social/TaggingModalV5';
 
 /**
- * ✅ GESTIONAR ETIQUETAS FULL SCREEN PAGE v317.0
+ * ✅ GESTIONAR ETIQUETAS FULL SCREEN PAGE v320.0
  * 
- * NEW IMPLEMENTATION v317.0:
+ * NEW IMPLEMENTATION v320.0:
+ * - ✅ Search integrated DIRECTLY in the page (no modal)
+ * - ✅ Two sections: "Etiquetas actuales" and "Buscar personas o locales"
+ * - ✅ Better UX with all functionality in one screen
+ * - ✅ No need to open separate modal for search
+ * 
+ * Previous changes v317.0:
  * - ✅ Full-screen page instead of modal
  * - ✅ Uses Stack navigation with back button
  * - ✅ Proper header with gradient
  * - ✅ All functionality from tag management modal preserved
- * - ✅ Better UX with full-screen real estate
- * - ✅ Add and remove tags functionality
  */
+
+export interface TaggableUser {
+  id: string;
+  nombre: string;
+  username: string;
+  avatar?: string;
+  tipo: 'usuario' | 'local';
+}
 
 export default function GestionarEtiquetasScreen() {
   const params = useLocalSearchParams();
@@ -42,12 +56,16 @@ export default function GestionarEtiquetasScreen() {
   
   const [existingTags, setExistingTags] = useState<TaggableUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showTagModal, setShowTagModal] = useState(false);
+  
+  // ✅ v320.0: Integrated search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<TaggableUser[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const loadExistingTags = useCallback(async () => {
     setLoading(true);
     try {
-      console.log('[GestionarEtiquetas v317.0] 🔄 Loading tags for post:', postId);
+      console.log('[GestionarEtiquetas v320.0] 🔄 Loading tags for post:', postId);
 
       const { data, error } = await supabase
         .from('post_tags')
@@ -84,10 +102,10 @@ export default function GestionarEtiquetasScreen() {
         });
       }
 
-      console.log('[GestionarEtiquetas v317.0] ✅ Loaded', tags.length, 'tags');
+      console.log('[GestionarEtiquetas v320.0] ✅ Loaded', tags.length, 'tags');
       setExistingTags(tags);
     } catch (error) {
-      console.error('[GestionarEtiquetas v317.0] Error loading tags:', error);
+      console.error('[GestionarEtiquetas v320.0] Error loading tags:', error);
       Alert.alert('Error', 'No se pudieron cargar las etiquetas');
     } finally {
       setLoading(false);
@@ -99,6 +117,118 @@ export default function GestionarEtiquetasScreen() {
       loadExistingTags();
     }
   }, [postId, loadExistingTags]);
+
+  // ✅ v320.0: Integrated search functionality
+  const searchUsersAndLocals = useCallback(async (query: string) => {
+    const cleanQuery = query.trim();
+    
+    if (cleanQuery.length < 1) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      console.log('[GestionarEtiquetas v320.0] 🔍 Searching for users and locals with query:', cleanQuery);
+      
+      const results: TaggableUser[] = [];
+
+      // Search users
+      try {
+        const { data: usersData, error: usersError } = await supabase
+          .from('usuarios')
+          .select('id, nombre, username, avatar')
+          .or(`username.ilike.%${cleanQuery}%,nombre.ilike.%${cleanQuery}%`)
+          .eq('activo', true)
+          .eq('permitir_etiquetas', true)
+          .limit(10);
+
+        if (!usersError && usersData) {
+          const filteredUsers = usersData.filter(
+            (u) => !existingTags.find((t) => t.id === u.id && t.tipo === 'usuario')
+          );
+
+          results.push(...filteredUsers.map(u => ({
+            id: u.id,
+            nombre: u.nombre,
+            username: u.username || u.nombre,
+            avatar: u.avatar,
+            tipo: 'usuario' as const,
+          })));
+        }
+      } catch (error) {
+        console.error('[GestionarEtiquetas v320.0] Error searching users:', error);
+      }
+
+      // Search locals with active subscriptions
+      try {
+        const { data: localsData, error: localsError } = await supabase
+          .from('locales')
+          .select('id, nombre, imagen_url')
+          .ilike('nombre', `%${cleanQuery}%`)
+          .eq('activo', true)
+          .limit(20);
+
+        if (!localsError && localsData && localsData.length > 0) {
+          const localIds = localsData.map(l => l.id);
+          
+          const { data: subscriptionsData } = await supabase
+            .from('suscripciones_locales')
+            .select(`
+              local_id,
+              estado,
+              plan_id,
+              planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
+            `)
+            .in('local_id', localIds)
+            .eq('estado', 'activa');
+
+          if (subscriptionsData) {
+            const validLocalIds = subscriptionsData
+              .filter(sub => {
+                const planName = (sub.planes_suscripcion as any)?.nombre;
+                return planName === 'estandar' || planName === 'premium';
+              })
+              .map(sub => sub.local_id);
+
+            const filteredLocalsData = localsData
+              .filter(local => validLocalIds.includes(local.id))
+              .filter(l => !existingTags.find((t) => t.id === l.id && t.tipo === 'local'));
+
+            results.push(...filteredLocalsData.map(l => ({
+              id: l.id,
+              nombre: l.nombre,
+              username: l.nombre,
+              avatar: l.imagen_url,
+              tipo: 'local' as const,
+            })));
+          }
+        }
+      } catch (error) {
+        console.error('[GestionarEtiquetas v320.0] Error searching locals:', error);
+      }
+
+      console.log('[GestionarEtiquetas v320.0] ✅ Found', results.length, 'results');
+      setSearchResults(results);
+    } catch (error) {
+      console.error('[GestionarEtiquetas v320.0] Error in searchUsersAndLocals:', error);
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [existingTags]);
+
+  useEffect(() => {
+    if (searchQuery.length > 0) {
+      const timeoutId = setTimeout(() => {
+        searchUsersAndLocals(searchQuery);
+      }, 300);
+
+      return () => clearTimeout(timeoutId);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery, searchUsersAndLocals]);
 
   const handleRemoveTag = useCallback(async (taggedUser: TaggableUser) => {
     if (!postId) return;
@@ -113,7 +243,7 @@ export default function GestionarEtiquetasScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[GestionarEtiquetas v317.0] 🗑️ Removing tag:', taggedUser.id);
+              console.log('[GestionarEtiquetas v320.0] 🗑️ Removing tag:', taggedUser.id);
 
               const { error } = await supabase
                 .from('post_tags')
@@ -123,10 +253,10 @@ export default function GestionarEtiquetasScreen() {
 
               if (error) throw error;
 
-              console.log('[GestionarEtiquetas v317.0] ✅ Tag removed successfully');
+              console.log('[GestionarEtiquetas v320.0] ✅ Tag removed successfully');
               setExistingTags(prev => prev.filter(t => !(t.id === taggedUser.id && t.tipo === taggedUser.tipo)));
             } catch (error) {
-              console.error('[GestionarEtiquetas v317.0] Error removing tag:', error);
+              console.error('[GestionarEtiquetas v320.0] Error removing tag:', error);
               Alert.alert('Error', 'No se pudo eliminar la etiqueta');
             }
           },
@@ -139,7 +269,7 @@ export default function GestionarEtiquetasScreen() {
     if (!user || !postId) return;
 
     try {
-      console.log('[GestionarEtiquetas v317.0] ➕ Adding new tag:', selectedUser.id);
+      console.log('[GestionarEtiquetas v320.0] ➕ Adding new tag:', selectedUser.id);
 
       const tagData: any = {
         post_id: postId,
@@ -193,15 +323,20 @@ export default function GestionarEtiquetasScreen() {
         }
       }
 
-      console.log('[GestionarEtiquetas v317.0] ✅ Tag added successfully');
+      console.log('[GestionarEtiquetas v320.0] ✅ Tag added successfully');
+      
+      // Clear search and reload tags
+      setSearchQuery('');
+      setSearchResults([]);
+      Keyboard.dismiss();
       loadExistingTags();
     } catch (error) {
-      console.error('[GestionarEtiquetas v317.0] Error adding tag:', error);
+      console.error('[GestionarEtiquetas v320.0] Error adding tag:', error);
       Alert.alert('Error', 'No se pudo añadir la etiqueta');
     }
   }, [user, postId, loadExistingTags]);
 
-  const renderTag = useCallback(({ item }: { item: TaggableUser }) => (
+  const renderExistingTag = useCallback(({ item }: { item: TaggableUser }) => (
     <View style={styles.tagItem}>
       {item.avatar ? (
         <Image source={{ uri: item.avatar }} style={styles.tagAvatar} />
@@ -235,20 +370,99 @@ export default function GestionarEtiquetasScreen() {
     </View>
   ), [handleRemoveTag]);
 
-  const renderEmpty = () => (
+  const renderSearchResult = useCallback(({ item }: { item: TaggableUser }) => (
+    <TouchableOpacity
+      style={styles.searchResultItem}
+      onPress={() => handleAddNewTag(item)}
+      activeOpacity={0.7}
+    >
+      {item.avatar ? (
+        <Image source={{ uri: item.avatar }} style={styles.searchResultAvatar} />
+      ) : (
+        <View style={[styles.searchResultAvatar, styles.avatarPlaceholder]}>
+          <IconSymbol 
+            ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+            android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
+            size={scaleIconSize(20)} 
+            color={colors.textSecondary} 
+          />
+        </View>
+      )}
+      <View style={styles.searchResultInfo}>
+        <Text style={[styles.searchResultName, { fontSize: scaleFontSize(16) }]}>{item.nombre}</Text>
+        <View style={styles.searchResultTypeContainer}>
+          {item.tipo === 'local' ? (
+            <>
+              <IconSymbol 
+                ios_icon_name="building.2.fill" 
+                android_material_icon_name="business" 
+                size={scaleIconSize(14)} 
+                color="#F59E0B" 
+              />
+              <Text style={[styles.searchResultType, { fontSize: scaleFontSize(14), color: '#F59E0B' }]}>Local</Text>
+            </>
+          ) : (
+            <Text style={[styles.searchResultType, { fontSize: scaleFontSize(14) }]}>@{item.username}</Text>
+          )}
+        </View>
+      </View>
+      <IconSymbol 
+        ios_icon_name="plus.circle.fill" 
+        android_material_icon_name="add_circle" 
+        size={scaleIconSize(24)} 
+        color={item.tipo === 'local' ? '#F59E0B' : colors.primary} 
+      />
+    </TouchableOpacity>
+  ), [handleAddNewTag]);
+
+  const renderEmptyExistingTags = () => (
     <View style={styles.emptyState}>
       <IconSymbol 
         ios_icon_name="person.crop.circle.badge.plus" 
         android_material_icon_name="person_add" 
-        size={Platform.OS === 'android' ? scaleIconSize(64) : 64} 
+        size={Platform.OS === 'android' ? scaleIconSize(48) : 48} 
         color={colors.textSecondary} 
       />
-      <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No hay etiquetas</Text>
+      <Text style={[styles.emptyText, { fontSize: scaleFontSize(16) }]}>No hay etiquetas</Text>
       <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
-        Añade etiquetas para mencionar usuarios o locales en esta publicación
+        Busca personas o locales abajo para añadir etiquetas
       </Text>
     </View>
   );
+
+  const renderEmptySearchResults = () => {
+    if (searchQuery.length === 0) {
+      return (
+        <View style={styles.emptySearchState}>
+          <IconSymbol 
+            ios_icon_name="magnifyingglass" 
+            android_material_icon_name="search" 
+            size={scaleIconSize(48)} 
+            color={colors.textSecondary} 
+          />
+          <Text style={[styles.emptySearchText, { fontSize: scaleFontSize(16) }]}>Busca personas o locales</Text>
+          <Text style={[styles.emptySearchSubtext, { fontSize: scaleFontSize(14) }]}>
+            Escribe para ver resultados
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.emptySearchState}>
+        <IconSymbol 
+          ios_icon_name="magnifyingglass" 
+          android_material_icon_name="search" 
+          size={scaleIconSize(48)} 
+          color={colors.textSecondary} 
+        />
+        <Text style={[styles.emptySearchText, { fontSize: scaleFontSize(16) }]}>No se encontraron resultados</Text>
+        <Text style={[styles.emptySearchSubtext, { fontSize: scaleFontSize(14) }]}>
+          Intenta con otro nombre
+        </Text>
+      </View>
+    );
+  };
 
   const backIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
 
@@ -260,7 +474,11 @@ export default function GestionarEtiquetasScreen() {
         }} 
       />
       
-      <View style={styles.container}>
+      <KeyboardAvoidingView 
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
+      >
         <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
         
         <LinearGradient
@@ -283,45 +501,102 @@ export default function GestionarEtiquetasScreen() {
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
-          <>
-            <FlatList
-              data={existingTags}
-              renderItem={renderTag}
-              keyExtractor={(item) => `${item.id}-${item.tipo}`}
-              contentContainerStyle={styles.list}
-              showsVerticalScrollIndicator={false}
-              ListEmptyComponent={renderEmpty}
-            />
-
-            <View style={styles.addButtonContainer}>
-              <TouchableOpacity 
-                style={styles.addButton}
-                onPress={() => setShowTagModal(true)}
-              >
-                <LinearGradient
-                  colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-                  style={styles.addButtonGradient}
-                >
-                  <IconSymbol 
-                    ios_icon_name="plus.circle.fill" 
-                    android_material_icon_name="add_circle" 
-                    size={20} 
-                    color={colors.white} 
-                  />
-                  <Text style={[styles.addButtonText, { fontSize: scaleFontSize(15) }]}>Añadir etiqueta</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+          <View style={styles.contentContainer}>
+            {/* ✅ v320.0: Section 1 - Existing Tags */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <IconSymbol 
+                  ios_icon_name="tag.fill" 
+                  android_material_icon_name="label" 
+                  size={scaleIconSize(18)} 
+                  color={colors.primary} 
+                />
+                <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(16) }]}>Etiquetas actuales</Text>
+              </View>
+              
+              {existingTags.length > 0 ? (
+                <FlatList
+                  data={existingTags}
+                  renderItem={renderExistingTag}
+                  keyExtractor={(item) => `${item.id}-${item.tipo}`}
+                  contentContainerStyle={styles.tagsList}
+                  showsVerticalScrollIndicator={false}
+                  scrollEnabled={false}
+                />
+              ) : (
+                renderEmptyExistingTags()
+              )}
             </View>
-          </>
-        )}
 
-        <TaggingModalV5
-          visible={showTagModal}
-          onClose={() => setShowTagModal(false)}
-          onSelectUser={handleAddNewTag}
-          alreadyTagged={existingTags}
-        />
-      </View>
+            {/* ✅ v320.0: Section 2 - Search (Integrated directly, no modal) */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <IconSymbol 
+                  ios_icon_name="magnifyingglass" 
+                  android_material_icon_name="search" 
+                  size={scaleIconSize(18)} 
+                  color={colors.primary} 
+                />
+                <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(16) }]}>Buscar personas o locales</Text>
+              </View>
+
+              {/* Search Input */}
+              <View style={styles.searchContainer}>
+                <IconSymbol 
+                  ios_icon_name="magnifyingglass" 
+                  android_material_icon_name="search" 
+                  size={scaleIconSize(20)} 
+                  color={colors.textSecondary} 
+                />
+                <TextInput
+                  style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
+                  placeholder="Escribe para buscar..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setSearchQuery('');
+                      setSearchResults([]);
+                    }} 
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol 
+                      ios_icon_name="xmark.circle.fill" 
+                      android_material_icon_name="cancel" 
+                      size={scaleIconSize(20)} 
+                      color={colors.textSecondary} 
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Search Results */}
+              {searchLoading ? (
+                <View style={styles.searchLoadingContainer}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={[styles.searchLoadingText, { fontSize: scaleFontSize(14) }]}>Buscando...</Text>
+                </View>
+              ) : searchResults.length > 0 ? (
+                <FlatList
+                  data={searchResults}
+                  renderItem={renderSearchResult}
+                  keyExtractor={(item) => `${item.id}-${item.tipo}`}
+                  contentContainerStyle={styles.searchResultsList}
+                  showsVerticalScrollIndicator={false}
+                  scrollEnabled={false}
+                />
+              ) : (
+                renderEmptySearchResults()
+              )}
+            </View>
+          </View>
+        )}
+      </KeyboardAvoidingView>
     </>
   );
 }
@@ -358,17 +633,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  list: {
-    flexGrow: 1,
-    paddingVertical: 8,
-    paddingBottom: 100,
+  contentContainer: {
+    flex: 1,
+  },
+  section: {
+    backgroundColor: colors.cardBackground,
+    marginBottom: 8,
+    paddingVertical: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontWeight: '700',
+    color: colors.text,
+  },
+  tagsList: {
+    paddingBottom: 8,
   },
   tagItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
@@ -398,51 +689,104 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
+    paddingVertical: 40,
     alignItems: 'center',
     paddingHorizontal: 32,
-    paddingTop: 100,
   },
   emptyText: {
     fontWeight: '600',
     color: colors.text,
-    marginTop: 16,
+    marginTop: 12,
+    textAlign: 'center',
   },
   emptySubtext: {
     color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
   },
-  addButtonContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.background,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-  },
-  addButton: {
     borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
-  addButtonGradient: {
+  searchInput: {
+    flex: 1,
+    color: colors.text,
+  },
+  searchLoadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 20,
     gap: 8,
-    paddingVertical: 14,
   },
-  addButtonText: {
-    fontWeight: '700',
-    color: colors.white,
+  searchLoadingText: {
+    color: colors.textSecondary,
+  },
+  searchResultsList: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  searchResultAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  avatarPlaceholder: {
+    backgroundColor: colors.cardBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  searchResultInfo: {
+    flex: 1,
+  },
+  searchResultName: {
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  searchResultTypeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  searchResultType: {
+    color: colors.textSecondary,
+  },
+  emptySearchState: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 32,
+  },
+  emptySearchText: {
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  emptySearchSubtext: {
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
 });
