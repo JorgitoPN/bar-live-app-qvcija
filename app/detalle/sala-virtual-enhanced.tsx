@@ -28,6 +28,7 @@ import LoginPrompt from '@/components/common/LoginPrompt';
 import { scaleFontSize, scaleIconSize, getActionButtonPaddingVertical } from '@/utils/androidScaling';
 import * as Location from 'expo-location';
 import { calcularDistancia } from '@/utils/locationUtils';
+import { InteractionBubbleCarousel } from '@/components/sala-virtual/InteractionBubbleCarousel';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -73,27 +74,6 @@ const NIGHT_COLORS = {
   danger: '#EF4444',
   shadow: 'rgba(236, 72, 153, 0.3)',
   glow: 'rgba(236, 72, 153, 0.5)',
-};
-
-// Predefined Private Messages
-const PREDEFINED_MESSAGES = {
-  flirtatious: [
-    { id: '1', text: '¿Me sacas a bailar? 💃', emoji: '💃' },
-    { id: '2', text: '¿Te puedo sacar a bailar? 🕺✨', emoji: '🕺' },
-    { id: '3', text: 'Te he visto y no he podido no saludarte... 👀', emoji: '👀' },
-    { id: '4', text: 'Me gusta tu estilo. 😊', emoji: '😊' },
-  ],
-  invitation: [
-    { id: '5', text: '¿Te invito a una copa? 🥂', emoji: '🥂' },
-    { id: '6', text: '¿Me invitas a una copa? 😇', emoji: '😇' },
-    { id: '7', text: 'Pago yo la siguiente ronda 🍸', emoji: '🍸' },
-    { id: '8', text: '¿Qué estás tomando? 🍹', emoji: '🍹' },
-  ],
-  icebreaker: [
-    { id: '9', text: 'S.O.S: Mis amigos son unos pesados, ¿me rescatas? 😂', emoji: '😂' },
-    { id: '10', text: '¿Te apetece charlar un rato? 😊', emoji: '😊' },
-    { id: '11', text: '¿Vienes mucho por aquí? ✨', emoji: '✨' },
-  ],
 };
 
 // Quick Public Messages - EXPANDED
@@ -641,6 +621,8 @@ export default function SalaVirtualEnhancedScreen() {
     if (!user || !localId) return;
 
     try {
+      console.log('[SalaVirtual Enhanced] Sending predefined message:', messageText, 'to:', recipientId);
+      
       const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date().toISOString();
 
@@ -811,6 +793,7 @@ export default function SalaVirtualEnhancedScreen() {
   };
 
   const closeBubbleCarousel = () => {
+    console.log('[SalaVirtual Enhanced] Closing bubble carousel');
     Animated.timing(bubbleScale, {
       toValue: 0,
       duration: 200,
@@ -819,6 +802,15 @@ export default function SalaVirtualEnhancedScreen() {
       setShowBubbleCarousel(false);
       setSelectedUser(null);
     });
+  };
+
+  const handleViewProfile = () => {
+    if (!selectedUser) return;
+    
+    console.log('[SalaVirtual Enhanced] Navigating to profile:', selectedUser.id);
+    setShowBubbleCarousel(false);
+    setSelectedUser(null);
+    router.push(`/perfil/usuario?id=${selectedUser.id}`);
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
@@ -1020,105 +1012,6 @@ export default function SalaVirtualEnhancedScreen() {
           />
         )}
       </TouchableOpacity>
-    );
-  };
-
-  const renderBubbleCarousel = () => {
-    if (!selectedUser) return null;
-
-    const allMessages = [
-      ...PREDEFINED_MESSAGES.flirtatious,
-      ...PREDEFINED_MESSAGES.invitation,
-      ...PREDEFINED_MESSAGES.icebreaker,
-    ];
-
-    const recipientName = selectedUser.username || selectedUser.nombre;
-
-    return (
-      <Modal
-        visible={showBubbleCarousel}
-        transparent
-        animationType="fade"
-        onRequestClose={closeBubbleCarousel}
-      >
-        <TouchableOpacity
-          style={styles.bubbleModalOverlay}
-          activeOpacity={1}
-          onPress={closeBubbleCarousel}
-        >
-          <View style={[styles.bubbleModalContent, { backgroundColor: themeColors.cardBg, borderColor: themeColors.cardBorder }]}>
-            <View style={styles.bubbleHeader}>
-              <Text style={[styles.bubbleTitle, { fontSize: scaleFontSize(20), color: themeColors.text }]}>
-                Enviar mensaje a {recipientName}
-              </Text>
-              <TouchableOpacity onPress={closeBubbleCarousel}>
-                <IconSymbol
-                  ios_icon_name="xmark.circle.fill"
-                  android_material_icon_name="cancel"
-                  size={Platform.OS === 'android' ? scaleIconSize(28) : 28}
-                  color={themeColors.textSecondary}
-                />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.bubbleScroll} contentContainerStyle={styles.bubbleScrollContent}>
-              <View style={styles.bubbleSection}>
-                <Text style={[styles.bubbleSectionTitle, { fontSize: scaleFontSize(14), color: themeColors.textSecondary }]}>
-                  💃 Ligar / Atrevido
-                </Text>
-                {PREDEFINED_MESSAGES.flirtatious.map((msg) => (
-                  <TouchableOpacity
-                    key={msg.id}
-                    style={[styles.bubbleButton, { backgroundColor: themeColors.primary + '15', borderColor: themeColors.primary + '30' }]}
-                    onPress={() => sendPredefinedMessage(selectedUser.id, msg.text)}
-                  >
-                    <Text style={styles.bubbleEmoji}>{msg.emoji}</Text>
-                    <Text style={[styles.bubbleText, { fontSize: scaleFontSize(14), color: themeColors.text }]}>
-                      {msg.text}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <View style={styles.bubbleSection}>
-                <Text style={[styles.bubbleSectionTitle, { fontSize: scaleFontSize(14), color: themeColors.textSecondary }]}>
-                  🥂 Invitación
-                </Text>
-                {PREDEFINED_MESSAGES.invitation.map((msg) => (
-                  <TouchableOpacity
-                    key={msg.id}
-                    style={[styles.bubbleButton, { backgroundColor: themeColors.secondary + '15', borderColor: themeColors.secondary + '30' }]}
-                    onPress={() => sendPredefinedMessage(selectedUser.id, msg.text)}
-                  >
-                    <Text style={styles.bubbleEmoji}>{msg.emoji}</Text>
-                    <Text style={[styles.bubbleText, { fontSize: scaleFontSize(14), color: themeColors.text }]}>
-                      {msg.text}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <View style={styles.bubbleSection}>
-                <Text style={[styles.bubbleSectionTitle, { fontSize: scaleFontSize(14), color: themeColors.textSecondary }]}>
-                  😊 Rompehielos
-                </Text>
-                {PREDEFINED_MESSAGES.icebreaker.map((msg) => (
-                  <TouchableOpacity
-                    key={msg.id}
-                    style={[styles.bubbleButton, { backgroundColor: themeColors.accent + '15', borderColor: themeColors.accent + '30' }]}
-                    onPress={() => sendPredefinedMessage(selectedUser.id, msg.text)}
-                  >
-                    <Text style={styles.bubbleEmoji}>{msg.emoji}</Text>
-                    <Text style={[styles.bubbleText, { fontSize: scaleFontSize(14), color: themeColors.text }]}>
-                      {msg.text}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
     );
   };
 
@@ -1539,7 +1432,17 @@ export default function SalaVirtualEnhancedScreen() {
           )}
         </View>
 
-        {renderBubbleCarousel()}
+        {selectedUser && (
+          <InteractionBubbleCarousel
+            visible={showBubbleCarousel}
+            onClose={closeBubbleCarousel}
+            recipientName={selectedUser.username || selectedUser.nombre}
+            onSelectMessage={(message) => sendPredefinedMessage(selectedUser.id, message)}
+            onViewProfile={handleViewProfile}
+            themeColors={themeColors}
+            mode={mode}
+          />
+        )}
 
         {showAnimation && (
           <Animated.View
@@ -1948,67 +1851,6 @@ const styles = StyleSheet.create({
   checkOutButtonText: {
     fontWeight: '600',
     fontSize: scaleFontSize(14),
-  },
-  bubbleModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  bubbleModalContent: {
-    width: '100%',
-    maxWidth: 500,
-    maxHeight: SCREEN_HEIGHT * 0.8,
-    borderRadius: 24,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  bubbleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  bubbleTitle: {
-    fontWeight: '700',
-    flex: 1,
-  },
-  bubbleScroll: {
-    flex: 1,
-  },
-  bubbleScrollContent: {
-    padding: 20,
-  },
-  bubbleSection: {
-    marginBottom: 24,
-  },
-  bubbleSectionTitle: {
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-  bubbleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 10,
-    gap: 12,
-    borderWidth: 2,
-    shadowColor: '#EC4899',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  bubbleEmoji: {
-    fontSize: 24,
-  },
-  bubbleText: {
-    fontWeight: '600',
-    flex: 1,
   },
   animationOverlay: {
     position: 'absolute',
