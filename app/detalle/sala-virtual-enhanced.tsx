@@ -399,7 +399,12 @@ export default function SalaVirtualEnhancedScreen() {
         });
       }
 
-      router.back();
+      // FIX: Check if we can go back before calling router.back()
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/');
+      }
     } catch (error) {
       console.error('[SalaVirtual Enhanced] Error checking out:', error);
     }
@@ -1198,7 +1203,13 @@ export default function SalaVirtualEnhancedScreen() {
           options={{
             title: 'Sala Virtual',
             headerLeft: () => (
-              <TouchableOpacity onPress={() => router.back()}>
+              <TouchableOpacity onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/');
+                }
+              }}>
                 <IconSymbol
                   ios_icon_name="xmark"
                   android_material_icon_name="close"
@@ -1243,7 +1254,13 @@ export default function SalaVirtualEnhancedScreen() {
           options={{
             title: local?.nombre || 'Sala Virtual',
             headerLeft: () => (
-              <TouchableOpacity onPress={() => router.back()}>
+              <TouchableOpacity onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/');
+                }
+              }}>
                 <IconSymbol
                   ios_icon_name="xmark"
                   android_material_icon_name="close"
@@ -1275,7 +1292,13 @@ export default function SalaVirtualEnhancedScreen() {
             </Text>
             <TouchableOpacity
               style={[styles.closedButton, { backgroundColor: themeColors.primary }]}
-              onPress={() => router.back()}
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/');
+                }
+              }}
               activeOpacity={0.8}
             >
               <IconSymbol
@@ -1538,6 +1561,7 @@ export default function SalaVirtualEnhancedScreen() {
           ) : (
             <React.Fragment>
               <FlatList
+                key="users-grid"
                 data={activeUsers}
                 renderItem={renderUserItem}
                 keyExtractor={(item) => item.id}
