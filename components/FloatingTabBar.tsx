@@ -1,10 +1,15 @@
 
 /**
- * FLOATING TAB BAR - VERSION v283.0
+ * FLOATING TAB BAR - VERSION v318.0
  * 
- * ✅ ANDROID PROFILE ICON FIX v283.0 - FIXED MISSING ICON WHEN NOT LOGGED IN
+ * ✅ REDUCED BOTTOM MARGIN v318.0 - CUT BOTTOM PADDING IN HALF
  * 
- * CRITICAL FIXES v283.0:
+ * CRITICAL CHANGES v318.0:
+ * - ✅ REDUCED: Bottom padding cut in half (from 8px to 4px on Android, from 4px to 2px on iOS)
+ * - ✅ REDUCED: Less empty space at the bottom of the screen
+ * - ✅ IMPROVED: More compact and efficient use of screen space
+ * 
+ * Previous fixes maintained (v283.0):
  * - ✅ FIXED: Profile icon now shows correctly when user is not logged in on Android
  * - ✅ FIXED: Simplified ProfileTab logic to always show icon when no avatar
  * - ✅ FIXED: Removed unnecessary image loading states for null avatarUrl
@@ -253,16 +258,16 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
     );
   }, [isTabActive, handleTabPress, avatarUrl, getAndroidIcon]);
 
-  // ✅ COMPACT TAB BAR v265.0: Reduced height and iOS bottom spacing
+  // ✅ REDUCED BOTTOM MARGIN v318.0: Cut bottom padding in half
   const bottomNavHeight = Platform.OS === 'android' ? 56 : 60;
   const tabBarPaddingBottom = Platform.OS === 'android' 
-    ? Math.max(insets.bottom, 8) 
-    : Math.max(insets.bottom - 8, 4); // Reduced iOS bottom spacing
+    ? Math.max(insets.bottom / 2, 4) // Reduced to half
+    : Math.max((insets.bottom - 8) / 2, 2); // Reduced iOS bottom spacing to half
   const containerHeight = bottomNavHeight + tabBarPaddingBottom;
 
   console.log(
-    `[FloatingTabBar v283.0] ⚡ PROFILE ICON FIX - ` +
-    `Shows icon immediately when not logged in (avatarUrl: ${avatarUrl ? 'present' : 'null'})`
+    `[FloatingTabBar v318.0] ⚡ REDUCED BOTTOM MARGIN - ` +
+    `Bottom padding cut in half (Android: 4px, iOS: 2px) - avatarUrl: ${avatarUrl ? 'present' : 'null'}`
   );
 
   return (
