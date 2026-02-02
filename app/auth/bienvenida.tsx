@@ -59,12 +59,14 @@ export default function BienvenidaScreen() {
     if (currentIndex < onboardingData.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      router.push('/auth/login-popup');
+      // ✅ FIX v325.0: Redirect to secure login screen
+      router.push('/auth/login-secure');
     }
   };
 
   const handleSkip = () => {
-    router.push('/auth/login-popup');
+    // ✅ FIX v325.0: Redirect to secure login screen
+    router.push('/auth/login-secure');
   };
 
   const currentSlide = onboardingData[currentIndex];

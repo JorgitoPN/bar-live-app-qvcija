@@ -166,22 +166,7 @@ export default function LoginPopupScreen() {
     }
   };
 
-  const handleForgotPassword = () => {
-    if (!email.trim()) {
-      Alert.alert('Error', 'Por favor, ingresa tu correo electrónico');
-      return;
-    }
 
-    if (!validateEmail(email.trim())) {
-      Alert.alert('Error', 'Por favor, ingresa un correo electrónico válido');
-      return;
-    }
-
-    router.push({
-      pathname: '/auth/recuperar-password',
-      params: { email: email.trim().toLowerCase() },
-    });
-  };
 
   const handleClose = () => {
     if (!loading) {
@@ -253,7 +238,7 @@ export default function LoginPopupScreen() {
           </View>
 
           <TouchableOpacity 
-            onPress={handleForgotPassword} 
+            onPress={() => router.push('/auth/recuperar-password-v7')}
             disabled={loading}
             style={styles.forgotButton}
           >

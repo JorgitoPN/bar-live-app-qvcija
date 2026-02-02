@@ -260,16 +260,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleSignOut = async () => {
     try {
+      // ✅ FIX v325.0: IMMEDIATE UI UPDATE - User sees logout instantly
+      console.log('[AuthContext v325.0] 🚪 Logging out - immediate UI update');
       setUser(null);
       setSession(null);
       setSessionReady(false);
       
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('[AuthContext v289.0] ❌ Error cerrando sesión:', error);
-      }
+      // ✅ Backend logout continues in background (non-blocking)
+      supabase.auth.signOut().then(({ error }) => {
+        if (error) {
+          console.error('[AuthContext v325.0] ⚠️ Error cerrando sesión en backend (non-critical):', error);
+        } else {
+          console.log('[AuthContext v325.0] ✅ Backend logout completed');
+        }
+      }).catch((error) => {
+        console.error('[AuthContext v325.0] ⚠️ Error en signOut backend (non-critical):', error);
+      });
+      
+      // User is already logged out from UI perspective
+      console.log('[AuthContext v325.0] ✅ User logged out from UI immediately');
     } catch (error) {
-      console.error('[AuthContext v289.0] ❌ Error en signOut:', error);
+      console.error('[AuthContext v325.0] ❌ Error en signOut:', error);
+      // Even if there's an error, ensure user is logged out from UI
+      setUser(null);
+      setSession(null);
+      setSessionReady(false);
     }
   };
 
