@@ -287,7 +287,7 @@ export default function LocalPerfilScreen() {
     
     setLoadingSeguidos(true);
     try {
-      console.log('[LocalPerfil v98.0] 📊 Loading following for local:', localId);
+      console.log('[LocalPerfil v113.0] 📊 Loading following for local:', localId);
 
       const { data, error } = await supabase
         .from('seguidores')
@@ -304,7 +304,7 @@ export default function LocalPerfilScreen() {
         .eq('seguidor_id', local.propietario_id);
 
       if (error) {
-        console.error('[LocalPerfil v98.0] Error loading following:', error);
+        console.error('[LocalPerfil v113.0] Error loading following:', error);
         return;
       }
 
@@ -321,10 +321,10 @@ export default function LocalPerfilScreen() {
 
         setSeguidos(formattedSeguidos);
         setSeguidosCount(formattedSeguidos.length);
-        console.log('[LocalPerfil v98.0] ✅ Loaded following:', formattedSeguidos.length);
+        console.log('[LocalPerfil v113.0] ✅ Loaded following:', formattedSeguidos.length);
       }
     } catch (error) {
-      console.error('[LocalPerfil v98.0] Error loading following:', error);
+      console.error('[LocalPerfil v113.0] Error loading following:', error);
     } finally {
       setLoadingSeguidos(false);
     }
@@ -332,7 +332,7 @@ export default function LocalPerfilScreen() {
 
   const loadLocalData = useCallback(async () => {
     if (!localId) {
-      console.error('[LocalPerfil v98.0] ❌ No localId provided');
+      console.error('[LocalPerfil v113.0] ❌ No localId provided');
       Alert.alert('Error', 'No se pudo cargar el perfil del local', [
         { text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }
       ]);
@@ -340,7 +340,7 @@ export default function LocalPerfilScreen() {
     }
 
     try {
-      console.log('[LocalPerfil v98.0] ✅ Loading local data for:', localId);
+      console.log('[LocalPerfil v113.0] ✅ Loading local data for:', localId);
 
       const { data: localData, error: localError } = await supabase
         .from('locales')
@@ -349,7 +349,7 @@ export default function LocalPerfilScreen() {
         .single();
 
       if (localError || !localData) {
-        console.error('[LocalPerfil v98.0] Error loading local:', localError);
+        console.error('[LocalPerfil v113.0] Error loading local:', localError);
         Alert.alert('Error', 'No se pudo cargar el perfil del local', [
           { text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }
         ]);
@@ -360,10 +360,10 @@ export default function LocalPerfilScreen() {
 
       if (user && localData.propietario_id === user.id) {
         setIsOwner(true);
-        console.log('[LocalPerfil v98.0] ✅ User IS OWNER of this local');
+        console.log('[LocalPerfil v113.0] ✅ User IS OWNER of this local');
       } else {
         setIsOwner(false);
-        console.log('[LocalPerfil v98.0] ✅ User is NOT owner of this local');
+        console.log('[LocalPerfil v113.0] ✅ User is NOT owner of this local');
       }
 
       // ✅ CRITICAL FIX v48.0: Only load social metrics if social profile is active
@@ -374,7 +374,7 @@ export default function LocalPerfilScreen() {
           .eq('seguido_id', localData.propietario_id);
 
         setSeguidoresCount(followersCount || 0);
-        console.log('[LocalPerfil v98.0] ✅ Followers count:', followersCount || 0);
+        console.log('[LocalPerfil v113.0] ✅ Followers count:', followersCount || 0);
 
         if (localData.propietario_id) {
           const { count: followingCount } = await supabase
@@ -383,10 +383,10 @@ export default function LocalPerfilScreen() {
             .eq('seguidor_id', localData.propietario_id);
 
           setSeguidosCount(followingCount || 0);
-          console.log('[LocalPerfil v98.0] ✅ Following count:', followingCount || 0);
+          console.log('[LocalPerfil v113.0] ✅ Following count:', followingCount || 0);
         }
       } else {
-        console.log('[LocalPerfil v98.0] ⚠️ Social profile not active, hiding metrics');
+        console.log('[LocalPerfil v113.0] ⚠️ Social profile not active, hiding metrics');
         setSeguidoresCount(0);
         setSeguidosCount(0);
       }
@@ -417,7 +417,7 @@ export default function LocalPerfilScreen() {
       ]);
 
       if (!postsResult.error) {
-        console.log('[LocalPerfil v98.0] ✅ Loaded', postsResult.data?.length || 0, 'posts for local');
+        console.log('[LocalPerfil v113.0] ✅ Loaded', postsResult.data?.length || 0, 'posts for local');
         setPosts(postsResult.data || []);
         setContentLoaded(prev => ({ ...prev, posts: true }));
       }
@@ -428,12 +428,12 @@ export default function LocalPerfilScreen() {
       }
 
       setIsFollowing(!!followResult.data);
-      console.log('[LocalPerfil v98.0] ✅ Is following:', !!followResult.data);
+      console.log('[LocalPerfil v113.0] ✅ Is following:', !!followResult.data);
       setContentLoaded(prev => ({ ...prev, info: true }));
 
-      console.log('[LocalPerfil v98.0] ✅ Local data loaded successfully');
+      console.log('[LocalPerfil v113.0] ✅ Local data loaded successfully');
     } catch (error) {
-      console.error('[LocalPerfil v98.0] Error loading data:', error);
+      console.error('[LocalPerfil v113.0] Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -444,7 +444,7 @@ export default function LocalPerfilScreen() {
     
     setLoadingEmpleo(true);
     try {
-      console.log('[LocalPerfil v98.0] Loading job offers for local:', localId);
+      console.log('[LocalPerfil v113.0] Loading job offers for local:', localId);
 
       const { data: ofertasData, error: ofertasError } = await supabase
         .from('ofertas_trabajo')
@@ -460,13 +460,13 @@ export default function LocalPerfilScreen() {
         .order('created_at', { ascending: false});
 
       if (!ofertasError && ofertasData) {
-        console.log('[LocalPerfil v98.0] ✅ Loaded', ofertasData.length, 'job offers for this local');
+        console.log('[LocalPerfil v113.0] ✅ Loaded', ofertasData.length, 'job offers for this local');
         setOfertasTrabajo(ofertasData);
       }
 
       setContentLoaded(prev => ({ ...prev, empleo: true }));
     } catch (error) {
-      console.error('[LocalPerfil v98.0] Error loading employment data:', error);
+      console.error('[LocalPerfil v113.0] Error loading employment data:', error);
     } finally {
       setLoadingEmpleo(false);
     }
@@ -510,7 +510,7 @@ export default function LocalPerfilScreen() {
     }
 
     if (isTogglingFollow.current) {
-      console.log('[LocalPerfil v98.0] Already toggling follow, skipping...');
+      console.log('[LocalPerfil v113.0] Already toggling follow, skipping...');
       return;
     }
 
@@ -520,13 +520,13 @@ export default function LocalPerfilScreen() {
     const previousSeguidores = seguidoresCount;
 
     try {
-      console.log('[LocalPerfil v98.0] 🔄 Toggling FOLLOW status (social network)');
+      console.log('[LocalPerfil v113.0] 🔄 Toggling FOLLOW status (social network)');
 
       setIsFollowing(!wasFollowing);
       setSeguidoresCount(wasFollowing ? Math.max(0, previousSeguidores - 1) : previousSeguidores + 1);
 
       if (wasFollowing) {
-        console.log('[LocalPerfil v98.0] ➖ Unfollowing local in social network...');
+        console.log('[LocalPerfil v113.0] ➖ Unfollowing local in social network...');
         
         const { error: deleteError } = await supabase
           .from('seguidores')
@@ -536,9 +536,9 @@ export default function LocalPerfilScreen() {
 
         if (deleteError) throw deleteError;
 
-        console.log('[LocalPerfil v98.0] ✅ Unfollow successful');
+        console.log('[LocalPerfil v113.0] ✅ Unfollow successful');
       } else {
-        console.log('[LocalPerfil v98.0] ➕ Following local in social network...');
+        console.log('[LocalPerfil v113.0] ➕ Following local in social network...');
 
         const { data: existingFollow } = await supabase
           .from('seguidores')
@@ -548,7 +548,7 @@ export default function LocalPerfilScreen() {
           .single();
 
         if (existingFollow) {
-          console.log('[LocalPerfil v98.0] Already following, skipping insert');
+          console.log('[LocalPerfil v113.0] Already following, skipping insert');
           isTogglingFollow.current = false;
           return;
         }
@@ -572,7 +572,7 @@ export default function LocalPerfilScreen() {
             usuario_origen_id: user.id,
           });
 
-        console.log('[LocalPerfil v98.0] ✅ Follow successful');
+        console.log('[LocalPerfil v113.0] ✅ Follow successful');
       }
 
       const { count: updatedFollowersCount } = await supabase
@@ -582,7 +582,7 @@ export default function LocalPerfilScreen() {
 
       setSeguidoresCount(updatedFollowersCount || 0);
     } catch (error) {
-      console.error('[LocalPerfil v98.0] Error toggling follow:', error);
+      console.error('[LocalPerfil v113.0] Error toggling follow:', error);
       
       setIsFollowing(wasFollowing);
       setSeguidoresCount(previousSeguidores);
@@ -638,7 +638,7 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    console.log('[LocalPerfil v98.0] Setting interaction state for creating post');
+    console.log('[LocalPerfil v113.0] Setting interaction state for creating post');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
     
@@ -655,7 +655,7 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    console.log('[LocalPerfil v98.0] Setting interaction state for creating event');
+    console.log('[LocalPerfil v113.0] Setting interaction state for creating event');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
     
@@ -672,7 +672,7 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    console.log('[LocalPerfil v98.0] Setting interaction state for creating job offer');
+    console.log('[LocalPerfil v113.0] Setting interaction state for creating job offer');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
     
@@ -689,7 +689,7 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    console.log('[LocalPerfil v98.0] Setting interaction state for editing local');
+    console.log('[LocalPerfil v113.0] Setting interaction state for editing local');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
     
@@ -721,7 +721,7 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    console.log('[LocalPerfil v98.0] Navigating to analytics panel');
+    console.log('[LocalPerfil v113.0] Navigating to analytics panel');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
     
@@ -740,11 +740,11 @@ export default function LocalPerfilScreen() {
     }
 
     try {
-      console.log('[LocalPerfil v98.0] Opening chat with LOCAL PROFILE (isolated messaging)');
+      console.log('[LocalPerfil v113.0] Opening chat with LOCAL PROFILE (isolated messaging)');
       
       router.push(`/chat/conversacion?localId=${localId}&userId=${user.id}`);
     } catch (error) {
-      console.error('[LocalPerfil v98.0] Error opening local chat:', error);
+      console.error('[LocalPerfil v113.0] Error opening local chat:', error);
       Alert.alert('Error', 'No se pudo abrir el chat');
     }
   };
@@ -752,14 +752,14 @@ export default function LocalPerfilScreen() {
   const handleGoBack = () => {
     try {
       if (router.canGoBack()) {
-        console.log('[LocalPerfil v98.0] ✅ Going back to previous screen');
+        console.log('[LocalPerfil v113.0] ✅ Going back to previous screen');
         router.back();
       } else {
-        console.log('[LocalPerfil v98.0] ⚠️ No previous screen, navigating to explorar');
+        console.log('[LocalPerfil v113.0] ⚠️ No previous screen, navigating to explorar');
         router.replace('/(tabs)/explorar');
       }
     } catch (error) {
-      console.error('[LocalPerfil v98.0] ❌ Error navigating back:', error);
+      console.error('[LocalPerfil v113.0] ❌ Error navigating back:', error);
       router.replace('/(tabs)/explorar');
     }
   };
@@ -804,7 +804,7 @@ export default function LocalPerfilScreen() {
   const getTabsForRole = (): TabBarItem[] => {
     const userRole = user?.rol_app || 'cliente';
 
-    console.log('🔍🔍🔍 [getTabsForRole] Determining tabs:', {
+    console.log('🔍🔍🔍 [getTabsForRole v113.0] Determining tabs:', {
       userRole,
       currentMode,
       isOwner,
@@ -816,7 +816,7 @@ export default function LocalPerfilScreen() {
     });
 
     if (userRole === 'admin' && currentMode === 'admin') {
-      console.log('📋 [getTabsForRole] Showing ADMIN tabs');
+      console.log('📋 [getTabsForRole v113.0] Showing ADMIN tabs');
       return [
         {
           name: 'admin',
@@ -840,7 +840,7 @@ export default function LocalPerfilScreen() {
     }
 
     if (isOwner && currentMode === 'propietario') {
-      console.log('🏢🏢🏢 [getTabsForRole] Showing OWNER tabs with GESTION icon (building.2) - User owns this local');
+      console.log('🏢🏢🏢 [getTabsForRole v113.0] Showing OWNER tabs with GESTION icon (building.2) - User owns this local');
       return [
         {
           name: 'gestion',
@@ -875,7 +875,7 @@ export default function LocalPerfilScreen() {
       ];
     }
 
-    console.log('👤 [getTabsForRole] Showing CLIENT tabs (eventos, favoritos, social) - Not owner or not in propietario mode');
+    console.log('👤 [getTabsForRole v113.0] Showing CLIENT tabs (eventos, favoritos, social) - Not owner or not in propietario mode');
     return [
       {
         name: 'eventos',
@@ -936,43 +936,16 @@ export default function LocalPerfilScreen() {
 
   const tabs = getTabsForRole();
 
-  console.log('🎯🎯🎯 [LocalPerfil v98.0] Rendering with tabs:', tabs.map(t => `${t.name}(${t.icon})`).join(', '));
+  console.log('🎯🎯🎯 [LocalPerfil v113.0] Rendering with tabs:', tabs.map(t => `${t.name}(${t.icon})`).join(', '));
+
+  const seguidoresFormatted = formatFollowersCount(seguidoresCount);
+  const seguidosFormatted = formatFollowersCount(seguidosCount);
+  const publicacionesFormatted = formatFollowersCount(posts.length);
 
   // ✅ CRITICAL FIX v48.0: Wrap content in PermissionGuard
   return (
     <PermissionGuard requireSocialProfile={true} localId={localId}>
       <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.fixedHeader}
-        >
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-            {/* ✅ CRITICAL FIX v98.0: Header title size matches Explorar (20px on Android) */}
-            <Text style={[
-              styles.headerTitle,
-              { fontSize: Platform.OS === 'android' ? scaleFontSize(24) : 20 }
-            ]}>
-              {local.nombre}
-            </Text>
-            <View style={styles.headerActions}>
-              {isOwner && (user?.rol_app === 'propietario' || ownedLocals.length > 0) && (
-                <TouchableOpacity 
-                  style={styles.switchProfileButton}
-                  onPress={() => setShowProfileSwitcher(true)}
-                  activeOpacity={0.8}
-                >
-                  <IconSymbol ios_icon_name="arrow.triangle.2.circlepath" android_material_icon_name="sync" size={24} color={colors.headerText} />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </LinearGradient>
-
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollViewContent}
@@ -980,28 +953,37 @@ export default function LocalPerfilScreen() {
           showsVerticalScrollIndicator={false}
           bounces={false}
           overScrollMode="never"
-          scrollEventThrottle={400}
+          scrollEventThrottle={16}
         >
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.scrollableHeader}
+          >
+            <View style={styles.headerTop}>
+              <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+                <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+              </TouchableOpacity>
+              <View style={{ flex: 1 }} />
+              {isOwner && (user?.rol_app === 'propietario' || ownedLocals.length > 0) && (
+                <TouchableOpacity 
+                  style={styles.switchProfileButton}
+                  onPress={() => setShowProfileSwitcher(true)}
+                  activeOpacity={0.8}
+                >
+                  <IconSymbol ios_icon_name="arrow.triangle.2.circlepath" android_material_icon_name="swap_horiz" size={24} color={colors.headerText} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </LinearGradient>
+
           <LinearGradient
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.profileHeaderGradient}
           >
-            {local.imagen_portada && (
-              <View style={styles.coverPhotoContainer}>
-                <Image 
-                  source={{ uri: local.imagen_portada }} 
-                  style={styles.coverPhoto}
-                  resizeMode="cover"
-                />
-                <LinearGradient
-                  colors={['transparent', 'rgba(0,0,0,0.3)']}
-                  style={styles.coverGradient}
-                />
-              </View>
-            )}
-
             <Animated.View 
               style={[
                 styles.profileSection,
@@ -1011,8 +993,8 @@ export default function LocalPerfilScreen() {
                 }
               ]}
             >
-              {/* ✅ UNIFIED MOMENTO AVATAR - NO WHITE BORDER */}
-              <View style={styles.momentosSection}>
+              {/* ✅ UNIFIED MOMENTO AVATAR */}
+              <View style={styles.profileHeader}>
                 <UnifiedMomentoAvatar
                   localId={localId}
                   imageUrl={local.imagen_url}
@@ -1026,7 +1008,7 @@ export default function LocalPerfilScreen() {
                 <View style={styles.profileInfo}>
                   <Text style={[styles.profileName, { fontSize: scaleFontSize(22) }]}>{local.nombre}</Text>
                   {local.username && (
-                    <Text style={[styles.profileUsername, { fontSize: scaleFontSize(16) }]}>@{local.username}</Text>
+                    <Text style={[styles.profileUsername, { fontSize: scaleFontSize(15) }]}>@{local.username}</Text>
                   )}
                   {categoriasLocal.length > 0 && (
                     <View style={styles.categoriesContainer}>
@@ -1038,100 +1020,70 @@ export default function LocalPerfilScreen() {
                       ))}
                     </View>
                   )}
+                  
+                  <View style={styles.statsContainerCompact}>
+                    <View style={styles.statItemCompact}>
+                      <Text style={[styles.statNumberCompact, { fontSize: scaleFontSize(18) }]}>{publicacionesFormatted}</Text>
+                      <Text style={[styles.statLabelCompact, { fontSize: scaleFontSize(13) }]}>publicaciones</Text>
+                    </View>
+                    {hasSocialProfile ? (
+                      <React.Fragment>
+                        <TouchableOpacity style={styles.statItemCompact} onPress={handleSeguidores}>
+                          <Text style={[styles.statNumberCompact, { fontSize: scaleFontSize(18) }]}>{seguidoresFormatted}</Text>
+                          <Text style={[styles.statLabelCompact, { fontSize: scaleFontSize(13) }]}>seguidores</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.statItemCompact} onPress={handleSeguidos}>
+                          <Text style={[styles.statNumberCompact, { fontSize: scaleFontSize(18) }]}>{seguidosFormatted}</Text>
+                          <Text style={[styles.statLabelCompact, { fontSize: scaleFontSize(13) }]}>siguiendo</Text>
+                        </TouchableOpacity>
+                      </React.Fragment>
+                    ) : (
+                      <View style={styles.statItemCompact}>
+                        <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={16} color="rgba(255, 255, 255, 0.6)" />
+                        <Text style={[styles.statLabelLockedCompact, { fontSize: scaleFontSize(11) }]}>Social No Activo</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               </View>
 
               {local.direccion && (
                 <View style={styles.addressContainer}>
-                  <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={16} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={14} color={colors.headerText} />
                   <Text style={[styles.addressText, { fontSize: scaleFontSize(14) }]}>{local.direccion}</Text>
                 </View>
               )}
 
-              <View style={styles.statusBadge}>
-                <View style={[styles.statusDot, { backgroundColor: estado.estaAbierto ? '#22C55E' : '#EF4444' }]} />
-                <Text style={[styles.statusText, { fontSize: scaleFontSize(13) }]}>{estado.badge}</Text>
-              </View>
-
               {activeEvent && (
-                <View style={{ marginBottom: 16 }}>
+                <View style={{ marginBottom: 12 }}>
                   <EventBanner evento={activeEvent} compact={true} />
                 </View>
               )}
 
-              {/* ✅ CRITICAL FIX v48.0: Only show social metrics if social profile is active */}
-              <View style={styles.statsContainer}>
-                <View style={styles.statItem}>
-                  <Text style={[styles.statNumber, { fontSize: scaleFontSize(22) }]}>{posts.length}</Text>
-                  <Text style={[styles.statLabel, { fontSize: scaleFontSize(14) }]}>Publicaciones</Text>
-                </View>
-                {hasSocialProfile ? (
-                  <React.Fragment>
-                    <View style={styles.statDivider} />
-                    <TouchableOpacity style={styles.statItem} onPress={handleSeguidores}>
-                      <Text style={[styles.statNumber, { fontSize: scaleFontSize(22) }]}>{seguidoresCount}</Text>
-                      <Text style={[styles.statLabel, { fontSize: scaleFontSize(14) }]}>Seguidores</Text>
-                    </TouchableOpacity>
-                    <View style={styles.statDivider} />
-                    <TouchableOpacity style={styles.statItem} onPress={handleSeguidos}>
-                      <Text style={[styles.statNumber, { fontSize: scaleFontSize(22) }]}>{seguidosCount}</Text>
-                      <Text style={[styles.statLabel, { fontSize: scaleFontSize(14) }]}>Siguiendo</Text>
-                    </TouchableOpacity>
-                  </React.Fragment>
-                ) : (
-                  <React.Fragment>
-                    <View style={styles.statDivider} />
-                    <View style={styles.statItem}>
-                      <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={20} color="rgba(255, 255, 255, 0.6)" />
-                      <Text style={[styles.statLabelLocked, { fontSize: scaleFontSize(12) }]}>Perfil Social</Text>
-                      <Text style={[styles.statLabelLockedSub, { fontSize: scaleFontSize(10) }]}>No Activo</Text>
-                    </View>
-                  </React.Fragment>
-                )}
-              </View>
-
-              <View style={styles.actionsContainer}>
+              <View style={styles.actionButtons}>
                 {isOwner ? (
-                  <View style={styles.ownerButtonsRow}>
+                  <React.Fragment>
                     <TouchableOpacity 
-                      style={styles.ownerRowButton} 
+                      style={styles.actionButton} 
                       onPress={handleEditarLocal}
                       activeOpacity={0.7}
                     >
-                      <View style={styles.ownerButtonIconContainer}>
-                        <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={20} color={colors.primary} />
-                      </View>
-                      <Text style={[styles.ownerRowButtonText, { fontSize: scaleFontSize(13) }]}>Editar</Text>
+                      <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.headerText} />
+                      <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(15) }]}>Editar Perfil</Text>
                     </TouchableOpacity>
-
                     <TouchableOpacity 
-                      style={styles.ownerRowButton} 
+                      style={[styles.actionButton, styles.createButton]} 
                       onPress={handleCrearEvento}
                       activeOpacity={0.7}
                     >
-                      <View style={styles.ownerButtonIconContainer}>
-                        <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={20} color={colors.primary} />
-                      </View>
-                      <Text style={[styles.ownerRowButtonText, { fontSize: scaleFontSize(13) }]}>Evento</Text>
+                      <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={18} color={colors.white} />
+                      <Text style={[styles.actionButtonText, { color: colors.white, fontSize: scaleFontSize(15) }]}>Crear</Text>
                     </TouchableOpacity>
-
-                    {hasAnalyticsPermission && (
-                      <TouchableOpacity 
-                        style={styles.ownerRowButton} 
-                        onPress={handleVerAnalisis}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.ownerButtonIconContainer}>
-                          <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={20} color={colors.primary} />
-                        </View>
-                        <Text style={[styles.ownerRowButtonText, { fontSize: scaleFontSize(13) }]}>Análisis</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
+                  </React.Fragment>
                 ) : (
-                  <View style={styles.visitorButtonsRow}>
+                  <React.Fragment>
                     <TouchableOpacity 
-                      style={[styles.visitorRowButton, isFollowing && styles.visitorRowButtonFollowing]} 
+                      style={[styles.actionButton, isFollowing && styles.actionButtonFollowing]} 
                       onPress={handleFollow}
                       activeOpacity={0.7}
                       disabled={isTogglingFollow.current}
@@ -1140,37 +1092,21 @@ export default function LocalPerfilScreen() {
                         ios_icon_name={isFollowing ? 'person.fill.checkmark' : 'person.badge.plus'} 
                         android_material_icon_name={isFollowing ? 'person_add_disabled' : 'person_add'}
                         size={18} 
-                        color={isFollowing ? colors.headerText : colors.primary} 
+                        color={colors.headerText} 
                       />
-                      <Text style={[
-                        styles.visitorRowButtonText, 
-                        { fontSize: scaleFontSize(13) },
-                        isFollowing && styles.visitorRowButtonTextFollowing
-                      ]}>
+                      <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(15) }]}>
                         {isFollowing ? 'Siguiendo' : 'Seguir'}
                       </Text>
                     </TouchableOpacity>
-                    
-                    {local.telefono && (
-                      <TouchableOpacity 
-                        style={styles.visitorRowButton} 
-                        onPress={handleLlamar}
-                        activeOpacity={0.7}
-                      >
-                        <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={18} color={colors.primary} />
-                        <Text style={[styles.visitorRowButtonText, { fontSize: scaleFontSize(13) }]}>Llamar</Text>
-                      </TouchableOpacity>
-                    )}
-                    
                     <TouchableOpacity 
-                      style={styles.visitorRowButton} 
+                      style={styles.actionButton} 
                       onPress={handleEnviarMensaje}
                       activeOpacity={0.7}
                     >
-                      <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={18} color={colors.primary} />
-                      <Text style={[styles.visitorRowButtonText, { fontSize: scaleFontSize(13) }]}>Mensaje</Text>
+                      <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={18} color={colors.headerText} />
+                      <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(15) }]}>Mensaje</Text>
                     </TouchableOpacity>
-                  </View>
+                  </React.Fragment>
                 )}
               </View>
             </Animated.View>
@@ -1181,6 +1117,7 @@ export default function LocalPerfilScreen() {
             <LocalSolicitudStatus localId={localId} />
           </View>
 
+          {/* ✅ FIX v113.0: Removed excessive marginTop - tabs now directly follow profile section */}
           <View style={styles.tabsContainer}>
             <TouchableOpacity
               style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
@@ -1623,88 +1560,62 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  fixedHeader: {
-    paddingTop: 50,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontWeight: 'bold',
-    color: colors.headerText,
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  switchProfileButton: {
-    padding: 8,
-  },
   scrollView: {
     flex: 1,
   },
   scrollViewContent: {
     paddingBottom: 100,
   },
-  profileHeaderGradient: {
-    paddingTop: 24,
-    paddingBottom: 24,
+  scrollableHeader: {
+    paddingTop: Platform.OS === 'android' ? 36 : 50,
+    paddingBottom: Platform.OS === 'android' ? 8 : 12,
     paddingHorizontal: 20,
   },
-  coverPhotoContainer: {
-    width: '100%',
-    height: 140,
-    marginBottom: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
-    position: 'relative',
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  coverPhoto: {
-    width: '100%',
-    height: '100%',
+  backButton: {
+    padding: 8,
   },
-  coverGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
+  switchProfileButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 20,
+  },
+  profileHeaderGradient: {
+    paddingTop: 12,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
   },
   profileSection: {
     paddingTop: 0,
   },
-  momentosSection: {
+  profileHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
   profileInfo: {
     flex: 1,
-    marginLeft: 20,
+    marginLeft: 16,
   },
   profileName: {
     fontWeight: 'bold',
     color: colors.headerText,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   profileUsername: {
     color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '500',
     marginBottom: 8,
   },
   categoriesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    marginBottom: 8,
   },
   categoryBadge: {
     flexDirection: 'row',
@@ -1723,6 +1634,28 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     textTransform: 'capitalize',
   },
+  statsContainerCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  statItemCompact: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  statNumberCompact: {
+    fontWeight: '700',
+    color: colors.headerText,
+  },
+  statLabelCompact: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontWeight: '500',
+  },
+  statLabelLockedCompact: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 2,
+    fontSize: scaleFontSize(11),
+  },
   addressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1733,120 +1666,28 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     flex: 1,
   },
-  statusBadge: {
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  actionButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
-    marginBottom: 16,
+    justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusText: {
-    fontWeight: '600',
-    color: colors.headerText,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    marginBottom: 24,
-    paddingVertical: 4,
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statNumber: {
-    fontWeight: 'bold',
-    color: colors.headerText,
-    marginBottom: 4,
-  },
-  statLabel: {
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  statLabelLocked: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginTop: 4,
-  },
-  statLabelLockedSub: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    height: 44,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  actionsContainer: {
-    width: '100%',
-  },
-  ownerButtonsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  ownerRowButton: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 14,
+    borderRadius: 12,
     paddingVertical: 12,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  ownerButtonIconContainer: {
-    marginBottom: 4,
-  },
-  ownerRowButtonText: {
-    fontWeight: '600',
-    color: colors.primary,
-    textAlign: 'center',
-  },
-  visitorButtonsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  visitorRowButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
     gap: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
   },
-  visitorRowButtonFollowing: {
-    backgroundColor: colors.primary,
+  createButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
-  visitorRowButtonText: {
+  actionButtonFollowing: {
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  actionButtonText: {
     fontWeight: '600',
-    color: colors.primary,
-    textAlign: 'center',
-  },
-  visitorRowButtonTextFollowing: {
     color: colors.headerText,
   },
   tabsContainer: {
@@ -1854,6 +1695,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
     backgroundColor: colors.cardBackground,
+    marginTop: 0,
   },
   tab: {
     flex: 1,

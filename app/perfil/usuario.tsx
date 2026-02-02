@@ -20,22 +20,25 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
-import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
 import MomentoViewer from '@/components/momento/MomentoViewer';
 import PostViewerModal from '@/components/social/PostViewerModal';
 import { profileCache } from '@/utils/profileCache';
 import { scaleFontSize } from '@/utils/androidScaling';
+import UnifiedMomentoAvatar from '@/components/common/UnifiedMomentoAvatar';
+import { formatFollowersCount } from '@/utils/formatters';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
 
 /**
- * ✅ USER PROFILE v97.0 - ANDROID HEADER TITLE SIZE FIX
+ * ✅ USER PROFILE v113.0 - UNIFIED DESIGN WITH MAIN PROFILE
  * 
- * CRITICAL FIXES v97.0 (ANDROID ONLY):
- * - ✅ Header title size standardized to match Explorar (20px on Android)
- * - ✅ All other functionality maintained
- * - ✅ iOS design remains unchanged
+ * NEW CHANGES v113.0:
+ * - ✅ IMPROVED: Applied same design as main profile page (app/(tabs)/perfil/index.tsx)
+ * - ✅ IMPROVED: Unified momento avatar with same size (96px)
+ * - ✅ IMPROVED: Same counter layout and formatting (Instagram-style)
+ * - ✅ FIXED: Removed excessive top margin in tab menu (marginTop: 0)
+ * - ✅ IMPROVED: Consistent visual hierarchy and spacing
  */
 
 export default function UsuarioPerfilScreen() {
@@ -88,7 +91,7 @@ export default function UsuarioPerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[UsuarioPerfil v97.0] Error loading current local:', error);
+        console.error('[UsuarioPerfil v113.0] Error loading current local:', error);
         return;
       }
 
@@ -132,7 +135,7 @@ export default function UsuarioPerfilScreen() {
         setCanViewLocation(false);
       }
     } catch (error) {
-      console.error('[UsuarioPerfil v97.0] Error loading current local:', error);
+      console.error('[UsuarioPerfil v113.0] Error loading current local:', error);
     }
   }, [userId, isOwnProfile, currentUser, isAdminView]);
 
@@ -142,14 +145,14 @@ export default function UsuarioPerfilScreen() {
         .rpc('get_total_seguidores_count', { p_usuario_id: targetUserId });
 
       if (seguidoresError) {
-        console.error('[UsuarioPerfil v97.0] Error counting followers:', seguidoresError);
+        console.error('[UsuarioPerfil v113.0] Error counting followers:', seguidoresError);
       }
 
       const { data: seguidosData, error: seguidosError } = await supabase
         .rpc('get_total_siguiendo_count', { p_usuario_id: targetUserId });
 
       if (seguidosError) {
-        console.error('[UsuarioPerfil v97.0] Error counting following:', seguidosError);
+        console.error('[UsuarioPerfil v113.0] Error counting following:', seguidosError);
       }
 
       const actualSeguidores = seguidoresData || 0;
@@ -164,12 +167,12 @@ export default function UsuarioPerfilScreen() {
         .eq('id', targetUserId);
 
       if (updateError) {
-        console.error('[UsuarioPerfil v97.0] Error updating user counters:', updateError);
+        console.error('[UsuarioPerfil v113.0] Error updating user counters:', updateError);
       }
 
       return { seguidores: actualSeguidores, seguidos: actualSeguidos };
     } catch (error) {
-      console.error('[UsuarioPerfil v97.0] Error loading follower counts:', error);
+      console.error('[UsuarioPerfil v113.0] Error loading follower counts:', error);
       return { seguidores: 0, seguidos: 0 };
     }
   }, []);
@@ -192,7 +195,7 @@ export default function UsuarioPerfilScreen() {
         .single();
 
       if (userError || !userData) {
-        console.error('[UsuarioPerfil v97.0] Error loading user:', userError);
+        console.error('[UsuarioPerfil v113.0] Error loading user:', userError);
         if (!silent) {
           Alert.alert('Error', 'No se pudo cargar el perfil del usuario');
           router.back();
@@ -263,7 +266,7 @@ export default function UsuarioPerfilScreen() {
         stats: newStats,
       });
 
-      console.log('[UsuarioPerfil v97.0] ✅ Data loaded and cached');
+      console.log('[UsuarioPerfil v113.0] ✅ Data loaded and cached');
 
       if (currentUser) {
         const { data: followData } = await supabase
@@ -288,7 +291,7 @@ export default function UsuarioPerfilScreen() {
       await loadCurrentLocal();
       hasLoadedOnce.current = true;
     } catch (error) {
-      console.error('[UsuarioPerfil v97.0] Error loading data:', error);
+      console.error('[UsuarioPerfil v113.0] Error loading data:', error);
     } finally {
       if (!silent) {
         setLoading(false);
@@ -303,12 +306,12 @@ export default function UsuarioPerfilScreen() {
     }
 
     try {
-      console.log('[UsuarioPerfil v97.0] ⚡⚡⚡ INSTANT LOAD - Checking cache...');
+      console.log('[UsuarioPerfil v113.0] ⚡⚡⚡ INSTANT LOAD - Checking cache...');
       
       const cachedData = await profileCache.get(userId, 'user');
       
       if (cachedData) {
-        console.log('[UsuarioPerfil v97.0] ⚡ INSTANT display with cached data');
+        console.log('[UsuarioPerfil v113.0] ⚡ INSTANT display with cached data');
         
         const safeProfile = {
           ...cachedData.profile,
@@ -323,32 +326,32 @@ export default function UsuarioPerfilScreen() {
         hasLoadedOnce.current = true;
         
         setTimeout(() => {
-          console.log('[UsuarioPerfil v97.0] 🔄 Background refresh...');
+          console.log('[UsuarioPerfil v113.0] 🔄 Background refresh...');
           loadUserData(true);
         }, 100);
       } else {
-        console.log('[UsuarioPerfil v97.0] 📡 No cache, loading from database...');
+        console.log('[UsuarioPerfil v113.0] 📡 No cache, loading from database...');
         await loadUserData(false);
       }
     } catch (error) {
-      console.error('[UsuarioPerfil v97.0] Error in loadUserDataWithCache:', error);
+      console.error('[UsuarioPerfil v113.0] Error in loadUserDataWithCache:', error);
       await loadUserData(false);
     }
   }, [userId, router, loadUserData]);
 
   useFocusEffect(
     useCallback(() => {
-      console.log('[UsuarioPerfil v97.0] ⚡ Screen focused - keeping state alive');
+      console.log('[UsuarioPerfil v113.0] ⚡ Screen focused - keeping state alive');
       
       if (!hasLoadedOnce.current) {
         loadUserDataWithCache();
       } else {
-        console.log('[UsuarioPerfil v97.0] 🔄 Background refresh...');
+        console.log('[UsuarioPerfil v113.0] 🔄 Background refresh...');
         loadUserData(true);
       }
       
       return () => {
-        console.log('[UsuarioPerfil v97.0] Screen unfocused - state persisted');
+        console.log('[UsuarioPerfil v113.0] Screen unfocused - state persisted');
       };
     }, [loadUserDataWithCache, loadUserData])
   );
@@ -382,7 +385,7 @@ export default function UsuarioPerfilScreen() {
             filter: `seguido_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v97.0] ⚡ INSTANT update - Followers changed');
+            console.log('[UsuarioPerfil v113.0] ⚡ INSTANT update - Followers changed');
             const followerCounts = await loadFollowerCounts(userId);
             setStats(prev => ({
               ...prev,
@@ -399,7 +402,7 @@ export default function UsuarioPerfilScreen() {
             filter: `seguidor_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v97.0] ⚡ INSTANT update - Following changed');
+            console.log('[UsuarioPerfil v113.0] ⚡ INSTANT update - Following changed');
             const followerCounts = await loadFollowerCounts(userId);
             setStats(prev => ({
               ...prev,
@@ -416,7 +419,7 @@ export default function UsuarioPerfilScreen() {
             filter: `autor_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v97.0] ⚡ INSTANT update - Posts changed');
+            console.log('[UsuarioPerfil v113.0] ⚡ INSTANT update - Posts changed');
             await loadUserData(true);
           }
         )
@@ -429,7 +432,7 @@ export default function UsuarioPerfilScreen() {
             filter: `usuario_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v97.0] ⚡ INSTANT update - Check-in changed');
+            console.log('[UsuarioPerfil v113.0] ⚡ INSTANT update - Check-in changed');
             await loadCurrentLocal();
           }
         )
@@ -443,7 +446,7 @@ export default function UsuarioPerfilScreen() {
 
   useEffect(() => {
     if (params.openMomento === 'true' && !loading && usuario) {
-      console.log('[UsuarioPerfil v97.0] 🎬 Auto-opening momento viewer from message');
+      console.log('[UsuarioPerfil v113.0] 🎬 Auto-opening momento viewer from message');
       setShowMomentoViewer(true);
     }
   }, [params.openMomento, loading, usuario]);
@@ -533,7 +536,7 @@ export default function UsuarioPerfilScreen() {
         seguidores: updatedCounts.seguidores,
       }));
     } catch (error) {
-      console.error('[UsuarioPerfil v97.0] Error toggling follow:', error);
+      console.error('[UsuarioPerfil v113.0] Error toggling follow:', error);
       
       setIsFollowing(wasFollowing);
       setStats(prev => ({
@@ -607,7 +610,7 @@ export default function UsuarioPerfilScreen() {
                 Alert.alert('Éxito', 'Usuario bloqueado');
               }
             } catch (error) {
-              console.error('[UsuarioPerfil v97.0] Error toggling block:', error);
+              console.error('[UsuarioPerfil v113.0] Error toggling block:', error);
               Alert.alert('Error', 'No se pudo completar la acción');
             }
           },
@@ -666,13 +669,18 @@ export default function UsuarioPerfilScreen() {
               setCanViewLocation(false);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
-              console.error('[UsuarioPerfil v97.0] Error exiting local:', error);
+              console.error('[UsuarioPerfil v113.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
         },
       ]
     );
+  };
+
+  const getVisibilityText = () => {
+    if (!currentLocal) return '';
+    return 'Ahora en este local';
   };
 
   if (loading && !usuario) {
@@ -694,260 +702,308 @@ export default function UsuarioPerfilScreen() {
 
   const isPrivateAndNoAccess = usuario.perfil_privado && !isOwnProfile && !isAdminView && !isFollowing;
 
+  const seguidoresFormatted = formatFollowersCount(stats.seguidores);
+  const seguidosFormatted = formatFollowersCount(stats.seguidos);
+  const publicacionesFormatted = formatFollowersCount(stats.posts);
+
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.header}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        overScrollMode="never"
+        scrollEventThrottle={16}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-          {/* ✅ CRITICAL FIX v97.0: Header title size matches Explorar (20px on Android) */}
-          <Text style={[
-            styles.headerTitle,
-            { fontSize: Platform.OS === 'android' ? scaleFontSize(24) : 20 }
-          ]}>
-            {usuario.username || usuario.nombre}
-          </Text>
-          {!isOwnProfile && !isAdminView && (
-            <TouchableOpacity onPress={handleBlock} style={styles.headerButton}>
-              <IconSymbol
-                ios_icon_name={isBlocked ? 'person.fill.checkmark' : 'person.fill.xmark'}
-                android_material_icon_name={isBlocked ? 'person_add_disabled' : 'person_off'}
-                size={24}
-                color={colors.headerText}
-              />
-            </TouchableOpacity>
-          )}
-          {(isOwnProfile || isAdminView) && <View style={{ width: 40 }} />}
-        </View>
-
-        {isAdminView && (
-          <View style={styles.adminBadge}>
-            <IconSymbol ios_icon_name="shield.fill" android_material_icon_name="admin_panel_settings" size={14} color={colors.white} />
-            <Text style={[styles.adminBadgeText, { fontSize: scaleFontSize(12) }]}>Modo Administrador</Text>
-          </View>
-        )}
-
-        <Animated.View 
-          style={[
-            styles.profileSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
-            }
-          ]}
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.scrollableHeader}
         >
-          <View style={styles.profileHeader}>
-            <View style={styles.avatarContainer}>
-              <MiniAvatarWithMomento
-                userId={userId}
-                imageUrl={usuario.avatar || undefined}
-                size={88}
-                onPress={handleOpenMomentoViewer}
-                showMomentoBorder={true}
-              />
-            </View>
-            <View style={styles.profileInfo}>
-              <Text style={[styles.profileName, { fontSize: scaleFontSize(22) }]}>{usuario.nombre}</Text>
-              {usuario.username && (
-                <Text style={[styles.profileUsername, { fontSize: scaleFontSize(15) }]}>@{usuario.username}</Text>
-              )}
-              {usuario.perfil_privado && (
-                <View style={styles.privateProfileBadge}>
-                  <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={12} color={colors.headerText} />
-                  <Text style={[styles.privateProfileText, { fontSize: scaleFontSize(11) }]}>Perfil Privado</Text>
-                </View>
-              )}
-            </View>
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }} />
+            {!isOwnProfile && !isAdminView && (
+              <TouchableOpacity onPress={handleBlock} style={styles.headerButton}>
+                <IconSymbol
+                  ios_icon_name={isBlocked ? 'person.fill.checkmark' : 'person.fill.xmark'}
+                  android_material_icon_name={isBlocked ? 'person_add_disabled' : 'person_off'}
+                  size={24}
+                  color={colors.headerText}
+                />
+              </TouchableOpacity>
+            )}
           </View>
 
-          {usuario.bio && !isPrivateAndNoAccess && (
-            <Text style={[styles.profileBio, { fontSize: scaleFontSize(15) }]}>{usuario.bio}</Text>
+          {isAdminView && (
+            <View style={styles.adminBadge}>
+              <IconSymbol ios_icon_name="shield.fill" android_material_icon_name="admin_panel_settings" size={14} color={colors.white} />
+              <Text style={[styles.adminBadgeText, { fontSize: scaleFontSize(12) }]}>Modo Administrador</Text>
+            </View>
           )}
+        </LinearGradient>
 
-          {currentLocal && canViewLocation && !isPrivateAndNoAccess && (
-            <View style={styles.statusCard}>
-              <LinearGradient
-                colors={['rgba(45, 212, 191, 0.25)', 'rgba(6, 182, 212, 0.25)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.statusCardGradient}
-              >
-                <View style={styles.statusCardHeader}>
-                  <View style={styles.statusIconContainer}>
-                    <IconSymbol 
-                      ios_icon_name="mappin.circle.fill" 
-                      android_material_icon_name="location_on" 
-                      size={16} 
-                      color={colors.primary} 
-                    />
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.profileHeaderGradient}
+        >
+          <Animated.View 
+            style={[
+              styles.profileSection,
+              {
+                opacity: fadeAnim,
+                transform: [{ scale: scaleAnim }],
+              }
+            ]}
+          >
+            <View style={styles.profileHeader}>
+              <UnifiedMomentoAvatar
+                userId={userId}
+                imageUrl={usuario.avatar}
+                size={96}
+                showAddButton={false}
+                isOwner={false}
+                onPress={handleOpenMomentoViewer}
+              />
+              
+              <View style={styles.profileInfo}>
+                <Text style={[styles.profileName, { fontSize: scaleFontSize(22) }]}>{usuario.nombre}</Text>
+                {usuario.username && (
+                  <Text style={[styles.profileUsername, { fontSize: scaleFontSize(15) }]}>@{usuario.username}</Text>
+                )}
+                {usuario.perfil_privado && (
+                  <View style={styles.privateProfileBadge}>
+                    <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={12} color={colors.headerText} />
+                    <Text style={[styles.privateProfileText, { fontSize: scaleFontSize(11) }]}>Perfil Privado</Text>
                   </View>
-                  <Text style={[styles.statusCardTitle, { fontSize: scaleFontSize(13) }]}>Estado actual</Text>
+                )}
+                
+                <View style={styles.statsContainerCompact}>
+                  <View style={styles.statItemCompact}>
+                    <Text style={[styles.statNumberCompact, { fontSize: scaleFontSize(18) }]}>
+                      {isPrivateAndNoAccess ? '-' : publicacionesFormatted}
+                    </Text>
+                    <Text style={[styles.statLabelCompact, { fontSize: scaleFontSize(13) }]}>publicaciones</Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.statItemCompact} 
+                    onPress={isPrivateAndNoAccess ? undefined : handleSeguidores}
+                    disabled={isPrivateAndNoAccess}
+                  >
+                    <Text style={[styles.statNumberCompact, { fontSize: scaleFontSize(18) }]}>
+                      {isPrivateAndNoAccess ? '-' : seguidoresFormatted}
+                    </Text>
+                    <Text style={[styles.statLabelCompact, { fontSize: scaleFontSize(13) }]}>seguidores</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.statItemCompact} 
+                    onPress={isPrivateAndNoAccess ? undefined : handleSeguidos}
+                    disabled={isPrivateAndNoAccess}
+                  >
+                    <Text style={[styles.statNumberCompact, { fontSize: scaleFontSize(18) }]}>
+                      {isPrivateAndNoAccess ? '-' : seguidosFormatted}
+                    </Text>
+                    <Text style={[styles.statLabelCompact, { fontSize: scaleFontSize(13) }]}>siguiendo</Text>
+                  </TouchableOpacity>
                 </View>
+              </View>
+            </View>
 
-                <TouchableOpacity 
-                  style={styles.statusCardContent} 
-                  onPress={handleViewLocal}
-                  activeOpacity={0.9}
+            {usuario.bio && !isPrivateAndNoAccess && (
+              <Text style={[styles.profileBio, { fontSize: scaleFontSize(15) }]}>{usuario.bio}</Text>
+            )}
+
+            {currentLocal && canViewLocation && !isPrivateAndNoAccess && (
+              <View style={styles.currentLocalCompact}>
+                <LinearGradient
+                  colors={['rgba(45, 212, 191, 0.25)', 'rgba(6, 182, 212, 0.25)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.currentLocalCompactGradient}
                 >
-                  <View style={styles.statusLocalInfo}>
-                    {currentLocal.imagen_url ? (
-                      <Image 
-                        source={{ uri: currentLocal.imagen_url }} 
-                        style={styles.statusLocalImage}
-                        resizeMode="cover"
-                        {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
-                      />
-                    ) : (
-                      <View style={[styles.statusLocalImage, styles.statusLocalImagePlaceholder]}>
+                  <View style={styles.currentLocalCompactHeader}>
+                    <View style={styles.currentLocalCompactHeaderLeft}>
+                      <View style={styles.pulseContainer}>
+                        <View style={styles.pulseOuter} />
+                        <View style={styles.pulseInner} />
                         <IconSymbol 
-                          ios_icon_name="building.2.fill" 
-                          android_material_icon_name="store" 
-                          size={20} 
+                          ios_icon_name="mappin.circle.fill" 
+                          android_material_icon_name="location_on" 
+                          size={14} 
                           color="#FFFFFF" 
                         />
                       </View>
-                    )}
-                    
-                    <View style={styles.statusLocalDetails}>
-                      <Text style={[styles.statusLocalLabel, { fontSize: scaleFontSize(11) }]}>Ahora en</Text>
-                      <Text style={[styles.statusLocalName, { fontSize: scaleFontSize(15) }]} numberOfLines={1}>
-                        {currentLocal.nombre}
-                      </Text>
-                      {currentLocal.direccion && (
-                        <View style={styles.statusLocalAddress}>
+                      <Text style={[styles.currentLocalCompactTitle, { fontSize: scaleFontSize(13) }]}>Estado actual</Text>
+                    </View>
+                    <View style={styles.liveBadge}>
+                      <View style={styles.liveDot} />
+                      <Text style={[styles.liveBadgeText, { fontSize: scaleFontSize(9) }]}>EN VIVO</Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity 
+                    style={styles.currentLocalCompactContent}
+                    onPress={handleViewLocal}
+                    activeOpacity={0.9}
+                  >
+                    <View style={styles.currentLocalCompactImageWrapper}>
+                      {currentLocal.imagen_url ? (
+                        <Image 
+                          source={{ uri: currentLocal.imagen_url }} 
+                          style={styles.currentLocalCompactImage}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View style={[styles.currentLocalCompactImage, styles.currentLocalCompactImagePlaceholder]}>
                           <IconSymbol 
-                            ios_icon_name="mappin" 
-                            android_material_icon_name="location_on" 
-                            size={10} 
-                            color="#6B7280" 
+                            ios_icon_name="building.2.fill" 
+                            android_material_icon_name="store" 
+                            size={20} 
+                            color="#FFFFFF" 
                           />
-                          <Text style={[styles.statusLocalAddressText, { fontSize: scaleFontSize(11) }]} numberOfLines={1}>
-                            {currentLocal.direccion}
-                          </Text>
                         </View>
                       )}
                     </View>
 
-                    <View style={styles.statusLocalArrow}>
+                    <View style={styles.currentLocalCompactInfo}>
+                      <Text style={[styles.currentLocalCompactName, { fontSize: scaleFontSize(14) }]} numberOfLines={1}>
+                        {currentLocal.nombre}
+                      </Text>
+                      <View style={styles.currentLocalCompactMeta}>
+                        <IconSymbol 
+                          ios_icon_name="mappin" 
+                          android_material_icon_name="location_on" 
+                          size={10} 
+                          color="rgba(255, 255, 255, 0.8)" 
+                        />
+                        <Text style={[styles.currentLocalCompactAddress, { fontSize: scaleFontSize(11) }]} numberOfLines={1}>
+                          {currentLocal.direccion}
+                        </Text>
+                      </View>
+                      <Text style={[styles.currentLocalCompactVisibility, { fontSize: scaleFontSize(10) }]} numberOfLines={1}>
+                        {getVisibilityText()}
+                      </Text>
+                    </View>
+
+                    <View style={styles.currentLocalCompactArrow}>
                       <IconSymbol 
                         ios_icon_name="chevron.right" 
                         android_material_icon_name="chevron_right" 
                         size={16} 
-                        color="#9CA3AF" 
+                        color="rgba(255, 255, 255, 0.8)" 
                       />
                     </View>
-                  </View>
-                </TouchableOpacity>
-                
-                {isOwnProfile && (
-                  <TouchableOpacity 
-                    style={styles.statusExitButton} 
-                    onPress={handleExitLocal}
-                    activeOpacity={0.8}
-                  >
-                    <IconSymbol 
-                      ios_icon_name="mappin.slash.circle.fill" 
-                      android_material_icon_name="location_off" 
-                      size={14} 
-                      color="#6B7280" 
-                    />
-                    <Text style={[styles.statusExitButtonText, { fontSize: scaleFontSize(13) }]}>Salir del local</Text>
                   </TouchableOpacity>
-                )}
-              </LinearGradient>
-            </View>
-          )}
+                  
+                  {isOwnProfile && (
+                    <TouchableOpacity 
+                      style={styles.exitLocalButtonCompact} 
+                      onPress={handleExitLocal}
+                      activeOpacity={0.8}
+                    >
+                      <IconSymbol 
+                        ios_icon_name="mappin.slash.circle.fill" 
+                        android_material_icon_name="location_off" 
+                        size={12} 
+                        color="#6B7280" 
+                      />
+                      <Text style={[styles.exitLocalButtonCompactText, { fontSize: scaleFontSize(11) }]}>Salir del local</Text>
+                    </TouchableOpacity>
+                  )}
+                </LinearGradient>
+              </View>
+            )}
 
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { fontSize: scaleFontSize(22) }]}>{isPrivateAndNoAccess ? '-' : stats.posts}</Text>
-              <Text style={[styles.statLabel, { fontSize: scaleFontSize(14) }]}>Publicaciones</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <TouchableOpacity style={styles.statItem} onPress={isPrivateAndNoAccess ? undefined : handleSeguidores} disabled={isPrivateAndNoAccess}>
-              <Text style={[styles.statNumber, { fontSize: scaleFontSize(22) }]}>{isPrivateAndNoAccess ? '-' : stats.seguidores}</Text>
-              <Text style={[styles.statLabel, { fontSize: scaleFontSize(14) }]}>Seguidores</Text>
-            </TouchableOpacity>
-            <View style={styles.statDivider} />
-            <TouchableOpacity style={styles.statItem} onPress={isPrivateAndNoAccess ? undefined : handleSeguidos} disabled={isPrivateAndNoAccess}>
-              <Text style={[styles.statNumber, { fontSize: scaleFontSize(22) }]}>{isPrivateAndNoAccess ? '-' : stats.seguidos}</Text>
-              <Text style={[styles.statLabel, { fontSize: scaleFontSize(14) }]}>Seguidos</Text>
-            </TouchableOpacity>
-          </View>
-
-          {!isOwnProfile && !isAdminView && (
-            <View style={styles.actionsContainer}>
-              <TouchableOpacity
-                style={[styles.actionButton, isFollowing && styles.actionButtonFollowing]}
-                onPress={handleFollow}
-                disabled={isTogglingFollow.current}
-              >
-                <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(15) }, isFollowing && styles.actionButtonTextFollowing]}>
-                  {isFollowing ? 'Siguiendo' : 'Seguir'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton} onPress={handleMessage}>
-                <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(15) }]}>Mensaje</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </Animated.View>
-      </LinearGradient>
-
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        {isPrivateAndNoAccess ? (
-          <View style={styles.privateProfileMessage}>
-            <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={64} color={colors.textSecondary} />
-            <Text style={[styles.privateProfileTitle, { fontSize: scaleFontSize(20) }]}>Este perfil es privado</Text>
-            <Text style={[styles.privateProfileSubtext, { fontSize: scaleFontSize(15) }]}>
-              Sigue a {usuario.nombre} para ver sus publicaciones
-            </Text>
-          </View>
-        ) : posts.length > 0 ? (
-          <View style={styles.postsGrid}>
-            {posts.map((post) => (
-              <TouchableOpacity
-                key={post.id}
-                style={styles.gridItem}
-                onPress={() => handleVerPost(post.id)}
-                activeOpacity={0.8}
-              >
-                {post.imagen || (post.imagenes && post.imagenes.length > 0) ? (
-                  <Image 
-                    source={{ uri: post.imagenes && post.imagenes.length > 0 ? post.imagenes[0] : post.imagen }} 
-                    style={styles.gridImage} 
-                    resizeMode="cover"
-                    {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
+            {!isOwnProfile && !isAdminView && (
+              <View style={styles.actionButtons}>
+                <TouchableOpacity
+                  style={[styles.actionButton, isFollowing && styles.actionButtonFollowing]}
+                  onPress={handleFollow}
+                  disabled={isTogglingFollow.current}
+                >
+                  <IconSymbol 
+                    ios_icon_name={isFollowing ? 'person.fill.checkmark' : 'person.badge.plus'} 
+                    android_material_icon_name={isFollowing ? 'person_add_disabled' : 'person_add'}
+                    size={18} 
+                    color={isFollowing ? colors.headerText : colors.headerText} 
                   />
-                ) : (
-                  <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
-                    <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={32} color={colors.textSecondary} />
-                  </View>
-                )}
-                {post.imagenes && post.imagenes.length > 1 && (
-                  <View style={styles.multipleImagesIndicator}>
-                    <IconSymbol ios_icon_name="square.stack.fill" android_material_icon_name="collections" size={16} color={colors.headerText} />
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
+                  <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(15) }]}>
+                    {isFollowing ? 'Siguiendo' : 'Seguir'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionButton} onPress={handleMessage}>
+                  <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={18} color={colors.headerText} />
+                  <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(15) }]}>Mensaje</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </Animated.View>
+        </LinearGradient>
+
+        {/* ✅ FIX v113.0: Removed excessive marginTop - tabs now directly follow profile section */}
+        <View style={styles.tabsContainer}>
+          <View style={styles.tab}>
+            <IconSymbol 
+              ios_icon_name="square.grid.3x3" 
+              android_material_icon_name="grid_on"
+              size={24} 
+              color={colors.primary} 
+            />
           </View>
-        ) : (
-          <View style={styles.emptyState}>
-            <IconSymbol ios_icon_name="photo.on.rectangle" android_material_icon_name="photo_library" size={48} color={colors.textSecondary} />
-            <Text style={[styles.emptyText, { fontSize: scaleFontSize(16) }]}>No hay publicaciones</Text>
-          </View>
-        )}
+        </View>
+
+        <View style={styles.content}>
+          {isPrivateAndNoAccess ? (
+            <View style={styles.privateProfileMessage}>
+              <IconSymbol ios_icon_name="lock.fill" android_material_icon_name="lock" size={64} color={colors.textSecondary} />
+              <Text style={[styles.privateProfileTitle, { fontSize: scaleFontSize(20) }]}>Este perfil es privado</Text>
+              <Text style={[styles.privateProfileSubtext, { fontSize: scaleFontSize(15) }]}>
+                Sigue a {usuario.nombre} para ver sus publicaciones
+              </Text>
+            </View>
+          ) : posts.length > 0 ? (
+            <View style={styles.postsGrid}>
+              {posts.map((post) => (
+                <TouchableOpacity
+                  key={post.id}
+                  style={styles.gridItem}
+                  onPress={() => handleVerPost(post.id)}
+                  activeOpacity={0.8}
+                >
+                  {post.imagen || (post.imagenes && post.imagenes.length > 0) ? (
+                    <Image 
+                      source={{ uri: post.imagenes && post.imagenes.length > 0 ? post.imagenes[0] : post.imagen }} 
+                      style={styles.gridImage} 
+                      resizeMode="cover"
+                      {...(Platform.OS === 'android' && { cache: 'force-cache' as any })}
+                    />
+                  ) : (
+                    <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
+                      <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={32} color={colors.textSecondary} />
+                    </View>
+                  )}
+                  {post.imagenes && post.imagenes.length > 1 && (
+                    <View style={styles.multipleImagesIndicator}>
+                      <IconSymbol ios_icon_name="square.stack.fill" android_material_icon_name="collections" size={16} color={colors.headerText} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <IconSymbol ios_icon_name="photo.on.rectangle" android_material_icon_name="photo_library" size={48} color={colors.textSecondary} />
+              <Text style={[styles.emptyText, { fontSize: scaleFontSize(16) }]}>No hay publicaciones</Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
 
       <MomentoViewer
@@ -982,9 +1038,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    paddingTop: 50,
-    paddingBottom: 24,
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    paddingBottom: 100,
+  },
+  scrollableHeader: {
+    paddingTop: Platform.OS === 'android' ? 36 : 50,
+    paddingBottom: Platform.OS === 'android' ? 8 : 12,
     paddingHorizontal: 20,
   },
   headerTop: {
@@ -995,12 +1057,6 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-  },
-  headerTitle: {
-    fontWeight: 'bold',
-    color: colors.headerText,
-    flex: 1,
-    textAlign: 'center',
   },
   headerButton: {
     padding: 8,
@@ -1020,29 +1076,31 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.white,
   },
+  profileHeaderGradient: {
+    paddingTop: 12,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+  },
   profileSection: {
     paddingTop: 0,
   },
   profileHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginRight: 20,
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
   profileInfo: {
     flex: 1,
+    marginLeft: 16,
   },
   profileName: {
     fontWeight: 'bold',
     color: colors.headerText,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   profileUsername: {
     color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   privateProfileBadge: {
     flexDirection: 'row',
@@ -1053,136 +1111,175 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 10,
     alignSelf: 'flex-start',
+    marginBottom: 8,
   },
   privateProfileText: {
     fontWeight: '700',
     color: colors.headerText,
   },
+  statsContainerCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  statItemCompact: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  statNumberCompact: {
+    fontWeight: '700',
+    color: colors.headerText,
+  },
+  statLabelCompact: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontWeight: '500',
+  },
   profileBio: {
     color: colors.headerText,
-    lineHeight: 22,
-    marginBottom: 16,
+    lineHeight: 20,
+    marginBottom: 12,
   },
-  statusCard: {
-    borderRadius: 16,
-    marginBottom: 20,
+  currentLocalCompact: {
+    marginBottom: 14,
+    borderRadius: 14,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(45, 212, 191, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  statusCardGradient: {
-    padding: 14,
+  currentLocalCompactGradient: {
+    padding: 12,
   },
-  statusCardHeader: {
+  currentLocalCompactHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  currentLocalCompactHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 12,
   },
-  statusIconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(45, 212, 191, 0.3)',
+  pulseContainer: {
+    position: 'relative',
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statusCardTitle: {
-    fontWeight: '700',
-    color: colors.headerText,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  statusCardContent: {
-    backgroundColor: '#FFFFFF',
+  pulseOuter: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
     borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
-  statusLocalInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
+  pulseInner: {
+    position: 'absolute',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
-  statusLocalImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 10,
+  currentLocalCompactTitle: {
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
-  statusLocalImagePlaceholder: {
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusLocalDetails: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  statusLocalLabel: {
-    color: '#6B7280',
-    marginBottom: 2,
-    fontWeight: '500',
-  },
-  statusLocalName: {
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  statusLocalAddress: {
+  liveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
   },
-  statusLocalAddressText: {
-    color: '#6B7280',
+  liveDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#FFFFFF',
+  },
+  liveBadgeText: {
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  currentLocalCompactContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 10,
+    padding: 8,
+    marginBottom: 8,
+    gap: 8,
+  },
+  currentLocalCompactImageWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  currentLocalCompactImage: {
+    width: '100%',
+    height: '100%',
+  },
+  currentLocalCompactImagePlaceholder: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currentLocalCompactInfo: {
     flex: 1,
   },
-  statusLocalArrow: {
-    marginLeft: 8,
+  currentLocalCompactName: {
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 2,
   },
-  statusExitButton: {
+  currentLocalCompactMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginBottom: 2,
+  },
+  currentLocalCompactAddress: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    flex: 1,
+  },
+  currentLocalCompactVisibility: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '600',
+  },
+  currentLocalCompactArrow: {
+    justifyContent: 'center',
+  },
+  exitLocalButtonCompact: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 5,
     backgroundColor: 'rgba(107, 114, 128, 0.15)',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(107, 114, 128, 0.3)',
   },
-  statusExitButtonText: {
+  exitLocalButtonCompactText: {
     fontWeight: '700',
     color: '#6B7280',
+    letterSpacing: 0.3,
   },
-  statsContainer: {
+  actionButtons: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    marginBottom: 24,
-    paddingVertical: 4,
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statNumber: {
-    fontWeight: 'bold',
-    color: colors.headerText,
-    marginBottom: 4,
-  },
-  statLabel: {
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  statDivider: {
-    width: 1,
-    height: 44,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    gap: 16,
+    gap: 10,
   },
   actionButton: {
     flex: 1,
@@ -1190,9 +1287,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 16,
-    paddingVertical: 14,
-    gap: 8,
+    borderRadius: 12,
+    paddingVertical: 12,
+    gap: 6,
   },
   actionButtonFollowing: {
     backgroundColor: 'rgba(255, 255, 255, 0.4)',
@@ -1201,8 +1298,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
-  actionButtonTextFollowing: {
-    color: colors.headerText,
+  tabsContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+    marginTop: 0,
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.primary,
   },
   content: {
     flex: 1,
