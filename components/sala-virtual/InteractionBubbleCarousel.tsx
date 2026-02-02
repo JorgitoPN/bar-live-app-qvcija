@@ -66,8 +66,11 @@ export function InteractionBubbleCarousel({
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    console.log('[InteractionBubbleCarousel] Visibility changed:', visible, 'Recipient:', recipientName);
     if (visible) {
       console.log('[InteractionBubbleCarousel] Modal opened for:', recipientName);
+      console.log('[InteractionBubbleCarousel] Theme colors:', themeColors);
+      console.log('[InteractionBubbleCarousel] Mode:', mode);
       Animated.parallel([
         Animated.spring(scaleAnim, {
           toValue: 1,
@@ -80,8 +83,11 @@ export function InteractionBubbleCarousel({
           duration: 600,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        console.log('[InteractionBubbleCarousel] Animation completed');
+      });
     } else {
+      console.log('[InteractionBubbleCarousel] Modal closed');
       scaleAnim.setValue(0);
       rotateAnim.setValue(0);
     }
@@ -111,38 +117,41 @@ export function InteractionBubbleCarousel({
 
   const titleText = `Enviar mensaje a ${recipientName}`;
 
+  if (!visible) {
+    return null;
+  }
+
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="none"
       onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <TouchableOpacity
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
+      <View style={styles.modalOverlay}>
         <TouchableOpacity
+          style={StyleSheet.absoluteFill}
           activeOpacity={1}
-          onPress={(e) => e.stopPropagation()}
+          onPress={onClose}
+        />
+        <Animated.View
+          style={[
+            styles.modalContent,
+            {
+              backgroundColor: themeColors.cardBg,
+              borderColor: themeColors.cardBorder,
+              transform: [{ scale: scaleAnim }],
+            },
+            mode === 'night' && {
+              shadowColor: themeColors.glow,
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.8,
+              shadowRadius: 20,
+              elevation: 20,
+            },
+          ]}
         >
-          <Animated.View
-            style={[
-              styles.modalContent,
-              {
-                backgroundColor: themeColors.cardBg,
-                borderColor: themeColors.cardBorder,
-                transform: [{ scale: scaleAnim }],
-              },
-              mode === 'night' && {
-                shadowColor: themeColors.glow,
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.8,
-                shadowRadius: 20,
-              },
-            ]}
-          >
             <View style={[styles.header, { borderBottomColor: themeColors.cardBorder }]}>
               <Text style={[styles.title, { fontSize: scaleFontSize(20), color: themeColors.text }]}>
                 {titleText}
@@ -257,9 +266,8 @@ export function InteractionBubbleCarousel({
                 ))}
               </View>
             </ScrollView>
-          </Animated.View>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </Animated.View>
+      </View>
     </Modal>
   );
 }
@@ -273,12 +281,13 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    width: '100%',
+    width: '90%',
     maxWidth: 500,
     maxHeight: SCREEN_HEIGHT * 0.8,
     borderRadius: 24,
-    borderWidth: 1,
+    borderWidth: 2,
     overflow: 'hidden',
+    elevation: 10,
   },
   header: {
     flexDirection: 'row',
