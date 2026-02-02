@@ -13,6 +13,7 @@ import {
   ScrollView,
   Image,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
@@ -32,6 +33,9 @@ import PermissionGuard from '@/components/social/PermissionGuard';
 import { scaleFontSize } from '@/utils/androidScaling';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// ✅ v319.0: Header animation constants
+const HEADER_HEIGHT = Platform.OS === 'ios' ? 100 : 80;
 
 interface Post {
   id: string;
@@ -80,7 +84,13 @@ interface FriendLocation {
 const POSTS_PER_PAGE = 10;
 
 /**
- * ✅ SOCIAL INDEX SCREEN v158.0 - ANDROID MOMENTO AVATAR SIZE FIX
+ * ✅ SOCIAL INDEX SCREEN v319.0 - ANIMATED HEADER ON SCROLL
+ * 
+ * NEW CHANGES v319.0:
+ * - ✅ Header hides when scrolling down
+ * - ✅ Header shows when scrolling up
+ * - ✅ Smooth animation with Animated API
+ * - ✅ Better immersive experience when viewing feed
  * 
  * CRITICAL FIXES v158.0 (ANDROID ONLY):
  * - ✅ Momento avatars made bigger (48px on Android vs 40px before)
@@ -114,6 +124,11 @@ export default function SocialIndexScreen() {
   const [friendsLocations, setFriendsLocations] = useState<FriendLocation[]>([]);
   const [loadingFriendsLocations, setLoadingFriendsLocations] = useState(false);
   const [myCheckIn, setMyCheckIn] = useState<any>(null);
+
+  // ✅ v319.0: Animated header state
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
 
   const loadUnreadCounts = useCallback(async () => {
     if (!userId) return;
@@ -429,6 +444,38 @@ export default function SocialIndexScreen() {
     router.push('/crear/publicacion');
   };
 
+  // ✅ v319.0: Handle scroll for animated header
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event: any) => {
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+        const diff = currentScrollY - lastScrollY.current;
+
+        // Only animate if scrolled more than 5px to avoid jitter
+        if (Math.abs(diff) > 5) {
+          if (diff > 0 && currentScrollY > 50) {
+            // Scrolling down - hide header
+            Animated.timing(headerTranslateY, {
+              toValue: -HEADER_HEIGHT,
+              duration: 250,
+              useNativeDriver: true,
+            }).start();
+          } else if (diff < 0) {
+            // Scrolling up - show header
+            Animated.timing(headerTranslateY, {
+              toValue: 0,
+              duration: 250,
+              useNativeDriver: true,
+            }).start();
+          }
+          lastScrollY.current = currentScrollY;
+        }
+      },
+    }
+  );
+
   useEffect(() => {
     loadFriendsLocations();
 
@@ -674,11 +721,21 @@ export default function SocialIndexScreen() {
 
   const content = (
     <View style={styles.container}>
-      <HeaderSocial
-        unreadNotifications={unreadNotifications}
-        unreadMessages={unreadMessages}
-        onCreatePost={handleCreatePost}
-      />
+      {/* ✅ v319.0: Animated header that hides on scroll down, shows on scroll up */}
+      <Animated.View
+        style={[
+          styles.animatedHeaderContainer,
+          {
+            transform: [{ translateY: headerTranslateY }],
+          },
+        ]}
+      >
+        <HeaderSocial
+          unreadNotifications={unreadNotifications}
+          unreadMessages={unreadMessages}
+          onCreatePost={handleCreatePost}
+        />
+      </Animated.View>
 
       <FlatList
         ref={flatListRef}
@@ -704,6 +761,8 @@ export default function SocialIndexScreen() {
         maxToRenderPerBatch={5}
         updateCellsBatchingPeriod={50}
         windowSize={10}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       />
     </View>
   );
@@ -728,7 +787,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  animatedHeaderContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    elevation: 10,
+  },
   listContent: {
+    paddingTop: HEADER_HEIGHT,
     paddingBottom: 100,
   },
   impersonationBanner: {

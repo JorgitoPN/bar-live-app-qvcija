@@ -216,7 +216,7 @@ export default function TaggingModalV5({
     return null;
   }
 
-  // ✅ CRITICAL FIX: Calculate modal height to anchor DIRECTLY to keyboard
+  // ✅ v319.0: Modal kept for backward compatibility - search functionality works in modal
   const HEADER_RESERVED_SPACE = Platform.OS === 'ios' ? 100 : 80;
   const maxAvailableHeight = SCREEN_HEIGHT - keyboardHeight - HEADER_RESERVED_SPACE;
   
