@@ -155,9 +155,17 @@ export default function RootLayout() {
                             <Stack.Screen name="perfil" options={{ headerShown: false }} />
                             <Stack.Screen name="social" options={{ headerShown: false }} />
                             
-                            {/* ✅ v318.0: Full-screen pages for tag management and edit description */}
+                            {/* ✅ v319.0: Full-screen pages for tag management and edit description */}
                             <Stack.Screen 
                               name="social/gestionar-etiquetas" 
+                              options={{ 
+                                presentation: 'card',
+                                headerShown: false,
+                                animation: 'slide_from_right',
+                              }} 
+                            />
+                            <Stack.Screen 
+                              name="social/editar-descripcion" 
                               options={{ 
                                 presentation: 'card',
                                 headerShown: false,

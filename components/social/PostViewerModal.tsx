@@ -1,12 +1,13 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v317.0 - FULL-SCREEN NAVIGATION FOR ALL MODALS
+ * 🚨 POST VIEWER MODAL v319.0 - FULL-SCREEN NAVIGATION FOR ALL MODALS
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v317.0:
- * - ✅ "Editar descripción" now navigates to /editar/publicacion (full-screen)
- * - ✅ "Gestionar etiquetas" now navigates to /social/gestionar-etiquetas (full-screen)
+ * NEW CHANGES v319.0:
+ * - ✅ "Editar descripción" now navigates to /social/editar-descripcion (description-only edit)
+ * - ✅ Fixed: "Editar descripción" no longer opens full edit page
+ * - ✅ "Gestionar etiquetas" navigates to /social/gestionar-etiquetas (full-screen)
  * - ✅ Comments navigate to /social/comentarios (full-screen) - v316.0
  * - ✅ Likes navigate to /social/likes (full-screen) - v316.0
  * - ✅ Removed ALL modal implementations for these features
@@ -100,10 +101,11 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v317.0 - FULL-SCREEN NAVIGATION FOR ALL MODALS
+ * ✅ POST VIEWER MODAL v319.0 - FULL-SCREEN NAVIGATION FOR ALL MODALS
  * 
- * NEW CHANGES v317.0:
- * - ✅ "Editar descripción" navigates to /editar/publicacion (full-screen page)
+ * NEW CHANGES v319.0:
+ * - ✅ "Editar descripción" navigates to /social/editar-descripcion (description-only edit)
+ * - ✅ Fixed: "Editar descripción" no longer opens full edit page
  * - ✅ "Gestionar etiquetas" navigates to /social/gestionar-etiquetas (full-screen page)
  * - ✅ Removed edit description modal
  * - ✅ Removed tag management modal
@@ -888,17 +890,25 @@ export default function PostViewerModal({
           },
           (buttonIndex) => {
             if (buttonIndex === 1) {
-              console.log('[PostViewerModal v317.0] 📝 Opening edit description full-screen page');
-              router.push({
-                pathname: '/editar/publicacion',
-                params: { postId: post.id },
-              });
+              console.log('[PostViewerModal v319.0] 📝 Opening edit description full-screen page');
+              // ✅ v319.0: Close modal first, then navigate
+              onClose();
+              setTimeout(() => {
+                router.push({
+                  pathname: '/social/editar-descripcion',
+                  params: { postId: post.id },
+                });
+              }, 100);
             } else if (buttonIndex === 2) {
-              console.log('[PostViewerModal v317.0] 🏷️ Opening manage tags full-screen page');
-              router.push({
-                pathname: '/social/gestionar-etiquetas',
-                params: { postId: post.id },
-              });
+              console.log('[PostViewerModal v319.0] 🏷️ Opening manage tags full-screen page');
+              // ✅ v319.0: Close modal first, then navigate
+              onClose();
+              setTimeout(() => {
+                router.push({
+                  pathname: '/social/gestionar-etiquetas',
+                  params: { postId: post.id },
+                });
+              }, 100);
             } else if (buttonIndex === 3) {
               handleDeletePost(post);
             }
@@ -913,21 +923,29 @@ export default function PostViewerModal({
             { 
               text: 'Editar descripción', 
               onPress: () => {
-                console.log('[PostViewerModal v317.0] 📝 Opening edit description full-screen page');
-                router.push({
-                  pathname: '/editar/publicacion',
-                  params: { postId: post.id },
-                });
+                console.log('[PostViewerModal v319.0] 📝 Opening edit description full-screen page');
+                // ✅ v319.0: Close modal first, then navigate
+                onClose();
+                setTimeout(() => {
+                  router.push({
+                    pathname: '/social/editar-descripcion',
+                    params: { postId: post.id },
+                  });
+                }, 100);
               }
             },
             { 
               text: 'Gestionar etiquetas', 
               onPress: () => {
-                console.log('[PostViewerModal v317.0] 🏷️ Opening manage tags full-screen page');
-                router.push({
-                  pathname: '/social/gestionar-etiquetas',
-                  params: { postId: post.id },
-                });
+                console.log('[PostViewerModal v319.0] 🏷️ Opening manage tags full-screen page');
+                // ✅ v319.0: Close modal first, then navigate
+                onClose();
+                setTimeout(() => {
+                  router.push({
+                    pathname: '/social/gestionar-etiquetas',
+                    params: { postId: post.id },
+                  });
+                }, 100);
               }
             },
             { 
