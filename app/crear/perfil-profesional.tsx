@@ -23,15 +23,63 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
+/**
+ * ✅ PERFIL PROFESIONAL v2.0 - EXPANDED EXPERIENCE OPTIONS
+ * 
+ * NEW CHANGES v2.0:
+ * - ✅ Added comprehensive nightlife industry job categories
+ * - ✅ Organized by sections: Barra y bebidas, Música y ambiente, Seguridad y control, etc.
+ * - ✅ Total of 30+ job position options
+ * - ✅ Emoji icons for better visual organization
+ */
+
 const PUESTOS = [
-  { id: 'camarero', label: 'Camarero/a', icon: '🍽️' },
-  { id: 'cocinero', label: 'Cocinero/a', icon: '👨‍🍳' },
-  { id: 'barman', label: 'Barman', icon: '🍸' },
-  { id: 'gerente', label: 'Gerente', icon: '💼' },
-  { id: 'limpieza', label: 'Limpieza', icon: '🧹' },
-  { id: 'seguridad', label: 'Seguridad', icon: '🛡️' },
-  { id: 'dj', label: 'DJ', icon: '🎧' },
-  { id: 'rrpp', label: 'Relaciones Públicas', icon: '🎭' },
+  // 🍸 Barra y bebidas
+  { id: 'camarero', label: 'Camarero/a', icon: '🍸', category: 'Barra y bebidas' },
+  { id: 'bartender', label: 'Bartender / Barman / Barmaid', icon: '🍸', category: 'Barra y bebidas' },
+  { id: 'coctelero', label: 'Coctelero/a', icon: '🍸', category: 'Barra y bebidas' },
+  { id: 'ayudante_camarero', label: 'Ayudante de camarero/a', icon: '🍸', category: 'Barra y bebidas' },
+  { id: 'barback', label: 'Barback (apoyo de barra)', icon: '🍸', category: 'Barra y bebidas' },
+  
+  // 🎧 Música y ambiente
+  { id: 'dj', label: 'DJ', icon: '🎧', category: 'Música y ambiente' },
+  { id: 'dj_residente', label: 'DJ residente', icon: '🎧', category: 'Música y ambiente' },
+  { id: 'tecnico_sonido', label: 'Técnico/a de sonido', icon: '🎧', category: 'Música y ambiente' },
+  { id: 'tecnico_iluminacion', label: 'Técnico/a de iluminación', icon: '🎧', category: 'Música y ambiente' },
+  { id: 'vj', label: 'VJ (visual jockey)', icon: '🎧', category: 'Música y ambiente' },
+  
+  // 🛡️ Seguridad y control
+  { id: 'portero', label: 'Portero/a / Controlador/a de acceso', icon: '🛡️', category: 'Seguridad y control' },
+  { id: 'jefe_seguridad', label: 'Jefe/a de seguridad', icon: '🛡️', category: 'Seguridad y control' },
+  { id: 'vigilante', label: 'Vigilante de seguridad', icon: '🛡️', category: 'Seguridad y control' },
+  
+  // 🎉 Sala y atención al cliente
+  { id: 'rrpp', label: 'Relaciones públicas (RRPP)', icon: '🎉', category: 'Sala y atención al cliente' },
+  { id: 'hostess', label: 'Hostess / Anfitrión/a', icon: '🎉', category: 'Sala y atención al cliente' },
+  { id: 'animador', label: 'Animador/a', icon: '🎉', category: 'Sala y atención al cliente' },
+  { id: 'gogodancer', label: 'Go-go dancer', icon: '🎉', category: 'Sala y atención al cliente' },
+  { id: 'performer', label: 'Performer / Artista de espectáculo', icon: '🎉', category: 'Sala y atención al cliente' },
+  
+  // 🧹 Logística y apoyo
+  { id: 'limpieza', label: 'Personal de limpieza', icon: '🧹', category: 'Logística y apoyo' },
+  { id: 'mozo_almacen', label: 'Mozo/a de almacén', icon: '🧹', category: 'Logística y apoyo' },
+  { id: 'montador_eventos', label: 'Montador/a de eventos', icon: '🧹', category: 'Logística y apoyo' },
+  
+  // 📋 Gestión y organización
+  { id: 'encargado_sala', label: 'Encargado/a de sala', icon: '📋', category: 'Gestión y organización' },
+  { id: 'supervisor', label: 'Supervisor/a de turno', icon: '📋', category: 'Gestión y organización' },
+  { id: 'gerente', label: 'Gerente de discoteca', icon: '📋', category: 'Gestión y organización' },
+  { id: 'director_eventos', label: 'Director/a de eventos', icon: '📋', category: 'Gestión y organización' },
+  { id: 'promotor', label: 'Promotor/a de fiestas', icon: '📋', category: 'Gestión y organización' },
+  
+  // 💼 Administración y marketing
+  { id: 'community_manager', label: 'Community manager', icon: '💼', category: 'Administración y marketing' },
+  { id: 'responsable_marketing', label: 'Responsable de marketing', icon: '💼', category: 'Administración y marketing' },
+  { id: 'responsable_reservas', label: 'Responsable de reservas y listas', icon: '💼', category: 'Administración y marketing' },
+  { id: 'taquillero', label: 'Taquillero/a', icon: '💼', category: 'Administración y marketing' },
+  
+  // 👨‍🍳 Cocina (legacy - mantener compatibilidad)
+  { id: 'cocinero', label: 'Cocinero/a', icon: '👨‍🍳', category: 'Cocina' },
 ];
 
 const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
@@ -57,6 +105,16 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 const COMUNIDADES = Object.keys(COMUNIDADES_PROVINCIAS);
+
+// Group positions by category for better UI organization
+const groupedPuestos = PUESTOS.reduce((acc, puesto) => {
+  const category = puesto.category;
+  if (!acc[category]) {
+    acc[category] = [];
+  }
+  acc[category].push(puesto);
+  return acc;
+}, {} as Record<string, typeof PUESTOS>);
 
 export default function CrearPerfilProfesionalScreen() {
   const router = useRouter();
@@ -126,7 +184,7 @@ export default function CrearPerfilProfesionalScreen() {
         setFoto(user.avatar || null);
       }
     } catch (error) {
-      console.error('[PerfilProfesional] Error checking existing profile:', error);
+      console.error('[PerfilProfesional v2.0] Error checking existing profile:', error);
     } finally {
       setCheckingExisting(false);
     }
@@ -178,7 +236,7 @@ export default function CrearPerfilProfesionalScreen() {
 
       return publicUrl;
     } catch (error) {
-      console.error('[PerfilProfesional] Error uploading image:', error);
+      console.error('[PerfilProfesional v2.0] Error uploading image:', error);
       return null;
     }
   };
@@ -259,7 +317,7 @@ export default function CrearPerfilProfesionalScreen() {
         );
       }
     } catch (error) {
-      console.error('[PerfilProfesional] Error saving profile:', error);
+      console.error('[PerfilProfesional v2.0] Error saving profile:', error);
       Alert.alert('Error', 'No se pudo guardar el perfil. Intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -350,25 +408,36 @@ export default function CrearPerfilProfesionalScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.floatingLabel}>Puesto deseado *</Text>
-              <View style={styles.puestoButtons}>
-                {PUESTOS.map((p) => (
-                  <TouchableOpacity
-                    key={p.id}
-                    style={[styles.puestoButton, puesto === p.id && styles.puestoButtonActive]}
-                    onPress={() => setPuesto(p.id)}
-                  >
-                    <Text style={styles.puestoIcon}>{p.icon}</Text>
-                    <Text
-                      style={[
-                        styles.puestoButtonText,
-                        puesto === p.id && styles.puestoButtonTextActive,
-                      ]}
-                    >
-                      {p.label}
-                    </Text>
-                  </TouchableOpacity>
+              <ScrollView 
+                style={styles.puestoScrollContainer}
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled={true}
+              >
+                {Object.entries(groupedPuestos).map(([category, puestos]) => (
+                  <View key={category} style={styles.categorySection}>
+                    <Text style={styles.categoryTitle}>{category}</Text>
+                    <View style={styles.puestoButtons}>
+                      {puestos.map((p) => (
+                        <TouchableOpacity
+                          key={p.id}
+                          style={[styles.puestoButton, puesto === p.id && styles.puestoButtonActive]}
+                          onPress={() => setPuesto(p.id)}
+                        >
+                          <Text style={styles.puestoIcon}>{p.icon}</Text>
+                          <Text
+                            style={[
+                              styles.puestoButtonText,
+                              puesto === p.id && styles.puestoButtonTextActive,
+                            ]}
+                          >
+                            {p.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
                 ))}
-              </View>
+              </ScrollView>
             </View>
 
             <View style={styles.inputGroup}>
@@ -481,7 +550,7 @@ export default function CrearPerfilProfesionalScreen() {
         </View>
       </ScrollView>
 
-      {/* Community Modal - FIXED: Bottom Sheet with proper positioning */}
+      {/* Community Modal - Bottom Sheet */}
       <Modal
         visible={showComunidadModal}
         animationType="slide"
@@ -559,7 +628,7 @@ export default function CrearPerfilProfesionalScreen() {
         </View>
       </Modal>
 
-      {/* Province Modal - FIXED: Bottom Sheet with proper positioning */}
+      {/* Province Modal - Bottom Sheet */}
       <Modal
         visible={showProvinciaModal}
         animationType="slide"
@@ -791,6 +860,19 @@ const styles = StyleSheet.create({
   dropdownPlaceholder: {
     color: colors.textSecondary,
   },
+  puestoScrollContainer: {
+    maxHeight: 400,
+  },
+  categorySection: {
+    marginBottom: 20,
+  },
+  categoryTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 10,
+    paddingLeft: 4,
+  },
   puestoButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -846,7 +928,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: 'bold',
   },
-  // FIXED: Bottom Sheet Styles
+  // Bottom Sheet Styles
   bottomSheetOverlay: {
     flex: 1,
     justifyContent: 'flex-end',

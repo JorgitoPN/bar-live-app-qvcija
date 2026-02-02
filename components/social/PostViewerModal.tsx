@@ -1,27 +1,22 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v316.0 - FULL-SCREEN COMMENTS & LIKES NAVIGATION
+ * 🚨 POST VIEWER MODAL v317.0 - FULL-SCREEN NAVIGATION FOR ALL MODALS
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v316.0:
- * - ✅ Comments now open in full-screen page (/social/comentarios) instead of modal
- * - ✅ Likes now open in full-screen page (/social/likes) instead of modal
- * - ✅ Better UX with dedicated full-screen pages for comments and likes
- * - ✅ Removed CommentsModal component usage
- * - ✅ Cleaner navigation flow
+ * NEW CHANGES v317.0:
+ * - ✅ "Editar descripción" now navigates to /editar/publicacion (full-screen)
+ * - ✅ "Gestionar etiquetas" now navigates to /social/gestionar-etiquetas (full-screen)
+ * - ✅ Comments navigate to /social/comentarios (full-screen) - v316.0
+ * - ✅ Likes navigate to /social/likes (full-screen) - v316.0
+ * - ✅ Removed ALL modal implementations for these features
+ * - ✅ Better UX with dedicated full-screen pages
  * 
  * Previous fixes maintained (v158.0):
  * - ✅ Removed ALL bottom padding everywhere (paddingBottom: 0)
  * - ✅ True fullscreen with no gaps at bottom
  * - ✅ transparent={false} para modal de pantalla completa
  * - ✅ StatusBar oculto en Android para experiencia inmersiva
- * 
- * ARCHIVOS MODIFICADOS:
- * - components/social/PostViewerModal.tsx (este archivo)
- * - components/social/PostLikesAvatars.tsx (navegación a /social/likes)
- * - app/social/comentarios.tsx (nueva página de pantalla completa)
- * - app/social/likes.tsx (nueva página de pantalla completa)
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -43,8 +38,6 @@ import {
   ScrollView,
   ActionSheetIOS,
   Animated,
-  TextInput,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -56,8 +49,7 @@ import ParsedText from '@/components/social/ParsedText';
 
 import { SOCIAL_ICONS } from '@/constants/SocialIcons';
 import { useRouter } from 'expo-router';
-import TaggingModalV5, { TaggableUser } from './TaggingModalV5';
-import ImageTaggingOverlay from './ImageTaggingOverlay';
+import TaggableUser from './TaggingModalV5';
 import TagDisplay from './TagDisplay';
 import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
 import { TapGestureHandler, State } from 'react-native-gesture-handler';
@@ -108,18 +100,18 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v316.0 - FULL-SCREEN COMMENTS & LIKES NAVIGATION
+ * ✅ POST VIEWER MODAL v317.0 - FULL-SCREEN NAVIGATION FOR ALL MODALS
  * 
- * NEW CHANGES v316.0:
- * - ✅ Comments now navigate to /social/comentarios (full-screen page)
- * - ✅ Likes now navigate to /social/likes (full-screen page)
- * - ✅ Removed CommentsModal state and component
- * - ✅ Better UX with dedicated full-screen pages
+ * NEW CHANGES v317.0:
+ * - ✅ "Editar descripción" navigates to /editar/publicacion (full-screen page)
+ * - ✅ "Gestionar etiquetas" navigates to /social/gestionar-etiquetas (full-screen page)
+ * - ✅ Removed edit description modal
+ * - ✅ Removed tag management modal
+ * - ✅ Cleaner code with all modals converted to full-screen pages
  * 
- * Previous fixes maintained (v157.0):
- * - ✅ Modal uses transparent={false} for true fullscreen
- * - ✅ StatusBar properly hidden on Android
- * - ✅ Removed ALL bottom padding (paddingBottom: 0)
+ * Previous changes v316.0:
+ * - ✅ Comments navigate to /social/comentarios (full-screen page)
+ * - ✅ Likes navigate to /social/likes (full-screen page)
  */
 
 export default function PostViewerModal({
@@ -149,17 +141,6 @@ export default function PostViewerModal({
   const [taggingMode, setTaggingMode] = useState(false);
   const [taggingPostId, setTaggingPostId] = useState<string | null>(null);
   const [showTagsOnImage, setShowTagsOnImage] = useState(true);
-  const [showTagModal, setShowTagModal] = useState(false);
-  const [existingTags, setExistingTags] = useState<TaggableUser[]>([]);
-
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editingPostId, setEditingPostId] = useState<string | null>(null);
-  const [editedDescription, setEditedDescription] = useState('');
-  const [savingEdit, setSavingEdit] = useState(false);
-
-  const [showTagManagementModal, setShowTagManagementModal] = useState(false);
-  const [managingPostId, setManagingPostId] = useState<string | null>(null);
-  const [loadingTags, setLoadingTags] = useState(false);
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [sharingPost, setSharingPost] = useState<Post | null>(null);
@@ -199,7 +180,7 @@ export default function PostViewerModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[PostViewerModal v157.0] Props received:', { 
+      console.log('[PostViewerModal v317.0] Props received:', { 
         visible, 
         initialPostId, 
         singlePost: !!singlePost,
@@ -218,10 +199,10 @@ export default function PostViewerModal({
 
       if (!error && data) {
         setLocalLikes(prev => new Map(prev).set(postId, data));
-        console.log('[PostViewerModal v157.0] ✅ Loaded initial likes for post:', postId, 'count:', data.length);
+        console.log('[PostViewerModal v317.0] ✅ Loaded initial likes for post:', postId, 'count:', data.length);
       }
     } catch (error) {
-      console.error('[PostViewerModal v157.0] Error loading initial likes:', error);
+      console.error('[PostViewerModal v317.0] Error loading initial likes:', error);
     }
   }, []);
 
@@ -234,22 +215,22 @@ export default function PostViewerModal({
 
       if (!error && count !== null) {
         setCommentsCount(prev => new Map(prev).set(postId, count));
-        console.log('[PostViewerModal v157.0] ✅ Loaded comment count for post:', postId, 'count:', count);
+        console.log('[PostViewerModal v317.0] ✅ Loaded comment count for post:', postId, 'count:', count);
       }
     } catch (error) {
-      console.error('[PostViewerModal v157.0] Error loading comment count:', error);
+      console.error('[PostViewerModal v317.0] Error loading comment count:', error);
     }
   };
 
   useEffect(() => {
     if (!user || posts.length === 0) return;
 
-    console.log('[PostViewerModal v157.0] 🔄 Setting up real-time likes subscription for', posts.length, 'posts');
+    console.log('[PostViewerModal v317.0] 🔄 Setting up real-time likes subscription for', posts.length, 'posts');
 
     const postIds = posts.map(p => p.id);
     
     if (channelRef.current?.state === 'subscribed') {
-      console.log('[PostViewerModal v157.0] ⚠️ Already subscribed, skipping');
+      console.log('[PostViewerModal v317.0] ⚠️ Already subscribed, skipping');
       return;
     }
 
@@ -271,16 +252,16 @@ export default function PostViewerModal({
             return;
           }
 
-          console.log('[PostViewerModal v157.0] 🔄 Real-time like change detected:', payload.eventType, 'for post:', postId);
+          console.log('[PostViewerModal v317.0] 🔄 Real-time like change detected:', payload.eventType, 'for post:', postId);
           
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
           if (changedByUserId === user.id) {
-            console.log('[PostViewerModal v157.0] ⏭️ Change made by current user, skipping (already handled optimistically)');
+            console.log('[PostViewerModal v317.0] ⏭️ Change made by current user, skipping (already handled optimistically)');
             return;
           }
           
-          console.log('[PostViewerModal v157.0] 🔄 Change made by another user, updating local state...');
+          console.log('[PostViewerModal v317.0] 🔄 Change made by another user, updating local state...');
           
           if (payload.eventType === 'INSERT' && payload.new) {
             setLocalLikes(prev => {
@@ -291,7 +272,7 @@ export default function PostViewerModal({
               const newArray = [...current, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
               const newMap = new Map(prev);
               newMap.set(postId, newArray);
-              console.log('[PostViewerModal v157.0] ➕ Added like to local array, new count:', newArray.length);
+              console.log('[PostViewerModal v317.0] ➕ Added like to local array, new count:', newArray.length);
               return newMap;
             });
           } else if (payload.eventType === 'DELETE' && payload.old) {
@@ -300,7 +281,7 @@ export default function PostViewerModal({
               const newArray = current.filter(like => like.id !== payload.old.id);
               const newMap = new Map(prev);
               newMap.set(postId, newArray);
-              console.log('[PostViewerModal v157.0] ➖ Removed like from local array, new count:', newArray.length);
+              console.log('[PostViewerModal v317.0] ➖ Removed like from local array, new count:', newArray.length);
               return newMap;
             });
           }
@@ -311,7 +292,7 @@ export default function PostViewerModal({
             .eq('post_id', postId);
           
           if (!countError && count !== null) {
-            console.log('[PostViewerModal v157.0] ✅ Updated likes count from database:', count);
+            console.log('[PostViewerModal v317.0] ✅ Updated likes count from database:', count);
             setLikesCount(prev => new Map(prev).set(postId, count));
           }
         }
@@ -330,7 +311,7 @@ export default function PostViewerModal({
             return;
           }
 
-          console.log('[PostViewerModal v157.0] 🔄 Real-time comment change detected:', payload.eventType, 'for post:', postId);
+          console.log('[PostViewerModal v317.0] 🔄 Real-time comment change detected:', payload.eventType, 'for post:', postId);
           
           const { count, error: countError } = await supabase
             .from('comentarios')
@@ -343,11 +324,11 @@ export default function PostViewerModal({
         }
       )
       .subscribe((status) => {
-        console.log('[PostViewerModal v157.0] 📡 Subscription status:', status);
+        console.log('[PostViewerModal v317.0] 📡 Subscription status:', status);
       });
 
     return () => {
-      console.log('[PostViewerModal v157.0] 🔄 Cleaning up real-time subscription');
+      console.log('[PostViewerModal v317.0] 🔄 Cleaning up real-time subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -362,7 +343,7 @@ export default function PostViewerModal({
       const authorIds = posts.map(p => p.autor_id).filter(Boolean);
       if (authorIds.length === 0) return;
 
-      console.log('[PostViewerModal v157.0] 🔍 Checking momentos for', authorIds.length, 'authors');
+      console.log('[PostViewerModal v317.0] 🔍 Checking momentos for', authorIds.length, 'authors');
 
       const { data: momentosData, error: momentosError } = await supabase
         .from('momentos')
@@ -372,7 +353,7 @@ export default function PostViewerModal({
         .gt('expires_at', new Date().toISOString());
 
       if (momentosError || !momentosData) {
-        console.error('[PostViewerModal v157.0] Error fetching author momentos:', momentosError);
+        console.error('[PostViewerModal v317.0] Error fetching author momentos:', momentosError);
         return;
       }
 
@@ -397,10 +378,10 @@ export default function PostViewerModal({
         }
       });
 
-      console.log('[PostViewerModal v157.0] ✅ Authors with unviewed momentos:', authorsWithUnviewed.size);
+      console.log('[PostViewerModal v317.0] ✅ Authors with unviewed momentos:', authorsWithUnviewed.size);
       setAuthorsWithMomentos(authorsWithUnviewed);
     } catch (error) {
-      console.error('[PostViewerModal v157.0] Error checking authors momentos:', error);
+      console.error('[PostViewerModal v317.0] Error checking authors momentos:', error);
     }
   }, [user, posts]);
 
@@ -409,7 +390,7 @@ export default function PostViewerModal({
       setLoading(true);
       
       if (singlePost) {
-        console.log('[PostViewerModal v157.0] Using single post mode');
+        console.log('[PostViewerModal v317.0] Using single post mode');
         
         let liked = false;
         if (interactionUserId) {
@@ -486,7 +467,7 @@ export default function PostViewerModal({
       }
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v157.0] Invalid allPostIds in loadPosts:', allPostIds);
+        console.error('[PostViewerModal v317.0] Invalid allPostIds in loadPosts:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -503,7 +484,7 @@ export default function PostViewerModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[PostViewerModal v157.0] Error loading posts:', error);
+        console.error('[PostViewerModal v317.0] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
         setPosts([]);
         setLoading(false);
@@ -511,14 +492,14 @@ export default function PostViewerModal({
       }
 
       if (!data || !Array.isArray(data)) {
-        console.error('[PostViewerModal v157.0] Invalid data received:', data);
+        console.error('[PostViewerModal v317.0] Invalid data received:', data);
         setPosts([]);
         setLoading(false);
         return;
       }
 
       if (data.length === 0) {
-        console.warn('[PostViewerModal v157.0] No posts found for IDs:', allPostIds);
+        console.warn('[PostViewerModal v317.0] No posts found for IDs:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -594,7 +575,7 @@ export default function PostViewerModal({
         .filter(Boolean) as Post[];
 
       if (!sortedPosts || sortedPosts.length === 0) {
-        console.warn('[PostViewerModal v157.0] No valid posts after sorting');
+        console.warn('[PostViewerModal v317.0] No valid posts after sorting');
         setPosts([]);
         setLoading(false);
         return;
@@ -623,7 +604,7 @@ export default function PostViewerModal({
         setCurrentPostId(initialPostId || '');
       }
     } catch (error) {
-      console.error('[PostViewerModal v157.0] Error:', error);
+      console.error('[PostViewerModal v317.0] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
       setPosts([]);
     } finally {
@@ -707,11 +688,11 @@ export default function PostViewerModal({
       const tempId = `temp-${Date.now()}`;
       const newArray = [...previousLocalLikes, { id: tempId, usuario_id: interactionUserId }];
       setLocalLikes(prev => new Map(prev).set(post.id, newArray));
-      console.log('[PostViewerModal v157.0] ✅ Optimistic ADD: Local likes array updated instantly, new count:', newArray.length);
+      console.log('[PostViewerModal v317.0] ✅ Optimistic ADD: Local likes array updated instantly, new count:', newArray.length);
     } else {
       const newArray = previousLocalLikes.filter(like => like.usuario_id !== interactionUserId);
       setLocalLikes(prev => new Map(prev).set(post.id, newArray));
-      console.log('[PostViewerModal v157.0] ✅ Optimistic REMOVE: Local likes array updated instantly, new count:', newArray.length);
+      console.log('[PostViewerModal v317.0] ✅ Optimistic REMOVE: Local likes array updated instantly, new count:', newArray.length);
     }
 
     const existingTimer = likeDebounceTimer.current.get(post.id);
@@ -722,7 +703,7 @@ export default function PostViewerModal({
     const timer = setTimeout(async () => {
       try {
         if (newLikedState) {
-          console.log('[PostViewerModal v157.0] ➕ Adding like to database for post:', post.id);
+          console.log('[PostViewerModal v317.0] ➕ Adding like to database for post:', post.id);
           
           const likeData: any = {
             post_id: post.id,
@@ -739,7 +720,7 @@ export default function PostViewerModal({
           const { data, error } = await supabase.from('likes').insert(likeData).select().single();
           
           if (error) {
-            console.error('[PostViewerModal v157.0] ❌ Error adding like:', error);
+            console.error('[PostViewerModal v317.0] ❌ Error adding like:', error);
             throw error;
           }
           
@@ -753,9 +734,9 @@ export default function PostViewerModal({
             return new Map(prev).set(post.id, updated);
           });
           
-          console.log('[PostViewerModal v157.0] ✅ Like added successfully, real ID:', data.id);
+          console.log('[PostViewerModal v317.0] ✅ Like added successfully, real ID:', data.id);
         } else {
-          console.log('[PostViewerModal v157.0] ➖ Removing like from database for post:', post.id);
+          console.log('[PostViewerModal v317.0] ➖ Removing like from database for post:', post.id);
           
           let deleteQuery = supabase
             .from('likes')
@@ -772,11 +753,11 @@ export default function PostViewerModal({
           const { error } = await deleteQuery;
           
           if (error) {
-            console.error('[PostViewerModal v157.0] ❌ Error removing like:', error);
+            console.error('[PostViewerModal v317.0] ❌ Error removing like:', error);
             throw error;
           }
           
-          console.log('[PostViewerModal v157.0] ✅ Like removed successfully from database');
+          console.log('[PostViewerModal v317.0] ✅ Like removed successfully from database');
         }
 
         const { count, error: countError } = await supabase
@@ -785,7 +766,7 @@ export default function PostViewerModal({
           .eq('post_id', post.id);
         
         if (!countError && count !== null) {
-          console.log('[PostViewerModal v157.0] ✅ Verified final count from database:', count);
+          console.log('[PostViewerModal v317.0] ✅ Verified final count from database:', count);
           setLikesCount(prev => new Map(prev).set(post.id, count));
         }
         
@@ -793,7 +774,7 @@ export default function PostViewerModal({
           onUpdate();
         }
       } catch (error) {
-        console.error('[PostViewerModal v157.0] ❌ Error toggling like:', error);
+        console.error('[PostViewerModal v317.0] ❌ Error toggling like:', error);
         setIsLiked(prev => new Map(prev).set(post.id, previousLiked));
         setLikesCount(prev => new Map(prev).set(post.id, previousCount));
         setLocalLikes(prev => new Map(prev).set(post.id, previousLocalLikes));
@@ -871,7 +852,7 @@ export default function PostViewerModal({
         onUpdate();
       }
     } catch (error) {
-      console.error('[PostViewerModal v157.0] Error toggling save:', error);
+      console.error('[PostViewerModal v317.0] Error toggling save:', error);
       setPosts(prevPosts =>
         prevPosts.map(p =>
           p.id === post.id ? { ...p, saved: isSaved } : p
@@ -880,187 +861,6 @@ export default function PostViewerModal({
       Alert.alert('Error', 'No se pudo guardar la publicación');
     }
   };
-
-  const loadExistingTags = useCallback(async (postId: string) => {
-    setLoadingTags(true);
-    try {
-      const { data, error } = await supabase
-        .from('post_tags')
-        .select(`
-          *,
-          usuario:usuarios!post_tags_usuario_id_fkey(id, nombre, username, avatar),
-          local:locales(id, nombre, imagen_url)
-        `)
-        .eq('post_id', postId);
-
-      if (error) throw error;
-
-      const tags: TaggableUser[] = [];
-      
-      if (data) {
-        data.forEach(tag => {
-          if (tag.tipo === 'usuario' && tag.usuario) {
-            tags.push({
-              id: tag.usuario.id,
-              nombre: tag.usuario.nombre,
-              username: tag.usuario.username || tag.usuario.nombre,
-              avatar: tag.usuario.avatar,
-              tipo: 'usuario',
-            });
-          } else if (tag.tipo === 'local' && tag.local) {
-            tags.push({
-              id: tag.local.id,
-              nombre: tag.local.nombre,
-              username: tag.local.nombre,
-              avatar: tag.local.imagen_url,
-              tipo: 'local',
-            });
-          }
-        });
-      }
-
-      setExistingTags(tags);
-    } catch (error) {
-      console.error('[PostViewerModal v157.0] Error loading tags:', error);
-    } finally {
-      setLoadingTags(false);
-    }
-  }, []);
-
-  const handleEditDescription = useCallback((post: Post) => {
-    setEditingPostId(post.id);
-    setEditedDescription(post.contenido || '');
-    setEditModalVisible(true);
-  }, []);
-
-  const handleSaveEdit = useCallback(async () => {
-    if (!editedDescription.trim()) {
-      Alert.alert('Error', 'La descripción no puede estar vacía');
-      return;
-    }
-
-    if (!editingPostId) return;
-
-    setSavingEdit(true);
-    try {
-      const { error } = await supabase
-        .from('posts')
-        .update({ 
-          contenido: editedDescription.trim(),
-          editado_at: new Date().toISOString(),
-        })
-        .eq('id', editingPostId);
-
-      if (error) throw error;
-
-      setEditModalVisible(false);
-      loadPosts();
-      if (onUpdate) {
-        onUpdate();
-      }
-      Alert.alert('Éxito', 'Descripción actualizada correctamente');
-    } catch (error) {
-      console.error('[PostViewerModal v157.0] Error updating description:', error);
-      Alert.alert('Error', 'No se pudo actualizar la descripción');
-    } finally {
-      setSavingEdit(false);
-    }
-  }, [editedDescription, editingPostId, loadPosts, onUpdate]);
-
-  const handleManageTags = useCallback((post: Post) => {
-    setManagingPostId(post.id);
-    loadExistingTags(post.id);
-    setShowTagManagementModal(true);
-  }, [loadExistingTags]);
-
-  const handleRemoveTag = useCallback(async (taggedUser: TaggableUser) => {
-    if (!managingPostId) return;
-
-    try {
-      const { error } = await supabase
-        .from('post_tags')
-        .delete()
-        .eq('post_id', managingPostId)
-        .eq(taggedUser.tipo === 'usuario' ? 'usuario_id' : 'local_id', taggedUser.id);
-
-      if (error) throw error;
-
-      setExistingTags(prev => prev.filter(t => !(t.id === taggedUser.id && t.tipo === taggedUser.tipo)));
-      loadPosts();
-      if (onUpdate) {
-        onUpdate();
-      }
-    } catch (error) {
-      console.error('[PostViewerModal v157.0] Error removing tag:', error);
-      Alert.alert('Error', 'No se pudo eliminar la etiqueta');
-    }
-  }, [managingPostId, loadPosts, onUpdate]);
-
-  const handleAddNewTag = useCallback(async (selectedUser: TaggableUser) => {
-    if (!user || !managingPostId) return;
-
-    try {
-      const tagData: any = {
-        post_id: managingPostId,
-        tipo: selectedUser.tipo,
-        estado: 'pendiente',
-        tagged_by_user_id: user.id,
-        imagen_index: 0,
-        position_x: 0.5,
-        position_y: 0.5,
-      };
-
-      if (selectedUser.tipo === 'usuario') {
-        tagData.usuario_id = selectedUser.id;
-      } else {
-        tagData.local_id = selectedUser.id;
-      }
-
-      const { error: tagError } = await supabase
-        .from('post_tags')
-        .insert(tagData);
-
-      if (tagError) throw tagError;
-
-      const notificationData: any = {
-        tipo: 'mencion',
-        titulo: 'Te han etiquetado',
-        mensaje: `${user.nombre} te ha etiquetado en una publicación`,
-        usuario_origen_id: user.id,
-        post_id: managingPostId,
-      };
-
-      if (selectedUser.tipo === 'usuario') {
-        notificationData.usuario_id = selectedUser.id;
-        await supabase.from('notificaciones').insert(notificationData);
-      } else {
-        const { data: owners } = await supabase
-          .from('propietarios_locales')
-          .select('propietario_id')
-          .eq('local_id', selectedUser.id)
-          .eq('activo', true);
-
-        if (owners && owners.length > 0) {
-          const notifications = owners.map(owner => ({
-            ...notificationData,
-            usuario_id: owner.propietario_id,
-            local_origen_id: selectedUser.id,
-          }));
-
-          await supabase.from('notificaciones').insert(notifications);
-        }
-      }
-
-      loadExistingTags(managingPostId);
-      loadPosts();
-      if (onUpdate) {
-        onUpdate();
-      }
-    } catch (error) {
-      console.error('[PostViewerModal v157.0] Error adding tag:', error);
-      Alert.alert('Error', 'No se pudo añadir la etiqueta');
-    }
-  }, [user, managingPostId, loadExistingTags, loadPosts, onUpdate]);
 
   const handleReportPost = useCallback((post: Post) => {
     if (!user) {
@@ -1088,9 +888,17 @@ export default function PostViewerModal({
           },
           (buttonIndex) => {
             if (buttonIndex === 1) {
-              handleEditDescription(post);
+              console.log('[PostViewerModal v317.0] 📝 Opening edit description full-screen page');
+              router.push({
+                pathname: '/editar/publicacion',
+                params: { postId: post.id },
+              });
             } else if (buttonIndex === 2) {
-              handleManageTags(post);
+              console.log('[PostViewerModal v317.0] 🏷️ Opening manage tags full-screen page');
+              router.push({
+                pathname: '/social/gestionar-etiquetas',
+                params: { postId: post.id },
+              });
             } else if (buttonIndex === 3) {
               handleDeletePost(post);
             }
@@ -1102,8 +910,26 @@ export default function PostViewerModal({
           '',
           [
             { text: 'Cancelar', style: 'cancel' },
-            { text: 'Editar descripción', onPress: () => handleEditDescription(post) },
-            { text: 'Gestionar etiquetas', onPress: () => handleManageTags(post) },
+            { 
+              text: 'Editar descripción', 
+              onPress: () => {
+                console.log('[PostViewerModal v317.0] 📝 Opening edit description full-screen page');
+                router.push({
+                  pathname: '/editar/publicacion',
+                  params: { postId: post.id },
+                });
+              }
+            },
+            { 
+              text: 'Gestionar etiquetas', 
+              onPress: () => {
+                console.log('[PostViewerModal v317.0] 🏷️ Opening manage tags full-screen page');
+                router.push({
+                  pathname: '/social/gestionar-etiquetas',
+                  params: { postId: post.id },
+                });
+              }
+            },
             { 
               text: 'Eliminar', 
               style: 'destructive',
@@ -1168,7 +994,7 @@ export default function PostViewerModal({
                 }},
               ]);
             } catch (error) {
-              console.error('[PostViewerModal v157.0] Error deleting post:', error);
+              console.error('[PostViewerModal v317.0] Error deleting post:', error);
               Alert.alert('Error', 'No se pudo eliminar la publicación');
             }
           },
@@ -1219,7 +1045,7 @@ export default function PostViewerModal({
 
       setTaggedUsers(prev => new Map(prev).set(postId, tags));
     } catch (error) {
-      console.error('[PostViewerModal v157.0] Error loading tagged users:', error);
+      console.error('[PostViewerModal v317.0] Error loading tagged users:', error);
     }
   }, []);
 
@@ -1440,7 +1266,7 @@ export default function PostViewerModal({
             <TouchableOpacity 
               style={styles.actionButton}
               onPress={() => {
-                console.log('[PostViewerModal v316.0] 💬 Opening comments full-screen page for post:', post.id);
+                console.log('[PostViewerModal v317.0] 💬 Opening comments full-screen page for post:', post.id);
                 router.push({
                   pathname: '/social/comentarios',
                   params: { 
@@ -1513,7 +1339,7 @@ export default function PostViewerModal({
         <TouchableOpacity 
           style={styles.commentsContainer}
           onPress={() => {
-            console.log('[PostViewerModal v316.0] 💬 Opening comments full-screen page for post:', post.id);
+            console.log('[PostViewerModal v317.0] 💬 Opening comments full-screen page for post:', post.id);
             router.push({
               pathname: '/social/comentarios',
               params: { 
@@ -1559,7 +1385,6 @@ export default function PostViewerModal({
 
   const headerIconSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
   const headerTitleSize = Platform.OS === 'android' ? scaleFontSize(18) : 18;
-  const tagManagementIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
 
   return (
     <Modal
@@ -1626,163 +1451,6 @@ export default function PostViewerModal({
             ItemSeparatorComponent={() => <View style={styles.postSeparator} />}
           />
         )}
-
-
-
-        <Modal
-          visible={editModalVisible}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setEditModalVisible(false)}
-        >
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.editModalOverlay}
-          >
-            <TouchableOpacity 
-              style={styles.editModalBackdrop}
-              activeOpacity={1}
-              onPress={() => setEditModalVisible(false)}
-            />
-            <View style={styles.editModalContent}>
-              <View style={styles.editModalHeader}>
-                <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                  <Text style={[styles.editModalCancel, { fontSize: scaleFontSize(16) }]}>Cancelar</Text>
-                </TouchableOpacity>
-                <Text style={[styles.editModalTitle, { fontSize: scaleFontSize(17) }]}>Editar descripción</Text>
-                <TouchableOpacity onPress={handleSaveEdit} disabled={savingEdit}>
-                  <Text style={[styles.editModalSave, { fontSize: scaleFontSize(16) }, savingEdit && styles.editModalSaveDisabled]}>
-                    {savingEdit ? 'Guardando...' : 'Guardar'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              <TextInput
-                style={[styles.editModalInput, { fontSize: scaleFontSize(16) }]}
-                value={editedDescription}
-                onChangeText={setEditedDescription}
-                placeholder="Escribe una descripción..."
-                placeholderTextColor={colors.textSecondary}
-                multiline
-                maxLength={2200}
-                autoFocus
-                editable={!savingEdit}
-              />
-              <Text style={[styles.editModalCounter, { fontSize: scaleFontSize(13) }]}>
-                {editedDescription.length}/2200
-              </Text>
-            </View>
-          </KeyboardAvoidingView>
-        </Modal>
-
-        <Modal
-          visible={showTagManagementModal}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowTagManagementModal(false)}
-        >
-          <View style={styles.tagManagementOverlay}>
-            <TouchableOpacity 
-              style={styles.tagManagementBackdrop}
-              activeOpacity={1}
-              onPress={() => setShowTagManagementModal(false)}
-            />
-            <View style={styles.tagManagementContent}>
-              <View style={styles.tagManagementHeader}>
-                <Text style={[styles.tagManagementTitle, { fontSize: scaleFontSize(18) }]}>Gestionar etiquetas</Text>
-                <TouchableOpacity onPress={() => setShowTagManagementModal(false)}>
-                  <IconSymbol 
-                    ios_icon_name="xmark.circle.fill" 
-                    android_material_icon_name="cancel" 
-                    size={tagManagementIconSize} 
-                    color={colors.textSecondary} 
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {loadingTags ? (
-                <View style={styles.tagManagementLoading}>
-                  <ActivityIndicator size="large" color={colors.primary} />
-                </View>
-              ) : (
-                <ScrollView style={styles.tagManagementScroll}>
-                  {existingTags.length > 0 ? (
-                    <View style={styles.tagManagementList}>
-                      <Text style={[styles.tagManagementSectionTitle, { fontSize: scaleFontSize(14) }]}>Etiquetados ({existingTags.length})</Text>
-                      {existingTags.map((tag) => (
-                        <View key={`${tag.id}-${tag.tipo}`} style={styles.tagManagementItem}>
-                          {tag.avatar ? (
-                            <Image source={{ uri: tag.avatar }} style={styles.tagManagementAvatar} />
-                          ) : (
-                            <View style={[styles.tagManagementAvatar, styles.tagManagementAvatarPlaceholder]}>
-                              <IconSymbol 
-                                ios_icon_name={tag.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-                                android_material_icon_name={tag.tipo === 'local' ? 'business' : 'person'}
-                                size={20} 
-                                color={colors.textSecondary} 
-                              />
-                            </View>
-                          )}
-                          <View style={styles.tagManagementInfo}>
-                            <Text style={[styles.tagManagementName, { fontSize: scaleFontSize(15) }]}>{tag.nombre}</Text>
-                            <Text style={[styles.tagManagementType, { fontSize: scaleFontSize(13) }]}>
-                              {tag.tipo === 'local' ? 'Local' : `@${tag.username}`}
-                            </Text>
-                          </View>
-                          <TouchableOpacity 
-                            onPress={() => handleRemoveTag(tag)}
-                            style={styles.tagManagementRemoveButton}
-                          >
-                            <IconSymbol 
-                              ios_icon_name="trash" 
-                              android_material_icon_name="delete" 
-                              size={20} 
-                              color="#EF4444" 
-                            />
-                          </TouchableOpacity>
-                        </View>
-                      ))}
-                    </View>
-                  ) : (
-                    <View style={styles.tagManagementEmpty}>
-                      <IconSymbol 
-                        ios_icon_name="person.crop.circle.badge.plus" 
-                        android_material_icon_name="person_add" 
-                        size={Platform.OS === 'android' ? scaleIconSize(48) : 48} 
-                        color={colors.textSecondary} 
-                      />
-                      <Text style={[styles.tagManagementEmptyText, { fontSize: scaleFontSize(15) }]}>No hay etiquetas</Text>
-                    </View>
-                  )}
-                </ScrollView>
-              )}
-
-              <TouchableOpacity 
-                style={styles.tagManagementAddButton}
-                onPress={() => {
-                  setShowTagManagementModal(false);
-                  setTimeout(() => {
-                    setShowTagModal(true);
-                  }, 300);
-                }}
-              >
-                <IconSymbol 
-                  ios_icon_name="plus.circle.fill" 
-                  android_material_icon_name="add_circle" 
-                  size={20} 
-                  color={colors.white} 
-                />
-                <Text style={[styles.tagManagementAddButtonText, { fontSize: scaleFontSize(15) }]}>Añadir etiqueta</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-
-        <TaggingModalV5
-          visible={showTagModal}
-          onClose={() => setShowTagModal(false)}
-          onSelectUser={handleAddNewTag}
-          alreadyTagged={existingTags}
-        />
 
         {sharingPost && (
           <SharePostModal
@@ -1860,7 +1528,7 @@ const styles = StyleSheet.create({
   },
   postContainer: {
     backgroundColor: colors.cardBackground,
-    paddingBottom: 0, // ✅ v158.0: Removed ALL bottom padding for true fullscreen
+    paddingBottom: 0,
   },
   postSeparator: {
     height: 16,
@@ -2022,163 +1690,10 @@ const styles = StyleSheet.create({
   timeContainer: {
     paddingHorizontal: 16,
     paddingTop: 4,
-    paddingBottom: 0, // ✅ v158.0: Removed ALL bottom padding for true fullscreen
+    paddingBottom: 0,
   },
   timeText: {
     color: colors.textSecondary,
     textTransform: 'uppercase',
-  },
-  editModalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  editModalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  editModalContent: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 0, // ✅ v158.0: Removed ALL bottom padding for true fullscreen
-    maxHeight: '80%',
-  },
-  editModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  editModalCancel: {
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  editModalTitle: {
-    fontWeight: '700',
-    color: colors.text,
-  },
-  editModalSave: {
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  editModalSaveDisabled: {
-    opacity: 0.5,
-  },
-  editModalInput: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    color: colors.text,
-    minHeight: 150,
-    maxHeight: 400,
-    textAlignVertical: 'top',
-  },
-  editModalCounter: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    color: colors.textSecondary,
-    textAlign: 'right',
-  },
-  tagManagementOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  tagManagementBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  tagManagementContent: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 0, // ✅ v158.0: Removed ALL bottom padding for true fullscreen
-    maxHeight: '80%',
-  },
-  tagManagementHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  tagManagementTitle: {
-    fontWeight: '700',
-    color: colors.text,
-  },
-  tagManagementLoading: {
-    paddingVertical: 60,
-    alignItems: 'center',
-  },
-  tagManagementScroll: {
-    maxHeight: 400,
-  },
-  tagManagementList: {
-    padding: 16,
-  },
-  tagManagementSectionTitle: {
-    fontWeight: '700',
-    color: colors.textSecondary,
-    marginBottom: 12,
-    textTransform: 'uppercase',
-  },
-  tagManagementItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  tagManagementAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  tagManagementAvatarPlaceholder: {
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tagManagementInfo: {
-    flex: 1,
-  },
-  tagManagementName: {
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 2,
-  },
-  tagManagementType: {
-    color: colors.textSecondary,
-  },
-  tagManagementRemoveButton: {
-    padding: 8,
-  },
-  tagManagementEmpty: {
-    paddingVertical: 60,
-    alignItems: 'center',
-  },
-  tagManagementEmptyText: {
-    color: colors.textSecondary,
-    marginTop: 12,
-  },
-  tagManagementAddButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: colors.primary,
-    marginHorizontal: 16,
-    marginTop: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  tagManagementAddButtonText: {
-    fontWeight: '700',
-    color: colors.white,
   },
 });
