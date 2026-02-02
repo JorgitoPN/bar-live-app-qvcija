@@ -258,7 +258,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 10,
     gap: 12,
-    borderWidth: 1,
+    borderWidth: 2,
+    shadowColor: '#EC4899',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 6,
   },
   messageEmoji: {
     fontSize: 24,

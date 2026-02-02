@@ -23,9 +23,9 @@ interface QuickPublicMessagesBarProps {
 
 const QUICK_PUBLIC_MESSAGES: QuickMessage[] = [
   { id: 'q1', text: '¡Salud a todos! 🍻', emoji: '🍻' },
-  { id: 'q2', text: '¡Vaya temazo está sonando! 🎶', emoji: '🎶' },
-  { id: 'q3', text: '¡Qué ambientazo hay hoy! 🔥', emoji: '🔥' },
-  { id: 'q4', text: '¿Quién se pide la siguiente ronda? 🍺', emoji: '🍺' },
+  { id: 'q2', text: '¡Vaya temazo! 🎶', emoji: '🎶' },
+  { id: 'q3', text: '¡Qué ambientazo! 🔥', emoji: '🔥' },
+  { id: 'q4', text: '¿Quién pide ronda? 🥂', emoji: '🥂' },
 ];
 
 export function QuickPublicMessagesBar({ onSelectMessage, themeColors }: QuickPublicMessagesBarProps) {
@@ -70,7 +70,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     gap: 6,
-    borderWidth: 1,
+    borderWidth: 2,
+    shadowColor: '#EC4899',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 8,
   },
   messageEmoji: {
     fontSize: 18,
