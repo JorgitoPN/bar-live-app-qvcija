@@ -214,6 +214,7 @@ export default function SalaVirtualEnhancedScreen() {
   const animationScale = useRef(new Animated.Value(0)).current;
   const animationOpacity = useRef(new Animated.Value(0)).current;
   const closingCheckInterval = useRef<NodeJS.Timeout | null>(null);
+  const usersPollingInterval = useRef<NodeJS.Timeout | null>(null);
 
   const themeColors = mode === 'day' ? DAY_COLORS : NIGHT_COLORS;
 
@@ -537,7 +538,7 @@ export default function SalaVirtualEnhancedScreen() {
     if (!user || !localId) return;
 
     try {
-      console.log('[SalaVirtual Enhanced] 🔄 Loading private chats');
+      console.log('[SalaVirtual Enhanced] 🔄 Loading private chats for user:', user.id);
       
       // Get all private messages where user is sender or recipient
       const { data: privateMessages, error } = await supabase
@@ -565,6 +566,8 @@ export default function SalaVirtualEnhancedScreen() {
         return;
       }
 
+      console.log('[SalaVirtual Enhanced] 📨 Private messages found:', privateMessages?.length || 0);
+
       // Group messages by conversation partner
       const chatMap = new Map<string, PrivateChat>();
       
@@ -573,9 +576,22 @@ export default function SalaVirtualEnhancedScreen() {
         if (!partnerId) return;
         
         if (!chatMap.has(partnerId)) {
-          const partnerData = msg.usuario_id === user.id 
-            ? activeUsers.find(u => u.id === partnerId)
-            : msg.usuario;
+          // Find partner data from active users or from message
+          let partnerData = activeUsers.find(u => u.id === partnerId);
+          
+          // If not in active users, use data from message
+          if (!partnerData && msg.usuario_id !== user.id) {
+            partnerData = msg.usuario;
+          } else if (!partnerData && msg.usuario_id === user.id) {
+            // Need to fetch recipient data
+            // For now, use a placeholder
+            partnerData = {
+              id: partnerId,
+              nombre: 'Usuario',
+              username: null,
+              avatar: null,
+            };
+          }
           
           if (partnerData) {
             chatMap.set(partnerId, {
@@ -599,15 +615,38 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, [user, localId, activeUsers]);
 
+  // CRITICAL FIX v326.0: ANDROID PERFORMANCE - SIMPLIFIED REALTIME SUBSCRIPTIONS
+  // Replace complex realtime channels with simple polling for Android
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
-    console.log('[SalaVirtual Enhanced] 📡 Subscribing to real-time updates');
+    console.log('[SalaVirtual Enhanced v326.0] 📡 Setting up updates (Android-optimized)');
 
-    // ANDROID PERFORMANCE FIX: Reduce channel complexity and error handling
-    // Only subscribe to essential channels with simplified configuration
+    // ANDROID PERFORMANCE FIX: Use polling instead of realtime channels on Android
+    // Realtime channels cause CHANNEL_ERROR and performance issues on Android
+    if (Platform.OS === 'android') {
+      console.log('[SalaVirtual Enhanced v326.0] 🤖 Android detected - using polling instead of realtime');
+      
+      // Poll for active users every 10 seconds
+      usersPollingInterval.current = setInterval(() => {
+        updateActiveUsers();
+      }, 10000);
+      
+      // Initial load
+      updateActiveUsers();
+      
+      return () => {
+        console.log('[SalaVirtual Enhanced v326.0] 🔌 Cleaning up polling intervals');
+        if (usersPollingInterval.current) {
+          clearInterval(usersPollingInterval.current);
+        }
+      };
+    }
+
+    // iOS: Use realtime channels (works fine on iOS)
+    console.log('[SalaVirtual Enhanced v326.0] 🍎 iOS detected - using realtime channels');
     
-    // Chat messages channel - SIMPLIFIED for Android performance
+    // Chat messages channel
     const chatChannel = supabase
       .channel(`room:${localId}:chat`)
       .on('broadcast', { event: 'message_created' }, (payload) => {
@@ -662,7 +701,7 @@ export default function SalaVirtualEnhancedScreen() {
         console.log('[SalaVirtual Enhanced] Chat channel status:', status);
       });
 
-    // Real-time checkins channel - CRITICAL FIX for real-time presence
+    // Real-time checkins channel
     const checkinsChannel = supabase
       .channel(`sala_virtual_checkins:${localId}`)
       .on(
@@ -801,10 +840,30 @@ export default function SalaVirtualEnhancedScreen() {
     if (!user || !localId) return;
 
     try {
-      console.log('[SalaVirtual Enhanced] Sending predefined message:', messageText, 'to:', recipientId);
+      console.log('[SalaVirtual Enhanced v326.0] 📤 Sending predefined message:', messageText, 'to:', recipientId);
       
       const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date().toISOString();
+
+      // CRITICAL FIX v326.0: Store message in database for persistence
+      const { error: insertError } = await supabase
+        .from('sala_virtual_interacciones')
+        .insert({
+          id: messageId,
+          usuario_id: user.id,
+          local_id: localId,
+          tipo: 'privado',
+          contenido: messageText,
+          recipient_id: recipientId,
+          created_at: now,
+        });
+
+      if (insertError) {
+        console.error('[SalaVirtual Enhanced v326.0] ❌ Error storing message:', insertError);
+        throw insertError;
+      }
+
+      console.log('[SalaVirtual Enhanced v326.0] ✅ Message stored in database');
 
       const newMsg: Message = {
         id: messageId,
@@ -834,8 +893,8 @@ export default function SalaVirtualEnhancedScreen() {
       };
       setPendingInteractions(prev => [...prev, interaction]);
 
-      // Broadcast to recipient
-      if (chatChannelRef.current) {
+      // Broadcast to recipient (only on iOS where realtime works)
+      if (Platform.OS === 'ios' && chatChannelRef.current) {
         await chatChannelRef.current.send({
           type: 'broadcast',
           event: 'message_created',
@@ -845,8 +904,8 @@ export default function SalaVirtualEnhancedScreen() {
 
       closeBottomSheet();
       
-      // Reload private chats to show new conversation - CRITICAL FIX
-      console.log('[SalaVirtual Enhanced] 🔄 Reloading private chats after sending predefined message');
+      // CRITICAL FIX v326.0: Immediately reload private chats to show new conversation
+      console.log('[SalaVirtual Enhanced v326.0] 🔄 Reloading private chats after sending predefined message');
       await loadPrivateChats();
 
       // Show success feedback
@@ -855,9 +914,9 @@ export default function SalaVirtualEnhancedScreen() {
         ? recipient.username.replace('@', '')
         : recipient?.nombre || 'Usuario';
       
-      console.log(`[SalaVirtual Enhanced] ✅ Predefined message sent to ${recipientName}`);
+      console.log(`[SalaVirtual Enhanced v326.0] ✅ Predefined message sent to ${recipientName}`);
     } catch (error) {
-      console.error('[SalaVirtual Enhanced] Error sending predefined message:', error);
+      console.error('[SalaVirtual Enhanced v326.0] ❌ Error sending predefined message:', error);
     }
   }, [user, localId, activeUsers, loadPrivateChats]);
 
@@ -890,8 +949,8 @@ export default function SalaVirtualEnhancedScreen() {
       // Add to private chat messages
       setPrivateChatMessages((prev) => [...prev, newMsg]);
       
-      // Broadcast to recipient
-      if (chatChannelRef.current) {
+      // Broadcast to recipient (only on iOS)
+      if (Platform.OS === 'ios' && chatChannelRef.current) {
         await chatChannelRef.current.send({
           type: 'broadcast',
           event: 'message_created',
@@ -1065,6 +1124,7 @@ export default function SalaVirtualEnhancedScreen() {
   }, []);
 
   const handleUserPress = (selectedUser: ActiveUser) => {
+    // FIX v326.0: Display username without @ symbol
     const displayName = selectedUser.username 
       ? selectedUser.username.replace('@', '')
       : selectedUser.nombre;
@@ -1120,7 +1180,7 @@ export default function SalaVirtualEnhancedScreen() {
 
     const messageLabel = item.is_private ? '(Privado)' : '';
     
-    // FIX: Display username without @ symbol, or nombre if no username
+    // FIX v326.0: Display username without @ symbol, or nombre if no username
     const displayUsername = item.usuario.username 
       ? item.usuario.username.replace('@', '')
       : item.usuario.nombre;
@@ -1175,7 +1235,12 @@ export default function SalaVirtualEnhancedScreen() {
           >
             {!isOwnMessage && (
               <Text style={[styles.messageSender, { fontSize: scaleFontSize(12), color: themeColors.primary }]}>
-                {displayUsername} {messageLabel}
+                {displayUsername}
+              </Text>
+            )}
+            {!isOwnMessage && messageLabel && (
+              <Text style={[styles.messageSender, { fontSize: scaleFontSize(12), color: themeColors.primary }]}>
+                {messageLabel}
               </Text>
             )}
             
@@ -1212,12 +1277,13 @@ export default function SalaVirtualEnhancedScreen() {
     const isNearby = item.distance !== undefined && item.distance < PROXIMITY_THRESHOLD;
     const avatarSize = Platform.OS === 'android' ? scaleIconSize(70) : 70;
     
-    // FIX: Display username without @ symbol, or nombre if no username
+    // FIX v326.0: Display username without @ symbol, or nombre if no username
     const displayName = item.username 
       ? item.username.replace('@', '')
       : item.nombre;
     
     const distanceText = item.distance !== undefined ? `${item.distance.toFixed(0)}m` : '';
+    const currentUserLabel = isCurrentUser ? '(Tú)' : '';
 
     return (
       <TouchableOpacity
@@ -1290,8 +1356,15 @@ export default function SalaVirtualEnhancedScreen() {
           ellipsizeMode="tail"
         >
           {displayName}
-          {isCurrentUser && '\n(Tú)'}
         </Text>
+        {isCurrentUser && (
+          <Text 
+            style={[styles.gridUserName, { fontSize: scaleFontSize(13), color: themeColors.text }]}
+            numberOfLines={1}
+          >
+            {currentUserLabel}
+          </Text>
+        )}
         
         {isNearby && (
           <View style={[styles.gridProximityBadge, { backgroundColor: themeColors.primary + '20' }]}>
@@ -1307,7 +1380,7 @@ export default function SalaVirtualEnhancedScreen() {
   const renderPrivateChatItem = ({ item }: { item: PrivateChat }) => {
     const avatarSize = Platform.OS === 'android' ? scaleIconSize(56) : 56;
     
-    // FIX: Display username without @ symbol, or nombre if no username
+    // FIX v326.0: Display username without @ symbol, or nombre if no username
     const displayName = item.username 
       ? item.username.replace('@', '')
       : item.nombre;
@@ -1409,7 +1482,7 @@ export default function SalaVirtualEnhancedScreen() {
   const renderBottomSheet = () => {
     if (!showBottomSheet || !selectedUser) return null;
 
-    // FIX: Display username without @ symbol
+    // FIX v326.0: Display username without @ symbol
     const recipientName = selectedUser.username 
       ? selectedUser.username.replace('@', '')
       : selectedUser.nombre;
@@ -1443,7 +1516,7 @@ export default function SalaVirtualEnhancedScreen() {
           <ScrollView style={styles.bottomSheetScroll} contentContainerStyle={styles.bottomSheetContent}>
             <View style={[styles.bottomSheetHeader, { borderBottomColor: themeColors.cardBorder }]}>
               <Text style={[styles.bottomSheetTitle, { fontSize: scaleFontSize(20), color: themeColors.text }]}>
-                Enviar mensaje a {recipientName}
+                Enviar mensaje a
               </Text>
               <TouchableOpacity onPress={closeBottomSheet}>
                 <IconSymbol
@@ -1454,6 +1527,9 @@ export default function SalaVirtualEnhancedScreen() {
                 />
               </TouchableOpacity>
             </View>
+            <Text style={[styles.bottomSheetRecipient, { fontSize: scaleFontSize(18), color: themeColors.text }]}>
+              {recipientName}
+            </Text>
 
             {/* View Profile Button */}
             <View style={styles.profileSection}>
@@ -1475,7 +1551,10 @@ export default function SalaVirtualEnhancedScreen() {
                   color={themeColors.primary}
                 />
                 <Text style={[styles.profileButtonText, { fontSize: scaleFontSize(15), color: themeColors.text }]}>
-                  Ver Perfil de {recipientName}
+                  Ver Perfil de
+                </Text>
+                <Text style={[styles.profileButtonText, { fontSize: scaleFontSize(15), color: themeColors.text }]}>
+                  {recipientName}
                 </Text>
                 <IconSymbol
                   ios_icon_name="chevron.right"
@@ -1503,7 +1582,7 @@ export default function SalaVirtualEnhancedScreen() {
                   activeOpacity={0.7}
                 >
                   <Text style={styles.messageEmoji}>{msg.emoji}</Text>
-                  <Text style={[styles.messageText, { fontSize: scaleFontSize(14), color: themeColors.text }]}>
+                  <Text style={[styles.messageButtonText, { fontSize: scaleFontSize(14), color: themeColors.text }]}>
                     {msg.text}
                   </Text>
                 </TouchableOpacity>
@@ -1525,7 +1604,7 @@ export default function SalaVirtualEnhancedScreen() {
                   activeOpacity={0.7}
                 >
                   <Text style={styles.messageEmoji}>{msg.emoji}</Text>
-                  <Text style={[styles.messageText, { fontSize: scaleFontSize(14), color: themeColors.text }]}>
+                  <Text style={[styles.messageButtonText, { fontSize: scaleFontSize(14), color: themeColors.text }]}>
                     {msg.text}
                   </Text>
                 </TouchableOpacity>
@@ -1547,7 +1626,7 @@ export default function SalaVirtualEnhancedScreen() {
                   activeOpacity={0.7}
                 >
                   <Text style={styles.messageEmoji}>{msg.emoji}</Text>
-                  <Text style={[styles.messageText, { fontSize: scaleFontSize(14), color: themeColors.text }]}>
+                  <Text style={[styles.messageButtonText, { fontSize: scaleFontSize(14), color: themeColors.text }]}>
                     {msg.text}
                   </Text>
                 </TouchableOpacity>
@@ -1810,7 +1889,7 @@ export default function SalaVirtualEnhancedScreen() {
     );
   }
 
-  // FIX: Android status bar overlap - add top padding
+  // FIX v326.0: Android status bar overlap - add top padding
   const androidTopPadding = Platform.OS === 'android' ? insets.top : 0;
 
   return (
@@ -1963,6 +2042,7 @@ export default function SalaVirtualEnhancedScreen() {
               <TouchableOpacity
                 style={styles.tab}
                 onPress={() => {
+                  console.log('[SalaVirtual Enhanced v326.0] 🔄 Switching to private chats tab');
                   setActiveTab('private');
                   loadPrivateChats();
                 }}
@@ -2777,6 +2857,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     flex: 1,
   },
+  bottomSheetRecipient: {
+    fontWeight: '700',
+    marginBottom: 16,
+  },
   profileSection: {
     marginBottom: 16,
   },
@@ -2790,7 +2874,6 @@ const styles = StyleSheet.create({
   },
   profileButtonText: {
     fontWeight: '700',
-    flex: 1,
   },
   divider: {
     height: 1,
@@ -2814,6 +2897,10 @@ const styles = StyleSheet.create({
   },
   messageEmoji: {
     fontSize: 24,
+  },
+  messageButtonText: {
+    fontWeight: '600',
+    flex: 1,
   },
   animationOverlay: {
     position: 'absolute',
