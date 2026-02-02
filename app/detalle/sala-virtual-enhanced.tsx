@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Modal,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -28,7 +27,6 @@ import LoginPrompt from '@/components/common/LoginPrompt';
 import { scaleFontSize, scaleIconSize, getActionButtonPaddingVertical } from '@/utils/androidScaling';
 import * as Location from 'expo-location';
 import { calcularDistancia } from '@/utils/locationUtils';
-import { InteractionBubbleCarousel } from '@/components/sala-virtual/InteractionBubbleCarousel';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -83,6 +81,27 @@ const QUICK_PUBLIC_MESSAGES = [
   { id: 'q3', text: '¡Qué ambientazo! 🔥', emoji: '🔥' },
   { id: 'q4', text: '¿Quién pide ronda? 🥂', emoji: '🥂' },
 ];
+
+// Predefined Messages
+const PREDEFINED_MESSAGES = {
+  flirtatious: [
+    { id: '1', text: '¿Me sacas a bailar? 💃', emoji: '💃' },
+    { id: '2', text: '¿Te puedo sacar a bailar? 🕺✨', emoji: '🕺' },
+    { id: '3', text: 'Te he visto y no he podido no saludarte... 👀', emoji: '👀' },
+    { id: '4', text: 'Me gusta tu estilo. 😊', emoji: '😊' },
+  ],
+  invitation: [
+    { id: '5', text: '¿Te invito a una copa? 🥂', emoji: '🥂' },
+    { id: '6', text: '¿Me invitas a una copa? 😇', emoji: '😇' },
+    { id: '7', text: 'Pago yo la siguiente ronda 🍸', emoji: '🍸' },
+    { id: '8', text: '¿Qué estás tomando? 🍹', emoji: '🍹' },
+  ],
+  icebreaker: [
+    { id: '9', text: 'S.O.S: Mis amigos son unos pesados, ¿me rescatas? 😂', emoji: '😂' },
+    { id: '10', text: '¿Te apetece charlar un rato? 😊', emoji: '😊' },
+    { id: '11', text: '¿Vienes mucho por aquí? ✨', emoji: '✨' },
+  ],
+};
 
 const PROXIMITY_THRESHOLD = 5; // meters
 
@@ -151,7 +170,7 @@ export default function SalaVirtualEnhancedScreen() {
   const [activeTab, setActiveTab] = useState<'chat' | 'users'>('chat');
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [selectedUser, setSelectedUser] = useState<ActiveUser | null>(null);
-  const [showBubbleCarousel, setShowBubbleCarousel] = useState(false);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [showQuickMessages, setShowQuickMessages] = useState(true);
   const [pendingInteractions, setPendingInteractions] = useState<PendingInteraction[]>([]);
   const [showAnimation, setShowAnimation] = useState(false);
@@ -172,7 +191,7 @@ export default function SalaVirtualEnhancedScreen() {
   const hasInitialized = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
-  const bubbleScale = useRef(new Animated.Value(0)).current;
+  const bottomSheetAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const animationScale = useRef(new Animated.Value(0)).current;
   const animationOpacity = useRef(new Animated.Value(0)).current;
 
@@ -663,8 +682,7 @@ export default function SalaVirtualEnhancedScreen() {
         });
       }
 
-      setShowBubbleCarousel(false);
-      setSelectedUser(null);
+      closeBottomSheet();
 
       // Show success feedback
       const recipient = activeUsers.find(u => u.id === recipientId);
@@ -773,37 +791,33 @@ export default function SalaVirtualEnhancedScreen() {
 
   const handleUserPress = (selectedUser: ActiveUser) => {
     console.log('[SalaVirtual Enhanced] User pressed:', selectedUser.nombre || selectedUser.username);
-    console.log('[SalaVirtual Enhanced] Selected user object:', JSON.stringify(selectedUser));
     
     if (selectedUser.id === user?.id) {
       console.log('[SalaVirtual Enhanced] Cannot interact with self');
       return;
     }
     
-    console.log('[SalaVirtual Enhanced] Setting selected user and showing modal');
+    console.log('[SalaVirtual Enhanced] Opening bottom sheet for user');
     setSelectedUser(selectedUser);
-    setShowBubbleCarousel(true);
-    console.log('[SalaVirtual Enhanced] Modal state updated - showBubbleCarousel:', true);
+    setShowBottomSheet(true);
 
-    // Animate bubble carousel
-    Animated.spring(bubbleScale, {
-      toValue: 1,
+    // Animate bottom sheet up
+    Animated.spring(bottomSheetAnim, {
+      toValue: 0,
       friction: 8,
       tension: 40,
       useNativeDriver: true,
-    }).start(() => {
-      console.log('[SalaVirtual Enhanced] Bubble scale animation completed');
-    });
+    }).start();
   };
 
-  const closeBubbleCarousel = () => {
-    console.log('[SalaVirtual Enhanced] Closing bubble carousel');
-    Animated.timing(bubbleScale, {
-      toValue: 0,
-      duration: 200,
+  const closeBottomSheet = () => {
+    console.log('[SalaVirtual Enhanced] Closing bottom sheet');
+    Animated.timing(bottomSheetAnim, {
+      toValue: SCREEN_HEIGHT,
+      duration: 250,
       useNativeDriver: true,
     }).start(() => {
-      setShowBubbleCarousel(false);
+      setShowBottomSheet(false);
       setSelectedUser(null);
     });
   };
@@ -812,8 +826,7 @@ export default function SalaVirtualEnhancedScreen() {
     if (!selectedUser) return;
     
     console.log('[SalaVirtual Enhanced] Navigating to profile:', selectedUser.id);
-    setShowBubbleCarousel(false);
-    setSelectedUser(null);
+    closeBottomSheet();
     router.push(`/perfil/usuario?id=${selectedUser.id}`);
   };
 
@@ -910,10 +923,10 @@ export default function SalaVirtualEnhancedScreen() {
     );
   };
 
-  const renderUserItem = ({ item }: { item: ActiveUser }) => {
+  const renderUserItem = ({ item, index }: { item: ActiveUser; index: number }) => {
     const isCurrentUser = user && item.id === user.id;
     const isNearby = item.distance !== undefined && item.distance < PROXIMITY_THRESHOLD;
-    const avatarSize = Platform.OS === 'android' ? scaleIconSize(52) : 52;
+    const avatarSize = Platform.OS === 'android' ? scaleIconSize(70) : 70;
     const displayName = item.username || item.nombre;
     const distanceText = item.distance !== undefined ? `${item.distance.toFixed(0)}m` : '';
 
@@ -921,8 +934,7 @@ export default function SalaVirtualEnhancedScreen() {
       <TouchableOpacity
         key={item.id}
         style={[
-          styles.userCard,
-          { backgroundColor: themeColors.cardBg, borderColor: themeColors.cardBorder },
+          styles.gridUserCard,
           isNearby && mode === 'night' && {
             borderColor: themeColors.primary,
             borderWidth: 2,
@@ -933,87 +945,72 @@ export default function SalaVirtualEnhancedScreen() {
           },
         ]}
         onPress={() => {
-          console.log('[SalaVirtual Enhanced] User card pressed:', displayName, 'isCurrentUser:', isCurrentUser);
+          console.log('[SalaVirtual Enhanced] Grid user card pressed:', displayName, 'isCurrentUser:', isCurrentUser);
           if (!isCurrentUser) {
             handleUserPress(item);
-          } else {
-            console.log('[SalaVirtual Enhanced] Skipping - this is the current user');
           }
         }}
         disabled={isCurrentUser}
         activeOpacity={0.7}
       >
-        <View style={styles.userCardContent}>
-          <View style={styles.userAvatarContainer}>
-            {item.avatar ? (
-              <Image
-                source={resolveImageSource(item.avatar)}
-                style={[
-                  styles.userCardAvatar,
-                  { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 },
-                  isNearby && { borderColor: themeColors.primary, borderWidth: 3 },
-                ]}
-              />
-            ) : (
-              <View style={[
-                styles.userCardAvatarPlaceholder,
-                { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2, backgroundColor: themeColors.primary + '30' },
+        <View style={styles.gridUserAvatarContainer}>
+          {item.avatar ? (
+            <Image
+              source={resolveImageSource(item.avatar)}
+              style={[
+                styles.gridUserAvatar,
+                { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 },
                 isNearby && { borderColor: themeColors.primary, borderWidth: 3 },
-              ]}>
-                <IconSymbol
-                  ios_icon_name="person.fill"
-                  android_material_icon_name="person"
-                  size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
-                  color={themeColors.text}
-                />
-              </View>
-            )}
-            {isNearby && (
-              <Animated.View 
-                style={[
-                  styles.proximityHalo,
-                  { 
-                    transform: [{ scale: pulseAnim }],
-                    backgroundColor: themeColors.primary + '40',
-                  }
-                ]} 
+              ]}
+            />
+          ) : (
+            <View style={[
+              styles.gridUserAvatarPlaceholder,
+              { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2, backgroundColor: themeColors.primary + '30' },
+              isNearby && { borderColor: themeColors.primary, borderWidth: 3 },
+            ]}>
+              <IconSymbol
+                ios_icon_name="person.fill"
+                android_material_icon_name="person"
+                size={Platform.OS === 'android' ? scaleIconSize(32) : 32}
+                color={themeColors.text}
               />
-            )}
+            </View>
+          )}
+          {isNearby && (
             <Animated.View 
               style={[
-                styles.userCardOnlineDot,
-                { transform: [{ scale: pulseAnim }], backgroundColor: themeColors.success }
+                styles.gridProximityHalo,
+                { 
+                  transform: [{ scale: pulseAnim }],
+                  backgroundColor: themeColors.primary + '40',
+                }
               ]} 
             />
-          </View>
-          
-          <View style={styles.userCardInfo}>
-            <Text style={[styles.userCardName, { fontSize: scaleFontSize(16), color: themeColors.text }]}>
-              {displayName} {isCurrentUser && '(Tú)'}
-            </Text>
-            {isNearby && (
-              <View style={[styles.proximityBadge, { backgroundColor: themeColors.primary + '20' }]}>
-                <IconSymbol
-                  ios_icon_name="location.fill"
-                  android_material_icon_name="location_on"
-                  size={Platform.OS === 'android' ? scaleIconSize(12) : 12}
-                  color={themeColors.primary}
-                />
-                <Text style={[styles.proximityText, { fontSize: scaleFontSize(11), color: themeColors.primary }]}>
-                  {distanceText} cerca
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {!isCurrentUser && (
-          <IconSymbol
-            ios_icon_name="chevron.right"
-            android_material_icon_name="chevron_right"
-            size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
-            color={themeColors.primary}
+          )}
+          <Animated.View 
+            style={[
+              styles.gridUserOnlineDot,
+              { transform: [{ scale: pulseAnim }], backgroundColor: themeColors.success }
+            ]} 
           />
+        </View>
+        
+        <Text 
+          style={[styles.gridUserName, { fontSize: scaleFontSize(13), color: themeColors.text }]}
+          numberOfLines={2}
+          ellipsizeMode="tail"
+        >
+          {displayName}
+          {isCurrentUser && '\n(Tú)'}
+        </Text>
+        
+        {isNearby && (
+          <View style={[styles.gridProximityBadge, { backgroundColor: themeColors.primary + '20' }]}>
+            <Text style={[styles.gridProximityText, { fontSize: scaleFontSize(10), color: themeColors.primary }]}>
+              {distanceText}
+            </Text>
+          </View>
         )}
       </TouchableOpacity>
     );
@@ -1041,6 +1038,156 @@ export default function SalaVirtualEnhancedScreen() {
           ))}
         </ScrollView>
       </View>
+    );
+  };
+
+  const renderBottomSheet = () => {
+    if (!showBottomSheet || !selectedUser) return null;
+
+    const recipientName = selectedUser.username || selectedUser.nombre;
+
+    return (
+      <React.Fragment>
+        <TouchableOpacity
+          style={styles.bottomSheetOverlay}
+          activeOpacity={1}
+          onPress={closeBottomSheet}
+        />
+        <Animated.View
+          style={[
+            styles.bottomSheet,
+            {
+              backgroundColor: themeColors.cardBg,
+              borderTopColor: themeColors.cardBorder,
+              transform: [{ translateY: bottomSheetAnim }],
+            },
+            mode === 'night' && {
+              shadowColor: themeColors.glow,
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.8,
+              shadowRadius: 20,
+              elevation: 20,
+            },
+          ]}
+        >
+          <View style={[styles.bottomSheetHandle, { backgroundColor: themeColors.textSecondary + '40' }]} />
+          
+          <ScrollView style={styles.bottomSheetScroll} contentContainerStyle={styles.bottomSheetContent}>
+            <View style={[styles.bottomSheetHeader, { borderBottomColor: themeColors.cardBorder }]}>
+              <Text style={[styles.bottomSheetTitle, { fontSize: scaleFontSize(20), color: themeColors.text }]}>
+                Enviar mensaje a {recipientName}
+              </Text>
+              <TouchableOpacity onPress={closeBottomSheet}>
+                <IconSymbol
+                  ios_icon_name="xmark.circle.fill"
+                  android_material_icon_name="cancel"
+                  size={Platform.OS === 'android' ? scaleIconSize(28) : 28}
+                  color={themeColors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* View Profile Button */}
+            <View style={styles.profileSection}>
+              <TouchableOpacity
+                style={[
+                  styles.profileButton,
+                  { 
+                    backgroundColor: themeColors.primary + '20',
+                    borderColor: themeColors.primary + '40',
+                  },
+                ]}
+                onPress={handleViewProfile}
+                activeOpacity={0.7}
+              >
+                <IconSymbol
+                  ios_icon_name="person.circle.fill"
+                  android_material_icon_name="account_circle"
+                  size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
+                  color={themeColors.primary}
+                />
+                <Text style={[styles.profileButtonText, { fontSize: scaleFontSize(15), color: themeColors.text }]}>
+                  Ver Perfil de {recipientName}
+                </Text>
+                <IconSymbol
+                  ios_icon_name="chevron.right"
+                  android_material_icon_name="chevron_right"
+                  size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
+                  color={themeColors.primary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.divider, { backgroundColor: themeColors.cardBorder }]} />
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14), color: themeColors.textSecondary }]}>
+                💃 Ligar / Atrevido
+              </Text>
+              {PREDEFINED_MESSAGES.flirtatious.map((msg) => (
+                <TouchableOpacity
+                  key={msg.id}
+                  style={[
+                    styles.messageButton,
+                    { backgroundColor: themeColors.primary + '15', borderColor: themeColors.primary + '30' },
+                  ]}
+                  onPress={() => sendPredefinedMessage(selectedUser.id, msg.text)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.messageEmoji}>{msg.emoji}</Text>
+                  <Text style={[styles.messageText, { fontSize: scaleFontSize(14), color: themeColors.text }]}>
+                    {msg.text}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14), color: themeColors.textSecondary }]}>
+                🥂 Invitación
+              </Text>
+              {PREDEFINED_MESSAGES.invitation.map((msg) => (
+                <TouchableOpacity
+                  key={msg.id}
+                  style={[
+                    styles.messageButton,
+                    { backgroundColor: themeColors.secondary + '15', borderColor: themeColors.secondary + '30' },
+                  ]}
+                  onPress={() => sendPredefinedMessage(selectedUser.id, msg.text)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.messageEmoji}>{msg.emoji}</Text>
+                  <Text style={[styles.messageText, { fontSize: scaleFontSize(14), color: themeColors.text }]}>
+                    {msg.text}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14), color: themeColors.textSecondary }]}>
+                😊 Rompehielos
+              </Text>
+              {PREDEFINED_MESSAGES.icebreaker.map((msg) => (
+                <TouchableOpacity
+                  key={msg.id}
+                  style={[
+                    styles.messageButton,
+                    { backgroundColor: themeColors.accent + '15', borderColor: themeColors.accent + '30' },
+                  ]}
+                  onPress={() => sendPredefinedMessage(selectedUser.id, msg.text)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.messageEmoji}>{msg.emoji}</Text>
+                  <Text style={[styles.messageText, { fontSize: scaleFontSize(14), color: themeColors.text }]}>
+                    {msg.text}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </Animated.View>
+      </React.Fragment>
     );
   };
 
@@ -1394,7 +1541,9 @@ export default function SalaVirtualEnhancedScreen() {
                 data={activeUsers}
                 renderItem={renderUserItem}
                 keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.usersContent}
+                numColumns={4}
+                contentContainerStyle={styles.usersGridContent}
+                columnWrapperStyle={styles.usersGridRow}
                 ListEmptyComponent={
                   <View style={styles.emptyContainer}>
                     <View style={[styles.emptyIconCircle, { backgroundColor: themeColors.primary + '20' }]}>
@@ -1436,19 +1585,7 @@ export default function SalaVirtualEnhancedScreen() {
           )}
         </View>
 
-        <InteractionBubbleCarousel
-          visible={showBubbleCarousel && selectedUser !== null}
-          onClose={closeBubbleCarousel}
-          recipientName={selectedUser?.username || selectedUser?.nombre || 'Usuario'}
-          onSelectMessage={(message) => {
-            if (selectedUser) {
-              sendPredefinedMessage(selectedUser.id, message);
-            }
-          }}
-          onViewProfile={handleViewProfile}
-          themeColors={themeColors}
-          mode={mode}
-        />
+        {renderBottomSheet()}
 
         {showAnimation && (
           <Animated.View
@@ -1648,9 +1785,13 @@ const styles = StyleSheet.create({
     padding: 16,
     flexGrow: 1,
   },
-  usersContent: {
-    padding: 16,
+  usersGridContent: {
+    padding: 12,
     flexGrow: 1,
+  },
+  usersGridRow: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   emptyContainer: {
     flex: 1,
@@ -1774,34 +1915,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  userCard: {
-    borderRadius: 16,
-    marginBottom: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    padding: 16,
-    flexDirection: 'row',
+  gridUserCard: {
+    width: (SCREEN_WIDTH - 48) / 4,
     alignItems: 'center',
-    justifyContent: 'space-between',
+    padding: 8,
+    borderRadius: 12,
   },
-  userCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  userAvatarContainer: {
+  gridUserAvatarContainer: {
     position: 'relative',
-    marginRight: 12,
+    marginBottom: 8,
   },
-  userCardAvatar: {
+  gridUserAvatar: {
     borderWidth: 3,
+    borderColor: '#FFFFFF',
   },
-  userCardAvatarPlaceholder: {
+  gridUserAvatarPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
+    borderColor: '#FFFFFF',
   },
-  proximityHalo: {
+  gridProximityHalo: {
     position: 'absolute',
     top: -8,
     left: -8,
@@ -1810,34 +1944,30 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     zIndex: -1,
   },
-  userCardOnlineDot: {
+  gridUserOnlineDot: {
     position: 'absolute',
     top: -2,
     right: -2,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 3,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
     borderColor: '#FFFFFF',
   },
-  userCardInfo: {
-    flex: 1,
-  },
-  userCardName: {
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  proximityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  proximityText: {
+  gridUserName: {
     fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 16,
+    minHeight: 32,
+  },
+  gridProximityBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  gridProximityText: {
+    fontWeight: '700',
   },
   usersFooter: {
     padding: 16,
@@ -1856,7 +1986,90 @@ const styles = StyleSheet.create({
   },
   checkOutButtonText: {
     fontWeight: '600',
-    fontSize: scaleFontSize(14),
+  },
+  bottomSheetOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 999,
+  },
+  bottomSheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    maxHeight: SCREEN_HEIGHT * 0.85,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 2,
+    zIndex: 1000,
+  },
+  bottomSheetHandle: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  bottomSheetScroll: {
+    flex: 1,
+  },
+  bottomSheetContent: {
+    padding: 20,
+  },
+  bottomSheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    marginBottom: 16,
+  },
+  bottomSheetTitle: {
+    fontWeight: '700',
+    flex: 1,
+  },
+  profileSection: {
+    marginBottom: 16,
+  },
+  profileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    gap: 12,
+    borderWidth: 2,
+  },
+  profileButtonText: {
+    fontWeight: '700',
+    flex: 1,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 16,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  messageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 10,
+    gap: 12,
+    borderWidth: 2,
+  },
+  messageEmoji: {
+    fontSize: 24,
   },
   animationOverlay: {
     position: 'absolute',
