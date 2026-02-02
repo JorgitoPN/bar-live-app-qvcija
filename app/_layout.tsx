@@ -73,36 +73,37 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 /**
- * ROOT LAYOUT v327.0 - FULL SCREEN MODAL FIX FOR EDIT PAGES
+ * ROOT LAYOUT v328.0 - MODAL STACK GROUP FIX
  * 
- * NEW CHANGES v327.0:
+ * NEW CHANGES v328.0:
+ * - ✅ FIXED: All modals now share the same Stack ancestor via Stack.Group
+ * - ✅ FIXED: Edit pages no longer close the post viewer when opening
+ * - ✅ FIXED: Proper modal stacking - edit pages open ON TOP of post viewer
+ * - ✅ IMPROVED: Native modal behavior - iOS/Android keep previous view in memory
+ * 
+ * TECHNICAL EXPLANATION:
+ * - Stack.Group with presentation: 'modal' ensures all child screens share the same modal stack
+ * - This prevents the OS from destroying the previous view (PostViewerModal) when opening edit pages
+ * - router.push() adds new screen to stack instead of replacing it
+ * - When edit page closes, PostViewerModal is still mounted and visible
+ * 
+ * Previous changes v327.0:
  * - ✅ FIXED: "Editar descripción" and "Gestionar etiquetas" now use fullScreenModal
  * - ✅ FIXED: Edit pages no longer get covered by the post viewer
  * - ✅ FIXED: Pages open completely on top with proper z-index
  * - ✅ IMPROVED: Seamless editing experience without visual glitches
- * 
- * Previous changes v325.0:
- * - ✅ FIXED: "Nuevo momento" (crear/publicacion) now opens as fullScreen, not modal
- * - ✅ FIXED: Modal pages (editar-descripcion, gestionar-etiquetas) properly stack above PostViewerModal
- * - ✅ IMPROVED: Post viewer stays open in background when editing/managing tags
- * 
- * Previous changes v322.0:
- * - ✅ Changed "Editar descripción" and "Gestionar etiquetas" to use presentation: 'modal'
- * - ✅ These pages now open as modals ABOVE the post viewer, keeping it open in background
- * - ✅ Proper modal behavior: post stays visible underneath
- * - ✅ Closing these modals returns to the post viewer
  */
 
 export default function RootLayout() {
   useEffect(() => {
-    console.log('[RootLayout v325.0] 🚀 App starting...');
-    console.log('[RootLayout v325.0] 📱 Platform:', Platform.OS);
+    console.log('[RootLayout v328.0] 🚀 App starting...');
+    console.log('[RootLayout v328.0] 📱 Platform:', Platform.OS);
     
     // ✅ CRITICAL FIX v25.0: Initialize Android-specific behavior
     let cleanupAndroid: (() => void) | undefined;
     
     if (Platform.OS === 'android') {
-      console.log('[RootLayout v325.0] 🤖 Initializing Android native behavior...');
+      console.log('[RootLayout v328.0] 🤖 Initializing Android native behavior...');
       try {
         cleanupAndroid = initializeAndroidBehavior();
       } catch (error) {
@@ -112,10 +113,10 @@ export default function RootLayout() {
 
     // Hide splash screen
     const timer = setTimeout(() => {
-      console.log('[RootLayout v325.0] 🎨 Hiding splash screen...');
+      console.log('[RootLayout v328.0] 🎨 Hiding splash screen...');
       SplashScreen.hideAsync()
         .then(() => {
-          console.log('[RootLayout v325.0] ✅ Splash screen hidden');
+          console.log('[RootLayout v328.0] ✅ Splash screen hidden');
         })
         .catch((error) => {
           console.error('[RootLayout] Error hiding splash screen:', error);
@@ -178,39 +179,48 @@ export default function RootLayout() {
                             <Stack.Screen name="perfil" options={{ headerShown: false }} />
                             <Stack.Screen name="social" options={{ headerShown: false }} />
                             
-                            {/* ✅ v327.0: FULL SCREEN MODAL - Pages open COMPLETELY ABOVE post viewer */}
-                            <Stack.Screen 
-                              name="social/gestionar-etiquetas" 
-                              options={{ 
-                                presentation: 'fullScreenModal',
-                                headerShown: false,
-                                animation: 'slide_from_bottom',
-                              }} 
-                            />
-                            <Stack.Screen 
-                              name="social/editar-descripcion" 
-                              options={{ 
-                                presentation: 'fullScreenModal',
-                                headerShown: false,
-                                animation: 'slide_from_bottom',
-                              }} 
-                            />
-                            <Stack.Screen 
-                              name="social/comentarios" 
-                              options={{ 
-                                presentation: 'modal',
-                                headerShown: false,
-                                animation: 'slide_from_bottom',
-                              }} 
-                            />
-                            <Stack.Screen 
-                              name="social/likes" 
-                              options={{ 
-                                presentation: 'modal',
-                                headerShown: false,
-                                animation: 'slide_from_bottom',
-                              }} 
-                            />
+                            {/* ✅ v328.0: MODAL STACK GROUP - All modals share the same Stack ancestor */}
+                            {/* This ensures PostViewerModal stays mounted when opening edit pages */}
+                            <Stack.Group screenOptions={{ presentation: 'modal' }}>
+                              <Stack.Screen 
+                                name="social/post-viewer" 
+                                options={{ 
+                                  headerShown: false,
+                                  animation: 'slide_from_bottom',
+                                }} 
+                              />
+                              <Stack.Screen 
+                                name="social/editar-descripcion" 
+                                options={{ 
+                                  presentation: 'fullScreenModal',
+                                  headerShown: false,
+                                  animation: 'slide_from_bottom',
+                                }} 
+                              />
+                              <Stack.Screen 
+                                name="social/gestionar-etiquetas" 
+                                options={{ 
+                                  presentation: 'fullScreenModal',
+                                  headerShown: false,
+                                  animation: 'slide_from_bottom',
+                                }} 
+                              />
+                              <Stack.Screen 
+                                name="social/comentarios" 
+                                options={{ 
+                                  headerShown: false,
+                                  animation: 'slide_from_bottom',
+                                }} 
+                              />
+                              <Stack.Screen 
+                                name="social/likes" 
+                                options={{ 
+                                  headerShown: false,
+                                  animation: 'slide_from_bottom',
+                                }} 
+                              />
+                            </Stack.Group>
+                            
                             <Stack.Screen 
                               name="editar/publicacion" 
                               options={{ 

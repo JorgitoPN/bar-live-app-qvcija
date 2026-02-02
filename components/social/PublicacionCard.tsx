@@ -77,23 +77,19 @@ export interface TaggableUser {
 }
 
 /**
- * ✅ PUBLICACION CARD v322.0 - FULL-SCREEN NAVIGATION FOR EDIT & TAG MANAGEMENT
+ * ✅ PUBLICACION CARD v328.0 - MODAL STACK GROUP INTEGRATION
  * 
- * NEW CHANGES v322.0:
+ * NEW CHANGES v328.0:
+ * - ✅ UPDATED: Edit pages now part of Stack.Group for proper modal stacking
+ * - ✅ IMPROVED: Consistent navigation with PostViewerModal architecture
+ * - ✅ IMPROVED: Edit pages open as fullScreenModal on top of post viewer
+ * 
+ * Previous changes v322.0:
  * - ✅ FIXED: "Editar descripción" now navigates to full-screen page (not modal)
  * - ✅ FIXED: "Gestionar etiquetas" now navigates to full-screen page (not modal)
  * - ✅ FIXED: Removed inline modals for editing and tag management
  * - ✅ IMPROVED: Consistent navigation pattern with PostViewerModal
  * - ✅ IMPROVED: Better UX with dedicated full-screen pages
- * 
- * Previous changes v316.0:
- * - ✅ Comments now open in full-screen page instead of modal
- * - ✅ Better UX with dedicated full-screen page for comments
- * - ✅ Removed CommentsModal component usage
- * 
- * Previous fixes maintained (v102.0):
- * - ✅ All icons use scaleIconSize() for proper scaling
- * - ✅ All text uses scaleFontSize() for consistency
  */
 
 const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
@@ -163,7 +159,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       setTaggedUsers(tags);
     } catch (error) {
-      console.error('[PublicacionCard v322.0] Error loading tagged users:', error);
+      console.error('[PublicacionCard v328.0] Error loading tagged users:', error);
     }
   }, [post.id]);
 
@@ -174,7 +170,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   useEffect(() => {
     const loadInitialLikes = async () => {
       try {
-        console.log('[PublicacionCard v322.0] 🔄 Loading initial likes for post:', post.id);
+        console.log('[PublicacionCard v328.0] 🔄 Loading initial likes for post:', post.id);
         
         const { data, error } = await supabase
           .from('likes')
@@ -183,10 +179,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
         if (!error && data) {
           setLocalLikes(data);
-          console.log('[PublicacionCard v322.0] ✅ Loaded initial likes:', data.length);
+          console.log('[PublicacionCard v328.0] ✅ Loaded initial likes:', data.length);
         }
       } catch (error) {
-        console.error('[PublicacionCard v322.0] ❌ Error loading initial likes:', error);
+        console.error('[PublicacionCard v328.0] ❌ Error loading initial likes:', error);
       }
     };
 
@@ -196,10 +192,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   useEffect(() => {
     if (!user) return;
 
-    console.log('[PublicacionCard v322.0] 🔄 Setting up real-time subscription for post:', post.id);
+    console.log('[PublicacionCard v328.0] 🔄 Setting up real-time subscription for post:', post.id);
 
     if (channelRef.current?.state === 'subscribed') {
-      console.log('[PublicacionCard v322.0] ⚠️ Already subscribed, skipping');
+      console.log('[PublicacionCard v328.0] ⚠️ Already subscribed, skipping');
       return;
     }
 
@@ -216,16 +212,16 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           filter: `post_id=eq.${post.id}`,
         },
         async (payload) => {
-          console.log('[PublicacionCard v322.0] 🔄 Real-time like change detected:', payload.eventType);
+          console.log('[PublicacionCard v328.0] 🔄 Real-time like change detected:', payload.eventType);
           
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
           if (changedByUserId === user.id) {
-            console.log('[PublicacionCard v322.0] ⏭️ Change made by current user, skipping');
+            console.log('[PublicacionCard v328.0] ⏭️ Change made by current user, skipping');
             return;
           }
           
-          console.log('[PublicacionCard v322.0] 🔄 Change made by another user, updating...');
+          console.log('[PublicacionCard v328.0] 🔄 Change made by another user, updating...');
           
           if (payload.eventType === 'INSERT' && payload.new) {
             setLocalLikes(prev => {
@@ -233,13 +229,13 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                 return prev;
               }
               const newArray = [...prev, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
-              console.log('[PublicacionCard v322.0] ➕ Added like, new count:', newArray.length);
+              console.log('[PublicacionCard v328.0] ➕ Added like, new count:', newArray.length);
               return newArray;
             });
           } else if (payload.eventType === 'DELETE' && payload.old) {
             setLocalLikes(prev => {
               const newArray = prev.filter(like => like.id !== payload.old.id);
-              console.log('[PublicacionCard v322.0] ➖ Removed like, new count:', newArray.length);
+              console.log('[PublicacionCard v328.0] ➖ Removed like, new count:', newArray.length);
               return newArray;
             });
           }
@@ -250,7 +246,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             .eq('post_id', post.id);
           
           if (!countError && count !== null) {
-            console.log('[PublicacionCard v322.0] ✅ Updated likes count:', count);
+            console.log('[PublicacionCard v328.0] ✅ Updated likes count:', count);
             setLikesCount(count);
           }
         }
@@ -264,7 +260,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           filter: `post_id=eq.${post.id}`,
         },
         async (payload) => {
-          console.log('[PublicacionCard v322.0] 🔄 Real-time comment change detected:', payload.eventType);
+          console.log('[PublicacionCard v328.0] 🔄 Real-time comment change detected:', payload.eventType);
           
           const { count, error: countError } = await supabase
             .from('comentarios')
@@ -272,17 +268,17 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             .eq('post_id', post.id);
           
           if (!countError && count !== null) {
-            console.log('[PublicacionCard v322.0] ✅ Updated comments count:', count);
+            console.log('[PublicacionCard v328.0] ✅ Updated comments count:', count);
             setCommentsCount(count);
           }
         }
       )
       .subscribe((status) => {
-        console.log('[PublicacionCard v322.0] 📡 Subscription status:', status);
+        console.log('[PublicacionCard v328.0] 📡 Subscription status:', status);
       });
 
     return () => {
-      console.log('[PublicacionCard v322.0] 🔄 Cleaning up subscription');
+      console.log('[PublicacionCard v328.0] 🔄 Cleaning up subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -443,7 +439,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           .eq('usuario_id', user.id);
       }
     } catch (error) {
-      console.error('[PublicacionCard v322.0] Error toggling save:', error);
+      console.error('[PublicacionCard v328.0] Error toggling save:', error);
       setSaved(!newSavedState);
     }
   }, [user, saved, post.id]);
@@ -453,7 +449,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       Alert.alert('Inicia sesión', 'Para comentar necesitas registrarte en BarLive');
       return;
     }
-    console.log('[PublicacionCard v322.0] 💬 Opening comments full-screen page for post:', post.id);
+    console.log('[PublicacionCard v328.0] 💬 Opening comments full-screen page for post:', post.id);
     router.push({
       pathname: '/social/comentarios',
       params: { 
@@ -483,7 +479,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         title: 'Compartir publicación',
       });
     } catch (error) {
-      console.error('[PublicacionCard v322.0] Error sharing:', error);
+      console.error('[PublicacionCard v328.0] Error sharing:', error);
     }
   }, [post.contenido]);
 
@@ -538,7 +534,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                 onUpdate();
               }
             } catch (error) {
-              console.error('[PublicacionCard v322.0] Error deleting post:', error);
+              console.error('[PublicacionCard v328.0] Error deleting post:', error);
               Alert.alert('Error', 'No se pudo eliminar la publicación');
             }
           },
@@ -576,10 +572,10 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
 
     if (canEdit) {
-      // ✅ v322.0: Navigate to full-screen pages instead of opening modals
+      // ✅ v328.0: Navigate to full-screen pages (part of Stack.Group)
       options.push('Editar descripción');
       actions.push(() => {
-        console.log('[PublicacionCard v322.0] 📝 Opening edit description full-screen page');
+        console.log('[PublicacionCard v328.0] 📝 Opening edit description full-screen page');
         router.push({
           pathname: '/social/editar-descripcion',
           params: { postId: post.id },
@@ -588,7 +584,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       options.push('Gestionar etiquetas');
       actions.push(() => {
-        console.log('[PublicacionCard v322.0] 🏷️ Opening manage tags full-screen page');
+        console.log('[PublicacionCard v328.0] 🏷️ Opening manage tags full-screen page');
         router.push({
           pathname: '/social/gestionar-etiquetas',
           params: { postId: post.id },

@@ -25,25 +25,24 @@ import HashtagAutocomplete from '@/components/social/HashtagAutocomplete';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 /**
- * ✅ EDIT DESCRIPTION PAGE v327.0 - FULL SCREEN MODAL FIX
+ * ✅ EDIT DESCRIPTION PAGE v328.0 - MODAL STACK GROUP FIX
  * 
- * NEW CHANGES v327.0:
+ * NEW CHANGES v328.0:
+ * - ✅ FIXED: Page is part of Stack.Group with post viewer
+ * - ✅ FIXED: Opens as fullScreenModal ON TOP of post viewer
+ * - ✅ FIXED: Post viewer stays mounted and visible in background
+ * - ✅ IMPROVED: router.back() returns to post viewer which auto-refreshes
+ * 
+ * TECHNICAL EXPLANATION:
+ * - This page is registered in Stack.Group in _layout.tsx
+ * - When opened via router.push(), it stacks on top of PostViewerModal
+ * - PostViewerModal remains mounted and uses useFocusEffect to refresh
+ * - When this page closes, PostViewerModal regains focus and updates
+ * 
+ * Previous changes v327.0:
  * - ✅ FIXED: Page now opens as fullScreenModal, not covered by post viewer
  * - ✅ FIXED: Proper z-index - page is always on top
  * - ✅ IMPROVED: No visual glitches when opening from profile grid posts
- * 
- * Previous changes v326.0:
- * - ✅ IMPROVED: Post automatically refreshes when returning to PostViewerModal
- * - ✅ IMPROVED: No need to manually reload - useFocusEffect handles it
- * - ✅ IMPROVED: Seamless editing experience
- * 
- * Previous changes v319.0:
- * - ✅ Full-screen page for editing ONLY the description/caption
- * - ✅ Does NOT allow editing images, tags, or location
- * - ✅ Simpler and faster for quick caption edits
- * - ✅ Processes mentions (@username) and hashtags (#tag)
- * - ✅ Character limit: 2200 characters
- * - ✅ Auto-save with optimistic UI
  */
 
 export default function EditarDescripcionScreen() {
@@ -101,7 +100,7 @@ export default function EditarDescripcionScreen() {
 
       setContenido(postData.contenido || '');
     } catch (error) {
-      console.error('[EditarDescripcion v326.0] Error loading post:', error);
+      console.error('[EditarDescripcion v328.0] Error loading post:', error);
       Alert.alert('Error', 'No se pudo cargar la publicación');
       router.back();
     } finally {
@@ -159,7 +158,7 @@ export default function EditarDescripcionScreen() {
     setSaving(true);
 
     try {
-      console.log('[EditarDescripcion v326.0] 💾 Saving description for post:', postId);
+      console.log('[EditarDescripcion v328.0] 💾 Saving description for post:', postId);
 
       const { error: updateError } = await supabase
         .from('posts')
@@ -171,7 +170,7 @@ export default function EditarDescripcionScreen() {
         .eq('autor_id', user.id);
 
       if (updateError) {
-        console.error('[EditarDescripcion v326.0] Error updating post:', updateError);
+        console.error('[EditarDescripcion v328.0] Error updating post:', updateError);
         throw updateError;
       }
 
@@ -183,12 +182,12 @@ export default function EditarDescripcionScreen() {
         ]);
       }
 
-      console.log('[EditarDescripcion v327.0] ✅ Description updated successfully');
+      console.log('[EditarDescripcion v328.0] ✅ Description updated successfully');
       
-      // ✅ v327.0: Just go back - PostViewerModal will auto-refresh via useFocusEffect
+      // ✅ v328.0: Just go back - PostViewerModal will auto-refresh via useFocusEffect
       router.back();
     } catch (error) {
-      console.error('[EditarDescripcion v326.0] Error saving changes:', error);
+      console.error('[EditarDescripcion v328.0] Error saving changes:', error);
       Alert.alert('Error', 'No se pudieron guardar los cambios');
     } finally {
       setSaving(false);
