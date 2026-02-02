@@ -171,3 +171,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
+// Also export as default for convenience
+export default ErrorBoundary;
