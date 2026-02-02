@@ -25,9 +25,14 @@ import HashtagAutocomplete from '@/components/social/HashtagAutocomplete';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 /**
- * ✅ EDIT DESCRIPTION ONLY PAGE v319.0
+ * ✅ EDIT DESCRIPTION PAGE v326.0 - AUTO-REFRESH POST ON SAVE
  * 
- * NEW IMPLEMENTATION v319.0:
+ * NEW CHANGES v326.0:
+ * - ✅ IMPROVED: Post automatically refreshes when returning to PostViewerModal
+ * - ✅ IMPROVED: No need to manually reload - useFocusEffect handles it
+ * - ✅ IMPROVED: Seamless editing experience
+ * 
+ * Previous changes v319.0:
  * - ✅ Full-screen page for editing ONLY the description/caption
  * - ✅ Does NOT allow editing images, tags, or location
  * - ✅ Simpler and faster for quick caption edits
@@ -91,7 +96,7 @@ export default function EditarDescripcionScreen() {
 
       setContenido(postData.contenido || '');
     } catch (error) {
-      console.error('[EditarDescripcion v319.0] Error loading post:', error);
+      console.error('[EditarDescripcion v326.0] Error loading post:', error);
       Alert.alert('Error', 'No se pudo cargar la publicación');
       router.back();
     } finally {
@@ -149,7 +154,7 @@ export default function EditarDescripcionScreen() {
     setSaving(true);
 
     try {
-      console.log('[EditarDescripcion v319.0] 💾 Saving description for post:', postId);
+      console.log('[EditarDescripcion v326.0] 💾 Saving description for post:', postId);
 
       const { error: updateError } = await supabase
         .from('posts')
@@ -161,7 +166,7 @@ export default function EditarDescripcionScreen() {
         .eq('autor_id', user.id);
 
       if (updateError) {
-        console.error('[EditarDescripcion v319.0] Error updating post:', updateError);
+        console.error('[EditarDescripcion v326.0] Error updating post:', updateError);
         throw updateError;
       }
 
@@ -173,13 +178,12 @@ export default function EditarDescripcionScreen() {
         ]);
       }
 
-      console.log('[EditarDescripcion v319.0] ✅ Description updated successfully');
+      console.log('[EditarDescripcion v326.0] ✅ Description updated successfully');
       
-      Alert.alert('Éxito', 'Descripción actualizada correctamente', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      // ✅ v326.0: Just go back - PostViewerModal will auto-refresh via useFocusEffect
+      router.back();
     } catch (error) {
-      console.error('[EditarDescripcion v319.0] Error saving changes:', error);
+      console.error('[EditarDescripcion v326.0] Error saving changes:', error);
       Alert.alert('Error', 'No se pudieron guardar los cambios');
     } finally {
       setSaving(false);

@@ -1,24 +1,19 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v325.0 - PROPER MODAL STACKING FIX
+ * 🚨 POST VIEWER MODAL v326.0 - POST STAYS VISIBLE DURING EDITING
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v325.0:
- * - ✅ FIXED: Modal properly closes BEFORE navigating to edit/tag pages
- * - ✅ FIXED: setTimeout ensures modal dismisses before router.push
- * - ✅ FIXED: Stack modal pages can now be visible (not obscured by native modal)
- * - ✅ FIXED: Post stays in navigation stack, returns when closing edit/tag pages
- * - ✅ IMPROVED: Proper visual stacking behavior
+ * NEW CHANGES v326.0:
+ * - ✅ FIXED: Post NO LONGER closes when opening "Editar descripción" or "Gestionar etiquetas"
+ * - ✅ FIXED: Post remains visible in background while editing pages open on top
+ * - ✅ FIXED: Removed onClose() call - modal stays mounted and visible
+ * - ✅ FIXED: Edit pages open as full-screen overlays above the post
+ * - ✅ IMPROVED: Seamless editing experience without losing context
+ * - ✅ IMPROVED: Post updates automatically when returning from edit pages
  * 
- * Previous changes v324.0:
- * - ❌ BROKEN: Removed onClose() call, causing modal to stay open and obscure edit/tag pages
- * 
- * Previous changes v323.0:
- * - ✅ FIXED: When opening from profile grid, "Editar descripción" and "Gestionar etiquetas" now properly close the modal BEFORE navigating
- * - ✅ FIXED: Modal dismisses immediately, allowing the edit/tag pages to be visible
- * - ✅ FIXED: User can now see and interact with edit/tag pages without closing the post manually
- * - ✅ IMPROVED: Consistent behavior between social page and profile page
+ * Previous changes v325.0:
+ * - ❌ BROKEN: Modal closed before navigating, causing post to disappear
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -50,7 +45,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import ParsedText from '@/components/social/ParsedText';
 
 import { SOCIAL_ICONS } from '@/constants/SocialIcons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import TaggableUser from './TaggingModalV5';
 import TagDisplay from './TagDisplay';
 import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
@@ -102,12 +97,13 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v325.0 - PROPER MODAL STACKING FIX
+ * ✅ POST VIEWER MODAL v326.0 - POST STAYS VISIBLE DURING EDITING
  * 
- * NEW CHANGES v325.0:
- * - ✅ FIXED: Modal closes BEFORE navigating (onClose + setTimeout pattern)
- * - ✅ FIXED: Stack modal pages are now visible (not obscured)
- * - ✅ FIXED: Post remains in navigation stack for return navigation
+ * NEW CHANGES v326.0:
+ * - ✅ FIXED: Post NO LONGER closes when navigating to edit/tag pages
+ * - ✅ FIXED: Modal stays mounted and visible in background
+ * - ✅ FIXED: Edit pages open as overlays on top
+ * - ✅ IMPROVED: Automatic post refresh when returning from edit pages
  */
 
 export default function PostViewerModal({
@@ -176,7 +172,7 @@ export default function PostViewerModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[PostViewerModal v325.0] Props received:', { 
+      console.log('[PostViewerModal v326.0] Props received:', { 
         visible, 
         initialPostId, 
         singlePost: !!singlePost,
@@ -195,10 +191,10 @@ export default function PostViewerModal({
 
       if (!error && data) {
         setLocalLikes(prev => new Map(prev).set(postId, data));
-        console.log('[PostViewerModal v325.0] ✅ Loaded initial likes for post:', postId, 'count:', data.length);
+        console.log('[PostViewerModal v326.0] ✅ Loaded initial likes for post:', postId, 'count:', data.length);
       }
     } catch (error) {
-      console.error('[PostViewerModal v325.0] Error loading initial likes:', error);
+      console.error('[PostViewerModal v326.0] Error loading initial likes:', error);
     }
   }, []);
 
@@ -211,22 +207,93 @@ export default function PostViewerModal({
 
       if (!error && count !== null) {
         setCommentsCount(prev => new Map(prev).set(postId, count));
-        console.log('[PostViewerModal v325.0] ✅ Loaded comment count for post:', postId, 'count:', count);
+        console.log('[PostViewerModal v326.0] ✅ Loaded comment count for post:', postId, 'count:', count);
       }
     } catch (error) {
-      console.error('[PostViewerModal v325.0] Error loading comment count:', error);
+      console.error('[PostViewerModal v326.0] Error loading comment count:', error);
     }
   };
+
+  // ✅ v326.0: NEW - Refresh post data when returning from edit pages
+  const refreshCurrentPost = useCallback(async () => {
+    if (!currentPostId) return;
+
+    try {
+      console.log('[PostViewerModal v326.0] 🔄 Refreshing post data after edit:', currentPostId);
+
+      const { data: postData, error: postError } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          autor:usuarios!posts_autor_id_fkey(nombre, avatar, username),
+          local:locales(nombre, imagen_url)
+        `)
+        .eq('id', currentPostId)
+        .single();
+
+      if (postError || !postData) {
+        console.error('[PostViewerModal v326.0] Error refreshing post:', postError);
+        return;
+      }
+
+      // Update the post in the posts array
+      setPosts(prevPosts => prevPosts.map(p => {
+        if (p.id === currentPostId) {
+          const displayName = postData.tipo === 'local' && postData.local 
+            ? postData.local.nombre 
+            : postData.autor?.username 
+              ? postData.autor.username.replace(/^@/, '')
+              : postData.autor?.nombre || 'Usuario';
+
+          const displayAvatar = postData.tipo === 'local' && postData.local 
+            ? postData.local.imagen_url 
+            : postData.autor?.avatar || '';
+
+          const images = postData.imagenes && postData.imagenes.length > 0 
+            ? postData.imagenes 
+            : postData.imagen 
+              ? [postData.imagen] 
+              : [];
+
+          return {
+            ...p,
+            ...postData,
+            autorNombre: displayName,
+            autorAvatar: displayAvatar,
+            images,
+          };
+        }
+        return p;
+      }));
+
+      // Reload tags for the post
+      await loadTaggedUsers(currentPostId);
+
+      console.log('[PostViewerModal v326.0] ✅ Post refreshed successfully');
+    } catch (error) {
+      console.error('[PostViewerModal v326.0] Error refreshing post:', error);
+    }
+  }, [currentPostId]);
+
+  // ✅ v326.0: NEW - Listen for screen focus to refresh post data
+  useFocusEffect(
+    useCallback(() => {
+      if (visible && currentPostId) {
+        console.log('[PostViewerModal v326.0] 🔄 Screen focused - refreshing post data');
+        refreshCurrentPost();
+      }
+    }, [visible, currentPostId, refreshCurrentPost])
+  );
 
   useEffect(() => {
     if (!user || posts.length === 0) return;
 
-    console.log('[PostViewerModal v325.0] 🔄 Setting up real-time likes subscription for', posts.length, 'posts');
+    console.log('[PostViewerModal v326.0] 🔄 Setting up real-time likes subscription for', posts.length, 'posts');
 
     const postIds = posts.map(p => p.id);
     
     if (channelRef.current?.state === 'subscribed') {
-      console.log('[PostViewerModal v325.0] ⚠️ Already subscribed, skipping');
+      console.log('[PostViewerModal v326.0] ⚠️ Already subscribed, skipping');
       return;
     }
 
@@ -248,16 +315,16 @@ export default function PostViewerModal({
             return;
           }
 
-          console.log('[PostViewerModal v325.0] 🔄 Real-time like change detected:', payload.eventType, 'for post:', postId);
+          console.log('[PostViewerModal v326.0] 🔄 Real-time like change detected:', payload.eventType, 'for post:', postId);
           
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
           if (changedByUserId === user.id) {
-            console.log('[PostViewerModal v325.0] ⏭️ Change made by current user, skipping (already handled optimistically)');
+            console.log('[PostViewerModal v326.0] ⏭️ Change made by current user, skipping (already handled optimistically)');
             return;
           }
           
-          console.log('[PostViewerModal v325.0] 🔄 Change made by another user, updating local state...');
+          console.log('[PostViewerModal v326.0] 🔄 Change made by another user, updating local state...');
           
           if (payload.eventType === 'INSERT' && payload.new) {
             setLocalLikes(prev => {
@@ -268,7 +335,7 @@ export default function PostViewerModal({
               const newArray = [...current, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
               const newMap = new Map(prev);
               newMap.set(postId, newArray);
-              console.log('[PostViewerModal v325.0] ➕ Added like to local array, new count:', newArray.length);
+              console.log('[PostViewerModal v326.0] ➕ Added like to local array, new count:', newArray.length);
               return newMap;
             });
           } else if (payload.eventType === 'DELETE' && payload.old) {
@@ -277,7 +344,7 @@ export default function PostViewerModal({
               const newArray = current.filter(like => like.id !== payload.old.id);
               const newMap = new Map(prev);
               newMap.set(postId, newArray);
-              console.log('[PostViewerModal v325.0] ➖ Removed like from local array, new count:', newArray.length);
+              console.log('[PostViewerModal v326.0] ➖ Removed like from local array, new count:', newArray.length);
               return newMap;
             });
           }
@@ -288,7 +355,7 @@ export default function PostViewerModal({
             .eq('post_id', postId);
           
           if (!countError && count !== null) {
-            console.log('[PostViewerModal v325.0] ✅ Updated likes count from database:', count);
+            console.log('[PostViewerModal v326.0] ✅ Updated likes count from database:', count);
             setLikesCount(prev => new Map(prev).set(postId, count));
           }
         }
@@ -307,7 +374,7 @@ export default function PostViewerModal({
             return;
           }
 
-          console.log('[PostViewerModal v325.0] 🔄 Real-time comment change detected:', payload.eventType, 'for post:', postId);
+          console.log('[PostViewerModal v326.0] 🔄 Real-time comment change detected:', payload.eventType, 'for post:', postId);
           
           const { count, error: countError } = await supabase
             .from('comentarios')
@@ -320,11 +387,11 @@ export default function PostViewerModal({
         }
       )
       .subscribe((status) => {
-        console.log('[PostViewerModal v325.0] 📡 Subscription status:', status);
+        console.log('[PostViewerModal v326.0] 📡 Subscription status:', status);
       });
 
     return () => {
-      console.log('[PostViewerModal v325.0] 🔄 Cleaning up real-time subscription');
+      console.log('[PostViewerModal v326.0] 🔄 Cleaning up real-time subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -339,7 +406,7 @@ export default function PostViewerModal({
       const authorIds = posts.map(p => p.autor_id).filter(Boolean);
       if (authorIds.length === 0) return;
 
-      console.log('[PostViewerModal v325.0] 🔍 Checking momentos for', authorIds.length, 'authors');
+      console.log('[PostViewerModal v326.0] 🔍 Checking momentos for', authorIds.length, 'authors');
 
       const { data: momentosData, error: momentosError } = await supabase
         .from('momentos')
@@ -349,7 +416,7 @@ export default function PostViewerModal({
         .gt('expires_at', new Date().toISOString());
 
       if (momentosError || !momentosData) {
-        console.error('[PostViewerModal v325.0] Error fetching author momentos:', momentosError);
+        console.error('[PostViewerModal v326.0] Error fetching author momentos:', momentosError);
         return;
       }
 
@@ -374,10 +441,10 @@ export default function PostViewerModal({
         }
       });
 
-      console.log('[PostViewerModal v325.0] ✅ Authors with unviewed momentos:', authorsWithUnviewed.size);
+      console.log('[PostViewerModal v326.0] ✅ Authors with unviewed momentos:', authorsWithUnviewed.size);
       setAuthorsWithMomentos(authorsWithUnviewed);
     } catch (error) {
-      console.error('[PostViewerModal v325.0] Error checking authors momentos:', error);
+      console.error('[PostViewerModal v326.0] Error checking authors momentos:', error);
     }
   }, [user, posts]);
 
@@ -386,7 +453,7 @@ export default function PostViewerModal({
       setLoading(true);
       
       if (singlePost) {
-        console.log('[PostViewerModal v325.0] Using single post mode');
+        console.log('[PostViewerModal v326.0] Using single post mode');
         
         let liked = false;
         if (interactionUserId) {
@@ -463,7 +530,7 @@ export default function PostViewerModal({
       }
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v325.0] Invalid allPostIds in loadPosts:', allPostIds);
+        console.error('[PostViewerModal v326.0] Invalid allPostIds in loadPosts:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -480,7 +547,7 @@ export default function PostViewerModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[PostViewerModal v325.0] Error loading posts:', error);
+        console.error('[PostViewerModal v326.0] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
         setPosts([]);
         setLoading(false);
@@ -488,14 +555,14 @@ export default function PostViewerModal({
       }
 
       if (!data || !Array.isArray(data)) {
-        console.error('[PostViewerModal v325.0] Invalid data received:', data);
+        console.error('[PostViewerModal v326.0] Invalid data received:', data);
         setPosts([]);
         setLoading(false);
         return;
       }
 
       if (data.length === 0) {
-        console.warn('[PostViewerModal v325.0] No posts found for IDs:', allPostIds);
+        console.warn('[PostViewerModal v326.0] No posts found for IDs:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -571,7 +638,7 @@ export default function PostViewerModal({
         .filter(Boolean) as Post[];
 
       if (!sortedPosts || sortedPosts.length === 0) {
-        console.warn('[PostViewerModal v325.0] No valid posts after sorting');
+        console.warn('[PostViewerModal v326.0] No valid posts after sorting');
         setPosts([]);
         setLoading(false);
         return;
@@ -600,7 +667,7 @@ export default function PostViewerModal({
         setCurrentPostId(initialPostId || '');
       }
     } catch (error) {
-      console.error('[PostViewerModal v325.0] Error:', error);
+      console.error('[PostViewerModal v326.0] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
       setPosts([]);
     } finally {
@@ -684,11 +751,11 @@ export default function PostViewerModal({
       const tempId = `temp-${Date.now()}`;
       const newArray = [...previousLocalLikes, { id: tempId, usuario_id: interactionUserId }];
       setLocalLikes(prev => new Map(prev).set(post.id, newArray));
-      console.log('[PostViewerModal v325.0] ✅ Optimistic ADD: Local likes array updated instantly, new count:', newArray.length);
+      console.log('[PostViewerModal v326.0] ✅ Optimistic ADD: Local likes array updated instantly, new count:', newArray.length);
     } else {
       const newArray = previousLocalLikes.filter(like => like.usuario_id !== interactionUserId);
       setLocalLikes(prev => new Map(prev).set(post.id, newArray));
-      console.log('[PostViewerModal v325.0] ✅ Optimistic REMOVE: Local likes array updated instantly, new count:', newArray.length);
+      console.log('[PostViewerModal v326.0] ✅ Optimistic REMOVE: Local likes array updated instantly, new count:', newArray.length);
     }
 
     const existingTimer = likeDebounceTimer.current.get(post.id);
@@ -699,7 +766,7 @@ export default function PostViewerModal({
     const timer = setTimeout(async () => {
       try {
         if (newLikedState) {
-          console.log('[PostViewerModal v325.0] ➕ Adding like to database for post:', post.id);
+          console.log('[PostViewerModal v326.0] ➕ Adding like to database for post:', post.id);
           
           const likeData: any = {
             post_id: post.id,
@@ -716,7 +783,7 @@ export default function PostViewerModal({
           const { data, error } = await supabase.from('likes').insert(likeData).select().single();
           
           if (error) {
-            console.error('[PostViewerModal v325.0] ❌ Error adding like:', error);
+            console.error('[PostViewerModal v326.0] ❌ Error adding like:', error);
             throw error;
           }
           
@@ -730,9 +797,9 @@ export default function PostViewerModal({
             return new Map(prev).set(post.id, updated);
           });
           
-          console.log('[PostViewerModal v325.0] ✅ Like added successfully, real ID:', data.id);
+          console.log('[PostViewerModal v326.0] ✅ Like added successfully, real ID:', data.id);
         } else {
-          console.log('[PostViewerModal v325.0] ➖ Removing like from database for post:', post.id);
+          console.log('[PostViewerModal v326.0] ➖ Removing like from database for post:', post.id);
           
           let deleteQuery = supabase
             .from('likes')
@@ -749,11 +816,11 @@ export default function PostViewerModal({
           const { error } = await deleteQuery;
           
           if (error) {
-            console.error('[PostViewerModal v325.0] ❌ Error removing like:', error);
+            console.error('[PostViewerModal v326.0] ❌ Error removing like:', error);
             throw error;
           }
           
-          console.log('[PostViewerModal v325.0] ✅ Like removed successfully from database');
+          console.log('[PostViewerModal v326.0] ✅ Like removed successfully from database');
         }
 
         const { count, error: countError } = await supabase
@@ -762,7 +829,7 @@ export default function PostViewerModal({
           .eq('post_id', post.id);
         
         if (!countError && count !== null) {
-          console.log('[PostViewerModal v325.0] ✅ Verified final count from database:', count);
+          console.log('[PostViewerModal v326.0] ✅ Verified final count from database:', count);
           setLikesCount(prev => new Map(prev).set(post.id, count));
         }
         
@@ -770,7 +837,7 @@ export default function PostViewerModal({
           onUpdate();
         }
       } catch (error) {
-        console.error('[PostViewerModal v325.0] ❌ Error toggling like:', error);
+        console.error('[PostViewerModal v326.0] ❌ Error toggling like:', error);
         setIsLiked(prev => new Map(prev).set(post.id, previousLiked));
         setLikesCount(prev => new Map(prev).set(post.id, previousCount));
         setLocalLikes(prev => new Map(prev).set(post.id, previousLocalLikes));
@@ -848,7 +915,7 @@ export default function PostViewerModal({
         onUpdate();
       }
     } catch (error) {
-      console.error('[PostViewerModal v325.0] Error toggling save:', error);
+      console.error('[PostViewerModal v326.0] Error toggling save:', error);
       setPosts(prevPosts =>
         prevPosts.map(p =>
           p.id === post.id ? { ...p, saved: isSaved } : p
@@ -884,25 +951,19 @@ export default function PostViewerModal({
           },
           (buttonIndex) => {
             if (buttonIndex === 1) {
-              console.log('[PostViewerModal v325.0] 📝 Opening edit description - Closing modal first');
-              // ✅ v325.0: Close modal BEFORE navigating to allow stack modal to be visible
-              onClose();
-              setTimeout(() => {
-                router.push({
-                  pathname: '/social/editar-descripcion',
-                  params: { postId: post.id },
-                });
-              }, 100);
+              console.log('[PostViewerModal v326.0] 📝 Opening edit description - POST STAYS OPEN');
+              // ✅ v326.0: DO NOT close modal - post stays visible in background
+              router.push({
+                pathname: '/social/editar-descripcion',
+                params: { postId: post.id },
+              });
             } else if (buttonIndex === 2) {
-              console.log('[PostViewerModal v325.0] 🏷️ Opening manage tags - Closing modal first');
-              // ✅ v325.0: Close modal BEFORE navigating to allow stack modal to be visible
-              onClose();
-              setTimeout(() => {
-                router.push({
-                  pathname: '/social/gestionar-etiquetas',
-                  params: { postId: post.id },
-                });
-              }, 100);
+              console.log('[PostViewerModal v326.0] 🏷️ Opening manage tags - POST STAYS OPEN');
+              // ✅ v326.0: DO NOT close modal - post stays visible in background
+              router.push({
+                pathname: '/social/gestionar-etiquetas',
+                params: { postId: post.id },
+              });
             } else if (buttonIndex === 3) {
               handleDeletePost(post);
             }
@@ -917,29 +978,23 @@ export default function PostViewerModal({
             { 
               text: 'Editar descripción', 
               onPress: () => {
-                console.log('[PostViewerModal v325.0] 📝 Opening edit description - Closing modal first');
-                // ✅ v325.0: Close modal BEFORE navigating to allow stack modal to be visible
-                onClose();
-                setTimeout(() => {
-                  router.push({
-                    pathname: '/social/editar-descripcion',
-                    params: { postId: post.id },
-                  });
-                }, 100);
+                console.log('[PostViewerModal v326.0] 📝 Opening edit description - POST STAYS OPEN');
+                // ✅ v326.0: DO NOT close modal - post stays visible in background
+                router.push({
+                  pathname: '/social/editar-descripcion',
+                  params: { postId: post.id },
+                });
               }
             },
             { 
               text: 'Gestionar etiquetas', 
               onPress: () => {
-                console.log('[PostViewerModal v325.0] 🏷️ Opening manage tags - Closing modal first');
-                // ✅ v325.0: Close modal BEFORE navigating to allow stack modal to be visible
-                onClose();
-                setTimeout(() => {
-                  router.push({
-                    pathname: '/social/gestionar-etiquetas',
-                    params: { postId: post.id },
-                  });
-                }, 100);
+                console.log('[PostViewerModal v326.0] 🏷️ Opening manage tags - POST STAYS OPEN');
+                // ✅ v326.0: DO NOT close modal - post stays visible in background
+                router.push({
+                  pathname: '/social/gestionar-etiquetas',
+                  params: { postId: post.id },
+                });
               }
             },
             { 
@@ -1006,7 +1061,7 @@ export default function PostViewerModal({
                 }},
               ]);
             } catch (error) {
-              console.error('[PostViewerModal v325.0] Error deleting post:', error);
+              console.error('[PostViewerModal v326.0] Error deleting post:', error);
               Alert.alert('Error', 'No se pudo eliminar la publicación');
             }
           },
@@ -1057,7 +1112,7 @@ export default function PostViewerModal({
 
       setTaggedUsers(prev => new Map(prev).set(postId, tags));
     } catch (error) {
-      console.error('[PostViewerModal v325.0] Error loading tagged users:', error);
+      console.error('[PostViewerModal v326.0] Error loading tagged users:', error);
     }
   }, []);
 
@@ -1278,7 +1333,7 @@ export default function PostViewerModal({
             <TouchableOpacity 
               style={styles.actionButton}
               onPress={() => {
-                console.log('[PostViewerModal v325.0] 💬 Opening comments full-screen page for post:', post.id);
+                console.log('[PostViewerModal v326.0] 💬 Opening comments full-screen page for post:', post.id);
                 router.push({
                   pathname: '/social/comentarios',
                   params: { 
@@ -1351,7 +1406,7 @@ export default function PostViewerModal({
         <TouchableOpacity 
           style={styles.commentsContainer}
           onPress={() => {
-            console.log('[PostViewerModal v325.0] 💬 Opening comments full-screen page for post:', post.id);
+            console.log('[PostViewerModal v326.0] 💬 Opening comments full-screen page for post:', post.id);
             router.push({
               pathname: '/social/comentarios',
               params: { 
