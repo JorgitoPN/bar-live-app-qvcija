@@ -790,8 +790,14 @@ export default function SalaVirtualEnhancedScreen() {
   }, []);
 
   const handleUserPress = (selectedUser: ActiveUser) => {
-    if (selectedUser.id === user?.id) return;
+    console.log('[SalaVirtual Enhanced] User pressed:', selectedUser.nombre || selectedUser.username);
     
+    if (selectedUser.id === user?.id) {
+      console.log('[SalaVirtual Enhanced] Cannot interact with self');
+      return;
+    }
+    
+    console.log('[SalaVirtual Enhanced] Opening bubble carousel for user:', selectedUser.id);
     setSelectedUser(selectedUser);
     setShowBubbleCarousel(true);
 
@@ -931,7 +937,12 @@ export default function SalaVirtualEnhancedScreen() {
           },
         ]}
         onPress={() => {
-          if (!isCurrentUser) handleUserPress(item);
+          console.log('[SalaVirtual Enhanced] User card pressed:', displayName, 'isCurrentUser:', isCurrentUser);
+          if (!isCurrentUser) {
+            handleUserPress(item);
+          } else {
+            console.log('[SalaVirtual Enhanced] Skipping - this is the current user');
+          }
         }}
         disabled={isCurrentUser}
         activeOpacity={0.7}
