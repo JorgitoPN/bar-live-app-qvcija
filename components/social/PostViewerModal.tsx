@@ -1,26 +1,27 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 ANDROID-ONLY FIXES v158.0 - POST VIEWER FULLSCREEN PERFECTED
+ * 🚨 POST VIEWER MODAL v316.0 - FULL-SCREEN COMMENTS & LIKES NAVIGATION
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * CRITICAL FIXES v158.0 (ANDROID ONLY):
- * - ✅ FIXED: Removed ALL bottom padding everywhere (paddingBottom: 0)
- * - ✅ FIXED: postContainer has no bottom padding
- * - ✅ FIXED: timeContainer has no bottom padding
- * - ✅ FIXED: editModalContent has no bottom padding
- * - ✅ FIXED: tagManagementContent has no bottom padding
- * - ✅ VERIFIED: True fullscreen with no gaps at bottom
+ * NEW CHANGES v316.0:
+ * - ✅ Comments now open in full-screen page (/social/comentarios) instead of modal
+ * - ✅ Likes now open in full-screen page (/social/likes) instead of modal
+ * - ✅ Better UX with dedicated full-screen pages for comments and likes
+ * - ✅ Removed CommentsModal component usage
+ * - ✅ Cleaner navigation flow
  * 
- * Previous fixes maintained (v157.0):
+ * Previous fixes maintained (v158.0):
+ * - ✅ Removed ALL bottom padding everywhere (paddingBottom: 0)
+ * - ✅ True fullscreen with no gaps at bottom
  * - ✅ transparent={false} para modal de pantalla completa
  * - ✅ StatusBar oculto en Android para experiencia inmersiva
- * - ✅ Publicaciones ahora se abren en pantalla completa real en Android
- * - ✅ Added presentationStyle='fullScreen' for iOS compatibility
- * - ✅ iOS mantiene diseño original como referencia
  * 
  * ARCHIVOS MODIFICADOS:
  * - components/social/PostViewerModal.tsx (este archivo)
+ * - components/social/PostLikesAvatars.tsx (navegación a /social/likes)
+ * - app/social/comentarios.tsx (nueva página de pantalla completa)
+ * - app/social/likes.tsx (nueva página de pantalla completa)
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -52,7 +53,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useInteractionContext } from '@/hooks/useInteractionContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import ParsedText from '@/components/social/ParsedText';
-import CommentsModal from '@/components/social/CommentsModal';
+
 import { SOCIAL_ICONS } from '@/constants/SocialIcons';
 import { useRouter } from 'expo-router';
 import TaggingModalV5, { TaggableUser } from './TaggingModalV5';
@@ -107,16 +108,18 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v157.0 - ANDROID FULLSCREEN PERFECTED
+ * ✅ POST VIEWER MODAL v316.0 - FULL-SCREEN COMMENTS & LIKES NAVIGATION
  * 
- * CRITICAL FIXES v157.0 (ANDROID ONLY):
- * - ✅ FIXED: Modal uses transparent={false} for true fullscreen
- * - ✅ FIXED: StatusBar properly hidden on Android for immersive experience
- * - ✅ FIXED: Removed ALL bottom padding to eliminate gaps (paddingBottom: 0)
- * - ✅ FIXED: Added presentationStyle='fullScreen' for iOS compatibility
- * - ✅ VERIFIED: Content fills entire screen edge-to-edge
- * - ✅ VERIFIED: No gaps at bottom of screen on Android
- * - ✅ iOS design remains unchanged (reference design)
+ * NEW CHANGES v316.0:
+ * - ✅ Comments now navigate to /social/comentarios (full-screen page)
+ * - ✅ Likes now navigate to /social/likes (full-screen page)
+ * - ✅ Removed CommentsModal state and component
+ * - ✅ Better UX with dedicated full-screen pages
+ * 
+ * Previous fixes maintained (v157.0):
+ * - ✅ Modal uses transparent={false} for true fullscreen
+ * - ✅ StatusBar properly hidden on Android
+ * - ✅ Removed ALL bottom padding (paddingBottom: 0)
  */
 
 export default function PostViewerModal({
@@ -138,7 +141,6 @@ export default function PostViewerModal({
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [commentsModalVisible, setCommentsModalVisible] = useState(false);
   const [currentPostId, setCurrentPostId] = useState(initialPostId || singlePost?.id || '');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
@@ -1438,8 +1440,14 @@ export default function PostViewerModal({
             <TouchableOpacity 
               style={styles.actionButton}
               onPress={() => {
-                setCurrentPostId(post.id);
-                setCommentsModalVisible(true);
+                console.log('[PostViewerModal v316.0] 💬 Opening comments full-screen page for post:', post.id);
+                router.push({
+                  pathname: '/social/comentarios',
+                  params: { 
+                    postId: post.id,
+                    postAuthorId: post.autor_id,
+                  },
+                });
               }}
             >
               <IconSymbol
@@ -1505,8 +1513,14 @@ export default function PostViewerModal({
         <TouchableOpacity 
           style={styles.commentsContainer}
           onPress={() => {
-            setCurrentPostId(post.id);
-            setCommentsModalVisible(true);
+            console.log('[PostViewerModal v316.0] 💬 Opening comments full-screen page for post:', post.id);
+            router.push({
+              pathname: '/social/comentarios',
+              params: { 
+                postId: post.id,
+                postAuthorId: post.autor_id,
+              },
+            });
           }}
         >
           {postCommentsCount > 0 ? (
@@ -1613,20 +1627,7 @@ export default function PostViewerModal({
           />
         )}
 
-        {currentPostId && (
-          <CommentsModal
-            visible={commentsModalVisible}
-            postId={currentPostId}
-            postAuthorId={posts.find(p => p.id === currentPostId)?.autor_id || ''}
-            onClose={() => setCommentsModalVisible(false)}
-            onCommentAdded={() => {
-              loadPosts();
-              if (onUpdate) {
-                onUpdate();
-              }
-            }}
-          />
-        )}
+
 
         <Modal
           visible={editModalVisible}
