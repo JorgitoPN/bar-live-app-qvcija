@@ -11,7 +11,7 @@ import { AvatarProvider } from '@/contexts/AvatarContext';
 import { UIScalingProvider } from '@/contexts/UIScalingContext';
 import { WidgetProvider } from '@/contexts/WidgetContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
-import ErrorBoundary from '@/components/ErrorBoundary';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { colors } from '@/styles/commonStyles';
 import React from 'react';
 
