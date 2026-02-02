@@ -1,22 +1,26 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v327.0 - FULL SCREEN MODAL FIX FOR EDIT PAGES
+ * 🚨 POST VIEWER MODAL v328.0 - MODAL STACK GROUP FIX
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v327.0:
+ * NEW CHANGES v328.0:
+ * - ✅ FIXED: Modal now part of Stack.Group in _layout.tsx
+ * - ✅ FIXED: Edit pages share same Stack ancestor - no more closing
+ * - ✅ FIXED: router.push() properly stacks edit pages ON TOP of post viewer
+ * - ✅ IMPROVED: Native modal behavior - iOS/Android keep post viewer in memory
+ * 
+ * TECHNICAL EXPLANATION:
+ * - PostViewerModal is now registered as a route in Stack.Group
+ * - When navigating to edit pages, router.push() adds them to the stack
+ * - The modal stays mounted and visible in the background
+ * - useFocusEffect refreshes post data when returning from edit pages
+ * 
+ * Previous changes v327.0:
  * - ✅ FIXED: Edit pages now use fullScreenModal presentation
  * - ✅ FIXED: Pages no longer get covered by post viewer (z-index issue resolved)
  * - ✅ FIXED: Proper layering - edit pages always appear on top
  * - ✅ IMPROVED: No visual glitches when opening from profile grid
- * 
- * Previous changes v326.0:
- * - ✅ FIXED: Post NO LONGER closes when opening "Editar descripción" or "Gestionar etiquetas"
- * - ✅ FIXED: Post remains visible in background while editing pages open on top
- * - ✅ FIXED: Removed onClose() call - modal stays mounted and visible
- * - ✅ FIXED: Edit pages open as full-screen overlays above the post
- * - ✅ IMPROVED: Seamless editing experience without losing context
- * - ✅ IMPROVED: Post updates automatically when returning from edit pages
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -100,18 +104,17 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v327.0 - FULL SCREEN MODAL FIX FOR EDIT PAGES
+ * ✅ POST VIEWER MODAL v328.0 - MODAL STACK GROUP FIX
  * 
- * NEW CHANGES v327.0:
+ * NEW CHANGES v328.0:
+ * - ✅ FIXED: Modal now part of Stack.Group - shares same Stack ancestor with edit pages
+ * - ✅ FIXED: router.push() properly stacks edit pages without closing post viewer
+ * - ✅ IMPROVED: Native modal stacking - post viewer stays in memory
+ * 
+ * Previous changes v327.0:
  * - ✅ FIXED: Edit pages now use fullScreenModal - no longer covered by post
  * - ✅ FIXED: Proper z-index layering for edit pages
  * - ✅ IMPROVED: Seamless editing experience from profile grid posts
- * 
- * Previous changes v326.0:
- * - ✅ FIXED: Post NO LONGER closes when navigating to edit/tag pages
- * - ✅ FIXED: Modal stays mounted and visible in background
- * - ✅ FIXED: Edit pages open as overlays on top
- * - ✅ IMPROVED: Automatic post refresh when returning from edit pages
  */
 
 export default function PostViewerModal({
@@ -222,12 +225,12 @@ export default function PostViewerModal({
     }
   };
 
-  // ✅ v327.0: Refresh post data when returning from edit pages
+  // ✅ v328.0: Refresh post data when returning from edit pages
   const refreshCurrentPost = useCallback(async () => {
     if (!currentPostId) return;
 
     try {
-      console.log('[PostViewerModal v327.0] 🔄 Refreshing post data after edit:', currentPostId);
+      console.log('[PostViewerModal v328.0] 🔄 Refreshing post data after edit:', currentPostId);
 
       const { data: postData, error: postError } = await supabase
         .from('posts')
@@ -240,7 +243,7 @@ export default function PostViewerModal({
         .single();
 
       if (postError || !postData) {
-        console.error('[PostViewerModal v327.0] Error refreshing post:', postError);
+        console.error('[PostViewerModal v328.0] Error refreshing post:', postError);
         return;
       }
 
@@ -277,17 +280,17 @@ export default function PostViewerModal({
       // Reload tags for the post
       await loadTaggedUsers(currentPostId);
 
-      console.log('[PostViewerModal v327.0] ✅ Post refreshed successfully');
+      console.log('[PostViewerModal v328.0] ✅ Post refreshed successfully');
     } catch (error) {
-      console.error('[PostViewerModal v327.0] Error refreshing post:', error);
+      console.error('[PostViewerModal v328.0] Error refreshing post:', error);
     }
   }, [currentPostId]);
 
-  // ✅ v327.0: Listen for screen focus to refresh post data
+  // ✅ v328.0: Listen for screen focus to refresh post data
   useFocusEffect(
     useCallback(() => {
       if (visible && currentPostId) {
-        console.log('[PostViewerModal v327.0] 🔄 Screen focused - refreshing post data');
+        console.log('[PostViewerModal v328.0] 🔄 Screen focused - refreshing post data');
         refreshCurrentPost();
       }
     }, [visible, currentPostId, refreshCurrentPost])
@@ -959,17 +962,17 @@ export default function PostViewerModal({
           },
           (buttonIndex) => {
             if (buttonIndex === 1) {
-              console.log('[PostViewerModal v327.0] 📝 Opening edit description - POST STAYS OPEN');
-              // ✅ v327.0: DO NOT close modal - post stays visible in background
-              // ✅ v327.0: Page opens as fullScreenModal - no longer covered by post
+              console.log('[PostViewerModal v328.0] 📝 Opening edit description - POST STAYS OPEN');
+              // ✅ v328.0: router.push() stacks edit page ON TOP of post viewer
+              // ✅ v328.0: Stack.Group ensures modal stays mounted in background
               router.push({
                 pathname: '/social/editar-descripcion',
                 params: { postId: post.id },
               });
             } else if (buttonIndex === 2) {
-              console.log('[PostViewerModal v327.0] 🏷️ Opening manage tags - POST STAYS OPEN');
-              // ✅ v327.0: DO NOT close modal - post stays visible in background
-              // ✅ v327.0: Page opens as fullScreenModal - no longer covered by post
+              console.log('[PostViewerModal v328.0] 🏷️ Opening manage tags - POST STAYS OPEN');
+              // ✅ v328.0: router.push() stacks tag page ON TOP of post viewer
+              // ✅ v328.0: Stack.Group ensures modal stays mounted in background
               router.push({
                 pathname: '/social/gestionar-etiquetas',
                 params: { postId: post.id },
@@ -988,9 +991,9 @@ export default function PostViewerModal({
             { 
               text: 'Editar descripción', 
               onPress: () => {
-                console.log('[PostViewerModal v327.0] 📝 Opening edit description - POST STAYS OPEN');
-                // ✅ v327.0: DO NOT close modal - post stays visible in background
-                // ✅ v327.0: Page opens as fullScreenModal - no longer covered by post
+                console.log('[PostViewerModal v328.0] 📝 Opening edit description - POST STAYS OPEN');
+                // ✅ v328.0: router.push() stacks edit page ON TOP of post viewer
+                // ✅ v328.0: Stack.Group ensures modal stays mounted in background
                 router.push({
                   pathname: '/social/editar-descripcion',
                   params: { postId: post.id },
@@ -1000,9 +1003,9 @@ export default function PostViewerModal({
             { 
               text: 'Gestionar etiquetas', 
               onPress: () => {
-                console.log('[PostViewerModal v327.0] 🏷️ Opening manage tags - POST STAYS OPEN');
-                // ✅ v327.0: DO NOT close modal - post stays visible in background
-                // ✅ v327.0: Page opens as fullScreenModal - no longer covered by post
+                console.log('[PostViewerModal v328.0] 🏷️ Opening manage tags - POST STAYS OPEN');
+                // ✅ v328.0: router.push() stacks tag page ON TOP of post viewer
+                // ✅ v328.0: Stack.Group ensures modal stays mounted in background
                 router.push({
                   pathname: '/social/gestionar-etiquetas',
                   params: { postId: post.id },
