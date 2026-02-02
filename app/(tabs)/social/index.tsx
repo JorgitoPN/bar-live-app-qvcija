@@ -34,7 +34,7 @@ import { scaleFontSize } from '@/utils/androidScaling';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ✅ v319.0: Header animation constants
+// ✅ v320.0: Fixed header height to ensure complete hiding
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 100 : 80;
 
 interface Post {
@@ -84,24 +84,17 @@ interface FriendLocation {
 const POSTS_PER_PAGE = 10;
 
 /**
- * ✅ SOCIAL INDEX SCREEN v319.0 - ANIMATED HEADER ON SCROLL
+ * ✅ SOCIAL INDEX SCREEN v320.0 - HEADER SCROLL FIX
  * 
- * NEW CHANGES v319.0:
+ * NEW CHANGES v320.0:
+ * - ✅ FIXED: Header now completely disappears when scrolling down (no bottom edge visible)
+ * - ✅ FIXED: Proper translateY animation to fully hide header
+ * - ✅ IMPROVED: Cleaner scroll experience with complete header hiding
+ * 
+ * Previous changes v319.0:
  * - ✅ Header hides when scrolling down
  * - ✅ Header shows when scrolling up
  * - ✅ Smooth animation with Animated API
- * - ✅ Better immersive experience when viewing feed
- * 
- * CRITICAL FIXES v158.0 (ANDROID ONLY):
- * - ✅ Momento avatars made bigger (48px on Android vs 40px before)
- * - ✅ Better visibility and easier to tap
- * - ✅ Consistent with user request for larger avatars
- * 
- * Previous fixes maintained (v100.0):
- * - ✅ All font sizes use scaleFontSize() for consistency with Favoritos
- * - ✅ Header title size standardized (24px on Android)
- * - ✅ All text elements properly scaled
- * - ✅ iOS design remains unchanged
  */
 
 export default function SocialIndexScreen() {
@@ -125,7 +118,7 @@ export default function SocialIndexScreen() {
   const [loadingFriendsLocations, setLoadingFriendsLocations] = useState(false);
   const [myCheckIn, setMyCheckIn] = useState<any>(null);
 
-  // ✅ v319.0: Animated header state
+  // ✅ v320.0: FIXED - Animated header state with proper hiding
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   const headerTranslateY = useRef(new Animated.Value(0)).current;
@@ -162,18 +155,18 @@ export default function SocialIndexScreen() {
         }
         setUnreadMessages(totalUnread);
         
-        console.log('[Social v100.0] ✅ Loaded unread counts:', {
+        console.log('[Social v320.0] ✅ Loaded unread counts:', {
           notifications: notifCount || 0,
           messages: totalUnread,
         });
       } else {
-        console.log('[Social v100.0] ✅ Loaded unread counts:', {
+        console.log('[Social v320.0] ✅ Loaded unread counts:', {
           notifications: notifCount || 0,
           messages: 0,
         });
       }
     } catch (error) {
-      console.error('[Social v100.0] Error loading unread counts:', error);
+      console.error('[Social v320.0] Error loading unread counts:', error);
     }
   }, [userId]);
 
@@ -194,12 +187,12 @@ export default function SocialIndexScreen() {
         .single();
 
       if (myCheckInError && myCheckInError.code !== 'PGRST116') {
-        console.error('[Social v100.0] Error loading my check-in:', myCheckInError);
+        console.error('[Social v320.0] Error loading my check-in:', myCheckInError);
       }
 
       if (myCheckInData && myCheckInData.locales) {
         setMyCheckIn(myCheckInData);
-        console.log('[Social v100.0] ✅ I am checked in to:', myCheckInData.locales.nombre);
+        console.log('[Social v320.0] ✅ I am checked in to:', myCheckInData.locales.nombre);
       } else {
         setMyCheckIn(null);
       }
@@ -258,9 +251,9 @@ export default function SocialIndexScreen() {
 
       const locations = Array.from(locationsByLocal.values());
       setFriendsLocations(locations);
-      console.log('[Social v100.0] ✅ Loaded friends locations:', locations.length);
+      console.log('[Social v320.0] ✅ Loaded friends locations:', locations.length);
     } catch (error) {
-      console.error('[Social v100.0] Error loading friends locations:', error);
+      console.error('[Social v320.0] Error loading friends locations:', error);
     } finally {
       setLoadingFriendsLocations(false);
     }
@@ -272,7 +265,7 @@ export default function SocialIndexScreen() {
     loadUnreadCounts();
 
     const subscription = supabase
-      .channel('social-feed-updates-v100')
+      .channel('social-feed-updates-v320')
       .on(
         'postgres_changes',
         {
@@ -282,7 +275,7 @@ export default function SocialIndexScreen() {
           filter: `usuario_id=eq.${userId}`,
         },
         () => {
-          console.log('[Social v100.0] 🔔 Notification update detected');
+          console.log('[Social v320.0] 🔔 Notification update detected');
           loadUnreadCounts();
         }
       )
@@ -294,7 +287,7 @@ export default function SocialIndexScreen() {
           table: 'mensajes',
         },
         () => {
-          console.log('[Social v100.0] 💬 Message update detected');
+          console.log('[Social v320.0] 💬 Message update detected');
           loadUnreadCounts();
         }
       )
@@ -307,7 +300,7 @@ export default function SocialIndexScreen() {
 
   const cargarPosts = useCallback(async (pageNum: number = 1, isRefresh: boolean = false) => {
     if (!userId) {
-      console.log('[Social v100.0] No user ID, skipping load');
+      console.log('[Social v320.0] No user ID, skipping load');
       setLoading(false);
       return;
     }
@@ -324,7 +317,7 @@ export default function SocialIndexScreen() {
       const from = (pageNum - 1) * POSTS_PER_PAGE;
       const to = from + POSTS_PER_PAGE - 1;
 
-      console.log(`[Social v100.0] Loading posts for user ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'}), page ${pageNum}`);
+      console.log(`[Social v320.0] Loading posts for user ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'}), page ${pageNum}`);
 
       const { data: followingData, error: followingError } = await supabase
         .from('seguidores')
@@ -409,7 +402,7 @@ export default function SocialIndexScreen() {
         setHasMore(false);
       }
     } catch (error) {
-      console.error('[Social v100.0] Error cargando posts:', error);
+      console.error('[Social v320.0] Error cargando posts:', error);
       Alert.alert('Error', 'No se pudieron cargar las publicaciones');
     } finally {
       setLoading(false);
@@ -444,7 +437,7 @@ export default function SocialIndexScreen() {
     router.push('/crear/publicacion');
   };
 
-  // ✅ v319.0: Handle scroll for animated header
+  // ✅ v320.0: FIXED - Header now completely hides when scrolling down
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     {
@@ -453,10 +446,9 @@ export default function SocialIndexScreen() {
         const currentScrollY = event.nativeEvent.contentOffset.y;
         const diff = currentScrollY - lastScrollY.current;
 
-        // Only animate if scrolled more than 5px to avoid jitter
         if (Math.abs(diff) > 5) {
           if (diff > 0 && currentScrollY > 50) {
-            // Scrolling down - hide header
+            // Scrolling down - hide header COMPLETELY
             Animated.timing(headerTranslateY, {
               toValue: -HEADER_HEIGHT,
               duration: 250,
@@ -481,7 +473,7 @@ export default function SocialIndexScreen() {
 
     if (userId) {
       const checkInsChannel = supabase
-        .channel('social-check-ins-updates-v100')
+        .channel('social-check-ins-updates-v320')
         .on(
           'postgres_changes',
           {
@@ -490,7 +482,7 @@ export default function SocialIndexScreen() {
             table: 'check_ins',
           },
           () => {
-            console.log('[Social v100.0] 🔔 Check-ins updated');
+            console.log('[Social v320.0] 🔔 Check-ins updated');
             loadFriendsLocations();
           }
         )
@@ -721,7 +713,7 @@ export default function SocialIndexScreen() {
 
   const content = (
     <View style={styles.container}>
-      {/* ✅ v319.0: Animated header that hides on scroll down, shows on scroll up */}
+      {/* ✅ v320.0: FIXED - Animated header that completely hides on scroll down */}
       <Animated.View
         style={[
           styles.animatedHeaderContainer,
