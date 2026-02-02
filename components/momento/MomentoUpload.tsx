@@ -281,24 +281,26 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent={false} animationType="slide" presentationStyle="fullScreen">
       <View style={styles.container}>
-        <LinearGradient
-          colors={['rgba(0,0,0,0.9)', 'rgba(0,0,0,0.95)']}
-          style={styles.gradient}
-        >
-          <View style={styles.header}>
+        <View style={styles.gradient}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.header}
+          >
             <TouchableOpacity onPress={handleClose} disabled={uploading}>
               <IconSymbol
                 ios_icon_name="xmark"
                 android_material_icon_name="close"
                 size={closeIconSize}
-                color="#fff"
+                color={colors.headerText}
               />
             </TouchableOpacity>
             <Text style={[styles.headerTitle, { fontSize: scaleFontSize(18) }]}>Nuevo Momento</Text>
             <View style={{ width: 28 }} />
-          </View>
+          </LinearGradient>
 
           <View style={styles.content}>
             {selectedImage ? (
@@ -318,7 +320,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
                       ios_icon_name="arrow.counterclockwise"
                       android_material_icon_name="refresh"
                       size={refreshIconSize}
-                      color="#fff"
+                      color={colors.text}
                     />
                     <Text style={[styles.previewButtonText, { fontSize: scaleFontSize(16) }]}>Cambiar</Text>
                   </TouchableOpacity>
@@ -328,14 +330,14 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
                     disabled={uploading}
                   >
                     {uploading ? (
-                      <ActivityIndicator color="#fff" />
+                      <ActivityIndicator color={colors.headerText} />
                     ) : (
                       <React.Fragment>
                         <IconSymbol
                           ios_icon_name="checkmark.circle.fill"
                           android_material_icon_name="check_circle"
                           size={checkIconSize}
-                          color="#fff"
+                          color={colors.headerText}
                         />
                         <Text style={[styles.previewButtonText, { fontSize: scaleFontSize(16) }]}>Publicar</Text>
                       </React.Fragment>
@@ -366,7 +368,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
                         ios_icon_name="camera.fill"
                         android_material_icon_name="camera_alt"
                         size={cameraIconSize}
-                        color="#fff"
+                        color={colors.headerText}
                       />
                       <Text style={[styles.optionText, { fontSize: scaleFontSize(16) }]}>Tomar Foto</Text>
                     </LinearGradient>
@@ -378,7 +380,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
                     activeOpacity={0.8}
                   >
                     <LinearGradient
-                      colors={['#667eea', '#764ba2']}
+                      colors={[colors.primary, colors.secondary]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={styles.optionGradient}
@@ -387,7 +389,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
                         ios_icon_name="photo.fill"
                         android_material_icon_name="photo_library"
                         size={photoIconSize}
-                        color="#fff"
+                        color={colors.headerText}
                       />
                       <Text style={[styles.optionText, { fontSize: scaleFontSize(16) }]}>Galería</Text>
                     </LinearGradient>
@@ -410,7 +412,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
               </View>
             )}
           </View>
-        </LinearGradient>
+        </View>
       </View>
     </Modal>
   );
@@ -419,21 +421,23 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   gradient: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
     paddingBottom: 20,
   },
   headerTitle: {
     fontWeight: '700',
-    color: '#fff',
+    color: colors.headerText,
     fontFamily: 'System',
   },
   content: {
@@ -446,13 +450,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '700',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 12,
     fontFamily: 'System',
     textAlign: 'center',
   },
   subtitle: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: colors.textSecondary,
     marginBottom: 40,
     fontFamily: 'System',
     textAlign: 'center',
@@ -480,22 +484,24 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontWeight: '700',
-    color: '#fff',
+    color: colors.headerText,
     fontFamily: 'System',
   },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
     maxWidth: SCREEN_WIDTH - 40,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   infoText: {
     flex: 1,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: colors.text,
     fontFamily: 'System',
     lineHeight: 18,
   },
@@ -507,6 +513,7 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     height: '80%',
     alignSelf: 'center',
+    backgroundColor: colors.cardBorder,
   },
   previewActions: {
     flexDirection: 'row',
@@ -518,17 +525,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   uploadButton: {
     backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   previewButtonText: {
     fontWeight: '700',
-    color: '#fff',
+    color: colors.text,
     fontFamily: 'System',
   },
 });

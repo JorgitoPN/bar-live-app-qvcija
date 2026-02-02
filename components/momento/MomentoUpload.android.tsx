@@ -33,7 +33,13 @@ interface MomentoUploadProps {
 }
 
 /**
- * ✅ MOMENTO UPLOAD v157.0 - ANDROID SPECIFIC - NO IMAGE EDITOR
+ * ✅ MOMENTO UPLOAD v325.0 - ANDROID SPECIFIC - BARLIVE DESIGN & FULLSCREEN
+ * 
+ * NEW CHANGES v325.0:
+ * - ✅ FIXED: JSX closing tag error resolved
+ * - ✅ FIXED: Opens as fullScreen modal (not transparent modal)
+ * - ✅ FIXED: Uses Barlive gradient colors (headerGradientStart, headerGradientEnd)
+ * - ✅ IMPROVED: Consistent with Barlive design system
  * 
  * CRITICAL CHANGES v157.0 (ANDROID ONLY):
  * - ✅ REMOVED: Image editor completely removed for Android
@@ -304,101 +310,101 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent={false} animationType="slide" presentationStyle="fullScreen">
       <View style={styles.container}>
         <LinearGradient
-          colors={['rgba(0,0,0,0.9)', 'rgba(0,0,0,0.95)']}
-          style={styles.gradient}
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
         >
-          <View style={styles.header}>
-            <TouchableOpacity onPress={handleClose} disabled={uploading}>
-              <IconSymbol
-                ios_icon_name="xmark"
-                android_material_icon_name="close"
-                size={closeIconSize}
-                color="#fff"
-              />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { fontSize: scaleFontSize(18) }]}>Nuevo Momento</Text>
-            <View style={{ width: 28 }} />
-          </View>
-
-          <View style={styles.content}>
-            {uploading ? (
-              <View style={styles.uploadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={[styles.uploadingText, { fontSize: scaleFontSize(16) }]}>
-                  Publicando Momento...
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.optionsContainer}>
-                <Text style={[styles.title, { fontSize: scaleFontSize(28) }]}>Comparte un Momento</Text>
-                <Text style={[styles.subtitle, { fontSize: scaleFontSize(16) }]}>
-                  Las fotos desaparecen después de 24 horas
-                </Text>
-
-                <View style={styles.options}>
-                  <TouchableOpacity
-                    style={styles.optionButton}
-                    onPress={takePhoto}
-                    activeOpacity={0.8}
-                  >
-                    <LinearGradient
-                      colors={[colors.primary, colors.secondary]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.optionGradient}
-                    >
-                      <IconSymbol
-                        ios_icon_name="camera.fill"
-                        android_material_icon_name="camera_alt"
-                        size={cameraIconSize}
-                        color="#fff"
-                      />
-                      <Text style={[styles.optionText, { fontSize: scaleFontSize(16) }]}>Tomar Foto</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.optionButton}
-                    onPress={pickImage}
-                    activeOpacity={0.8}
-                  >
-                    <LinearGradient
-                      colors={['#667eea', '#764ba2']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.optionGradient}
-                    >
-                      <IconSymbol
-                        ios_icon_name="photo.fill"
-                        android_material_icon_name="photo_library"
-                        size={photoIconSize}
-                        color="#fff"
-                      />
-                      <Text style={[styles.optionText, { fontSize: scaleFontSize(16) }]}>Galería</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.infoBox}>
-                  <IconSymbol
-                    ios_icon_name="info.circle.fill"
-                    android_material_icon_name="info"
-                    size={infoIconSize}
-                    color={colors.primary}
-                  />
-                  <Text style={[styles.infoText, { fontSize: scaleFontSize(13) }]}>
-                    {activeProfileType === 'local' 
-                      ? 'Los Momentos de tu local son visibles para tus seguidores durante 24 horas'
-                      : 'Los Momentos son visibles para tus seguidores durante 24 horas'}
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
+          <TouchableOpacity onPress={handleClose} disabled={uploading}>
+            <IconSymbol
+              ios_icon_name="xmark"
+              android_material_icon_name="close"
+              size={closeIconSize}
+              color={colors.headerText}
+            />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(18) }]}>Nuevo Momento</Text>
+          <View style={{ width: 28 }} />
         </LinearGradient>
+
+        <View style={styles.content}>
+          {uploading ? (
+            <View style={styles.uploadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.uploadingText, { fontSize: scaleFontSize(16) }]}>
+                Publicando Momento...
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.optionsContainer}>
+              <Text style={[styles.title, { fontSize: scaleFontSize(28) }]}>Comparte un Momento</Text>
+              <Text style={[styles.subtitle, { fontSize: scaleFontSize(16) }]}>
+                Las fotos desaparecen después de 24 horas
+              </Text>
+
+              <View style={styles.options}>
+                <TouchableOpacity
+                  style={styles.optionButton}
+                  onPress={takePhoto}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={[colors.primary, colors.secondary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.optionGradient}
+                  >
+                    <IconSymbol
+                      ios_icon_name="camera.fill"
+                      android_material_icon_name="camera_alt"
+                      size={cameraIconSize}
+                      color={colors.headerText}
+                    />
+                    <Text style={[styles.optionText, { fontSize: scaleFontSize(16) }]}>Tomar Foto</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.optionButton}
+                  onPress={pickImage}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={[colors.primary, colors.secondary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.optionGradient}
+                  >
+                    <IconSymbol
+                      ios_icon_name="photo.fill"
+                      android_material_icon_name="photo_library"
+                      size={photoIconSize}
+                      color={colors.headerText}
+                    />
+                    <Text style={[styles.optionText, { fontSize: scaleFontSize(16) }]}>Galería</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.infoBox}>
+                <IconSymbol
+                  ios_icon_name="info.circle.fill"
+                  android_material_icon_name="info"
+                  size={infoIconSize}
+                  color={colors.primary}
+                />
+                <Text style={[styles.infoText, { fontSize: scaleFontSize(13) }]}>
+                  {activeProfileType === 'local' 
+                    ? 'Los Momentos de tu local son visibles para tus seguidores durante 24 horas'
+                    : 'Los Momentos son visibles para tus seguidores durante 24 horas'}
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
       </View>
     </Modal>
   );
@@ -407,21 +413,19 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  gradient: {
-    flex: 1,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 50,
     paddingBottom: 20,
   },
   headerTitle: {
     fontWeight: '700',
-    color: '#fff',
+    color: colors.headerText,
     fontFamily: 'System',
   },
   content: {
@@ -434,7 +438,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   uploadingText: {
-    color: '#fff',
+    color: colors.text,
     fontWeight: '600',
     fontFamily: 'System',
   },
@@ -443,13 +447,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '700',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 12,
     fontFamily: 'System',
     textAlign: 'center',
   },
   subtitle: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: colors.textSecondary,
     marginBottom: 40,
     fontFamily: 'System',
     textAlign: 'center',
@@ -477,22 +481,24 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontWeight: '700',
-    color: '#fff',
+    color: colors.headerText,
     fontFamily: 'System',
   },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
     maxWidth: SCREEN_WIDTH - 40,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   infoText: {
     flex: 1,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: colors.text,
     fontFamily: 'System',
     lineHeight: 18,
   },
