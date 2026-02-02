@@ -773,15 +773,17 @@ export default function SalaVirtualEnhancedScreen() {
 
   const handleUserPress = (selectedUser: ActiveUser) => {
     console.log('[SalaVirtual Enhanced] User pressed:', selectedUser.nombre || selectedUser.username);
+    console.log('[SalaVirtual Enhanced] Selected user object:', JSON.stringify(selectedUser));
     
     if (selectedUser.id === user?.id) {
       console.log('[SalaVirtual Enhanced] Cannot interact with self');
       return;
     }
     
-    console.log('[SalaVirtual Enhanced] Opening bubble carousel for user:', selectedUser.id);
+    console.log('[SalaVirtual Enhanced] Setting selected user and showing modal');
     setSelectedUser(selectedUser);
     setShowBubbleCarousel(true);
+    console.log('[SalaVirtual Enhanced] Modal state updated - showBubbleCarousel:', true);
 
     // Animate bubble carousel
     Animated.spring(bubbleScale, {
@@ -789,7 +791,9 @@ export default function SalaVirtualEnhancedScreen() {
       friction: 8,
       tension: 40,
       useNativeDriver: true,
-    }).start();
+    }).start(() => {
+      console.log('[SalaVirtual Enhanced] Bubble scale animation completed');
+    });
   };
 
   const closeBubbleCarousel = () => {
@@ -1432,17 +1436,19 @@ export default function SalaVirtualEnhancedScreen() {
           )}
         </View>
 
-        {selectedUser && (
-          <InteractionBubbleCarousel
-            visible={showBubbleCarousel}
-            onClose={closeBubbleCarousel}
-            recipientName={selectedUser.username || selectedUser.nombre}
-            onSelectMessage={(message) => sendPredefinedMessage(selectedUser.id, message)}
-            onViewProfile={handleViewProfile}
-            themeColors={themeColors}
-            mode={mode}
-          />
-        )}
+        <InteractionBubbleCarousel
+          visible={showBubbleCarousel && selectedUser !== null}
+          onClose={closeBubbleCarousel}
+          recipientName={selectedUser?.username || selectedUser?.nombre || 'Usuario'}
+          onSelectMessage={(message) => {
+            if (selectedUser) {
+              sendPredefinedMessage(selectedUser.id, message);
+            }
+          }}
+          onViewProfile={handleViewProfile}
+          themeColors={themeColors}
+          mode={mode}
+        />
 
         {showAnimation && (
           <Animated.View
