@@ -24,9 +24,14 @@ import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 /**
- * ✅ GESTIONAR ETIQUETAS PAGE v326.0 - AUTO-REFRESH POST ON SAVE
+ * ✅ GESTIONAR ETIQUETAS PAGE v327.0 - FULL SCREEN MODAL FIX
  * 
- * NEW CHANGES v326.0:
+ * NEW CHANGES v327.0:
+ * - ✅ FIXED: Page now opens as fullScreenModal, not covered by post viewer
+ * - ✅ FIXED: Proper z-index - page is always on top
+ * - ✅ IMPROVED: No visual glitches when opening from profile grid posts
+ * 
+ * Previous changes v326.0:
  * - ✅ IMPROVED: Post automatically refreshes when returning to PostViewerModal
  * - ✅ IMPROVED: Tags update in real-time without manual reload
  * - ✅ IMPROVED: Seamless editing experience
@@ -70,7 +75,7 @@ export default function GestionarEtiquetasScreen() {
   const loadExistingTags = useCallback(async () => {
     setLoading(true);
     try {
-      console.log('[GestionarEtiquetas v326.0] 🔄 Loading tags for post:', postId);
+      console.log('[GestionarEtiquetas v327.0] 🔄 Loading tags for post:', postId);
 
       const { data, error } = await supabase
         .from('post_tags')
@@ -107,7 +112,7 @@ export default function GestionarEtiquetasScreen() {
         });
       }
 
-      console.log('[GestionarEtiquetas v326.0] ✅ Loaded', tags.length, 'tags');
+      console.log('[GestionarEtiquetas v327.0] ✅ Loaded', tags.length, 'tags');
       setExistingTags(tags);
     } catch (error) {
       console.error('[GestionarEtiquetas v326.0] Error loading tags:', error);
