@@ -172,7 +172,7 @@ export default function SalaVirtualEnhancedScreen() {
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [selectedUser, setSelectedUser] = useState<ActiveUser | null>(null);
   const [showBubbleCarousel, setShowBubbleCarousel] = useState(false);
-  const [showQuickMessages, setShowQuickMessages] = useState(false);
+  const [showQuickMessages, setShowQuickMessages] = useState(true);
   const [pendingInteractions, setPendingInteractions] = useState<PendingInteraction[]>([]);
   const [showAnimation, setShowAnimation] = useState(false);
   const [animationEmoji, setAnimationEmoji] = useState('');
@@ -1402,18 +1402,25 @@ export default function SalaVirtualEnhancedScreen() {
                 }
               />
 
-              {renderQuickMessagesBar()}
+              {showQuickMessages && renderQuickMessagesBar()}
 
               <View style={[styles.inputContainer, { backgroundColor: themeColors.cardBg, borderTopColor: themeColors.cardBorder }]}>
                 <TouchableOpacity
-                  style={[styles.quickMessageToggle, { backgroundColor: themeColors.primary + '20' }]}
-                  onPress={() => setShowQuickMessages(!showQuickMessages)}
+                  style={[
+                    styles.quickMessageToggle,
+                    { backgroundColor: showQuickMessages ? themeColors.primary : themeColors.primary + '20' }
+                  ]}
+                  onPress={() => {
+                    console.log('[SalaVirtual Enhanced] Toggling quick messages:', !showQuickMessages);
+                    setShowQuickMessages(!showQuickMessages);
+                  }}
+                  activeOpacity={0.7}
                 >
                   <IconSymbol
                     ios_icon_name="bolt.fill"
                     android_material_icon_name="flash_on"
                     size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
-                    color={themeColors.primary}
+                    color={showQuickMessages ? '#FFFFFF' : themeColors.primary}
                   />
                 </TouchableOpacity>
 
