@@ -82,9 +82,14 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
 };
 
 /**
- * ✅ CREATE PUBLICATION v282.0 - ANDROID SCALING APPLIED
+ * ✅ CREATE PUBLICATION v324.0 - BARLIVE DESIGN & FULLSCREEN
  * 
- * NEW FIXES v282.0:
+ * NEW CHANGES v324.0:
+ * - ✅ FIXED: Opens as fullScreen modal (not transparent modal)
+ * - ✅ FIXED: Uses Barlive gradient colors (headerGradientStart, headerGradientEnd)
+ * - ✅ IMPROVED: Consistent with Barlive design system
+ * 
+ * Previous fixes v282.0:
  * - ✅ ALL TEXT SIZES use scaleFontSize() for Android consistency
  * - ✅ Header title, button text, labels, helper text, etc.
  * - ✅ Consistent with other scaled pages (Explorar, Social Search)

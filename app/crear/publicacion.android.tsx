@@ -82,7 +82,12 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
 };
 
 /**
- * ✅ CREATE PUBLICATION v282.0 - ANDROID SPECIFIC - SCALING APPLIED
+ * ✅ CREATE PUBLICATION v324.0 - ANDROID SPECIFIC - BARLIVE DESIGN & FULLSCREEN
+ * 
+ * NEW CHANGES v324.0:
+ * - ✅ FIXED: Opens as fullScreen modal (configured in _layout.tsx)
+ * - ✅ FIXED: Uses Barlive gradient colors (headerGradientStart, headerGradientEnd)
+ * - ✅ IMPROVED: Consistent with Barlive design system
  * 
  * NEW FIXES v282.0:
  * - ✅ ALL TEXT SIZES use scaleFontSize() for Android consistency

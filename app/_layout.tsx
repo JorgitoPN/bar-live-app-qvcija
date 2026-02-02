@@ -73,7 +73,12 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 /**
- * ROOT LAYOUT v322.0 - MODAL NAVIGATION FIX
+ * ROOT LAYOUT v325.0 - MODAL NAVIGATION & MOMENTO UPLOAD FIX
+ * 
+ * NEW CHANGES v325.0:
+ * - ✅ FIXED: "Nuevo momento" (crear/publicacion) now opens as fullScreen, not modal
+ * - ✅ FIXED: Modal pages (editar-descripcion, gestionar-etiquetas) properly stack above PostViewerModal
+ * - ✅ IMPROVED: Post viewer stays open in background when editing/managing tags
  * 
  * CRITICAL FIX v322.0:
  * - ✅ Changed "Editar descripción" and "Gestionar etiquetas" to use presentation: 'modal'
@@ -89,14 +94,14 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 export default function RootLayout() {
   useEffect(() => {
-    console.log('[RootLayout v322.0] 🚀 App starting...');
-    console.log('[RootLayout v322.0] 📱 Platform:', Platform.OS);
+    console.log('[RootLayout v325.0] 🚀 App starting...');
+    console.log('[RootLayout v325.0] 📱 Platform:', Platform.OS);
     
     // ✅ CRITICAL FIX v25.0: Initialize Android-specific behavior
     let cleanupAndroid: (() => void) | undefined;
     
     if (Platform.OS === 'android') {
-      console.log('[RootLayout v322.0] 🤖 Initializing Android native behavior...');
+      console.log('[RootLayout v325.0] 🤖 Initializing Android native behavior...');
       try {
         cleanupAndroid = initializeAndroidBehavior();
       } catch (error) {
@@ -106,10 +111,10 @@ export default function RootLayout() {
 
     // Hide splash screen
     const timer = setTimeout(() => {
-      console.log('[RootLayout v322.0] 🎨 Hiding splash screen...');
+      console.log('[RootLayout v325.0] 🎨 Hiding splash screen...');
       SplashScreen.hideAsync()
         .then(() => {
-          console.log('[RootLayout v322.0] ✅ Splash screen hidden');
+          console.log('[RootLayout v325.0] ✅ Splash screen hidden');
         })
         .catch((error) => {
           console.error('[RootLayout] Error hiding splash screen:', error);
@@ -156,6 +161,17 @@ export default function RootLayout() {
                             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                             <Stack.Screen name="auth" options={{ headerShown: false }} />
                             <Stack.Screen name="crear" options={{ headerShown: false }} />
+                            
+                            {/* ✅ v325.0: "Nuevo momento" opens as fullScreen, not modal */}
+                            <Stack.Screen 
+                              name="crear/publicacion" 
+                              options={{ 
+                                presentation: 'fullScreenModal',
+                                headerShown: false,
+                                animation: 'slide_from_bottom',
+                              }} 
+                            />
+                            
                             <Stack.Screen name="detalle" options={{ headerShown: false }} />
                             <Stack.Screen name="editar" options={{ headerShown: false }} />
                             <Stack.Screen name="perfil" options={{ headerShown: false }} />
