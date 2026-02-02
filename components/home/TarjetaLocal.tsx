@@ -13,7 +13,6 @@ import { getCategoryIcon } from '@/utils/categoryIcons';
 import { localPreloader } from '@/utils/localPreloader';
 import { trackProfileView } from '@/utils/activityTracker';
 import EventBanner from '@/components/eventos/EventBanner';
-import { useLocalEvent } from '@/hooks/useLocalEvent';
 import { addPubCategoryIfNeeded } from '@/utils/categorizeLocal';
 import { scaleFontSize } from '@/utils/androidScaling';
 
@@ -24,6 +23,8 @@ interface TarjetaLocalProps {
   destacado?: boolean;
   userLocation?: { lat: number; lng: number } | null;
   onVisible?: () => void;
+  activeEvent?: any; // ✅ NEW: Receive event as prop instead of fetching
+  hasSocialProfile?: boolean; // ✅ NEW: Receive social profile status as prop
 }
 
 interface CheckedInUser {
@@ -34,32 +35,36 @@ interface CheckedInUser {
 }
 
 /**
- * ✅ TARJETA LOCAL v101.0 - ANDROID PERFORMANCE OPTIMIZATION
+ * ✅ TARJETA LOCAL v102.0 - ANDROID PERFORMANCE FIX
  * 
- * NEW FIXES v101.0:
- * - ✅ CRITICAL: Eliminated getEstadoLocal() call that was blocking UI thread
- * - ✅ PERFORMANCE: Now uses pre-calculated estaAbierto from backend
- * - ✅ OPTIMIZATION: Removed expensive time calculations on every render
+ * CRITICAL FIXES v102.0:
+ * - ✅ REMOVED useLocalEvent hook that was causing 20+ simultaneous queries
+ * - ✅ NOW receives activeEvent as prop from parent (batch loaded)
+ * - ✅ REMOVED individual social profile check (now passed as prop)
+ * - ✅ MASSIVE PERFORMANCE IMPROVEMENT: 20+ queries → 2 batch queries
  * 
- * Previous fixes maintained (v100.0):
- * - ✅ All font sizes use scaleFontSize() for consistency with Favoritos
- * - ✅ All text elements properly scaled
- * - ✅ iOS design remains unchanged
+ * Previous fixes maintained (v101.0):
+ * - ✅ Eliminated getEstadoLocal() call that was blocking UI thread
+ * - ✅ Uses pre-calculated estaAbierto from backend
+ * - ✅ All font sizes use scaleFontSize() for consistency
  */
-export default function TarjetaLocal({ local, destacado, userLocation, onVisible }: TarjetaLocalProps) {
+export default function TarjetaLocal({ 
+  local, 
+  destacado, 
+  userLocation, 
+  onVisible,
+  activeEvent, // ✅ Received from parent
+  hasSocialProfile = false // ✅ Received from parent
+}: TarjetaLocalProps) {
   const router = useRouter();
   const { user } = useAuth();
   const { isFavorite, toggleFavorite, loading: loadingFavorite } = useFavorites();
   const [hasPreloaded, setHasPreloaded] = useState(false);
-  const [hasSocialProfile, setHasSocialProfile] = useState(false);
-  const [checkingSocialProfile, setCheckingSocialProfile] = useState(true);
   const [isUserHere, setIsUserHere] = useState(false);
   const [followedUsersHere, setFollowedUsersHere] = useState<CheckedInUser[]>([]);
   const [checkingOut, setCheckingOut] = useState(false);
-  
-  const { evento: activeEvent } = useLocalEvent(local.id);
 
-  // ✅ FIX v101.0: Use pre-calculated status from backend instead of expensive getEstadoLocal()
+  // ✅ FIX v102.0: No more useLocalEvent hook - event is passed as prop
   const imagenPrincipal = local.imagenes?.[0] || local.imagen_url;
   const isDestacado = destacado || local.destacado;
   const localIsFavorite = isFavorite(local.id);
@@ -74,39 +79,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
       }
     }
   }, [local.id, hasPreloaded, onVisible]);
-
-  useEffect(() => {
-    const checkSocialProfile = async () => {
-      if (!local.id) {
-        setCheckingSocialProfile(false);
-        return;
-      }
-
-      try {
-        const { data: posts, error: postsError } = await supabase
-          .from('posts')
-          .select('id')
-          .eq('tipo', 'local')
-          .eq('local_id', local.id)
-          .limit(1);
-
-        if (postsError) throw postsError;
-
-        if (posts && posts.length > 0) {
-          setHasSocialProfile(true);
-        } else {
-          setHasSocialProfile(false);
-        }
-      } catch (error) {
-        console.error('[TarjetaLocal v100.0] Error checking social profile:', error);
-        setHasSocialProfile(false);
-      } finally {
-        setCheckingSocialProfile(false);
-      }
-    };
-
-    checkSocialProfile();
-  }, [local.id]);
 
   useEffect(() => {
     const loadCheckInInfo = async () => {
@@ -163,7 +135,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
         setFollowedUsersHere(visibleUsers);
       } catch (error) {
-        console.error('[TarjetaLocal v100.0] Error loading check-in info:', error);
+        console.error('[TarjetaLocal v102.0] Error loading check-in info:', error);
       }
     };
 
@@ -180,7 +152,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           filter: `local_id=eq.${local.id}`,
         },
         () => {
-          console.log('[TarjetaLocal v100.0] Check-ins changed, reloading...');
+          console.log('[TarjetaLocal v102.0] Check-ins changed, reloading...');
           loadCheckInInfo();
         }
       )
@@ -205,10 +177,10 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
       if (error) throw error;
 
-      console.log('[TarjetaLocal v100.0] ✅ Check-out successful');
+      console.log('[TarjetaLocal v102.0] ✅ Check-out successful');
       setIsUserHere(false);
     } catch (error) {
-      console.error('[TarjetaLocal v100.0] Error checking out:', error);
+      console.error('[TarjetaLocal v102.0] Error checking out:', error);
     } finally {
       setCheckingOut(false);
     }
@@ -237,7 +209,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     await toggleFavorite(local.id);
   };
 
-  // ✅ FIX v101.0: Simplified badge logic using pre-calculated backend data
+  // ✅ FIX v102.0: Simplified badge logic using pre-calculated backend data
   const getBadgeColor = () => {
     if (local.estaAbierto === true) {
       return '#22C55E';
@@ -432,7 +404,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
         )}
 
         <View style={styles.actionButtonsContainer}>
-          {!checkingSocialProfile && hasSocialProfile && (
+          {hasSocialProfile && (
             <TouchableOpacity style={styles.perfilSocialButton} onPress={handlePerfilSocial}>
               <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={16} color={colors.headerText} />
               <Text style={[styles.perfilSocialText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Perfil Social</Text>
