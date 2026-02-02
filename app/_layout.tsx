@@ -73,23 +73,24 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 /**
- * ROOT LAYOUT v325.0 - MODAL NAVIGATION & MOMENTO UPLOAD FIX
+ * ROOT LAYOUT v327.0 - FULL SCREEN MODAL FIX FOR EDIT PAGES
  * 
- * NEW CHANGES v325.0:
+ * NEW CHANGES v327.0:
+ * - ✅ FIXED: "Editar descripción" and "Gestionar etiquetas" now use fullScreenModal
+ * - ✅ FIXED: Edit pages no longer get covered by the post viewer
+ * - ✅ FIXED: Pages open completely on top with proper z-index
+ * - ✅ IMPROVED: Seamless editing experience without visual glitches
+ * 
+ * Previous changes v325.0:
  * - ✅ FIXED: "Nuevo momento" (crear/publicacion) now opens as fullScreen, not modal
  * - ✅ FIXED: Modal pages (editar-descripcion, gestionar-etiquetas) properly stack above PostViewerModal
  * - ✅ IMPROVED: Post viewer stays open in background when editing/managing tags
  * 
- * CRITICAL FIX v322.0:
+ * Previous changes v322.0:
  * - ✅ Changed "Editar descripción" and "Gestionar etiquetas" to use presentation: 'modal'
  * - ✅ These pages now open as modals ABOVE the post viewer, keeping it open in background
  * - ✅ Proper modal behavior: post stays visible underneath
  * - ✅ Closing these modals returns to the post viewer
- * 
- * Previous changes v142.0:
- * - ✅ Added ImpersonationProvider back (it exists and is needed by ModeContext)
- * - ✅ ImpersonationProvider must wrap ModeProvider
- * - ✅ Fixed "useImpersonation must be used within an ImpersonationProvider" error
  */
 
 export default function RootLayout() {
@@ -177,11 +178,11 @@ export default function RootLayout() {
                             <Stack.Screen name="perfil" options={{ headerShown: false }} />
                             <Stack.Screen name="social" options={{ headerShown: false }} />
                             
-                            {/* ✅ v322.0: MODAL NAVIGATION - Pages open ABOVE post viewer */}
+                            {/* ✅ v327.0: FULL SCREEN MODAL - Pages open COMPLETELY ABOVE post viewer */}
                             <Stack.Screen 
                               name="social/gestionar-etiquetas" 
                               options={{ 
-                                presentation: 'modal',
+                                presentation: 'fullScreenModal',
                                 headerShown: false,
                                 animation: 'slide_from_bottom',
                               }} 
@@ -189,7 +190,7 @@ export default function RootLayout() {
                             <Stack.Screen 
                               name="social/editar-descripcion" 
                               options={{ 
-                                presentation: 'modal',
+                                presentation: 'fullScreenModal',
                                 headerShown: false,
                                 animation: 'slide_from_bottom',
                               }} 

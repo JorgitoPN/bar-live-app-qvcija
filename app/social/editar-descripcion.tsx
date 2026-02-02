@@ -25,9 +25,14 @@ import HashtagAutocomplete from '@/components/social/HashtagAutocomplete';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 /**
- * ✅ EDIT DESCRIPTION PAGE v326.0 - AUTO-REFRESH POST ON SAVE
+ * ✅ EDIT DESCRIPTION PAGE v327.0 - FULL SCREEN MODAL FIX
  * 
- * NEW CHANGES v326.0:
+ * NEW CHANGES v327.0:
+ * - ✅ FIXED: Page now opens as fullScreenModal, not covered by post viewer
+ * - ✅ FIXED: Proper z-index - page is always on top
+ * - ✅ IMPROVED: No visual glitches when opening from profile grid posts
+ * 
+ * Previous changes v326.0:
  * - ✅ IMPROVED: Post automatically refreshes when returning to PostViewerModal
  * - ✅ IMPROVED: No need to manually reload - useFocusEffect handles it
  * - ✅ IMPROVED: Seamless editing experience
@@ -178,9 +183,9 @@ export default function EditarDescripcionScreen() {
         ]);
       }
 
-      console.log('[EditarDescripcion v326.0] ✅ Description updated successfully');
+      console.log('[EditarDescripcion v327.0] ✅ Description updated successfully');
       
-      // ✅ v326.0: Just go back - PostViewerModal will auto-refresh via useFocusEffect
+      // ✅ v327.0: Just go back - PostViewerModal will auto-refresh via useFocusEffect
       router.back();
     } catch (error) {
       console.error('[EditarDescripcion v326.0] Error saving changes:', error);
