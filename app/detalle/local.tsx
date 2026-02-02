@@ -882,7 +882,8 @@ export default function DetalleLocalScreen() {
       return;
     }
 
-    router.push({ pathname: '/detalle/sala-virtual', params: { localId: params.id } });
+    // Navigate to enhanced virtual room
+    router.push({ pathname: '/detalle/sala-virtual-enhanced', params: { localId: params.id } });
   };
 
   if (loading) {
