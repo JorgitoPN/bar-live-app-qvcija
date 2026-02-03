@@ -1,4 +1,8 @@
 
+// CRITICAL: This polyfill MUST be imported first, before any other imports
+// It provides crypto.getRandomValues() which is required by the uuid library
+import 'react-native-get-random-values';
+
 import { Stack } from 'expo-router';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ModeProvider } from '@/contexts/ModeContext';
