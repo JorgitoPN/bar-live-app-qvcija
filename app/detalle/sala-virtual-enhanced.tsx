@@ -28,7 +28,6 @@ import { scaleFontSize, scaleIconSize, getActionButtonPaddingVertical } from '@/
 import * as Location from 'expo-location';
 import { calcularDistancia } from '@/utils/locationUtils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { v4 as uuidv4 } from 'uuid';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -791,7 +790,7 @@ export default function SalaVirtualEnhancedScreen() {
     try {
       setSending(true);
 
-      const messageId = uuidv4();
+      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date().toISOString();
 
       const newMsg: Message = {
@@ -841,17 +840,15 @@ export default function SalaVirtualEnhancedScreen() {
     if (!user || !localId) return;
 
     try {
-      console.log('[SalaVirtual Enhanced v326.1] 📤 Sending predefined message:', messageText, 'to:', recipientId);
+      console.log('[SalaVirtual Enhanced v326.0] 📤 Sending predefined message:', messageText, 'to:', recipientId);
       
-      const messageId = uuidv4();
+      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date().toISOString();
 
-      console.log('[SalaVirtual Enhanced v326.1] 🔑 Generated UUID:', messageId);
-
-      // CRITICAL FIX v326.1: Use upsert with onConflict to handle duplicate IDs
-      const { error: upsertError } = await supabase
+      // CRITICAL FIX v326.0: Store message in database for persistence
+      const { error: insertError } = await supabase
         .from('sala_virtual_interacciones')
-        .upsert({
+        .insert({
           id: messageId,
           usuario_id: user.id,
           local_id: localId,
@@ -859,16 +856,14 @@ export default function SalaVirtualEnhancedScreen() {
           contenido: messageText,
           recipient_id: recipientId,
           created_at: now,
-        }, {
-          onConflict: 'id',
         });
 
-      if (upsertError) {
-        console.error('[SalaVirtual Enhanced v326.1] ❌ Error storing message:', upsertError);
-        throw upsertError;
+      if (insertError) {
+        console.error('[SalaVirtual Enhanced v326.0] ❌ Error storing message:', insertError);
+        throw insertError;
       }
 
-      console.log('[SalaVirtual Enhanced v326.1] ✅ Message stored in database with upsert');
+      console.log('[SalaVirtual Enhanced v326.0] ✅ Message stored in database');
 
       const newMsg: Message = {
         id: messageId,
@@ -931,7 +926,7 @@ export default function SalaVirtualEnhancedScreen() {
     try {
       console.log('[SalaVirtual Enhanced] Sending private message to:', recipientId);
       
-      const messageId = uuidv4();
+      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date().toISOString();
 
       const newMsg: Message = {
