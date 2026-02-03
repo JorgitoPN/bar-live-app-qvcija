@@ -77,19 +77,18 @@ export interface TaggableUser {
 }
 
 /**
- * ✅ PUBLICACION CARD v328.0 - MODAL STACK GROUP INTEGRATION
+ * ✅ PUBLICACION CARD v329.0 - ANDROID PERFORMANCE FIX
  * 
- * NEW CHANGES v328.0:
+ * NEW CHANGES v329.0:
+ * - ✅ CRITICAL FIX: Disabled Realtime subscriptions on Android (use polling instead)
+ * - ✅ FIXED: Android performance issue when logged in - no more CHANNEL_ERROR spam
+ * - ✅ IMPROVED: Android now uses 10-second polling for likes/comments updates
+ * - ✅ IMPROVED: iOS continues to use Realtime for instant updates
+ * 
+ * Previous changes v328.0:
  * - ✅ UPDATED: Edit pages now part of Stack.Group for proper modal stacking
  * - ✅ IMPROVED: Consistent navigation with PostViewerModal architecture
  * - ✅ IMPROVED: Edit pages open as fullScreenModal on top of post viewer
- * 
- * Previous changes v322.0:
- * - ✅ FIXED: "Editar descripción" now navigates to full-screen page (not modal)
- * - ✅ FIXED: "Gestionar etiquetas" now navigates to full-screen page (not modal)
- * - ✅ FIXED: Removed inline modals for editing and tag management
- * - ✅ IMPROVED: Consistent navigation pattern with PostViewerModal
- * - ✅ IMPROVED: Better UX with dedicated full-screen pages
  */
 
 const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
@@ -116,6 +115,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const [localLikes, setLocalLikes] = useState<{ id: string; usuario_id: string }[]>([]);
   const likeDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const channelRef = useRef<any>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const MAX_IMAGES = 10;
 
@@ -159,7 +159,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       setTaggedUsers(tags);
     } catch (error) {
-      console.error('[PublicacionCard v328.0] Error loading tagged users:', error);
+      console.error('[PublicacionCard v329.0] Error loading tagged users:', error);
     }
   }, [post.id]);
 
@@ -170,7 +170,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   useEffect(() => {
     const loadInitialLikes = async () => {
       try {
-        console.log('[PublicacionCard v328.0] 🔄 Loading initial likes for post:', post.id);
+        console.log('[PublicacionCard v329.0] 🔄 Loading initial likes for post:', post.id);
         
         const { data, error } = await supabase
           .from('likes')
@@ -179,23 +179,84 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
         if (!error && data) {
           setLocalLikes(data);
-          console.log('[PublicacionCard v328.0] ✅ Loaded initial likes:', data.length);
+          console.log('[PublicacionCard v329.0] ✅ Loaded initial likes:', data.length);
         }
       } catch (error) {
-        console.error('[PublicacionCard v328.0] ❌ Error loading initial likes:', error);
+        console.error('[PublicacionCard v329.0] ❌ Error loading initial likes:', error);
       }
     };
 
     loadInitialLikes();
   }, [post.id]);
 
+  // ✅ CRITICAL FIX v329.0: Platform-specific real-time updates
+  // iOS: Use Realtime subscriptions for instant updates
+  // Android: Use polling to avoid CHANNEL_ERROR and performance issues
   useEffect(() => {
     if (!user) return;
 
-    console.log('[PublicacionCard v328.0] 🔄 Setting up real-time subscription for post:', post.id);
+    console.log('[PublicacionCard v329.0] 🔄 Setting up updates for post:', post.id, 'Platform:', Platform.OS);
+
+    // ✅ ANDROID: Use polling instead of Realtime
+    if (Platform.OS === 'android') {
+      console.log('[PublicacionCard v329.0] 📱 Android detected - using polling (10s interval)');
+      
+      const pollUpdates = async () => {
+        try {
+          // Poll likes count
+          const { count: likesCount, error: likesError } = await supabase
+            .from('likes')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+          
+          if (!likesError && likesCount !== null) {
+            setLikesCount(likesCount);
+          }
+
+          // Poll comments count
+          const { count: commentsCount, error: commentsError } = await supabase
+            .from('comentarios')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+          
+          if (!commentsError && commentsCount !== null) {
+            setCommentsCount(commentsCount);
+          }
+
+          // Poll likes list for avatars
+          const { data: likesData, error: likesDataError } = await supabase
+            .from('likes')
+            .select('id, usuario_id')
+            .eq('post_id', post.id);
+
+          if (!likesDataError && likesData) {
+            setLocalLikes(likesData);
+          }
+        } catch (error) {
+          console.error('[PublicacionCard v329.0] ❌ Polling error:', error);
+        }
+      };
+
+      // Initial poll
+      pollUpdates();
+
+      // Set up polling interval (every 10 seconds)
+      pollingIntervalRef.current = setInterval(pollUpdates, 10000);
+
+      return () => {
+        console.log('[PublicacionCard v329.0] 🔄 Cleaning up Android polling');
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+      };
+    }
+
+    // ✅ iOS: Use Realtime subscriptions
+    console.log('[PublicacionCard v329.0] 🍎 iOS detected - using Realtime subscriptions');
 
     if (channelRef.current?.state === 'subscribed') {
-      console.log('[PublicacionCard v328.0] ⚠️ Already subscribed, skipping');
+      console.log('[PublicacionCard v329.0] ⚠️ Already subscribed, skipping');
       return;
     }
 
@@ -212,16 +273,16 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           filter: `post_id=eq.${post.id}`,
         },
         async (payload) => {
-          console.log('[PublicacionCard v328.0] 🔄 Real-time like change detected:', payload.eventType);
+          console.log('[PublicacionCard v329.0] 🔄 Real-time like change detected:', payload.eventType);
           
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
           if (changedByUserId === user.id) {
-            console.log('[PublicacionCard v328.0] ⏭️ Change made by current user, skipping');
+            console.log('[PublicacionCard v329.0] ⏭️ Change made by current user, skipping');
             return;
           }
           
-          console.log('[PublicacionCard v328.0] 🔄 Change made by another user, updating...');
+          console.log('[PublicacionCard v329.0] 🔄 Change made by another user, updating...');
           
           if (payload.eventType === 'INSERT' && payload.new) {
             setLocalLikes(prev => {
@@ -229,13 +290,13 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                 return prev;
               }
               const newArray = [...prev, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
-              console.log('[PublicacionCard v328.0] ➕ Added like, new count:', newArray.length);
+              console.log('[PublicacionCard v329.0] ➕ Added like, new count:', newArray.length);
               return newArray;
             });
           } else if (payload.eventType === 'DELETE' && payload.old) {
             setLocalLikes(prev => {
               const newArray = prev.filter(like => like.id !== payload.old.id);
-              console.log('[PublicacionCard v328.0] ➖ Removed like, new count:', newArray.length);
+              console.log('[PublicacionCard v329.0] ➖ Removed like, new count:', newArray.length);
               return newArray;
             });
           }
@@ -246,7 +307,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             .eq('post_id', post.id);
           
           if (!countError && count !== null) {
-            console.log('[PublicacionCard v328.0] ✅ Updated likes count:', count);
+            console.log('[PublicacionCard v329.0] ✅ Updated likes count:', count);
             setLikesCount(count);
           }
         }
@@ -260,7 +321,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           filter: `post_id=eq.${post.id}`,
         },
         async (payload) => {
-          console.log('[PublicacionCard v328.0] 🔄 Real-time comment change detected:', payload.eventType);
+          console.log('[PublicacionCard v329.0] 🔄 Real-time comment change detected:', payload.eventType);
           
           const { count, error: countError } = await supabase
             .from('comentarios')
@@ -268,17 +329,17 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             .eq('post_id', post.id);
           
           if (!countError && count !== null) {
-            console.log('[PublicacionCard v328.0] ✅ Updated comments count:', count);
+            console.log('[PublicacionCard v329.0] ✅ Updated comments count:', count);
             setCommentsCount(count);
           }
         }
       )
       .subscribe((status) => {
-        console.log('[PublicacionCard v328.0] 📡 Subscription status:', status);
+        console.log('[PublicacionCard v329.0] 📡 iOS Realtime subscription status:', status);
       });
 
     return () => {
-      console.log('[PublicacionCard v328.0] 🔄 Cleaning up subscription');
+      console.log('[PublicacionCard v329.0] 🔄 Cleaning up iOS Realtime subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -297,7 +358,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     const previousCount = likesCount;
     const previousLocalLikes = [...localLikes];
     
-    console.log('[PublicacionCard v322.0] 🎯 handleLike START:', {
+    console.log('[PublicacionCard v329.0] 🎯 handleLike START:', {
       postId: post.id,
       currentLiked: liked,
       newLikedState,
@@ -307,27 +368,27 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     });
     
     setLiked(newLikedState);
-    console.log('[PublicacionCard v322.0] ✅ Step 1: Updated liked to:', newLikedState);
+    console.log('[PublicacionCard v329.0] ✅ Step 1: Updated liked to:', newLikedState);
     
     const newCount = newLikedState ? likesCount + 1 : Math.max(0, likesCount - 1);
     setLikesCount(newCount);
-    console.log('[PublicacionCard v322.0] ✅ Step 2: Updated count from', likesCount, 'to', newCount);
+    console.log('[PublicacionCard v329.0] ✅ Step 2: Updated count from', likesCount, 'to', newCount);
     
     let newLocalLikes: { id: string; usuario_id: string }[];
     
     if (newLikedState) {
       const tempId = `temp-${Date.now()}`;
       newLocalLikes = [...localLikes, { id: tempId, usuario_id: user.id }];
-      console.log('[PublicacionCard v322.0] ➕ Step 3: LIKING - Adding avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
-      console.log('[PublicacionCard v322.0] ➕ Added user:', user.id, 'with temp ID:', tempId);
+      console.log('[PublicacionCard v329.0] ➕ Step 3: LIKING - Adding avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
+      console.log('[PublicacionCard v329.0] ➕ Added user:', user.id, 'with temp ID:', tempId);
     } else {
       newLocalLikes = localLikes.filter(like => like.usuario_id !== user.id);
-      console.log('[PublicacionCard v322.0] ➖ Step 3: UNLIKING - Removing avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
-      console.log('[PublicacionCard v322.0] ➖ Removed user:', user.id);
+      console.log('[PublicacionCard v329.0] ➖ Step 3: UNLIKING - Removing avatar. Before:', localLikes.length, 'After:', newLocalLikes.length);
+      console.log('[PublicacionCard v329.0] ➖ Removed user:', user.id);
     }
     
     setLocalLikes(newLocalLikes);
-    console.log('[PublicacionCard v322.0] ✅ Step 4: Local likes array updated. New array:', newLocalLikes.map(l => ({ id: l.id, userId: l.usuario_id })));
+    console.log('[PublicacionCard v329.0] ✅ Step 4: Local likes array updated. New array:', newLocalLikes.map(l => ({ id: l.id, userId: l.usuario_id })));
 
     if (likeDebounceTimer.current) {
       clearTimeout(likeDebounceTimer.current);
@@ -336,7 +397,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     likeDebounceTimer.current = setTimeout(async () => {
       try {
         if (newLikedState) {
-          console.log('[PublicacionCard v322.0] 💾 Database: Adding like to database');
+          console.log('[PublicacionCard v329.0] 💾 Database: Adding like to database');
           
           const { data, error } = await supabase.from('likes').insert({
             post_id: post.id,
@@ -351,9 +412,9 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
               : like
           ));
           
-          console.log('[PublicacionCard v322.0] ✅ Database: Like added, real ID:', data.id);
+          console.log('[PublicacionCard v329.0] ✅ Database: Like added, real ID:', data.id);
         } else {
-          console.log('[PublicacionCard v322.0] 💾 Database: Removing like from database');
+          console.log('[PublicacionCard v329.0] 💾 Database: Removing like from database');
           
           const { error } = await supabase
             .from('likes')
@@ -363,7 +424,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           
           if (error) throw error;
           
-          console.log('[PublicacionCard v322.0] ✅ Database: Like removed');
+          console.log('[PublicacionCard v329.0] ✅ Database: Like removed');
         }
 
         const { count, error: countError } = await supabase
@@ -372,12 +433,12 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           .eq('post_id', post.id);
         
         if (!countError && count !== null) {
-          console.log('[PublicacionCard v322.0] ✅ Database: Verified count:', count);
+          console.log('[PublicacionCard v329.0] ✅ Database: Verified count:', count);
           setLikesCount(count);
         }
       } catch (error) {
-        console.error('[PublicacionCard v322.0] ❌ Error toggling like:', error);
-        console.log('[PublicacionCard v322.0] 🔄 Rolling back to previous state');
+        console.error('[PublicacionCard v329.0] ❌ Error toggling like:', error);
+        console.log('[PublicacionCard v329.0] 🔄 Rolling back to previous state');
         setLiked(previousLiked);
         setLikesCount(previousCount);
         setLocalLikes(previousLocalLikes);
@@ -439,7 +500,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           .eq('usuario_id', user.id);
       }
     } catch (error) {
-      console.error('[PublicacionCard v328.0] Error toggling save:', error);
+      console.error('[PublicacionCard v329.0] Error toggling save:', error);
       setSaved(!newSavedState);
     }
   }, [user, saved, post.id]);
@@ -449,7 +510,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       Alert.alert('Inicia sesión', 'Para comentar necesitas registrarte en BarLive');
       return;
     }
-    console.log('[PublicacionCard v328.0] 💬 Opening comments full-screen page for post:', post.id);
+    console.log('[PublicacionCard v329.0] 💬 Opening comments full-screen page for post:', post.id);
     router.push({
       pathname: '/social/comentarios',
       params: { 
@@ -479,7 +540,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         title: 'Compartir publicación',
       });
     } catch (error) {
-      console.error('[PublicacionCard v328.0] Error sharing:', error);
+      console.error('[PublicacionCard v329.0] Error sharing:', error);
     }
   }, [post.contenido]);
 
@@ -534,7 +595,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                 onUpdate();
               }
             } catch (error) {
-              console.error('[PublicacionCard v328.0] Error deleting post:', error);
+              console.error('[PublicacionCard v329.0] Error deleting post:', error);
               Alert.alert('Error', 'No se pudo eliminar la publicación');
             }
           },
@@ -572,10 +633,9 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     }
 
     if (canEdit) {
-      // ✅ v328.0: Navigate to full-screen pages (part of Stack.Group)
       options.push('Editar descripción');
       actions.push(() => {
-        console.log('[PublicacionCard v328.0] 📝 Opening edit description full-screen page');
+        console.log('[PublicacionCard v329.0] 📝 Opening edit description full-screen page');
         router.push({
           pathname: '/social/editar-descripcion',
           params: { postId: post.id },
@@ -584,7 +644,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       options.push('Gestionar etiquetas');
       actions.push(() => {
-        console.log('[PublicacionCard v328.0] 🏷️ Opening manage tags full-screen page');
+        console.log('[PublicacionCard v329.0] 🏷️ Opening manage tags full-screen page');
         router.push({
           pathname: '/social/gestionar-etiquetas',
           params: { postId: post.id },
@@ -656,7 +716,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     setCurrentImageIndex(index);
   };
 
-  // ✅ CRITICAL FIX v322.0: Calculate scaled sizes for Android
   const avatarSize = Platform.OS === 'android' ? scaleIconSize(40) : 40;
   const actionIconSize = Platform.OS === 'android' ? scaleIconSize(26) : 26;
   const optionsIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
