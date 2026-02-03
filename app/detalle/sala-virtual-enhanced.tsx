@@ -1,4 +1,8 @@
 
+// CRITICAL FIX v326.0: Import crypto polyfill at the top
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -784,13 +788,15 @@ export default function SalaVirtualEnhancedScreen() {
     };
   }, [localId]);
 
+  // CRITICAL FIX v326.0: Use uuidv4() to generate valid UUIDs instead of custom IDs
   const sendPublicMessage = useCallback(async (content: string) => {
     if (!user || !localId) return;
 
     try {
       setSending(true);
 
-      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      // FIX v326.0: Generate valid UUID instead of custom "msg-..." format
+      const messageId = uuidv4();
       const now = new Date().toISOString();
 
       const newMsg: Message = {
@@ -830,22 +836,27 @@ export default function SalaVirtualEnhancedScreen() {
         });
       }
     } catch (error) {
-      console.error('[SalaVirtual Enhanced] Error:', error);
+      console.error('[SalaVirtual Enhanced v326.0] ❌ Error sending public message:', error);
     } finally {
       setSending(false);
     }
   }, [user, localId]);
 
+  // CRITICAL FIX v326.0: Use uuidv4() and store in database with proper UUID format
   const sendPredefinedMessage = useCallback(async (recipientId: string, messageText: string) => {
     if (!user || !localId) return;
 
     try {
       console.log('[SalaVirtual Enhanced v326.0] 📤 Sending predefined message:', messageText, 'to:', recipientId);
       
-      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      // FIX v326.0: Generate valid UUID instead of custom "msg-..." format
+      const messageId = uuidv4();
       const now = new Date().toISOString();
 
+      console.log('[SalaVirtual Enhanced v326.0] 🔑 Generated UUID:', messageId);
+
       // CRITICAL FIX v326.0: Store message in database for persistence
+      // Use INSERT instead of UPSERT since we're always creating new messages
       const { error: insertError } = await supabase
         .from('sala_virtual_interacciones')
         .insert({
@@ -863,7 +874,7 @@ export default function SalaVirtualEnhancedScreen() {
         throw insertError;
       }
 
-      console.log('[SalaVirtual Enhanced v326.0] ✅ Message stored in database');
+      console.log('[SalaVirtual Enhanced v326.0] ✅ Message stored in database with UUID:', messageId);
 
       const newMsg: Message = {
         id: messageId,
@@ -920,14 +931,38 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, [user, localId, activeUsers, loadPrivateChats]);
 
+  // CRITICAL FIX v326.0: Use uuidv4() for private messages
   const sendPrivateMessage = useCallback(async (recipientId: string, content: string) => {
     if (!user || !localId || !content.trim()) return;
 
     try {
-      console.log('[SalaVirtual Enhanced] Sending private message to:', recipientId);
+      console.log('[SalaVirtual Enhanced v326.0] 📤 Sending private message to:', recipientId);
       
-      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      // FIX v326.0: Generate valid UUID instead of custom "msg-..." format
+      const messageId = uuidv4();
       const now = new Date().toISOString();
+
+      console.log('[SalaVirtual Enhanced v326.0] 🔑 Generated UUID:', messageId);
+
+      // CRITICAL FIX v326.0: Store message in database
+      const { error: insertError } = await supabase
+        .from('sala_virtual_interacciones')
+        .insert({
+          id: messageId,
+          usuario_id: user.id,
+          local_id: localId,
+          tipo: 'mensaje',
+          contenido: content,
+          recipient_id: recipientId,
+          created_at: now,
+        });
+
+      if (insertError) {
+        console.error('[SalaVirtual Enhanced v326.0] ❌ Error storing private message:', insertError);
+        throw insertError;
+      }
+
+      console.log('[SalaVirtual Enhanced v326.0] ✅ Private message stored in database');
 
       const newMsg: Message = {
         id: messageId,
@@ -958,9 +993,9 @@ export default function SalaVirtualEnhancedScreen() {
         });
       }
 
-      console.log('[SalaVirtual Enhanced] ✅ Private message sent');
+      console.log('[SalaVirtual Enhanced v326.0] ✅ Private message sent');
     } catch (error) {
-      console.error('[SalaVirtual Enhanced] Error sending private message:', error);
+      console.error('[SalaVirtual Enhanced v326.0] ❌ Error sending private message:', error);
     }
   }, [user, localId]);
 
