@@ -28,6 +28,7 @@ import { scaleFontSize, scaleIconSize, getActionButtonPaddingVertical } from '@/
 import * as Location from 'expo-location';
 import { calcularDistancia } from '@/utils/locationUtils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { v4 as uuidv4 } from 'uuid';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -790,7 +791,7 @@ export default function SalaVirtualEnhancedScreen() {
     try {
       setSending(true);
 
-      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const messageId = uuidv4();
       const now = new Date().toISOString();
 
       const newMsg: Message = {
@@ -842,7 +843,7 @@ export default function SalaVirtualEnhancedScreen() {
     try {
       console.log('[SalaVirtual Enhanced v326.0] 📤 Sending predefined message:', messageText, 'to:', recipientId);
       
-      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const messageId = uuidv4();
       const now = new Date().toISOString();
 
       // CRITICAL FIX v326.0: Store message in database for persistence
@@ -926,7 +927,7 @@ export default function SalaVirtualEnhancedScreen() {
     try {
       console.log('[SalaVirtual Enhanced] Sending private message to:', recipientId);
       
-      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const messageId = uuidv4();
       const now = new Date().toISOString();
 
       const newMsg: Message = {
