@@ -1482,51 +1482,51 @@ export default function SalaVirtualEnhancedScreen() {
 
     const messageLabel = item.is_private ? '(Privado)' : '';
     
-    // FIX: Display username without @ symbol, not full name
+    // FIX: Display username without @ symbol, not full name or email
     const displayUsername = item.usuario.username 
       ? item.usuario.username.replace('@', '')
       : item.usuario.nombre;
 
+    // FIX: Create proper alignment structure
+    // Own messages: avatar on right, content aligned right
+    // Other messages: avatar on left, content aligned left
     return (
       <View
         style={[
-          styles.messageContainer,
-          isOwnMessage ? styles.ownMessage : styles.otherMessage,
+          styles.messageWrapper,
+          isOwnMessage ? styles.messageWrapperOwn : styles.messageWrapperOther,
         ]}
       >
-        {/* FIX: Show avatar for ALL messages (both own and others) with profile picture */}
-        <TouchableOpacity
-          style={[styles.messageAvatar, { width: avatarSize, height: avatarSize }]}
-          onPress={() => {
-            if (isOwnMessage) {
-              // Navigate to own profile
-              console.log('[SalaVirtual Enhanced] Navigating to own profile from message');
-              router.push('/perfil');
-            } else {
+        {/* FIX: Avatar positioned based on message sender */}
+        {!isOwnMessage && (
+          <TouchableOpacity
+            style={[styles.messageAvatar, { width: avatarSize, height: avatarSize }]}
+            onPress={() => {
               const activeUser = activeUsers.find(u => u.id === item.usuario_id);
               if (activeUser) handleUserPress(activeUser);
-            }
-          }}
-        >
-          {/* FIX: Always show profile picture from usuario.avatar */}
-          {item.usuario.avatar ? (
-            <Image
-              source={resolveImageSource(item.usuario.avatar)}
-              style={[styles.messageAvatarImage, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
-            />
-          ) : (
-            <View style={[styles.messageAvatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2, backgroundColor: themeColors.primary + '30' }]}>
-              <IconSymbol
-                ios_icon_name="person.fill"
-                android_material_icon_name="person"
-                size={Platform.OS === 'android' ? scaleIconSize(18) : 18}
-                color={themeColors.text}
+            }}
+          >
+            {/* FIX: Always show profile picture from usuario.avatar */}
+            {item.usuario.avatar ? (
+              <Image
+                source={resolveImageSource(item.usuario.avatar)}
+                style={[styles.messageAvatarImage, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
               />
-            </View>
-          )}
-        </TouchableOpacity>
+            ) : (
+              <View style={[styles.messageAvatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2, backgroundColor: themeColors.primary + '30' }]}>
+                <IconSymbol
+                  ios_icon_name="person.fill"
+                  android_material_icon_name="person"
+                  size={Platform.OS === 'android' ? scaleIconSize(18) : 18}
+                  color={themeColors.text}
+                />
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
 
-        <View style={{ flex: 1 }}>
+        {/* FIX: Message content container */}
+        <View style={styles.messageContentContainer}>
           <View
             style={[
               styles.messageBubble,
@@ -1541,7 +1541,7 @@ export default function SalaVirtualEnhancedScreen() {
               },
             ]}
           >
-            {/* FIX: Show username without @ symbol for all messages */}
+            {/* FIX: Show username without @ symbol for other users' messages */}
             {!isOwnMessage && (
               <Text style={[styles.messageSender, { fontSize: scaleFontSize(12), color: themeColors.primary }]}>
                 {displayUsername} {messageLabel}
@@ -1572,6 +1572,34 @@ export default function SalaVirtualEnhancedScreen() {
             </Text>
           </View>
         </View>
+
+        {/* FIX: Avatar for own messages on the right */}
+        {isOwnMessage && (
+          <TouchableOpacity
+            style={[styles.messageAvatar, { width: avatarSize, height: avatarSize }]}
+            onPress={() => {
+              console.log('[SalaVirtual Enhanced] Navigating to own profile from message');
+              router.push('/perfil');
+            }}
+          >
+            {/* FIX: Always show profile picture from usuario.avatar */}
+            {item.usuario.avatar ? (
+              <Image
+                source={resolveImageSource(item.usuario.avatar)}
+                style={[styles.messageAvatarImage, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
+              />
+            ) : (
+              <View style={[styles.messageAvatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2, backgroundColor: themeColors.primary + '30' }]}>
+                <IconSymbol
+                  ios_icon_name="person.fill"
+                  android_material_icon_name="person"
+                  size={Platform.OS === 'android' ? scaleIconSize(18) : 18}
+                  color={themeColors.text}
+                />
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -1581,7 +1609,7 @@ export default function SalaVirtualEnhancedScreen() {
     const isNearby = item.distance !== undefined && item.distance < PROXIMITY_THRESHOLD;
     const avatarSize = Platform.OS === 'android' ? scaleIconSize(70) : 70;
     
-    // FIX: Display username without @ symbol, or nombre if no username
+    // FIX: Display username without @ symbol, not email or full name
     const displayName = item.username 
       ? item.username.replace('@', '')
       : item.nombre;
@@ -1614,6 +1642,7 @@ export default function SalaVirtualEnhancedScreen() {
         activeOpacity={0.7}
       >
         <View style={styles.gridUserAvatarContainer}>
+          {/* FIX: Show profile picture from avatar field */}
           {item.avatar ? (
             <Image
               source={resolveImageSource(item.avatar)}
@@ -1656,6 +1685,7 @@ export default function SalaVirtualEnhancedScreen() {
           />
         </View>
         
+        {/* FIX: Show username without @ symbol */}
         <Text 
           style={[styles.gridUserName, { fontSize: scaleFontSize(13), color: themeColors.text }]}
           numberOfLines={2}
@@ -1679,7 +1709,7 @@ export default function SalaVirtualEnhancedScreen() {
   const renderPrivateChatItem = ({ item }: { item: PrivateChat }) => {
     const avatarSize = Platform.OS === 'android' ? scaleIconSize(56) : 56;
     
-    // FIX: Display username without @ symbol, or nombre if no username
+    // FIX: Display username without @ symbol, not email or full name
     const displayName = item.username 
       ? item.username.replace('@', '')
       : item.nombre;
@@ -1705,6 +1735,7 @@ export default function SalaVirtualEnhancedScreen() {
         activeOpacity={0.7}
       >
         <View style={styles.privateChatAvatar}>
+          {/* FIX: Show profile picture from avatar field */}
           {item.avatar ? (
             <Image
               source={resolveImageSource(item.avatar)}
@@ -1730,6 +1761,7 @@ export default function SalaVirtualEnhancedScreen() {
         
         <View style={styles.privateChatInfo}>
           <View style={styles.privateChatHeader}>
+            {/* FIX: Show username without @ symbol */}
             <Text style={[styles.privateChatName, { fontSize: scaleFontSize(16), color: themeColors.text }]} numberOfLines={1}>
               {displayName}
             </Text>
@@ -1781,7 +1813,7 @@ export default function SalaVirtualEnhancedScreen() {
   const renderBottomSheet = () => {
     if (!showBottomSheet || !selectedUser) return null;
 
-    // FIX: Display username without @ symbol
+    // FIX: Display username without @ symbol, not email or full name
     const recipientName = selectedUser.username 
       ? selectedUser.username.replace('@', '')
       : selectedUser.nombre;
@@ -2142,6 +2174,7 @@ export default function SalaVirtualEnhancedScreen() {
         )}
 
         <View style={styles.content}>
+          {/* FIX: Tabs remain visible at all times */}
           <View style={[
             styles.tabBarContainer, 
             { 
@@ -2153,7 +2186,14 @@ export default function SalaVirtualEnhancedScreen() {
             <View style={styles.tabBar}>
               <TouchableOpacity
                 style={styles.tab}
-                onPress={() => setActiveTab('chat')}
+                onPress={() => {
+                  console.log('[SalaVirtual Enhanced] Switching to Chat tab');
+                  setActiveTab('chat');
+                  // Close private chat if open
+                  if (selectedPrivateChat) {
+                    closePrivateChat();
+                  }
+                }}
                 activeOpacity={0.7}
               >
                 {activeTab === 'chat' ? (
@@ -2203,7 +2243,14 @@ export default function SalaVirtualEnhancedScreen() {
 
               <TouchableOpacity
                 style={styles.tab}
-                onPress={() => setActiveTab('users')}
+                onPress={() => {
+                  console.log('[SalaVirtual Enhanced] Switching to Users tab');
+                  setActiveTab('users');
+                  // Close private chat if open
+                  if (selectedPrivateChat) {
+                    closePrivateChat();
+                  }
+                }}
                 activeOpacity={0.7}
               >
                 {activeTab === 'users' ? (
@@ -2332,6 +2379,7 @@ export default function SalaVirtualEnhancedScreen() {
             </View>
           </View>
 
+          {/* FIX: Content area with tabs always visible */}
           {activeTab === 'chat' ? (
             <React.Fragment>
               <FlatList
@@ -2371,7 +2419,7 @@ export default function SalaVirtualEnhancedScreen() {
                   backgroundColor: themeColors.cardBg, 
                   borderTopColor: themeColors.cardBorder,
                   // FIX: Remove unnecessary bottom padding on Android to eliminate blank space
-                  paddingBottom: Platform.OS === 'android' ? 12 : 12,
+                  paddingBottom: Platform.OS === 'android' ? 8 : 12,
                 }
               ]}>
                 <TouchableOpacity
@@ -2485,7 +2533,7 @@ export default function SalaVirtualEnhancedScreen() {
                   backgroundColor: themeColors.cardBg, 
                   borderTopColor: themeColors.cardBorder,
                   // FIX: Remove unnecessary bottom padding on Android to eliminate blank space
-                  paddingBottom: Platform.OS === 'android' ? 12 : 12,
+                  paddingBottom: Platform.OS === 'android' ? 8 : 12,
                 }
               ]}>
                 <TouchableOpacity
@@ -2532,6 +2580,7 @@ export default function SalaVirtualEnhancedScreen() {
                     </TouchableOpacity>
                     
                     <View style={styles.privateChatHeaderInfo}>
+                      {/* FIX: Show profile picture from avatar field */}
                       {selectedPrivateChat.avatar ? (
                         <Image
                           source={resolveImageSource(selectedPrivateChat.avatar)}
@@ -2563,6 +2612,7 @@ export default function SalaVirtualEnhancedScreen() {
                         </View>
                       )}
                       
+                      {/* FIX: Show username without @ symbol */}
                       <Text style={[
                         styles.privateChatHeaderName,
                         { fontSize: scaleFontSize(17), color: themeColors.text }
@@ -2634,7 +2684,7 @@ export default function SalaVirtualEnhancedScreen() {
                       backgroundColor: themeColors.cardBg, 
                       borderTopColor: themeColors.cardBorder,
                       // FIX: Remove unnecessary bottom padding on Android to eliminate blank space
-                      paddingBottom: Platform.OS === 'android' ? 12 : 12,
+                      paddingBottom: Platform.OS === 'android' ? 8 : 12,
                     }
                   ]}>
                     <TextInput
@@ -2730,7 +2780,7 @@ export default function SalaVirtualEnhancedScreen() {
                       backgroundColor: themeColors.cardBg, 
                       borderTopColor: themeColors.cardBorder,
                       // FIX: Remove unnecessary bottom padding on Android to eliminate blank space
-                      paddingBottom: Platform.OS === 'android' ? 12 : 12,
+                      paddingBottom: Platform.OS === 'android' ? 8 : 12,
                     }
                   ]}>
                     <TouchableOpacity
@@ -3041,35 +3091,38 @@ const styles = StyleSheet.create({
   emptySubtext: {
     marginTop: 6,
   },
-  messageContainer: {
+  // FIX: New message alignment structure
+  messageWrapper: {
     flexDirection: 'row',
     marginBottom: 16,
     alignItems: 'flex-start',
     gap: 8,
   },
-  ownMessage: {
-    // FIX: Align own messages to the right
+  messageWrapperOwn: {
+    // Own messages: aligned to the right
     justifyContent: 'flex-end',
-    flexDirection: 'row-reverse', // Avatar on right side for own messages
   },
-  otherMessage: {
-    // FIX: Align other messages to the left
+  messageWrapperOther: {
+    // Other messages: aligned to the left
     justifyContent: 'flex-start',
-    flexDirection: 'row', // Avatar on left side for other messages
   },
   messageAvatar: {
     // Dynamic size
   },
   messageAvatarImage: {
     borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   messageAvatarPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  messageContentContainer: {
+    maxWidth: '70%',
   },
   messageBubble: {
-    maxWidth: '70%',
     padding: 12,
     borderRadius: 16,
   },
@@ -3272,7 +3325,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
   },
-  privateChatHeader: {
+  privateChatHeaderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
