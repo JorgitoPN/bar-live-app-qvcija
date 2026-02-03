@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Platform } from 'react-native';
 import { supabase } from '@/utils/supabase';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -23,45 +23,42 @@ interface LikeUser {
 }
 
 /**
- * ✅ POST LIKES AVATARS v316.0 - FULL-SCREEN NAVIGATION
+ * ✅ POST LIKES AVATARS v317.0 - ANDROID PERFORMANCE FIX
  * 
- * NEW CHANGES v316.0:
+ * NEW CHANGES v317.0:
+ * - ✅ CRITICAL FIX: Disabled Realtime subscriptions on Android (use polling instead)
+ * - ✅ FIXED: Android performance issue when logged in - no more CHANNEL_ERROR spam
+ * - ✅ IMPROVED: Android now uses 10-second polling for likes updates
+ * - ✅ IMPROVED: iOS continues to use Realtime for instant updates
+ * 
+ * Previous changes v316.0:
  * - ✅ Removed modal - now navigates to full-screen /social/likes page
  * - ✅ Cleaner component with less state management
  * - ✅ Better UX with dedicated full-screen page for likes list
- * 
- * Previous fixes maintained (v101.0):
- * - ✅ Fixed infinite loop issues
- * - ✅ Proper memoization with stable dependencies
- * - ✅ All text uses scaleFontSize() for Android consistency
  */
 
 export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }: PostLikesAvatarsProps) {
   const router = useRouter();
   const { user } = useAuth();
   const channelRef = useRef<any>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const [tempProfiles, setTempProfiles] = useState<LikeUser[]>([]);
   const initialProfilesRef = useRef<LikeUser[]>([]);
   
-
-  
   const [currentTotalLikes, setCurrentTotalLikes] = useState(totalLikes);
   const [currentUserHasLiked, setCurrentUserHasLiked] = useState(false);
 
-  // ✅ v316.0: Navigate to full-screen likes page
   const handleOpenLikesPage = useCallback(() => {
-    console.log('[PostLikesAvatars v316.0] ❤️ Opening likes full-screen page for post:', postId);
+    console.log('[PostLikesAvatars v317.0] ❤️ Opening likes full-screen page for post:', postId);
     router.push({
       pathname: '/social/likes',
       params: { postId },
     });
   }, [postId, router]);
 
-  // ✅ CRITICAL FIX v101.0: Update state immediately when localLikes changes
-  // This effect ONLY updates state, does NOT fetch data
   useEffect(() => {
-    console.log('[PostLikesAvatars v101.0] 🔄 localLikes changed for post:', postId, {
+    console.log('[PostLikesAvatars v317.0] 🔄 localLikes changed for post:', postId, {
       count: localLikes.length,
       users: localLikes.map(l => l.usuario_id),
     });
@@ -71,32 +68,29 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     const userLiked = user ? localLikes.some(like => like.usuario_id === user.id) : false;
     setCurrentUserHasLiked(userLiked);
 
-    console.log('[PostLikesAvatars v101.0] ✅ State updated:', {
+    console.log('[PostLikesAvatars v317.0] ✅ State updated:', {
       userLiked,
       totalLikes: localLikes.length,
     });
-  }, [postId, localLikes, user]); // ✅ FIXED: Include user to satisfy exhaustive-deps
+  }, [postId, localLikes, user]);
 
-  // ✅ CRITICAL FIX v101.0: Separate effect for loading profile data
-  // This effect ONLY runs when localLikes changes, NOT when tempProfiles changes
   useEffect(() => {
     const loadProfiles = async () => {
       try {
         const userIds = localLikes.map(like => like.usuario_id).slice(0, 3);
         
         if (userIds.length === 0) {
-          console.log('[PostLikesAvatars v101.0] ℹ️ No likes to display, clearing tempProfiles');
+          console.log('[PostLikesAvatars v317.0] ℹ️ No likes to display, clearing tempProfiles');
           setTempProfiles([]);
           initialProfilesRef.current = [];
           return;
         }
         
-        // ✅ OPTIMISTIC UPDATE: If current user just liked, add their profile IMMEDIATELY
         if (user && userIds.includes(user.id)) {
           const userAlreadyInProfiles = tempProfiles.some(p => p.id === user.id);
           
           if (!userAlreadyInProfiles) {
-            console.log('[PostLikesAvatars v101.0] ➕ OPTIMISTIC: Adding current user profile IMMEDIATELY');
+            console.log('[PostLikesAvatars v317.0] ➕ OPTIMISTIC: Adding current user profile IMMEDIATELY');
             
             const optimisticUserProfile: LikeUser = {
               id: user.id,
@@ -107,21 +101,19 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
             };
             
             setTempProfiles(prev => [optimisticUserProfile, ...prev.filter(p => p.id !== user.id)]);
-            console.log('[PostLikesAvatars v101.0] ✅ OPTIMISTIC: User avatar added instantly');
+            console.log('[PostLikesAvatars v317.0] ✅ OPTIMISTIC: User avatar added instantly');
           }
         } else if (user) {
-          // User unliked - remove immediately
           const userInProfiles = tempProfiles.some(p => p.id === user.id);
           
           if (userInProfiles) {
-            console.log('[PostLikesAvatars v101.0] ➖ OPTIMISTIC: Removing current user profile IMMEDIATELY');
+            console.log('[PostLikesAvatars v317.0] ➖ OPTIMISTIC: Removing current user profile IMMEDIATELY');
             setTempProfiles(prev => prev.filter(p => p.id !== user.id));
-            console.log('[PostLikesAvatars v101.0] ✅ OPTIMISTIC: User avatar removed instantly');
+            console.log('[PostLikesAvatars v317.0] ✅ OPTIMISTIC: User avatar removed instantly');
           }
         }
         
-        // Fetch full profile data in background
-        console.log('[PostLikesAvatars v101.0] 🔍 Fetching user data in background for:', userIds);
+        console.log('[PostLikesAvatars v317.0] 🔍 Fetching user data in background for:', userIds);
         
         const { data, error } = await supabase
           .from('usuarios')
@@ -140,30 +132,80 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
               tipo: 'usuario' as const,
             }));
           
-          console.log('[PostLikesAvatars v101.0] ✅ Loaded', orderedUsers.length, 'like users');
+          console.log('[PostLikesAvatars v317.0] ✅ Loaded', orderedUsers.length, 'like users');
           
           setTempProfiles(orderedUsers);
           initialProfilesRef.current = orderedUsers;
         } else if (error) {
-          console.error('[PostLikesAvatars v101.0] ❌ Error loading like users:', error);
+          console.error('[PostLikesAvatars v317.0] ❌ Error loading like users:', error);
         }
       } catch (error) {
-        console.error('[PostLikesAvatars v101.0] ❌ Exception loading like users:', error);
+        console.error('[PostLikesAvatars v317.0] ❌ Exception loading like users:', error);
       }
     };
 
     loadProfiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postId, localLikes, user]); // ✅ FIXED: Include user, tempProfiles intentionally excluded to prevent loop
+  }, [postId, localLikes, user]);
 
-  // ✅ CRITICAL FIX v101.0: Real-time subscription with stable dependencies
+  // ✅ CRITICAL FIX v317.0: Platform-specific real-time updates
+  // iOS: Use Realtime subscriptions for instant updates
+  // Android: Use polling to avoid CHANNEL_ERROR and performance issues
   useEffect(() => {
     if (!user) return;
 
-    console.log('[PostLikesAvatars v101.0] 🔄 Setting up real-time subscription for post:', postId);
+    console.log('[PostLikesAvatars v317.0] 🔄 Setting up updates for post:', postId, 'Platform:', Platform.OS);
+
+    // ✅ ANDROID: Use polling instead of Realtime
+    if (Platform.OS === 'android') {
+      console.log('[PostLikesAvatars v317.0] 📱 Android detected - using polling (10s interval)');
+      
+      const pollUpdates = async () => {
+        try {
+          const { count, error: countError } = await supabase
+            .from('likes')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_id', postId);
+          
+          if (!countError && count !== null) {
+            setCurrentTotalLikes(count);
+          }
+          
+          const { data: userLike, error: likeError } = await supabase
+            .from('likes')
+            .select('id')
+            .eq('post_id', postId)
+            .eq('usuario_id', user.id)
+            .maybeSingle();
+          
+          if (!likeError) {
+            setCurrentUserHasLiked(!!userLike);
+          }
+        } catch (error) {
+          console.error('[PostLikesAvatars v317.0] ❌ Polling error:', error);
+        }
+      };
+
+      // Initial poll
+      pollUpdates();
+
+      // Set up polling interval (every 10 seconds)
+      pollingIntervalRef.current = setInterval(pollUpdates, 10000);
+
+      return () => {
+        console.log('[PostLikesAvatars v317.0] 🔄 Cleaning up Android polling');
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+      };
+    }
+
+    // ✅ iOS: Use Realtime subscriptions
+    console.log('[PostLikesAvatars v317.0] 🍎 iOS detected - using Realtime subscriptions');
 
     if (channelRef.current?.state === 'subscribed') {
-      console.log('[PostLikesAvatars v101.0] ⚠️ Already subscribed, skipping');
+      console.log('[PostLikesAvatars v317.0] ⚠️ Already subscribed, skipping');
       return;
     }
 
@@ -181,16 +223,16 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
           filter: `post_id=eq.${postId}`,
         },
         async (payload) => {
-          console.log('[PostLikesAvatars v101.0] 🔄 Real-time like change detected:', payload.eventType, 'by user:', payload.new?.usuario_id || payload.old?.usuario_id);
+          console.log('[PostLikesAvatars v317.0] 🔄 Real-time like change detected:', payload.eventType, 'by user:', payload.new?.usuario_id || payload.old?.usuario_id);
           
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
           if (changedByUserId === user.id) {
-            console.log('[PostLikesAvatars v101.0] ⏭️ Change made by current user, skipping (already handled optimistically)');
+            console.log('[PostLikesAvatars v317.0] ⏭️ Change made by current user, skipping (already handled optimistically)');
             return;
           }
           
-          console.log('[PostLikesAvatars v101.0] 🔄 Change made by another user, reloading...');
+          console.log('[PostLikesAvatars v317.0] 🔄 Change made by another user, reloading...');
           
           const { count, error: countError } = await supabase
             .from('likes')
@@ -198,7 +240,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
             .eq('post_id', postId);
           
           if (!countError && count !== null) {
-            console.log('[PostLikesAvatars v101.0] ✅ Updated likes count via real-time:', count);
+            console.log('[PostLikesAvatars v317.0] ✅ Updated likes count via real-time:', count);
             setCurrentTotalLikes(count);
           }
           
@@ -215,26 +257,24 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         }
       )
       .subscribe((status) => {
-        console.log('[PostLikesAvatars v101.0] 📡 Subscription status:', status);
+        console.log('[PostLikesAvatars v317.0] 📡 iOS Realtime subscription status:', status);
       });
 
     return () => {
-      console.log('[PostLikesAvatars v101.0] 🔄 Cleaning up subscription');
+      console.log('[PostLikesAvatars v317.0] 🔄 Cleaning up iOS Realtime subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, [postId, user]); // ✅ FIXED: Include user to satisfy exhaustive-deps
+  }, [postId, user]);
 
-  // ✅ CRITICAL FIX v101.0: Update from prop when localLikes is empty
   useEffect(() => {
     if (localLikes.length === 0) {
       setCurrentTotalLikes(totalLikes);
     }
   }, [totalLikes, localLikes.length]);
 
-  // ✅ v316.0: Handle user press for inline username links
   const handleUserPress = useCallback((userId: string, tipo: 'usuario' | 'local') => {
     if (tipo === 'usuario' && user && userId === user.id) {
       router.push('/(tabs)/perfil');
@@ -251,11 +291,10 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
   }, [user, router]);
 
-  // ✅ CRITICAL FIX v101.0: Memoize text generation with stable dependencies
   const getLikesText = useMemo(() => {
     const otherUsers = tempProfiles.filter(u => u.id !== user?.id);
     
-    console.log('[PostLikesAvatars v101.0] 📊 Generating text:', {
+    console.log('[PostLikesAvatars v317.0] 📊 Generating text:', {
       currentUserHasLiked,
       currentTotalLikes,
       tempProfilesCount: tempProfiles.length,
@@ -364,9 +403,8 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
     
     return <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>{currentTotalLikes} me gusta</Text>;
-  }, [currentUserHasLiked, currentTotalLikes, tempProfiles, user?.id, handleUserPress, handleOpenLikesPage]); // ✅ FIXED: Stable dependencies
+  }, [currentUserHasLiked, currentTotalLikes, tempProfiles, user?.id, handleUserPress, handleOpenLikesPage]);
 
-  // ✅ CRITICAL FIX v101.0: Memoize avatar rendering
   const avatarsDisplay = useMemo(() => {
     return tempProfiles.slice(0, 3).map((likeUser, index) => (
       <View
@@ -387,7 +425,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
         )}
       </View>
     ));
-  }, [tempProfiles]); // ✅ FIXED: Only depend on tempProfiles
+  }, [tempProfiles]);
 
   if (currentTotalLikes === 0) {
     return null;
