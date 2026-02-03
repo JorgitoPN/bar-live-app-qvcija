@@ -1,4 +1,3 @@
-
 const { getDefaultConfig } = require('expo/metro-config');
 const { FileStore } = require('metro-cache');
 const path = require('path');
@@ -8,30 +7,30 @@ const config = getDefaultConfig(__dirname);
 
 config.resolver.unstable_enablePackageExports = true;
 
-// Use turborepo to restore the cache when possible
-config.cacheStores = [
-    new FileStore({ root: path.join(__dirname, 'node_modules', '.cache', 'metro') }),
-  ];
-
-// CRITICAL FIX v326.0: Custom resolver to handle uuid package missing files
-// The uuid package tries to import Node.js-specific files that don't exist in React Native
-// We map these to empty modules to prevent bundling errors
+// Fix uuid module resolution for React Native
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // Handle uuid package internal imports that don't exist in React Native
+  // Handle uuid internal imports that don't work in React Native
   if (
     moduleName === './md5.js' ||
     moduleName === './sha1.js' ||
     moduleName === './max.js' ||
     moduleName === './rng.js' ||
-    moduleName === './native.js' // FIX v326.0: Add native.js to the list
+    moduleName === './native.js'
   ) {
-    console.log('[METRO v326.0] Resolving uuid internal module to empty:', moduleName);
-    return { type: 'empty' };
+    // Return a dummy module that won't be used since we're using v4 only
+    return {
+      type: 'empty',
+    };
   }
 
   // Use default resolver for everything else
   return context.resolveRequest(context, moduleName, platform);
 };
+
+// Use turborepo to restore the cache when possible
+config.cacheStores = [
+    new FileStore({ root: path.join(__dirname, 'node_modules', '.cache', 'metro') }),
+  ];
 
 // Custom server middleware to receive console.log messages from the app
 const LOG_FILE_PATH = path.join(__dirname, '.natively', 'app_console.log');
