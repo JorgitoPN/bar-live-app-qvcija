@@ -27980,3 +27980,764 @@ We recommend you instead use a development build to avoid limitations. Learn mor
 [2026-02-03T22:52:22.495Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.3.fill", FILLED, mode: monochrome, color: #D1D5DB, size: 22
 [2026-02-03T22:52:22.665Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "exclamationmark.triangle.fill", FILLED, mode: monochrome, color: #84CC16, size: 20
 [2026-02-03T22:52:22.671Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bubble.left.and.bubble.right.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-02-03T23:08:09.491Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:13.756Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:08:14.292Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:08:14.142Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:08:13.971Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:08:15.970Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:16.324Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:16.519Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:17.106Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:17.259Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:17.488Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:16.697Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:16.959Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:19.575Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:17.720Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:23.853Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:08:24.021Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:08:26.772Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:26.404Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:27.043Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:26.593Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:27.196Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:27.364Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:27.767Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:29.666Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:27.598Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:33.974Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:08:34.141Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:08:34.467Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:08:34.298Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:08:36.169Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:36.489Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:36.677Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:37.115Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:36.864Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:37.270Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:37.659Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:37.456Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:37.849Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:44.069Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:08:39.761Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:44.245Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:10:35.389Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:08:44.419Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:08:46.289Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:44.568Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:08:46.590Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:46.783Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:46.947Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:47.199Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:47.338Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:47.521Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:47.920Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:47.764Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:49.851Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:54.362Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:08:54.163Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:08:54.524Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:08:54.692Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:08:56.386Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:56.863Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:56.690Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:57.041Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:57.278Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:57.437Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:57.602Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:06.462Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:57.831Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:57.985Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:08:59.982Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:04.444Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:09:04.271Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:09:04.618Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:09:04.766Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:09:06.770Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:27.871Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:06.939Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:07.222Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:07.533Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:07.373Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:07.687Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:08.076Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:07.874Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:10.038Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:14.393Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:09:14.570Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:09:14.743Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:09:14.888Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:09:16.550Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:17.027Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:16.852Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:47.200Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:17.210Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:17.397Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:17.563Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:17.703Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:17.897Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:18.093Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:20.102Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:24.479Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:09:24.663Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:09:24.879Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:09:26.645Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:25.044Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:09:26.963Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:27.105Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:27.323Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:27.502Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:27.696Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:28.038Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:28.227Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:30.226Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:34.586Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:10:17.180Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:34.719Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:09:34.968Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:09:35.120Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:09:37.046Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:36.730Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:37.197Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:37.446Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:37.600Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:37.771Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:37.938Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:38.126Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:40.315Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:38.282Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:44.682Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:09:44.847Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:09:45.041Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:09:45.210Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:09:46.822Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:47.508Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:47.331Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:47.660Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:48.032Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:47.882Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:48.383Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:48.231Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:50.406Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:54.949Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:09:54.781Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:09:55.167Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:09:56.905Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:55.328Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:09:57.285Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:57.440Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:57.629Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:57.952Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:57.795Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:58.111Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:58.274Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:09:58.444Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:04.911Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:10:00.497Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:05.085Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:10:05.283Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:10:05.429Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:10:07.386Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:06.982Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:07.533Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:07.693Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:07.859Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:08.038Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:08.204Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:08.348Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:08.528Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:10.594Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:15.026Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:10:15.175Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:10:15.347Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:10:17.505Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:15.505Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:10:17.666Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:17.815Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:17.968Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:18.292Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:18.120Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:18.437Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:28.219Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:18.589Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:20.684Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:25.104Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:10:25.294Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:10:25.464Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:10:27.273Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:25.623Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:10:27.603Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:27.756Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:27.913Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:28.076Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:28.374Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:28.523Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:28.694Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:30.761Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:35.219Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:10:35.719Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:10:35.544Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:10:37.343Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:37.736Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:38.179Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:37.935Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:38.010Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:38.368Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:38.484Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:38.621Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:40.847Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:38.771Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:45.334Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:10:45.690Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:10:45.526Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:10:45.846Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:10:47.486Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:48.057Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:47.809Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:48.211Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:48.741Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:48.438Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:48.284Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:48.587Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:48.895Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:50.959Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:55.464Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:10:55.649Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:10:55.826Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:10:55.976Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:10:57.904Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:57.592Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:58.129Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:58.279Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:58.454Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:58.528Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:58.675Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:58.834Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:10:58.991Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:01.049Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:05.561Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:11:05.719Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:11:06.064Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:11:05.915Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:11:07.679Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:07.998Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:08.256Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:08.608Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:08.445Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:08.849Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:08.922Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:09.089Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:11.138Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:15.678Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:11:15.844Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:11:16.021Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:11:16.163Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:11:18.102Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:17.753Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:18.347Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:18.533Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:18.692Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:19.007Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:18.848Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:19.230Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:21.201Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:25.993Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:11:26.152Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:11:25.787Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:11:26.293Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:11:27.910Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:28.247Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:28.405Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:28.770Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:28.613Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:28.929Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:29.081Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:29.240Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:29.394Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:31.306Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:35.898Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:11:36.051Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:11:36.236Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:11:36.398Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:11:37.993Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:38.353Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:38.507Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:38.694Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:38.851Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:39.003Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:39.161Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:39.319Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:39.473Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:41.393Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:45.992Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:11:46.153Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:11:46.468Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:11:46.326Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:11:48.433Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:48.063Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:48.584Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:48.776Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:49.091Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:48.928Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:49.237Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:49.406Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:49.556Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:51.477Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:56.071Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:11:56.424Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:11:56.245Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:11:56.569Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:11:58.155Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:58.517Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:58.695Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:58.868Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:59.011Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:59.165Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:59.314Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:59.478Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:11:59.626Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:01.566Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:06.334Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:12:06.157Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:12:06.656Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:12:06.497Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:12:08.275Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:08.776Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:08.583Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:09.088Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:08.926Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:09.241Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:09.394Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:09.558Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:09.705Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:11.654Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:16.278Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:12:16.447Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:12:16.616Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:12:16.763Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:12:18.672Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:18.358Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:18.858Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:19.162Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:19.316Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:19.007Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:19.472Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:19.633Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:19.786Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:21.734Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:26.542Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:12:26.382Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:12:26.739Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:12:26.888Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:12:28.444Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:28.818Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:28.965Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:29.112Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:29.573Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:29.271Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:29.424Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:29.727Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:29.881Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:31.823Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:36.489Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:12:36.998Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:12:36.849Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:12:36.680Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:12:38.525Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:39.056Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:38.896Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:39.361Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:39.210Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:39.517Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:39.665Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:39.808Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:39.982Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:41.909Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:46.761Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:12:46.958Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:12:47.117Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:12:46.591Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:12:48.617Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:48.956Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:49.121Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:49.264Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:49.433Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:49.588Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:49.747Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:49.903Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:50.057Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:51.999Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:56.892Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:12:57.214Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:12:57.056Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:12:56.693Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:12:58.715Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:59.084Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:59.208Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:59.516Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:59.340Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:59.809Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:59.668Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:12:59.962Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:00.119Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:02.094Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:06.941Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:13:06.800Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:13:07.290Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:13:07.131Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:13:08.806Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:09.012Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:09.323Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:09.479Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:09.772Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:09.631Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:09.945Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:10.097Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:10.260Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:12.210Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:16.891Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:13:17.088Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:13:17.415Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:13:17.257Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:13:18.896Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:19.253Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:19.401Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:19.544Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:19.853Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:19.698Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:20.017Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:20.169Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:20.344Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:22.307Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:27.018Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:13:27.176Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:13:27.503Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:13:27.340Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:13:29.007Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:29.335Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:29.486Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:29.640Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:29.802Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:29.950Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:30.119Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:30.278Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:30.434Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:32.387Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:38.476Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:13:39.710Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:39.406Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:39.133Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:39.561Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:39.872Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:40.002Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:40.185Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:40.337Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:40.507Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:42.445Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:48.627Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:13:49.663Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:49.516Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:49.200Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:49.808Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:50.128Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:49.982Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:50.281Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:50.432Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:50.588Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:52.563Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:58.756Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:13:58.673Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:13:59.300Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:59.750Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:59.613Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:13:59.912Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:00.076Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:00.410Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:00.723Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:00.260Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:00.565Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:02.651Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:08.796Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:14:08.965Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:14:09.346Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:09.555Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:09.905Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:10.073Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:10.401Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:10.242Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:10.713Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:10.551Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:10.887Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:12.739Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:19.054Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:14:18.875Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:14:19.211Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:14:19.454Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:20.010Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:19.801Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:20.316Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:20.163Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:20.622Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:20.482Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:20.787Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:20.955Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:22.823Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:29.064Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:14:29.287Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:14:29.591Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:29.366Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:14:30.073Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:29.892Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:30.248Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:30.420Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:30.571Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:30.735Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:31.030Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:30.878Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:32.915Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:39.176Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:14:39.366Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:14:39.549Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:14:40.028Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:39.801Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:40.322Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:40.179Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:40.638Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:40.496Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:40.958Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:40.806Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:41.114Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:43.007Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:49.295Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:14:49.792Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:14:49.470Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:14:49.647Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:14:49.940Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:50.290Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:50.444Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:50.629Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:50.934Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:50.782Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:51.100Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:51.242Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:53.079Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:14:59.414Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:14:59.601Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:14:59.767Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:14:59.917Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:15:00.432Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:00.068Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:00.294Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:00.594Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:00.890Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:01.046Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:00.742Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:01.192Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:01.353Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:03.200Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:09.512Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:15:09.839Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:15:09.991Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:15:09.682Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:15:10.154Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:10.543Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:10.699Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:10.868Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:11.181Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:11.348Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:11.015Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:11.488Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:13.265Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:19.684Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:15:20.085Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:15:19.853Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:15:20.270Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:20.009Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:15:20.650Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:20.828Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:20.983Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:21.250Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:21.334Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:21.486Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:21.649Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:23.369Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:29.965Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:15:29.794Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:15:30.127Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:15:30.379Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:30.204Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:15:30.689Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:31.315Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:30.779Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:31.094Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:30.944Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:31.472Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:31.621Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:31.785Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:33.484Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:39.890Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:15:40.056Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:15:40.212Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:15:40.368Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:15:40.810Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:40.536Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:40.860Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:41.202Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:41.382Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:41.546Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:41.704Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:41.840Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:43.610Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:50.143Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:15:49.981Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:15:50.294Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:15:50.444Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:15:50.622Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:50.920Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:51.142Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:50.997Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:51.289Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:51.459Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:51.625Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:51.773Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:51.914Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:15:53.693Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:00.236Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:16:00.060Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:16:00.553Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:16:00.398Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:16:00.737Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:01.102Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:01.257Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:01.048Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:01.400Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:01.560Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:01.713Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:01.869Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:02.021Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:03.781Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:10.313Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:16:10.137Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:16:10.644Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:16:10.498Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:16:10.815Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:11.152Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:11.308Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:11.551Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:11.738Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:11.902Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:12.139Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:13.843Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:20.557Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:16:20.327Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:16:20.634Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:16:20.793Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:16:21.300Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:20.975Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:21.467Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:21.692Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:21.837Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:22.155Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:21.991Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:22.317Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:23.954Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:30.406Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:16:30.666Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:16:30.912Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:16:30.745Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:16:31.089Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:31.686Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:31.391Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:31.534Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:31.837Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:31.995Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:32.147Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:32.321Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:32.469Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:34.041Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:40.757Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:16:40.490Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:16:41.057Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:16:40.908Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:16:41.238Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:41.701Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:41.767Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:41.543Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:41.914Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:42.063Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:42.391Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:42.221Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:42.538Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:44.159Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:50.578Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:16:50.848Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:16:51.003Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:16:51.273Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:16:51.362Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:51.676Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:51.829Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:52.064Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:52.307Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:52.467Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:52.224Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:52.620Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:16:54.249Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:00.674Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:17:00.936Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:17:01.092Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:17:01.543Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:01.796Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:01.955Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:01.354Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:17:02.337Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:02.203Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:02.715Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:02.555Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:04.335Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:10.752Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:17:11.052Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:17:11.197Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:17:11.425Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:17:11.591Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:11.889Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:11.997Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:12.417Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:12.523Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:12.097Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:12.213Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:12.619Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:12.715Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:14.384Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:20.829Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:17:21.140Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:17:21.311Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:17:21.532Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:17:21.722Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:22.052Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:22.201Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:22.442Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:22.774Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:22.697Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:22.519Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:22.922Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:24.505Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:30.921Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:17:31.249Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:17:31.421Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:17:31.827Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:31.611Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:17:32.129Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:32.279Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:32.428Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:32.642Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:32.572Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:32.803Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:32.952Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:34.592Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:40.985Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:17:41.372Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:17:41.524Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android v2): CHANNEL_ERROR
+[2026-02-03T23:17:41.701Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T23:17:41.880Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T23:17:42.203Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR

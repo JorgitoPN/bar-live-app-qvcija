@@ -109,7 +109,7 @@ const PREDEFINED_MESSAGES = {
 
 const PROXIMITY_THRESHOLD = 5; // meters
 const CLOSING_WARNING_THRESHOLD = 60; // 1 hour in minutes
-const MESSAGE_SYNC_INTERVAL = 2000; // 2 seconds - aggressive polling for reliability
+const MESSAGE_SYNC_INTERVAL = 1500; // 🔥 CRITICAL: Reduced to 1.5 seconds for faster real-time feel
 const TYPING_TIMEOUT = 3000; // 3 seconds before hiding typing indicator
 
 interface Message {
@@ -728,11 +728,11 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, [localId, user, selectedPrivateChat, loadPrivateChats]);
 
-  // 🔥 CRITICAL FIX: More aggressive polling for real-time feel
+  // 🔥 CRITICAL FIX: More aggressive polling for real-time feel (1.5 seconds)
   useEffect(() => {
     if (!localId || !user || !isCheckedIn) return;
 
-    console.log('[SalaVirtual Enhanced] 🔄 Starting aggressive message sync (every 2 seconds)');
+    console.log('[SalaVirtual Enhanced] 🔄 Starting ULTRA-AGGRESSIVE message sync (every 1.5 seconds)');
     
     syncMessages();
     
@@ -1005,7 +1005,7 @@ export default function SalaVirtualEnhancedScreen() {
 
     // Chat messages subscription
     const chatChannel = supabase
-      .channel(`room_messages_${localId}_v5`)
+      .channel(`room_messages_${localId}_v6`)
       .on(
         'postgres_changes',
         {
@@ -1065,7 +1065,7 @@ export default function SalaVirtualEnhancedScreen() {
 
     // Check-ins subscription
     const checkinsChannel = supabase
-      .channel(`sala_virtual_checkins:${localId}_v5`)
+      .channel(`sala_virtual_checkins:${localId}_v6`)
       .on(
         'postgres_changes',
         {
@@ -1231,7 +1231,6 @@ export default function SalaVirtualEnhancedScreen() {
       }
     } catch (error) {
       console.error('[SalaVirtual Enhanced] Error:', error);
-      setMessages(prev => prev.filter(m => m.id !== messageId));
     } finally {
       setSending(false);
     }
@@ -1607,7 +1606,7 @@ export default function SalaVirtualEnhancedScreen() {
         ? chat.username.replace('@', '')
         : chat.nombre;
       
-      console.log('[SalaVirtual Enhanced] Opening private chat with:', displayName, '- Marking as read');
+      console.log('[SalaVirtual Enhanced] 🔥 CRITICAL FIX: Opening private chat with:', displayName, '- Marking as read');
       
       setSelectedPrivateChat(chat);
       
@@ -1886,8 +1885,10 @@ export default function SalaVirtualEnhancedScreen() {
     console.log('[SalaVirtual Enhanced] 🔥 CRITICAL FIX: Navigating to user profile:', selectedUser.id);
     closeBottomSheet();
     
+    // Close virtual room first
     handleCheckOut();
     
+    // Navigate to profile after checkout
     setTimeout(() => {
       router.push(`/perfil/usuario?id=${selectedUser.id}`);
     }, 300);
@@ -3099,8 +3100,10 @@ export default function SalaVirtualEnhancedScreen() {
                       onPress={() => {
                         console.log('[SalaVirtual Enhanced] 🔥 CRITICAL FIX: Navigating to profile from private chat header');
                         
+                        // Close virtual room first
                         handleCheckOut();
                         
+                        // Navigate to profile after checkout
                         setTimeout(() => {
                           router.push(`/perfil/usuario?id=${selectedPrivateChat.userId}`);
                         }, 300);
