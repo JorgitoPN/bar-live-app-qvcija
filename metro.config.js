@@ -7,11 +7,13 @@ const config = getDefaultConfig(__dirname);
 
 config.resolver.unstable_enablePackageExports = true;
 
-// Fix uuid module resolution for React Native
+// Fix UUID module resolution issues
+// The uuid package has internal imports (./rng.js, ./md5.js, ./sha1.js, ./max.js) that don't work with React Native
+// We only use v4 (which uses crypto.getRandomValues from react-native-get-random-values)
+// So we can safely resolve these to empty modules
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // Handle uuid internal imports that don't work in React Native
-  if (moduleName === './md5.js' || moduleName === './sha1.js' || moduleName === './max.js') {
-    // Return a dummy module that won't be used since we're using v4 only
+  // Handle problematic UUID internal imports
+  if (moduleName === './rng.js' || moduleName === './md5.js' || moduleName === './sha1.js' || moduleName === './max.js') {
     return {
       type: 'empty',
     };
