@@ -16,6 +16,7 @@ import {
   ScrollView,
   Modal,
   Pressable,
+  Keyboard,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
@@ -205,6 +206,7 @@ export default function SalaVirtualEnhancedScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   
   const flatListRef = useRef<FlatList>(null);
   const privateChatListRef = useRef<FlatList>(null);
@@ -221,6 +223,26 @@ export default function SalaVirtualEnhancedScreen() {
   const closingCheckInterval = useRef<NodeJS.Timeout | null>(null);
 
   const themeColors = mode === 'day' ? DAY_COLORS : NIGHT_COLORS;
+
+  // ANDROID FIX: Keyboard handling
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
+        console.log('[SalaVirtual Enhanced] 🎹 Keyboard shown, height:', e.endCoordinates.height);
+        setKeyboardHeight(e.endCoordinates.height);
+      });
+      
+      const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+        console.log('[SalaVirtual Enhanced] 🎹 Keyboard hidden');
+        setKeyboardHeight(0);
+      });
+
+      return () => {
+        keyboardDidShowListener.remove();
+        keyboardDidHideListener.remove();
+      };
+    }
+  }, []);
 
   // Update mode every minute
   useEffect(() => {
@@ -616,57 +638,78 @@ export default function SalaVirtualEnhancedScreen() {
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
-    console.log('[SalaVirtual Enhanced] 📡 Subscribing to real-time updates (ANDROID OPTIMIZED)');
+    console.log('[SalaVirtual Enhanced] 📡 Subscribing to real-time updates (ANDROID OPTIMIZED v2)');
 
-    // ANDROID FIX: Simplified channel configuration for better reliability
+    // ANDROID FIX v2: Use postgres_changes instead of broadcast for better reliability
     const chatChannel = supabase
-      .channel(`room:${localId}:chat`, {
-        config: {
-          broadcast: { self: false },
-          presence: { key: user.id },
+      .channel(`room_messages_${localId}_v2`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'sala_virtual_interacciones',
+          filter: `local_id=eq.${localId}`,
         },
-      })
-      .on('broadcast', { event: 'message_created' }, (payload) => {
-        console.log('[SalaVirtual Enhanced] 📨 New message received via broadcast (Android optimized)');
-        
-        if (payload.payload.usuario_id === user.id) return;
-
-        const newMessage: Message = {
-          id: payload.payload.id,
-          usuario_id: payload.payload.usuario_id,
-          local_id: payload.payload.local_id,
-          tipo: payload.payload.tipo,
-          contenido: payload.payload.contenido,
-          created_at: payload.payload.created_at,
-          is_private: payload.payload.is_private,
-          recipient_id: payload.payload.recipient_id,
-          usuario: payload.payload.usuario,
-        };
-
-        if (!newMessage.is_private || newMessage.recipient_id === user.id) {
-          setMessages((prev) => {
-            if (prev.some(m => m.id === newMessage.id)) return prev;
-            return [...prev, newMessage];
-          });
+        async (payload) => {
+          console.log('[SalaVirtual Enhanced] 📨 New message inserted in DB (Android optimized v2):', payload);
           
-          setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-          }, 100);
-
-          if (newMessage.is_private && newMessage.recipient_id === user.id && newMessage.tipo === 'predefinido') {
-            triggerReceivedAnimation(newMessage.contenido);
+          const newRecord = payload.new as any;
+          
+          // Skip own messages
+          if (newRecord.usuario_id === user.id) {
+            console.log('[SalaVirtual Enhanced] Skipping own message');
+            return;
           }
 
-          if (!newMessage.is_private) {
+          // Fetch user data for the message
+          const { data: userData, error: userError } = await supabase
+            .from('usuarios')
+            .select('id, nombre, username, avatar')
+            .eq('id', newRecord.usuario_id)
+            .single();
+
+          if (userError || !userData) {
+            console.error('[SalaVirtual Enhanced] Error fetching user data:', userError);
+            return;
+          }
+
+          const newMessage: Message = {
+            id: newRecord.id,
+            usuario_id: newRecord.usuario_id,
+            local_id: newRecord.local_id,
+            tipo: newRecord.tipo,
+            contenido: newRecord.contenido,
+            created_at: newRecord.created_at,
+            is_private: newRecord.tipo === 'privado',
+            recipient_id: newRecord.recipient_id,
+            usuario: userData,
+          };
+
+          // Handle public messages
+          if (newRecord.tipo !== 'privado') {
+            console.log('[SalaVirtual Enhanced] 📨 Public message received from:', userData.username || userData.nombre);
+            
+            setMessages((prev) => {
+              if (prev.some(m => m.id === newMessage.id)) return prev;
+              return [...prev, newMessage];
+            });
+            
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+
             const quickMsg = QUICK_PUBLIC_MESSAGES.find(m => m.text === newMessage.contenido);
             if (quickMsg) {
               triggerFloatingReaction(quickMsg.emoji);
             }
           }
           
-          if (newMessage.is_private && newMessage.recipient_id === user.id) {
-            console.log('[SalaVirtual Enhanced] 🔄 Private message received, updating chats optimistically');
+          // Handle private messages
+          if (newRecord.tipo === 'privado' && newRecord.recipient_id === user.id) {
+            console.log('[SalaVirtual Enhanced] 📨 Private message received from:', userData.username || userData.nombre);
             
+            // Update private chats list
             setPrivateChats(prev => {
               const existingChatIndex = prev.findIndex(chat => chat.userId === newMessage.usuario_id);
               
@@ -684,9 +727,9 @@ export default function SalaVirtualEnhancedScreen() {
               } else {
                 const newChat: PrivateChat = {
                   userId: newMessage.usuario_id,
-                  username: newMessage.usuario.username || '',
-                  nombre: newMessage.usuario.nombre || 'Usuario',
-                  avatar: newMessage.usuario.avatar,
+                  username: userData.username || '',
+                  nombre: userData.nombre || 'Usuario',
+                  avatar: userData.avatar,
                   lastMessage: newMessage.contenido,
                   lastMessageTime: newMessage.created_at,
                   unreadCount: 1,
@@ -696,14 +739,52 @@ export default function SalaVirtualEnhancedScreen() {
               }
             });
             
-            setTimeout(() => {
-              loadPrivateChats();
-            }, 2000);
+            // If viewing this private chat, add message to list
+            if (selectedPrivateChat && selectedPrivateChat.userId === newMessage.usuario_id) {
+              setPrivateChatMessages(prev => {
+                if (prev.some(m => m.id === newMessage.id)) return prev;
+                return [...prev, newMessage];
+              });
+              
+              setTimeout(() => {
+                privateChatListRef.current?.scrollToEnd({ animated: true });
+              }, 100);
+            }
+            
+            // Show animation for predefined messages
+            if (newRecord.tipo === 'predefinido') {
+              triggerReceivedAnimation(newMessage.contenido);
+            }
           }
         }
-      })
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'sala_virtual_interacciones',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[SalaVirtual Enhanced] 🗑️ Message deleted from DB:', payload);
+          
+          const deletedRecord = payload.old as any;
+          
+          // Remove from messages list
+          setMessages(prev => prev.filter(m => m.id !== deletedRecord.id));
+          setPrivateChatMessages(prev => prev.filter(m => m.id !== deletedRecord.id));
+          
+          // Reload private chats to update last message
+          if (deletedRecord.tipo === 'privado') {
+            setTimeout(() => {
+              loadPrivateChats();
+            }, 500);
+          }
+        }
+      )
       .subscribe((status) => {
-        console.log('[SalaVirtual Enhanced] Chat channel status (Android):', status);
+        console.log('[SalaVirtual Enhanced] Chat channel status (Android v2):', status);
       });
 
     const checkinsChannel = supabase
@@ -751,72 +832,15 @@ export default function SalaVirtualEnhancedScreen() {
         console.log('[SalaVirtual Enhanced] Checkins channel status:', status);
       });
 
-    const privateMessagesChannel = supabase
-      .channel(`private_messages:${localId}:${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'sala_virtual_interacciones',
-          filter: `local_id=eq.${localId}`,
-        },
-        (payload) => {
-          console.log('[SalaVirtual Enhanced] 💾 Private message inserted in DB:', payload);
-          
-          const newRecord = payload.new as any;
-          
-          if (
-            newRecord.tipo === 'privado' &&
-            (newRecord.usuario_id === user.id || newRecord.recipient_id === user.id)
-          ) {
-            console.log('[SalaVirtual Enhanced] 🔄 Reloading private chats due to DB insert');
-            setTimeout(() => {
-              loadPrivateChats();
-            }, 500);
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'sala_virtual_interacciones',
-          filter: `local_id=eq.${localId}`,
-        },
-        (payload) => {
-          console.log('[SalaVirtual Enhanced] 🗑️ Message deleted from DB:', payload);
-          
-          const deletedRecord = payload.old as any;
-          
-          // Remove from messages list
-          setMessages(prev => prev.filter(m => m.id !== deletedRecord.id));
-          setPrivateChatMessages(prev => prev.filter(m => m.id !== deletedRecord.id));
-          
-          // Reload private chats to update last message
-          if (deletedRecord.tipo === 'privado') {
-            setTimeout(() => {
-              loadPrivateChats();
-            }, 500);
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('[SalaVirtual Enhanced] Private messages DB channel status:', status);
-      });
-
     chatChannelRef.current = chatChannel;
     checkinsChannelRef.current = checkinsChannel;
-    presenceChannelRef.current = privateMessagesChannel;
 
     return () => {
       console.log('[SalaVirtual Enhanced] 🔌 Unsubscribing from channels');
       supabase.removeChannel(chatChannel);
       supabase.removeChannel(checkinsChannel);
-      supabase.removeChannel(privateMessagesChannel);
     };
-  }, [localId, user, updateActiveUsers, loadPrivateChats]);
+  }, [localId, user, updateActiveUsers, loadPrivateChats, selectedPrivateChat]);
 
   useEffect(() => {
     if (!localId || hasInitialized.current) return;
@@ -889,13 +913,17 @@ export default function SalaVirtualEnhancedScreen() {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
 
-      if (chatChannelRef.current) {
-        await chatChannelRef.current.send({
-          type: 'broadcast',
-          event: 'message_created',
-          payload: newMsg,
+      // Insert into database (postgres_changes will notify other users)
+      await supabase
+        .from('sala_virtual_interacciones')
+        .insert({
+          usuario_id: user.id,
+          local_id: localId,
+          tipo: 'mensaje',
+          contenido: content,
         });
-      }
+
+      console.log('[SalaVirtual Enhanced] ✅ Public message sent and saved to DB');
     } catch (error) {
       console.error('[SalaVirtual Enhanced] Error:', error);
     } finally {
@@ -1011,14 +1039,6 @@ export default function SalaVirtualEnhancedScreen() {
           .catch((dbError) => {
             console.error('[SalaVirtual Enhanced] Database error:', dbError);
           });
-      }
-
-      if (chatChannelRef.current) {
-        chatChannelRef.current.send({
-          type: 'broadcast',
-          event: 'message_created',
-          payload: newMsg,
-        });
       }
 
       console.log(`[SalaVirtual Enhanced] ✅ Message sent to ${recipientName}`);
@@ -1237,14 +1257,6 @@ export default function SalaVirtualEnhancedScreen() {
         .catch((dbError) => {
           console.error('[SalaVirtual Enhanced] Database error:', dbError);
         });
-      
-      if (chatChannelRef.current) {
-        await chatChannelRef.current.send({
-          type: 'broadcast',
-          event: 'message_created',
-          payload: newMsg,
-        });
-      }
 
       console.log('[SalaVirtual Enhanced] ✅ Private message sent');
     } catch (error) {
@@ -1260,11 +1272,11 @@ export default function SalaVirtualEnhancedScreen() {
         ? chat.username.replace('@', '')
         : chat.nombre;
       
-      console.log('[SalaVirtual Enhanced] Opening private chat with:', displayName);
+      console.log('[SalaVirtual Enhanced] Opening private chat with:', displayName, '- Marking as read');
       
       setSelectedPrivateChat(chat);
       
-      // Mark messages as read by resetting unread count
+      // NOTIFICATION FIX: Mark messages as read by resetting unread count
       setPrivateChats(prev => 
         prev.map(c => c.userId === chat.userId ? { ...c, unreadCount: 0 } : c)
       );
@@ -1308,7 +1320,7 @@ export default function SalaVirtualEnhancedScreen() {
       }));
 
       setPrivateChatMessages(formattedMessages);
-      console.log('[SalaVirtual Enhanced] ✅ Private messages loaded:', formattedMessages.length);
+      console.log('[SalaVirtual Enhanced] ✅ Private messages loaded:', formattedMessages.length, '- Chat marked as read');
       
       setTimeout(() => {
         if (formattedMessages.length > 0) {
@@ -1851,7 +1863,13 @@ export default function SalaVirtualEnhancedScreen() {
           {QUICK_PUBLIC_MESSAGES.map((msg) => (
             <TouchableOpacity
               key={msg.id}
-              style={[styles.quickMessageButton, { backgroundColor: themeColors.primary + '20', borderColor: themeColors.primary + '40' }]}
+              style={[
+                styles.quickMessageButton, 
+                { 
+                  backgroundColor: themeColors.primary + '20', 
+                  borderColor: themeColors.primary + '40',
+                }
+              ]}
               onPress={() => sendPublicMessage(msg.text)}
             >
               <Text style={styles.quickMessageEmoji}>{msg.emoji}</Text>
@@ -2018,6 +2036,10 @@ export default function SalaVirtualEnhancedScreen() {
 
   // Calculate total unread messages across all private chats
   const totalUnreadMessages = privateChats.reduce((sum, chat) => sum + chat.unreadCount, 0);
+  
+  // Calculate if there's any activity (for pulsing dot)
+  const hasUsersActivity = activeUsers.length > 1; // More than just current user
+  const hasPrivateActivity = totalUnreadMessages > 0;
 
   if (!user) {
     return (
@@ -2209,7 +2231,7 @@ export default function SalaVirtualEnhancedScreen() {
             { 
               backgroundColor: themeColors.accent + '20', 
               borderBottomColor: themeColors.accent,
-              paddingTop: Platform.OS === 'android' ? Math.max(insets.top, 12) : 12,
+              paddingTop: Platform.OS === 'android' ? Math.max(insets.top + 8, 20) : 12,
             }
           ]}>
             <IconSymbol
@@ -2324,11 +2346,17 @@ export default function SalaVirtualEnhancedScreen() {
                       color="#FFFFFF"
                     />
                     <Text style={[styles.tabTextActive, { fontSize: scaleFontSize(15) }]}>Usuarios</Text>
-                    <View style={styles.tabBadgeActive}>
-                      <Text style={[styles.tabBadgeTextActive, { fontSize: scaleFontSize(12) }]}>
-                        {activeUsers.length}
-                      </Text>
-                    </View>
+                    {hasUsersActivity && (
+                      <Animated.View 
+                        style={[
+                          styles.activityDot,
+                          { 
+                            transform: [{ scale: pulseAnim }],
+                            backgroundColor: '#06B6D4',
+                          }
+                        ]} 
+                      />
+                    )}
                   </LinearGradient>
                 ) : (
                   <View style={[
@@ -2347,11 +2375,17 @@ export default function SalaVirtualEnhancedScreen() {
                     <Text style={[styles.tabText, { fontSize: scaleFontSize(15), color: themeColors.textSecondary }]}>
                       Usuarios
                     </Text>
-                    <View style={[styles.tabBadge, { backgroundColor: themeColors.primary + '30' }]}>
-                      <Text style={[styles.tabBadgeText, { fontSize: scaleFontSize(12), color: themeColors.primary }]}>
-                        {activeUsers.length}
-                      </Text>
-                    </View>
+                    {hasUsersActivity && (
+                      <Animated.View 
+                        style={[
+                          styles.activityDot,
+                          { 
+                            transform: [{ scale: pulseAnim }],
+                            backgroundColor: '#06B6D4',
+                          }
+                        ]} 
+                      />
+                    )}
                   </View>
                 )}
               </TouchableOpacity>
@@ -2388,12 +2422,16 @@ export default function SalaVirtualEnhancedScreen() {
                       color="#FFFFFF"
                     />
                     <Text style={[styles.tabTextActive, { fontSize: scaleFontSize(15) }]}>Privados</Text>
-                    {totalUnreadMessages > 0 && (
-                      <View style={styles.tabBadgeActive}>
-                        <Text style={[styles.tabBadgeTextActive, { fontSize: scaleFontSize(12) }]}>
-                          {totalUnreadMessages}
-                        </Text>
-                      </View>
+                    {hasPrivateActivity && (
+                      <Animated.View 
+                        style={[
+                          styles.activityDot,
+                          { 
+                            transform: [{ scale: pulseAnim }],
+                            backgroundColor: '#06B6D4',
+                          }
+                        ]} 
+                      />
                     )}
                   </LinearGradient>
                 ) : (
@@ -2413,12 +2451,16 @@ export default function SalaVirtualEnhancedScreen() {
                     <Text style={[styles.tabText, { fontSize: scaleFontSize(15), color: themeColors.textSecondary }]}>
                       Privados
                     </Text>
-                    {totalUnreadMessages > 0 && (
-                      <View style={[styles.tabBadge, { backgroundColor: themeColors.primary + '30' }]}>
-                        <Text style={[styles.tabBadgeText, { fontSize: scaleFontSize(12), color: themeColors.primary }]}>
-                          {totalUnreadMessages}
-                        </Text>
-                      </View>
+                    {hasPrivateActivity && (
+                      <Animated.View 
+                        style={[
+                          styles.activityDot,
+                          { 
+                            transform: [{ scale: pulseAnim }],
+                            backgroundColor: '#06B6D4',
+                          }
+                        ]} 
+                      />
                     )}
                   </View>
                 )}
@@ -2433,7 +2475,14 @@ export default function SalaVirtualEnhancedScreen() {
                 data={messages}
                 renderItem={renderMessage}
                 keyExtractor={(item) => item.id}
-                contentContainerStyle={[styles.messagesContent, { paddingBottom: insets.bottom + 80 }]}
+                contentContainerStyle={[
+                  styles.messagesContent, 
+                  { 
+                    paddingBottom: Platform.OS === 'android' 
+                      ? keyboardHeight + 160 
+                      : insets.bottom + 80 
+                  }
+                ]}
                 onContentSizeChange={() => {
                   flatListRef.current?.scrollToEnd({ animated: true });
                 }}
@@ -2464,7 +2513,7 @@ export default function SalaVirtualEnhancedScreen() {
                 { 
                   backgroundColor: themeColors.cardBg, 
                   borderTopColor: themeColors.cardBorder,
-                  paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 12,
+                  paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom + 8, 16) : 12,
                 }
               ]}>
                 <TouchableOpacity
@@ -2550,7 +2599,14 @@ export default function SalaVirtualEnhancedScreen() {
                 renderItem={renderUserItem}
                 keyExtractor={(item) => item.id}
                 numColumns={4}
-                contentContainerStyle={[styles.usersGridContent, { paddingBottom: insets.bottom + 80 }]}
+                contentContainerStyle={[
+                  styles.usersGridContent, 
+                  { 
+                    paddingBottom: Platform.OS === 'android' 
+                      ? Math.max(insets.bottom + 80, 100) 
+                      : insets.bottom + 80 
+                  }
+                ]}
                 columnWrapperStyle={styles.usersGridRow}
                 ListEmptyComponent={
                   <View style={styles.emptyContainer}>
@@ -2577,7 +2633,7 @@ export default function SalaVirtualEnhancedScreen() {
                 { 
                   backgroundColor: themeColors.cardBg, 
                   borderTopColor: themeColors.cardBorder,
-                  paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 12,
+                  paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom + 8, 16) : 12,
                 }
               ]}>
                 <TouchableOpacity
@@ -2690,7 +2746,14 @@ export default function SalaVirtualEnhancedScreen() {
                     data={privateChatMessages}
                     renderItem={renderMessage}
                     keyExtractor={(item) => item.id}
-                    contentContainerStyle={[styles.messagesContent, { paddingBottom: insets.bottom + 80 }]}
+                    contentContainerStyle={[
+                      styles.messagesContent, 
+                      { 
+                        paddingBottom: Platform.OS === 'android' 
+                          ? keyboardHeight + 160 
+                          : insets.bottom + 80 
+                      }
+                    ]}
                     onContentSizeChange={() => {
                       console.log('[SalaVirtual Enhanced] 📜 Content size changed, scrolling to end');
                       privateChatListRef.current?.scrollToEnd({ animated: true });
@@ -2728,7 +2791,7 @@ export default function SalaVirtualEnhancedScreen() {
                     { 
                       backgroundColor: themeColors.cardBg, 
                       borderTopColor: themeColors.cardBorder,
-                      paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 12,
+                      paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom + 8, 16) : 12,
                     }
                   ]}>
                     <TextInput
@@ -2796,7 +2859,14 @@ export default function SalaVirtualEnhancedScreen() {
                     data={privateChats}
                     renderItem={renderPrivateChatItem}
                     keyExtractor={(item) => item.userId}
-                    contentContainerStyle={[styles.privateChatsContent, { paddingBottom: insets.bottom + 80 }]}
+                    contentContainerStyle={[
+                      styles.privateChatsContent, 
+                      { 
+                        paddingBottom: Platform.OS === 'android' 
+                          ? Math.max(insets.bottom + 80, 100) 
+                          : insets.bottom + 80 
+                      }
+                    ]}
                     ListEmptyComponent={
                       <View style={styles.emptyContainer}>
                         <View style={[styles.emptyIconCircle, { backgroundColor: themeColors.primary + '20' }]}>
@@ -2822,7 +2892,7 @@ export default function SalaVirtualEnhancedScreen() {
                     { 
                       backgroundColor: themeColors.cardBg, 
                       borderTopColor: themeColors.cardBorder,
-                      paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 12,
+                      paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom + 8, 16) : 12,
                     }
                   ]}>
                     <TouchableOpacity
@@ -3123,34 +3193,11 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  tabBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    minWidth: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-  },
-  tabBadgeActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    minWidth: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  tabBadgeText: {
-    fontWeight: '700',
-  },
-  tabBadgeTextActive: {
-    fontWeight: '900',
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+  activityDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginLeft: 4,
   },
   messagesContent: {
     padding: 16,
@@ -3247,11 +3294,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 6,
     borderWidth: 2,
-    shadowColor: '#EC4899',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 8,
-    elevation: 8,
   },
   quickMessageEmoji: {
     fontSize: 18,
@@ -3420,7 +3462,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
   },
-  privateChatHeaderContainer: {
+  privateChatHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
