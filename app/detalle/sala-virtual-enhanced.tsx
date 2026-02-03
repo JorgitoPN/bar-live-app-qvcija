@@ -1494,7 +1494,7 @@ export default function SalaVirtualEnhancedScreen() {
           isOwnMessage ? styles.ownMessage : styles.otherMessage,
         ]}
       >
-        {/* FIX: Show avatar for ALL messages (both own and others) */}
+        {/* FIX: Show avatar for ALL messages (both own and others) with profile picture */}
         <TouchableOpacity
           style={[styles.messageAvatar, { width: avatarSize, height: avatarSize }]}
           onPress={() => {
@@ -1508,6 +1508,7 @@ export default function SalaVirtualEnhancedScreen() {
             }
           }}
         >
+          {/* FIX: Always show profile picture from usuario.avatar */}
           {item.usuario.avatar ? (
             <Image
               source={resolveImageSource(item.usuario.avatar)}
@@ -1540,6 +1541,7 @@ export default function SalaVirtualEnhancedScreen() {
               },
             ]}
           >
+            {/* FIX: Show username without @ symbol for all messages */}
             {!isOwnMessage && (
               <Text style={[styles.messageSender, { fontSize: scaleFontSize(12), color: themeColors.primary }]}>
                 {displayUsername} {messageLabel}
@@ -2057,8 +2059,8 @@ export default function SalaVirtualEnhancedScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 20}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <LinearGradient
         colors={themeColors.background}
@@ -2368,7 +2370,8 @@ export default function SalaVirtualEnhancedScreen() {
                 { 
                   backgroundColor: themeColors.cardBg, 
                   borderTopColor: themeColors.cardBorder,
-                  paddingBottom: Platform.OS === 'android' ? insets.bottom + 12 : 12,
+                  // FIX: Remove unnecessary bottom padding on Android to eliminate blank space
+                  paddingBottom: Platform.OS === 'android' ? 12 : 12,
                 }
               ]}>
                 <TouchableOpacity
@@ -2481,7 +2484,8 @@ export default function SalaVirtualEnhancedScreen() {
                 { 
                   backgroundColor: themeColors.cardBg, 
                   borderTopColor: themeColors.cardBorder,
-                  paddingBottom: Platform.OS === 'android' ? insets.bottom + 12 : 12,
+                  // FIX: Remove unnecessary bottom padding on Android to eliminate blank space
+                  paddingBottom: Platform.OS === 'android' ? 12 : 12,
                 }
               ]}>
                 <TouchableOpacity
@@ -2629,7 +2633,8 @@ export default function SalaVirtualEnhancedScreen() {
                     { 
                       backgroundColor: themeColors.cardBg, 
                       borderTopColor: themeColors.cardBorder,
-                      paddingBottom: Platform.OS === 'android' ? insets.bottom + 12 : 12,
+                      // FIX: Remove unnecessary bottom padding on Android to eliminate blank space
+                      paddingBottom: Platform.OS === 'android' ? 12 : 12,
                     }
                   ]}>
                     <TextInput
@@ -2724,7 +2729,8 @@ export default function SalaVirtualEnhancedScreen() {
                     { 
                       backgroundColor: themeColors.cardBg, 
                       borderTopColor: themeColors.cardBorder,
-                      paddingBottom: Platform.OS === 'android' ? insets.bottom + 12 : 12,
+                      // FIX: Remove unnecessary bottom padding on Android to eliminate blank space
+                      paddingBottom: Platform.OS === 'android' ? 12 : 12,
                     }
                   ]}>
                     <TouchableOpacity
