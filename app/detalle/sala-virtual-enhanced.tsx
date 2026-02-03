@@ -2035,137 +2035,8 @@ export default function SalaVirtualEnhancedScreen() {
     );
   }
 
-  // Render private chat view
-  if (selectedPrivateChat) {
-    const displayName = selectedPrivateChat.username 
-      ? selectedPrivateChat.username.replace('@', '')
-      : selectedPrivateChat.nombre;
-    
-    return (
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
-        <LinearGradient
-          colors={themeColors.background}
-          style={styles.container}
-        >
-          <Stack.Screen
-            options={{
-              title: displayName,
-              headerLeft: () => (
-                <TouchableOpacity onPress={closePrivateChat}>
-                  <IconSymbol
-                    ios_icon_name="chevron.left"
-                    android_material_icon_name="arrow_back"
-                    size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
-                    color={colors.text}
-                  />
-                </TouchableOpacity>
-              ),
-            }}
-          />
-
-          <FlatList
-            ref={privateChatListRef}
-            data={privateChatMessages}
-            renderItem={renderMessage}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={[styles.messagesContent, { paddingBottom: insets.bottom + 80 }]}
-            onContentSizeChange={() => {
-              privateChatListRef.current?.scrollToEnd({ animated: true });
-            }}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <View style={[styles.emptyIconCircle, { backgroundColor: themeColors.primary + '20' }]}>
-                  <IconSymbol
-                    ios_icon_name="bubble.left.and.bubble.right"
-                    android_material_icon_name="chat"
-                    size={Platform.OS === 'android' ? scaleIconSize(48) : 48}
-                    color={themeColors.primary}
-                  />
-                </View>
-                <Text style={[styles.emptyText, { fontSize: scaleFontSize(18), color: themeColors.text }]}>
-                  No hay mensajes todavía
-                </Text>
-                <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14), color: themeColors.textSecondary }]}>
-                  Inicia la conversación
-                </Text>
-              </View>
-            }
-          />
-
-          <View style={[
-            styles.inputContainer, 
-            { 
-              backgroundColor: themeColors.cardBg, 
-              borderTopColor: themeColors.cardBorder,
-              paddingBottom: Platform.OS === 'android' ? insets.bottom + 12 : 12,
-            }
-          ]}>
-            <TextInput
-              style={[
-                styles.inputPrivate,
-                { 
-                  fontSize: scaleFontSize(14),
-                  backgroundColor: mode === 'day' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.05)',
-                  color: themeColors.text,
-                  borderColor: themeColors.cardBorder,
-                }
-              ]}
-              placeholder="Escribe un mensaje privado..."
-              placeholderTextColor={themeColors.textSecondary}
-              value={newMessage}
-              onChangeText={setNewMessage}
-              multiline
-              maxLength={500}
-            />
-
-            <TouchableOpacity
-              style={[
-                styles.sendButton,
-                {
-                  width: Platform.OS === 'android' ? scaleIconSize(40) : 40,
-                  height: Platform.OS === 'android' ? scaleIconSize(40) : 40,
-                  borderRadius: Platform.OS === 'android' ? scaleIconSize(20) : 20,
-                },
-                (!newMessage.trim() || sending) && styles.sendButtonDisabled,
-              ]}
-              onPress={() => {
-                sendPrivateMessage(selectedPrivateChat.userId, newMessage);
-                setNewMessage('');
-              }}
-              disabled={!newMessage.trim() || sending}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={
-                  !newMessage.trim() || sending
-                    ? [themeColors.textSecondary, themeColors.textSecondary]
-                    : [themeColors.primary, themeColors.secondary]
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.sendButtonGradient}
-              >
-                {sending ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <IconSymbol
-                    ios_icon_name="paperplane.fill"
-                    android_material_icon_name="send"
-                    size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
-                    color="#FFFFFF"
-                  />
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-      </KeyboardAvoidingView>
-    );
-  }
+  // FIX: Don't render private chat as separate view - keep tabs visible
+  // Private chat is now rendered within the "private" tab content
 
   // FIX: Android status bar overlap - add top padding
   const androidTopPadding = Platform.OS === 'android' ? Math.max(insets.top, 24) : 0;
@@ -2619,55 +2490,241 @@ export default function SalaVirtualEnhancedScreen() {
             </React.Fragment>
           ) : (
             <React.Fragment>
-              <FlatList
-                data={privateChats}
-                renderItem={renderPrivateChatItem}
-                keyExtractor={(item) => item.userId}
-                contentContainerStyle={[styles.privateChatsContent, { paddingBottom: insets.bottom + 80 }]}
-                ListEmptyComponent={
-                  <View style={styles.emptyContainer}>
-                    <View style={[styles.emptyIconCircle, { backgroundColor: themeColors.primary + '20' }]}>
+              {/* FIX: Show private chat conversation within tab, keeping tabs visible */}
+              {selectedPrivateChat ? (
+                <React.Fragment>
+                  {/* Private Chat Header with Back Button */}
+                  <View style={[
+                    styles.privateChatHeader,
+                    { 
+                      backgroundColor: themeColors.cardBg, 
+                      borderBottomColor: themeColors.cardBorder,
+                    }
+                  ]}>
+                    <TouchableOpacity
+                      onPress={closePrivateChat}
+                      style={styles.privateChatBackButton}
+                      activeOpacity={0.7}
+                    >
                       <IconSymbol
-                        ios_icon_name="lock.fill"
-                        android_material_icon_name="lock"
-                        size={Platform.OS === 'android' ? scaleIconSize(48) : 48}
+                        ios_icon_name="chevron.left"
+                        android_material_icon_name="arrow_back"
+                        size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
                         color={themeColors.primary}
                       />
+                    </TouchableOpacity>
+                    
+                    <View style={styles.privateChatHeaderInfo}>
+                      {selectedPrivateChat.avatar ? (
+                        <Image
+                          source={resolveImageSource(selectedPrivateChat.avatar)}
+                          style={[
+                            styles.privateChatHeaderAvatar,
+                            { 
+                              width: Platform.OS === 'android' ? scaleIconSize(40) : 40,
+                              height: Platform.OS === 'android' ? scaleIconSize(40) : 40,
+                              borderRadius: Platform.OS === 'android' ? scaleIconSize(20) : 20,
+                            }
+                          ]}
+                        />
+                      ) : (
+                        <View style={[
+                          styles.privateChatHeaderAvatarPlaceholder,
+                          { 
+                            width: Platform.OS === 'android' ? scaleIconSize(40) : 40,
+                            height: Platform.OS === 'android' ? scaleIconSize(40) : 40,
+                            borderRadius: Platform.OS === 'android' ? scaleIconSize(20) : 20,
+                            backgroundColor: themeColors.primary + '30',
+                          }
+                        ]}>
+                          <IconSymbol
+                            ios_icon_name="person.fill"
+                            android_material_icon_name="person"
+                            size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
+                            color={themeColors.text}
+                          />
+                        </View>
+                      )}
+                      
+                      <Text style={[
+                        styles.privateChatHeaderName,
+                        { fontSize: scaleFontSize(17), color: themeColors.text }
+                      ]}>
+                        {selectedPrivateChat.username 
+                          ? selectedPrivateChat.username.replace('@', '')
+                          : selectedPrivateChat.nombre}
+                      </Text>
                     </View>
-                    <Text style={[styles.emptyText, { fontSize: scaleFontSize(18), color: themeColors.text }]}>
-                      No hay conversaciones privadas
-                    </Text>
-                    <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14), color: themeColors.textSecondary }]}>
-                      Envía un mensaje rápido a alguien desde la pestaña Usuarios
-                    </Text>
+                    
+                    <TouchableOpacity
+                      onPress={() => {
+                        console.log('[SalaVirtual Enhanced] Navigating to profile from private chat');
+                        router.push(`/perfil/usuario?id=${selectedPrivateChat.userId}`);
+                      }}
+                      style={[styles.privateChatProfileButton, { backgroundColor: themeColors.primary + '20' }]}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol
+                        ios_icon_name="person.circle.fill"
+                        android_material_icon_name="account_circle"
+                        size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
+                        color={themeColors.primary}
+                      />
+                    </TouchableOpacity>
                   </View>
-                }
-              />
 
-              <View style={[
-                styles.usersFooter, 
-                { 
-                  backgroundColor: themeColors.cardBg, 
-                  borderTopColor: themeColors.cardBorder,
-                  paddingBottom: Platform.OS === 'android' ? insets.bottom + 12 : 12,
-                }
-              ]}>
-                <TouchableOpacity
-                  style={[styles.checkOutButtonLarge, { backgroundColor: themeColors.danger + '15', borderColor: themeColors.danger + '30' }]}
-                  onPress={handleCheckOut}
-                  activeOpacity={0.8}
-                >
-                  <IconSymbol
-                    ios_icon_name="rectangle.portrait.and.arrow.right"
-                    android_material_icon_name="logout"
-                    size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
-                    color={themeColors.danger}
+                  {/* Private Chat Messages */}
+                  <FlatList
+                    ref={privateChatListRef}
+                    data={privateChatMessages}
+                    renderItem={renderMessage}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={[styles.messagesContent, { paddingBottom: insets.bottom + 80 }]}
+                    onContentSizeChange={() => {
+                      privateChatListRef.current?.scrollToEnd({ animated: true });
+                    }}
+                    ListEmptyComponent={
+                      <View style={styles.emptyContainer}>
+                        <View style={[styles.emptyIconCircle, { backgroundColor: themeColors.primary + '20' }]}>
+                          <IconSymbol
+                            ios_icon_name="bubble.left.and.bubble.right"
+                            android_material_icon_name="chat"
+                            size={Platform.OS === 'android' ? scaleIconSize(48) : 48}
+                            color={themeColors.primary}
+                          />
+                        </View>
+                        <Text style={[styles.emptyText, { fontSize: scaleFontSize(18), color: themeColors.text }]}>
+                          No hay mensajes todavía
+                        </Text>
+                        <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14), color: themeColors.textSecondary }]}>
+                          Inicia la conversación
+                        </Text>
+                      </View>
+                    }
                   />
-                  <Text style={[styles.checkOutButtonText, { fontSize: scaleFontSize(16), color: themeColors.danger }]}>
-                    Salir de la Sala
-                  </Text>
-                </TouchableOpacity>
-              </View>
+
+                  {/* Private Chat Input */}
+                  <View style={[
+                    styles.inputContainer, 
+                    { 
+                      backgroundColor: themeColors.cardBg, 
+                      borderTopColor: themeColors.cardBorder,
+                      paddingBottom: Platform.OS === 'android' ? insets.bottom + 12 : 12,
+                    }
+                  ]}>
+                    <TextInput
+                      style={[
+                        styles.inputPrivate,
+                        { 
+                          fontSize: scaleFontSize(14),
+                          backgroundColor: mode === 'day' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.05)',
+                          color: themeColors.text,
+                          borderColor: themeColors.cardBorder,
+                        }
+                      ]}
+                      placeholder="Escribe un mensaje privado..."
+                      placeholderTextColor={themeColors.textSecondary}
+                      value={newMessage}
+                      onChangeText={setNewMessage}
+                      multiline
+                      maxLength={500}
+                    />
+
+                    <TouchableOpacity
+                      style={[
+                        styles.sendButton,
+                        {
+                          width: Platform.OS === 'android' ? scaleIconSize(40) : 40,
+                          height: Platform.OS === 'android' ? scaleIconSize(40) : 40,
+                          borderRadius: Platform.OS === 'android' ? scaleIconSize(20) : 20,
+                        },
+                        (!newMessage.trim() || sending) && styles.sendButtonDisabled,
+                      ]}
+                      onPress={() => {
+                        sendPrivateMessage(selectedPrivateChat.userId, newMessage);
+                        setNewMessage('');
+                      }}
+                      disabled={!newMessage.trim() || sending}
+                      activeOpacity={0.8}
+                    >
+                      <LinearGradient
+                        colors={
+                          !newMessage.trim() || sending
+                            ? [themeColors.textSecondary, themeColors.textSecondary]
+                            : [themeColors.primary, themeColors.secondary]
+                        }
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.sendButtonGradient}
+                      >
+                        {sending ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <IconSymbol
+                            ios_icon_name="paperplane.fill"
+                            android_material_icon_name="send"
+                            size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
+                            color="#FFFFFF"
+                          />
+                        )}
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  {/* Private Chats List */}
+                  <FlatList
+                    data={privateChats}
+                    renderItem={renderPrivateChatItem}
+                    keyExtractor={(item) => item.userId}
+                    contentContainerStyle={[styles.privateChatsContent, { paddingBottom: insets.bottom + 80 }]}
+                    ListEmptyComponent={
+                      <View style={styles.emptyContainer}>
+                        <View style={[styles.emptyIconCircle, { backgroundColor: themeColors.primary + '20' }]}>
+                          <IconSymbol
+                            ios_icon_name="lock.fill"
+                            android_material_icon_name="lock"
+                            size={Platform.OS === 'android' ? scaleIconSize(48) : 48}
+                            color={themeColors.primary}
+                          />
+                        </View>
+                        <Text style={[styles.emptyText, { fontSize: scaleFontSize(18), color: themeColors.text }]}>
+                          No hay conversaciones privadas
+                        </Text>
+                        <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14), color: themeColors.textSecondary }]}>
+                          Envía un mensaje rápido a alguien desde la pestaña Usuarios
+                        </Text>
+                      </View>
+                    }
+                  />
+
+                  <View style={[
+                    styles.usersFooter, 
+                    { 
+                      backgroundColor: themeColors.cardBg, 
+                      borderTopColor: themeColors.cardBorder,
+                      paddingBottom: Platform.OS === 'android' ? insets.bottom + 12 : 12,
+                    }
+                  ]}>
+                    <TouchableOpacity
+                      style={[styles.checkOutButtonLarge, { backgroundColor: themeColors.danger + '15', borderColor: themeColors.danger + '30' }]}
+                      onPress={handleCheckOut}
+                      activeOpacity={0.8}
+                    >
+                      <IconSymbol
+                        ios_icon_name="rectangle.portrait.and.arrow.right"
+                        android_material_icon_name="logout"
+                        size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
+                        color={themeColors.danger}
+                      />
+                      <Text style={[styles.checkOutButtonText, { fontSize: scaleFontSize(16), color: themeColors.danger }]}>
+                        Salir de la Sala
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </React.Fragment>
+              )}
             </React.Fragment>
           )}
         </View>
@@ -3184,6 +3241,48 @@ const styles = StyleSheet.create({
   privateChatUnreadText: {
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+  privateChatHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    gap: 12,
+  },
+  privateChatBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  privateChatHeaderInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  privateChatHeaderAvatar: {
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  privateChatHeaderAvatarPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  privateChatHeaderName: {
+    fontWeight: '700',
+    flex: 1,
+  },
+  privateChatProfileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   usersFooter: {
     padding: 16,
