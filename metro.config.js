@@ -1,3 +1,4 @@
+
 const { getDefaultConfig } = require('expo/metro-config');
 const { FileStore } = require('metro-cache');
 const path = require('path');
@@ -11,6 +12,26 @@ config.resolver.unstable_enablePackageExports = true;
 config.cacheStores = [
     new FileStore({ root: path.join(__dirname, 'node_modules', '.cache', 'metro') }),
   ];
+
+// CRITICAL FIX v326.0: Custom resolver to handle uuid package missing files
+// The uuid package tries to import Node.js-specific files that don't exist in React Native
+// We map these to empty modules to prevent bundling errors
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Handle uuid package internal imports that don't exist in React Native
+  if (
+    moduleName === './md5.js' ||
+    moduleName === './sha1.js' ||
+    moduleName === './max.js' ||
+    moduleName === './rng.js' ||
+    moduleName === './native.js' // FIX v326.0: Add native.js to the list
+  ) {
+    console.log('[METRO v326.0] Resolving uuid internal module to empty:', moduleName);
+    return { type: 'empty' };
+  }
+
+  // Use default resolver for everything else
+  return context.resolveRequest(context, moduleName, platform);
+};
 
 // Custom server middleware to receive console.log messages from the app
 const LOG_FILE_PATH = path.join(__dirname, '.natively', 'app_console.log');
