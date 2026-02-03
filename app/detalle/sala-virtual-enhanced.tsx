@@ -651,10 +651,46 @@ export default function SalaVirtualEnhancedScreen() {
             }
           }
           
-          // Update private chats list if it's a private message - CRITICAL FIX
-          if (newMessage.is_private) {
-            console.log('[SalaVirtual Enhanced] 🔄 Private message received, reloading chats');
-            loadPrivateChats();
+          // CRITICAL FIX: Update private chats list in real-time when receiving private message
+          if (newMessage.is_private && newMessage.recipient_id === user.id) {
+            console.log('[SalaVirtual Enhanced] 🔄 Private message received, updating chats optimistically');
+            
+            // Optimistically update the private chats list
+            setPrivateChats(prev => {
+              const existingChatIndex = prev.findIndex(chat => chat.userId === newMessage.usuario_id);
+              
+              if (existingChatIndex >= 0) {
+                // Update existing chat and move to top
+                const updatedChat = {
+                  ...prev[existingChatIndex],
+                  lastMessage: newMessage.contenido,
+                  lastMessageTime: newMessage.created_at,
+                  unreadCount: prev[existingChatIndex].unreadCount + 1,
+                };
+                
+                const newChats = [...prev];
+                newChats.splice(existingChatIndex, 1);
+                return [updatedChat, ...newChats];
+              } else {
+                // Create new chat entry
+                const newChat: PrivateChat = {
+                  userId: newMessage.usuario_id,
+                  username: newMessage.usuario.username || '',
+                  nombre: newMessage.usuario.nombre || 'Usuario',
+                  avatar: newMessage.usuario.avatar,
+                  lastMessage: newMessage.contenido,
+                  lastMessageTime: newMessage.created_at,
+                  unreadCount: 1,
+                };
+                
+                return [newChat, ...prev];
+              }
+            });
+            
+            // Reload in background to sync with server
+            setTimeout(() => {
+              loadPrivateChats();
+            }, 1000);
           }
         }
       })
@@ -834,6 +870,40 @@ export default function SalaVirtualEnhancedScreen() {
       };
       setPendingInteractions(prev => [...prev, interaction]);
 
+      // Get recipient info for feedback
+      const recipient = activeUsers.find(u => u.id === recipientId);
+      const recipientName = recipient?.username 
+        ? recipient.username.replace('@', '')
+        : recipient?.nombre || 'Usuario';
+
+      // CRITICAL FIX: Optimistically update private chats list IMMEDIATELY
+      // This creates the conversation in the UI before the broadcast completes
+      const existingChat = privateChats.find(chat => chat.userId === recipientId);
+      
+      if (!existingChat) {
+        // Create new chat entry immediately
+        const newChat: PrivateChat = {
+          userId: recipientId,
+          username: recipient?.username || '',
+          nombre: recipient?.nombre || 'Usuario',
+          avatar: recipient?.avatar,
+          lastMessage: messageText,
+          lastMessageTime: now,
+          unreadCount: 0,
+        };
+        
+        console.log('[SalaVirtual Enhanced] ✨ Creating new private chat optimistically');
+        setPrivateChats(prev => [newChat, ...prev]);
+      } else {
+        // Update existing chat
+        console.log('[SalaVirtual Enhanced] ✨ Updating existing private chat optimistically');
+        setPrivateChats(prev => prev.map(chat => 
+          chat.userId === recipientId 
+            ? { ...chat, lastMessage: messageText, lastMessageTime: now }
+            : chat
+        ));
+      }
+
       // Broadcast to recipient
       if (chatChannelRef.current) {
         await chatChannelRef.current.send({
@@ -843,23 +913,88 @@ export default function SalaVirtualEnhancedScreen() {
         });
       }
 
+      // Show success feedback with animation
+      console.log(`[SalaVirtual Enhanced] ✅ Message sent to ${recipientName}`);
+      
+      // Trigger success animation
+      setAnimationEmoji('✅');
+      setShowAnimation(true);
+      
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(animationScale, {
+            toValue: 1.2,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(animationScale, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(animationOpacity, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.delay(1000),
+          Animated.timing(animationOpacity, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start(() => {
+        setShowAnimation(false);
+        animationScale.setValue(0);
+        animationOpacity.setValue(0);
+      });
+
       closeBottomSheet();
       
-      // Reload private chats to show new conversation - CRITICAL FIX
-      console.log('[SalaVirtual Enhanced] 🔄 Reloading private chats after sending predefined message');
-      await loadPrivateChats();
-
-      // Show success feedback
-      const recipient = activeUsers.find(u => u.id === recipientId);
-      const recipientName = recipient?.username 
-        ? recipient.username.replace('@', '')
-        : recipient?.nombre || 'Usuario';
+      // Switch to private tab to show the conversation
+      console.log('[SalaVirtual Enhanced] 🔄 Switching to private conversations tab');
+      setActiveTab('private');
       
-      console.log(`[SalaVirtual Enhanced] ✅ Predefined message sent to ${recipientName}`);
+      // Reload private chats in background to sync with server
+      setTimeout(() => {
+        loadPrivateChats();
+      }, 500);
     } catch (error) {
       console.error('[SalaVirtual Enhanced] Error sending predefined message:', error);
+      
+      // Show error feedback
+      setAnimationEmoji('❌');
+      setShowAnimation(true);
+      
+      Animated.parallel([
+        Animated.timing(animationScale, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.timing(animationOpacity, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.delay(1500),
+          Animated.timing(animationOpacity, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start(() => {
+        setShowAnimation(false);
+        animationScale.setValue(0);
+        animationOpacity.setValue(0);
+      });
     }
-  }, [user, localId, activeUsers, loadPrivateChats]);
+  }, [user, localId, activeUsers, loadPrivateChats, privateChats, animationScale, animationOpacity]);
 
   const sendPrivateMessage = useCallback(async (recipientId: string, content: string) => {
     if (!user || !localId || !content.trim()) return;
@@ -890,6 +1025,40 @@ export default function SalaVirtualEnhancedScreen() {
       // Add to private chat messages
       setPrivateChatMessages((prev) => [...prev, newMsg]);
       
+      // CRITICAL FIX: Update private chats list optimistically
+      setPrivateChats(prev => {
+        const existingChatIndex = prev.findIndex(chat => chat.userId === recipientId);
+        
+        if (existingChatIndex >= 0) {
+          // Update existing chat and move to top
+          const updatedChat = {
+            ...prev[existingChatIndex],
+            lastMessage: content,
+            lastMessageTime: now,
+          };
+          
+          const newChats = [...prev];
+          newChats.splice(existingChatIndex, 1);
+          return [updatedChat, ...newChats];
+        } else {
+          // This shouldn't happen as we're in an existing chat, but handle it
+          const recipient = activeUsers.find(u => u.id === recipientId);
+          if (recipient) {
+            const newChat: PrivateChat = {
+              userId: recipientId,
+              username: recipient.username || '',
+              nombre: recipient.nombre || 'Usuario',
+              avatar: recipient.avatar,
+              lastMessage: content,
+              lastMessageTime: now,
+              unreadCount: 0,
+            };
+            return [newChat, ...prev];
+          }
+          return prev;
+        }
+      });
+      
       // Broadcast to recipient
       if (chatChannelRef.current) {
         await chatChannelRef.current.send({
@@ -903,7 +1072,7 @@ export default function SalaVirtualEnhancedScreen() {
     } catch (error) {
       console.error('[SalaVirtual Enhanced] Error sending private message:', error);
     }
-  }, [user, localId]);
+  }, [user, localId, activeUsers]);
 
   const openPrivateChat = useCallback(async (chat: PrivateChat) => {
     if (!user || !localId) return;
@@ -2254,8 +2423,8 @@ export default function SalaVirtualEnhancedScreen() {
             pointerEvents="none"
           >
             <Text style={styles.animationEmoji}>{animationEmoji}</Text>
-            <Text style={[styles.animationText, { fontSize: scaleFontSize(20), color: themeColors.text }]}>
-              ¡Nuevo mensaje!
+            <Text style={[styles.animationText, { fontSize: scaleFontSize(20), color: '#FFFFFF', fontWeight: '800' }]}>
+              {animationEmoji === '✅' ? '¡Mensaje enviado!' : animationEmoji === '❌' ? 'Error al enviar' : '¡Nuevo mensaje!'}
             </Text>
           </Animated.View>
         )}
