@@ -1,7 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 
 // Use environment variables with fallback to hardcoded values
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
@@ -12,11 +11,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-console.log('[Supabase v326.0] Initializing client with Android optimizations...');
+console.log('[Supabase] Initializing client...');
 
-// CRITICAL FIX v326.0: ANDROID PERFORMANCE OPTIMIZATION
-// Disable realtime on Android to prevent CHANNEL_ERROR and performance issues
-// Use polling instead for Android devices
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
@@ -24,26 +20,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: false,
   },
-  realtime: Platform.OS === 'android' ? {
-    // Android: Minimal realtime configuration to reduce overhead
-    params: {
-      log_level: 'error', // Only log errors, not info
-      eventsPerSecond: 2, // Throttle events
-    },
-    timeout: 10000, // Shorter timeout
-  } : {
-    // iOS: Full realtime support
+  realtime: {
     params: {
       log_level: 'info',
     },
   },
-  global: {
-    headers: Platform.OS === 'android' ? {
-      'X-Client-Info': 'supabase-js-android',
-    } : {
-      'X-Client-Info': 'supabase-js-ios',
-    },
-  },
 });
-
-console.log('[Supabase v326.0] ✅ Client initialized for platform:', Platform.OS);

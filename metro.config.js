@@ -7,26 +7,6 @@ const config = getDefaultConfig(__dirname);
 
 config.resolver.unstable_enablePackageExports = true;
 
-// Fix uuid module resolution for React Native
-config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // Handle uuid internal imports that don't work in React Native
-  if (
-    moduleName === './md5.js' ||
-    moduleName === './sha1.js' ||
-    moduleName === './max.js' ||
-    moduleName === './rng.js' ||
-    moduleName === './native.js'
-  ) {
-    // Return a dummy module that won't be used since we're using v4 only
-    return {
-      type: 'empty',
-    };
-  }
-
-  // Use default resolver for everything else
-  return context.resolveRequest(context, moduleName, platform);
-};
-
 // Use turborepo to restore the cache when possible
 config.cacheStores = [
     new FileStore({ root: path.join(__dirname, 'node_modules', '.cache', 'metro') }),
