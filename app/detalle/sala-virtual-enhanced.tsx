@@ -1458,9 +1458,17 @@ export default function SalaVirtualEnhancedScreen() {
   const handleViewProfile = () => {
     if (!selectedUser) return;
     
-    console.log('[SalaVirtual Enhanced] Navigating to profile:', selectedUser.id);
+    console.log('[SalaVirtual Enhanced] Navigating to profile and closing virtual room:', selectedUser.id);
     closeBottomSheet();
-    router.push(`/perfil/usuario?id=${selectedUser.id}`);
+    
+    // FIX: Close virtual room before navigating to profile
+    // This ensures the virtual room page doesn't stay open underneath
+    handleCheckOut();
+    
+    // Navigate to profile after a brief delay to ensure checkout completes
+    setTimeout(() => {
+      router.push(`/perfil/usuario?id=${selectedUser.id}`);
+    }, 100);
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
@@ -1474,7 +1482,7 @@ export default function SalaVirtualEnhancedScreen() {
 
     const messageLabel = item.is_private ? '(Privado)' : '';
     
-    // FIX: Display username without @ symbol, or nombre if no username
+    // FIX: Display username without @ symbol, not full name
     const displayUsername = item.usuario.username 
       ? item.usuario.username.replace('@', '')
       : item.usuario.nombre;
@@ -1486,31 +1494,36 @@ export default function SalaVirtualEnhancedScreen() {
           isOwnMessage ? styles.ownMessage : styles.otherMessage,
         ]}
       >
-        {!isOwnMessage && (
-          <TouchableOpacity
-            style={[styles.messageAvatar, { width: avatarSize, height: avatarSize }]}
-            onPress={() => {
+        {/* FIX: Show avatar for ALL messages (both own and others) */}
+        <TouchableOpacity
+          style={[styles.messageAvatar, { width: avatarSize, height: avatarSize }]}
+          onPress={() => {
+            if (isOwnMessage) {
+              // Navigate to own profile
+              console.log('[SalaVirtual Enhanced] Navigating to own profile from message');
+              router.push('/perfil');
+            } else {
               const activeUser = activeUsers.find(u => u.id === item.usuario_id);
               if (activeUser) handleUserPress(activeUser);
-            }}
-          >
-            {item.usuario.avatar ? (
-              <Image
-                source={resolveImageSource(item.usuario.avatar)}
-                style={[styles.messageAvatarImage, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
+            }
+          }}
+        >
+          {item.usuario.avatar ? (
+            <Image
+              source={resolveImageSource(item.usuario.avatar)}
+              style={[styles.messageAvatarImage, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
+            />
+          ) : (
+            <View style={[styles.messageAvatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2, backgroundColor: themeColors.primary + '30' }]}>
+              <IconSymbol
+                ios_icon_name="person.fill"
+                android_material_icon_name="person"
+                size={Platform.OS === 'android' ? scaleIconSize(18) : 18}
+                color={themeColors.text}
               />
-            ) : (
-              <View style={[styles.messageAvatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2, backgroundColor: themeColors.primary + '30' }]}>
-                <IconSymbol
-                  ios_icon_name="person.fill"
-                  android_material_icon_name="person"
-                  size={Platform.OS === 'android' ? scaleIconSize(18) : 18}
-                  color={themeColors.text}
-                />
-              </View>
-            )}
-          </TouchableOpacity>
-        )}
+            </View>
+          )}
+        </TouchableOpacity>
 
         <View style={{ flex: 1 }}>
           <View
@@ -2044,8 +2057,8 @@ export default function SalaVirtualEnhancedScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 20}
     >
       <LinearGradient
         colors={themeColors.background}
@@ -2558,8 +2571,15 @@ export default function SalaVirtualEnhancedScreen() {
                     
                     <TouchableOpacity
                       onPress={() => {
-                        console.log('[SalaVirtual Enhanced] Navigating to profile from private chat');
-                        router.push(`/perfil/usuario?id=${selectedPrivateChat.userId}`);
+                        console.log('[SalaVirtual Enhanced] Navigating to profile from private chat and closing virtual room');
+                        
+                        // FIX: Close virtual room before navigating to profile
+                        handleCheckOut();
+                        
+                        // Navigate to profile after a brief delay to ensure checkout completes
+                        setTimeout(() => {
+                          router.push(`/perfil/usuario?id=${selectedPrivateChat.userId}`);
+                        }, 100);
                       }}
                       style={[styles.privateChatProfileButton, { backgroundColor: themeColors.primary + '20' }]}
                       activeOpacity={0.7}
@@ -3022,10 +3042,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   ownMessage: {
+    // FIX: Align own messages to the right
     justifyContent: 'flex-end',
+    flexDirection: 'row-reverse', // Avatar on right side for own messages
   },
   otherMessage: {
+    // FIX: Align other messages to the left
     justifyContent: 'flex-start',
+    flexDirection: 'row', // Avatar on left side for other messages
   },
   messageAvatar: {
     // Dynamic size
