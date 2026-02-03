@@ -948,26 +948,27 @@ export default function SalaVirtualEnhancedScreen() {
         console.log('[SalaVirtual Enhanced] ✨ Creating new private chat optimistically');
         setPrivateChats(prev => [newChat, ...prev]);
         
-        // CRITICAL FIX: Save to database WITHOUT specifying id (let DB generate it)
-        try {
-          const { error: insertError } = await supabase
-            .from('sala_virtual_interacciones')
-            .insert({
-              usuario_id: user.id,
-              local_id: localId,
-              tipo: 'privado',
-              contenido: messageText,
-              recipient_id: recipientId,
-            });
-          
-          if (insertError) {
-            console.error('[SalaVirtual Enhanced] Error saving private message to DB:', insertError);
-          } else {
-            console.log('[SalaVirtual Enhanced] ✅ Private message saved to database');
-          }
-        } catch (dbError) {
-          console.error('[SalaVirtual Enhanced] Database error:', dbError);
-        }
+        // Save to database in background (non-blocking)
+        // Note: We don't await this to keep UI responsive
+        supabase
+          .from('sala_virtual_interacciones')
+          .insert({
+            usuario_id: user.id,
+            local_id: localId,
+            tipo: 'privado',
+            contenido: messageText,
+            recipient_id: recipientId,
+          })
+          .then(({ error: insertError }) => {
+            if (insertError) {
+              console.error('[SalaVirtual Enhanced] Error saving private message to DB:', insertError);
+            } else {
+              console.log('[SalaVirtual Enhanced] ✅ Private message saved to database');
+            }
+          })
+          .catch((dbError) => {
+            console.error('[SalaVirtual Enhanced] Database error:', dbError);
+          });
       } else {
         // Update existing chat and move to top
         console.log('[SalaVirtual Enhanced] ✨ Updating existing private chat optimistically');
@@ -982,26 +983,26 @@ export default function SalaVirtualEnhancedScreen() {
           return [updatedChat, ...newChats];
         });
         
-        // CRITICAL FIX: Save to database WITHOUT specifying id (let DB generate it)
-        try {
-          const { error: insertError } = await supabase
-            .from('sala_virtual_interacciones')
-            .insert({
-              usuario_id: user.id,
-              local_id: localId,
-              tipo: 'privado',
-              contenido: messageText,
-              recipient_id: recipientId,
-            });
-          
-          if (insertError) {
-            console.error('[SalaVirtual Enhanced] Error saving private message to DB:', insertError);
-          } else {
-            console.log('[SalaVirtual Enhanced] ✅ Private message saved to database');
-          }
-        } catch (dbError) {
-          console.error('[SalaVirtual Enhanced] Database error:', dbError);
-        }
+        // Save to database in background (non-blocking)
+        supabase
+          .from('sala_virtual_interacciones')
+          .insert({
+            usuario_id: user.id,
+            local_id: localId,
+            tipo: 'privado',
+            contenido: messageText,
+            recipient_id: recipientId,
+          })
+          .then(({ error: insertError }) => {
+            if (insertError) {
+              console.error('[SalaVirtual Enhanced] Error saving private message to DB:', insertError);
+            } else {
+              console.log('[SalaVirtual Enhanced] ✅ Private message saved to database');
+            }
+          })
+          .catch((dbError) => {
+            console.error('[SalaVirtual Enhanced] Database error:', dbError);
+          });
       }
 
       // Broadcast to recipient
@@ -1222,26 +1223,26 @@ export default function SalaVirtualEnhancedScreen() {
         }
       });
       
-      // CRITICAL FIX: Save to database WITHOUT specifying id (let DB generate it)
-      try {
-        const { error: insertError } = await supabase
-          .from('sala_virtual_interacciones')
-          .insert({
-            usuario_id: user.id,
-            local_id: localId,
-            tipo: 'privado',
-            contenido: content,
-            recipient_id: recipientId,
-          });
-        
-        if (insertError) {
-          console.error('[SalaVirtual Enhanced] Error saving private message to DB:', insertError);
-        } else {
-          console.log('[SalaVirtual Enhanced] ✅ Private message saved to database');
-        }
-      } catch (dbError) {
-        console.error('[SalaVirtual Enhanced] Database error:', dbError);
-      }
+      // Save to database in background (non-blocking)
+      supabase
+        .from('sala_virtual_interacciones')
+        .insert({
+          usuario_id: user.id,
+          local_id: localId,
+          tipo: 'privado',
+          contenido: content,
+          recipient_id: recipientId,
+        })
+        .then(({ error: insertError }) => {
+          if (insertError) {
+            console.error('[SalaVirtual Enhanced] Error saving private message to DB:', insertError);
+          } else {
+            console.log('[SalaVirtual Enhanced] ✅ Private message saved to database');
+          }
+        })
+        .catch((dbError) => {
+          console.error('[SalaVirtual Enhanced] Database error:', dbError);
+        });
       
       // Broadcast to recipient
       if (chatChannelRef.current) {
