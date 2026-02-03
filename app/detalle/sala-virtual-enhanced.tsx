@@ -526,12 +526,22 @@ export default function SalaVirtualEnhancedScreen() {
         });
       }
 
+      // FIX: Sort users to show current user first
+      if (user) {
+        users.sort((a, b) => {
+          if (a.id === user.id) return -1;
+          if (b.id === user.id) return 1;
+          return 0;
+        });
+        console.log('[SalaVirtual Enhanced] ✅ Current user moved to first position');
+      }
+
       console.log('[SalaVirtual Enhanced] ✅ Active users updated:', users.length);
       setActiveUsers(users);
     } catch (error) {
       console.error('[SalaVirtual Enhanced] Error:', error);
     }
-  }, [localId, userLocation]);
+  }, [localId, userLocation, user]);
 
   const loadPrivateChats = useCallback(async () => {
     if (!user || !localId) return;
@@ -687,10 +697,10 @@ export default function SalaVirtualEnhancedScreen() {
               }
             });
             
-            // Reload in background to sync with server
+            // Reload in background to sync with server (increased delay for persistence)
             setTimeout(() => {
               loadPrivateChats();
-            }, 1000);
+            }, 2000);
           }
         }
       })
@@ -744,13 +754,48 @@ export default function SalaVirtualEnhancedScreen() {
         console.log('[SalaVirtual Enhanced] Checkins channel status:', status);
       });
 
+    // CRITICAL FIX: Subscribe to private messages database changes for persistence
+    const privateMessagesChannel = supabase
+      .channel(`private_messages:${localId}:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'sala_virtual_interacciones',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[SalaVirtual Enhanced] 💾 Private message inserted in DB:', payload);
+          
+          const newRecord = payload.new as any;
+          
+          // Check if it's a private message involving current user
+          if (
+            newRecord.tipo === 'privado' &&
+            (newRecord.usuario_id === user.id || newRecord.recipient_id === user.id)
+          ) {
+            console.log('[SalaVirtual Enhanced] 🔄 Reloading private chats due to DB insert');
+            // Reload private chats to ensure persistence
+            setTimeout(() => {
+              loadPrivateChats();
+            }, 500);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[SalaVirtual Enhanced] Private messages DB channel status:', status);
+      });
+
     chatChannelRef.current = chatChannel;
     checkinsChannelRef.current = checkinsChannel;
+    presenceChannelRef.current = privateMessagesChannel;
 
     return () => {
       console.log('[SalaVirtual Enhanced] 🔌 Unsubscribing from channels');
       supabase.removeChannel(chatChannel);
       supabase.removeChannel(checkinsChannel);
+      supabase.removeChannel(privateMessagesChannel);
     };
   }, [localId, user, updateActiveUsers, loadPrivateChats]);
 
@@ -780,6 +825,14 @@ export default function SalaVirtualEnhancedScreen() {
       handleCheckOut();
     };
   }, [localId]);
+
+  // FIX: Reload private chats when switching to private tab
+  useEffect(() => {
+    if (activeTab === 'private' && user && localId) {
+      console.log('[SalaVirtual Enhanced] Private tab active, reloading chats for persistence');
+      loadPrivateChats();
+    }
+  }, [activeTab, user, localId, loadPrivateChats]);
 
   const sendPublicMessage = useCallback(async (content: string) => {
     if (!user || !localId) return;
@@ -894,6 +947,28 @@ export default function SalaVirtualEnhancedScreen() {
         
         console.log('[SalaVirtual Enhanced] ✨ Creating new private chat optimistically');
         setPrivateChats(prev => [newChat, ...prev]);
+        
+        // CRITICAL FIX: Save to database to persist the conversation
+        try {
+          const { error: insertError } = await supabase
+            .from('sala_virtual_interacciones')
+            .insert({
+              usuario_id: user.id,
+              local_id: localId,
+              tipo: 'privado',
+              contenido: messageText,
+              recipient_id: recipientId,
+              created_at: now,
+            });
+          
+          if (insertError) {
+            console.error('[SalaVirtual Enhanced] Error saving private message to DB:', insertError);
+          } else {
+            console.log('[SalaVirtual Enhanced] ✅ Private message saved to database');
+          }
+        } catch (dbError) {
+          console.error('[SalaVirtual Enhanced] Database error:', dbError);
+        }
       } else {
         // Update existing chat and move to top
         console.log('[SalaVirtual Enhanced] ✨ Updating existing private chat optimistically');
@@ -907,6 +982,28 @@ export default function SalaVirtualEnhancedScreen() {
           newChats.splice(existingChatIndex, 1);
           return [updatedChat, ...newChats];
         });
+        
+        // CRITICAL FIX: Save to database to persist the conversation
+        try {
+          const { error: insertError } = await supabase
+            .from('sala_virtual_interacciones')
+            .insert({
+              usuario_id: user.id,
+              local_id: localId,
+              tipo: 'privado',
+              contenido: messageText,
+              recipient_id: recipientId,
+              created_at: now,
+            });
+          
+          if (insertError) {
+            console.error('[SalaVirtual Enhanced] Error saving private message to DB:', insertError);
+          } else {
+            console.log('[SalaVirtual Enhanced] ✅ Private message saved to database');
+          }
+        } catch (dbError) {
+          console.error('[SalaVirtual Enhanced] Database error:', dbError);
+        }
       }
 
       // Broadcast to recipient
@@ -1026,10 +1123,10 @@ export default function SalaVirtualEnhancedScreen() {
       console.log('[SalaVirtual Enhanced] 🔄 Switching to private conversations tab');
       setActiveTab('private');
       
-      // Reload private chats in background to sync with server
+      // Reload private chats in background to sync with server (increased delay for persistence)
       setTimeout(() => {
         loadPrivateChats();
-      }, 1000);
+      }, 2000);
     } catch (error) {
       console.error('[SalaVirtual Enhanced] Error sending predefined message:', error);
       
@@ -1126,6 +1223,28 @@ export default function SalaVirtualEnhancedScreen() {
           return prev;
         }
       });
+      
+      // CRITICAL FIX: Save to database to persist the conversation
+      try {
+        const { error: insertError } = await supabase
+          .from('sala_virtual_interacciones')
+          .insert({
+            usuario_id: user.id,
+            local_id: localId,
+            tipo: 'privado',
+            contenido: content,
+            recipient_id: recipientId,
+            created_at: now,
+          });
+        
+        if (insertError) {
+          console.error('[SalaVirtual Enhanced] Error saving private message to DB:', insertError);
+        } else {
+          console.log('[SalaVirtual Enhanced] ✅ Private message saved to database');
+        }
+      } catch (dbError) {
+        console.error('[SalaVirtual Enhanced] Database error:', dbError);
+      }
       
       // Broadcast to recipient
       if (chatChannelRef.current) {
@@ -1471,11 +1590,14 @@ export default function SalaVirtualEnhancedScreen() {
         ]}
         onPress={() => {
           console.log('[SalaVirtual Enhanced] Grid user card pressed:', displayName, 'isCurrentUser:', isCurrentUser);
-          if (!isCurrentUser) {
+          // FIX: Allow clicking on own avatar to view profile
+          if (isCurrentUser) {
+            console.log('[SalaVirtual Enhanced] Navigating to own profile');
+            router.push('/perfil');
+          } else {
             handleUserPress(item);
           }
         }}
-        disabled={isCurrentUser}
         activeOpacity={0.7}
       >
         <View style={styles.gridUserAvatarContainer}>
@@ -2094,6 +2216,21 @@ export default function SalaVirtualEnhancedScreen() {
                     {activeUsers.length}
                   </Text>
                 </View>
+                {/* FIX: Android close button - visible exit button */}
+                {Platform.OS === 'android' && (
+                  <TouchableOpacity
+                    onPress={handleCheckOut}
+                    style={[styles.androidCloseButton, { backgroundColor: themeColors.danger + '20' }]}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol
+                      ios_icon_name="xmark.circle.fill"
+                      android_material_icon_name="cancel"
+                      size={scaleIconSize(20)}
+                      color={themeColors.danger}
+                    />
+                  </TouchableOpacity>
+                )}
               </View>
             ),
           }}
@@ -2243,7 +2380,9 @@ export default function SalaVirtualEnhancedScreen() {
               <TouchableOpacity
                 style={styles.tab}
                 onPress={() => {
+                  console.log('[SalaVirtual Enhanced] Switching to private tab, reloading chats');
                   setActiveTab('private');
+                  // Force reload to ensure persistence
                   loadPrivateChats();
                 }}
                 activeOpacity={0.7}
@@ -2704,6 +2843,14 @@ const styles = StyleSheet.create({
   },
   activeUsersText: {
     fontWeight: '700',
+  },
+  androidCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
   },
   content: {
     flex: 1,
