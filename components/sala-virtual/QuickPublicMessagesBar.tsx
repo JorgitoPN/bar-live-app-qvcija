@@ -39,7 +39,13 @@ export function QuickPublicMessagesBar({ onSelectMessage, themeColors }: QuickPu
         {QUICK_PUBLIC_MESSAGES.map((msg) => (
           <TouchableOpacity
             key={msg.id}
-            style={[styles.messageButton, { backgroundColor: themeColors.primary + '20', borderColor: themeColors.primary + '40' }]}
+            style={[
+              styles.messageButton, 
+              { 
+                backgroundColor: themeColors.primary + '20', 
+                borderColor: themeColors.primary + '40',
+              }
+            ]}
             onPress={() => onSelectMessage(msg.text)}
             activeOpacity={0.7}
           >
@@ -71,11 +77,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 6,
     borderWidth: 2,
-    shadowColor: '#EC4899',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 8,
-    elevation: 8,
   },
   messageEmoji: {
     fontSize: 18,

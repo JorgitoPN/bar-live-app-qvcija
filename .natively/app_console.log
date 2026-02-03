@@ -21296,3 +21296,1021 @@ We recommend you instead use a development build to avoid limitations. Learn mor
 [2026-02-03T20:52:28.821Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
 [2026-02-03T20:52:28.750Z] [iOS] [LOG] [InternalBytecode.js:1] [SalaVirtual Enhanced] ✅ Private messages loaded: 14
 [2026-02-03T20:52:28.593Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "xmark", OUTLINED, mode: monochrome, color: #111827, size: 24
+[2026-02-03T21:24:04.940Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:04.613Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:06.709Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:24:06.873Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:07.094Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:07.248Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:24:07.901Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:07.429Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:08.098Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:24:08.304Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:24:08.533Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:09.176Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:24:09.336Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:08.848Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:24:09.029Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:08.688Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:14.718Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:15.054Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:16.829Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:24:17.027Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:17.193Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:17.357Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:24:17.525Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:18.001Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:18.188Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:24:18.365Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:24:18.607Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:18.782Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:18.946Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:24:19.257Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:24:19.408Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:19.100Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:24.810Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:25.135Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:27.105Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:26.927Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:24:27.445Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:24:27.278Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:28.098Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:27.611Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:28.273Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:24:28.712Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:28.440Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:24:28.863Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:29.024Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:24:29.182Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:29.358Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:24:29.504Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:28.441Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-02-03T21:24:28.735Z] [Web] [WARN] Route "./integrations/supabase/client.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-02-03T21:24:28.479Z] [Web] [WARN] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-02-03T21:24:28.493Z] [Web] [WARN] "textShadow*" style props are deprecated. Use "textShadow".
+[2026-02-03T21:24:28.809Z] [Web] [WARN] [Layout children]: No route named "editar" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T21:24:28.468Z] [Web] [LOG] [Supabase] Initializing client...
+[2026-02-03T21:24:28.494Z] [Web] [WARN] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-02-03T21:24:28.472Z] [Web] [WARN] GoTrueClient@sb-embntaqwlwmgazvrglaf-auth-token:1 (2.90.1) 2026-02-03T21:24:28.470Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[2026-02-03T21:24:28.808Z] [Web] [WARN] [Layout children]: No route named "crear" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T21:24:28.737Z] [Web] [WARN] Route "./integrations/supabase/types.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-02-03T21:24:28.806Z] [Web] [WARN] Layout children must be of type Screen, all other children are ignored. To use custom children, create a custom <Layout />. Update Layout Route at: "app/_layout"
+[2026-02-03T21:24:28.804Z] [Web] [LOG] [AvatarContext v145.0] 🎨 Provider initialized
+[2026-02-03T21:24:28.810Z] [Web] [WARN] [Layout children]: No route named "perfil" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T21:24:28.811Z] [Web] [WARN] [Layout children]: No route named "chat" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T21:24:28.813Z] [Web] [WARN] [Layout children]: No route named "explorar" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T21:24:28.816Z] [Web] [WARN] [Layout children]: No route named "solicitudes" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T21:24:28.812Z] [Web] [WARN] [Layout children]: No route named "social" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T21:24:28.814Z] [Web] [WARN] [Layout children]: No route named "gestion" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T21:24:28.815Z] [Web] [WARN] [Layout children]: No route named "admin" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T21:24:28.817Z] [Web] [WARN] [Layout children]: No route named "soporte" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T21:24:28.818Z] [Web] [WARN] [Layout children]: No route named "legal" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T21:24:28.816Z] [Web] [WARN] [Layout children]: No route named "empleo" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T21:24:28.853Z] [Web] [LOG] [AvatarContext v145.0] ❌ No user logged in, clearing avatar
+[2026-02-03T21:24:28.858Z] [Web] [LOG] [FilterContext] 🔍 Querying DISTINCT values from active locals...
+[2026-02-03T21:24:28.875Z] [Web] [LOG] [GlobalData v289.0] 📦 No cache available - data will load on-demand
+[2026-02-03T21:24:28.859Z] [Web] [LOG] [FilterContext] 🔍 ✅ FIXED: Removed estado_solicitud filter
+[2026-02-03T21:24:29.108Z] [Web] [LOG] [Eventos v296.0] Cargando eventos...
+[2026-02-03T21:24:29.637Z] [Web] [LOG] [FilterContext] ✅ Comunidades: 1 - ["España"]
+[2026-02-03T21:24:29.113Z] [Web] [LOG] [Favoritos v302.0] 📝 Search query changed: 
+[2026-02-03T21:24:29.099Z] [Web] [LOG] [Explorar v323.0] ✅ Display updated with 0 venues
+[2026-02-03T21:24:29.103Z] [Web] [LOG] [Eventos v296.0] 📝 Search query changed: 
+[2026-02-03T21:24:29.131Z] [Web] [LOG] [Empleo v94.0] Cargando ofertas...
+[2026-02-03T21:24:28.851Z] [Web] [LOG] [Index] 🔍 Checking URL hash: 
+[2026-02-03T21:24:29.598Z] [Web] [LOG] [Empleo v94.0] Perfiles cargados: 0
+[2026-02-03T21:24:29.636Z] [Web] [LOG] [FilterContext] ✅ Tipos: 8 - ["bar","cafe","cocteleria","discoteca","lounge","pub","restaurante","sala_conciertos"]
+[2026-02-03T21:24:28.861Z] [Web] [LOG] [FilterContext] 📡 Setting up real-time subscription for filter options...
+[2026-02-03T21:24:28.855Z] [Web] [LOG] [FilterContext] 🚀 Initializing dynamic filter options...
+[2026-02-03T21:24:28.888Z] [Web] [LOG] [Index] 🚀 Redirigiendo a explorar
+[2026-02-03T21:24:28.914Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /explorar
+[2026-02-03T21:24:28.979Z] [Web] [LOG] [Favoritos v302.0] 🔍 Filtering locales client-side, search: 
+[2026-02-03T21:24:28.857Z] [Web] [LOG] [FilterContext] 🔍 LOADING DYNAMIC FILTER OPTIONS
+[2026-02-03T21:24:28.982Z] [Web] [LOG] [Favoritos v302.0] ✅ Filtered 0 locales from 0
+[2026-02-03T21:24:28.916Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-03T21:24:29.052Z] [Web] [LOG] [FloatingTabBar v318.0] ⚡ REDUCED BOTTOM MARGIN - Bottom padding cut in half (Android: 4px, iOS: 2px) - avatarUrl: null
+[2026-02-03T21:24:29.095Z] [Web] [LOG] [Explorar v323.0] 🎯 Updating displayed locales - count: 0
+[2026-02-03T21:24:28.850Z] [Web] [LOG] [Index] 🏠 Estado: {"hasUser":false,"loading":true}
+[2026-02-03T21:24:28.864Z] [Web] [LOG] [GlobalData v289.0] 📦 Loading from cache...
+[2026-02-03T21:24:29.122Z] [Web] [LOG] [AdminLayout] 🔍 Checking admin access...
+[2026-02-03T21:24:28.856Z] [Web] [LOG] [FilterContext] 🔍 ========================================
+[2026-02-03T21:24:28.831Z] [Web] [LOG] [Index] ⏳ Cargando...
+[2026-02-03T21:24:28.893Z] [Web] [LOG] [Index] 🏠 Estado: {"hasUser":false,"loading":false}
+[2026-02-03T21:24:29.117Z] [Web] [LOG] [Favoritos v302.0] Displaying 0 of 0 locales
+[2026-02-03T21:24:28.863Z] [Web] [LOG] [GlobalData v289.0] 🚀 Initializing...
+[2026-02-03T21:24:29.036Z] [Web] [WARN] props.pointerEvents is deprecated. Use style.pointerEvents
+[2026-02-03T21:24:29.248Z] [Web] [LOG] [Explorar v323.0] 🎯 Screen focused via tab button
+[2026-02-03T21:24:28.928Z] [Web] [LOG] [Explorar v323.0] 🔍 Filtering locales - total loaded: 0
+[2026-02-03T21:24:28.930Z] [Web] [LOG] [Explorar v323.0] ✅ Filtered: 0 → Unique: 0 (removed 0 duplicates)
+[2026-02-03T21:24:29.015Z] [Web] [WARN] Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+[2026-02-03T21:24:29.636Z] [Web] [LOG] [FilterContext] ✅ Servicios: 21 - ["accesible_silla_ruedas","almuerzo","aparcamiento","cafe","cena","cerveza","cocteles","comida_vegetariana","deportes_tv","desayuno","dj","entrega_domicilio","musica_vivo","opciones_veganas","pago_efectivo","pago_tarjetas","para_llevar","sin_gluten","terraza_exterior","vino","wifi_gratis"]
+[2026-02-03T21:24:29.251Z] [Web] [LOG] [Explorar v323.0] 📜 Resetting scroll to top (tab button clicked)
+[2026-02-03T21:24:29.636Z] [Web] [LOG] [FilterContext] ✅ DYNAMIC OPTIONS LOADED:
+[2026-02-03T21:24:29.637Z] [Web] [LOG] [FilterContext] ✅ Provincias: 1 - ["A Coruña"]
+[2026-02-03T21:24:29.578Z] [Web] [LOG] [Empleo v94.0] Ofertas cargadas: 0
+[2026-02-03T21:24:29.636Z] [Web] [LOG] [FilterContext] ✅ Ambientes: 8 - ["acogedor","animado","de_moda","elegante","familiar","juvenil","moderno","tranquilo"]
+[2026-02-03T21:24:29.636Z] [Web] [LOG] [FilterContext] ✅ Clientela: 6 - ["estudiantes","familias","grupos","ninos_bienvenidos","parejas","turistas"]
+[2026-02-03T21:24:29.306Z] [Web] [LOG] [Home v101.0] ✅ Ubicación obtenida: {"lat":43.0767,"lng":-8.4077}
+[2026-02-03T21:24:29.135Z] [Web] [LOG] [Empleo v94.0] Cargando perfiles profesionales...
+[2026-02-03T21:24:29.306Z] [Web] [LOG] [Favoritos v302.0] User location obtained: {"latitude":43.0767,"longitude":-8.4077,"altitude":null,"accuracy":10362,"altitudeAccuracy":null,"heading":null,"speed":null}
+[2026-02-03T21:24:29.636Z] [Web] [LOG] [FilterContext] ✅ ========================================
+[2026-02-03T21:24:29.126Z] [Web] [LOG] [AdminLayout] ❌ No user found, redirecting silently
+[2026-02-03T21:24:29.631Z] [Web] [LOG] [FilterContext] 📊 Processing 587 active locals...
+[2026-02-03T21:24:29.848Z] [Web] [LOG] [Explorar v323.0] 📍 Step 1: Requesting location permission...
+[2026-02-03T21:24:29.848Z] [Web] [LOG] [Eventos v296.0] 🔍 Applying debounced search
+[2026-02-03T21:24:29.868Z] [Web] [LOG] [Explorar v323.0] 🚀 Location is ready - starting intelligent preload...
+[2026-02-03T21:24:29.885Z] [Web] [LOG] [Explorar v323.0] 🚀 loadLocales called - page: 1 append: false locationReady: true
+[2026-02-03T21:24:29.850Z] [Web] [LOG] [Explorar v323.0] 📍 Step 3: Location obtained: {"lat":43.0767,"lng":-8.4077}
+[2026-02-03T21:24:29.889Z] [Web] [LOG] [Explorar v323.0] 🔄 Filters changed, resetting...
+[2026-02-03T21:24:29.851Z] [Web] [LOG] [Explorar v323.0] 🎯 Step 5: Marking location as READY - intelligent preload will start
+[2026-02-03T21:24:29.872Z] [Web] [LOG] [Explorar v323.0] 🚀 Starting background preload of ALL categories...
+[2026-02-03T21:24:29.850Z] [Web] [LOG] [Explorar v323.0] ✅ Step 4: Valid location set: {"lat":43.0767,"lng":-8.4077}
+[2026-02-03T21:24:29.850Z] [Web] [LOG] [Explorar v323.0] 📍 Step 2: Getting current position...
+[2026-02-03T21:24:29.902Z] [Web] [LOG] [Explorar v323.0] 📡 Loading page 1 from server...
+[2026-02-03T21:24:29.880Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: todas
+[2026-02-03T21:24:30.142Z] [Web] [LOG] [Explorar v323.0] 🔍 Filtering locales - total loaded: 20
+[2026-02-03T21:24:29.849Z] [Web] [LOG] [Favoritos v302.0] 🔍 Applying debounced search
+[2026-02-03T21:24:29.894Z] [Web] [LOG] [Explorar v323.0] 📜 Resetting scroll to top (category changed)
+[2026-02-03T21:24:29.937Z] [Web] [LOG] [Explorar v323.0] ✅ Display updated with 0 venues
+[2026-02-03T21:24:30.139Z] [Web] [LOG] [Explorar v323.0] ✅ Loaded 20 locales from server
+[2026-02-03T21:24:29.876Z] [Web] [LOG] [Explorar v323.0] 🎯 PRIORITY: Loading "Todas" category first...
+[2026-02-03T21:24:30.122Z] [Web] [LOG] [Explorar v323.0] ✅ "Todas" category loaded - user can now see content instantly
+[2026-02-03T21:24:30.140Z] [Web] [LOG] [Explorar v323.0] 📥 Setting isLoadingMore = false
+[2026-02-03T21:24:30.158Z] [Web] [LOG] [Explorar v323.0] ✅ Display updated with 20 venues
+[2026-02-03T21:24:29.898Z] [Web] [LOG] [Explorar v323.0] ⚡ First load - showing skeleton UI
+[2026-02-03T21:24:29.933Z] [Web] [LOG] [Explorar v323.0] 🎯 Updating displayed locales - count: 0
+[2026-02-03T21:24:30.144Z] [Web] [LOG] [Explorar v323.0] ✅ Filtered: 20 → Unique: 20 (removed 0 duplicates)
+[2026-02-03T21:24:29.916Z] [Web] [LOG] [Explorar v323.0] 🔍 Filtering locales - total loaded: 0
+[2026-02-03T21:24:30.140Z] [Web] [LOG] [Explorar v323.0] 📊 Got 20 locales, expected 20 - hasMore: true
+[2026-02-03T21:24:30.155Z] [Web] [LOG] [Explorar v323.0] 🎯 Updating displayed locales - count: 20
+[2026-02-03T21:24:29.913Z] [Web] [LOG] [Explorar v323.0] 📊 Requesting offset: 0 limit: 20
+[2026-02-03T21:24:29.910Z] [Web] [LOG] [Explorar v323.0] 🎯 hasValidLocation: true
+[2026-02-03T21:24:30.140Z] [Web] [LOG] [Explorar v323.0] 🚀 BATCH loading events and social profiles for 20 venues
+[2026-02-03T21:24:29.918Z] [Web] [LOG] [Explorar v323.0] ✅ Filtered: 0 → Unique: 0 (removed 0 duplicates)
+[2026-02-03T21:24:30.122Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 20 locales for category: todas
+[2026-02-03T21:24:30.140Z] [Web] [LOG] [Explorar v323.0] 🔄 Replacing with 20 locales (instant update)
+[2026-02-03T21:24:29.906Z] [Web] [LOG] [Explorar v323.0] 📍 Using location params: {"user_lat":43.0767,"user_lng":-8.4077}
+[2026-02-03T21:24:30.864Z] [Web] [LOG] [Explorar v323.0] 📦 Background: Preloading other categories in parallel...
+[2026-02-03T21:24:30.865Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: bar
+[2026-02-03T21:24:30.864Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: cafe
+[2026-02-03T21:24:30.865Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: restaurante
+[2026-02-03T21:24:30.865Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: pub
+[2026-02-03T21:24:31.092Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 6 locales for category: cafe
+[2026-02-03T21:24:31.180Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 11 locales for category: restaurante
+[2026-02-03T21:24:31.050Z] [Web] [LOG] [Explorar v323.0] ✅ Loaded 0 active events in bulk
+[2026-02-03T21:24:31.128Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 0 locales for category: cocteleria
+[2026-02-03T21:24:30.866Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: cocteleria
+[2026-02-03T21:24:31.241Z] [Web] [LOG] [Explorar v323.0] ✅ All categories preloaded successfully!
+[2026-02-03T21:24:31.241Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 1 locales for category: discoteca
+[2026-02-03T21:24:31.050Z] [Web] [LOG] [Explorar v323.0] ✅ Loaded social profiles for 20 venues
+[2026-02-03T21:24:31.165Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 18 locales for category: bar
+[2026-02-03T21:24:30.937Z] [Web] [LOG] [Eventos v296.0] Eventos cargados: 0
+[2026-02-03T21:24:31.183Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 2 locales for category: pub
+[2026-02-03T21:24:30.866Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: discoteca
+[2026-02-03T21:24:30.794Z] [Android] [LOG] [AvatarContext v145.0] 🎨 Provider initialized
+[2026-02-03T21:24:30.842Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ User role: propietario Current mode: cliente Pathname: /detalle/sala-virtual-enhanced Bottom inset: 48
+[2026-02-03T21:24:31.742Z] [Android] [LOG] [AdminAccess] Checking admin access: {"email":"jorgepereznoya@gmail.com","role":"propietario","hasAdminRole":false,"isAuthorizedEmail":false,"hasAccess":false}
+[2026-02-03T21:24:30.886Z] [Android] [LOG] [TabLayout Android v80.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-03T21:24:31.308Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-01-18T06:11:24.429709+00:00","imageError":false,"shouldShowImage":true}
+[2026-02-03T21:24:31.838Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1320 minutes)
+[2026-02-03T21:24:31.892Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1440 minutes)
+[2026-02-03T21:24:32.020Z] [Android] [LOG] [addPubCategoryIfNeeded] ✅ Adding PUB category to: ["bar","restaurante"]
+[2026-02-03T21:24:31.991Z] [Android] [LOG] [shouldHavePubCategory] ✅ Venue closes after 2:30 AM (1740 minutes)
+[2026-02-03T21:24:32.109Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1500 minutes)
+[2026-02-03T21:24:32.065Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1380 minutes)
+[2026-02-03T21:24:32.354Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1350 minutes)
+[2026-02-03T21:24:32.578Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1530 minutes)
+[2026-02-03T21:24:32.721Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1560 minutes)
+[2026-02-03T21:24:33.260Z] [Android] [LOG] [shouldHavePubCategory] ✅ Venue closes after 2:30 AM (1620 minutes)
+[2026-02-03T21:24:34.003Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1590 minutes)
+[2026-02-03T21:24:33.034Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1410 minutes)
+[2026-02-03T21:24:34.146Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1470 minutes)
+[2026-02-03T21:24:34.868Z] [Android] [LOG] [addPubCategoryIfNeeded] ✅ Adding PUB category to: ["bar","cafe","restaurante"]
+[2026-02-03T21:24:36.204Z] [Android] [LOG] [shouldHavePubCategory] ✅ Venue closes after 2:30 AM (1710 minutes)
+[2026-02-03T21:24:35.430Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1425 minutes)
+[2026-02-03T21:24:35.234Z] [Android] [LOG] [addPubCategoryIfNeeded] ✅ Adding PUB category to: ["bar"]
+[2026-02-03T21:24:37.607Z] [Android] [LOG] [shouldHavePubCategory] ✅ Venue closes after 2:30 AM (2130 minutes)
+[2026-02-03T21:24:37.944Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1080 minutes)
+[2026-02-03T21:24:38.412Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 900 minutes)
+[2026-02-03T21:24:38.312Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1200 minutes)
+[2026-02-03T21:24:38.269Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1439 minutes)
+[2026-02-03T21:24:38.623Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1290 minutes)
+[2026-02-03T21:24:39.065Z] [Android] [LOG] [shouldHavePubCategory] ✅ Venue closes after 2:30 AM (2250 minutes)
+[2026-02-03T21:24:39.182Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1020 minutes)
+[2026-02-03T21:24:39.235Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 960 minutes)
+[2026-02-03T21:24:39.890Z] [Android] [LOG] [FloatingTabBar v318.0] ⚡ REDUCED BOTTOM MARGIN - Bottom padding cut in half (Android: 4px, iOS: 2px) - avatarUrl: present
+[2026-02-03T21:24:39.758Z] [Android] [LOG] [shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at 1230 minutes)
+[2026-02-03T21:24:40.787Z] [Android] [LOG] [SalaVirtual Enhanced] Time until closing: 96 minutes
+[2026-02-03T21:24:39.929Z] [Android] [LOG] [DetalleLocal v281.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-02-03T21:24:40.898Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:41.085Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:41.040Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:24:41.177Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:24:41.377Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:24:51.085Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:51.292Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:24:51.338Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:51.627Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:24:51.432Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:24:51.384Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:51.692Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:51.738Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:24:51.780Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:25:01.178Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:01.466Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:25:01.547Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:01.589Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:25:01.507Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:01.843Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:25:01.762Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:25:02.014Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:25:01.962Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:01.912Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:02.117Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:25:02.197Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:11.509Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:11.280Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:11.861Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:25:11.681Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:25:11.756Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:11.975Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:12.062Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:12.431Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:25:12.115Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:25:12.165Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:25:12.509Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:12.639Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:12.590Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:25:21.594Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:21.376Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:21.832Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:21.883Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:21.719Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:25:22.010Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:21.951Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:25:22.231Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:25:22.119Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:22.176Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:25:22.280Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:22.336Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:22.489Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:25:22.666Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:22.747Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:25:22.848Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:31.505Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:31.745Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:31.985Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:31.915Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:25:32.097Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:32.174Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:25:32.417Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:32.497Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:25:32.598Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:32.551Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:25:32.805Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:25:32.947Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:25:33.046Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:32.887Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:33.674Z] [Android] [LOG] [SalaVirtual Enhanced] Time until closing: 95 minutes
+[2026-02-03T21:25:41.613Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:41.920Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:41.998Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:25:42.216Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:42.301Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:42.532Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:42.455Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:25:42.724Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:25:42.649Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:25:42.597Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:42.775Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:42.823Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:42.891Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:25:42.950Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:43.061Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:25:43.151Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:51.680Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:52.005Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:52.209Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:25:52.368Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:52.442Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:52.611Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:25:52.682Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:52.872Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:52.946Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:25:53.003Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:25:53.056Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:53.115Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:25:53.181Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:25:53.277Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:26:01.783Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:02.090Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:02.308Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:26:02.611Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:02.429Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:02.850Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:02.778Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:26:03.004Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:03.086Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:26:03.339Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:03.267Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:26:03.449Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:26:03.398Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:03.518Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:03.573Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:26:03.616Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:11.879Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:12.203Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:12.366Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:26:12.532Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:12.875Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:26:13.113Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:13.036Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:12.715Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:13.259Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:26:13.413Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:26:13.502Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:13.721Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:26:13.654Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:13.829Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:26:13.915Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:21.973Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:22.302Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:22.470Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:26:22.909Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:26:22.619Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:22.789Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:23.081Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:23.187Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:23.300Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:26:23.666Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:23.432Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:26:23.533Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:23.767Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:26:23.865Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:23.910Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:26:24.073Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:32.074Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:32.562Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:26:32.384Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:32.712Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:32.870Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:33.228Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:33.023Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:26:33.464Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:26:33.390Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:33.716Z] [Android] [LOG] [SalaVirtual Enhanced] Time until closing: 94 minutes
+[2026-02-03T21:26:33.705Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:33.616Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:26:33.925Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:34.018Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:26:34.144Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:26:34.218Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:34.095Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:42.496Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:42.176Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:42.660Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:26:42.814Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:43.126Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:26:43.342Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:42.990Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:43.506Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:43.571Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:26:44.056Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:43.892Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:43.722Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:26:44.285Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:26:44.368Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:44.436Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:26:44.523Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:52.666Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:52.335Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:52.822Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:26:52.982Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:53.138Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:53.301Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:26:53.470Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:53.849Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:26:54.176Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:53.625Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:53.698Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:26:54.011Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:54.421Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:26:54.529Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:26:54.307Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:26:54.581Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:02.768Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:02.442Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:02.922Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:27:03.216Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:03.094Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:03.357Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:27:03.589Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:03.743Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:03.961Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:27:03.813Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:27:04.125Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:04.283Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:04.455Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:27:04.609Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:04.802Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:04.690Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:27:12.550Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:12.888Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:13.064Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:27:13.251Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:13.403Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:13.822Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:13.646Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:13.475Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:27:14.156Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:27:14.394Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:14.230Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:13.974Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:27:14.552Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:27:14.721Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:14.868Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:27:14.948Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:22.668Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:22.992Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:23.162Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:27:23.370Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:23.743Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:23.525Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:23.594Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:27:23.962Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:24.286Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:27:24.130Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:27:24.645Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:27:24.505Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:24.351Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:24.792Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:24.944Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:27:25.094Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:33.070Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:32.747Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:33.250Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:27:33.637Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:33.464Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:33.712Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:27:33.721Z] [Android] [LOG] [SalaVirtual Enhanced] Time until closing: 93 minutes
+[2026-02-03T21:27:33.870Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:34.026Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:34.217Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:27:34.380Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:27:34.536Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:34.610Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:34.767Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:27:34.923Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:35.085Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:27:35.235Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:42.885Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:43.231Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:43.381Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:27:43.726Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:43.559Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:43.888Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:27:44.108Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:44.044Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:44.304Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:27:44.470Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:27:44.623Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:44.786Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:45.096Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:44.944Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:27:45.286Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:27:45.361Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:53.324Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:53.007Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:53.492Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:27:53.828Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:53.662Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:54.003Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:27:54.263Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:54.355Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:54.522Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:27:54.756Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:54.600Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:27:54.911Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:55.067Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:27:55.228Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:55.560Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:27:55.387Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:28:03.123Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:03.460Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:03.627Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:28:03.804Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:03.966Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:04.127Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:28:04.322Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:04.639Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:28:04.472Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:05.022Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:04.709Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:28:04.869Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:05.174Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:28:05.507Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:28:05.336Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:05.661Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:13.568Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:13.220Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:13.731Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:28:13.890Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:14.208Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:28:14.053Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:14.445Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:14.601Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:14.770Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:28:14.845Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:28:15.204Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:15.000Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:15.274Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:28:15.434Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:15.761Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:15.594Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:28:23.317Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:23.809Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:28:23.658Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:23.983Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:24.481Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:24.133Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:24.302Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:28:24.843Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:28:25.000Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:28:25.159Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:24.684Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:25.319Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:25.730Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:28:25.477Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:28:25.881Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:25.550Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:33.414Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:33.747Z] [Android] [LOG] [SalaVirtual Enhanced] Time until closing: 92 minutes
+[2026-02-03T21:28:33.737Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:33.934Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:28:34.260Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:34.410Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:28:34.566Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:34.090Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:34.758Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:34.924Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:28:35.247Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:35.085Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:28:35.403Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:35.870Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:28:35.554Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:28:35.715Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:36.021Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:43.506Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:43.822Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:44.019Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:28:44.177Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:44.506Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:28:44.351Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:44.673Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:44.846Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:45.010Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:28:45.327Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:45.179Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:28:45.650Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:28:45.495Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:45.813Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:45.969Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:28:46.128Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:53.594Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:53.926Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:54.103Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:28:54.404Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:54.553Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:54.936Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:54.785Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:54.626Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:28:55.095Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:28:55.408Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:55.255Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:28:55.562Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:55.728Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:28:55.880Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:56.220Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:28:56.055Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:29:03.683Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:04.002Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:04.193Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:29:04.512Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:04.681Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:04.917Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:04.754Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:29:05.076Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:05.233Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:29:05.387Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:29:05.544Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:05.705Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:05.858Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:29:06.163Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:29:06.007Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:06.321Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:14.131Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:13.786Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:14.310Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:29:14.592Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:14.759Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:15.073Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:14.908Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:29:15.399Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:29:15.473Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:29:15.230Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:15.636Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:15.788Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:16.102Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:15.945Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:29:16.465Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:16.268Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:29:23.876Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:24.094Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:24.385Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:24.460Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:29:24.662Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:25.210Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:24.846Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:25.032Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:29:25.382Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:25.738Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:25.851Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:25.531Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:29:25.612Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:29:25.992Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:29:26.544Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:26.348Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:29:26.128Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:28.939Z] [Web] [WARN] Disconnected from Metro (1006: "").
+
+To reconnect:
+- Ensure that Metro is running and available on the same network
+- Reload this app (will trigger further help if Metro cannot be connected to)
+      
+[2026-02-03T21:29:33.707Z] [Android] [LOG] [SalaVirtual Enhanced] Time until closing: 91 minutes
+[2026-02-03T21:29:33.980Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:34.440Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:34.762Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:34.926Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:34.608Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:29:35.113Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:29:35.300Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:35.459Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:35.626Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:29:35.779Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:29:35.948Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:36.018Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:36.180Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:29:36.332Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:36.635Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:36.479Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:29:44.073Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:44.367Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:44.850Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:44.688Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:29:44.997Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:45.246Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:29:45.593Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:45.411Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:45.926Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:29:45.756Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:29:46.078Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:46.150Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:46.472Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:46.306Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:29:46.635Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:29:46.807Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:54.176Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:54.476Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:54.938Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:54.782Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:29:55.324Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:29:55.100Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:55.671Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:55.487Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:55.843Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:29:56.003Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:29:56.162Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:56.719Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:29:56.335Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:56.529Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:29:56.415Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:29:56.870Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:04.267Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:04.559Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:04.860Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:30:05.018Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:05.603Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:05.175Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:05.447Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:30:05.792Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:06.048Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:30:06.127Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:30:06.279Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:06.457Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:06.703Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:06.534Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:30:07.013Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:06.861Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:30:14.360Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:14.656Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:14.972Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:30:15.137Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:15.525Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:30:15.329Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:15.874Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:15.680Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:16.168Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:30:16.327Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:30:16.401Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:16.553Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:16.886Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:16.710Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:30:17.104Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:17.027Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:30:24.444Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:24.742Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:25.230Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:25.082Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:30:25.423Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:25.589Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:30:25.750Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:26.267Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:30:25.968Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:26.653Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:26.586Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:26.970Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:26.437Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:30:26.805Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:30:27.137Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:30:27.265Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:33.706Z] [Android] [LOG] [SalaVirtual Enhanced] Time until closing: 90 minutes
+[2026-02-03T21:30:34.546Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:34.874Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:35.186Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:30:35.335Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:35.664Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:30:35.505Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:35.825Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:36.094Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:36.339Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:30:36.704Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:36.541Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:30:36.778Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:36.952Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:30:37.103Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:37.306Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:30:37.465Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:44.996Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:44.641Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:45.516Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:45.342Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:30:45.674Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:45.909Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:45.751Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:30:46.401Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:30:46.637Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:30:46.178Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:46.788Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:46.954Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:47.024Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:30:47.369Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:30:47.196Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:47.551Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:54.744Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:55.082Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:55.587Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:56.017Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:55.940Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:30:55.762Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:55.401Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:30:56.260Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:56.710Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:30:56.481Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:30:57.053Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:57.371Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:56.891Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:30:57.202Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:30:57.552Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:30:57.715Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:04.859Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:05.184Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:05.513Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:31:06.028Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:31:05.861Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:05.705Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:06.334Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:06.186Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:06.824Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:31:06.547Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:31:06.989Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:07.148Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:07.494Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:07.310Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:31:07.808Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:07.653Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:31:14.953Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:15.280Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:15.600Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:31:15.938Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:16.111Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:31:15.775Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:16.420Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:16.274Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:16.654Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:31:16.914Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:31:17.265Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:17.531Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:31:17.073Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:17.705Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:17.783Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:31:17.962Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:25.031Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:25.354Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:25.843Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:26.183Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:31:26.017Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:25.676Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:31:26.340Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:26.757Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:31:26.587Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:27.017Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:31:27.177Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:27.339Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:27.620Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:31:27.778Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:27.957Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:31:28.124Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:33.713Z] [Android] [LOG] [SalaVirtual Enhanced] Time until closing: 89 minutes
+[2026-02-03T21:31:35.434Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:35.137Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:35.767Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:31:36.091Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:35.925Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:36.274Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:31:36.517Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:36.841Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:31:37.112Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:31:36.688Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:37.269Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:37.739Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:31:37.423Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:38.070Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:31:37.898Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:38.231Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:45.239Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:45.508Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:45.846Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:31:46.011Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:46.171Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:46.340Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:31:46.586Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:46.740Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:46.917Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:31:47.211Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:31:47.535Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:47.370Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:47.835Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:31:47.989Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:48.154Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:31:48.337Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:55.368Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:56.081Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:56.536Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:31:56.228Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:31:56.302Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:56.703Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:56.840Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:57.192Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:31:56.946Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:31:57.570Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:57.646Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:57.923Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:31:58.213Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:58.461Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:31:58.296Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:32:04.396Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:04.554Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:04.851Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:32:04.885Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:32:04.819Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:32:15.567Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:15.929Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:32:15.879Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:15.396Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:15.837Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:15.975Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:32:16.020Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:32:25.501Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:25.718Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:26.012Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:25.966Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:25.794Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:26.188Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:32:26.236Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:32:26.289Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:32:33.737Z] [Android] [LOG] [SalaVirtual Enhanced] Time until closing: 88 minutes
+[2026-02-03T21:32:35.872Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:35.637Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:35.959Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:36.106Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:36.333Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:36.389Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:36.487Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:32:36.532Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:32:36.578Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:32:46.015Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:45.790Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:46.238Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:46.090Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:46.540Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:46.470Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:46.712Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:46.766Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:32:46.813Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:32:46.856Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:32:56.270Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:56.108Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:56.420Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:56.641Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:56.711Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:56.862Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:32:57.049Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:32:57.106Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:32:57.148Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:33:06.338Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:06.506Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:06.669Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:06.898Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:06.977Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:07.273Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:07.187Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:07.334Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:33:07.375Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:33:07.424Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:33:07.527Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:33:16.608Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:16.442Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:16.707Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:16.802Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:16.914Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:17.014Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:17.123Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:17.438Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:17.282Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:17.514Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:33:17.585Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:33:17.638Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:33:26.788Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:26.597Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:26.836Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:27.096Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:27.342Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:27.189Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:27.676Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:33:27.519Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:27.762Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:33:27.898Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:33:27.980Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:33:33.731Z] [Android] [LOG] [SalaVirtual Enhanced] Time until closing: 87 minutes
+[2026-02-03T21:33:36.687Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:37.057Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:37.009Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:37.254Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:37.334Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:37.500Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:37.662Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:37.801Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:33:37.883Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:33:38.039Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:33:38.115Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:33:38.337Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:33:38.261Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:33:46.787Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:47.288Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:47.067Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:47.139Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:47.327Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:47.607Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:47.739Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:48.179Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:33:47.880Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:33:48.035Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:33:48.252Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:33:48.394Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:33:48.465Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:33:57.282Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:57.042Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:57.367Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:57.578Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:57.650Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:57.892Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:58.031Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:33:58.178Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:33:57.967Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T21:33:58.349Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T21:33:58.422Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status (Android): CHANNEL_ERROR
+[2026-02-03T21:33:58.608Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T21:33:58.679Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
