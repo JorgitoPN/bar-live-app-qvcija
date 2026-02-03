@@ -109,7 +109,8 @@ const PREDEFINED_MESSAGES = {
 
 const PROXIMITY_THRESHOLD = 5; // meters
 const CLOSING_WARNING_THRESHOLD = 60; // 1 hour in minutes
-const MESSAGE_SYNC_INTERVAL = 3000; // 3 seconds - more aggressive polling
+const MESSAGE_SYNC_INTERVAL = 2000; // 2 seconds - aggressive polling for reliability
+const TYPING_TIMEOUT = 3000; // 3 seconds before hiding typing indicator
 
 interface Message {
   id: string;
@@ -208,12 +209,15 @@ export default function SalaVirtualEnhancedScreen() {
   const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   
   const flatListRef = useRef<FlatList>(null);
   const privateChatListRef = useRef<FlatList>(null);
   const chatChannelRef = useRef<RealtimeChannel | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const checkinsChannelRef = useRef<RealtimeChannel | null>(null);
+  const typingChannelRef = useRef<RealtimeChannel | null>(null);
   const messageSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastPublicMessageTimestampRef = useRef<string | null>(null);
   const lastPrivateMessageTimestampRef = useRef<string | null>(null);
@@ -226,6 +230,7 @@ export default function SalaVirtualEnhancedScreen() {
   const animationOpacity = useRef(new Animated.Value(0)).current;
   const closingCheckInterval = useRef<NodeJS.Timeout | null>(null);
   const pendingMessageIds = useRef<Set<string>>(new Set());
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const themeColors = mode === 'day' ? DAY_COLORS : NIGHT_COLORS;
 
@@ -505,14 +510,14 @@ export default function SalaVirtualEnhancedScreen() {
     setLoading(false);
   }, [localId]);
 
-  // 🔥 FIXED: Improved message sync with better deduplication
+  // 🔥 CRITICAL FIX: Enhanced message sync with full user data fetch
   const syncMessages = useCallback(async () => {
     if (!localId || !user) return;
 
     try {
-      console.log('[SalaVirtual Enhanced] 🔄 Syncing messages (polling backup)...');
+      console.log('[SalaVirtual Enhanced] 🔄 Syncing messages with full user data...');
       
-      // Fetch public messages created after last known timestamp
+      // 🔥 FIX: Fetch public messages with FULL user data including avatar
       const publicQuery = supabase
         .from('sala_virtual_interacciones')
         .select(`
@@ -541,12 +546,13 @@ export default function SalaVirtualEnhancedScreen() {
       const { data: publicData, error: publicError } = await publicQuery;
 
       if (publicError) {
-        console.error('[SalaVirtual Enhanced] Error syncing public messages:', publicError);
+        console.error('[SalaVirtual Enhanced] ❌ Error syncing public messages:', publicError);
       } else if (publicData && publicData.length > 0) {
         console.log('[SalaVirtual Enhanced] 📨 Found', publicData.length, 'new public messages via polling');
         
+        // 🔥 FIX: Ensure all messages have user data with avatar
         const newMessages: Message[] = publicData
-          .filter(msg => msg.usuario)
+          .filter(msg => msg.usuario) // Only include messages with valid user data
           .map(msg => ({
             id: msg.id,
             usuario_id: msg.usuario_id,
@@ -555,17 +561,26 @@ export default function SalaVirtualEnhancedScreen() {
             contenido: msg.contenido,
             created_at: msg.created_at,
             is_private: false,
-            usuario: msg.usuario,
+            usuario: {
+              id: msg.usuario.id,
+              nombre: msg.usuario.nombre,
+              username: msg.usuario.username,
+              avatar: msg.usuario.avatar, // 🔥 FIX: Avatar is now included
+            },
           }));
 
+        console.log('[SalaVirtual Enhanced] 🖼️ Messages with avatars:', newMessages.map(m => ({
+          id: m.id,
+          user: m.usuario.nombre,
+          hasAvatar: !!m.usuario.avatar,
+          avatar: m.usuario.avatar?.substring(0, 50),
+        })));
+
         setMessages(prev => {
-          // 🔥 FIX: Better deduplication - check both DB id and pending client IDs
           const existingIds = new Set(prev.map(m => m.id));
           const uniqueNew = newMessages.filter(m => {
-            // Skip if already in UI by DB id
             if (existingIds.has(m.id)) return false;
             
-            // Skip if this is a pending optimistic message (same user, same content, within 5 seconds)
             const isDuplicate = prev.some(existing => 
               existing.usuario_id === m.usuario_id &&
               existing.contenido === m.contenido &&
@@ -578,7 +593,6 @@ export default function SalaVirtualEnhancedScreen() {
           if (uniqueNew.length > 0) {
             console.log('[SalaVirtual Enhanced] ✅ Adding', uniqueNew.length, 'new public messages to UI');
             
-            // Remove pending client IDs that match these messages
             uniqueNew.forEach(msg => {
               if (msg.usuario_id === user.id) {
                 pendingMessageIds.current.delete(msg.contenido + msg.usuario_id);
@@ -589,7 +603,6 @@ export default function SalaVirtualEnhancedScreen() {
               new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             );
             
-            // Update last timestamp
             if (updated.length > 0) {
               lastPublicMessageTimestampRef.current = updated[updated.length - 1].created_at;
             }
@@ -600,7 +613,6 @@ export default function SalaVirtualEnhancedScreen() {
           return prev;
         });
 
-        // Scroll to end if new messages
         if (newMessages.length > 0) {
           setTimeout(() => {
             flatListRef.current?.scrollToEnd({ animated: true });
@@ -608,7 +620,7 @@ export default function SalaVirtualEnhancedScreen() {
         }
       }
 
-      // Fetch private messages
+      // 🔥 FIX: Fetch private messages with FULL user data including avatar
       const privateQuery = supabase
         .from('sala_virtual_interacciones')
         .select(`
@@ -638,19 +650,16 @@ export default function SalaVirtualEnhancedScreen() {
       const { data: privateData, error: privateError } = await privateQuery;
 
       if (privateError) {
-        console.error('[SalaVirtual Enhanced] Error syncing private messages:', privateError);
+        console.error('[SalaVirtual Enhanced] ❌ Error syncing private messages:', privateError);
       } else if (privateData && privateData.length > 0) {
         console.log('[SalaVirtual Enhanced] 📨 Found', privateData.length, 'new private messages via polling');
         
-        // Update last timestamp
         if (privateData.length > 0) {
           lastPrivateMessageTimestampRef.current = privateData[privateData.length - 1].created_at;
         }
         
-        // Update private chats list
         loadPrivateChats();
         
-        // If viewing a private chat, update messages
         if (selectedPrivateChat) {
           const relevantMessages = privateData.filter(msg => 
             (msg.usuario_id === user.id && msg.recipient_id === selectedPrivateChat.userId) ||
@@ -669,7 +678,12 @@ export default function SalaVirtualEnhancedScreen() {
                 created_at: msg.created_at,
                 is_private: true,
                 recipient_id: msg.recipient_id,
-                usuario: msg.usuario,
+                usuario: {
+                  id: msg.usuario.id,
+                  nombre: msg.usuario.nombre,
+                  username: msg.usuario.username,
+                  avatar: msg.usuario.avatar, // 🔥 FIX: Avatar included
+                },
               }));
 
             setPrivateChatMessages(prev => {
@@ -714,23 +728,21 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, [localId, user, selectedPrivateChat, loadPrivateChats]);
 
-  // 🔥 FIXED: Start periodic message sync with more aggressive polling
+  // 🔥 CRITICAL FIX: More aggressive polling for real-time feel
   useEffect(() => {
     if (!localId || !user || !isCheckedIn) return;
 
-    console.log('[SalaVirtual Enhanced] 🔄 Starting periodic message sync (every 3 seconds)');
+    console.log('[SalaVirtual Enhanced] 🔄 Starting aggressive message sync (every 2 seconds)');
     
-    // Initial sync
     syncMessages();
     
-    // Set up interval
     messageSyncIntervalRef.current = setInterval(() => {
       syncMessages();
     }, MESSAGE_SYNC_INTERVAL);
 
     return () => {
       if (messageSyncIntervalRef.current) {
-        console.log('[SalaVirtual Enhanced] 🛑 Stopping periodic message sync');
+        console.log('[SalaVirtual Enhanced] 🛑 Stopping message sync');
         clearInterval(messageSyncIntervalRef.current);
         messageSyncIntervalRef.current = null;
       }
@@ -741,8 +753,9 @@ export default function SalaVirtualEnhancedScreen() {
     if (!localId) return;
 
     try {
-      console.log('[SalaVirtual Enhanced] 🔄 Updating active users list');
+      console.log('[SalaVirtual Enhanced] 🔄 Updating active users list with avatars');
       
+      // 🔥 FIX: Fetch users with avatar data
       const { data, error } = await supabase
         .from('sala_virtual_checkins')
         .select(`
@@ -770,9 +783,15 @@ export default function SalaVirtualEnhancedScreen() {
           id: item.usuario.id,
           nombre: item.usuario.nombre,
           username: item.usuario.username,
-          avatar: item.usuario.avatar,
+          avatar: item.usuario.avatar, // 🔥 FIX: Avatar included
           checked_in_at: item.checked_in_at,
         }));
+
+      console.log('[SalaVirtual Enhanced] 🖼️ Users with avatars:', users.map(u => ({
+        name: u.nombre,
+        hasAvatar: !!u.avatar,
+        avatar: u.avatar?.substring(0, 50),
+      })));
 
       if (userLocation) {
         users = users.map(u => {
@@ -835,7 +854,6 @@ export default function SalaVirtualEnhancedScreen() {
         const partnerId = msg.usuario_id === user.id ? msg.recipient_id : msg.usuario_id;
         if (!partnerId) return;
         
-        // Count unread messages (messages sent TO current user that they haven't opened yet)
         if (msg.recipient_id === user.id && msg.usuario_id !== user.id) {
           const currentCount = unreadCountMap.get(partnerId) || 0;
           unreadCountMap.set(partnerId, currentCount + 1);
@@ -851,7 +869,7 @@ export default function SalaVirtualEnhancedScreen() {
               userId: partnerId,
               username: partnerData.username || '',
               nombre: partnerData.nombre || '',
-              avatar: partnerData.avatar,
+              avatar: partnerData.avatar, // 🔥 FIX: Avatar included
               lastMessage: msg.contenido,
               lastMessageTime: msg.created_at,
               unreadCount: 0,
@@ -872,14 +890,122 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, [user, localId, activeUsers]);
 
+  // 🔥 NEW FEATURE: Typing indicator handlers
+  const handleTypingStart = useCallback(() => {
+    if (!selectedPrivateChat || !user || !localId) return;
+
+    console.log('[SalaVirtual Enhanced] ⌨️ User started typing to:', selectedPrivateChat.userId);
+    
+    // Broadcast typing event
+    if (typingChannelRef.current) {
+      typingChannelRef.current.send({
+        type: 'broadcast',
+        event: 'typing_start',
+        payload: {
+          userId: user.id,
+          recipientId: selectedPrivateChat.userId,
+          localId: localId,
+        },
+      });
+    }
+  }, [selectedPrivateChat, user, localId]);
+
+  const handleTypingStop = useCallback(() => {
+    if (!selectedPrivateChat || !user || !localId) return;
+
+    console.log('[SalaVirtual Enhanced] ⌨️ User stopped typing to:', selectedPrivateChat.userId);
+    
+    // Broadcast typing stop event
+    if (typingChannelRef.current) {
+      typingChannelRef.current.send({
+        type: 'broadcast',
+        event: 'typing_stop',
+        payload: {
+          userId: user.id,
+          recipientId: selectedPrivateChat.userId,
+          localId: localId,
+        },
+      });
+    }
+  }, [selectedPrivateChat, user, localId]);
+
+  // 🔥 NEW FEATURE: Handle text input changes for typing indicator
+  const handlePrivateMessageChange = useCallback((text: string) => {
+    setNewMessage(text);
+    
+    if (!selectedPrivateChat) return;
+    
+    // Start typing indicator
+    if (text.length > 0 && !isTyping) {
+      setIsTyping(true);
+      handleTypingStart();
+    }
+    
+    // Reset timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Stop typing after 3 seconds of inactivity
+    if (text.length > 0) {
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+        handleTypingStop();
+      }, TYPING_TIMEOUT);
+    } else {
+      setIsTyping(false);
+      handleTypingStop();
+    }
+  }, [selectedPrivateChat, isTyping, handleTypingStart, handleTypingStop]);
+
+  // 🔥 NEW FEATURE: Subscribe to typing events
+  const subscribeToTypingEvents = useCallback(() => {
+    if (!localId || !user) return () => {};
+
+    console.log('[SalaVirtual Enhanced] ⌨️ Setting up typing indicator subscription');
+
+    const typingChannel = supabase
+      .channel(`typing_events_${localId}_${user.id}`)
+      .on('broadcast', { event: 'typing_start' }, (payload: any) => {
+        console.log('[SalaVirtual Enhanced] ⌨️ Received typing_start:', payload);
+        
+        if (payload.payload.recipientId === user.id && selectedPrivateChat?.userId === payload.payload.userId) {
+          console.log('[SalaVirtual Enhanced] ⌨️ Partner is typing...');
+          setTypingUsers(prev => new Set(prev).add(payload.payload.userId));
+        }
+      })
+      .on('broadcast', { event: 'typing_stop' }, (payload: any) => {
+        console.log('[SalaVirtual Enhanced] ⌨️ Received typing_stop:', payload);
+        
+        if (payload.payload.recipientId === user.id) {
+          console.log('[SalaVirtual Enhanced] ⌨️ Partner stopped typing');
+          setTypingUsers(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(payload.payload.userId);
+            return newSet;
+          });
+        }
+      })
+      .subscribe((status) => {
+        console.log('[SalaVirtual Enhanced] ⌨️ Typing channel status:', status);
+      });
+
+    typingChannelRef.current = typingChannel;
+
+    return () => {
+      console.log('[SalaVirtual Enhanced] 🔌 Unsubscribing from typing channel');
+      supabase.removeChannel(typingChannel);
+    };
+  }, [localId, user, selectedPrivateChat]);
+
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
-    console.log('[SalaVirtual Enhanced] 📡 Setting up real-time subscriptions (postgres_changes)');
+    console.log('[SalaVirtual Enhanced] 📡 Setting up real-time subscriptions (postgres_changes + broadcast)');
 
-    // 🔥 FIXED: Simplified real-time subscription - rely more on polling
+    // Chat messages subscription
     const chatChannel = supabase
-      .channel(`room_messages_${localId}_v4`)
+      .channel(`room_messages_${localId}_v5`)
       .on(
         'postgres_changes',
         {
@@ -893,14 +1019,12 @@ export default function SalaVirtualEnhancedScreen() {
           
           const newRecord = payload.new as any;
           
-          // Skip own messages (already in UI optimistically)
           if (newRecord.usuario_id === user.id) {
             console.log('[SalaVirtual Enhanced] Skipping own message (already in UI optimistically)');
             return;
           }
 
-          // Trigger immediate sync to fetch with user data
-          console.log('[SalaVirtual Enhanced] 🔄 Triggering immediate sync for new message');
+          console.log('[SalaVirtual Enhanced] 🔄 Triggering immediate sync for new message from other user');
           syncMessages();
         }
       )
@@ -917,11 +1041,9 @@ export default function SalaVirtualEnhancedScreen() {
           
           const deletedRecord = payload.old as any;
           
-          // Remove from messages list
           setMessages(prev => prev.filter(m => m.id !== deletedRecord.id));
           setPrivateChatMessages(prev => prev.filter(m => m.id !== deletedRecord.id));
           
-          // Reload private chats to update last message
           if (deletedRecord.tipo === 'privado') {
             setTimeout(() => {
               loadPrivateChats();
@@ -941,8 +1063,9 @@ export default function SalaVirtualEnhancedScreen() {
         }
       });
 
+    // Check-ins subscription
     const checkinsChannel = supabase
-      .channel(`sala_virtual_checkins:${localId}_v4`)
+      .channel(`sala_virtual_checkins:${localId}_v5`)
       .on(
         'postgres_changes',
         {
@@ -986,6 +1109,7 @@ export default function SalaVirtualEnhancedScreen() {
       await new Promise(resolve => setTimeout(resolve, 300));
       await loadMessages();
       subscribeToUpdates();
+      subscribeToTypingEvents();
       await updateActiveUsers();
       await loadPrivateChats();
     };
@@ -999,10 +1123,18 @@ export default function SalaVirtualEnhancedScreen() {
 
   useEffect(() => {
     if (activeTab === 'private' && user && localId) {
-      console.log('[SalaVirtual Enhanced] Private tab active, reloading chats for persistence');
+      console.log('[SalaVirtual Enhanced] Private tab active, reloading chats');
       loadPrivateChats();
     }
   }, [activeTab, user, localId, loadPrivateChats]);
+
+  // 🔥 NEW FEATURE: Subscribe to typing events when private chat is open
+  useEffect(() => {
+    if (selectedPrivateChat) {
+      const cleanup = subscribeToTypingEvents();
+      return cleanup;
+    }
+  }, [selectedPrivateChat, subscribeToTypingEvents]);
 
   const sendPublicMessage = useCallback(async (content: string) => {
     if (!user || !localId) return;
@@ -1010,7 +1142,6 @@ export default function SalaVirtualEnhancedScreen() {
     try {
       setSending(true);
 
-      // 🔥 FIX: Use a unique pending ID to track optimistic messages
       const pendingId = content + user.id;
       pendingMessageIds.current.add(pendingId);
 
@@ -1029,12 +1160,11 @@ export default function SalaVirtualEnhancedScreen() {
           id: user.id,
           nombre: user.user_metadata?.nombre || user.email?.split('@')[0] || 'Usuario',
           username: user.user_metadata?.username,
-          avatar: user.user_metadata?.avatar,
+          avatar: user.user_metadata?.avatar, // 🔥 FIX: Include avatar in optimistic message
         },
       };
 
-      // Optimistic UI update
-      console.log('[SalaVirtual Enhanced] ✨ Adding message optimistically to UI');
+      console.log('[SalaVirtual Enhanced] ✨ Adding message optimistically to UI with avatar:', !!newMsg.usuario.avatar);
       setMessages((prev) => [...prev, newMsg]);
       setNewMessage('');
       
@@ -1047,7 +1177,6 @@ export default function SalaVirtualEnhancedScreen() {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
 
-      // Insert into database
       const { data: insertedMessage, error } = await supabase
         .from('sala_virtual_interacciones')
         .insert({
@@ -1069,13 +1198,11 @@ export default function SalaVirtualEnhancedScreen() {
 
       if (error) {
         console.error('[SalaVirtual Enhanced] ❌ Error saving message to DB:', error);
-        // Remove optimistic message on error
         setMessages(prev => prev.filter(m => m.id !== messageId));
         pendingMessageIds.current.delete(pendingId);
       } else {
         console.log('[SalaVirtual Enhanced] ✅ Public message saved to DB with id:', insertedMessage.id);
         
-        // 🔥 FIX: Replace optimistic message with real one from DB
         setMessages(prev => {
           const withoutOptimistic = prev.filter(m => m.id !== messageId);
           
@@ -1086,7 +1213,6 @@ export default function SalaVirtualEnhancedScreen() {
             usuario: newMsg.usuario,
           };
           
-          // Check if already exists (from polling)
           if (withoutOptimistic.some(m => m.id === realMessage.id)) {
             console.log('[SalaVirtual Enhanced] Real message already in UI from polling');
             return withoutOptimistic;
@@ -1097,10 +1223,8 @@ export default function SalaVirtualEnhancedScreen() {
           );
         });
         
-        // Update last timestamp
         lastPublicMessageTimestampRef.current = insertedMessage.created_at;
         
-        // Remove from pending
         setTimeout(() => {
           pendingMessageIds.current.delete(pendingId);
         }, 1000);
@@ -1186,7 +1310,6 @@ export default function SalaVirtualEnhancedScreen() {
         });
       }
       
-      // Save to database
       const { error: insertError } = await supabase
         .from('sala_virtual_interacciones')
         .insert({
@@ -1351,6 +1474,15 @@ export default function SalaVirtualEnhancedScreen() {
     try {
       console.log('[SalaVirtual Enhanced] Sending private message to:', recipientId);
       
+      // Stop typing indicator
+      if (isTyping) {
+        setIsTyping(false);
+        handleTypingStop();
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+      }
+      
       const pendingId = content + user.id + recipientId;
       pendingMessageIds.current.add(pendingId);
 
@@ -1374,7 +1506,6 @@ export default function SalaVirtualEnhancedScreen() {
         },
       };
 
-      // Optimistic UI update
       console.log('[SalaVirtual Enhanced] ✨ Adding private message optimistically to UI');
       setPrivateChatMessages((prev) => [...prev, newMsg]);
       
@@ -1409,7 +1540,6 @@ export default function SalaVirtualEnhancedScreen() {
         }
       });
       
-      // Save to database
       const { data: insertedMessage, error: insertError } = await supabase
         .from('sala_virtual_interacciones')
         .insert({
@@ -1432,13 +1562,11 @@ export default function SalaVirtualEnhancedScreen() {
 
       if (insertError) {
         console.error('[SalaVirtual Enhanced] Error saving private message to DB:', insertError);
-        // Remove optimistic message on error
         setPrivateChatMessages(prev => prev.filter(m => m.id !== messageId));
         pendingMessageIds.current.delete(pendingId);
       } else {
         console.log('[SalaVirtual Enhanced] ✅ Private message saved to database with id:', insertedMessage.id);
         
-        // 🔥 FIX: Replace optimistic message with real one
         setPrivateChatMessages(prev => {
           const withoutOptimistic = prev.filter(m => m.id !== messageId);
           
@@ -1469,7 +1597,7 @@ export default function SalaVirtualEnhancedScreen() {
     } catch (error) {
       console.error('[SalaVirtual Enhanced] Error sending private message:', error);
     }
-  }, [user, localId, activeUsers]);
+  }, [user, localId, activeUsers, isTyping, handleTypingStop]);
 
   const openPrivateChat = useCallback(async (chat: PrivateChat) => {
     if (!user || !localId) return;
@@ -1483,7 +1611,7 @@ export default function SalaVirtualEnhancedScreen() {
       
       setSelectedPrivateChat(chat);
       
-      // NOTIFICATION FIX: Mark messages as read by resetting unread count
+      // 🔥 FIX: Mark messages as read by resetting unread count
       setPrivateChats(prev => 
         prev.map(c => c.userId === chat.userId ? { ...c, unreadCount: 0 } : c)
       );
@@ -1528,7 +1656,6 @@ export default function SalaVirtualEnhancedScreen() {
 
       setPrivateChatMessages(formattedMessages);
       
-      // Update last timestamp
       if (formattedMessages.length > 0) {
         lastPrivateMessageTimestampRef.current = formattedMessages[formattedMessages.length - 1].created_at;
       }
@@ -1548,9 +1675,20 @@ export default function SalaVirtualEnhancedScreen() {
 
   const closePrivateChat = useCallback(() => {
     console.log('[SalaVirtual Enhanced] Closing private chat');
+    
+    // Stop typing indicator
+    if (isTyping) {
+      setIsTyping(false);
+      handleTypingStop();
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    }
+    
     setSelectedPrivateChat(null);
     setPrivateChatMessages([]);
-  }, []);
+    setTypingUsers(new Set());
+  }, [isTyping, handleTypingStop]);
 
   const handleDeleteMessage = useCallback(async (message: Message) => {
     if (!user || message.usuario_id !== user.id) {
@@ -1570,11 +1708,9 @@ export default function SalaVirtualEnhancedScreen() {
       setDeleting(true);
       console.log('[SalaVirtual Enhanced] Deleting message:', messageToDelete.id);
 
-      // Optimistically remove from UI
       setMessages(prev => prev.filter(m => m.id !== messageToDelete.id));
       setPrivateChatMessages(prev => prev.filter(m => m.id !== messageToDelete.id));
 
-      // Delete from database
       const { error } = await supabase
         .from('sala_virtual_interacciones')
         .delete()
@@ -1583,7 +1719,6 @@ export default function SalaVirtualEnhancedScreen() {
 
       if (error) {
         console.error('[SalaVirtual Enhanced] Error deleting message:', error);
-        // Revert optimistic update
         if (messageToDelete.is_private) {
           setPrivateChatMessages(prev => [...prev, messageToDelete].sort((a, b) => 
             new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -1596,7 +1731,6 @@ export default function SalaVirtualEnhancedScreen() {
       } else {
         console.log('[SalaVirtual Enhanced] ✅ Message deleted successfully');
         
-        // Reload private chats to update last message
         if (messageToDelete.is_private) {
           setTimeout(() => {
             loadPrivateChats();
@@ -1745,17 +1879,15 @@ export default function SalaVirtualEnhancedScreen() {
     });
   };
 
-  // 🔥 FIX: Correct profile navigation
+  // 🔥 CRITICAL FIX: Correct profile navigation
   const handleViewProfile = () => {
     if (!selectedUser) return;
     
-    console.log('[SalaVirtual Enhanced] 🔥 FIX: Navigating to user profile:', selectedUser.id);
+    console.log('[SalaVirtual Enhanced] 🔥 CRITICAL FIX: Navigating to user profile:', selectedUser.id);
     closeBottomSheet();
     
-    // Close virtual room first
     handleCheckOut();
     
-    // Navigate to user profile after a short delay
     setTimeout(() => {
       router.push(`/perfil/usuario?id=${selectedUser.id}`);
     }, 300);
@@ -2058,11 +2190,17 @@ export default function SalaVirtualEnhancedScreen() {
         </View>
         
         {item.unreadCount > 0 && (
-          <View style={[styles.privateChatUnreadBadge, { backgroundColor: themeColors.primary }]}>
-            <Text style={[styles.privateChatUnreadText, { fontSize: scaleFontSize(12) }]}>
-              {item.unreadCount}
-            </Text>
-          </View>
+          <Animated.View 
+            style={[
+              styles.privateChatUnreadBadge, 
+              { 
+                backgroundColor: '#06B6D4',
+                transform: [{ scale: pulseAnim }],
+              }
+            ]}
+          >
+            <View style={styles.privateChatUnreadDot} />
+          </Animated.View>
         )}
       </TouchableOpacity>
     );
@@ -2250,10 +2388,32 @@ export default function SalaVirtualEnhancedScreen() {
     );
   };
 
-  // Calculate total unread messages across all private chats
+  // 🔥 NEW FEATURE: Render typing indicator
+  const renderTypingIndicator = () => {
+    if (!selectedPrivateChat || typingUsers.size === 0) return null;
+    
+    const isPartnerTyping = typingUsers.has(selectedPrivateChat.userId);
+    if (!isPartnerTyping) return null;
+
+    const partnerName = selectedPrivateChat.username 
+      ? selectedPrivateChat.username.replace('@', '')
+      : selectedPrivateChat.nombre;
+
+    return (
+      <View style={[styles.typingIndicator, { backgroundColor: themeColors.cardBg }]}>
+        <View style={styles.typingDots}>
+          <Animated.View style={[styles.typingDot, { backgroundColor: themeColors.primary, transform: [{ scale: pulseAnim }] }]} />
+          <Animated.View style={[styles.typingDot, { backgroundColor: themeColors.primary, transform: [{ scale: pulseAnim }] }]} />
+          <Animated.View style={[styles.typingDot, { backgroundColor: themeColors.primary, transform: [{ scale: pulseAnim }] }]} />
+        </View>
+        <Text style={[styles.typingText, { fontSize: scaleFontSize(12), color: themeColors.textSecondary }]}>
+          {partnerName} está escribiendo...
+        </Text>
+      </View>
+    );
+  };
+
   const totalUnreadMessages = privateChats.reduce((sum, chat) => sum + chat.unreadCount, 0);
-  
-  // Calculate if there's any activity (for pulsing dot)
   const hasUsersActivity = activeUsers.length > 1;
   const hasPrivateActivity = totalUnreadMessages > 0;
 
@@ -2937,7 +3097,7 @@ export default function SalaVirtualEnhancedScreen() {
                     
                     <TouchableOpacity
                       onPress={() => {
-                        console.log('[SalaVirtual Enhanced] 🔥 FIX: Navigating to profile from private chat header');
+                        console.log('[SalaVirtual Enhanced] 🔥 CRITICAL FIX: Navigating to profile from private chat header');
                         
                         handleCheckOut();
                         
@@ -3002,6 +3162,8 @@ export default function SalaVirtualEnhancedScreen() {
                     }
                   />
 
+                  {renderTypingIndicator()}
+
                   <View style={[
                     styles.inputContainer, 
                     { 
@@ -3023,7 +3185,7 @@ export default function SalaVirtualEnhancedScreen() {
                       placeholder="Escribe un mensaje privado..."
                       placeholderTextColor={themeColors.textSecondary}
                       value={newMessage}
-                      onChangeText={setNewMessage}
+                      onChangeText={handlePrivateMessageChange}
                       multiline
                       maxLength={500}
                     />
@@ -3135,7 +3297,6 @@ export default function SalaVirtualEnhancedScreen() {
 
         {renderBottomSheet()}
 
-        {/* Delete Message Confirmation Modal */}
         <Modal
           visible={showDeleteModal}
           transparent
@@ -3674,16 +3835,19 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   privateChatUnreadBadge: {
-    minWidth: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    shadowColor: '#06B6D4',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  privateChatUnreadText: {
-    fontWeight: '800',
-    color: '#FFFFFF',
+  privateChatUnreadDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   privateChatBackButton: {
     width: 40,
@@ -3823,6 +3987,25 @@ const styles = StyleSheet.create({
   },
   messageButtonText: {
     flex: 1,
+  },
+  typingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  typingDots: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  typingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  typingText: {
+    fontStyle: 'italic',
   },
   animationOverlay: {
     position: 'absolute',
