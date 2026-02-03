@@ -1312,6 +1312,15 @@ export default function SalaVirtualEnhancedScreen() {
 
       setPrivateChatMessages(formattedMessages);
       console.log('[SalaVirtual Enhanced] ✅ Private messages loaded:', formattedMessages.length);
+      
+      // FIX 5: Scroll to last message automatically when opening private chat
+      // Use setTimeout to ensure FlatList has rendered the messages first
+      setTimeout(() => {
+        if (formattedMessages.length > 0) {
+          console.log('[SalaVirtual Enhanced] 📜 Scrolling to last message in private chat');
+          privateChatListRef.current?.scrollToEnd({ animated: true });
+        }
+      }, 300);
     } catch (error) {
       console.error('[SalaVirtual Enhanced] Error opening private chat:', error);
     }
@@ -1482,7 +1491,7 @@ export default function SalaVirtualEnhancedScreen() {
 
     const messageLabel = item.is_private ? '(Privado)' : '';
     
-    // FIX: Display username without @ symbol, not full name or email
+    // FIX 1 & 2: Display username without @ symbol, not full name or email
     const displayUsername = item.usuario.username 
       ? item.usuario.username.replace('@', '')
       : item.usuario.nombre;
@@ -1497,16 +1506,19 @@ export default function SalaVirtualEnhancedScreen() {
           isOwnMessage ? styles.messageWrapperOwn : styles.messageWrapperOther,
         ]}
       >
-        {/* FIX: Avatar positioned based on message sender */}
+        {/* FIX 3: Avatar positioned based on message sender - clickable to open quick message sheet */}
         {!isOwnMessage && (
           <TouchableOpacity
             style={[styles.messageAvatar, { width: avatarSize, height: avatarSize }]}
             onPress={() => {
+              console.log('[SalaVirtual Enhanced] Avatar clicked in message, opening quick message sheet');
               const activeUser = activeUsers.find(u => u.id === item.usuario_id);
-              if (activeUser) handleUserPress(activeUser);
+              if (activeUser) {
+                handleUserPress(activeUser);
+              }
             }}
           >
-            {/* FIX: Always show profile picture from usuario.avatar */}
+            {/* FIX 1: Always show profile picture from usuario.avatar */}
             {item.usuario.avatar ? (
               <Image
                 source={resolveImageSource(item.usuario.avatar)}
@@ -1541,7 +1553,7 @@ export default function SalaVirtualEnhancedScreen() {
               },
             ]}
           >
-            {/* FIX: Show username without @ symbol for other users' messages */}
+            {/* FIX 2: Show username without @ symbol for other users' messages */}
             {!isOwnMessage && (
               <Text style={[styles.messageSender, { fontSize: scaleFontSize(12), color: themeColors.primary }]}>
                 {displayUsername} {messageLabel}
@@ -1582,7 +1594,7 @@ export default function SalaVirtualEnhancedScreen() {
               router.push('/perfil');
             }}
           >
-            {/* FIX: Always show profile picture from usuario.avatar */}
+            {/* FIX 1: Always show profile picture from usuario.avatar */}
             {item.usuario.avatar ? (
               <Image
                 source={resolveImageSource(item.usuario.avatar)}
@@ -2085,7 +2097,8 @@ export default function SalaVirtualEnhancedScreen() {
   // FIX: Don't render private chat as separate view - keep tabs visible
   // Private chat is now rendered within the "private" tab content
 
-  // FIX: Android status bar overlap - add top padding
+  // FIX 4 & 6: Android status bar overlap - add top padding
+  // Ensure content is not obscured by Android status bar (battery, signal, time icons)
   const androidTopPadding = Platform.OS === 'android' ? Math.max(insets.top, 24) : 0;
 
   return (
@@ -2152,13 +2165,15 @@ export default function SalaVirtualEnhancedScreen() {
           }}
         />
 
-        {/* Closing Warning Banner */}
+        {/* FIX 6: Closing Warning Banner - positioned below status bar on Android */}
         {closingWarning && (
           <View style={[
             styles.warningBanner, 
             { 
               backgroundColor: themeColors.accent + '20', 
               borderBottomColor: themeColors.accent,
+              // FIX 6: Add top padding on Android to avoid status bar overlap
+              paddingTop: Platform.OS === 'android' ? Math.max(insets.top, 12) : 12,
             }
           ]}>
             <IconSymbol
@@ -2418,8 +2433,9 @@ export default function SalaVirtualEnhancedScreen() {
                 { 
                   backgroundColor: themeColors.cardBg, 
                   borderTopColor: themeColors.cardBorder,
-                  // FIX: Remove unnecessary bottom padding on Android to eliminate blank space
-                  paddingBottom: Platform.OS === 'android' ? 8 : 12,
+                  // FIX 4: Add proper bottom padding on Android to avoid navigation buttons
+                  // Use safe area insets to ensure input is always visible above system buttons
+                  paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 12,
                 }
               ]}>
                 <TouchableOpacity
@@ -2532,8 +2548,8 @@ export default function SalaVirtualEnhancedScreen() {
                 { 
                   backgroundColor: themeColors.cardBg, 
                   borderTopColor: themeColors.cardBorder,
-                  // FIX: Remove unnecessary bottom padding on Android to eliminate blank space
-                  paddingBottom: Platform.OS === 'android' ? 8 : 12,
+                  // FIX 4: Add proper bottom padding on Android to avoid navigation buttons
+                  paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 12,
                 }
               ]}>
                 <TouchableOpacity
@@ -2647,7 +2663,7 @@ export default function SalaVirtualEnhancedScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Private Chat Messages */}
+                  {/* FIX 5: Private Chat Messages - auto-scroll to last message */}
                   <FlatList
                     ref={privateChatListRef}
                     data={privateChatMessages}
@@ -2655,7 +2671,18 @@ export default function SalaVirtualEnhancedScreen() {
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={[styles.messagesContent, { paddingBottom: insets.bottom + 80 }]}
                     onContentSizeChange={() => {
+                      // FIX 5: Always scroll to end when content changes (new messages)
+                      console.log('[SalaVirtual Enhanced] 📜 Content size changed, scrolling to end');
                       privateChatListRef.current?.scrollToEnd({ animated: true });
+                    }}
+                    onLayout={() => {
+                      // FIX 5: Scroll to end when FlatList first renders
+                      if (privateChatMessages.length > 0) {
+                        console.log('[SalaVirtual Enhanced] 📜 FlatList layout complete, scrolling to end');
+                        setTimeout(() => {
+                          privateChatListRef.current?.scrollToEnd({ animated: false });
+                        }, 100);
+                      }
                     }}
                     ListEmptyComponent={
                       <View style={styles.emptyContainer}>
@@ -2677,14 +2704,15 @@ export default function SalaVirtualEnhancedScreen() {
                     }
                   />
 
-                  {/* Private Chat Input */}
+                  {/* FIX 4: Private Chat Input - proper padding for Android */}
                   <View style={[
                     styles.inputContainer, 
                     { 
                       backgroundColor: themeColors.cardBg, 
                       borderTopColor: themeColors.cardBorder,
-                      // FIX: Remove unnecessary bottom padding on Android to eliminate blank space
-                      paddingBottom: Platform.OS === 'android' ? 8 : 12,
+                      // FIX 4: Add proper bottom padding on Android to avoid navigation buttons
+                      // Use safe area insets to ensure input is always visible above system buttons
+                      paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 12,
                     }
                   ]}>
                     <TextInput
@@ -2779,8 +2807,8 @@ export default function SalaVirtualEnhancedScreen() {
                     { 
                       backgroundColor: themeColors.cardBg, 
                       borderTopColor: themeColors.cardBorder,
-                      // FIX: Remove unnecessary bottom padding on Android to eliminate blank space
-                      paddingBottom: Platform.OS === 'android' ? 8 : 12,
+                      // FIX 4: Add proper bottom padding on Android to avoid navigation buttons
+                      paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 12,
                     }
                   ]}>
                     <TouchableOpacity
@@ -2937,7 +2965,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 12,
     gap: 12,
     borderBottomWidth: 2,
   },
@@ -3324,6 +3352,14 @@ const styles = StyleSheet.create({
   privateChatUnreadText: {
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+  privateChatHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    gap: 12,
   },
   privateChatHeaderContainer: {
     flexDirection: 'row',
