@@ -1,8 +1,10 @@
 
-// CRITICAL FIX v326.0: Import crypto polyfill at the top
+// CRITICAL FIX v326.0: Import crypto polyfill FIRST before uuid
+// This MUST be the very first import to provide crypto.getRandomValues()
 import 'react-native-get-random-values';
-import { v4 as uuidv4 } from 'uuid';
 
+// Now we can safely import uuid which depends on crypto.getRandomValues()
+import { v4 as uuidv4 } from 'uuid';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
