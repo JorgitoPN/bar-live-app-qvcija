@@ -28731,3 +28731,709 @@ We recommend you instead use a development build to avoid limitations. Learn mor
 [2026-02-03T18:43:45.151Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bell.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 24
 [2026-02-03T18:43:45.695Z] [iOS] [LOG] [PublicacionCard v328.0] 🔄 Setting up real-time subscription for post: e2a8e363-3785-41c3-a1c5-a21f2c59ca1f
 [2026-02-03T18:43:45.158Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-02-03T18:57:08.847Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:08.231Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:09.067Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:09.237Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:09.578Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:09.729Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:09.925Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:10.120Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:10.286Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:10.594Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:10.786Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:57:10.933Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:57:11.219Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:57:18.327Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:18.951Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:19.387Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:19.140Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:19.659Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:19.819Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:19.987Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:20.302Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:20.468Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:20.647Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:21.019Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:57:20.864Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:57:21.362Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:57:27.822Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-02-03T18:57:27.831Z] [Web] [LOG] [Supabase] Initializing client...
+[2026-02-03T18:57:27.833Z] [Web] [WARN] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-02-03T18:57:27.915Z] [Web] [WARN] [Layout children]: No route named "crear" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.832Z] [Web] [WARN] GoTrueClient@sb-embntaqwlwmgazvrglaf-auth-token:1 (2.90.1) 2026-02-03T18:57:27.831Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[2026-02-03T18:57:27.898Z] [Web] [WARN] Route "./integrations/supabase/client.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-02-03T18:57:27.898Z] [Web] [WARN] Route "./integrations/supabase/types.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-02-03T18:57:27.915Z] [Web] [WARN] [Layout children]: No route named "editar" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.837Z] [Web] [WARN] "textShadow*" style props are deprecated. Use "textShadow".
+[2026-02-03T18:57:27.917Z] [Web] [WARN] [Layout children]: No route named "gestion" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.917Z] [Web] [WARN] [Layout children]: No route named "explorar" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.838Z] [Web] [WARN] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-02-03T18:57:27.916Z] [Web] [WARN] [Layout children]: No route named "social" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.914Z] [Web] [LOG] [AvatarContext v145.0] 🎨 Provider initialized
+[2026-02-03T18:57:27.916Z] [Web] [WARN] [Layout children]: No route named "perfil" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.914Z] [Web] [WARN] Layout children must be of type Screen, all other children are ignored. To use custom children, create a custom <Layout />. Update Layout Route at: "app/_layout"
+[2026-02-03T18:57:27.916Z] [Web] [WARN] [Layout children]: No route named "chat" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.918Z] [Web] [WARN] [Layout children]: No route named "solicitudes" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.917Z] [Web] [WARN] [Layout children]: No route named "admin" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.918Z] [Web] [WARN] [Layout children]: No route named "empleo" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.966Z] [Web] [LOG] [Explorar v323.0] 🔍 Filtering locales - total loaded: 0
+[2026-02-03T18:57:27.930Z] [Web] [LOG] [FilterContext] 🚀 Initializing dynamic filter options...
+[2026-02-03T18:57:27.967Z] [Web] [LOG] [Explorar v323.0] ✅ Filtered: 0 → Unique: 0 (removed 0 duplicates)
+[2026-02-03T18:57:27.930Z] [Web] [LOG] [FilterContext] 🔍 ========================================
+[2026-02-03T18:57:27.924Z] [Web] [LOG] [Index] ⏳ Cargando...
+[2026-02-03T18:57:28.039Z] [Web] [LOG] [Eventos v296.0] 📝 Search query changed: 
+[2026-02-03T18:57:27.929Z] [Web] [LOG] [Index] 🔍 Checking URL hash: 
+[2026-02-03T18:57:27.948Z] [Web] [LOG] [Index] 🚀 Redirigiendo a explorar
+[2026-02-03T18:57:27.918Z] [Web] [WARN] [Layout children]: No route named "soporte" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.931Z] [Web] [LOG] [FilterContext] 🔍 LOADING DYNAMIC FILTER OPTIONS
+[2026-02-03T18:57:27.930Z] [Web] [LOG] [AvatarContext v145.0] ❌ No user logged in, clearing avatar
+[2026-02-03T18:57:27.929Z] [Web] [LOG] [Index] 🏠 Estado: {"hasUser":false,"loading":true}
+[2026-02-03T18:57:27.932Z] [Web] [LOG] [FilterContext] 📡 Setting up real-time subscription for filter options...
+[2026-02-03T18:57:28.048Z] [Web] [LOG] [AdminLayout] ❌ No user found, redirecting silently
+[2026-02-03T18:57:27.933Z] [Web] [LOG] [GlobalData v289.0] 📦 Loading from cache...
+[2026-02-03T18:57:28.035Z] [Web] [LOG] [Explorar v323.0] 🎯 Updating displayed locales - count: 0
+[2026-02-03T18:57:28.041Z] [Web] [LOG] [Eventos v296.0] Cargando eventos...
+[2026-02-03T18:57:27.950Z] [Web] [LOG] [Index] 🏠 Estado: {"hasUser":false,"loading":false}
+[2026-02-03T18:57:27.959Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /explorar
+[2026-02-03T18:57:27.932Z] [Web] [LOG] [FilterContext] 🔍 ✅ FIXED: Removed estado_solicitud filter
+[2026-02-03T18:57:28.050Z] [Web] [LOG] [Empleo v94.0] Cargando ofertas...
+[2026-02-03T18:57:27.919Z] [Web] [WARN] [Layout children]: No route named "legal" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.935Z] [Web] [LOG] [GlobalData v289.0] 📦 No cache available - data will load on-demand
+[2026-02-03T18:57:27.960Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-03T18:57:27.931Z] [Web] [LOG] [FilterContext] 🔍 Querying DISTINCT values from active locals...
+[2026-02-03T18:57:27.991Z] [Web] [LOG] [Favoritos v302.0] ✅ Filtered 0 locales from 0
+[2026-02-03T18:57:27.933Z] [Web] [LOG] [GlobalData v289.0] 🚀 Initializing...
+[2026-02-03T18:57:28.007Z] [Web] [WARN] Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+[2026-02-03T18:57:28.015Z] [Web] [WARN] props.pointerEvents is deprecated. Use style.pointerEvents
+[2026-02-03T18:57:28.096Z] [Web] [LOG] [Explorar v323.0] 🎯 Screen focused via tab button
+[2026-02-03T18:57:28.158Z] [Web] [LOG] [Home v101.0] ✅ Ubicación obtenida: {"lat":43.0767,"lng":-8.4077}
+[2026-02-03T18:57:28.043Z] [Web] [LOG] [Favoritos v302.0] 📝 Search query changed: 
+[2026-02-03T18:57:28.045Z] [Web] [LOG] [Favoritos v302.0] Displaying 0 of 0 locales
+[2026-02-03T18:57:27.990Z] [Web] [LOG] [Favoritos v302.0] 🔍 Filtering locales client-side, search: 
+[2026-02-03T18:57:28.037Z] [Web] [LOG] [Explorar v323.0] ✅ Display updated with 0 venues
+[2026-02-03T18:57:28.047Z] [Web] [LOG] [AdminLayout] 🔍 Checking admin access...
+[2026-02-03T18:57:28.021Z] [Web] [LOG] [FloatingTabBar v318.0] ⚡ REDUCED BOTTOM MARGIN - Bottom padding cut in half (Android: 4px, iOS: 2px) - avatarUrl: null
+[2026-02-03T18:57:28.159Z] [Web] [LOG] [Explorar v323.0] 📍 Step 3: Location obtained: {"lat":43.0767,"lng":-8.4077}
+[2026-02-03T18:57:28.170Z] [Web] [LOG] [Explorar v323.0] 🚀 Starting background preload of ALL categories...
+[2026-02-03T18:57:28.184Z] [Web] [LOG] [Explorar v323.0] 📍 Using location params: {"user_lat":43.0767,"user_lng":-8.4077}
+[2026-02-03T18:57:28.135Z] [Web] [LOG] [Explorar v323.0] 📍 Step 1: Requesting location permission...
+[2026-02-03T18:57:28.182Z] [Web] [LOG] [Explorar v323.0] 📡 Loading page 1 from server...
+[2026-02-03T18:57:28.187Z] [Web] [LOG] [Explorar v323.0] 📊 Requesting offset: 0 limit: 20
+[2026-02-03T18:57:28.168Z] [Web] [LOG] [Explorar v323.0] 🚀 Location is ready - starting intelligent preload...
+[2026-02-03T18:57:28.159Z] [Web] [LOG] [Explorar v323.0] ✅ Step 4: Valid location set: {"lat":43.0767,"lng":-8.4077}
+[2026-02-03T18:57:28.098Z] [Web] [LOG] [Explorar v323.0] 📜 Resetting scroll to top (tab button clicked)
+[2026-02-03T18:57:28.191Z] [Web] [LOG] [Explorar v323.0] ✅ Filtered: 0 → Unique: 0 (removed 0 duplicates)
+[2026-02-03T18:57:28.199Z] [Web] [LOG] [Explorar v323.0] 🎯 Updating displayed locales - count: 0
+[2026-02-03T18:57:28.176Z] [Web] [LOG] [Explorar v323.0] 🚀 loadLocales called - page: 1 append: false locationReady: true
+[2026-02-03T18:57:28.136Z] [Web] [LOG] [Explorar v323.0] 📍 Step 2: Getting current position...
+[2026-02-03T18:57:28.174Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: todas
+[2026-02-03T18:57:28.159Z] [Web] [LOG] [Explorar v323.0] 🎯 Step 5: Marking location as READY - intelligent preload will start
+[2026-02-03T18:57:28.052Z] [Web] [LOG] [Empleo v94.0] Cargando perfiles profesionales...
+[2026-02-03T18:57:28.190Z] [Web] [LOG] [Explorar v323.0] 🔍 Filtering locales - total loaded: 0
+[2026-02-03T18:57:28.181Z] [Web] [LOG] [Explorar v323.0] ⚡ First load - showing skeleton UI
+[2026-02-03T18:57:28.172Z] [Web] [LOG] [Explorar v323.0] 🎯 PRIORITY: Loading "Todas" category first...
+[2026-02-03T18:57:28.158Z] [Web] [LOG] [Favoritos v302.0] User location obtained: {"latitude":43.0767,"longitude":-8.4077,"altitude":null,"accuracy":10362,"altitudeAccuracy":null,"heading":null,"speed":null}
+[2026-02-03T18:57:28.177Z] [Web] [LOG] [Explorar v323.0] 🔄 Filters changed, resetting...
+[2026-02-03T18:57:28.179Z] [Web] [LOG] [Explorar v323.0] 📜 Resetting scroll to top (category changed)
+[2026-02-03T18:57:28.186Z] [Web] [LOG] [Explorar v323.0] 🎯 hasValidLocation: true
+[2026-02-03T18:57:28.201Z] [Web] [LOG] [Explorar v323.0] ✅ Display updated with 0 venues
+[2026-02-03T18:57:27.449Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-02-03T18:57:27.464Z] [Web] [WARN] GoTrueClient@sb-embntaqwlwmgazvrglaf-auth-token:1 (2.90.1) 2026-02-03T18:57:27.463Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[2026-02-03T18:57:27.462Z] [Web] [LOG] [Supabase] Initializing client...
+[2026-02-03T18:57:27.475Z] [Web] [WARN] "textShadow*" style props are deprecated. Use "textShadow".
+[2026-02-03T18:57:27.467Z] [Web] [WARN] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-02-03T18:57:27.630Z] [Web] [WARN] [Layout children]: No route named "perfil" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.603Z] [Web] [WARN] Route "./integrations/supabase/client.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-02-03T18:57:27.476Z] [Web] [WARN] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-02-03T18:57:27.631Z] [Web] [WARN] [Layout children]: No route named "chat" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.631Z] [Web] [WARN] [Layout children]: No route named "explorar" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.604Z] [Web] [WARN] Route "./integrations/supabase/types.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-02-03T18:57:27.632Z] [Web] [WARN] [Layout children]: No route named "solicitudes" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.633Z] [Web] [WARN] [Layout children]: No route named "soporte" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.645Z] [Web] [LOG] [FilterContext] 🚀 Initializing dynamic filter options...
+[2026-02-03T18:57:27.643Z] [Web] [LOG] [Index] 🏠 Estado: {"hasUser":false,"loading":true}
+[2026-02-03T18:57:27.630Z] [Web] [WARN] [Layout children]: No route named "editar" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.630Z] [Web] [WARN] [Layout children]: No route named "crear" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.629Z] [Web] [WARN] Layout children must be of type Screen, all other children are ignored. To use custom children, create a custom <Layout />. Update Layout Route at: "app/_layout"
+[2026-02-03T18:57:27.628Z] [Web] [LOG] [AvatarContext v145.0] 🎨 Provider initialized
+[2026-02-03T18:57:27.631Z] [Web] [WARN] [Layout children]: No route named "social" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.633Z] [Web] [WARN] [Layout children]: No route named "empleo" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.632Z] [Web] [WARN] [Layout children]: No route named "admin" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.639Z] [Web] [LOG] [Index] ⏳ Cargando...
+[2026-02-03T18:57:27.646Z] [Web] [LOG] [FilterContext] 🔍 ========================================
+[2026-02-03T18:57:27.645Z] [Web] [LOG] [AvatarContext v145.0] ❌ No user logged in, clearing avatar
+[2026-02-03T18:57:27.649Z] [Web] [LOG] [GlobalData v289.0] 📦 Loading from cache...
+[2026-02-03T18:57:27.632Z] [Web] [WARN] [Layout children]: No route named "gestion" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.644Z] [Web] [LOG] [Index] 🔍 Checking URL hash: 
+[2026-02-03T18:57:27.747Z] [Web] [LOG] [Eventos v296.0] Cargando eventos...
+[2026-02-03T18:57:27.757Z] [Web] [LOG] [Empleo v94.0] Cargando ofertas...
+[2026-02-03T18:57:27.668Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /explorar
+[2026-02-03T18:57:27.633Z] [Web] [WARN] [Layout children]: No route named "legal" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-03T18:57:27.647Z] [Web] [LOG] [FilterContext] 📡 Setting up real-time subscription for filter options...
+[2026-02-03T18:57:27.749Z] [Web] [LOG] [Favoritos v302.0] 📝 Search query changed: 
+[2026-02-03T18:57:27.803Z] [Web] [LOG] [Explorar v323.0] 🎯 Screen focused via tab button
+[2026-02-03T18:57:27.698Z] [Web] [LOG] [Favoritos v302.0] 🔍 Filtering locales client-side, search: 
+[2026-02-03T18:57:27.652Z] [Web] [LOG] [GlobalData v289.0] 📦 No cache available - data will load on-demand
+[2026-02-03T18:57:27.649Z] [Web] [LOG] [GlobalData v289.0] 🚀 Initializing...
+[2026-02-03T18:57:27.715Z] [Web] [WARN] Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+[2026-02-03T18:57:27.755Z] [Web] [LOG] [AdminLayout] ❌ No user found, redirecting silently
+[2026-02-03T18:57:27.743Z] [Web] [LOG] [Explorar v323.0] ✅ Display updated with 0 venues
+[2026-02-03T18:57:27.646Z] [Web] [LOG] [FilterContext] 🔍 Querying DISTINCT values from active locals...
+[2026-02-03T18:57:27.745Z] [Web] [LOG] [Eventos v296.0] 📝 Search query changed: 
+[2026-02-03T18:57:27.699Z] [Web] [LOG] [Favoritos v302.0] ✅ Filtered 0 locales from 0
+[2026-02-03T18:57:27.759Z] [Web] [LOG] [Empleo v94.0] Cargando perfiles profesionales...
+[2026-02-03T18:57:27.646Z] [Web] [LOG] [FilterContext] 🔍 LOADING DYNAMIC FILTER OPTIONS
+[2026-02-03T18:57:27.647Z] [Web] [LOG] [FilterContext] 🔍 ✅ FIXED: Removed estado_solicitud filter
+[2026-02-03T18:57:27.725Z] [Web] [WARN] props.pointerEvents is deprecated. Use style.pointerEvents
+[2026-02-03T18:57:27.751Z] [Web] [LOG] [Favoritos v302.0] Displaying 0 of 0 locales
+[2026-02-03T18:57:27.658Z] [Web] [LOG] [Index] 🚀 Redirigiendo a explorar
+[2026-02-03T18:57:27.741Z] [Web] [LOG] [Explorar v323.0] 🎯 Updating displayed locales - count: 0
+[2026-02-03T18:57:27.676Z] [Web] [LOG] [Explorar v323.0] ✅ Filtered: 0 → Unique: 0 (removed 0 duplicates)
+[2026-02-03T18:57:27.669Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-03T18:57:27.660Z] [Web] [LOG] [Index] 🏠 Estado: {"hasUser":false,"loading":false}
+[2026-02-03T18:57:27.805Z] [Web] [LOG] [Explorar v323.0] 📜 Resetting scroll to top (tab button clicked)
+[2026-02-03T18:57:27.732Z] [Web] [LOG] [FloatingTabBar v318.0] ⚡ REDUCED BOTTOM MARGIN - Bottom padding cut in half (Android: 4px, iOS: 2px) - avatarUrl: null
+[2026-02-03T18:57:28.207Z] [Web] [LOG] [FilterContext] 📊 Processing 587 active locals...
+[2026-02-03T18:57:28.222Z] [Web] [LOG] [Empleo v94.0] Ofertas cargadas: 0
+[2026-02-03T18:57:27.676Z] [Web] [LOG] [Explorar v323.0] 🔍 Filtering locales - total loaded: 0
+[2026-02-03T18:57:27.753Z] [Web] [LOG] [AdminLayout] 🔍 Checking admin access...
+[2026-02-03T18:57:28.209Z] [Web] [LOG] [FilterContext] ✅ Tipos: 8 - ["bar","cafe","cocteleria","discoteca","lounge","pub","restaurante","sala_conciertos"]
+[2026-02-03T18:57:28.209Z] [Web] [LOG] [FilterContext] ✅ Provincias: 1 - ["A Coruña"]
+[2026-02-03T18:57:28.208Z] [Web] [LOG] [FilterContext] ✅ ========================================
+[2026-02-03T18:57:27.922Z] [Web] [LOG] [Favoritos v302.0] User location obtained: {"latitude":43.0767,"longitude":-8.4077,"altitude":null,"accuracy":10362,"altitudeAccuracy":null,"heading":null,"speed":null}
+[2026-02-03T18:57:28.208Z] [Web] [LOG] [FilterContext] ✅ DYNAMIC OPTIONS LOADED:
+[2026-02-03T18:57:28.209Z] [Web] [LOG] [FilterContext] ✅ Comunidades: 1 - ["España"]
+[2026-02-03T18:57:28.209Z] [Web] [LOG] [FilterContext] ✅ Clientela: 6 - ["estudiantes","familias","grupos","ninos_bienvenidos","parejas","turistas"]
+[2026-02-03T18:57:28.829Z] [Web] [LOG] [Explorar v323.0] 📍 Step 2: Getting current position...
+[2026-02-03T18:57:28.209Z] [Web] [LOG] [FilterContext] ✅ Ambientes: 8 - ["acogedor","animado","de_moda","elegante","familiar","juvenil","moderno","tranquilo"]
+[2026-02-03T18:57:28.212Z] [Web] [LOG] [Empleo v94.0] Perfiles cargados: 0
+[2026-02-03T18:57:27.922Z] [Web] [LOG] [Home v101.0] ✅ Ubicación obtenida: {"lat":43.0767,"lng":-8.4077}
+[2026-02-03T18:57:28.213Z] [Web] [LOG] [Eventos v296.0] Eventos cargados: 0
+[2026-02-03T18:57:28.347Z] [Web] [LOG] [Eventos v296.0] 🔍 Applying debounced search
+[2026-02-03T18:57:28.347Z] [Web] [LOG] [Favoritos v302.0] 🔍 Applying debounced search
+[2026-02-03T18:57:28.829Z] [Web] [LOG] [Explorar v323.0] 📍 Step 1: Requesting location permission...
+[2026-02-03T18:57:28.209Z] [Web] [LOG] [FilterContext] ✅ Servicios: 21 - ["accesible_silla_ruedas","almuerzo","aparcamiento","cafe","cena","cerveza","cocteles","comida_vegetariana","deportes_tv","desayuno","dj","entrega_domicilio","musica_vivo","opciones_veganas","pago_efectivo","pago_tarjetas","para_llevar","sin_gluten","terraza_exterior","vino","wifi_gratis"]
+[2026-02-03T18:57:28.353Z] [Web] [LOG] [FilterContext] ✅ ========================================
+[2026-02-03T18:57:28.353Z] [Web] [LOG] [FilterContext] ✅ Tipos: 8 - ["bar","cafe","cocteleria","discoteca","lounge","pub","restaurante","sala_conciertos"]
+[2026-02-03T18:57:28.353Z] [Web] [LOG] [FilterContext] ✅ Servicios: 21 - ["accesible_silla_ruedas","almuerzo","aparcamiento","cafe","cena","cerveza","cocteles","comida_vegetariana","deportes_tv","desayuno","dj","entrega_domicilio","musica_vivo","opciones_veganas","pago_efectivo","pago_tarjetas","para_llevar","sin_gluten","terraza_exterior","vino","wifi_gratis"]
+[2026-02-03T18:57:28.352Z] [Web] [LOG] [FilterContext] 📊 Processing 587 active locals...
+[2026-02-03T18:57:28.353Z] [Web] [LOG] [FilterContext] ✅ Clientela: 6 - ["estudiantes","familias","grupos","ninos_bienvenidos","parejas","turistas"]
+[2026-02-03T18:57:28.353Z] [Web] [LOG] [FilterContext] ✅ Ambientes: 8 - ["acogedor","animado","de_moda","elegante","familiar","juvenil","moderno","tranquilo"]
+[2026-02-03T18:57:28.353Z] [Web] [LOG] [FilterContext] ✅ DYNAMIC OPTIONS LOADED:
+[2026-02-03T18:57:28.519Z] [Web] [LOG] [Explorar v323.0] ✅ Filtered: 20 → Unique: 20 (removed 0 duplicates)
+[2026-02-03T18:57:28.517Z] [Web] [LOG] [Explorar v323.0] ✅ Loaded 20 locales from server
+[2026-02-03T18:57:28.353Z] [Web] [LOG] [FilterContext] ✅ Comunidades: 1 - ["España"]
+[2026-02-03T18:57:28.353Z] [Web] [LOG] [FilterContext] ✅ Provincias: 1 - ["A Coruña"]
+[2026-02-03T18:57:28.517Z] [Web] [LOG] [Explorar v323.0] 📥 Setting isLoadingMore = false
+[2026-02-03T18:57:28.383Z] [Web] [LOG] [Eventos v296.0] Eventos cargados: 0
+[2026-02-03T18:57:28.377Z] [Web] [LOG] [Empleo v94.0] Ofertas cargadas: 0
+[2026-02-03T18:57:28.406Z] [Web] [LOG] [Empleo v94.0] Perfiles cargados: 0
+[2026-02-03T18:57:28.524Z] [Web] [LOG] [Explorar v323.0] 🎯 Updating displayed locales - count: 20
+[2026-02-03T18:57:28.517Z] [Web] [LOG] [Explorar v323.0] 📊 Got 20 locales, expected 20 - hasMore: true
+[2026-02-03T18:57:28.517Z] [Web] [LOG] [Explorar v323.0] 🚀 BATCH loading events and social profiles for 20 venues
+[2026-02-03T18:57:28.526Z] [Web] [LOG] [Explorar v323.0] ✅ Display updated with 20 venues
+[2026-02-03T18:57:28.517Z] [Web] [LOG] [Explorar v323.0] 🔄 Replacing with 20 locales (instant update)
+[2026-02-03T18:57:28.518Z] [Web] [LOG] [Explorar v323.0] 🔍 Filtering locales - total loaded: 20
+[2026-02-03T18:57:28.558Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 20 locales for category: todas
+[2026-02-03T18:57:28.558Z] [Web] [LOG] [Explorar v323.0] ✅ "Todas" category loaded - user can now see content instantly
+[2026-02-03T18:57:28.392Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:28.886Z] [Web] [LOG] [Explorar v323.0] ✅ Loaded social profiles for 20 venues
+[2026-02-03T18:57:28.886Z] [Web] [LOG] [Explorar v323.0] ✅ Loaded 0 active events in bulk
+[2026-02-03T18:57:29.084Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: bar
+[2026-02-03T18:57:29.084Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: pub
+[2026-02-03T18:57:29.298Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 9 locales for category: restaurante
+[2026-02-03T18:57:29.318Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 1 locales for category: pub
+[2026-02-03T18:57:29.084Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: discoteca
+[2026-02-03T18:57:29.339Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 0 locales for category: discoteca
+[2026-02-03T18:57:29.339Z] [Web] [LOG] [Explorar v323.0] ✅ All categories preloaded successfully!
+[2026-02-03T18:57:29.083Z] [Web] [LOG] [Explorar v323.0] 📦 Background: Preloading other categories in parallel...
+[2026-02-03T18:57:29.326Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 5 locales for category: cafe
+[2026-02-03T18:57:29.303Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 18 locales for category: bar
+[2026-02-03T18:57:29.083Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: cafe
+[2026-02-03T18:57:29.083Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: restaurante
+[2026-02-03T18:57:29.084Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: cocteleria
+[2026-02-03T18:57:29.276Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 0 locales for category: cocteleria
+[2026-02-03T18:57:28.835Z] [Web] [LOG] [Eventos v296.0] 🔍 Applying debounced search
+[2026-02-03T18:57:28.835Z] [Web] [LOG] [Explorar v323.0] ✅ Step 4: Valid location set: {"lat":43.0767,"lng":-8.4077}
+[2026-02-03T18:57:28.846Z] [Web] [LOG] [Explorar v323.0] 🚀 Location is ready - starting intelligent preload...
+[2026-02-03T18:57:28.851Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: todas
+[2026-02-03T18:57:28.847Z] [Web] [LOG] [Explorar v323.0] 🚀 Starting background preload of ALL categories...
+[2026-02-03T18:57:28.849Z] [Web] [LOG] [Explorar v323.0] 🎯 PRIORITY: Loading "Todas" category first...
+[2026-02-03T18:57:28.835Z] [Web] [LOG] [Favoritos v302.0] 🔍 Applying debounced search
+[2026-02-03T18:57:28.835Z] [Web] [LOG] [Explorar v323.0] 🎯 Step 5: Marking location as READY - intelligent preload will start
+[2026-02-03T18:57:28.858Z] [Web] [LOG] [Explorar v323.0] ⚡ First load - showing skeleton UI
+[2026-02-03T18:57:28.835Z] [Web] [LOG] [Explorar v323.0] 📍 Step 3: Location obtained: {"lat":43.0767,"lng":-8.4077}
+[2026-02-03T18:57:28.878Z] [Web] [LOG] [Explorar v323.0] 🎯 Updating displayed locales - count: 0
+[2026-02-03T18:57:29.048Z] [Web] [LOG] [Explorar v323.0] 📊 Got 20 locales, expected 20 - hasMore: true
+[2026-02-03T18:57:28.864Z] [Web] [LOG] [Explorar v323.0] 🎯 hasValidLocation: true
+[2026-02-03T18:57:28.853Z] [Web] [LOG] [Explorar v323.0] 🚀 loadLocales called - page: 1 append: false locationReady: true
+[2026-02-03T18:57:29.050Z] [Web] [LOG] [Explorar v323.0] 🔍 Filtering locales - total loaded: 20
+[2026-02-03T18:57:28.855Z] [Web] [LOG] [Explorar v323.0] 🔄 Filters changed, resetting...
+[2026-02-03T18:57:28.860Z] [Web] [LOG] [Explorar v323.0] 📡 Loading page 1 from server...
+[2026-02-03T18:57:29.048Z] [Web] [LOG] [Explorar v323.0] 🔄 Replacing with 20 locales (instant update)
+[2026-02-03T18:57:29.057Z] [Web] [LOG] [Explorar v323.0] 🎯 Updating displayed locales - count: 20
+[2026-02-03T18:57:29.048Z] [Web] [LOG] [Explorar v323.0] ✅ Loaded 20 locales from server
+[2026-02-03T18:57:29.048Z] [Web] [LOG] [Explorar v323.0] 📥 Setting isLoadingMore = false
+[2026-02-03T18:57:28.865Z] [Web] [LOG] [Explorar v323.0] 📊 Requesting offset: 0 limit: 20
+[2026-02-03T18:57:29.051Z] [Web] [LOG] [Explorar v323.0] ✅ Filtered: 20 → Unique: 20 (removed 0 duplicates)
+[2026-02-03T18:57:28.862Z] [Web] [LOG] [Explorar v323.0] 📍 Using location params: {"user_lat":43.0767,"user_lng":-8.4077}
+[2026-02-03T18:57:29.048Z] [Web] [LOG] [Explorar v323.0] 🚀 BATCH loading events and social profiles for 20 venues
+[2026-02-03T18:57:28.867Z] [Web] [LOG] [Explorar v323.0] 🔍 Filtering locales - total loaded: 0
+[2026-02-03T18:57:29.041Z] [Web] [LOG] [Explorar v323.0] ✅ "Todas" category loaded - user can now see content instantly
+[2026-02-03T18:57:29.059Z] [Web] [LOG] [Explorar v323.0] ✅ Display updated with 20 venues
+[2026-02-03T18:57:28.868Z] [Web] [LOG] [Explorar v323.0] ✅ Filtered: 0 → Unique: 0 (removed 0 duplicates)
+[2026-02-03T18:57:28.856Z] [Web] [LOG] [Explorar v323.0] 📜 Resetting scroll to top (category changed)
+[2026-02-03T18:57:29.041Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 20 locales for category: todas
+[2026-02-03T18:57:28.880Z] [Web] [LOG] [Explorar v323.0] ✅ Display updated with 0 venues
+[2026-02-03T18:57:29.053Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:29.448Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:29.236Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:29.841Z] [Web] [LOG] [Explorar v323.0] 📦 Background: Preloading other categories in parallel...
+[2026-02-03T18:57:29.841Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: restaurante
+[2026-02-03T18:57:29.751Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:30.089Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:29.842Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: bar
+[2026-02-03T18:57:29.842Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: discoteca
+[2026-02-03T18:57:30.022Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 0 locales for category: cocteleria
+[2026-02-03T18:57:29.842Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: cocteleria
+[2026-02-03T18:57:30.016Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 1 locales for category: pub
+[2026-02-03T18:57:30.010Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 9 locales for category: restaurante
+[2026-02-03T18:57:30.139Z] [Web] [LOG] [Explorar v323.0] ✅ All categories preloaded successfully!
+[2026-02-03T18:57:29.841Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: cafe
+[2026-02-03T18:57:29.842Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: pub
+[2026-02-03T18:57:29.991Z] [Web] [LOG] [Explorar v323.0] ✅ Loaded 0 active events in bulk
+[2026-02-03T18:57:30.021Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 5 locales for category: cafe
+[2026-02-03T18:57:29.990Z] [Web] [LOG] [Explorar v323.0] ✅ Loaded social profiles for 20 venues
+[2026-02-03T18:57:30.139Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 0 locales for category: discoteca
+[2026-02-03T18:57:30.123Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 18 locales for category: bar
+[2026-02-03T18:57:29.900Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:30.392Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:30.589Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:30.803Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:30.954Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:57:31.104Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:57:31.474Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:57:38.509Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:39.145Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:39.528Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:39.303Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:39.828Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:40.165Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:39.989Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:40.460Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:40.655Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:40.881Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:41.032Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:57:41.576Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:57:41.202Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:57:49.241Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:48.609Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:49.388Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:49.613Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:49.902Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:50.061Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:50.271Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:50.541Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:50.732Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:50.963Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:51.130Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:57:51.285Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:57:51.663Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:57:59.316Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:58.715Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:59.672Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:59.455Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:57:59.985Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:00.140Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:00.343Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:00.683Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:00.914Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:01.088Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:01.290Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:58:01.538Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:58:01.700Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:58:08.792Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:09.107Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:09.407Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:09.582Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:09.770Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:10.104Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:10.281Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:11.309Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:11.233Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:11.684Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:58:11.604Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:58:11.821Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:58:18.913Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:19.187Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:19.493Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:19.682Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:19.842Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:20.218Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:20.378Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:21.491Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:21.326Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:21.717Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:21.786Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:58:21.934Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:58:22.009Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:58:29.005Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:29.268Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:29.581Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:29.763Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:29.905Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:30.313Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:30.469Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:31.587Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:31.408Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:31.960Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:58:32.035Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:58:31.729Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:32.184Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:58:39.089Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:39.356Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:39.669Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:39.845Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:40.010Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:40.420Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:40.578Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:41.652Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:41.496Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:41.832Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:42.064Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:58:41.989Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:42.173Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:58:42.222Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:58:49.420Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:49.181Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:49.761Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:50.079Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:49.931Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:50.511Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:50.681Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:51.562Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:52.101Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:51.711Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:51.928Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:52.252Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:58:52.338Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:58:52.396Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:58:59.279Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:58:59.848Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:00.164Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:00.621Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:00.003Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:00.783Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:01.841Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:01.679Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:02.189Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:01.995Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:02.356Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:59:02.581Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:59:02.509Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:59:09.956Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:09.407Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:10.252Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:10.110Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:10.704Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:10.856Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:11.780Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:11.931Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:12.071Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:12.268Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:12.456Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:59:12.609Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:59:12.688Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:59:19.497Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:20.036Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:20.351Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:20.803Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:20.193Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:20.979Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:21.885Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:22.033Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:22.333Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:22.195Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:22.558Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:59:22.738Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:59:22.812Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:59:29.620Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:30.122Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:30.478Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:30.320Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:30.890Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:31.077Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:32.134Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:31.944Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:32.455Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:32.284Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:32.610Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:59:32.765Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:59:32.903Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:59:40.208Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:39.717Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:40.408Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:40.561Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:40.974Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:41.131Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:42.213Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:42.028Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:42.562Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:42.402Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:42.714Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:59:42.897Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:59:43.055Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T18:59:50.319Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:49.795Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:50.661Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:50.470Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:51.087Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:51.241Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:52.115Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:52.268Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:52.475Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:52.665Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:52.821Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T18:59:52.970Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T18:59:53.127Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:00:00.417Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T18:59:59.880Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:00.769Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:00.578Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:01.183Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:01.350Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:02.380Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:02.569Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:02.224Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:02.763Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:02.922Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:00:03.218Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:00:03.067Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:00:09.967Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:10.532Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:10.702Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:10.863Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:11.295Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:11.458Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:12.315Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:12.512Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:12.831Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:12.662Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:13.006Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:00:13.178Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:00:13.319Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:00:20.071Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:20.651Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:20.864Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:21.378Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:21.021Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:21.550Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:22.379Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:22.586Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:22.762Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:22.945Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:23.165Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:00:23.473Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:00:23.317Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:00:30.732Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:30.175Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:30.965Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:31.112Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:31.466Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:31.618Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:32.670Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:32.855Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:32.510Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:33.071Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:33.239Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:00:33.417Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:00:33.572Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:00:40.251Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:40.819Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:41.021Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:41.202Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:41.557Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:41.711Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:42.591Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:42.743Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:42.956Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:43.179Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:43.329Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:00:43.523Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:00:43.683Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:00:50.348Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:50.920Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:51.284Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:51.074Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:51.650Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:51.806Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:52.682Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:52.832Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:53.231Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:53.077Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:00:53.637Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:00:53.423Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:00:53.812Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:01:00.458Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:01.014Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:01.161Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:01.351Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:01.747Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:01.904Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:02.930Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:02.780Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:03.369Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:03.177Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:03.552Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:01:03.706Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:01:03.861Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:01:10.545Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:11.105Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:11.262Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:11.411Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:11.823Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:11.978Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:13.032Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:12.862Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:13.479Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:13.244Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:13.631Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:01:13.792Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:01:13.944Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:01:20.642Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:21.222Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:21.538Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:21.383Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:21.922Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:22.068Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:23.132Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:22.980Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:23.556Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:23.327Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:23.856Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:01:24.025Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:01:23.716Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:01:31.303Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:30.743Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:31.472Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:31.644Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:32.032Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:32.184Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:33.071Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:33.251Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:33.447Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:33.611Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:33.802Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:01:34.106Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:01:33.956Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:01:41.398Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:40.847Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:41.721Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:41.549Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:42.143Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:42.291Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:43.160Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:43.549Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:43.708Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:43.314Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:43.863Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:01:44.196Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:01:44.042Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:01:50.935Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:51.486Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:51.651Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:52.241Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:51.793Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:52.397Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:53.421Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:53.273Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:53.800Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:53.608Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:01:53.954Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:01:54.134Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:01:54.290Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:02:01.030Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:01.587Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:01.905Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:01.748Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:02.302Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:02.473Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:03.408Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:03.556Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:03.870Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:03.722Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:04.027Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:02:04.356Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:02:04.188Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:02:11.124Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:11.671Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:11.875Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:12.045Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:12.407Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:12.564Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:13.504Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:13.664Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:13.848Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:14.021Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:14.211Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:02:14.287Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:02:14.448Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:02:21.772Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:21.208Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:21.930Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:22.131Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:22.490Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:22.639Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:23.603Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:24.076Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:23.760Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:23.915Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:24.303Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:02:24.460Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:02:24.617Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:02:31.301Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:31.869Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:32.063Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:32.227Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:32.589Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:32.734Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:33.854Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:33.693Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:34.161Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:34.009Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:34.366Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:02:34.553Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:02:34.714Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:02:41.406Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:41.999Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:42.167Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:42.322Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:42.675Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:42.823Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:43.814Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:44.311Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:44.015Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:44.161Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:44.627Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:02:44.782Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
+[2026-02-03T19:02:44.472Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:02:52.097Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:51.526Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:52.409Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:52.261Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:52.759Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:52.898Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:53.896Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:54.094Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:54.251Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:54.388Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-03T19:02:54.568Z] [Android] [LOG] [SalaVirtual Enhanced] Chat channel status: CHANNEL_ERROR
+[2026-02-03T19:02:54.715Z] [Android] [LOG] [SalaVirtual Enhanced] Checkins channel status: CHANNEL_ERROR
+[2026-02-03T19:02:54.868Z] [Android] [LOG] [SalaVirtual Enhanced] Private messages DB channel status: CHANNEL_ERROR
