@@ -841,15 +841,17 @@ export default function SalaVirtualEnhancedScreen() {
     if (!user || !localId) return;
 
     try {
-      console.log('[SalaVirtual Enhanced v326.0] 📤 Sending predefined message:', messageText, 'to:', recipientId);
+      console.log('[SalaVirtual Enhanced v326.1] 📤 Sending predefined message:', messageText, 'to:', recipientId);
       
       const messageId = uuidv4();
       const now = new Date().toISOString();
 
-      // CRITICAL FIX v326.0: Store message in database for persistence
-      const { error: insertError } = await supabase
+      console.log('[SalaVirtual Enhanced v326.1] 🔑 Generated UUID:', messageId);
+
+      // CRITICAL FIX v326.1: Use upsert with onConflict to handle duplicate IDs
+      const { error: upsertError } = await supabase
         .from('sala_virtual_interacciones')
-        .insert({
+        .upsert({
           id: messageId,
           usuario_id: user.id,
           local_id: localId,
@@ -857,14 +859,16 @@ export default function SalaVirtualEnhancedScreen() {
           contenido: messageText,
           recipient_id: recipientId,
           created_at: now,
+        }, {
+          onConflict: 'id',
         });
 
-      if (insertError) {
-        console.error('[SalaVirtual Enhanced v326.0] ❌ Error storing message:', insertError);
-        throw insertError;
+      if (upsertError) {
+        console.error('[SalaVirtual Enhanced v326.1] ❌ Error storing message:', upsertError);
+        throw upsertError;
       }
 
-      console.log('[SalaVirtual Enhanced v326.0] ✅ Message stored in database');
+      console.log('[SalaVirtual Enhanced v326.1] ✅ Message stored in database with upsert');
 
       const newMsg: Message = {
         id: messageId,
