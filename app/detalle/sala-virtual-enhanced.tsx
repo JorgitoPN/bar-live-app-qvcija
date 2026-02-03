@@ -948,7 +948,7 @@ export default function SalaVirtualEnhancedScreen() {
         console.log('[SalaVirtual Enhanced] ✨ Creating new private chat optimistically');
         setPrivateChats(prev => [newChat, ...prev]);
         
-        // CRITICAL FIX: Save to database to persist the conversation
+        // CRITICAL FIX: Save to database WITHOUT specifying id (let DB generate it)
         try {
           const { error: insertError } = await supabase
             .from('sala_virtual_interacciones')
@@ -958,7 +958,6 @@ export default function SalaVirtualEnhancedScreen() {
               tipo: 'privado',
               contenido: messageText,
               recipient_id: recipientId,
-              created_at: now,
             });
           
           if (insertError) {
@@ -983,7 +982,7 @@ export default function SalaVirtualEnhancedScreen() {
           return [updatedChat, ...newChats];
         });
         
-        // CRITICAL FIX: Save to database to persist the conversation
+        // CRITICAL FIX: Save to database WITHOUT specifying id (let DB generate it)
         try {
           const { error: insertError } = await supabase
             .from('sala_virtual_interacciones')
@@ -993,7 +992,6 @@ export default function SalaVirtualEnhancedScreen() {
               tipo: 'privado',
               contenido: messageText,
               recipient_id: recipientId,
-              created_at: now,
             });
           
           if (insertError) {
@@ -1224,7 +1222,7 @@ export default function SalaVirtualEnhancedScreen() {
         }
       });
       
-      // CRITICAL FIX: Save to database to persist the conversation
+      // CRITICAL FIX: Save to database WITHOUT specifying id (let DB generate it)
       try {
         const { error: insertError } = await supabase
           .from('sala_virtual_interacciones')
@@ -1234,7 +1232,6 @@ export default function SalaVirtualEnhancedScreen() {
             tipo: 'privado',
             contenido: content,
             recipient_id: recipientId,
-            created_at: now,
           });
         
         if (insertError) {
