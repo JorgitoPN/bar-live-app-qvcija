@@ -878,9 +878,9 @@ export default function SalaVirtualEnhancedScreen() {
 
       // CRITICAL FIX: Optimistically update private chats list IMMEDIATELY
       // This creates the conversation in the UI before the broadcast completes
-      const existingChat = privateChats.find(chat => chat.userId === recipientId);
+      const existingChatIndex = privateChats.findIndex(chat => chat.userId === recipientId);
       
-      if (!existingChat) {
+      if (existingChatIndex === -1) {
         // Create new chat entry immediately
         const newChat: PrivateChat = {
           userId: recipientId,
@@ -895,13 +895,18 @@ export default function SalaVirtualEnhancedScreen() {
         console.log('[SalaVirtual Enhanced] ✨ Creating new private chat optimistically');
         setPrivateChats(prev => [newChat, ...prev]);
       } else {
-        // Update existing chat
+        // Update existing chat and move to top
         console.log('[SalaVirtual Enhanced] ✨ Updating existing private chat optimistically');
-        setPrivateChats(prev => prev.map(chat => 
-          chat.userId === recipientId 
-            ? { ...chat, lastMessage: messageText, lastMessageTime: now }
-            : chat
-        ));
+        setPrivateChats(prev => {
+          const updatedChat = {
+            ...prev[existingChatIndex],
+            lastMessage: messageText,
+            lastMessageTime: now,
+          };
+          const newChats = [...prev];
+          newChats.splice(existingChatIndex, 1);
+          return [updatedChat, ...newChats];
+        });
       }
 
       // Broadcast to recipient
@@ -913,36 +918,99 @@ export default function SalaVirtualEnhancedScreen() {
         });
       }
 
-      // Show success feedback with animation
+      // Show success feedback with enhanced animation
       console.log(`[SalaVirtual Enhanced] ✅ Message sent to ${recipientName}`);
       
-      // Trigger success animation
+      // Trigger enhanced success animation with sparkles
       setAnimationEmoji('✅');
       setShowAnimation(true);
       
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(animationScale, {
-            toValue: 1.2,
-            duration: 200,
+      // Create sparkle particles
+      const newSparkles = Array.from({ length: 12 }, (_, index) => ({
+        id: `sparkle-${Date.now()}-${index}`,
+        emoji: mode === 'night' ? '✨' : '🥂',
+        x: new Animated.Value(0),
+        y: new Animated.Value(0),
+        opacity: new Animated.Value(0),
+        scale: new Animated.Value(0),
+      }));
+      
+      setFloatingParticles(prev => [...prev, ...newSparkles]);
+      
+      // Animate sparkles in a circle
+      newSparkles.forEach((sparkle, index) => {
+        const angle = (index / newSparkles.length) * Math.PI * 2;
+        const distance = 120;
+        const targetX = Math.cos(angle) * distance;
+        const targetY = Math.sin(angle) * distance;
+        
+        Animated.parallel([
+          Animated.timing(sparkle.x, {
+            toValue: targetX,
+            duration: 800,
             useNativeDriver: true,
           }),
-          Animated.timing(animationScale, {
+          Animated.timing(sparkle.y, {
+            toValue: targetY,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.sequence([
+            Animated.timing(sparkle.opacity, {
+              toValue: 1,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+            Animated.delay(400),
+            Animated.timing(sparkle.opacity, {
+              toValue: 0,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.sequence([
+            Animated.timing(sparkle.scale, {
+              toValue: 1,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+            Animated.timing(sparkle.scale, {
+              toValue: 0,
+              duration: 600,
+              useNativeDriver: true,
+            }),
+          ]),
+        ]).start(() => {
+          setFloatingParticles(current => current.filter(p => p.id !== sparkle.id));
+        });
+      });
+      
+      // Main animation
+      Animated.parallel([
+        Animated.sequence([
+          Animated.spring(animationScale, {
+            toValue: 1.3,
+            friction: 4,
+            tension: 40,
+            useNativeDriver: true,
+          }),
+          Animated.spring(animationScale, {
             toValue: 1,
-            duration: 150,
+            friction: 6,
+            tension: 40,
             useNativeDriver: true,
           }),
         ]),
         Animated.sequence([
           Animated.timing(animationOpacity, {
             toValue: 1,
-            duration: 200,
+            duration: 300,
             useNativeDriver: true,
           }),
-          Animated.delay(1000),
+          Animated.delay(1200),
           Animated.timing(animationOpacity, {
             toValue: 0,
-            duration: 300,
+            duration: 400,
             useNativeDriver: true,
           }),
         ]),
@@ -961,7 +1029,7 @@ export default function SalaVirtualEnhancedScreen() {
       // Reload private chats in background to sync with server
       setTimeout(() => {
         loadPrivateChats();
-      }, 500);
+      }, 1000);
     } catch (error) {
       console.error('[SalaVirtual Enhanced] Error sending predefined message:', error);
       
@@ -994,7 +1062,7 @@ export default function SalaVirtualEnhancedScreen() {
         animationOpacity.setValue(0);
       });
     }
-  }, [user, localId, activeUsers, loadPrivateChats, privateChats, animationScale, animationOpacity]);
+  }, [user, localId, activeUsers, loadPrivateChats, privateChats, animationScale, animationOpacity, mode]);
 
   const sendPrivateMessage = useCallback(async (recipientId: string, content: string) => {
     if (!user || !localId || !content.trim()) return;
@@ -1980,7 +2048,7 @@ export default function SalaVirtualEnhancedScreen() {
   }
 
   // FIX: Android status bar overlap - add top padding
-  const androidTopPadding = Platform.OS === 'android' ? insets.top : 0;
+  const androidTopPadding = Platform.OS === 'android' ? Math.max(insets.top, 24) : 0;
 
   return (
     <KeyboardAvoidingView
@@ -2033,7 +2101,13 @@ export default function SalaVirtualEnhancedScreen() {
 
         {/* Closing Warning Banner */}
         {closingWarning && (
-          <View style={[styles.warningBanner, { backgroundColor: themeColors.accent + '20', borderBottomColor: themeColors.accent, paddingTop: androidTopPadding }]}>
+          <View style={[
+            styles.warningBanner, 
+            { 
+              backgroundColor: themeColors.accent + '20', 
+              borderBottomColor: themeColors.accent,
+            }
+          ]}>
             <IconSymbol
               ios_icon_name="exclamationmark.triangle.fill"
               android_material_icon_name="warning"
@@ -2047,7 +2121,14 @@ export default function SalaVirtualEnhancedScreen() {
         )}
 
         <View style={styles.content}>
-          <View style={[styles.tabBarContainer, { backgroundColor: themeColors.cardBg, borderBottomColor: themeColors.cardBorder }]}>
+          <View style={[
+            styles.tabBarContainer, 
+            { 
+              backgroundColor: themeColors.cardBg, 
+              borderBottomColor: themeColors.cardBorder,
+              paddingTop: androidTopPadding,
+            }
+          ]}>
             <View style={styles.tabBar}>
               <TouchableOpacity
                 style={styles.tab}
@@ -2059,7 +2140,16 @@ export default function SalaVirtualEnhancedScreen() {
                     colors={[themeColors.primary, themeColors.secondary]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={styles.tabGradient}
+                    style={[
+                      styles.tabGradient,
+                      mode === 'night' && {
+                        shadowColor: themeColors.primary,
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowOpacity: 0.8,
+                        shadowRadius: 12,
+                        elevation: 8,
+                      }
+                    ]}
                   >
                     <IconSymbol
                       ios_icon_name="bubble.left.and.bubble.right.fill"
@@ -2070,7 +2160,13 @@ export default function SalaVirtualEnhancedScreen() {
                     <Text style={[styles.tabTextActive, { fontSize: scaleFontSize(15) }]}>Chat</Text>
                   </LinearGradient>
                 ) : (
-                  <View style={styles.tabContent}>
+                  <View style={[
+                    styles.tabContent,
+                    { 
+                      backgroundColor: mode === 'day' ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.05)',
+                      borderRadius: 12,
+                    }
+                  ]}>
                     <IconSymbol
                       ios_icon_name="bubble.left.and.bubble.right.fill"
                       android_material_icon_name="chat"
@@ -2094,7 +2190,16 @@ export default function SalaVirtualEnhancedScreen() {
                     colors={[themeColors.primary, themeColors.secondary]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={styles.tabGradient}
+                    style={[
+                      styles.tabGradient,
+                      mode === 'night' && {
+                        shadowColor: themeColors.primary,
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowOpacity: 0.8,
+                        shadowRadius: 12,
+                        elevation: 8,
+                      }
+                    ]}
                   >
                     <IconSymbol
                       ios_icon_name="person.3.fill"
@@ -2110,7 +2215,13 @@ export default function SalaVirtualEnhancedScreen() {
                     </View>
                   </LinearGradient>
                 ) : (
-                  <View style={styles.tabContent}>
+                  <View style={[
+                    styles.tabContent,
+                    { 
+                      backgroundColor: mode === 'day' ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.05)',
+                      borderRadius: 12,
+                    }
+                  ]}>
                     <IconSymbol
                       ios_icon_name="person.3.fill"
                       android_material_icon_name="group"
@@ -2120,8 +2231,8 @@ export default function SalaVirtualEnhancedScreen() {
                     <Text style={[styles.tabText, { fontSize: scaleFontSize(15), color: themeColors.textSecondary }]}>
                       Usuarios
                     </Text>
-                    <View style={[styles.tabBadge, { backgroundColor: themeColors.textSecondary + '30' }]}>
-                      <Text style={[styles.tabBadgeText, { fontSize: scaleFontSize(12), color: themeColors.textSecondary }]}>
+                    <View style={[styles.tabBadge, { backgroundColor: themeColors.primary + '30' }]}>
+                      <Text style={[styles.tabBadgeText, { fontSize: scaleFontSize(12), color: themeColors.primary }]}>
                         {activeUsers.length}
                       </Text>
                     </View>
@@ -2142,7 +2253,16 @@ export default function SalaVirtualEnhancedScreen() {
                     colors={[themeColors.primary, themeColors.secondary]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={styles.tabGradient}
+                    style={[
+                      styles.tabGradient,
+                      mode === 'night' && {
+                        shadowColor: themeColors.primary,
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowOpacity: 0.8,
+                        shadowRadius: 12,
+                        elevation: 8,
+                      }
+                    ]}
                   >
                     <IconSymbol
                       ios_icon_name="lock.fill"
@@ -2160,7 +2280,13 @@ export default function SalaVirtualEnhancedScreen() {
                     )}
                   </LinearGradient>
                 ) : (
-                  <View style={styles.tabContent}>
+                  <View style={[
+                    styles.tabContent,
+                    { 
+                      backgroundColor: mode === 'day' ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.05)',
+                      borderRadius: 12,
+                    }
+                  ]}>
                     <IconSymbol
                       ios_icon_name="lock.fill"
                       android_material_icon_name="lock"
@@ -2171,8 +2297,8 @@ export default function SalaVirtualEnhancedScreen() {
                       Privados
                     </Text>
                     {privateChats.length > 0 && (
-                      <View style={[styles.tabBadge, { backgroundColor: themeColors.textSecondary + '30' }]}>
-                        <Text style={[styles.tabBadgeText, { fontSize: scaleFontSize(12), color: themeColors.textSecondary }]}>
+                      <View style={[styles.tabBadge, { backgroundColor: themeColors.primary + '30' }]}>
+                        <Text style={[styles.tabBadgeText, { fontSize: scaleFontSize(12), color: themeColors.primary }]}>
                           {privateChats.length}
                         </Text>
                       </View>
@@ -2417,15 +2543,37 @@ export default function SalaVirtualEnhancedScreen() {
               styles.animationOverlay,
               {
                 opacity: animationOpacity,
-                transform: [{ scale: animationScale }],
               },
             ]}
             pointerEvents="none"
           >
-            <Text style={styles.animationEmoji}>{animationEmoji}</Text>
-            <Text style={[styles.animationText, { fontSize: scaleFontSize(20), color: '#FFFFFF', fontWeight: '800' }]}>
-              {animationEmoji === '✅' ? '¡Mensaje enviado!' : animationEmoji === '❌' ? 'Error al enviar' : '¡Nuevo mensaje!'}
-            </Text>
+            <Animated.View
+              style={[
+                styles.animationContent,
+                {
+                  transform: [{ scale: animationScale }],
+                },
+              ]}
+            >
+              <View style={[
+                styles.animationCircle,
+                {
+                  backgroundColor: animationEmoji === '✅' ? themeColors.success + '20' : themeColors.danger + '20',
+                  borderColor: animationEmoji === '✅' ? themeColors.success : themeColors.danger,
+                  borderWidth: 3,
+                  shadowColor: animationEmoji === '✅' ? themeColors.success : themeColors.danger,
+                  shadowOffset: { width: 0, height: 0 },
+                  shadowOpacity: 0.8,
+                  shadowRadius: 20,
+                  elevation: 10,
+                }
+              ]}>
+                <Text style={styles.animationEmoji}>{animationEmoji}</Text>
+              </View>
+              <Text style={[styles.animationText, { fontSize: scaleFontSize(22), color: '#FFFFFF', fontWeight: '800' }]}>
+                {animationEmoji === '✅' ? '¡Mensaje enviado!' : animationEmoji === '❌' ? 'Error al enviar' : '¡Nuevo mensaje!'}
+              </Text>
+            </Animated.View>
           </Animated.View>
         )}
 
@@ -2561,62 +2709,72 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tabBarContainer: {
-    borderBottomWidth: 1,
+    borderBottomWidth: 2,
   },
   tabBar: {
     flexDirection: 'row',
     paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingVertical: 12,
+    gap: 8,
   },
   tab: {
     flex: 1,
-    marginHorizontal: 4,
   },
   tabGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 12,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
   },
   tabContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   tabText: {
-    fontWeight: '700',
+    fontWeight: '600',
   },
   tabTextActive: {
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   tabBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
     minWidth: 24,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
   },
   tabBadgeActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
     minWidth: 24,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   tabBadgeText: {
-    fontWeight: '800',
+    fontWeight: '700',
   },
   tabBadgeTextActive: {
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   messagesContent: {
     padding: 16,
@@ -2992,16 +3150,30 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     zIndex: 1000,
   },
+  animationContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  animationCircle: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
   animationEmoji: {
-    fontSize: 120,
-    marginBottom: 20,
+    fontSize: 80,
   },
   animationText: {
     fontWeight: '800',
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   floatingParticle: {
     position: 'absolute',
