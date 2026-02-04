@@ -121,6 +121,7 @@ interface Message {
   created_at: string;
   is_private?: boolean;
   recipient_id?: string;
+  leido?: boolean; // 🔥 DIAGNOSTIC #3: Check if this field exists
   usuario: {
     id: string;
     nombre: string;
@@ -174,6 +175,26 @@ export default function SalaVirtualEnhancedScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥🔥🔥 DIAGNOSTIC #1: ¿El objeto user tiene datos?
+  // ═══════════════════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (user) {
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('🔥🔥🔥 DIAGNOSTIC #1: DEBUG USER OBJECT');
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('DEBUG USER:', JSON.stringify(user, null, 2));
+      console.log('user.id:', user.id);
+      console.log('user.email:', user.email);
+      console.log('user.user_metadata:', JSON.stringify(user.user_metadata, null, 2));
+      console.log('user.user_metadata?.avatar:', user.user_metadata?.avatar);
+      console.log('user.user_metadata?.nombre:', user.user_metadata?.nombre);
+      console.log('user.user_metadata?.username:', user.user_metadata?.username);
+      console.log('¿user_metadata está vacío?:', !user.user_metadata || Object.keys(user.user_metadata).length === 0);
+      console.log('═══════════════════════════════════════════════════════════════');
+    }
+  }, [user]);
   
   const [mode, setMode] = useState<'day' | 'night'>(getDayNightMode());
   const [local, setLocal] = useState<Local | null>(null);
@@ -536,6 +557,7 @@ export default function SalaVirtualEnhancedScreen() {
           contenido,
           created_at,
           recipient_id,
+          leido,
           usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(
             id,
             nombre,
@@ -553,6 +575,20 @@ export default function SalaVirtualEnhancedScreen() {
       console.log('[SalaVirtual Enhanced] 📊 Data is array?', Array.isArray(data));
       console.log('[SalaVirtual Enhanced] 📊 Data length:', data?.length || 0);
       console.log('[SalaVirtual Enhanced] 📊 Data is empty array?', Array.isArray(data) && data.length === 0);
+      
+      // ═══════════════════════════════════════════════════════════════════════════════
+      // 🔥🔥🔥 DIAGNOSTIC #3: ¿La columna 'leido' existe de verdad?
+      // ═══════════════════════════════════════════════════════════════════════════════
+      if (data && data.length > 0) {
+        console.log('═══════════════════════════════════════════════════════════════');
+        console.log('🔥🔥🔥 DIAGNOSTIC #3: VERIFICAR COLUMNA "leido"');
+        console.log('═══════════════════════════════════════════════════════════════');
+        console.log('COLUMNAS:', JSON.stringify(data[0], null, 2));
+        console.log('¿Existe la columna "leido"?:', 'leido' in data[0]);
+        console.log('Valor de "leido" en primer mensaje:', data[0].leido);
+        console.log('Tipo de dato de "leido":', typeof data[0].leido);
+        console.log('═══════════════════════════════════════════════════════════════');
+      }
       
       if (error) {
         console.error('[SalaVirtual Enhanced] ❌ Error loading initial messages:', error);
@@ -595,6 +631,7 @@ export default function SalaVirtualEnhancedScreen() {
           contenido: msg.contenido,
           created_at: msg.created_at,
           is_private: false,
+          leido: msg.leido, // 🔥 DIAGNOSTIC #3: Include leido field
           usuario: {
             id: msg.usuario.id,
             nombre: msg.usuario.nombre,
@@ -696,13 +733,23 @@ export default function SalaVirtualEnhancedScreen() {
     });
   }, [animationScale, animationOpacity]);
 
-  // 🔥🔥🔥 CRITICAL FIX: COMPLETELY REWRITTEN syncMessages function
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥🔥🔥 DIAGNOSTIC #2: ¿El componente se re-renderiza?
+  // Ensure we're using useState (not useRef) and creating new arrays
+  // ═══════════════════════════════════════════════════════════════════════════════
   const syncMessages = useCallback(async () => {
     if (!localId || !user) {
       return;
     }
 
     try {
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('🔥🔥🔥 DIAGNOSTIC #2: VERIFICAR RE-RENDERIZADO');
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('¿Estamos usando useState para messages?:', 'SÍ (setMessages es de useState)');
+      console.log('Número actual de mensajes en estado:', messages.length);
+      console.log('═══════════════════════════════════════════════════════════════');
+      
       console.log('[SalaVirtual Enhanced] 🔄 Syncing messages...');
       
       // 🔥🔥🔥 CRITICAL: Fetch NEW public messages (recipient_id IS NULL)
@@ -716,6 +763,7 @@ export default function SalaVirtualEnhancedScreen() {
           contenido,
           created_at,
           recipient_id,
+          leido,
           usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(
             id,
             nombre,
@@ -765,6 +813,7 @@ export default function SalaVirtualEnhancedScreen() {
             contenido: msg.contenido,
             created_at: msg.created_at,
             is_private: false,
+            leido: msg.leido, // 🔥 DIAGNOSTIC #3: Include leido field
             usuario: {
               id: msg.usuario.id,
               nombre: msg.usuario.nombre,
@@ -813,13 +862,26 @@ export default function SalaVirtualEnhancedScreen() {
           
           console.log('[SalaVirtual Enhanced] 🔑 Now tracking', messageIdsRef.current.size, 'message IDs');
           
-          // Update state with new messages
+          // ═══════════════════════════════════════════════════════════════════════════════
+          // 🔥🔥🔥 DIAGNOSTIC #2: CREAR NUEVO ARRAY (NO PUSH)
+          // ═══════════════════════════════════════════════════════════════════════════════
+          console.log('═══════════════════════════════════════════════════════════════');
+          console.log('🔥🔥🔥 DIAGNOSTIC #2: ACTUALIZANDO ESTADO CON NUEVO ARRAY');
+          console.log('═══════════════════════════════════════════════════════════════');
+          console.log('Mensajes antes de actualizar:', messages.length);
+          console.log('Mensajes nuevos a añadir:', uniqueNewMessages.length);
+          console.log('Método usado: setMessages(prev => [...prev, ...uniqueNewMessages])');
+          console.log('Esto crea un NUEVO array, NO modifica el existente');
+          console.log('═══════════════════════════════════════════════════════════════');
+          
+          // Update state with new messages - CREATING A NEW ARRAY
           setMessages(prev => {
             const updated = [...prev, ...uniqueNewMessages].sort((a, b) => 
               new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             );
             
-            console.log('[SalaVirtual Enhanced] 📊 Total messages in UI:', updated.length);
+            console.log('[SalaVirtual Enhanced] 📊 Total messages in UI after update:', updated.length);
+            console.log('🔥🔥🔥 DIAGNOSTIC #2: Estado actualizado con NUEVO array de', updated.length, 'mensajes');
             
             return updated;
           });
@@ -852,6 +914,7 @@ export default function SalaVirtualEnhancedScreen() {
           contenido,
           created_at,
           recipient_id,
+          leido,
           usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(
             id,
             nombre,
@@ -899,6 +962,7 @@ export default function SalaVirtualEnhancedScreen() {
                 created_at: msg.created_at,
                 is_private: true,
                 recipient_id: msg.recipient_id,
+                leido: msg.leido, // 🔥 DIAGNOSTIC #3: Include leido field
                 usuario: {
                   id: msg.usuario.id,
                   nombre: msg.usuario.nombre,
@@ -907,12 +971,14 @@ export default function SalaVirtualEnhancedScreen() {
                 },
               }));
 
+            // 🔥🔥🔥 DIAGNOSTIC #2: CREAR NUEVO ARRAY para mensajes privados
             setPrivateChatMessages(prev => {
               const existingIds = new Set(prev.map(m => m.id));
               const uniqueNew = newPrivateMessages.filter(m => !existingIds.has(m.id));
               
               if (uniqueNew.length > 0) {
                 console.log('[SalaVirtual Enhanced] ✅ Adding', uniqueNew.length, 'new private messages to UI');
+                console.log('🔥🔥🔥 DIAGNOSTIC #2: Creando NUEVO array de mensajes privados');
                 
                 uniqueNew.forEach(msg => {
                   if (msg.usuario_id === user.id) {
@@ -931,6 +997,7 @@ export default function SalaVirtualEnhancedScreen() {
                   }
                 });
                 
+                // 🔥🔥🔥 DIAGNOSTIC #2: Return NEW array (spread operator)
                 return [...prev, ...uniqueNew].sort((a, b) => 
                   new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
                 );
@@ -948,7 +1015,7 @@ export default function SalaVirtualEnhancedScreen() {
     } catch (error) {
       console.error('[SalaVirtual Enhanced] ❌ Error syncing messages:', error);
     }
-  }, [localId, user, selectedPrivateChat, loadPrivateChats, triggerReceivedAnimation]);
+  }, [localId, user, selectedPrivateChat, messages.length, loadPrivateChats, triggerReceivedAnimation]);
 
   // 🔥🔥🔥 CRITICAL: Aggressive polling for real-time feel
   useEffect(() => {
@@ -1450,6 +1517,16 @@ export default function SalaVirtualEnhancedScreen() {
       // 🔥🔥🔥 FIX #1: USE LOCAL SESSION DATA FOR AVATAR
       // Don't wait for database to return user profile - use what we already have!
       // ═══════════════════════════════════════════════════════════════════════════════
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('🔥🔥🔥 FIX #1: USANDO DATOS DE SESIÓN LOCAL PARA AVATAR');
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('DEBUG USER:', JSON.stringify(user, null, 2));
+      console.log('user.user_metadata:', JSON.stringify(user.user_metadata, null, 2));
+      console.log('user.user_metadata?.avatar:', user.user_metadata?.avatar);
+      console.log('user.user_metadata?.nombre:', user.user_metadata?.nombre);
+      console.log('user.user_metadata?.username:', user.user_metadata?.username);
+      console.log('═══════════════════════════════════════════════════════════════');
+      
       const currentUserProfile = {
         id: user.id,
         nombre: user.user_metadata?.nombre || user.email?.split('@')[0] || 'Usuario',
@@ -1479,8 +1556,13 @@ export default function SalaVirtualEnhancedScreen() {
       // Add to message ID tracking
       messageIdsRef.current.add(messageId);
       
-      // Add to UI immediately
-      setMessages((prev) => [...prev, optimisticMsg]);
+      // 🔥🔥🔥 DIAGNOSTIC #2: Add to UI immediately with NEW ARRAY
+      console.log('🔥🔥🔥 DIAGNOSTIC #2: Añadiendo mensaje optimista con NUEVO array');
+      setMessages((prev) => {
+        const newArray = [...prev, optimisticMsg];
+        console.log('🔥🔥🔥 DIAGNOSTIC #2: Array anterior:', prev.length, '→ Array nuevo:', newArray.length);
+        return newArray;
+      });
       setNewMessage('');
       
       // Trigger floating reaction for quick messages
@@ -1512,7 +1594,8 @@ export default function SalaVirtualEnhancedScreen() {
           tipo,
           contenido,
           created_at,
-          recipient_id
+          recipient_id,
+          leido
         `)
         .single();
 
@@ -1584,6 +1667,9 @@ export default function SalaVirtualEnhancedScreen() {
       const now = new Date().toISOString();
 
       // 🔥🔥🔥 FIX #1: Use local session data for avatar
+      console.log('🔥🔥🔥 FIX #1: Usando datos de sesión local para mensaje predefinido');
+      console.log('DEBUG USER:', JSON.stringify(user, null, 2));
+      
       const currentUserProfile = {
         id: user.id,
         nombre: user.user_metadata?.nombre || user.email?.split('@')[0] || 'Usuario',
@@ -1829,6 +1915,9 @@ export default function SalaVirtualEnhancedScreen() {
       const now = new Date().toISOString();
 
       // 🔥🔥🔥 FIX #1: Use local session data for avatar
+      console.log('🔥🔥🔥 FIX #1: Usando datos de sesión local para mensaje privado');
+      console.log('DEBUG USER:', JSON.stringify(user, null, 2));
+      
       const currentUserProfile = {
         id: user.id,
         nombre: user.user_metadata?.nombre || user.email?.split('@')[0] || 'Usuario',
@@ -1851,7 +1940,14 @@ export default function SalaVirtualEnhancedScreen() {
       };
 
       console.log('[SalaVirtual Enhanced] ✨ Adding private message optimistically to UI');
-      setPrivateChatMessages((prev) => [...prev, newMsg]);
+      
+      // 🔥🔥🔥 DIAGNOSTIC #2: CREAR NUEVO ARRAY
+      console.log('🔥🔥🔥 DIAGNOSTIC #2: Añadiendo mensaje privado con NUEVO array');
+      setPrivateChatMessages((prev) => {
+        const newArray = [...prev, newMsg];
+        console.log('🔥🔥🔥 DIAGNOSTIC #2: Array anterior:', prev.length, '→ Array nuevo:', newArray.length);
+        return newArray;
+      });
       
       setPrivateChats(prev => {
         const existingChatIndex = prev.findIndex(chat => chat.userId === recipientId);
@@ -1901,7 +1997,8 @@ export default function SalaVirtualEnhancedScreen() {
           tipo,
           contenido,
           created_at,
-          recipient_id
+          recipient_id,
+          leido
         `)
         .single();
 
@@ -1984,6 +2081,7 @@ export default function SalaVirtualEnhancedScreen() {
           contenido,
           tipo,
           created_at,
+          leido,
           usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(
             id,
             nombre,
@@ -2010,6 +2108,7 @@ export default function SalaVirtualEnhancedScreen() {
         created_at: msg.created_at,
         is_private: true,
         recipient_id: msg.recipient_id,
+        leido: msg.leido, // 🔥 DIAGNOSTIC #3: Include leido field
         usuario: msg.usuario,
       }));
 
@@ -2599,6 +2698,24 @@ export default function SalaVirtualEnhancedScreen() {
           <View style={[styles.bottomSheetHandle, { backgroundColor: themeColors.textSecondary + '40' }]} />
           
           <ScrollView style={styles.bottomSheetScroll} contentContainerStyle={styles.bottomSheetContent}>
+            {/* ═══════════════════════════════════════════════════════════════════════════════
+                🔥🔥🔥 NUEVA FUNCIONALIDAD: IMAGEN DE PORTADA DEL USUARIO
+                Mostrar la foto de perfil del usuario al que se le envía mensaje rápido
+                ═══════════════════════════════════════════════════════════════════════════════ */}
+            {selectedUser.avatar && (
+              <View style={styles.bottomSheetCoverImageContainer}>
+                <Image
+                  source={resolveImageSource(selectedUser.avatar)}
+                  style={styles.bottomSheetCoverImage}
+                  resizeMode="cover"
+                />
+                <LinearGradient
+                  colors={['transparent', themeColors.cardBg]}
+                  style={styles.bottomSheetCoverGradient}
+                />
+              </View>
+            )}
+            
             <View style={[styles.bottomSheetHeader, { borderBottomColor: themeColors.cardBorder }]}>
               <Text style={[styles.bottomSheetTitle, { fontSize: scaleFontSize(20), color: themeColors.text }]}>
                 Enviar mensaje a {recipientName}
@@ -4260,12 +4377,35 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bottomSheetContent: {
-    padding: 20,
+    paddingBottom: 20,
+  },
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥🔥🔥 NUEVA FUNCIONALIDAD: ESTILOS PARA IMAGEN DE PORTADA
+  // ═══════════════════════════════════════════════════════════════════════════════
+  bottomSheetCoverImageContainer: {
+    width: '100%',
+    height: 200,
+    position: 'relative',
+    marginBottom: 16,
+  },
+  bottomSheetCoverImage: {
+    width: '100%',
+    height: '100%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  bottomSheetCoverGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
   },
   bottomSheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
     marginBottom: 16,
@@ -4276,6 +4416,7 @@ const styles = StyleSheet.create({
   },
   profileSection: {
     marginBottom: 16,
+    paddingHorizontal: 20,
   },
   profileButton: {
     flexDirection: 'row',
@@ -4292,9 +4433,11 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     marginVertical: 16,
+    marginHorizontal: 20,
   },
   section: {
     marginBottom: 24,
+    paddingHorizontal: 20,
   },
   sectionTitle: {
     fontWeight: '700',
