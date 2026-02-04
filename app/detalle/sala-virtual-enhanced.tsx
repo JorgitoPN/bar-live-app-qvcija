@@ -1,6 +1,6 @@
 
 // ⚠️ PASO 1: CONSOLE LOG DE VERIFICACIÓN
-console.log("⚠️ CHAT ACTIVADO - VERSIÓN 2.3 - FIXES CRÍTICOS APLICADOS");
+console.log("⚠️ CHAT ACTIVADO - VERSIÓN 2.4 - FIXES CRÍTICOS APLICADOS");
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -1108,6 +1108,10 @@ export default function SalaVirtualEnhancedScreen() {
     try {
       console.log('[SalaVirtual Enhanced] 🔄 Loading private chats...');
       
+      // ═══════════════════════════════════════════════════════════════════════════════
+      // 🔥 FIX PUNTO AZUL: Solo contar mensajes NO LEÍDOS que fueron RECIBIDOS por el usuario actual
+      // NO contar mensajes enviados por el usuario actual
+      // ═══════════════════════════════════════════════════════════════════════════════
       const { data: privateMessages, error } = await supabase
         .from('sala_virtual_interacciones')
         .select(`
@@ -1137,16 +1141,22 @@ export default function SalaVirtualEnhancedScreen() {
       const chatMap = new Map<string, PrivateChat>();
       const unreadCountMap = new Map<string, number>();
       
-      console.log('[SalaVirtual Enhanced] 🔵 FIX 1: Counting unread messages WHERE leido = false');
+      console.log('[SalaVirtual Enhanced] 🔵 FIX PUNTO AZUL: Counting ONLY unread messages WHERE leido = false AND recipient_id = user.id');
       
       (privateMessages || []).forEach(msg => {
         const partnerId = msg.usuario_id === user.id ? msg.recipient_id : msg.usuario_id;
         if (!partnerId) return;
         
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // 🔥 FIX PUNTO AZUL: Solo contar mensajes que fueron RECIBIDOS por el usuario actual
+        // Verificar que recipient_id === user.id (el usuario actual es el receptor)
+        // Y que usuario_id !== user.id (el mensaje NO fue enviado por el usuario actual)
+        // Y que leido === false (el mensaje no ha sido leído)
+        // ═══════════════════════════════════════════════════════════════════════════════
         if (msg.recipient_id === user.id && msg.usuario_id !== user.id && msg.leido === false) {
           const currentCount = unreadCountMap.get(partnerId) || 0;
           unreadCountMap.set(partnerId, currentCount + 1);
-          console.log('[SalaVirtual Enhanced] 🔵 FIX 1: Unread message from', partnerId, '- count:', currentCount + 1);
+          console.log('[SalaVirtual Enhanced] 🔵 FIX PUNTO AZUL: Unread message from', partnerId, '- count:', currentCount + 1);
         }
         
         if (!chatMap.has(partnerId)) {
@@ -1174,7 +1184,7 @@ export default function SalaVirtualEnhancedScreen() {
       }));
       
       console.log('[SalaVirtual Enhanced] ✅ Private chats loaded:', chats.length);
-      console.log('[SalaVirtual Enhanced] 🔵 FIX 1: Total unread messages (WHERE leido = false):', 
+      console.log('[SalaVirtual Enhanced] 🔵 FIX PUNTO AZUL: Total unread messages (WHERE leido = false AND recipient_id = user.id):', 
         chats.reduce((sum, chat) => sum + chat.unreadCount, 0)
       );
       
@@ -2279,24 +2289,26 @@ export default function SalaVirtualEnhancedScreen() {
     }).start();
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥 FIX NAVEGACIÓN: Corregir el parámetro de la URL
+  // La ruta /perfil/usuario espera "userId" como parámetro, NO "id"
+  // ═══════════════════════════════════════════════════════════════════════════════
   const handleViewProfile = useCallback(() => {
     if (!selectedUser) {
-      console.log('[SalaVirtual Enhanced] ⚠️ FIX 3: No selected user');
+      console.log('[SalaVirtual Enhanced] ⚠️ FIX NAVEGACIÓN: No selected user');
       return;
     }
     
-    console.log('[SalaVirtual Enhanced] 👤 FIX 3: Navigating to user profile:', selectedUser.id);
-    console.log('[SalaVirtual Enhanced] 👤 FIX 3: User name:', selectedUser.nombre);
+    console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN: Navigating to user profile:', selectedUser.id);
+    console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN: User name:', selectedUser.nombre);
     
-    setShowBottomSheet(false);
-    setSelectedUser(null);
-    setSelectedUserProfile(null);
+    closeBottomSheet();
     
-    bottomSheetAnim.setValue(SCREEN_HEIGHT);
-    
-    console.log('[SalaVirtual Enhanced] 👤 FIX 3: Executing router.push to /perfil/usuario?id=' + selectedUser.id);
-    router.push(`/perfil/usuario?id=${selectedUser.id}`);
-  }, [selectedUser, router, bottomSheetAnim]);
+    setTimeout(() => {
+      console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN: Executing router.push to /perfil/usuario?userId=' + selectedUser.id);
+      router.push(`/perfil/usuario?userId=${selectedUser.id}`);
+    }, 300);
+  }, [selectedUser, router, closeBottomSheet]);
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = user && item.usuario_id === user.id;
@@ -3617,13 +3629,15 @@ export default function SalaVirtualEnhancedScreen() {
                     
                     <TouchableOpacity
                       onPress={() => {
-                        console.log('[SalaVirtual Enhanced] 👤 FIX 3: Navigating to profile from private chat header');
-                        console.log('[SalaVirtual Enhanced] 👤 FIX 3: Partner ID:', selectedPrivateChat.userId);
+                        console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN: Navigating to profile from private chat header');
+                        console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN: Partner ID:', selectedPrivateChat.userId);
                         
                         closePrivateChat();
                         
-                        console.log('[SalaVirtual Enhanced] 👤 FIX 3: Executing router.push');
-                        router.push(`/perfil/usuario?id=${selectedPrivateChat.userId}`);
+                        setTimeout(() => {
+                          console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN: Executing router.push with userId parameter');
+                          router.push(`/perfil/usuario?userId=${selectedPrivateChat.userId}`);
+                        }, 300);
                       }}
                       style={[styles.privateChatProfileButton, { backgroundColor: themeColors.primary + '20' }]}
                       activeOpacity={0.7}
