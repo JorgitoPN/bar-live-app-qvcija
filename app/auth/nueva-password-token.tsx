@@ -12,16 +12,17 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ NUEVA PASSWORD TOKEN SCREEN v145.0 - AUTH FIX
+ * ✅ NUEVA PASSWORD TOKEN SCREEN v146.0 - SCROLLABLE HEADER FIX
  * 
- * CRITICAL FIXES v145.0:
+ * CRITICAL FIXES v146.0:
+ * - ✅ Header now scrolls with content (moved inside ScrollView)
  * - ✅ Fixed "Invalid JWT" error by using supabase.functions.invoke
  * - ✅ Removed manual fetch with access_token
  * - ✅ Edge Functions now work without user session
@@ -91,7 +92,6 @@ export default function NuevaPasswordTokenScreen() {
       console.log('[NuevaPasswordToken] 📧 Email:', email);
       console.log('[NuevaPasswordToken] 🔐 Google User:', isGoogleUser);
 
-      // ✅ FIX: Use supabase.functions.invoke instead of manual fetch
       const { data, error } = await supabase.functions.invoke('update-password-with-token', {
         body: { 
           email: email.trim().toLowerCase(), 
@@ -116,7 +116,6 @@ export default function NuevaPasswordTokenScreen() {
 
       console.log('[NuevaPasswordToken] ✅ Contraseña actualizada exitosamente');
 
-      // ✅ FIXED: Update provider field in usuarios table if this was a Google user
       if (isGoogleUser) {
         console.log('[NuevaPasswordToken] 🔄 Actualizando provider a "barlive"...');
         
@@ -127,7 +126,6 @@ export default function NuevaPasswordTokenScreen() {
 
         if (updateError) {
           console.error('[NuevaPasswordToken] ⚠️ Error actualizando provider:', updateError);
-          // Don't fail the whole operation if this fails
         } else {
           console.log('[NuevaPasswordToken] ✅ Provider actualizado a "barlive"');
         }
@@ -168,198 +166,207 @@ export default function NuevaPasswordTokenScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
+    <View style={styles.container}>
+      <Stack.Screen
+        options={{
+          headerShown: false,
+        }}
+      />
+      
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <IconSymbol
-            ios_icon_name="chevron.left"
-            android_material_icon_name="arrow_back"
-            size={24}
-            color="#fff"
-          />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {isGoogleUser ? 'Configurar contraseña' : 'Nueva contraseña'}
-        </Text>
-        <Text style={styles.headerSubtitle}>Crea una contraseña segura</Text>
-      </LinearGradient>
-
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.formContainer}>
-          <View style={styles.infoBox}>
-            <IconSymbol
-              ios_icon_name="lock.shield.fill"
-              android_material_icon_name="lock"
-              size={64}
-              color={colors.primary}
-            />
-            <Text style={styles.infoTitle}>Casi listo</Text>
-            <Text style={styles.infoText}>
-              {isGoogleUser
-                ? 'Por favor, configura tu contraseña. Podrás usar tanto Google como email/contraseña para iniciar sesión.'
-                : 'Por favor, ingresa tu nueva contraseña. Asegúrate de que sea segura y fácil de recordar.'}
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.header}
+          >
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <IconSymbol
+                ios_icon_name="chevron.left"
+                android_material_icon_name="arrow_back"
+                size={24}
+                color="#fff"
+              />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>
+              {isGoogleUser ? 'Configurar contraseña' : 'Nueva contraseña'}
             </Text>
-          </View>
+            <Text style={styles.headerSubtitle}>Crea una contraseña segura</Text>
+          </LinearGradient>
 
-          <Text style={styles.label}>Nueva contraseña</Text>
-          <View style={styles.passwordContainer}>
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="Ingresa tu nueva contraseña"
-              placeholderTextColor={colors.textSecondary}
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!loading}
-            />
-            <TouchableOpacity
-              style={styles.eyeButton}
-              onPress={() => setShowPassword(!showPassword)}
-            >
+          <View style={styles.formContainer}>
+            <View style={styles.infoBox}>
               <IconSymbol
-                ios_icon_name={showPassword ? 'eye.slash.fill' : 'eye.fill'}
-                android_material_icon_name={showPassword ? 'visibility_off' : 'visibility'}
-                size={24}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.label}>Confirmar contraseña</Text>
-          <View style={styles.passwordContainer}>
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="Confirma tu nueva contraseña"
-              placeholderTextColor={colors.textSecondary}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry={!showConfirmPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!loading}
-            />
-            <TouchableOpacity
-              style={styles.eyeButton}
-              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-            >
-              <IconSymbol
-                ios_icon_name={showConfirmPassword ? 'eye.slash.fill' : 'eye.fill'}
-                android_material_icon_name={showConfirmPassword ? 'visibility_off' : 'visibility'}
-                size={24}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.requirementsBox}>
-            <Text style={styles.requirementsTitle}>Requisitos de la contraseña:</Text>
-            <View style={styles.requirementItem}>
-              <IconSymbol
-                ios_icon_name={newPassword.length >= 8 ? 'checkmark.circle.fill' : 'circle'}
-                android_material_icon_name={newPassword.length >= 8 ? 'check_circle' : 'radio_button_unchecked'}
-                size={20}
-                color={newPassword.length >= 8 ? '#10b981' : colors.textSecondary}
-              />
-              <Text style={[styles.requirementText, newPassword.length >= 8 && styles.requirementTextValid]}>
-                Mínimo 8 caracteres
-              </Text>
-            </View>
-            <View style={styles.requirementItem}>
-              <IconSymbol
-                ios_icon_name={/[A-Z]/.test(newPassword) ? 'checkmark.circle.fill' : 'circle'}
-                android_material_icon_name={/[A-Z]/.test(newPassword) ? 'check_circle' : 'radio_button_unchecked'}
-                size={20}
-                color={/[A-Z]/.test(newPassword) ? '#10b981' : colors.textSecondary}
-              />
-              <Text style={[styles.requirementText, /[A-Z]/.test(newPassword) && styles.requirementTextValid]}>
-                Al menos una letra mayúscula
-              </Text>
-            </View>
-            <View style={styles.requirementItem}>
-              <IconSymbol
-                ios_icon_name={/[a-z]/.test(newPassword) ? 'checkmark.circle.fill' : 'circle'}
-                android_material_icon_name={/[a-z]/.test(newPassword) ? 'check_circle' : 'radio_button_unchecked'}
-                size={20}
-                color={/[a-z]/.test(newPassword) ? '#10b981' : colors.textSecondary}
-              />
-              <Text style={[styles.requirementText, /[a-z]/.test(newPassword) && styles.requirementTextValid]}>
-                Al menos una letra minúscula
-              </Text>
-            </View>
-            <View style={styles.requirementItem}>
-              <IconSymbol
-                ios_icon_name={/[0-9]/.test(newPassword) ? 'checkmark.circle.fill' : 'circle'}
-                android_material_icon_name={/[0-9]/.test(newPassword) ? 'check_circle' : 'radio_button_unchecked'}
-                size={20}
-                color={/[0-9]/.test(newPassword) ? '#10b981' : colors.textSecondary}
-              />
-              <Text style={[styles.requirementText, /[0-9]/.test(newPassword) && styles.requirementTextValid]}>
-                Al menos un número
-              </Text>
-            </View>
-          </View>
-
-          {isGoogleUser && (
-            <View style={styles.googleInfoBox}>
-              <IconSymbol
-                ios_icon_name="info.circle.fill"
-                android_material_icon_name="info"
-                size={24}
+                ios_icon_name="lock.shield.fill"
+                android_material_icon_name="lock"
+                size={64}
                 color={colors.primary}
               />
-              <Text style={styles.googleInfoText}>
-                Una vez configurada tu contraseña, podrás iniciar sesión usando Google o tu email y contraseña.
+              <Text style={styles.infoTitle}>Casi listo</Text>
+              <Text style={styles.infoText}>
+                {isGoogleUser
+                  ? 'Por favor, configura tu contraseña. Podrás usar tanto Google como email/contraseña para iniciar sesión.'
+                  : 'Por favor, ingresa tu nueva contraseña. Asegúrate de que sea segura y fácil de recordar.'}
               </Text>
             </View>
-          )}
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleUpdatePassword}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
+            <Text style={styles.label}>Nueva contraseña</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Ingresa tu nueva contraseña"
+                placeholderTextColor={colors.textSecondary}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}
+              >
                 <IconSymbol
-                  ios_icon_name="checkmark.circle.fill"
-                  android_material_icon_name="check_circle"
-                  size={20}
-                  color="#fff"
-                  style={styles.buttonIcon}
+                  ios_icon_name={showPassword ? 'eye.slash.fill' : 'eye.fill'}
+                  android_material_icon_name={showPassword ? 'visibility_off' : 'visibility'}
+                  size={24}
+                  color={colors.textSecondary}
                 />
-                <Text style={styles.buttonText}>
-                  {isGoogleUser ? 'Configurar contraseña' : 'Actualizar contraseña'}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
 
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => router.replace('/auth/login')}
-          >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <Text style={styles.label}>Confirmar contraseña</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Confirma tu nueva contraseña"
+                placeholderTextColor={colors.textSecondary}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                <IconSymbol
+                  ios_icon_name={showConfirmPassword ? 'eye.slash.fill' : 'eye.fill'}
+                  android_material_icon_name={showConfirmPassword ? 'visibility_off' : 'visibility'}
+                  size={24}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.requirementsBox}>
+              <Text style={styles.requirementsTitle}>Requisitos de la contraseña:</Text>
+              <View style={styles.requirementItem}>
+                <IconSymbol
+                  ios_icon_name={newPassword.length >= 8 ? 'checkmark.circle.fill' : 'circle'}
+                  android_material_icon_name={newPassword.length >= 8 ? 'check_circle' : 'radio_button_unchecked'}
+                  size={20}
+                  color={newPassword.length >= 8 ? '#10b981' : colors.textSecondary}
+                />
+                <Text style={[styles.requirementText, newPassword.length >= 8 && styles.requirementTextValid]}>
+                  Mínimo 8 caracteres
+                </Text>
+              </View>
+              <View style={styles.requirementItem}>
+                <IconSymbol
+                  ios_icon_name={/[A-Z]/.test(newPassword) ? 'checkmark.circle.fill' : 'circle'}
+                  android_material_icon_name={/[A-Z]/.test(newPassword) ? 'check_circle' : 'radio_button_unchecked'}
+                  size={20}
+                  color={/[A-Z]/.test(newPassword) ? '#10b981' : colors.textSecondary}
+                />
+                <Text style={[styles.requirementText, /[A-Z]/.test(newPassword) && styles.requirementTextValid]}>
+                  Al menos una letra mayúscula
+                </Text>
+              </View>
+              <View style={styles.requirementItem}>
+                <IconSymbol
+                  ios_icon_name={/[a-z]/.test(newPassword) ? 'checkmark.circle.fill' : 'circle'}
+                  android_material_icon_name={/[a-z]/.test(newPassword) ? 'check_circle' : 'radio_button_unchecked'}
+                  size={20}
+                  color={/[a-z]/.test(newPassword) ? '#10b981' : colors.textSecondary}
+                />
+                <Text style={[styles.requirementText, /[a-z]/.test(newPassword) && styles.requirementTextValid]}>
+                  Al menos una letra minúscula
+                </Text>
+              </View>
+              <View style={styles.requirementItem}>
+                <IconSymbol
+                  ios_icon_name={/[0-9]/.test(newPassword) ? 'checkmark.circle.fill' : 'circle'}
+                  android_material_icon_name={/[0-9]/.test(newPassword) ? 'check_circle' : 'radio_button_unchecked'}
+                  size={20}
+                  color={/[0-9]/.test(newPassword) ? '#10b981' : colors.textSecondary}
+                />
+                <Text style={[styles.requirementText, /[0-9]/.test(newPassword) && styles.requirementTextValid]}>
+                  Al menos un número
+                </Text>
+              </View>
+            </View>
+
+            {isGoogleUser && (
+              <View style={styles.googleInfoBox}>
+                <IconSymbol
+                  ios_icon_name="info.circle.fill"
+                  android_material_icon_name="info"
+                  size={24}
+                  color={colors.primary}
+                />
+                <Text style={styles.googleInfoText}>
+                  Una vez configurada tu contraseña, podrás iniciar sesión usando Google o tu email y contraseña.
+                </Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleUpdatePassword}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle.fill"
+                    android_material_icon_name="check_circle"
+                    size={20}
+                    color="#fff"
+                    style={styles.buttonIcon}
+                  />
+                  <Text style={styles.buttonText}>
+                    {isGoogleUser ? 'Configurar contraseña' : 'Actualizar contraseña'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => router.replace('/auth/login')}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -368,8 +375,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
   header: {
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'android' ? 60 : 80,
     paddingBottom: 32,
     paddingHorizontal: 24,
   },
@@ -392,15 +409,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.9)',
   },
-  content: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 24,
-    paddingBottom: 120,
-  },
   formContainer: {
     flex: 1,
+    padding: 24,
   },
   infoBox: {
     alignItems: 'center',
