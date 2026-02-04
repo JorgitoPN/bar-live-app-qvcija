@@ -1,6 +1,6 @@
 
 // ⚠️ PASO 1: CONSOLE LOG DE VERIFICACIÓN
-console.log("⚠️ CHAT ACTIVADO - VERSIÓN 2.1 - FIXES APLICADOS");
+console.log("⚠️ CHAT ACTIVADO - VERSIÓN 2.2 - FIXES CRÍTICOS APLICADOS");
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -288,8 +288,7 @@ export default function SalaVirtualEnhancedScreen() {
   }, []);
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // 🔥 FIX 2: TECLADO ANDROID - SCROLL VIEW CON PADDING DINÁMICO
-  // En lugar de KeyboardAvoidingView, usar ScrollView con paddingBottom dinámico
+  // 🔥 FIX 2: TECLADO ANDROID - LISTENERS CON SCROLL AUTOMÁTICO
   // ═══════════════════════════════════════════════════════════════════════════════
   useEffect(() => {
     if (Platform.OS === 'android') {
@@ -303,8 +302,10 @@ export default function SalaVirtualEnhancedScreen() {
         // Scroll to bottom when keyboard appears
         setTimeout(() => {
           if (selectedPrivateChat) {
+            console.log('[SalaVirtual Enhanced] 🎹 FIX 2: Scrolling private chat to bottom');
             privateChatListRef.current?.scrollToEnd({ animated: true });
           } else {
+            console.log('[SalaVirtual Enhanced] 🎹 FIX 2: Scrolling public chat to bottom');
             flatListRef.current?.scrollToEnd({ animated: true });
           }
         }, 100);
@@ -1852,7 +1853,7 @@ export default function SalaVirtualEnhancedScreen() {
             }),
           ]),
         ]).start(() => {
-          setFloatingParticles(current => current.filter(p => p.id !== sparkle.id));
+          setFloatingParticles(current => current.filter(p => p.id !== particle.id));
         });
       });
       
@@ -2298,20 +2299,29 @@ export default function SalaVirtualEnhancedScreen() {
   // ═══════════════════════════════════════════════════════════════════════════════
   // 🔥 FIX 3: CORREGIR NAVEGACIÓN AL PERFIL
   // NO hacer checkout - solo cerrar el bottom sheet y navegar
+  // Usar router.push directamente sin setTimeout para evitar cancelaciones
   // ═══════════════════════════════════════════════════════════════════════════════
-  const handleViewProfile = () => {
-    if (!selectedUser) return;
+  const handleViewProfile = useCallback(() => {
+    if (!selectedUser) {
+      console.log('[SalaVirtual Enhanced] ⚠️ FIX 3: No selected user');
+      return;
+    }
     
     console.log('[SalaVirtual Enhanced] 👤 FIX 3: Navigating to user profile:', selectedUser.id);
-    console.log('[SalaVirtual Enhanced] 👤 FIX 3: Closing bottom sheet...');
+    console.log('[SalaVirtual Enhanced] 👤 FIX 3: User name:', selectedUser.nombre);
     
-    closeBottomSheet();
+    // Close bottom sheet first
+    setShowBottomSheet(false);
+    setSelectedUser(null);
+    setSelectedUserProfile(null);
     
-    setTimeout(() => {
-      console.log('[SalaVirtual Enhanced] 👤 FIX 3: Navigating to /perfil/usuario?id=' + selectedUser.id);
-      router.push(`/perfil/usuario?id=${selectedUser.id}`);
-    }, 300);
-  };
+    // Reset bottom sheet animation
+    bottomSheetAnim.setValue(SCREEN_HEIGHT);
+    
+    // Navigate immediately
+    console.log('[SalaVirtual Enhanced] 👤 FIX 3: Executing router.push to /perfil/usuario?id=' + selectedUser.id);
+    router.push(`/perfil/usuario?id=${selectedUser.id}`);
+  }, [selectedUser, router, bottomSheetAnim]);
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = user && item.usuario_id === user.id;
@@ -3072,10 +3082,20 @@ export default function SalaVirtualEnhancedScreen() {
 
   const androidTopPadding = Platform.OS === 'android' ? Math.max(insets.top, 24) : 0;
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥 FIX 2: TECLADO ANDROID - PADDING DINÁMICO PARA FLATLIST
+  // Calcular el padding bottom basado en la altura del teclado
+  // ═══════════════════════════════════════════════════════════════════════════════
+  const chatListPaddingBottom = Platform.OS === 'android' 
+    ? (keyboardHeight > 0 ? keyboardHeight + 80 : Math.max(insets.bottom + 160, 180))
+    : insets.bottom + 80;
+
+  console.log('[SalaVirtual Enhanced] 🎹 FIX 2: Chat list padding bottom:', chatListPaddingBottom);
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <LinearGradient
@@ -3388,12 +3408,11 @@ export default function SalaVirtualEnhancedScreen() {
                 contentContainerStyle={[
                   styles.messagesContent, 
                   { 
-                    paddingBottom: Platform.OS === 'android' 
-                      ? keyboardHeight + 160 
-                      : insets.bottom + 80 
+                    paddingBottom: chatListPaddingBottom
                   }
                 ]}
                 onContentSizeChange={() => {
+                  console.log('[SalaVirtual Enhanced] 🎹 FIX 2: Content size changed, scrolling to bottom');
                   flatListRef.current?.scrollToEnd({ animated: true });
                 }}
                 ListEmptyComponent={
@@ -3632,12 +3651,14 @@ export default function SalaVirtualEnhancedScreen() {
                     <TouchableOpacity
                       onPress={() => {
                         console.log('[SalaVirtual Enhanced] 👤 FIX 3: Navigating to profile from private chat header');
+                        console.log('[SalaVirtual Enhanced] 👤 FIX 3: Partner ID:', selectedPrivateChat.userId);
                         
+                        // Close private chat
                         closePrivateChat();
                         
-                        setTimeout(() => {
-                          router.push(`/perfil/usuario?id=${selectedPrivateChat.userId}`);
-                        }, 300);
+                        // Navigate immediately
+                        console.log('[SalaVirtual Enhanced] 👤 FIX 3: Executing router.push');
+                        router.push(`/perfil/usuario?id=${selectedPrivateChat.userId}`);
                       }}
                       style={[styles.privateChatProfileButton, { backgroundColor: themeColors.primary + '20' }]}
                       activeOpacity={0.7}
@@ -3659,12 +3680,11 @@ export default function SalaVirtualEnhancedScreen() {
                     contentContainerStyle={[
                       styles.messagesContent, 
                       { 
-                        paddingBottom: Platform.OS === 'android' 
-                          ? keyboardHeight + 160 
-                          : insets.bottom + 80 
+                        paddingBottom: chatListPaddingBottom
                       }
                     ]}
                     onContentSizeChange={() => {
+                      console.log('[SalaVirtual Enhanced] 🎹 FIX 2: Private chat content size changed, scrolling to bottom');
                       privateChatListRef.current?.scrollToEnd({ animated: true });
                     }}
                     onLayout={() => {
