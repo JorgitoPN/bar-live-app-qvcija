@@ -3118,7 +3118,8 @@ export default function SalaVirtualEnhancedScreen() {
           </View>
         )}
 
-        <View style={styles.content}>
+        {/* 🔴🔴🔴 RED BORDER TEST - If you see this red border, sala-virtual-enhanced.tsx is being used 🔴🔴🔴 */}
+        <View style={[styles.content, { borderWidth: 10, borderColor: 'red' }]}>
           <View style={[
             styles.tabBarContainer, 
             { 
