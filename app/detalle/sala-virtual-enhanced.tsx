@@ -246,7 +246,7 @@ export default function SalaVirtualEnhancedScreen() {
   const themeColors = mode === 'day' ? DAY_COLORS : NIGHT_COLORS;
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // 🔥🔥🔥 NUEVA FUNCIONALIDAD: fetchUserProfile(userId)
+  // 🔥 NUEVA FUNCIONALIDAD: fetchUserProfile(userId)
   // Consulta la tabla usuarios para obtener datos de avatar actualizados
   // ═══════════════════════════════════════════════════════════════════════════════
   const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
@@ -282,16 +282,18 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, []);
 
-  // ANDROID FIX: Keyboard handling
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥 FIX ANDROID: Keyboard handling to prevent input field overlap
+  // ═══════════════════════════════════════════════════════════════════════════════
   useEffect(() => {
     if (Platform.OS === 'android') {
       const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
-        console.log('[SalaVirtual Enhanced] 🎹 Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[SalaVirtual Enhanced] 🎹 ANDROID FIX: Keyboard shown, height:', e.endCoordinates.height);
         setKeyboardHeight(e.endCoordinates.height);
       });
       
       const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-        console.log('[SalaVirtual Enhanced] 🎹 Keyboard hidden');
+        console.log('[SalaVirtual Enhanced] 🎹 ANDROID FIX: Keyboard hidden');
         setKeyboardHeight(0);
       });
 
@@ -668,7 +670,7 @@ export default function SalaVirtualEnhancedScreen() {
   }, [localId]);
 
   const triggerReceivedAnimation = useCallback((messageText: string, tipo: string) => {
-    console.log('[SalaVirtual Enhanced] 🎬 FIX #3: Triggering received animation for tipo:', tipo);
+    console.log('[SalaVirtual Enhanced] 🎬 Triggering received animation for tipo:', tipo);
     
     if (tipo !== 'rapido') {
       console.log('[SalaVirtual Enhanced] ⏭️ Not a rapido message, skipping animation');
@@ -806,7 +808,7 @@ export default function SalaVirtualEnhancedScreen() {
             }
             
             if (msg.usuario_id !== user.id && msg.tipo === 'rapido') {
-              console.log('[SalaVirtual Enhanced] 🎬 FIX #3: Received rapido message from another user!');
+              console.log('[SalaVirtual Enhanced] 🎬 Received rapido message from another user!');
               console.log('[SalaVirtual Enhanced] 👤 From:', msg.usuario.nombre);
               console.log('[SalaVirtual Enhanced] 💬 Content:', msg.contenido);
               triggerReceivedAnimation(msg.contenido, msg.tipo);
@@ -921,7 +923,7 @@ export default function SalaVirtualEnhancedScreen() {
                   }
                   
                   if (msg.usuario_id !== user.id && msg.tipo === 'rapido') {
-                    console.log('[SalaVirtual Enhanced] 🎬 FIX #3: Received private rapido message!');
+                    console.log('[SalaVirtual Enhanced] 🎬 Received private rapido message!');
                     console.log('[SalaVirtual Enhanced] 👤 From:', msg.usuario.nombre);
                     console.log('[SalaVirtual Enhanced] 💬 Content:', msg.contenido);
                     triggerReceivedAnimation(msg.contenido, msg.tipo);
@@ -1032,15 +1034,15 @@ export default function SalaVirtualEnhancedScreen() {
   }, [localId, userLocation, user]);
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // 🔥🔥🔥 FIX #2: PERSISTENCIA DE NOTIFICACIONES (PUNTO AZUL)
+  // 🔥 FIX: PERSISTENCIA DE NOTIFICACIONES (PUNTO AZUL)
   // Mark private messages as read in the database when opening a conversation
   // ═══════════════════════════════════════════════════════════════════════════════
   const markPrivateMessagesAsRead = useCallback(async (partnerId: string) => {
     if (!user || !localId) return;
 
     try {
-      console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Marking private messages as read from:', partnerId);
-      console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Updating WHERE leido = false');
+      console.log('[SalaVirtual Enhanced] 🔵 FIX: Marking private messages as read from:', partnerId);
+      console.log('[SalaVirtual Enhanced] 🔵 FIX: Updating WHERE leido = false');
       
       const { error } = await supabase
         .from('sala_virtual_interacciones')
@@ -1052,22 +1054,22 @@ export default function SalaVirtualEnhancedScreen() {
         .eq('leido', false);
 
       if (error) {
-        console.error('[SalaVirtual Enhanced] ❌ FIX #2: Error marking messages as read:', error);
+        console.error('[SalaVirtual Enhanced] ❌ FIX: Error marking messages as read:', error);
       } else {
-        console.log('[SalaVirtual Enhanced] ✅ FIX #2: Messages marked as read in database');
+        console.log('[SalaVirtual Enhanced] ✅ FIX: Messages marked as read in database');
         
         // ═══════════════════════════════════════════════════════════════════════════════
-        // 🔥🔥🔥 FIX #2: ACTUALIZAR CONTADOR INMEDIATAMENTE
+        // 🔥 FIX: ACTUALIZAR CONTADOR INMEDIATAMENTE
         // Update the unread counter in the frontend immediately after database update
         // ═══════════════════════════════════════════════════════════════════════════════
-        console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Updating unread counter immediately in frontend');
+        console.log('[SalaVirtual Enhanced] 🔵 FIX: Updating unread counter immediately in frontend');
         setPrivateChats(prev => 
           prev.map(c => c.userId === partnerId ? { ...c, unreadCount: 0 } : c)
         );
-        console.log('[SalaVirtual Enhanced] ✅ FIX #2: Unread counter set to 0 for user:', partnerId);
+        console.log('[SalaVirtual Enhanced] ✅ FIX: Unread counter set to 0 for user:', partnerId);
       }
     } catch (error) {
-      console.error('[SalaVirtual Enhanced] ❌ FIX #2: Error:', error);
+      console.error('[SalaVirtual Enhanced] ❌ FIX: Error:', error);
     }
   }, [user, localId]);
 
@@ -1078,7 +1080,7 @@ export default function SalaVirtualEnhancedScreen() {
       console.log('[SalaVirtual Enhanced] 🔄 Loading private chats...');
       
       // ═══════════════════════════════════════════════════════════════════════════════
-      // 🔥🔥🔥 FIX #2: CONSULTA SQL CON WHERE leido = false
+      // 🔥 FIX: CONSULTA SQL CON WHERE leido = false
       // Ensure we only count unread messages (leido = false)
       // ═══════════════════════════════════════════════════════════════════════════════
       const { data: privateMessages, error } = await supabase
@@ -1110,19 +1112,19 @@ export default function SalaVirtualEnhancedScreen() {
       const chatMap = new Map<string, PrivateChat>();
       const unreadCountMap = new Map<string, number>();
       
-      console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Counting unread messages WHERE leido = false');
+      console.log('[SalaVirtual Enhanced] 🔵 FIX: Counting unread messages WHERE leido = false');
       
       (privateMessages || []).forEach(msg => {
         const partnerId = msg.usuario_id === user.id ? msg.recipient_id : msg.usuario_id;
         if (!partnerId) return;
         
         // ═══════════════════════════════════════════════════════════════════════════════
-        // 🔥🔥🔥 FIX #2: Count ONLY unread messages (leido = false)
+        // 🔥 FIX: Count ONLY unread messages (leido = false)
         // ═══════════════════════════════════════════════════════════════════════════════
         if (msg.recipient_id === user.id && msg.usuario_id !== user.id && msg.leido === false) {
           const currentCount = unreadCountMap.get(partnerId) || 0;
           unreadCountMap.set(partnerId, currentCount + 1);
-          console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Unread message from', partnerId, '- count:', currentCount + 1);
+          console.log('[SalaVirtual Enhanced] 🔵 FIX: Unread message from', partnerId, '- count:', currentCount + 1);
         }
         
         if (!chatMap.has(partnerId)) {
@@ -1150,7 +1152,7 @@ export default function SalaVirtualEnhancedScreen() {
       }));
       
       console.log('[SalaVirtual Enhanced] ✅ Private chats loaded:', chats.length);
-      console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Total unread messages (WHERE leido = false):', 
+      console.log('[SalaVirtual Enhanced] 🔵 FIX: Total unread messages (WHERE leido = false):', 
         chats.reduce((sum, chat) => sum + chat.unreadCount, 0)
       );
       
@@ -1160,6 +1162,9 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, [user, localId, activeUsers]);
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥 FIX: TYPING INDICATOR - Handle typing events
+  // ═══════════════════════════════════════════════════════════════════════════════
   const handleTypingStart = useCallback(() => {
     if (!selectedPrivateChat || !user || !localId) return;
 
@@ -1331,7 +1336,7 @@ export default function SalaVirtualEnhancedScreen() {
           
           // If a message was marked as read, update the private chats list
           if (updatedRecord.tipo === 'privado' && updatedRecord.leido === true) {
-            console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Message marked as read via real-time, reloading chats');
+            console.log('[SalaVirtual Enhanced] 🔵 FIX: Message marked as read via real-time, reloading chats');
             setTimeout(() => {
               loadPrivateChats();
             }, 300);
@@ -1460,10 +1465,10 @@ export default function SalaVirtualEnhancedScreen() {
       const now = new Date().toISOString();
 
       // ═══════════════════════════════════════════════════════════════════════════════
-      // 🔥🔥🔥 FIX #1: FETCH USER PROFILE FROM DATABASE
+      // 🔥 FIX: FETCH USER PROFILE FROM DATABASE
       // Use fetchUserProfile to get updated avatar data from usuarios table
       // ═══════════════════════════════════════════════════════════════════════════════
-      console.log('[SalaVirtual Enhanced] 🔥 FIX #1: Fetching user profile from database...');
+      console.log('[SalaVirtual Enhanced] 🔥 FIX: Fetching user profile from database...');
       const userProfile = await fetchUserProfile(user.id);
       
       const currentUserProfile = userProfile || {
@@ -1473,7 +1478,7 @@ export default function SalaVirtualEnhancedScreen() {
         avatar: user.user_metadata?.avatar,
       };
 
-      console.log('[SalaVirtual Enhanced] 🔥 FIX #1: Using profile data from database');
+      console.log('[SalaVirtual Enhanced] 🔥 FIX: Using profile data from database');
       console.log('[SalaVirtual Enhanced] 👤 User profile:', currentUserProfile.nombre);
       console.log('[SalaVirtual Enhanced] 🖼️ Avatar URL:', currentUserProfile.avatar || 'NO AVATAR');
 
@@ -1488,7 +1493,7 @@ export default function SalaVirtualEnhancedScreen() {
         usuario: currentUserProfile,
       };
 
-      console.log('[SalaVirtual Enhanced] ✨ FIX #1: Adding message optimistically with avatar from database');
+      console.log('[SalaVirtual Enhanced] ✨ FIX: Adding message optimistically with avatar from database');
       console.log('[SalaVirtual Enhanced] 👤 User:', optimisticMsg.usuario.nombre, '| Avatar:', !!optimisticMsg.usuario.avatar);
       
       messageIdsRef.current.add(messageId);
@@ -1587,8 +1592,8 @@ export default function SalaVirtualEnhancedScreen() {
       const messageId = `pending-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date().toISOString();
 
-      // 🔥🔥🔥 FIX #1: Fetch user profile from database
-      console.log('[SalaVirtual Enhanced] 🔥 FIX #1: Fetching user profile from database for predefined message...');
+      // 🔥 FIX: Fetch user profile from database
+      console.log('[SalaVirtual Enhanced] 🔥 FIX: Fetching user profile from database for predefined message...');
       const userProfile = await fetchUserProfile(user.id);
       
       const currentUserProfile = userProfile || {
@@ -1833,8 +1838,8 @@ export default function SalaVirtualEnhancedScreen() {
       const messageId = `pending-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date().toISOString();
 
-      // 🔥🔥🔥 FIX #1: Fetch user profile from database
-      console.log('[SalaVirtual Enhanced] 🔥 FIX #1: Fetching user profile from database for private message...');
+      // 🔥 FIX: Fetch user profile from database
+      console.log('[SalaVirtual Enhanced] 🔥 FIX: Fetching user profile from database for private message...');
       const userProfile = await fetchUserProfile(user.id);
       
       const currentUserProfile = userProfile || {
@@ -1844,7 +1849,7 @@ export default function SalaVirtualEnhancedScreen() {
         avatar: user.user_metadata?.avatar,
       };
 
-      console.log('[SalaVirtual Enhanced] 🔥 FIX #1: Using profile data from database for private message');
+      console.log('[SalaVirtual Enhanced] 🔥 FIX: Using profile data from database for private message');
 
       const newMsg: Message = {
         id: messageId,
@@ -1958,7 +1963,7 @@ export default function SalaVirtualEnhancedScreen() {
   }, [user, localId, activeUsers, isTyping, handleTypingStop, fetchUserProfile]);
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // 🔥🔥🔥 FIX #2: PERSISTENCIA DE NOTIFICACIONES (PUNTO AZUL)
+  // 🔥 FIX: PERSISTENCIA DE NOTIFICACIONES (PUNTO AZUL)
   // Mark messages as read in database when opening a conversation
   // ═══════════════════════════════════════════════════════════════════════════════
   const openPrivateChat = useCallback(async (chat: PrivateChat) => {
@@ -1970,17 +1975,17 @@ export default function SalaVirtualEnhancedScreen() {
         : chat.nombre;
       
       console.log('[SalaVirtual Enhanced] 💬 Opening private chat with:', displayName);
-      console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Unread count before:', chat.unreadCount);
+      console.log('[SalaVirtual Enhanced] 🔵 FIX: Unread count before:', chat.unreadCount);
       
       setSelectedPrivateChat(chat);
       
       // ═══════════════════════════════════════════════════════════════════════════════
-      // 🔥🔥🔥 FIX #2: MARK MESSAGES AS READ IN DATABASE
+      // 🔥 FIX: MARK MESSAGES AS READ IN DATABASE
       // ═══════════════════════════════════════════════════════════════════════════════
-      console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Marking messages as read in database...');
+      console.log('[SalaVirtual Enhanced] 🔵 FIX: Marking messages as read in database...');
       await markPrivateMessagesAsRead(chat.userId);
       
-      console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Unread count set to 0 in frontend');
+      console.log('[SalaVirtual Enhanced] 🔵 FIX: Unread count set to 0 in frontend');
       
       const { data, error } = await supabase
         .from('sala_virtual_interacciones')
@@ -2187,7 +2192,7 @@ export default function SalaVirtualEnhancedScreen() {
     }
     
     // ═══════════════════════════════════════════════════════════════════════════════
-    // 🔥🔥🔥 NUEVA FUNCIONALIDAD: FETCH USER PROFILE FOR BOTTOM SHEET
+    // 🔥 NUEVA FUNCIONALIDAD: FETCH USER PROFILE FOR BOTTOM SHEET
     // Get updated profile data from database for the cover image
     // ═══════════════════════════════════════════════════════════════════════════════
     console.log('[SalaVirtual Enhanced] 🔥 Fetching user profile for bottom sheet cover...');
@@ -2233,7 +2238,7 @@ export default function SalaVirtualEnhancedScreen() {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // 🔥🔥🔥 FIX: CORREGIR NAVEGACIÓN AL PERFIL
+  // 🔥 FIX: CORREGIR NAVEGACIÓN AL PERFIL
   // Ensure proper navigation to user's social profile
   // ═══════════════════════════════════════════════════════════════════════════════
   const handleViewProfile = () => {
@@ -2637,10 +2642,9 @@ export default function SalaVirtualEnhancedScreen() {
           
           <ScrollView style={styles.bottomSheetScroll} contentContainerStyle={styles.bottomSheetContent}>
             {/* ═══════════════════════════════════════════════════════════════════════════════
-                🔥🔥🔥 MEJORA: DISEÑO MEJORADO DE IMAGEN DE PORTADA
+                🔥 MEJORA: DISEÑO MEJORADO DE IMAGEN DE PORTADA
                 - Imagen completa sin recortes
                 - Sin sombras en la parte inferior
-                - Sin avatar superpuesto en el centro
                 - Diseño más atractivo y original
                 ═══════════════════════════════════════════════════════════════════════════════ */}
             {profileAvatar && (
@@ -2826,6 +2830,9 @@ export default function SalaVirtualEnhancedScreen() {
     );
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥 FIX: TYPING INDICATOR - Visual animation
+  // ═══════════════════════════════════════════════════════════════════════════════
   const renderTypingIndicator = () => {
     if (!selectedPrivateChat || typingUsers.size === 0) return null;
     
@@ -4371,10 +4378,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   // ═══════════════════════════════════════════════════════════════════════════════
-  // 🔥🔥🔥 MEJORA: ESTILOS MEJORADOS PARA IMAGEN DE PORTADA
+  // 🔥 MEJORA: ESTILOS MEJORADOS PARA IMAGEN DE PORTADA
   // - Imagen completa sin recortes (height: 300)
   // - Sin sombras en la parte inferior
-  // - Sin avatar superpuesto en el centro
   // - Diseño más atractivo y original con gradientes suaves
   // ═══════════════════════════════════════════════════════════════════════════════
   coverContainer: {
@@ -4497,6 +4503,9 @@ const styles = StyleSheet.create({
   messageButtonText: {
     flex: 1,
   },
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥 FIX: TYPING INDICATOR - Visual styles
+  // ═══════════════════════════════════════════════════════════════════════════════
   typingIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
