@@ -1316,6 +1316,28 @@ export default function SalaVirtualEnhancedScreen() {
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'sala_virtual_interacciones',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[SalaVirtual Enhanced] 🔄 Message updated in DB:', payload);
+          
+          const updatedRecord = payload.new as any;
+          
+          // If a message was marked as read, update the private chats list
+          if (updatedRecord.tipo === 'privado' && updatedRecord.leido === true) {
+            console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Message marked as read via real-time, reloading chats');
+            setTimeout(() => {
+              loadPrivateChats();
+            }, 300);
+          }
+        }
+      )
       .subscribe((status) => {
         console.log('[SalaVirtual Enhanced] 📡 Chat channel status:', status);
         
@@ -2210,15 +2232,24 @@ export default function SalaVirtualEnhancedScreen() {
     });
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥🔥🔥 FIX: CORREGIR NAVEGACIÓN AL PERFIL
+  // Ensure proper navigation to user's social profile
+  // ═══════════════════════════════════════════════════════════════════════════════
   const handleViewProfile = () => {
     if (!selectedUser) return;
     
-    console.log('[SalaVirtual Enhanced] 👤 Navigating to user profile:', selectedUser.id);
+    console.log('[SalaVirtual Enhanced] 👤 FIX: Navigating to user profile:', selectedUser.id);
+    console.log('[SalaVirtual Enhanced] 👤 FIX: Closing bottom sheet and checking out...');
+    
     closeBottomSheet();
     
+    // Check out from virtual room before navigating
     handleCheckOut();
     
+    // Navigate to user profile after a short delay
     setTimeout(() => {
+      console.log('[SalaVirtual Enhanced] 👤 FIX: Pushing to /perfil/usuario?id=' + selectedUser.id);
       router.push(`/perfil/usuario?id=${selectedUser.id}`);
     }, 300);
   };
@@ -2576,6 +2607,7 @@ export default function SalaVirtualEnhancedScreen() {
 
     // Use selectedUserProfile if available (from database), otherwise fall back to selectedUser
     const profileAvatar = selectedUserProfile?.avatar || selectedUser.avatar;
+    const profileBio = selectedUserProfile?.bio;
 
     return (
       <React.Fragment>
@@ -2606,32 +2638,39 @@ export default function SalaVirtualEnhancedScreen() {
           <ScrollView style={styles.bottomSheetScroll} contentContainerStyle={styles.bottomSheetContent}>
             {/* ═══════════════════════════════════════════════════════════════════════════════
                 🔥🔥🔥 MEJORA: DISEÑO MEJORADO DE IMAGEN DE PORTADA
-                Usar la foto de perfil del usuario con diseño más original y atractivo
+                - Imagen completa sin recortes
+                - Sin sombras en la parte inferior
+                - Sin avatar superpuesto en el centro
+                - Diseño más atractivo y original
                 ═══════════════════════════════════════════════════════════════════════════════ */}
             {profileAvatar && (
-              <View style={styles.bottomSheetCoverContainer}>
+              <View style={styles.coverContainer}>
                 <Image
                   source={resolveImageSource(profileAvatar)}
-                  style={styles.bottomSheetCoverImage}
+                  style={styles.coverImage}
                   resizeMode="cover"
                 />
+                
                 <LinearGradient
                   colors={
                     mode === 'night' 
-                      ? ['transparent', 'rgba(15, 10, 31, 0.95)', themeColors.cardBg]
-                      : ['transparent', 'rgba(240, 249, 255, 0.85)', themeColors.cardBg]
+                      ? ['transparent', 'rgba(15, 10, 31, 0.3)', 'rgba(15, 10, 31, 0.85)']
+                      : ['transparent', 'rgba(240, 249, 255, 0.3)', 'rgba(240, 249, 255, 0.85)']
                   }
-                  style={styles.bottomSheetCoverGradient}
-                  locations={[0, 0.6, 1]}
+                  style={styles.coverGradient}
+                  locations={[0, 0.5, 1]}
                 />
                 
                 {mode === 'night' && (
-                  <View style={styles.bottomSheetCoverGlow}>
+                  <View style={styles.coverGlowEffect}>
                     <Animated.View 
                       style={[
-                        styles.bottomSheetCoverGlowCircle,
+                        styles.coverGlowCircle,
                         {
-                          opacity: glowAnim,
+                          opacity: glowAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.3, 0.7],
+                          }),
                           backgroundColor: themeColors.primary,
                         }
                       ]}
@@ -2639,42 +2678,31 @@ export default function SalaVirtualEnhancedScreen() {
                   </View>
                 )}
                 
-                <View style={styles.bottomSheetCoverOverlay}>
-                  <View style={[styles.bottomSheetCoverAvatarContainer, mode === 'night' && styles.bottomSheetCoverAvatarContainerNight]}>
-                    <Image
-                      source={resolveImageSource(profileAvatar)}
-                      style={styles.bottomSheetCoverAvatar}
-                      resizeMode="cover"
-                    />
-                    {mode === 'night' && (
-                      <View style={[styles.bottomSheetCoverAvatarBorder, { borderColor: themeColors.primary }]} />
-                    )}
-                  </View>
-                  
+                <View style={styles.coverTextOverlay}>
                   <Text style={[
-                    styles.bottomSheetCoverName,
+                    styles.coverUserName,
                     { 
-                      fontSize: scaleFontSize(24), 
-                      color: mode === 'night' ? '#FFFFFF' : themeColors.text,
+                      fontSize: scaleFontSize(32), 
+                      color: '#FFFFFF',
                     },
                     mode === 'night' && {
                       textShadowColor: themeColors.primary,
                       textShadowOffset: { width: 0, height: 0 },
-                      textShadowRadius: 12,
+                      textShadowRadius: 20,
                     }
                   ]}>
                     {recipientName}
                   </Text>
                   
-                  {selectedUserProfile?.bio && (
+                  {profileBio && (
                     <Text style={[
-                      styles.bottomSheetCoverBio,
+                      styles.coverUserBio,
                       { 
-                        fontSize: scaleFontSize(14), 
-                        color: mode === 'night' ? themeColors.textSecondary : themeColors.textSecondary,
+                        fontSize: scaleFontSize(15), 
+                        color: 'rgba(255, 255, 255, 0.9)',
                       }
                     ]} numberOfLines={2}>
-                      {selectedUserProfile.bio}
+                      {profileBio}
                     </Text>
                   )}
                 </View>
@@ -4344,30 +4372,30 @@ const styles = StyleSheet.create({
   },
   // ═══════════════════════════════════════════════════════════════════════════════
   // 🔥🔥🔥 MEJORA: ESTILOS MEJORADOS PARA IMAGEN DE PORTADA
-  // Diseño más original y atractivo con gradientes y efectos
+  // - Imagen completa sin recortes (height: 300)
+  // - Sin sombras en la parte inferior
+  // - Sin avatar superpuesto en el centro
+  // - Diseño más atractivo y original con gradientes suaves
   // ═══════════════════════════════════════════════════════════════════════════════
-  bottomSheetCoverContainer: {
+  coverContainer: {
     width: '100%',
-    height: 280,
+    height: 300,
     position: 'relative',
     marginBottom: 0,
+    overflow: 'hidden',
   },
-  bottomSheetCoverImage: {
+  coverImage: {
     width: '100%',
     height: '100%',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
   },
-  bottomSheetCoverGradient: {
+  coverGradient: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 180,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    height: 150,
   },
-  bottomSheetCoverGlow: {
+  coverGlowEffect: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -4375,70 +4403,41 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
     overflow: 'hidden',
   },
-  bottomSheetCoverGlowCircle: {
-    width: 300,
-    height: 300,
-    borderRadius: 150,
+  coverGlowCircle: {
+    width: 400,
+    height: 400,
+    borderRadius: 200,
     shadowColor: '#EC4899',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 60,
+    shadowOpacity: 0.5,
+    shadowRadius: 80,
     elevation: 20,
   },
-  bottomSheetCoverOverlay: {
+  coverTextOverlay: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 24,
     left: 0,
     right: 0,
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
-  bottomSheetCoverAvatarContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 12,
-    borderWidth: 4,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  bottomSheetCoverAvatarContainerNight: {
-    shadowColor: '#EC4899',
-    shadowOpacity: 0.8,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  bottomSheetCoverAvatar: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 50,
-  },
-  bottomSheetCoverAvatarBorder: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    borderRadius: 54,
-    borderWidth: 2,
-  },
-  bottomSheetCoverName: {
-    fontWeight: '800',
+  coverUserName: {
+    fontWeight: '900',
     textAlign: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
-  bottomSheetCoverBio: {
+  coverUserBio: {
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 20,
     paddingHorizontal: 20,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   bottomSheetHeader: {
     flexDirection: 'row',
