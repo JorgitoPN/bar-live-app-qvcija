@@ -116,7 +116,7 @@ interface Message {
   id: string;
   usuario_id: string;
   local_id: string;
-  tipo: 'mensaje' | 'emoticon' | 'predefinido' | 'privado';
+  tipo: 'mensaje' | 'emoticon' | 'predefinido' | 'privado' | 'rapido';
   contenido: string;
   created_at: string;
   is_private?: boolean;
@@ -514,9 +514,6 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, [user, localId, router]);
 
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // PASO 2: DIAGNÓSTICO DE DATOS CRUDOS
-  // ═══════════════════════════════════════════════════════════════════════════════
   const loadMessages = useCallback(async () => {
     if (!localId) {
       console.error('[SalaVirtual Enhanced] ❌ No localId for loadMessages');
@@ -524,7 +521,7 @@ export default function SalaVirtualEnhancedScreen() {
     }
     
     try {
-      console.log('[SalaVirtual Enhanced] 🔥🔥🔥 PASO 2: DIAGNÓSTICO DE DATOS CRUDOS');
+      console.log('[SalaVirtual Enhanced] 🔥🔥🔥 LOADING INITIAL MESSAGES');
       console.log('[SalaVirtual Enhanced] 📍 Local ID:', localId);
       console.log('[SalaVirtual Enhanced] 🔍 Ejecutando query con filtro: .is("recipient_id", null)');
       
@@ -551,9 +548,6 @@ export default function SalaVirtualEnhancedScreen() {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      // ═══════════════════════════════════════════════════════════════════════════════
-      // 🔥🔥🔥 PASO 2: IMPRIMIR DATA Y ERROR CRUDOS
-      // ═══════════════════════════════════════════════════════════════════════════════
       console.log('[SalaVirtual Enhanced] 📦 RAW DATA from Supabase:', JSON.stringify(data, null, 2));
       console.log('[SalaVirtual Enhanced] ❌ RAW ERROR from Supabase:', JSON.stringify(error, null, 2));
       console.log('[SalaVirtual Enhanced] 📊 Data is array?', Array.isArray(data));
@@ -573,7 +567,7 @@ export default function SalaVirtualEnhancedScreen() {
       if (!data || data.length === 0) {
         console.log('[SalaVirtual Enhanced] ⚠️⚠️⚠️ ARRAY VACÍO DETECTADO');
         console.log('[SalaVirtual Enhanced] 🔍 Posibles causas:');
-        console.log('[SalaVirtual Enhanced] 1️⃣ RLS está bloqueando la lectura (SOLUCIONADO con nueva política)');
+        console.log('[SalaVirtual Enhanced] 1️⃣ RLS está bloqueando la lectura');
         console.log('[SalaVirtual Enhanced] 2️⃣ El filtro .is("recipient_id", null) no encuentra mensajes');
         console.log('[SalaVirtual Enhanced] 3️⃣ No hay mensajes en la base de datos para este local');
         setMessages([]);
@@ -597,7 +591,7 @@ export default function SalaVirtualEnhancedScreen() {
           id: msg.id,
           usuario_id: msg.usuario_id,
           local_id: msg.local_id,
-          tipo: msg.tipo as 'mensaje' | 'emoticon' | 'predefinido' | 'privado',
+          tipo: msg.tipo as 'mensaje' | 'emoticon' | 'predefinido' | 'privado' | 'rapido',
           contenido: msg.contenido,
           created_at: msg.created_at,
           is_private: false,
@@ -647,6 +641,61 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, [localId]);
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥🔥🔥 FIX #3: ANIMACIONES DE ENVÍO (REALTIME)
+  // Trigger animation when receiving a "rapido" message from another user
+  // ═══════════════════════════════════════════════════════════════════════════════
+  const triggerReceivedAnimation = useCallback((messageText: string, tipo: string) => {
+    console.log('[SalaVirtual Enhanced] 🎬 FIX #3: Triggering received animation for tipo:', tipo);
+    
+    // Only trigger for "rapido" messages
+    if (tipo !== 'rapido') {
+      console.log('[SalaVirtual Enhanced] ⏭️ Not a rapido message, skipping animation');
+      return;
+    }
+    
+    // Extract emoji from message
+    const emojiMatch = messageText.match(/[\u{1F300}-\u{1F9FF}]/u);
+    const emoji = emojiMatch ? emojiMatch[0] : '✨';
+    
+    console.log('[SalaVirtual Enhanced] 🎬 Showing received animation with emoji:', emoji);
+    
+    setAnimationEmoji(emoji);
+    setShowAnimation(true);
+
+    Animated.parallel([
+      Animated.sequence([
+        Animated.timing(animationScale, {
+          toValue: 1.5,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animationScale, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.sequence([
+        Animated.timing(animationOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.delay(1500),
+        Animated.timing(animationOpacity, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start(() => {
+      setShowAnimation(false);
+      animationScale.setValue(0);
+      animationOpacity.setValue(0);
+    });
+  }, [animationScale, animationOpacity]);
+
   // 🔥🔥🔥 CRITICAL FIX: COMPLETELY REWRITTEN syncMessages function
   const syncMessages = useCallback(async () => {
     if (!localId || !user) {
@@ -688,9 +737,6 @@ export default function SalaVirtualEnhancedScreen() {
 
       const { data: publicData, error: publicError } = await publicQuery;
 
-      // ═══════════════════════════════════════════════════════════════════════════════
-      // 🔥🔥🔥 PASO 2: IMPRIMIR DATA Y ERROR EN SYNC
-      // ═══════════════════════════════════════════════════════════════════════════════
       console.log('[SalaVirtual Enhanced] 🔄 SYNC - RAW DATA:', JSON.stringify(publicData, null, 2));
       console.log('[SalaVirtual Enhanced] 🔄 SYNC - RAW ERROR:', JSON.stringify(publicError, null, 2));
 
@@ -715,7 +761,7 @@ export default function SalaVirtualEnhancedScreen() {
             id: msg.id,
             usuario_id: msg.usuario_id,
             local_id: msg.local_id,
-            tipo: msg.tipo as 'mensaje' | 'emoticon' | 'predefinido' | 'privado',
+            tipo: msg.tipo as 'mensaje' | 'emoticon' | 'predefinido' | 'privado' | 'rapido',
             contenido: msg.contenido,
             created_at: msg.created_at,
             is_private: false,
@@ -753,6 +799,16 @@ export default function SalaVirtualEnhancedScreen() {
               pendingMessageIds.current.delete(pendingId);
               console.log('[SalaVirtual Enhanced] ✅ Removed pending message:', pendingId);
             }
+            
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // 🔥🔥🔥 FIX #3: TRIGGER ANIMATION FOR RECEIVED "RAPIDO" MESSAGES
+            // ═══════════════════════════════════════════════════════════════════════════════
+            if (msg.usuario_id !== user.id && msg.tipo === 'rapido') {
+              console.log('[SalaVirtual Enhanced] 🎬 FIX #3: Received rapido message from another user!');
+              console.log('[SalaVirtual Enhanced] 👤 From:', msg.usuario.nombre);
+              console.log('[SalaVirtual Enhanced] 💬 Content:', msg.contenido);
+              triggerReceivedAnimation(msg.contenido, msg.tipo);
+            }
           });
           
           console.log('[SalaVirtual Enhanced] 🔑 Now tracking', messageIdsRef.current.size, 'message IDs');
@@ -785,7 +841,7 @@ export default function SalaVirtualEnhancedScreen() {
         console.log('[SalaVirtual Enhanced] ℹ️ No new public messages found');
       }
 
-      // 🔥 Sync private messages (same as before)
+      // 🔥 Sync private messages
       let privateQuery = supabase
         .from('sala_virtual_interacciones')
         .select(`
@@ -838,7 +894,7 @@ export default function SalaVirtualEnhancedScreen() {
                 id: msg.id,
                 usuario_id: msg.usuario_id,
                 local_id: msg.local_id,
-                tipo: msg.tipo as 'mensaje' | 'emoticon' | 'predefinido' | 'privado',
+                tipo: msg.tipo as 'mensaje' | 'emoticon' | 'predefinido' | 'privado' | 'rapido',
                 contenido: msg.contenido,
                 created_at: msg.created_at,
                 is_private: true,
@@ -863,6 +919,16 @@ export default function SalaVirtualEnhancedScreen() {
                     const pendingId = msg.contenido + msg.usuario_id;
                     pendingMessageIds.current.delete(pendingId);
                   }
+                  
+                  // ═══════════════════════════════════════════════════════════════════════════════
+                  // 🔥🔥🔥 FIX #3: TRIGGER ANIMATION FOR RECEIVED PRIVATE "RAPIDO" MESSAGES
+                  // ═══════════════════════════════════════════════════════════════════════════════
+                  if (msg.usuario_id !== user.id && msg.tipo === 'rapido') {
+                    console.log('[SalaVirtual Enhanced] 🎬 FIX #3: Received private rapido message!');
+                    console.log('[SalaVirtual Enhanced] 👤 From:', msg.usuario.nombre);
+                    console.log('[SalaVirtual Enhanced] 💬 Content:', msg.contenido);
+                    triggerReceivedAnimation(msg.contenido, msg.tipo);
+                  }
                 });
                 
                 return [...prev, ...uniqueNew].sort((a, b) => 
@@ -882,7 +948,7 @@ export default function SalaVirtualEnhancedScreen() {
     } catch (error) {
       console.error('[SalaVirtual Enhanced] ❌ Error syncing messages:', error);
     }
-  }, [localId, user, selectedPrivateChat, loadPrivateChats]);
+  }, [localId, user, selectedPrivateChat, loadPrivateChats, triggerReceivedAnimation]);
 
   // 🔥🔥🔥 CRITICAL: Aggressive polling for real-time feel
   useEffect(() => {
@@ -975,6 +1041,36 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, [localId, userLocation, user]);
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥🔥🔥 FIX #2: PERSISTENCIA DE NOTIFICACIONES (PUNTO AZUL)
+  // Mark private messages as read in the database when opening a conversation
+  // ═══════════════════════════════════════════════════════════════════════════════
+  const markPrivateMessagesAsRead = useCallback(async (partnerId: string) => {
+    if (!user || !localId) return;
+
+    try {
+      console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Marking private messages as read from:', partnerId);
+      
+      // Update database to mark messages as read
+      const { error } = await supabase
+        .from('sala_virtual_interacciones')
+        .update({ leido: true })
+        .eq('local_id', localId)
+        .eq('tipo', 'privado')
+        .eq('recipient_id', user.id)
+        .eq('usuario_id', partnerId)
+        .eq('leido', false);
+
+      if (error) {
+        console.error('[SalaVirtual Enhanced] ❌ FIX #2: Error marking messages as read:', error);
+      } else {
+        console.log('[SalaVirtual Enhanced] ✅ FIX #2: Messages marked as read in database');
+      }
+    } catch (error) {
+      console.error('[SalaVirtual Enhanced] ❌ FIX #2: Error:', error);
+    }
+  }, [user, localId]);
+
   const loadPrivateChats = useCallback(async () => {
     if (!user || !localId) return;
 
@@ -989,6 +1085,7 @@ export default function SalaVirtualEnhancedScreen() {
           recipient_id,
           contenido,
           created_at,
+          leido,
           usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(
             id,
             nombre,
@@ -1013,10 +1110,13 @@ export default function SalaVirtualEnhancedScreen() {
         const partnerId = msg.usuario_id === user.id ? msg.recipient_id : msg.usuario_id;
         if (!partnerId) return;
         
-        // Count unread messages (messages sent TO current user)
-        if (msg.recipient_id === user.id && msg.usuario_id !== user.id) {
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // 🔥🔥🔥 FIX #2: Count ONLY unread messages (leido = false)
+        // ═══════════════════════════════════════════════════════════════════════════════
+        if (msg.recipient_id === user.id && msg.usuario_id !== user.id && msg.leido === false) {
           const currentCount = unreadCountMap.get(partnerId) || 0;
           unreadCountMap.set(partnerId, currentCount + 1);
+          console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Unread message from', partnerId, '- count:', currentCount + 1);
         }
         
         if (!chatMap.has(partnerId)) {
@@ -1044,6 +1144,10 @@ export default function SalaVirtualEnhancedScreen() {
       }));
       
       console.log('[SalaVirtual Enhanced] ✅ Private chats loaded:', chats.length);
+      console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Total unread messages:', 
+        chats.reduce((sum, chat) => sum + chat.unreadCount, 0)
+      );
+      
       setPrivateChats(chats);
     } catch (error) {
       console.error('[SalaVirtual Enhanced] ❌ Error loading private chats:', error);
@@ -1321,7 +1425,10 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, [selectedPrivateChat, subscribeToTypingEvents]);
 
-  // 🔥🔥🔥 CRITICAL: Send public message with optimistic UI
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥🔥🔥 FIX #1: ERROR DE AVATARES (ESTADO LOCAL)
+  // Include full user profile data from local session BEFORE database roundtrip
+  // ═══════════════════════════════════════════════════════════════════════════════
   const sendPublicMessage = useCallback(async (content: string) => {
     if (!user || !localId || !content.trim()) {
       console.log('[SalaVirtual Enhanced] ⚠️ Cannot send message - missing requirements');
@@ -1339,7 +1446,22 @@ export default function SalaVirtualEnhancedScreen() {
       const messageId = `pending-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date().toISOString();
 
-      // Create optimistic message
+      // ═══════════════════════════════════════════════════════════════════════════════
+      // 🔥🔥🔥 FIX #1: USE LOCAL SESSION DATA FOR AVATAR
+      // Don't wait for database to return user profile - use what we already have!
+      // ═══════════════════════════════════════════════════════════════════════════════
+      const currentUserProfile = {
+        id: user.id,
+        nombre: user.user_metadata?.nombre || user.email?.split('@')[0] || 'Usuario',
+        username: user.user_metadata?.username,
+        avatar: user.user_metadata?.avatar,
+      };
+
+      console.log('[SalaVirtual Enhanced] 🔥 FIX #1: Using LOCAL session data for avatar');
+      console.log('[SalaVirtual Enhanced] 👤 User profile:', currentUserProfile.nombre);
+      console.log('[SalaVirtual Enhanced] 🖼️ Avatar URL:', currentUserProfile.avatar || 'NO AVATAR');
+
+      // Create optimistic message with LOCAL user data
       const optimisticMsg: Message = {
         id: messageId,
         usuario_id: user.id,
@@ -1348,15 +1470,10 @@ export default function SalaVirtualEnhancedScreen() {
         contenido: content,
         created_at: now,
         is_private: false,
-        usuario: {
-          id: user.id,
-          nombre: user.user_metadata?.nombre || user.email?.split('@')[0] || 'Usuario',
-          username: user.user_metadata?.username,
-          avatar: user.user_metadata?.avatar,
-        },
+        usuario: currentUserProfile, // 🔥🔥🔥 FIX #1: Use local session data!
       };
 
-      console.log('[SalaVirtual Enhanced] ✨ Adding message optimistically to UI');
+      console.log('[SalaVirtual Enhanced] ✨ FIX #1: Adding message optimistically with avatar from session');
       console.log('[SalaVirtual Enhanced] 👤 User:', optimisticMsg.usuario.nombre, '| Avatar:', !!optimisticMsg.usuario.avatar);
       
       // Add to message ID tracking
@@ -1420,11 +1537,12 @@ export default function SalaVirtualEnhancedScreen() {
           // Add real message ID to tracking
           messageIdsRef.current.add(insertedMessage.id);
           
+          // 🔥🔥🔥 FIX #1: Keep using LOCAL user data, not database data
           const realMessage: Message = {
             ...insertedMessage,
-            tipo: insertedMessage.tipo as 'mensaje' | 'emoticon' | 'predefinido' | 'privado',
+            tipo: insertedMessage.tipo as 'mensaje' | 'emoticon' | 'predefinido' | 'privado' | 'rapido',
             is_private: false,
-            usuario: optimisticMsg.usuario,
+            usuario: currentUserProfile, // 🔥🔥🔥 FIX #1: Use local session data!
           };
           
           // Check if real message already exists (from polling)
@@ -1465,21 +1583,24 @@ export default function SalaVirtualEnhancedScreen() {
       const messageId = `pending-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date().toISOString();
 
+      // 🔥🔥🔥 FIX #1: Use local session data for avatar
+      const currentUserProfile = {
+        id: user.id,
+        nombre: user.user_metadata?.nombre || user.email?.split('@')[0] || 'Usuario',
+        username: user.user_metadata?.username,
+        avatar: user.user_metadata?.avatar,
+      };
+
       const newMsg: Message = {
         id: messageId,
         usuario_id: user.id,
         local_id: localId,
-        tipo: 'predefinido',
+        tipo: 'rapido', // 🔥 Mark as "rapido" for animation
         contenido: messageText,
         created_at: now,
         is_private: true,
         recipient_id: recipientId,
-        usuario: {
-          id: user.id,
-          nombre: user.user_metadata?.nombre || user.email?.split('@')[0] || 'Usuario',
-          username: user.user_metadata?.username,
-          avatar: user.user_metadata?.avatar,
-        },
+        usuario: currentUserProfile, // 🔥🔥🔥 FIX #1: Use local session data!
       };
 
       const interaction: PendingInteraction = {
@@ -1531,9 +1652,10 @@ export default function SalaVirtualEnhancedScreen() {
         .insert({
           usuario_id: user.id,
           local_id: localId,
-          tipo: 'privado',
+          tipo: 'rapido', // 🔥 Mark as "rapido" for animation
           contenido: messageText,
           recipient_id: recipientId,
+          leido: false, // 🔥🔥🔥 FIX #2: Initialize as unread
         });
 
       if (insertError) {
@@ -1706,6 +1828,16 @@ export default function SalaVirtualEnhancedScreen() {
       const messageId = `pending-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date().toISOString();
 
+      // 🔥🔥🔥 FIX #1: Use local session data for avatar
+      const currentUserProfile = {
+        id: user.id,
+        nombre: user.user_metadata?.nombre || user.email?.split('@')[0] || 'Usuario',
+        username: user.user_metadata?.username,
+        avatar: user.user_metadata?.avatar,
+      };
+
+      console.log('[SalaVirtual Enhanced] 🔥 FIX #1: Using LOCAL session data for private message avatar');
+
       const newMsg: Message = {
         id: messageId,
         usuario_id: user.id,
@@ -1715,12 +1847,7 @@ export default function SalaVirtualEnhancedScreen() {
         created_at: now,
         is_private: true,
         recipient_id: recipientId,
-        usuario: {
-          id: user.id,
-          nombre: user.user_metadata?.nombre || user.email?.split('@')[0] || 'Usuario',
-          username: user.user_metadata?.username,
-          avatar: user.user_metadata?.avatar,
-        },
+        usuario: currentUserProfile, // 🔥🔥🔥 FIX #1: Use local session data!
       };
 
       console.log('[SalaVirtual Enhanced] ✨ Adding private message optimistically to UI');
@@ -1765,6 +1892,7 @@ export default function SalaVirtualEnhancedScreen() {
           tipo: 'privado',
           contenido: content,
           recipient_id: recipientId,
+          leido: false, // 🔥🔥🔥 FIX #2: Initialize as unread
         })
         .select(`
           id,
@@ -1787,11 +1915,12 @@ export default function SalaVirtualEnhancedScreen() {
         setPrivateChatMessages(prev => {
           const withoutOptimistic = prev.filter(m => m.id !== messageId);
           
+          // 🔥🔥🔥 FIX #1: Keep using LOCAL user data
           const realMessage: Message = {
             ...insertedMessage,
-            tipo: insertedMessage.tipo as 'mensaje' | 'emoticon' | 'predefinido' | 'privado',
+            tipo: insertedMessage.tipo as 'mensaje' | 'emoticon' | 'predefinido' | 'privado' | 'rapido',
             is_private: true,
-            usuario: newMsg.usuario,
+            usuario: currentUserProfile, // 🔥🔥🔥 FIX #1: Use local session data!
           };
           
           if (withoutOptimistic.some(m => m.id === realMessage.id)) {
@@ -1816,6 +1945,10 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, [user, localId, activeUsers, isTyping, handleTypingStop]);
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥🔥🔥 FIX #2: PERSISTENCIA DE NOTIFICACIONES (PUNTO AZUL)
+  // Mark messages as read in database when opening a conversation
+  // ═══════════════════════════════════════════════════════════════════════════════
   const openPrivateChat = useCallback(async (chat: PrivateChat) => {
     if (!user || !localId) return;
 
@@ -1825,13 +1958,22 @@ export default function SalaVirtualEnhancedScreen() {
         : chat.nombre;
       
       console.log('[SalaVirtual Enhanced] 💬 Opening private chat with:', displayName);
+      console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Unread count before:', chat.unreadCount);
       
       setSelectedPrivateChat(chat);
       
-      // Mark messages as read
+      // ═══════════════════════════════════════════════════════════════════════════════
+      // 🔥🔥🔥 FIX #2: MARK MESSAGES AS READ IN DATABASE
+      // ═══════════════════════════════════════════════════════════════════════════════
+      console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Marking messages as read in database...');
+      await markPrivateMessagesAsRead(chat.userId);
+      
+      // Update frontend state immediately
       setPrivateChats(prev => 
         prev.map(c => c.userId === chat.userId ? { ...c, unreadCount: 0 } : c)
       );
+      
+      console.log('[SalaVirtual Enhanced] 🔵 FIX #2: Unread count set to 0 in frontend');
       
       const { data, error } = await supabase
         .from('sala_virtual_interacciones')
@@ -1863,7 +2005,7 @@ export default function SalaVirtualEnhancedScreen() {
         id: msg.id,
         usuario_id: msg.usuario_id,
         local_id: localId,
-        tipo: msg.tipo as 'mensaje' | 'emoticon' | 'predefinido' | 'privado',
+        tipo: msg.tipo as 'mensaje' | 'emoticon' | 'predefinido' | 'privado' | 'rapido',
         contenido: msg.contenido,
         created_at: msg.created_at,
         is_private: true,
@@ -1887,7 +2029,7 @@ export default function SalaVirtualEnhancedScreen() {
     } catch (error) {
       console.error('[SalaVirtual Enhanced] ❌ Error opening private chat:', error);
     }
-  }, [user, localId, activeUsers]);
+  }, [user, localId, activeUsers, markPrivateMessagesAsRead]);
 
   const closePrivateChat = useCallback(() => {
     console.log('[SalaVirtual Enhanced] 💬 Closing private chat');
@@ -1976,46 +2118,6 @@ export default function SalaVirtualEnhancedScreen() {
     setShowDeleteModal(false);
     setMessageToDelete(null);
   }, []);
-
-  const triggerReceivedAnimation = (messageText: string) => {
-    const emojiMatch = messageText.match(/[\u{1F300}-\u{1F9FF}]/u);
-    const emoji = emojiMatch ? emojiMatch[0] : '✨';
-    
-    setAnimationEmoji(emoji);
-    setShowAnimation(true);
-
-    Animated.parallel([
-      Animated.sequence([
-        Animated.timing(animationScale, {
-          toValue: 1.5,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(animationScale, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.sequence([
-        Animated.timing(animationOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.delay(1500),
-        Animated.timing(animationOpacity, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start(() => {
-      setShowAnimation(false);
-      animationScale.setValue(0);
-      animationOpacity.setValue(0);
-    });
-  };
 
   const triggerFloatingReaction = useCallback((emoji: string) => {
     const newParticles = Array.from({ length: 15 }, (_, index) => ({
