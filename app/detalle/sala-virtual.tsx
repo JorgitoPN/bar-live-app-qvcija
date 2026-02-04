@@ -1,4 +1,6 @@
 
+console.log('⚠️ CHAT ACTIVADO - VERSIÓN 2.0'); // DIAGNOSTIC LOG
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -14,6 +16,7 @@ import {
   Dimensions,
   Image,
   Animated,
+  Keyboard,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
@@ -83,21 +86,6 @@ const EMOTICONS = ['❤️', '🔥', '😎', '😄', '👏', '🍹', '🎶', '�
 const CLOSING_WARNING_THRESHOLD = 30;
 const CLOSING_CRITICAL_THRESHOLD = 10;
 
-/**
- * ✅ SALA VIRTUAL v281.0 - REFINED VISUAL CONSISTENCY
- * 
- * CRITICAL FIXES v281.0 (ANDROID ONLY):
- * - ✅ REDUCED button padding for more compact appearance
- * - ✅ All sizes now consistent with Explorar local cards reference
- * - ✅ iOS design remains unchanged
- * 
- * Previous fixes maintained (v102.0):
- * - ✅ All icons properly scaled with scaleIconSize()
- * - ✅ All text properly scaled with scaleFontSize()
- * - ✅ Fixed invalid Material icon names
- * - ✅ Avatar sizes properly scaled
- */
-
 export default function SalaVirtualScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -118,6 +106,7 @@ export default function SalaVirtualScreen() {
   const [closingWarningShown, setClosingWarningShown] = useState(false);
   const [minutesUntilClosing, setMinutesUntilClosing] = useState<number | null>(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   
   const flatListRef = useRef<FlatList>(null);
   const chatChannelRef = useRef<RealtimeChannel | null>(null);
@@ -130,8 +119,25 @@ export default function SalaVirtualScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
 
-  // ✅ NEW v281.0: Get refined button padding
   const buttonPaddingVertical = getActionButtonPaddingVertical();
+
+  // PASO 2 - FIX 3: Android Keyboard Fix
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const showSubscription = Keyboard.addListener('keyboardDidShow', (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        console.log('PASO 2 - FIX 3: Keyboard shown, height:', e.endCoordinates.height);
+      });
+      const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+        setKeyboardHeight(0);
+        console.log('PASO 2 - FIX 3: Keyboard hidden');
+      });
+      return () => {
+        showSubscription.remove();
+        hideSubscription.remove();
+      };
+    }
+  }, []);
 
   useEffect(() => {
     Animated.loop(
@@ -178,13 +184,13 @@ export default function SalaVirtualScreen() {
 
         if (localData && localData.propietario_id === user.id) {
           setIsOwner(true);
-          console.log('[SalaVirtual v281.0] ✅ User IS OWNER of this local');
+          console.log('[SalaVirtual] ✅ User IS OWNER of this local');
         } else {
           setIsOwner(false);
-          console.log('[SalaVirtual v281.0] ✅ User is NOT owner of this local');
+          console.log('[SalaVirtual] ✅ User is NOT owner of this local');
         }
       } catch (error) {
-        console.error('[SalaVirtual v281.0] Error checking ownership:', error);
+        console.error('[SalaVirtual] Error checking ownership:', error);
         setIsOwner(false);
       }
     };
@@ -241,7 +247,7 @@ export default function SalaVirtualScreen() {
         }
       }
     } else if (!estadoLocal.estaAbierto) {
-      console.log('[SalaVirtual v281.0] ❌ Local cerrado, expulsando usuarios');
+      console.log('[SalaVirtual] ❌ Local cerrado, expulsando usuarios');
       setLocalClosed(true);
       
       if (chatChannelRef.current) {
@@ -276,7 +282,7 @@ export default function SalaVirtualScreen() {
 
   const loadLocalData = useCallback(async () => {
     if (!localId) {
-      console.error('[SalaVirtual v281.0] No localId provided');
+      console.error('[SalaVirtual] No localId provided');
       setLoading(false);
       Alert.alert('Error', 'No se especificó el local', [
         { text: 'OK', onPress: () => router.back() }
@@ -285,7 +291,7 @@ export default function SalaVirtualScreen() {
     }
 
     try {
-      console.log('[SalaVirtual v281.0] Loading local:', localId);
+      console.log('[SalaVirtual] Loading local:', localId);
       
       const { data, error } = await supabase
         .from('locales')
@@ -294,7 +300,7 @@ export default function SalaVirtualScreen() {
         .single();
 
       if (error) {
-        console.error('[SalaVirtual v281.0] Error loading local:', error);
+        console.error('[SalaVirtual] Error loading local:', error);
         setLoading(false);
         Alert.alert('Error', 'No se pudo cargar la información del local', [
           { text: 'OK', onPress: () => router.back() }
@@ -323,7 +329,7 @@ export default function SalaVirtualScreen() {
         setLocalClosed(false);
       }
     } catch (error) {
-      console.error('[SalaVirtual v281.0] Error:', error);
+      console.error('[SalaVirtual] Error:', error);
       setLoading(false);
     }
   }, [localId, router]);
@@ -343,7 +349,7 @@ export default function SalaVirtualScreen() {
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[SalaVirtual v281.0] Error checking checkin:', error);
+        console.error('[SalaVirtual] Error checking checkin:', error);
         return false;
       }
 
@@ -352,7 +358,7 @@ export default function SalaVirtualScreen() {
       
       return checkedIn;
     } catch (error) {
-      console.error('[SalaVirtual v281.0] Error:', error);
+      console.error('[SalaVirtual] Error:', error);
       return false;
     }
   }, [user, localId]);
@@ -391,7 +397,7 @@ export default function SalaVirtualScreen() {
         .eq('activo', true);
 
       if (closeError) {
-        console.error('[SalaVirtual v281.0] Error closing previous check-ins:', closeError);
+        console.error('[SalaVirtual] Error closing previous check-ins:', closeError);
         setIsCheckedIn(false);
         throw new Error('No se pudo cerrar la sesión anterior');
       }
@@ -410,9 +416,9 @@ export default function SalaVirtualScreen() {
         .single();
 
       if (error) {
-        console.error('[SalaVirtual v281.0] Error inserting checkin:', error);
+        console.error('[SalaVirtual] Error inserting checkin:', error);
         setIsCheckedIn(false);
-        throw new Error('Nose pudo entrar en la sala');
+        throw new Error('No se pudo entrar en la sala');
       }
 
       if (presenceChannelRef.current) {
@@ -426,14 +432,14 @@ export default function SalaVirtualScreen() {
             },
           });
         } catch (broadcastError) {
-          console.error('[SalaVirtual v281.0] Error broadcasting user joined:', broadcastError);
+          console.error('[SalaVirtual] Error broadcasting user joined:', broadcastError);
         }
       }
       
       setCheckingIn(false);
       return true;
     } catch (error: any) {
-      console.error('[SalaVirtual v281.0] Error during checkin:', error);
+      console.error('[SalaVirtual] Error during checkin:', error);
       Alert.alert('Error', error.message || 'Ocurrió un error inesperado al entrar en la sala');
       setCheckingIn(false);
       return false;
@@ -455,7 +461,7 @@ export default function SalaVirtualScreen() {
         .eq('activo', true);
 
       if (error) {
-        console.error('[SalaVirtual v281.0] Error auto checking out:', error);
+        console.error('[SalaVirtual] Error auto checking out:', error);
         return;
       }
 
@@ -469,11 +475,11 @@ export default function SalaVirtualScreen() {
             },
           });
         } catch (broadcastError) {
-          console.error('[SalaVirtual v281.0] Error broadcasting user left:', broadcastError);
+          console.error('[SalaVirtual] Error broadcasting user left:', broadcastError);
         }
       }
     } catch (error) {
-      console.error('[SalaVirtual v281.0] Error in auto checkout:', error);
+      console.error('[SalaVirtual] Error in auto checkout:', error);
     }
   }, [user, localId, isCheckedIn]);
 
@@ -506,11 +512,11 @@ export default function SalaVirtualScreen() {
     if (!localId) return;
 
     try {
-      console.log('[SalaVirtual v281.0] ✅ Volatile chat: Starting with empty message array');
+      console.log('[SalaVirtual] ✅ Volatile chat: Starting with empty message array');
       setMessages([]);
       setLoading(false);
     } catch (error) {
-      console.error('[SalaVirtual v281.0] Error:', error);
+      console.error('[SalaVirtual] Error:', error);
       setLoading(false);
     }
   }, [localId]);
@@ -536,7 +542,7 @@ export default function SalaVirtualScreen() {
         .order('checked_in_at', { ascending: false });
 
       if (error) {
-        console.error('[SalaVirtual v281.0] Error loading active users:', error);
+        console.error('[SalaVirtual] Error loading active users:', error);
         return;
       }
 
@@ -552,14 +558,14 @@ export default function SalaVirtualScreen() {
 
       setActiveUsers(users);
     } catch (error) {
-      console.error('[SalaVirtual v281.0] Error:', error);
+      console.error('[SalaVirtual] Error:', error);
     }
   }, [localId]);
 
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
-    console.log('[SalaVirtual v281.0] 📡 Subscribing to real-time updates');
+    console.log('[SalaVirtual] 📡 Subscribing to real-time updates');
 
     const chatChannel = supabase
       .channel(`room:${localId}:chat`, {
@@ -792,7 +798,7 @@ export default function SalaVirtualScreen() {
         });
       }
     } catch (error) {
-      console.error('[SalaVirtual v281.0] Error:', error);
+      console.error('[SalaVirtual] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al enviar el mensaje');
     } finally {
       setSending(false);
@@ -813,7 +819,7 @@ export default function SalaVirtualScreen() {
         });
       }
     } catch (error) {
-      console.error('[SalaVirtual v281.0] Error:', error);
+      console.error('[SalaVirtual] Error:', error);
     }
   }, [user]);
 
@@ -834,14 +840,14 @@ export default function SalaVirtualScreen() {
         .single();
 
       if (error) {
-        console.error('[SalaVirtual v281.0] Error sending emoticon:', error);
+        console.error('[SalaVirtual] Error sending emoticon:', error);
         Alert.alert('Error', 'No se pudo enviar el emoticono');
         return;
       }
 
       Alert.alert('Enviado', `Emoticono ${emoticon} enviado`);
     } catch (error) {
-      console.error('[SalaVirtual v281.0] Error:', error);
+      console.error('[SalaVirtual] Error:', error);
     }
   }, [user, localId]);
 
@@ -881,8 +887,6 @@ export default function SalaVirtualScreen() {
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = user && item.usuario_id === user.id;
-    
-    // ✅ CRITICAL FIX v281.0: Properly scaled avatar sizes
     const avatarSize = Platform.OS === 'android' ? scaleIconSize(36) : 36;
 
     return (
@@ -986,8 +990,6 @@ export default function SalaVirtualScreen() {
     });
 
     const displayName = item.username || item.nombre;
-    
-    // ✅ CRITICAL FIX v281.0: Properly scaled avatar sizes
     const avatarSize = Platform.OS === 'android' ? scaleIconSize(52) : 52;
 
     return (
@@ -1160,7 +1162,7 @@ export default function SalaVirtualScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'android' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <Stack.Screen
@@ -1206,7 +1208,8 @@ export default function SalaVirtualScreen() {
         }}
       />
 
-      <View style={styles.content}>
+      {/* PASO 3: RED BORDER TEST - If you don't see this red border, the file is not being loaded */}
+      <View style={[styles.content, { borderWidth: 10, borderColor: 'red', paddingBottom: keyboardHeight }]}>
         <View style={styles.tabBarContainer}>
           <View style={styles.tabBar}>
             <TouchableOpacity
