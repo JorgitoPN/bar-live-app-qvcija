@@ -28853,3 +28853,1311 @@ We recommend you instead use a development build to avoid limitations. Learn mor
 [2026-02-04T12:37:05.946Z] [Android] [LOG] [InternalBytecode.js:1] [SalaVirtual Enhanced] ✅ Active users updated: 2
 [2026-02-04T12:37:05.928Z] [Android] [LOG] [InternalBytecode.js:1] [SalaVirtual Enhanced] ✅ Current user moved to first position
 [2026-02-04T12:37:05.970Z] [Android] [LOG] [InternalBytecode.js:1] [SalaVirtual Enhanced] 🔄 Loading private chats with unread counts
+[2026-02-04T12:38:56.028Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:38:56.379Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:38:56.252Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:38:56.478Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:38:56.745Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:38:57.052Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:38:57.217Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:38:56.996Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:38:56.920Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:38:57.417Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:39:05.150Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:05.715Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:39:05.886Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:04.827Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:05.311Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:39:05.383Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:39:06.217Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:06.055Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:06.366Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:06.519Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:05.549Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:39:07.555Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:39:06.673Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:06.822Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:06.988Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:07.161Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:39:07.384Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:39:07.231Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:39:15.235Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:14.912Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:15.392Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:39:15.466Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:39:15.812Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:39:15.641Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:39:16.143Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:15.968Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:16.460Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:16.299Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:16.616Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:16.778Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:16.913Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:17.322Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:39:17.474Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:39:17.087Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:17.250Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:39:17.632Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:39:23.151Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-02-04T12:39:23.166Z] [Web] [WARN] GoTrueClient@sb-embntaqwlwmgazvrglaf-auth-token:1 (2.90.1) 2026-02-04T12:39:23.166Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[2026-02-04T12:39:23.170Z] [Web] [WARN] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-02-04T12:39:23.316Z] [Web] [LOG] [AvatarContext v145.0] 🎨 Provider initialized
+[2026-02-04T12:39:23.289Z] [Web] [WARN] Route "./integrations/supabase/client.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-02-04T12:39:23.317Z] [Web] [WARN] Layout children must be of type Screen, all other children are ignored. To use custom children, create a custom <Layout />. Update Layout Route at: "app/_layout"
+[2026-02-04T12:39:23.179Z] [Web] [WARN] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-02-04T12:39:23.178Z] [Web] [WARN] "textShadow*" style props are deprecated. Use "textShadow".
+[2026-02-04T12:39:23.289Z] [Web] [WARN] Route "./integrations/supabase/types.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-02-04T12:39:23.318Z] [Web] [WARN] [Layout children]: No route named "crear" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-04T12:39:23.164Z] [Web] [LOG] [Supabase] Initializing client...
+[2026-02-04T12:39:23.318Z] [Web] [WARN] [Layout children]: No route named "editar" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-04T12:39:23.319Z] [Web] [WARN] [Layout children]: No route named "perfil" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-04T12:39:23.319Z] [Web] [WARN] [Layout children]: No route named "chat" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-04T12:39:23.319Z] [Web] [WARN] [Layout children]: No route named "social" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-04T12:39:23.320Z] [Web] [WARN] [Layout children]: No route named "gestion" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-04T12:39:23.320Z] [Web] [WARN] [Layout children]: No route named "explorar" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-04T12:39:23.320Z] [Web] [WARN] [Layout children]: No route named "admin" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-04T12:39:23.321Z] [Web] [WARN] [Layout children]: No route named "solicitudes" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-04T12:39:23.321Z] [Web] [WARN] [Layout children]: No route named "empleo" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-04T12:39:23.322Z] [Web] [WARN] [Layout children]: No route named "legal" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-04T12:39:23.327Z] [Web] [LOG] [Index] ⏳ Cargando...
+[2026-02-04T12:39:23.340Z] [Web] [LOG] [AvatarContext v145.0] ❌ No user logged in, clearing avatar
+[2026-02-04T12:39:23.321Z] [Web] [WARN] [Layout children]: No route named "soporte" exists in nested children: ["+not-found","formsheet","index","modal","redbull-launch","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/conversacion","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-02-04T12:39:23.355Z] [Web] [LOG] [Index] 🚀 Redirigiendo a explorar
+[2026-02-04T12:39:23.341Z] [Web] [LOG] [FilterContext] 🔍 ========================================
+[2026-02-04T12:39:23.338Z] [Web] [LOG] [Index] 🔍 Checking URL hash: 
+[2026-02-04T12:39:23.342Z] [Web] [LOG] [FilterContext] 🔍 ✅ FIXED: Removed estado_solicitud filter
+[2026-02-04T12:39:23.341Z] [Web] [LOG] [FilterContext] 🔍 LOADING DYNAMIC FILTER OPTIONS
+[2026-02-04T12:39:23.340Z] [Web] [LOG] [FilterContext] 🚀 Initializing dynamic filter options...
+[2026-02-04T12:39:23.347Z] [Web] [LOG] [GlobalData v289.0] 📦 No cache available - data will load on-demand
+[2026-02-04T12:39:23.344Z] [Web] [LOG] [GlobalData v289.0] 📦 Loading from cache...
+[2026-02-04T12:39:23.342Z] [Web] [LOG] [FilterContext] 📡 Setting up real-time subscription for filter options...
+[2026-02-04T12:39:23.358Z] [Web] [LOG] [Index] 🏠 Estado: {"hasUser":false,"loading":false}
+[2026-02-04T12:39:23.372Z] [Web] [LOG] [Explorar v323.0] 🔍 Filtering locales - total loaded: 0
+[2026-02-04T12:39:23.338Z] [Web] [LOG] [Index] 🏠 Estado: {"hasUser":false,"loading":true}
+[2026-02-04T12:39:23.601Z] [Web] [LOG] [Explorar v323.0] 📊 Requesting offset: 0 limit: 20
+[2026-02-04T12:39:23.585Z] [Web] [LOG] [Explorar v323.0] 🎯 PRIORITY: Loading "Todas" category first...
+[2026-02-04T12:39:23.582Z] [Web] [LOG] [Explorar v323.0] 🚀 Location is ready - starting intelligent preload...
+[2026-02-04T12:39:23.341Z] [Web] [LOG] [FilterContext] 🔍 Querying DISTINCT values from active locals...
+[2026-02-04T12:39:23.589Z] [Web] [LOG] [Explorar v323.0] 🚀 loadLocales called - page: 1 append: false locationReady: true
+[2026-02-04T12:39:23.451Z] [Web] [LOG] [Eventos v296.0] 📝 Search query changed: 
+[2026-02-04T12:39:23.366Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-02-04T12:39:23.373Z] [Web] [LOG] [Explorar v323.0] ✅ Filtered: 0 → Unique: 0 (removed 0 duplicates)
+[2026-02-04T12:39:23.419Z] [Web] [WARN] props.pointerEvents is deprecated. Use style.pointerEvents
+[2026-02-04T12:39:23.344Z] [Web] [LOG] [GlobalData v289.0] 🚀 Initializing...
+[2026-02-04T12:39:23.394Z] [Web] [LOG] [Favoritos v302.0] ✅ Filtered 0 locales from 0
+[2026-02-04T12:39:23.449Z] [Web] [LOG] [Explorar v323.0] ✅ Display updated with 0 venues
+[2026-02-04T12:39:23.453Z] [Web] [LOG] [Eventos v296.0] Cargando eventos...
+[2026-02-04T12:39:23.510Z] [Web] [LOG] [Explorar v323.0] 📜 Resetting scroll to top (tab button clicked)
+[2026-02-04T12:39:23.393Z] [Web] [LOG] [Favoritos v302.0] 🔍 Filtering locales client-side, search: 
+[2026-02-04T12:39:23.366Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /explorar
+[2026-02-04T12:39:23.509Z] [Web] [LOG] [Explorar v323.0] 🎯 Screen focused via tab button
+[2026-02-04T12:39:23.573Z] [Web] [LOG] [Favoritos v302.0] User location obtained: {"latitude":43.0767,"longitude":-8.4077,"altitude":null,"accuracy":10362,"altitudeAccuracy":null,"heading":null,"speed":null}
+[2026-02-04T12:39:23.461Z] [Web] [LOG] [AdminLayout] ❌ No user found, redirecting silently
+[2026-02-04T12:39:23.455Z] [Web] [LOG] [Favoritos v302.0] 📝 Search query changed: 
+[2026-02-04T12:39:23.457Z] [Web] [LOG] [Favoritos v302.0] Displaying 0 of 0 locales
+[2026-02-04T12:39:23.447Z] [Web] [LOG] [Explorar v323.0] 🎯 Updating displayed locales - count: 0
+[2026-02-04T12:39:23.408Z] [Web] [WARN] Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+[2026-02-04T12:39:23.465Z] [Web] [LOG] [Empleo v94.0] Cargando perfiles profesionales...
+[2026-02-04T12:39:23.552Z] [Web] [LOG] [Explorar v323.0] 📍 Step 2: Getting current position...
+[2026-02-04T12:39:23.460Z] [Web] [LOG] [AdminLayout] 🔍 Checking admin access...
+[2026-02-04T12:39:23.427Z] [Web] [LOG] [FloatingTabBar v318.0] ⚡ REDUCED BOTTOM MARGIN - Bottom padding cut in half (Android: 4px, iOS: 2px) - avatarUrl: null
+[2026-02-04T12:39:23.463Z] [Web] [LOG] [Empleo v94.0] Cargando ofertas...
+[2026-02-04T12:39:23.551Z] [Web] [LOG] [Explorar v323.0] 📍 Step 1: Requesting location permission...
+[2026-02-04T12:39:23.614Z] [Web] [LOG] [Explorar v323.0] ✅ Display updated with 0 venues
+[2026-02-04T12:39:23.573Z] [Web] [LOG] [Explorar v323.0] 📍 Step 3: Location obtained: {"lat":43.0767,"lng":-8.4077}
+[2026-02-04T12:39:23.584Z] [Web] [LOG] [Explorar v323.0] 🚀 Starting background preload of ALL categories...
+[2026-02-04T12:39:23.604Z] [Web] [LOG] [Explorar v323.0] ✅ Filtered: 0 → Unique: 0 (removed 0 duplicates)
+[2026-02-04T12:39:23.596Z] [Web] [LOG] [Explorar v323.0] 📡 Loading page 1 from server...
+[2026-02-04T12:39:23.573Z] [Web] [LOG] [Home v101.0] ✅ Ubicación obtenida: {"lat":43.0767,"lng":-8.4077}
+[2026-02-04T12:39:23.573Z] [Web] [LOG] [Explorar v323.0] ✅ Step 4: Valid location set: {"lat":43.0767,"lng":-8.4077}
+[2026-02-04T12:39:23.593Z] [Web] [LOG] [Explorar v323.0] 📜 Resetting scroll to top (category changed)
+[2026-02-04T12:39:23.591Z] [Web] [LOG] [Explorar v323.0] 🔄 Filters changed, resetting...
+[2026-02-04T12:39:23.574Z] [Web] [LOG] [Explorar v323.0] 🎯 Step 5: Marking location as READY - intelligent preload will start
+[2026-02-04T12:39:23.603Z] [Web] [LOG] [Explorar v323.0] 🔍 Filtering locales - total loaded: 0
+[2026-02-04T12:39:23.598Z] [Web] [LOG] [Explorar v323.0] 📍 Using location params: {"user_lat":43.0767,"user_lng":-8.4077}
+[2026-02-04T12:39:23.587Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: todas
+[2026-02-04T12:39:23.594Z] [Web] [LOG] [Explorar v323.0] ⚡ First load - showing skeleton UI
+[2026-02-04T12:39:23.612Z] [Web] [LOG] [Explorar v323.0] 🎯 Updating displayed locales - count: 0
+[2026-02-04T12:39:23.599Z] [Web] [LOG] [Explorar v323.0] 🎯 hasValidLocation: true
+[2026-02-04T12:39:23.677Z] [Web] [LOG] [Empleo v94.0] Ofertas cargadas: 0
+[2026-02-04T12:39:23.677Z] [Web] [LOG] [Eventos v296.0] Eventos cargados: 0
+[2026-02-04T12:39:23.698Z] [Web] [LOG] [FilterContext] ✅ ========================================
+[2026-02-04T12:39:23.677Z] [Web] [LOG] [Empleo v94.0] Perfiles cargados: 0
+[2026-02-04T12:39:23.698Z] [Web] [LOG] [FilterContext] ✅ DYNAMIC OPTIONS LOADED:
+[2026-02-04T12:39:23.698Z] [Web] [LOG] [FilterContext] ✅ Tipos: 8 - ["bar","cafe","cocteleria","discoteca","lounge","pub","restaurante","sala_conciertos"]
+[2026-02-04T12:39:23.698Z] [Web] [LOG] [FilterContext] ✅ Comunidades: 1 - ["España"]
+[2026-02-04T12:39:23.698Z] [Web] [LOG] [FilterContext] ✅ Clientela: 6 - ["estudiantes","familias","grupos","ninos_bienvenidos","parejas","turistas"]
+[2026-02-04T12:39:23.696Z] [Web] [LOG] [FilterContext] 📊 Processing 587 active locals...
+[2026-02-04T12:39:23.698Z] [Web] [LOG] [FilterContext] ✅ Servicios: 21 - ["accesible_silla_ruedas","almuerzo","aparcamiento","cafe","cena","cerveza","cocteles","comida_vegetariana","deportes_tv","desayuno","dj","entrega_domicilio","musica_vivo","opciones_veganas","pago_efectivo","pago_tarjetas","para_llevar","sin_gluten","terraza_exterior","vino","wifi_gratis"]
+[2026-02-04T12:39:23.778Z] [Web] [LOG] [Eventos v296.0] 🔍 Applying debounced search
+[2026-02-04T12:39:23.741Z] [Web] [LOG] [Explorar v323.0] ✅ Loaded 20 locales from server
+[2026-02-04T12:39:23.742Z] [Web] [LOG] [Explorar v323.0] 🔍 Filtering locales - total loaded: 20
+[2026-02-04T12:39:23.698Z] [Web] [LOG] [FilterContext] ✅ Ambientes: 8 - ["acogedor","animado","de_moda","elegante","familiar","juvenil","moderno","tranquilo"]
+[2026-02-04T12:39:23.750Z] [Web] [LOG] [Explorar v323.0] 🎯 Updating displayed locales - count: 20
+[2026-02-04T12:39:23.752Z] [Web] [LOG] [Explorar v323.0] ✅ Display updated with 20 venues
+[2026-02-04T12:39:23.741Z] [Web] [LOG] [Explorar v323.0] 🔄 Replacing with 20 locales (instant update)
+[2026-02-04T12:39:23.795Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 20 locales for category: todas
+[2026-02-04T12:39:23.698Z] [Web] [LOG] [FilterContext] ✅ Provincias: 1 - ["A Coruña"]
+[2026-02-04T12:39:23.741Z] [Web] [LOG] [Explorar v323.0] 🚀 BATCH loading events and social profiles for 20 venues
+[2026-02-04T12:39:23.795Z] [Web] [LOG] [Favoritos v302.0] 🔍 Applying debounced search
+[2026-02-04T12:39:23.741Z] [Web] [LOG] [Explorar v323.0] 📥 Setting isLoadingMore = false
+[2026-02-04T12:39:23.741Z] [Web] [LOG] [Explorar v323.0] 📊 Got 20 locales, expected 20 - hasMore: true
+[2026-02-04T12:39:23.795Z] [Web] [LOG] [Explorar v323.0] ✅ "Todas" category loaded - user can now see content instantly
+[2026-02-04T12:39:24.048Z] [Web] [LOG] [Explorar v323.0] ✅ Loaded social profiles for 20 venues
+[2026-02-04T12:39:23.743Z] [Web] [LOG] [Explorar v323.0] ✅ Filtered: 20 → Unique: 20 (removed 0 duplicates)
+[2026-02-04T12:39:24.048Z] [Web] [LOG] [Explorar v323.0] ✅ Loaded 0 active events in bulk
+[2026-02-04T12:39:24.301Z] [Web] [LOG] [Explorar v323.0] 📦 Background: Preloading other categories in parallel...
+[2026-02-04T12:39:24.301Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: restaurante
+[2026-02-04T12:39:24.410Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 11 locales for category: restaurante
+[2026-02-04T12:39:24.301Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: pub
+[2026-02-04T12:39:24.301Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: discoteca
+[2026-02-04T12:39:24.301Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: bar
+[2026-02-04T12:39:24.301Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: cafe
+[2026-02-04T12:39:24.301Z] [Web] [LOG] [Explorar v323.0] 📥 Preloading category: cocteleria
+[2026-02-04T12:39:24.532Z] [Web] [LOG] [Explorar v323.0] ✅ All categories preloaded successfully!
+[2026-02-04T12:39:24.438Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 0 locales for category: discoteca
+[2026-02-04T12:39:24.440Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 0 locales for category: pub
+[2026-02-04T12:39:24.435Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 6 locales for category: cafe
+[2026-02-04T12:39:24.532Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 0 locales for category: cocteleria
+[2026-02-04T12:39:24.443Z] [Web] [LOG] [Explorar v323.0] ✅ Preloaded 18 locales for category: bar
+[2026-02-04T12:39:25.314Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:24.998Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:25.562Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:39:25.489Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:39:25.726Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:39:25.880Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:39:26.053Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:26.222Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:26.369Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:26.573Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:26.743Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:26.898Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:27.058Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:27.636Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:39:27.483Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:39:27.244Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:27.412Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:39:27.804Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:39:35.080Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:35.405Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:35.645Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:39:35.567Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:39:35.966Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:39:35.806Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:39:36.305Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:36.134Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:36.639Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:37.011Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:36.856Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:36.460Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:37.343Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:37.178Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:37.568Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:39:37.717Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:39:37.501Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:39:37.872Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:39:45.546Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:45.193Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:45.735Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:39:45.799Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:39:45.958Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:39:46.124Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:39:46.278Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:46.439Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:46.603Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:46.751Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:46.916Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:47.101Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:47.415Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:47.820Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:39:47.268Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:47.590Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:39:47.662Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:39:47.978Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:39:55.634Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:55.297Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:55.808Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:39:55.875Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:39:56.035Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:39:56.219Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:39:56.547Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:56.388Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:56.876Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:56.690Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:57.187Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:57.042Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:57.381Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:57.533Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:39:57.758Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:39:57.910Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:39:57.686Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:39:58.073Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:40:05.397Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:05.959Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:40:05.887Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:40:05.712Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:06.129Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:40:06.302Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:40:06.470Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:06.632Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:06.803Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:06.974Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:07.134Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:07.287Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:07.635Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:07.461Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:07.873Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:40:08.023Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:40:07.801Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:40:08.184Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:40:15.826Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:15.525Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:15.990Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:40:16.067Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:40:16.411Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:40:16.233Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:40:16.742Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:16.585Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:16.897Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:17.227Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:17.063Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:17.382Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:17.538Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:17.883Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:40:17.703Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:18.133Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:40:17.954Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:40:18.292Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:40:25.940Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:26.162Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:40:25.624Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:26.236Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:40:26.489Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:40:26.936Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:26.601Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:26.771Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:26.409Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:40:27.073Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:27.272Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:27.493Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:27.670Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:28.038Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:40:28.114Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:40:27.874Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:28.281Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:40:28.445Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:40:36.049Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:35.740Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:36.305Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:40:36.224Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:40:36.496Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:40:36.651Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:40:36.803Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:36.950Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:37.106Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:37.390Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:37.635Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:37.267Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:37.793Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:37.967Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:38.317Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:40:38.134Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:40:38.205Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:40:38.511Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:40:46.135Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:45.817Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:46.279Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:40:46.339Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:40:46.752Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:40:46.590Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:40:46.916Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:47.080Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:47.295Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:47.373Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:47.536Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:47.886Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:47.727Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:48.216Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:40:48.589Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:40:48.443Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:40:48.061Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:48.289Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:40:55.908Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:56.224Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:56.452Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:40:56.379Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:40:56.839Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:40:56.673Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:40:57.005Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:57.164Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:57.400Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:57.564Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:57.994Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:57.638Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:57.822Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:58.303Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:40:58.696Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:40:58.149Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:40:58.375Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:40:58.543Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:41:05.987Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:06.486Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:41:06.324Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:06.562Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:41:06.935Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:41:06.729Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:41:07.101Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:07.273Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:07.457Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:07.764Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:07.912Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:07.689Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:08.222Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:08.081Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:08.628Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:41:08.383Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:41:08.461Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:41:08.786Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:41:16.077Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:16.413Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:16.574Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:41:16.646Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:41:16.808Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:41:17.029Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:41:17.193Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:17.354Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:17.522Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:17.775Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:18.024Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:17.936Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:18.183Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:18.500Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:41:18.347Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:18.735Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:41:18.571Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:41:18.896Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:41:26.517Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:26.190Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:26.747Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:41:26.674Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:41:27.121Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:41:26.907Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:41:27.263Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:27.437Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:27.617Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:27.892Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:28.044Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:28.112Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:28.424Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:28.267Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:28.647Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:41:28.573Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:41:28.809Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:41:28.961Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:41:36.594Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:36.780Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:41:36.252Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:36.862Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:41:37.065Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:41:37.226Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:41:37.395Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:37.710Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:37.545Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:38.028Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:38.212Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:38.446Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:38.678Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:41:38.603Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:38.740Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:41:38.883Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:41:39.066Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:41:46.354Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:46.688Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:46.849Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:41:46.925Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:41:47.151Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:41:47.317Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:41:47.474Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:47.810Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:47.627Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:48.108Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:48.426Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:48.279Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:48.599Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:48.764Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:48.832Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:41:48.896Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:41:49.049Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:41:49.199Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:41:56.783Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:56.456Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:56.940Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:41:57.014Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:41:57.240Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:41:57.730Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:57.435Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:41:57.579Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:57.891Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:58.163Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:58.382Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:58.529Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:58.703Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:59.022Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:41:58.855Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:41:59.093Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:41:59.243Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:41:59.324Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:42:06.561Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:06.891Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:07.055Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:42:07.130Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:42:07.322Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:42:07.665Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:07.515Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:42:07.835Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:08.309Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:08.008Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:08.651Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:08.502Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:08.818Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:09.131Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:42:08.967Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:09.193Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:42:09.344Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:42:09.490Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:42:17.024Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:16.664Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:17.495Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:42:17.412Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:42:17.567Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:42:17.735Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:42:29.375Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:42:17.806Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:17.954Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:18.143Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:18.381Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:18.589Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:18.743Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:18.894Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:19.055Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:19.281Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:42:19.209Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:42:19.447Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:42:19.603Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:42:26.730Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:27.771Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:42:27.221Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:27.849Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:42:27.927Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:42:28.083Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:42:28.158Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:28.220Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:28.415Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:28.653Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:28.499Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:28.865Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:29.017Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:29.226Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:29.447Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:42:29.748Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:42:29.593Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:42:36.816Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:37.307Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:37.935Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:42:37.858Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:42:38.101Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:42:38.356Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:38.178Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:42:38.573Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:38.435Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:38.804Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:39.122Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:38.956Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:39.283Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:39.455Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:42:39.527Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:42:39.679Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:42:46.884Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:39.829Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:42:47.355Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:47.924Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:42:48.005Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:42:48.297Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:42:48.213Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:42:48.481Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:48.557Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:48.706Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:48.944Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:49.097Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:49.259Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:49.385Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:49.548Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:42:49.778Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:42:49.618Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:42:49.937Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:42:56.984Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:57.474Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:58.154Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:42:58.075Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:42:58.498Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:42:58.649Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:58.335Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:42:58.723Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:59.102Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:58.875Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:59.412Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:59.259Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:59.563Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:42:59.639Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:42:59.699Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:42:59.833Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:43:00.014Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:43:07.560Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:07.071Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:08.171Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:43:08.574Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:43:08.740Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:08.414Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:43:08.253Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:43:08.871Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:09.033Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:09.426Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:09.270Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:09.574Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:09.644Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:10.024Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:43:09.862Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:43:09.788Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:43:10.170Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:43:17.168Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:17.621Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:18.328Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:43:18.483Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:43:18.247Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:43:18.661Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:43:18.834Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:19.007Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:19.573Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:19.178Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:19.415Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:19.948Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:43:19.719Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:20.020Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:43:20.185Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:43:20.339Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:43:27.739Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:27.264Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:28.405Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:43:28.324Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:43:28.729Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:43:28.564Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:43:28.929Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:29.245Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:29.093Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:29.544Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:29.391Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:29.702Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:29.856Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:30.308Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:43:30.151Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:43:30.086Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:43:30.469Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:43:37.356Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:37.823Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:38.523Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:43:38.441Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:43:38.772Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:43:38.979Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:43:39.236Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:39.060Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:39.572Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:39.394Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:39.802Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:40.120Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:39.728Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:39.961Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:40.196Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:43:40.256Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:43:40.412Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:43:40.568Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:43:47.478Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:47.894Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:48.550Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:43:48.828Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:43:48.635Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:43:49.074Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:43:49.391Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:49.228Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:49.546Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:49.696Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:49.844Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:49.927Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:50.077Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:50.388Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:43:50.233Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:50.462Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:43:50.613Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:43:50.684Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:43:57.995Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:57.559Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:58.628Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:43:58.712Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:43:58.914Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:43:59.153Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:43:59.482Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:59.318Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:59.810Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:59.653Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:43:59.969Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:00.527Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:44:00.209Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:00.377Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:00.036Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:00.600Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:44:00.769Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:44:00.849Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:44:07.703Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:08.056Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:08.729Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:44:08.803Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:44:08.994Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:44:09.229Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:44:09.720Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:09.408Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:09.568Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:09.889Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:10.043Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:10.219Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:10.370Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:10.526Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:10.689Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:44:10.760Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:44:10.918Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:44:11.008Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:44:17.837Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:18.160Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:18.920Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:44:18.837Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:44:19.319Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:44:19.085Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:44:19.661Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:19.826Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:19.986Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:19.486Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:20.150Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:20.309Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:20.477Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:20.626Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:20.780Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:44:21.152Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:44:20.991Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:44:20.850Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:44:23.698Z] [Web] [WARN] Disconnected from Metro (1006: "").
+
+To reconnect:
+- Ensure that Metro is running and available on the same network
+- Reload this app (will trigger further help if Metro cannot be connected to)
+      
+[2026-02-04T12:44:27.984Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:28.301Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:28.918Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:44:29.000Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:44:29.161Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:44:29.414Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:44:29.737Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:29.893Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:30.069Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:29.566Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:30.235Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:30.390Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:30.555Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:30.707Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:30.866Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:44:30.929Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:44:31.257Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:44:31.098Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:44:38.079Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:38.425Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:39.093Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:44:39.012Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:44:39.457Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:44:39.270Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:44:39.801Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:39.628Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:39.966Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:40.152Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:40.305Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:40.469Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:40.796Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:40.637Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:40.991Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:44:41.062Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:44:41.388Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:44:41.238Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:44:48.163Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:48.521Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:49.176Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:44:49.715Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:49.104Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:44:49.354Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:44:49.536Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:44:49.878Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:50.045Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:50.401Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:50.243Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:50.558Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:50.714Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:50.876Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:51.125Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:44:51.053Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:44:51.308Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:44:51.476Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:44:58.285Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:58.626Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:59.204Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:44:59.617Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:44:59.275Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:44:59.787Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:44:59.443Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:44:59.950Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:00.116Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:00.342Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:00.501Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:00.661Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:00.823Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:01.150Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:45:01.234Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:45:00.986Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:01.399Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:45:01.554Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:45:08.352Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:08.557Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:09.290Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:45:09.372Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:45:09.867Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:09.706Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:45:09.535Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:45:10.041Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:10.193Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:10.572Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:10.398Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:10.752Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:10.905Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:11.285Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:45:11.223Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:45:11.064Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:11.489Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:45:11.643Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:45:18.669Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:18.964Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:18.434Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:19.374Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:45:19.444Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:45:19.944Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:19.619Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:45:19.779Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:45:20.192Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:20.368Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:20.668Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:20.517Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:20.859Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:20.992Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:21.324Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:45:21.395Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:45:21.093Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:21.570Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:45:21.725Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:45:29.060Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:28.557Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:29.482Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:45:29.554Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:45:29.720Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:45:29.881Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:45:30.029Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:30.257Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:30.614Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:30.458Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:30.780Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:30.943Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:31.421Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:45:31.098Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:31.267Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:31.495Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:45:31.660Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:45:31.816Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:45:38.652Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:39.137Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:39.568Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:45:39.649Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:45:40.150Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:39.809Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:45:39.994Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:45:40.522Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:40.327Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:40.690Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:40.840Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:41.182Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:41.012Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:41.556Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:45:41.338Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:41.493Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:45:41.773Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:45:41.926Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:45:48.754Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:49.238Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:49.689Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:45:49.758Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:45:50.081Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:45:49.927Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:45:50.248Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:50.606Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:50.405Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:50.958Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:50.778Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:51.107Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:51.267Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:51.684Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:45:51.455Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:51.612Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:45:51.857Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:45:52.009Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:45:58.870Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:59.327Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:45:59.773Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:45:59.855Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:46:00.181Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:46:00.020Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:46:00.329Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:00.500Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:00.688Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:00.847Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:01.035Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:01.197Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:01.705Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:46:01.785Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:46:01.529Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:01.343Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:01.951Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:46:02.124Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:46:09.037Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:09.429Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:09.864Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:46:09.935Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:46:10.261Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:46:10.382Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:10.104Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:46:10.774Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:10.607Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:10.949Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:11.115Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:11.269Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:11.426Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:11.624Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:11.779Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:46:11.853Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:46:12.030Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:46:12.199Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:46:19.173Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:19.497Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:19.953Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:46:20.034Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:46:20.196Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:46:20.517Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:20.357Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:46:20.687Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:21.188Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:21.017Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:20.845Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:21.515Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:21.355Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:21.720Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:21.867Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:46:21.952Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:46:22.124Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:46:22.277Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:46:29.263Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:29.581Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:30.110Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:46:30.032Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:46:30.273Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:46:30.648Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:30.432Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:46:30.826Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:31.142Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:31.295Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:30.986Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:31.458Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:31.804Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:31.614Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:32.031Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:46:31.967Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:46:32.203Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:46:32.362Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:46:39.353Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:39.674Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:40.126Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:46:40.532Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:46:40.209Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:46:40.375Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:46:40.717Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:41.061Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:40.901Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:41.399Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:41.234Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:41.553Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:42.050Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:46:41.696Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:41.868Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:42.121Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:46:42.306Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:46:42.462Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:46:49.467Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:49.776Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:50.213Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:46:50.798Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:50.296Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:46:50.460Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:46:50.615Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:46:51.002Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:51.194Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:51.341Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:51.499Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:51.828Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:51.665Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:52.161Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:46:51.995Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:52.222Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:46:52.390Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:46:52.555Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:46:59.534Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:46:59.856Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:00.307Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:47:00.548Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:47:00.388Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:47:00.709Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:47:00.882Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:01.074Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:01.242Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:01.429Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:01.585Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:01.739Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:01.912Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:02.213Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:47:02.063Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:02.287Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:47:02.456Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:47:02.641Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:47:09.635Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:09.952Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:10.392Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:47:10.467Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:47:10.804Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:47:10.636Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:47:10.977Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:11.311Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:11.142Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:11.713Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:11.530Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:11.882Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:12.039Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:12.368Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:47:12.429Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:47:12.197Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:12.604Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:47:12.763Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:47:19.709Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:19.987Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:20.431Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:47:20.383Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:47:20.641Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:47:20.867Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:47:21.055Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:21.216Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:21.598Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:21.387Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:21.770Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:21.964Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:22.131Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:22.287Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:22.448Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:47:22.515Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:47:22.870Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:47:22.685Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:47:29.837Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:30.172Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:30.562Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:47:30.644Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:47:30.802Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:47:30.964Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:47:31.145Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:31.312Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:31.486Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:31.659Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:31.840Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:32.045Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:32.433Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:32.680Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:47:32.206Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:32.606Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:47:32.839Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:47:33.003Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:47:39.925Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:40.251Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:40.672Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:47:40.906Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:47:40.755Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:47:41.221Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:41.070Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:47:41.393Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:41.554Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:41.742Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:41.901Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:42.293Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:42.149Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:42.783Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:47:42.713Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:47:42.500Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:42.945Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:47:43.107Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:47:50.043Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:50.385Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:50.771Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:47:50.851Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:47:51.032Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:47:51.354Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:51.190Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:47:51.512Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:52.044Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:51.686Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:51.869Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:52.375Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:52.207Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:52.575Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:47:52.840Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:47:52.768Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:47:53.039Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:47:53.200Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:48:00.164Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:00.491Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:00.869Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:48:00.951Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:48:01.450Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:01.291Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:48:01.125Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:48:01.774Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:01.605Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:02.125Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:01.931Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:02.456Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:02.659Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:02.291Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:02.868Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:48:02.947Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:48:03.108Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:48:03.281Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:48:10.237Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:10.577Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:10.972Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:48:11.052Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:48:11.531Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:11.223Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:48:11.383Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:48:11.687Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:11.848Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:12.026Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:12.209Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:12.392Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:12.729Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:13.042Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:48:13.111Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:48:12.542Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:13.288Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:48:13.438Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:48:20.357Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:20.694Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:21.058Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:48:21.140Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:48:21.259Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:48:21.583Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:21.464Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:48:21.767Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:21.930Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:22.112Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:22.284Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:22.456Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:22.799Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:22.623Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:23.108Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:48:23.364Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:48:23.185Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:48:23.513Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:48:30.421Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:30.785Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:31.157Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:48:31.239Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:48:31.401Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:48:31.559Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:48:31.715Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:31.885Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:32.052Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:32.373Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:32.213Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:32.531Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:32.886Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:32.694Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:33.183Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:48:33.441Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:48:33.254Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:48:33.599Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:48:40.521Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:40.853Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:41.245Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:48:41.324Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:48:41.480Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:48:41.653Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:48:41.803Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:41.976Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:42.143Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:42.444Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:42.298Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:42.620Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:42.787Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:42.968Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:43.347Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:48:43.693Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:48:43.270Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:48:43.506Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:48:50.657Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:50.976Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:51.345Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:48:51.417Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:48:51.887Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:51.575Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:48:51.735Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:48:52.223Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:52.044Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:52.548Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:52.393Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:52.707Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:52.852Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:53.062Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:48:53.442Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:48:53.364Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:48:53.813Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:48:53.595Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:49:00.746Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:01.078Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:01.485Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:49:01.403Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:49:01.957Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:01.842Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:49:01.653Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:49:02.247Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:02.100Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:02.428Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:02.557Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:02.877Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:02.725Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:03.245Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:03.431Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:49:03.681Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:49:03.906Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:49:03.503Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:49:10.836Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:11.191Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:11.591Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:49:11.754Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:49:11.926Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:49:11.508Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:49:12.088Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:12.407Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:12.256Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:12.564Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:12.720Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:12.883Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:13.030Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:13.339Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:13.569Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:49:13.500Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:49:13.993Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:49:13.752Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:49:20.907Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:21.261Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:21.667Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:49:21.585Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:49:21.846Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:49:22.012Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:49:22.160Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:22.340Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:22.503Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:22.674Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:22.828Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:23.156Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:22.984Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:23.560Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:49:23.634Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:49:23.403Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:24.037Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:49:23.823Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:49:31.057Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:31.397Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:31.726Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:49:31.648Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:49:31.930Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:49:32.285Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:32.119Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:49:32.444Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:32.779Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:32.607Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:33.122Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:33.201Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:33.363Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:33.660Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:49:33.893Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:49:33.726Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:49:33.517Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:34.110Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:49:41.477Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:41.150Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:41.715Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:49:41.800Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:49:41.997Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:49:42.220Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:49:42.375Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:42.530Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:42.867Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:42.694Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:43.204Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:43.361Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:43.536Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:43.692Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:43.765Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:49:43.825Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:49:43.991Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:49:44.225Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:49:51.574Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:51.853Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:49:51.236Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:51.774Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:49:52.297Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:49:52.073Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:49:52.614Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:52.441Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:53.062Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:52.786Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:53.248Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:53.436Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:53.766Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:53.920Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:49:53.605Z] [Android] [LOG] [PostLikesAvatars v101.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:49:53.989Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
+[2026-02-04T12:49:54.157Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Checkins channel status: CHANNEL_ERROR
+[2026-02-04T12:49:54.313Z] [Android] [LOG] [SalaVirtual Enhanced] ⌨️ Typing channel status: CHANNEL_ERROR
+[2026-02-04T12:50:01.674Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:50:01.310Z] [Android] [LOG] [PublicacionCard v328.0] 📡 Subscription status: CHANNEL_ERROR
+[2026-02-04T12:50:01.865Z] [Android] [LOG] [SalaVirtual Enhanced] 📡 Chat channel status: CHANNEL_ERROR
+[2026-02-04T12:50:01.943Z] [Android] [WARN] [SalaVirtual Enhanced] ⚠️ Real-time subscription error - polling will handle all sync
