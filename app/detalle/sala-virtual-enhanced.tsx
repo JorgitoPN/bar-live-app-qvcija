@@ -1468,12 +1468,39 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, [activeTab, user, localId, loadPrivateChats]);
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥 FIX 2: SINCRONIZACIÓN DE ESTADO
+  // useEffect que se dispara cuando selectedPrivateChat cambia
+  // Forzar fetchUserProfile y markPrivateMessagesAsRead
+  // ═══════════════════════════════════════════════════════════════════════════════
   useEffect(() => {
-    if (selectedPrivateChat) {
+    if (selectedPrivateChat && user && localId) {
+      console.log('[SalaVirtual Enhanced] 🔄 FIX 2: selectedPrivateChat changed, syncing state...');
+      console.log('[SalaVirtual Enhanced] 🔄 FIX 2: Partner ID:', selectedPrivateChat.userId);
+      
+      // Fetch fresh user profile for the selected chat partner
+      const syncProfile = async () => {
+        console.log('[SalaVirtual Enhanced] 🔄 FIX 2: Fetching fresh profile for partner...');
+        const profile = await fetchUserProfile(selectedPrivateChat.userId);
+        
+        if (profile) {
+          console.log('[SalaVirtual Enhanced] ✅ FIX 2: Profile fetched and updated');
+          console.log('[SalaVirtual Enhanced] 🖼️ FIX 2: Avatar:', profile.avatar || 'NO AVATAR');
+          setSelectedUserProfile(profile);
+        }
+      };
+      
+      syncProfile();
+      
+      // Mark messages as read
+      console.log('[SalaVirtual Enhanced] 🔄 FIX 2: Marking messages as read...');
+      markPrivateMessagesAsRead(selectedPrivateChat.userId);
+      
+      // Subscribe to typing events
       const cleanup = subscribeToTypingEvents();
       return cleanup;
     }
-  }, [selectedPrivateChat, subscribeToTypingEvents]);
+  }, [selectedPrivateChat, user, localId, fetchUserProfile, markPrivateMessagesAsRead, subscribeToTypingEvents]);
 
   const sendPublicMessage = useCallback(async (content: string) => {
     if (!user || !localId || !content.trim()) {
@@ -1605,7 +1632,58 @@ export default function SalaVirtualEnhancedScreen() {
     } finally {
       setSending(false);
     }
-  }, [user, localId, fetchUserProfile, triggerFloatingReaction]);
+  }, [user, localId, fetchUserProfile]);
+
+  const triggerFloatingReaction = useCallback((emoji: string) => {
+    const newParticles = Array.from({ length: 15 }, (_, index) => ({
+      id: `particle-${Date.now()}-${index}`,
+      emoji,
+      x: new Animated.Value(SCREEN_WIDTH / 2 + (Math.random() - 0.5) * 100),
+      y: new Animated.Value(SCREEN_HEIGHT),
+      opacity: new Animated.Value(1),
+      scale: new Animated.Value(0.5 + Math.random() * 0.5),
+    }));
+
+    setFloatingParticles(prev => [...prev, ...newParticles]);
+
+    newParticles.forEach((particle, index) => {
+      const delay = index * 80;
+      const duration = 2500 + Math.random() * 1000;
+      const targetY = SCREEN_HEIGHT * 0.1 + Math.random() * 150;
+      const targetX = particle.x._value + (Math.random() - 0.5) * 80;
+
+      Animated.parallel([
+        Animated.timing(particle.x, {
+          toValue: targetX,
+          duration,
+          delay,
+          useNativeDriver: true,
+        }),
+        Animated.timing(particle.y, {
+          toValue: targetY,
+          duration,
+          delay,
+          useNativeDriver: true,
+        }),
+        Animated.timing(particle.opacity, {
+          toValue: 0,
+          duration: duration * 0.7,
+          delay: delay + duration * 0.3,
+          useNativeDriver: true,
+        }),
+        Animated.timing(particle.scale, {
+          toValue: 1.2,
+          duration: duration * 0.5,
+          delay,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setFloatingParticles(current => current.filter(p => p.id !== particle.id));
+      });
+    });
+
+    console.log(`[SalaVirtual Enhanced] 🎉 Floating reaction triggered: ${emoji}`);
+  }, []);
 
   const sendPredefinedMessage = useCallback(async (recipientId: string, messageText: string) => {
     if (!user || !localId) return;
@@ -1843,7 +1921,20 @@ export default function SalaVirtualEnhancedScreen() {
         animationOpacity.setValue(0);
       });
     }
-  }, [user, localId, activeUsers, loadPrivateChats, privateChats, animationScale, animationOpacity, mode, fetchUserProfile, triggerFloatingReaction, closeBottomSheet]);
+  }, [user, localId, activeUsers, loadPrivateChats, privateChats, animationScale, animationOpacity, mode, fetchUserProfile, triggerFloatingReaction]);
+
+  const closeBottomSheet = useCallback(() => {
+    console.log('[SalaVirtual Enhanced] 📋 Closing bottom sheet');
+    Animated.timing(bottomSheetAnim, {
+      toValue: SCREEN_HEIGHT,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowBottomSheet(false);
+      setSelectedUser(null);
+      setSelectedUserProfile(null);
+    });
+  }, [bottomSheetAnim]);
 
   const sendPrivateMessage = useCallback(async (recipientId: string, content: string) => {
     if (!user || !localId || !content.trim()) return;
@@ -2151,57 +2242,6 @@ export default function SalaVirtualEnhancedScreen() {
     setMessageToDelete(null);
   }, []);
 
-  const triggerFloatingReaction = useCallback((emoji: string) => {
-    const newParticles = Array.from({ length: 15 }, (_, index) => ({
-      id: `particle-${Date.now()}-${index}`,
-      emoji,
-      x: new Animated.Value(SCREEN_WIDTH / 2 + (Math.random() - 0.5) * 100),
-      y: new Animated.Value(SCREEN_HEIGHT),
-      opacity: new Animated.Value(1),
-      scale: new Animated.Value(0.5 + Math.random() * 0.5),
-    }));
-
-    setFloatingParticles(prev => [...prev, ...newParticles]);
-
-    newParticles.forEach((particle, index) => {
-      const delay = index * 80;
-      const duration = 2500 + Math.random() * 1000;
-      const targetY = SCREEN_HEIGHT * 0.1 + Math.random() * 150;
-      const targetX = particle.x._value + (Math.random() - 0.5) * 80;
-
-      Animated.parallel([
-        Animated.timing(particle.x, {
-          toValue: targetX,
-          duration,
-          delay,
-          useNativeDriver: true,
-        }),
-        Animated.timing(particle.y, {
-          toValue: targetY,
-          duration,
-          delay,
-          useNativeDriver: true,
-        }),
-        Animated.timing(particle.opacity, {
-          toValue: 0,
-          duration: duration * 0.7,
-          delay: delay + duration * 0.3,
-          useNativeDriver: true,
-        }),
-        Animated.timing(particle.scale, {
-          toValue: 1.2,
-          duration: duration * 0.5,
-          delay,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setFloatingParticles(current => current.filter(p => p.id !== particle.id));
-      });
-    });
-
-    console.log(`[SalaVirtual Enhanced] 🎉 Floating reaction triggered: ${emoji}`);
-  }, []);
-
   const handleUserPress = async (selectedUser: ActiveUser) => {
     const displayName = selectedUser.username 
       ? selectedUser.username.replace('@', '')
@@ -2245,19 +2285,6 @@ export default function SalaVirtualEnhancedScreen() {
       tension: 40,
       useNativeDriver: true,
     }).start();
-  };
-
-  const closeBottomSheet = () => {
-    console.log('[SalaVirtual Enhanced] 📋 Closing bottom sheet');
-    Animated.timing(bottomSheetAnim, {
-      toValue: SCREEN_HEIGHT,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      setShowBottomSheet(false);
-      setSelectedUser(null);
-      setSelectedUserProfile(null);
-    });
   };
 
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -2651,6 +2678,7 @@ export default function SalaVirtualEnhancedScreen() {
               backgroundColor: themeColors.cardBg,
               borderTopColor: themeColors.cardBorder,
               transform: [{ translateY: bottomSheetAnim }],
+              zIndex: 1000,
             },
             mode === 'night' && {
               shadowColor: themeColors.glow,
@@ -2670,6 +2698,7 @@ export default function SalaVirtualEnhancedScreen() {
                 - Sin sombras en la parte inferior
                 - Diseño más atractivo y original
                 - Si no hay foto, usa degradado linear-gradient(45deg, #2c3e50, #000000)
+                - zIndex: 10 para asegurar que esté por encima de otros elementos
                 ═══════════════════════════════════════════════════════════════════════════════ */}
             <View style={styles.coverContainer}>
               {profileAvatar ? (
@@ -3124,8 +3153,11 @@ export default function SalaVirtualEnhancedScreen() {
           </View>
         )}
 
-        {/* 🔴🔴🔴 RED BORDER TEST - If you see this red border, sala-virtual-enhanced.tsx is being used 🔴🔴🔴 */}
-        <View style={[styles.content, { borderWidth: 10, borderColor: 'red' }]}>
+        {/* ═══════════════════════════════════════════════════════════════════════════════
+            🔥 FIX 1: LIMPIEZA VISUAL - RED BORDER REMOVED
+            El borde rojo de prueba ha sido eliminado
+            ═══════════════════════════════════════════════════════════════════════════════ */}
+        <View style={styles.content}>
           <View style={[
             styles.tabBarContainer, 
             { 
@@ -4424,7 +4456,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 2,
-    zIndex: 1000,
   },
   bottomSheetHandle: {
     width: 40,
@@ -4441,10 +4472,11 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   // ═══════════════════════════════════════════════════════════════════════════════
-  // 🔥 FIX 1: ESTILOS MEJORADOS PARA IMAGEN DE PORTADA
+  // 🔥 FIX 1 & FIX 3: ESTILOS MEJORADOS PARA IMAGEN DE PORTADA
   // - Imagen completa sin recortes (height: 300)
   // - Sin sombras en la parte inferior
   // - Diseño más atractivo y original con gradientes suaves
+  // - zIndex: 10 para asegurar que esté por encima de otros elementos
   // ═══════════════════════════════════════════════════════════════════════════════
   coverContainer: {
     width: '100%',
@@ -4452,6 +4484,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginBottom: 0,
     overflow: 'hidden',
+    zIndex: 10,
   },
   coverImage: {
     width: '100%',
