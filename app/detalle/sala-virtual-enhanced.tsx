@@ -514,7 +514,9 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, [user, localId, router]);
 
-  // 🔥🔥🔥 CRITICAL FIX: COMPLETELY REWRITTEN loadMessages function
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // PASO 2: DIAGNÓSTICO DE DATOS CRUDOS
+  // ═══════════════════════════════════════════════════════════════════════════════
   const loadMessages = useCallback(async () => {
     if (!localId) {
       console.error('[SalaVirtual Enhanced] ❌ No localId for loadMessages');
@@ -522,8 +524,9 @@ export default function SalaVirtualEnhancedScreen() {
     }
     
     try {
-      console.log('[SalaVirtual Enhanced] 🔥🔥🔥 LOADING INITIAL PUBLIC MESSAGES - FRESH START');
+      console.log('[SalaVirtual Enhanced] 🔥🔥🔥 PASO 2: DIAGNÓSTICO DE DATOS CRUDOS');
       console.log('[SalaVirtual Enhanced] 📍 Local ID:', localId);
+      console.log('[SalaVirtual Enhanced] 🔍 Ejecutando query con filtro: .is("recipient_id", null)');
       
       // 🔥 CRITICAL: Fetch last 50 PUBLIC messages (recipient_id IS NULL)
       const { data, error } = await supabase
@@ -548,20 +551,38 @@ export default function SalaVirtualEnhancedScreen() {
         .order('created_at', { ascending: false })
         .limit(50);
 
+      // ═══════════════════════════════════════════════════════════════════════════════
+      // 🔥🔥🔥 PASO 2: IMPRIMIR DATA Y ERROR CRUDOS
+      // ═══════════════════════════════════════════════════════════════════════════════
+      console.log('[SalaVirtual Enhanced] 📦 RAW DATA from Supabase:', JSON.stringify(data, null, 2));
+      console.log('[SalaVirtual Enhanced] ❌ RAW ERROR from Supabase:', JSON.stringify(error, null, 2));
+      console.log('[SalaVirtual Enhanced] 📊 Data is array?', Array.isArray(data));
+      console.log('[SalaVirtual Enhanced] 📊 Data length:', data?.length || 0);
+      console.log('[SalaVirtual Enhanced] 📊 Data is empty array?', Array.isArray(data) && data.length === 0);
+      
       if (error) {
         console.error('[SalaVirtual Enhanced] ❌ Error loading initial messages:', error);
+        console.error('[SalaVirtual Enhanced] ❌ Error code:', error.code);
+        console.error('[SalaVirtual Enhanced] ❌ Error message:', error.message);
+        console.error('[SalaVirtual Enhanced] ❌ Error details:', error.details);
+        console.error('[SalaVirtual Enhanced] ❌ Error hint:', error.hint);
         setLoading(false);
         return;
       }
 
-      console.log('[SalaVirtual Enhanced] 📦 Raw data from DB:', data?.length || 0, 'messages');
-      
       if (!data || data.length === 0) {
-        console.log('[SalaVirtual Enhanced] ℹ️ No public messages found in database');
+        console.log('[SalaVirtual Enhanced] ⚠️⚠️⚠️ ARRAY VACÍO DETECTADO');
+        console.log('[SalaVirtual Enhanced] 🔍 Posibles causas:');
+        console.log('[SalaVirtual Enhanced] 1️⃣ RLS está bloqueando la lectura (SOLUCIONADO con nueva política)');
+        console.log('[SalaVirtual Enhanced] 2️⃣ El filtro .is("recipient_id", null) no encuentra mensajes');
+        console.log('[SalaVirtual Enhanced] 3️⃣ No hay mensajes en la base de datos para este local');
         setMessages([]);
         setLoading(false);
         return;
       }
+
+      console.log('[SalaVirtual Enhanced] ✅✅✅ DATOS RECIBIDOS CORRECTAMENTE');
+      console.log('[SalaVirtual Enhanced] 📦 Número de mensajes:', data.length);
 
       // 🔥 CRITICAL: Format messages with full user data
       const formattedMessages: Message[] = data
@@ -666,6 +687,12 @@ export default function SalaVirtualEnhancedScreen() {
       }
 
       const { data: publicData, error: publicError } = await publicQuery;
+
+      // ═══════════════════════════════════════════════════════════════════════════════
+      // 🔥🔥🔥 PASO 2: IMPRIMIR DATA Y ERROR EN SYNC
+      // ═══════════════════════════════════════════════════════════════════════════════
+      console.log('[SalaVirtual Enhanced] 🔄 SYNC - RAW DATA:', JSON.stringify(publicData, null, 2));
+      console.log('[SalaVirtual Enhanced] 🔄 SYNC - RAW ERROR:', JSON.stringify(publicError, null, 2));
 
       if (publicError) {
         console.error('[SalaVirtual Enhanced] ❌ Error syncing public messages:', publicError);
