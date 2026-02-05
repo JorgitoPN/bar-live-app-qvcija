@@ -31,14 +31,15 @@ const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
 
 /**
- * ✅ USER PROFILE v117.0 - NAVEGACIÓN CON router.push() + refresh
+ * ✅ USER PROFILE v118.0 - NAVEGACIÓN CON router.back() + useFocusEffect
  * 
- * CAMBIOS v117.0:
- * - ✅ CORREGIDO: Ahora usa router.push() en lugar de router.back()
- * - ✅ CORREGIDO: Añade parámetro refresh: Date.now() para forzar re-evaluación
- * - ✅ EXPLICACIÓN: router.push() hacia una pantalla existente la "trae al frente" con nuevos datos
- * - ✅ EXPLICACIÓN: El parámetro refresh cambia la URL ligeramente, obligando a React a re-renderizar
- * - ✅ RESULTADO: La Sala Virtual se reactiva correctamente Y restaura la pestaña correcta
+ * CAMBIOS v118.0:
+ * - ✅ CORREGIDO: Vuelve a usar router.back() en lugar de router.push()
+ * - ✅ CORREGIDO: Usa router.setParams() ANTES de router.back() para actualizar parámetros
+ * - ✅ EXPLICACIÓN: router.back() mantiene el diseño modal de la Sala Virtual
+ * - ✅ EXPLICACIÓN: router.setParams() envía una "nota" a la pantalla anterior
+ * - ✅ RESULTADO: La Sala Virtual mantiene su presentación modal Y restaura la pestaña correcta
+ * - ✅ ELIMINADO: Toda la lógica de refresh: Date.now()
  */
 
 export default function UsuarioPerfilScreen() {
@@ -76,7 +77,7 @@ export default function UsuarioPerfilScreen() {
   const isAdminView = params.adminView === 'true' && currentUser?.rol_app === 'admin';
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // 🔥🔥🔥 NAVEGACIÓN CONTEXTUAL INTELIGENTE v117.0
+  // 🔥🔥🔥 NAVEGACIÓN CONTEXTUAL INTELIGENTE v118.0
   // 
   // Leer parámetros de navegación para saber de dónde viene el usuario:
   // - from: origen de la navegación (e.g., 'sala-virtual')
@@ -87,73 +88,71 @@ export default function UsuarioPerfilScreen() {
   const returnTab = params.returnTab as string | undefined;
   const returnLocalId = params.localId as string | undefined;
 
-  console.log('[UsuarioPerfil v117.0] 🎯 NAVEGACIÓN CONTEXTUAL: Navigation params received:');
-  console.log('[UsuarioPerfil v117.0] 🎯 NAVEGACIÓN CONTEXTUAL:   - from:', from || 'NOT SET');
-  console.log('[UsuarioPerfil v117.0] 🎯 NAVEGACIÓN CONTEXTUAL:   - returnTab:', returnTab || 'NOT SET');
-  console.log('[UsuarioPerfil v117.0] 🎯 NAVEGACIÓN CONTEXTUAL:   - returnLocalId:', returnLocalId || 'NOT SET');
+  console.log('[UsuarioPerfil v118.0] 🎯 NAVEGACIÓN CONTEXTUAL: Navigation params received:');
+  console.log('[UsuarioPerfil v118.0] 🎯 NAVEGACIÓN CONTEXTUAL:   - from:', from || 'NOT SET');
+  console.log('[UsuarioPerfil v118.0] 🎯 NAVEGACIÓN CONTEXTUAL:   - returnTab:', returnTab || 'NOT SET');
+  console.log('[UsuarioPerfil v118.0] 🎯 NAVEGACIÓN CONTEXTUAL:   - returnLocalId:', returnLocalId || 'NOT SET');
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // 🔥🔥🔥 BOTÓN "ATRÁS" INTELIGENTE v117.0 - SOLUCIÓN DEFINITIVA CON router.push()
+  // 🔥🔥🔥 BOTÓN "ATRÁS" INTELIGENTE v118.0 - SOLUCIÓN DEFINITIVA CON router.back()
   // 
-  // CAMBIO CRÍTICO: Ahora usa router.push() en lugar de router.back()
+  // CAMBIO CRÍTICO: Vuelve a usar router.back() en lugar de router.push()
   // 
   // ¿POR QUÉ?
-  // - router.push() hacia una pantalla que ya está en el historial funciona mejor
-  //   para "traerla al frente" con nuevos datos que un simple back()
-  // - El parámetro refresh: Date.now() cambia la URL ligeramente, obligando a React
-  //   a decir: "Hey, algo cambió, tengo que mostrar esta pantalla otra vez"
-  // - Esto fuerza la reactivación del stack sin romper el modal
+  // - router.back() garantiza que el sistema mantenga la ventana tipo "Modal"
+  // - router.push() estaba forzando una pantalla completa, rompiendo el diseño
+  // - router.setParams() actualiza los parámetros en el stack ANTES de volver
+  // - La Sala Virtual detectará el cambio con useFocusEffect (no useEffect)
   // 
   // RESULTADO:
-  // - La Sala Virtual se reactiva correctamente (no se queda en negro)
-  // - La pestaña correcta se restaura automáticamente
-  // - La presentación de modal se mantiene
+  // - La Sala Virtual mantiene su presentación modal (NO se abre en pantalla completa)
+  // - La pestaña correcta se restaura automáticamente con useFocusEffect
+  // - No hay lógica de refresh: Date.now() - más limpio y eficiente
   // 
   // FLUJO:
   // 1. Usuario está en Sala Virtual (modal) en pestaña "Usuarios"
   // 2. Navega al perfil → URL incluye: from=sala-virtual&returnTab=users&localId=123
-  // 3. Presiona "Atrás" → router.push() con refresh fuerza la reactivación
-  // 4. La Sala Virtual detecta params.returnTab y params.refresh (useEffect)
-  // 5. setActiveTab() cambia la pestaña a "Usuarios"
-  // 6. La presentación de modal se mantiene porque push encuentra la instancia existente
+  // 3. Presiona "Atrás" → router.setParams() actualiza los parámetros de la Sala Virtual
+  // 4. router.back() vuelve a la Sala Virtual manteniendo el modal
+  // 5. useFocusEffect en la Sala Virtual detecta que volvió al foco
+  // 6. Lee params.returnTab y ejecuta setActiveTab()
+  // 7. Limpia el parámetro con router.setParams({ returnTab: undefined })
   // ═══════════════════════════════════════════════════════════════════════════════
   const handleGoBack = useCallback(() => {
-    console.log('[UsuarioPerfil v117.0] 🔙 NAVEGACIÓN CON router.push(): Back button pressed');
-    console.log('[UsuarioPerfil v117.0] 🔙 NAVEGACIÓN CON router.push(): Evaluating navigation context...');
+    console.log('[UsuarioPerfil v118.0] 🔙 NAVEGACIÓN CON router.back(): Back button pressed');
+    console.log('[UsuarioPerfil v118.0] 🔙 NAVEGACIÓN CON router.back(): Evaluating navigation context...');
     
-    if (from === 'sala-virtual' && returnLocalId && returnTab) {
-      console.log('[UsuarioPerfil v117.0] ✅ NAVEGACIÓN CON router.push(): Context detected - returning to virtual room');
-      console.log('[UsuarioPerfil v117.0] 🎯 NAVEGACIÓN CON router.push(): Target tab:', returnTab);
-      console.log('[UsuarioPerfil v117.0] 🏠 NAVEGACIÓN CON router.push(): Target local:', returnLocalId);
+    if (from === 'sala-virtual' && returnTab) {
+      console.log('[UsuarioPerfil v118.0] ✅ NAVEGACIÓN CON router.back(): Context detected - returning to virtual room');
+      console.log('[UsuarioPerfil v118.0] 🎯 NAVEGACIÓN CON router.back(): Target tab:', returnTab);
+      console.log('[UsuarioPerfil v118.0] 🏠 NAVEGACIÓN CON router.back(): Target local:', returnLocalId || 'NOT SET');
       
       // ═══════════════════════════════════════════════════════════════════════════════
-      // 🔥🔥🔥 SOLUCIÓN DEFINITIVA: Usar router.push() con refresh parameter
+      // 🔥🔥🔥 SOLUCIÓN DEFINITIVA: Usar router.setParams() + router.back()
       // 
-      // En lugar de router.back(), usamos router.push() hacia la ruta específica
-      // con TODOS los parámetros necesarios. Esto obliga al Stack a encontrar la
-      // instancia existente o reabrirla correctamente.
-      // 
-      // El parámetro refresh: Date.now() es CRÍTICO porque:
-      // - Cambia la URL ligeramente (añade un timestamp único)
-      // - Obliga a React a re-evaluar la pantalla
-      // - Fuerza la reactivación sin destruir el modal
+      // PASO 1: Actualizar los parámetros en el stack para que la Sala Virtual los reciba
+      // Esto es como enviar una "nota" a la pantalla que está debajo en la pila
       // ═══════════════════════════════════════════════════════════════════════════════
-      console.log('[UsuarioPerfil v117.0] 🔥 NAVEGACIÓN CON router.push(): Using router.push() with refresh parameter');
-      console.log('[UsuarioPerfil v117.0] 🔥 NAVEGACIÓN CON router.push(): This will force the Virtual Room to re-activate');
+      console.log('[UsuarioPerfil v118.0] 🔥 NAVEGACIÓN CON router.back(): Step 1 - Updating params in stack with router.setParams()');
+      console.log('[UsuarioPerfil v118.0] 🔥 NAVEGACIÓN CON router.back(): Setting returnTab:', returnTab);
       
-      router.push({
-        pathname: '/detalle/sala-virtual-enhanced',
-        params: { 
-          localId: returnLocalId, 
-          returnTab: returnTab,
-          refresh: Date.now() // Forzamos una actualización de tiempo
-        }
-      });
+      router.setParams({ returnTab: returnTab });
       
-      console.log('[UsuarioPerfil v117.0] ✅ NAVEGACIÓN CON router.push(): router.push() executed with refresh parameter');
-      console.log('[UsuarioPerfil v117.0] 🎯 NAVEGACIÓN CON router.push(): The virtual room will detect params.returnTab and params.refresh');
+      console.log('[UsuarioPerfil v118.0] ✅ NAVEGACIÓN CON router.back(): Params updated in stack');
+      
+      // ═══════════════════════════════════════════════════════════════════════════════
+      // PASO 2: Ejecutar router.back() para volver a la Sala Virtual
+      // Esto mantiene la presentación modal (NO abre en pantalla completa)
+      // ═══════════════════════════════════════════════════════════════════════════════
+      console.log('[UsuarioPerfil v118.0] 🔥 NAVEGACIÓN CON router.back(): Step 2 - Executing router.back()');
+      console.log('[UsuarioPerfil v118.0] 🔥 NAVEGACIÓN CON router.back(): This will maintain modal presentation');
+      
+      router.back();
+      
+      console.log('[UsuarioPerfil v118.0] ✅ NAVEGACIÓN CON router.back(): router.back() executed');
+      console.log('[UsuarioPerfil v118.0] 🎯 NAVEGACIÓN CON router.back(): The virtual room will detect params.returnTab with useFocusEffect');
     } else {
-      console.log('[UsuarioPerfil v117.0] ℹ️ NAVEGACIÓN CON router.push(): No context - using standard back navigation');
+      console.log('[UsuarioPerfil v118.0] ℹ️ NAVEGACIÓN CON router.back(): No context - using standard back navigation');
       
       // Comportamiento estándar para el resto de la app
       if (router.canGoBack()) {
@@ -162,7 +161,7 @@ export default function UsuarioPerfilScreen() {
         router.replace('/');
       }
     }
-  }, [from, returnTab, returnLocalId, router]);
+  }, [from, returnTab, router]);
 
   const loadCurrentLocal = useCallback(async () => {
     if (!userId) return;
@@ -180,7 +179,7 @@ export default function UsuarioPerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[UsuarioPerfil v117.0] Error loading current local:', error);
+        console.error('[UsuarioPerfil v118.0] Error loading current local:', error);
         return;
       }
 
@@ -224,7 +223,7 @@ export default function UsuarioPerfilScreen() {
         setCanViewLocation(false);
       }
     } catch (error) {
-      console.error('[UsuarioPerfil v117.0] Error loading current local:', error);
+      console.error('[UsuarioPerfil v118.0] Error loading current local:', error);
     }
   }, [userId, isOwnProfile, currentUser, isAdminView]);
 
@@ -234,14 +233,14 @@ export default function UsuarioPerfilScreen() {
         .rpc('get_total_seguidores_count', { p_usuario_id: targetUserId });
 
       if (seguidoresError) {
-        console.error('[UsuarioPerfil v117.0] Error counting followers:', seguidoresError);
+        console.error('[UsuarioPerfil v118.0] Error counting followers:', seguidoresError);
       }
 
       const { data: seguidosData, error: seguidosError } = await supabase
         .rpc('get_total_siguiendo_count', { p_usuario_id: targetUserId });
 
       if (seguidosError) {
-        console.error('[UsuarioPerfil v117.0] Error counting following:', seguidosError);
+        console.error('[UsuarioPerfil v118.0] Error counting following:', seguidosError);
       }
 
       const actualSeguidores = seguidoresData || 0;
@@ -256,12 +255,12 @@ export default function UsuarioPerfilScreen() {
         .eq('id', targetUserId);
 
       if (updateError) {
-        console.error('[UsuarioPerfil v117.0] Error updating user counters:', updateError);
+        console.error('[UsuarioPerfil v118.0] Error updating user counters:', updateError);
       }
 
       return { seguidores: actualSeguidores, seguidos: actualSeguidos };
     } catch (error) {
-      console.error('[UsuarioPerfil v117.0] Error loading follower counts:', error);
+      console.error('[UsuarioPerfil v118.0] Error loading follower counts:', error);
       return { seguidores: 0, seguidos: 0 };
     }
   }, []);
@@ -284,7 +283,7 @@ export default function UsuarioPerfilScreen() {
         .single();
 
       if (userError || !userData) {
-        console.error('[UsuarioPerfil v117.0] Error loading user:', userError);
+        console.error('[UsuarioPerfil v118.0] Error loading user:', userError);
         if (!silent) {
           Alert.alert('Error', 'No se pudo cargar el perfil del usuario');
           router.back();
@@ -355,7 +354,7 @@ export default function UsuarioPerfilScreen() {
         stats: newStats,
       });
 
-      console.log('[UsuarioPerfil v117.0] ✅ Data loaded and cached');
+      console.log('[UsuarioPerfil v118.0] ✅ Data loaded and cached');
 
       if (currentUser) {
         const { data: followData } = await supabase
@@ -380,7 +379,7 @@ export default function UsuarioPerfilScreen() {
       await loadCurrentLocal();
       hasLoadedOnce.current = true;
     } catch (error) {
-      console.error('[UsuarioPerfil v117.0] Error loading data:', error);
+      console.error('[UsuarioPerfil v118.0] Error loading data:', error);
     } finally {
       if (!silent) {
         setLoading(false);
@@ -395,12 +394,12 @@ export default function UsuarioPerfilScreen() {
     }
 
     try {
-      console.log('[UsuarioPerfil v117.0] ⚡⚡⚡ INSTANT LOAD - Checking cache...');
+      console.log('[UsuarioPerfil v118.0] ⚡⚡⚡ INSTANT LOAD - Checking cache...');
       
       const cachedData = await profileCache.get(userId, 'user');
       
       if (cachedData) {
-        console.log('[UsuarioPerfil v117.0] ⚡ INSTANT display with cached data');
+        console.log('[UsuarioPerfil v118.0] ⚡ INSTANT display with cached data');
         
         const safeProfile = {
           ...cachedData.profile,
@@ -415,32 +414,32 @@ export default function UsuarioPerfilScreen() {
         hasLoadedOnce.current = true;
         
         setTimeout(() => {
-          console.log('[UsuarioPerfil v117.0] 🔄 Background refresh...');
+          console.log('[UsuarioPerfil v118.0] 🔄 Background refresh...');
           loadUserData(true);
         }, 100);
       } else {
-        console.log('[UsuarioPerfil v117.0] 📡 No cache, loading from database...');
+        console.log('[UsuarioPerfil v118.0] 📡 No cache, loading from database...');
         await loadUserData(false);
       }
     } catch (error) {
-      console.error('[UsuarioPerfil v117.0] Error in loadUserDataWithCache:', error);
+      console.error('[UsuarioPerfil v118.0] Error in loadUserDataWithCache:', error);
       await loadUserData(false);
     }
   }, [userId, router, loadUserData]);
 
   useFocusEffect(
     useCallback(() => {
-      console.log('[UsuarioPerfil v117.0] ⚡ Screen focused - keeping state alive');
+      console.log('[UsuarioPerfil v118.0] ⚡ Screen focused - keeping state alive');
       
       if (!hasLoadedOnce.current) {
         loadUserDataWithCache();
       } else {
-        console.log('[UsuarioPerfil v117.0] 🔄 Background refresh...');
+        console.log('[UsuarioPerfil v118.0] 🔄 Background refresh...');
         loadUserData(true);
       }
       
       return () => {
-        console.log('[UsuarioPerfil v117.0] Screen unfocused - state persisted');
+        console.log('[UsuarioPerfil v118.0] Screen unfocused - state persisted');
       };
     }, [loadUserDataWithCache, loadUserData])
   );
@@ -474,7 +473,7 @@ export default function UsuarioPerfilScreen() {
             filter: `seguido_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v117.0] ⚡ INSTANT update - Followers changed');
+            console.log('[UsuarioPerfil v118.0] ⚡ INSTANT update - Followers changed');
             const followerCounts = await loadFollowerCounts(userId);
             setStats(prev => ({
               ...prev,
@@ -491,7 +490,7 @@ export default function UsuarioPerfilScreen() {
             filter: `seguidor_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v117.0] ⚡ INSTANT update - Following changed');
+            console.log('[UsuarioPerfil v118.0] ⚡ INSTANT update - Following changed');
             const followerCounts = await loadFollowerCounts(userId);
             setStats(prev => ({
               ...prev,
@@ -508,7 +507,7 @@ export default function UsuarioPerfilScreen() {
             filter: `autor_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v117.0] ⚡ INSTANT update - Posts changed');
+            console.log('[UsuarioPerfil v118.0] ⚡ INSTANT update - Posts changed');
             await loadUserData(true);
           }
         )
@@ -521,7 +520,7 @@ export default function UsuarioPerfilScreen() {
             filter: `usuario_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v117.0] ⚡ INSTANT update - Check-in changed');
+            console.log('[UsuarioPerfil v118.0] ⚡ INSTANT update - Check-in changed');
             await loadCurrentLocal();
           }
         )
@@ -535,7 +534,7 @@ export default function UsuarioPerfilScreen() {
 
   useEffect(() => {
     if (params.openMomento === 'true' && !loading && usuario) {
-      console.log('[UsuarioPerfil v117.0] 🎬 Auto-opening momento viewer from message');
+      console.log('[UsuarioPerfil v118.0] 🎬 Auto-opening momento viewer from message');
       setShowMomentoViewer(true);
     }
   }, [params.openMomento, loading, usuario]);
@@ -625,7 +624,7 @@ export default function UsuarioPerfilScreen() {
         seguidores: updatedCounts.seguidores,
       }));
     } catch (error) {
-      console.error('[UsuarioPerfil v117.0] Error toggling follow:', error);
+      console.error('[UsuarioPerfil v118.0] Error toggling follow:', error);
       
       setIsFollowing(wasFollowing);
       setStats(prev => ({
@@ -699,7 +698,7 @@ export default function UsuarioPerfilScreen() {
                 Alert.alert('Éxito', 'Usuario bloqueado');
               }
             } catch (error) {
-              console.error('[UsuarioPerfil v117.0] Error toggling block:', error);
+              console.error('[UsuarioPerfil v118.0] Error toggling block:', error);
               Alert.alert('Error', 'No se pudo completar la acción');
             }
           },
@@ -758,7 +757,7 @@ export default function UsuarioPerfilScreen() {
               setCanViewLocation(false);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
-              console.error('[UsuarioPerfil v117.0] Error exiting local:', error);
+              console.error('[UsuarioPerfil v118.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -814,16 +813,16 @@ export default function UsuarioPerfilScreen() {
         >
           <View style={styles.headerTop}>
             {/* ═══════════════════════════════════════════════════════════════════════════════
-                🔥🔥🔥 BOTÓN "ATRÁS" INTELIGENTE v117.0 - SOLUCIÓN DEFINITIVA CON router.push()
+                🔥🔥🔥 BOTÓN "ATRÁS" INTELIGENTE v118.0 - SOLUCIÓN DEFINITIVA CON router.back()
                 
-                CAMBIO CRÍTICO: Ahora usa router.push() en lugar de router.back()
+                CAMBIO CRÍTICO: Vuelve a usar router.back() en lugar de router.push()
                 
                 Este botón ahora evalúa el contexto de navegación:
-                - Si viene de sala-virtual → usa router.push() con refresh para forzar reactivación
+                - Si viene de sala-virtual → usa router.setParams() + router.back()
                 - Si viene de otro lugar → comportamiento estándar (router.back)
                 
-                La pestaña correcta se restaura automáticamente porque router.push() pasa
-                los parámetros y la Sala Virtual los detecta con useEffect
+                La pestaña correcta se restaura automáticamente porque router.setParams()
+                actualiza los parámetros y la Sala Virtual los detecta con useFocusEffect
                 ═══════════════════════════════════════════════════════════════════════════════ */}
             <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
               <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
