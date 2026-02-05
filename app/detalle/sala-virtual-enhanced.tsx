@@ -214,6 +214,34 @@ export default function SalaVirtualEnhancedScreen() {
   
   const [activeTab, setActiveTab] = useState<'chat' | 'users' | 'private'>(initialTab);
   
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 🔥🔥🔥 NAVEGACIÓN CONTEXTUAL v2.8 - SINCRONIZACIÓN DE PESTAÑA
+  // 
+  // Este useEffect escucha cambios en params.returnTab y actualiza la pestaña activa
+  // 
+  // ¿CUÁNDO SE EJECUTA?
+  // - Cuando el usuario vuelve del perfil usando router.back()
+  // - El perfil ejecutó router.setParams({ returnTab: 'users' }) antes del back()
+  // - Esto actualiza los parámetros en el stack sin navegar
+  // - Este useEffect detecta el cambio y actualiza setActiveTab()
+  // 
+  // RESULTADO:
+  // - La Sala Virtual mantiene su formato de modal (no se recarga)
+  // - La pestaña cambia automáticamente a la que el usuario tenía antes
+  // - Es como "dar un paso atrás con la luz de la pestaña correcta encendida"
+  // ═══════════════════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (params.returnTab) {
+      // Forzamos el cambio de pestaña cuando detectamos el cambio en los parámetros de la ruta
+      console.log('[SalaVirtual Enhanced] 🎯 NAVEGACIÓN CONTEXTUAL: params.returnTab changed to:', params.returnTab);
+      console.log('[SalaVirtual Enhanced] 🎯 NAVEGACIÓN CONTEXTUAL: Updating activeTab state...');
+      
+      setActiveTab(params.returnTab as any);
+      
+      console.log('[SalaVirtual Enhanced] ✅ NAVEGACIÓN CONTEXTUAL: Pestaña sincronizada desde parámetros:', params.returnTab);
+    }
+  }, [params.returnTab]);
+  
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [selectedUser, setSelectedUser] = useState<ActiveUser | null>(null);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
