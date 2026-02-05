@@ -1,6 +1,6 @@
 
 // ⚠️ PASO 1: CONSOLE LOG DE VERIFICACIÓN
-console.log("⚠️ CHAT ACTIVADO - VERSIÓN 2.6 - FIXES PUNTO AZUL PERSISTENTE Y NAVEGACIÓN COMPLETA");
+console.log("⚠️ CHAT ACTIVADO - VERSIÓN 2.7 - FIX NAVEGACIÓN COMPLETA CON DISMISSALL");
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -2327,33 +2327,45 @@ export default function SalaVirtualEnhancedScreen() {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // 🔥 FIX NAVEGACIÓN: Cerrar TODA la sala virtual antes de navegar al perfil
-  // Esto evita que la sala virtual quede superpuesta sobre la página de perfil
+  // 🔥🔥🔥 FIX NAVEGACIÓN DEFINITIVO v2.7: router.dismissAll() + router.push()
+  // 
+  // PROBLEMA ANTERIOR:
+  // - router.replace() no desmontaba el modal de la Sala Virtual
+  // - La sala quedaba superpuesta sobre la página de perfil
+  // 
+  // SOLUCIÓN APLICADA:
+  // 1. Cerrar el bottom sheet con animación
+  // 2. Hacer checkout de la sala virtual (marcar activo = false en DB)
+  // 3. Usar router.dismissAll() para cerrar TODOS los modales/stacks
+  // 4. Usar router.push() para navegar al perfil del usuario
+  // 
+  // Esto garantiza que la Sala Virtual se desmonte completamente antes de navegar
   // ═══════════════════════════════════════════════════════════════════════════════
   const handleViewProfile = useCallback(async () => {
     if (!selectedUser) {
-      console.log('[SalaVirtual Enhanced] ⚠️ FIX NAVEGACIÓN: No selected user');
+      console.log('[SalaVirtual Enhanced] ⚠️ FIX NAVEGACIÓN v2.7: No selected user');
       return;
     }
     
-    console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN: Navigating to user profile:', selectedUser.id);
-    console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN: User name:', selectedUser.nombre);
+    console.log('[SalaVirtual Enhanced] 🚀 FIX NAVEGACIÓN v2.7: Starting profile navigation sequence');
+    console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN v2.7: Target user ID:', selectedUser.id);
+    console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN v2.7: Target user name:', selectedUser.nombre);
     
     // ═══════════════════════════════════════════════════════════════════════════════
-    // 🔥 FIX NAVEGACIÓN COMPLETA:
-    // 1. Cerrar el bottom sheet
-    // 2. Hacer checkout de la sala virtual (esto cierra la sala completamente)
-    // 3. Navegar al perfil del usuario
+    // PASO 1: Cerrar el bottom sheet con animación
     // ═══════════════════════════════════════════════════════════════════════════════
-    console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN: Step 1 - Closing bottom sheet...');
+    console.log('[SalaVirtual Enhanced] 📋 FIX NAVEGACIÓN v2.7: Step 1 - Closing bottom sheet...');
     closeBottomSheet();
+    setSelectedPrivateChat(null);
     
     // Esperar a que la animación del bottom sheet termine
     await new Promise(resolve => setTimeout(resolve, 300));
     
-    console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN: Step 2 - Checking out from virtual room...');
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // PASO 2: Hacer checkout de la sala virtual (sin navegar de vuelta)
+    // ═══════════════════════════════════════════════════════════════════════════════
+    console.log('[SalaVirtual Enhanced] 🚪 FIX NAVEGACIÓN v2.7: Step 2 - Checking out from virtual room...');
     
-    // Hacer checkout sin navegar de vuelta (solo cerrar la sala)
     if (user && localId) {
       try {
         await supabase
@@ -2366,20 +2378,46 @@ export default function SalaVirtualEnhancedScreen() {
           .eq('local_id', localId)
           .eq('activo', true);
         
-        console.log('[SalaVirtual Enhanced] ✅ FIX NAVEGACIÓN: Checked out successfully');
+        console.log('[SalaVirtual Enhanced] ✅ FIX NAVEGACIÓN v2.7: Checked out successfully');
       } catch (error) {
-        console.error('[SalaVirtual Enhanced] ❌ FIX NAVEGACIÓN: Error checking out:', error);
+        console.error('[SalaVirtual Enhanced] ❌ FIX NAVEGACIÓN v2.7: Error checking out:', error);
       }
     }
     
     // Esperar un momento para que el checkout se complete
     await new Promise(resolve => setTimeout(resolve, 200));
     
-    console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN: Step 3 - Navigating to profile...');
-    console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN: Executing router.replace to /perfil/usuario?userId=' + selectedUser.id);
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // PASO 3: Usar router.dismissAll() para cerrar TODOS los modales/stacks
+    // Esto es CRÍTICO para desmontar completamente la Sala Virtual
+    // ═══════════════════════════════════════════════════════════════════════════════
+    console.log('[SalaVirtual Enhanced] 🔥 FIX NAVEGACIÓN v2.7: Step 3 - Executing router.dismissAll()...');
+    console.log('[SalaVirtual Enhanced] 🔥 FIX NAVEGACIÓN v2.7: This will close ALL modals and stacks');
     
-    // Usar replace en lugar de push para reemplazar la sala virtual en el stack
-    router.replace(`/perfil/usuario?userId=${selectedUser.id}`);
+    try {
+      router.dismissAll();
+      console.log('[SalaVirtual Enhanced] ✅ FIX NAVEGACIÓN v2.7: router.dismissAll() executed successfully');
+    } catch (error) {
+      console.error('[SalaVirtual Enhanced] ❌ FIX NAVEGACIÓN v2.7: Error executing dismissAll:', error);
+    }
+    
+    // Esperar a que dismissAll complete su animación
+    await new Promise(resolve => setTimeout(resolve, 350));
+    
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // PASO 4: Navegar al perfil del usuario con router.push()
+    // ═══════════════════════════════════════════════════════════════════════════════
+    console.log('[SalaVirtual Enhanced] 🎯 FIX NAVEGACIÓN v2.7: Step 4 - Navigating to profile...');
+    console.log('[SalaVirtual Enhanced] 🎯 FIX NAVEGACIÓN v2.7: Executing router.push(/perfil/usuario?userId=' + selectedUser.id + ')');
+    
+    try {
+      router.push(`/perfil/usuario?userId=${selectedUser.id}`);
+      console.log('[SalaVirtual Enhanced] ✅ FIX NAVEGACIÓN v2.7: Navigation executed successfully');
+    } catch (error) {
+      console.error('[SalaVirtual Enhanced] ❌ FIX NAVEGACIÓN v2.7: Error navigating:', error);
+    }
+    
+    console.log('[SalaVirtual Enhanced] 🎉 FIX NAVEGACIÓN v2.7: Profile navigation sequence COMPLETE');
   }, [selectedUser, user, localId, router, closeBottomSheet]);
 
   const renderMessage = ({ item }: { item: Message }) => {
@@ -3696,23 +3734,25 @@ export default function SalaVirtualEnhancedScreen() {
                     </View>
                     
                     {/* ═══════════════════════════════════════════════════════════════════════════════
-                        🔥 FIX NAVEGACIÓN: Botón de perfil en el header del chat privado
-                        Cerrar TODA la sala virtual antes de navegar
+                        🔥🔥🔥 FIX NAVEGACIÓN v2.7: Botón de perfil en el header del chat privado
+                        Usa router.dismissAll() + router.push() para desmontar completamente la sala
                         ═══════════════════════════════════════════════════════════════════════════════ */}
                     <TouchableOpacity
                       onPress={async () => {
-                        console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN: Navigating to profile from private chat header');
-                        console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN: Partner ID:', selectedPrivateChat.userId);
+                        console.log('[SalaVirtual Enhanced] 🚀 FIX NAVEGACIÓN v2.7: Profile button pressed in private chat header');
+                        console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN v2.7: Partner ID:', selectedPrivateChat.userId);
                         
                         const targetUserId = selectedPrivateChat.userId;
                         
                         // Cerrar el chat privado primero
+                        console.log('[SalaVirtual Enhanced] 💬 FIX NAVEGACIÓN v2.7: Closing private chat...');
                         closePrivateChat();
                         
                         // Esperar a que el estado se actualice
                         await new Promise(resolve => setTimeout(resolve, 200));
                         
                         // Hacer checkout de la sala virtual
+                        console.log('[SalaVirtual Enhanced] 🚪 FIX NAVEGACIÓN v2.7: Checking out from virtual room...');
                         if (user && localId) {
                           try {
                             await supabase
@@ -3725,17 +3765,35 @@ export default function SalaVirtualEnhancedScreen() {
                               .eq('local_id', localId)
                               .eq('activo', true);
                             
-                            console.log('[SalaVirtual Enhanced] ✅ FIX NAVEGACIÓN: Checked out from virtual room');
+                            console.log('[SalaVirtual Enhanced] ✅ FIX NAVEGACIÓN v2.7: Checked out successfully');
                           } catch (error) {
-                            console.error('[SalaVirtual Enhanced] ❌ FIX NAVEGACIÓN: Error checking out:', error);
+                            console.error('[SalaVirtual Enhanced] ❌ FIX NAVEGACIÓN v2.7: Error checking out:', error);
                           }
                         }
                         
                         // Esperar un momento más
                         await new Promise(resolve => setTimeout(resolve, 200));
                         
-                        console.log('[SalaVirtual Enhanced] 👤 FIX NAVEGACIÓN: Executing router.replace with userId parameter');
-                        router.replace(`/perfil/usuario?userId=${targetUserId}`);
+                        // 🔥🔥🔥 CRÍTICO: Usar router.dismissAll() para cerrar TODOS los modales
+                        console.log('[SalaVirtual Enhanced] 🔥 FIX NAVEGACIÓN v2.7: Executing router.dismissAll()...');
+                        try {
+                          router.dismissAll();
+                          console.log('[SalaVirtual Enhanced] ✅ FIX NAVEGACIÓN v2.7: router.dismissAll() executed');
+                        } catch (error) {
+                          console.error('[SalaVirtual Enhanced] ❌ FIX NAVEGACIÓN v2.7: Error executing dismissAll:', error);
+                        }
+                        
+                        // Esperar a que dismissAll complete
+                        await new Promise(resolve => setTimeout(resolve, 350));
+                        
+                        // Navegar al perfil
+                        console.log('[SalaVirtual Enhanced] 🎯 FIX NAVEGACIÓN v2.7: Executing router.push to profile');
+                        try {
+                          router.push(`/perfil/usuario?userId=${targetUserId}`);
+                          console.log('[SalaVirtual Enhanced] ✅ FIX NAVEGACIÓN v2.7: Navigation complete');
+                        } catch (error) {
+                          console.error('[SalaVirtual Enhanced] ❌ FIX NAVEGACIÓN v2.7: Error navigating:', error);
+                        }
                       }}
                       style={[styles.privateChatProfileButton, { backgroundColor: themeColors.primary + '20' }]}
                       activeOpacity={0.7}
