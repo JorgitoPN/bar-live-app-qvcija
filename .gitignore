@@ -45,3 +45,4 @@ ios/
 # --- DESPLIEGUE ---
 netlify.toml
 .netlify/
+.natively/expo_server.log
