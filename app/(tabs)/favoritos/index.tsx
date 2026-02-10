@@ -42,8 +42,8 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 
 const ITEMS_PER_PAGE = 20;
 
-// ✅ FIX v302.0: ULTRA COMPACT HEADER - EXACTLY matching Eventos page structure
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 140 : 180;
+// ✅ FIX v324.0: HEADER SPACING FIX - Reduced header height after title removal
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 120 : 160;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -71,18 +71,17 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v302.0 - HEADER MARGIN FIX & FIRST CARD VISIBILITY FIX
+ * ✅ FAVORITOS SCREEN v324.0 - HEADER SPACING FIX
  * 
- * NEW CHANGES v302.0:
- * - ✅ FIXED: Removed ALL top margin from header (EXACTLY matches Eventos page)
- * - ✅ FIXED: Header structure IDENTICAL to Eventos (same paddingTop: 36/50, paddingBottom: 6/12)
- * - ✅ FIXED: First card no longer hidden - proper paddingTop increased to 32px
- * - ✅ FIXED: Cards now start BELOW category filter and counter (not covered)
- * - ✅ VERIFIED: Header gradient padding matches Eventos page exactly
+ * NEW CHANGES v324.0:
+ * - ✅ FIXED: Removed residual white space below header after title removal
+ * - ✅ FIXED: Reduced HEADER_MAX_HEIGHT from 140/180 to 120/160
+ * - ✅ FIXED: Content now properly aligned with header (marginTop reduced, paddingTop: 8)
+ * - ✅ IMPROVED: Cleaner visual alignment between header and content
  * 
- * Previous fixes v301.0:
- * - ✅ FIXED: Schedule badge now correctly uses getEstadoLocal() for accurate status
- * - ✅ FIXED: Badge shows "Abierto ahora" when local is open (e.g., Bar a Coviña)
+ * Previous fixes v302.0:
+ * - ✅ FIXED: Header structure identical to Eventos page
+ * - ✅ FIXED: First card visibility
  */
 
 export default function FavoritosScreen() {
@@ -115,10 +114,10 @@ export default function FavoritosScreen() {
   const headerTranslateY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    console.log('[Favoritos v302.0] 📝 Search query changed:', searchQuery);
+    console.log('[Favoritos v324.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Favoritos v302.0] 🔍 Applying debounced search');
+      console.log('[Favoritos v324.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -137,10 +136,10 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
-          console.log('[Favoritos v302.0] User location obtained:', location.coords);
+          console.log('[Favoritos v324.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        console.error('[Favoritos v302.0] Error getting location:', error);
+        console.error('[Favoritos v324.0] Error getting location:', error);
       }
     })();
   }, []);
@@ -166,7 +165,7 @@ export default function FavoritosScreen() {
       
       setSocialProfiles(newSocialProfiles);
     } catch (error) {
-      console.error('[Favoritos v302.0] Error checking social profiles:', error);
+      console.error('[Favoritos v324.0] Error checking social profiles:', error);
     }
   }, []);
 
@@ -177,7 +176,7 @@ export default function FavoritosScreen() {
     }
 
     try {
-      console.log('[Favoritos v302.0] Cargando locales guardados...');
+      console.log('[Favoritos v324.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -237,12 +236,12 @@ export default function FavoritosScreen() {
         
         setAllSavedLocales(formattedLocales);
         
-        console.log('[Favoritos v302.0] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos v324.0] Locales guardados cargados:', formattedLocales.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      console.error('[Favoritos v302.0] Error cargando locales guardados:', error);
+      console.error('[Favoritos v324.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
@@ -253,7 +252,7 @@ export default function FavoritosScreen() {
       loadSavedLocales();
 
       const savedLocalesChannel = supabase
-        .channel('user-saved-locales-changes-v302')
+        .channel('user-saved-locales-changes-v324')
         .on(
           'postgres_changes',
           {
@@ -263,7 +262,7 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Favoritos v302.0] Saved locales changed, reloading...');
+            console.log('[Favoritos v324.0] Saved locales changed, reloading...');
             loadSavedLocales();
           }
         )
@@ -277,7 +276,7 @@ export default function FavoritosScreen() {
 
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
-      console.log('[Favoritos v302.0] Recalculating distances with new user location');
+      console.log('[Favoritos v324.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -296,7 +295,7 @@ export default function FavoritosScreen() {
 
   const filteredLocales = useMemo(() => {
     const query = debouncedQuery.toLowerCase().trim();
-    console.log('[Favoritos v302.0] 🔍 Filtering locales client-side, search:', query);
+    console.log('[Favoritos v324.0] 🔍 Filtering locales client-side, search:', query);
     let filtered = [...allSavedLocales];
 
     if (query) {
@@ -329,7 +328,7 @@ export default function FavoritosScreen() {
       filtered = filtered.filter(local => local.provincia === provinciaSeleccionada);
     }
 
-    console.log('[Favoritos v302.0] ✅ Filtered', filtered.length, 'locales from', allSavedLocales.length);
+    console.log('[Favoritos v324.0] ✅ Filtered', filtered.length, 'locales from', allSavedLocales.length);
     return filtered;
   }, [debouncedQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
@@ -338,7 +337,7 @@ export default function FavoritosScreen() {
     setDisplayedLocales(firstPage);
     setHasMore(filteredLocales.length > firstPage.length);
     
-    console.log('[Favoritos v302.0] Displaying', firstPage.length, 'of', filteredLocales.length, 'locales');
+    console.log('[Favoritos v324.0] Displaying', firstPage.length, 'of', filteredLocales.length, 'locales');
   }, [filteredLocales, currentPage]);
 
   const loadMoreLocales = useCallback(() => {
@@ -351,12 +350,12 @@ export default function FavoritosScreen() {
       setCurrentPage(nextPage);
       setLoadingMore(false);
       
-      console.log('[Favoritos v302.0] Cargando más locales, página:', nextPage);
+      console.log('[Favoritos v324.0] Cargando más locales, página:', nextPage);
     }, 300);
   }, [currentPage, loadingMore, hasMore]);
 
   const onRefresh = async () => {
-    console.log('[Favoritos v302.0] 🔄 Manual refresh triggered');
+    console.log('[Favoritos v324.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setDebouncedQuery('');
@@ -369,7 +368,7 @@ export default function FavoritosScreen() {
   };
 
   const clearFilters = useCallback(() => {
-    console.log('[Favoritos v302.0] 🧹 Clearing all filters');
+    console.log('[Favoritos v324.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setSelectedCategory('todas');
@@ -391,22 +390,22 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
-      console.log('[Favoritos v302.0] User not authenticated');
+      console.log('[Favoritos v324.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
-      console.log('[Favoritos v302.0] No local ID');
+      console.log('[Favoritos v324.0] No local ID');
       return;
     }
 
-    console.log('[Favoritos v302.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
+    console.log('[Favoritos v324.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
     
     const success = await toggleFavorite(localId);
     
     if (success) {
-      console.log('[Favoritos v302.0] ✅ Favorite toggle completed - reloading list');
+      console.log('[Favoritos v324.0] ✅ Favorite toggle completed - reloading list');
       await loadSavedLocales();
     }
   }, [user, toggleFavorite, loadSavedLocales]);
@@ -591,7 +590,7 @@ export default function FavoritosScreen() {
           <TouchableOpacity
             style={styles.favoritoButton}
             onPress={(e) => {
-              console.log('[Favoritos v302.0] 👆 User tapped favorite button for local:', item.id);
+              console.log('[Favoritos v324.0] 👆 User tapped favorite button for local:', item.id);
               handleToggleFavorito(item.id, e);
             }}
           >
@@ -726,7 +725,6 @@ export default function FavoritosScreen() {
   if (!user) {
     return (
       <View style={styles.container}>
-        {/* ✅ FIX v302.0: Header WITHOUT title - EXACTLY matching Eventos page */}
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.headerWithoutTitle}
@@ -745,7 +743,6 @@ export default function FavoritosScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        {/* ✅ FIX v302.0: Header WITHOUT title - EXACTLY matching Eventos page */}
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.headerWithoutTitle}
@@ -779,7 +776,6 @@ export default function FavoritosScreen() {
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.headerGradient}
         >
-          {/* ✅ FIX v302.0: Header top WITHOUT title - EXACTLY matching Eventos page structure */}
           {activeFiltersCount > 0 && (
             <View style={styles.headerTop}>
               <TouchableOpacity 
@@ -793,7 +789,6 @@ export default function FavoritosScreen() {
             </View>
           )}
           
-          {/* ✅ FIX v302.0: Search row - EXACTLY matching Eventos page */}
           <View style={styles.compactSearchRow}>
             <View style={styles.searchContainer}>
               <IconSymbol 
@@ -817,7 +812,7 @@ export default function FavoritosScreen() {
               {searchQuery.length > 0 && (
                 <TouchableOpacity 
                   onPress={() => {
-                    console.log('[Favoritos v302.0] 🧹 Clearing search');
+                    console.log('[Favoritos v324.0] 🧹 Clearing search');
                     setSearchQuery('');
                     setDebouncedQuery('');
                   }}
@@ -913,10 +908,9 @@ export default function FavoritosScreen() {
         contentContainerStyle={[
           styles.listContent,
           { 
-            // ✅ FIX v302.0: CRITICAL - Increased paddingTop to prevent first card from being hidden
-            // Previous: HEADER_MAX_HEIGHT + 24 (cards were still being covered)
-            // New: HEADER_MAX_HEIGHT + 32 (proper spacing to show first card completely below counter)
-            paddingTop: HEADER_MAX_HEIGHT + 32,
+            // ✅ FIX v324.0: Reduced marginTop and paddingTop to eliminate white space
+            marginTop: HEADER_MAX_HEIGHT,
+            paddingTop: 8,
             paddingBottom: getContentBottomPadding(100),
           },
         ]}
@@ -1074,24 +1068,21 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     backgroundColor: colors.background,
   },
-  // ✅ FIX v302.0: EXACTLY MATCHES EVENTOS PAGE - Same paddingTop (36/50), same paddingBottom (6/12)
   headerGradient: {
-    paddingTop: Platform.OS === 'android' ? 36 : 50, // ✅ SAME as Eventos
-    paddingBottom: Platform.OS === 'android' ? 6 : 12, // ✅ SAME as Eventos
+    paddingTop: Platform.OS === 'android' ? 36 : 50,
+    paddingBottom: Platform.OS === 'android' ? 6 : 12,
     paddingHorizontal: 16,
   },
-  // ✅ FIX v302.0: Header without title (for login screen) - EXACTLY SAME as Eventos
   headerWithoutTitle: {
-    paddingTop: Platform.OS === 'android' ? 36 : 50, // ✅ SAME as Eventos
-    paddingBottom: Platform.OS === 'android' ? 6 : 12, // ✅ SAME as Eventos
+    paddingTop: Platform.OS === 'android' ? 36 : 50,
+    paddingBottom: Platform.OS === 'android' ? 6 : 12,
     paddingHorizontal: 16,
   },
-  // ✅ FIX v302.0: Header top - only shows when filters are active (minimal height)
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'android' ? 6 : 8, // ✅ SAME as Eventos
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
     minHeight: 28,
   },
   clearFiltersHeaderButton: {
@@ -1107,12 +1098,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
-  // ✅ FIX v302.0: Search row - EXACTLY matching Eventos page
   compactSearchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: Platform.OS === 'android' ? 6 : 8, // ✅ SAME as Eventos
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
   },
   searchContainer: {
     flex: 1,
@@ -1142,7 +1132,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoriesScroll: {
-    marginBottom: Platform.OS === 'android' ? 6 : 8, // ✅ SAME as Eventos
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
     marginRight: -16,
   },
   categoriesContent: {

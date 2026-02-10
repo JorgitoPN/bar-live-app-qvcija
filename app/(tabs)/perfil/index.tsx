@@ -1358,19 +1358,19 @@ const styles = StyleSheet.create({
   },
   scrollableHeader: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
-    paddingBottom: Platform.OS === 'android' ? 8 : 12,
+    paddingBottom: Platform.OS === 'android' ? 6 : 8,
     paddingHorizontal: 20,
     justifyContent: 'flex-end',
     alignItems: 'flex-end',
   },
   headerWithoutTitle: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
-    paddingBottom: Platform.OS === 'android' ? 8 : 12,
+    paddingBottom: Platform.OS === 'android' ? 6 : 8,
     paddingHorizontal: 20,
   },
   profileHeaderGradient: {
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingTop: 8,
+    paddingBottom: 6,
     paddingHorizontal: 20,
   },
   headerActions: {
