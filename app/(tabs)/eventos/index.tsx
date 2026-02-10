@@ -39,8 +39,8 @@ import {
 
 const { width } = Dimensions.get('window');
 
-// ✅ FIX v324.0: HEADER SPACING FIX - Reduced header height after title removal
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 180 : 240;
+// ✅ FIX v325.0: UNIFIED HEADER SPACING - Consistent across all pages
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 170 : 210;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -89,17 +89,13 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v324.0 - HEADER SPACING FIX
+ * ✅ EVENTOS SCREEN v325.0 - UNIFIED HEADER SPACING FIX
  * 
- * NEW CHANGES v324.0:
- * - ✅ FIXED: Removed residual white space below header after title removal
- * - ✅ FIXED: Reduced HEADER_MAX_HEIGHT from 200/260 to 180/240
- * - ✅ FIXED: Content now properly aligned with header (marginTop reduced, paddingTop: 8)
- * - ✅ IMPROVED: Cleaner visual alignment between header and content
- * 
- * Previous changes v296.0:
- * - ✅ REMOVED: Page title "Eventos" from header
- * - ✅ COMPACT: Header height reduced
+ * NEW CHANGES v325.0:
+ * - ✅ FIXED: Unified HEADER_MAX_HEIGHT to 170/210 (consistent with other pages)
+ * - ✅ FIXED: Content marginTop matches HEADER_MAX_HEIGHT exactly
+ * - ✅ FIXED: No overlap between header and cards
+ * - ✅ IMPROVED: Consistent spacing across Eventos, Favoritos, and Explorar pages
  */
 
 export default function EventosScreen() {
@@ -129,10 +125,10 @@ export default function EventosScreen() {
   const headerTranslateY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    console.log('[Eventos v324.0] 📝 Search query changed:', searchQuery);
+    console.log('[Eventos v325.0] 📝 Search query changed:', searchQuery);
     
     const timer = setTimeout(() => {
-      console.log('[Eventos v324.0] 🔍 Applying debounced search');
+      console.log('[Eventos v325.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -159,7 +155,7 @@ export default function EventosScreen() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Eventos v324.0] Cargando eventos...');
+      console.log('[Eventos v325.0] Cargando eventos...');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -191,11 +187,11 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos v324.0] Error cargando eventos:', error);
+        console.error('[Eventos v325.0] Error cargando eventos:', error);
         return;
       }
 
-      console.log('[Eventos v324.0] Eventos cargados:', data?.length || 0);
+      console.log('[Eventos v325.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
         let localCategories: string[] = [];
@@ -230,7 +226,7 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos v324.0] Error:', error);
+      console.error('[Eventos v325.0] Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -242,7 +238,7 @@ export default function EventosScreen() {
   }, [cargarEventos]);
 
   const onRefresh = () => {
-    console.log('[Eventos v324.0] 🔄 Manual refresh triggered');
+    console.log('[Eventos v325.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     cargarEventos();
   };
@@ -288,7 +284,7 @@ export default function EventosScreen() {
   });
 
   const limpiarFiltros = () => {
-    console.log('[Eventos v324.0] 🧹 Clearing all filters');
+    console.log('[Eventos v325.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setProvinciaSeleccionada('Todas');
@@ -378,7 +374,7 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos v324.0] Deleting event:', eventoId);
+              console.log('[Eventos v325.0] Deleting event:', eventoId);
               
               const { error } = await supabase
                 .from('eventos')
@@ -386,14 +382,14 @@ export default function EventosScreen() {
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos v324.0] Error deleting event:', error);
+                console.error('[Eventos v325.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos v324.0] Error deleting event:', error);
+              console.error('[Eventos v325.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -471,7 +467,7 @@ export default function EventosScreen() {
               {searchQuery.length > 0 && (
                 <TouchableOpacity 
                   onPress={() => {
-                    console.log('[Eventos v324.0] 🧹 Clearing search');
+                    console.log('[Eventos v325.0] 🧹 Clearing search');
                     setSearchQuery('');
                     setDebouncedQuery('');
                   }}
@@ -585,9 +581,9 @@ export default function EventosScreen() {
           contentContainerStyle={[
             styles.eventosContainer,
             { 
-              // ✅ FIX v324.0: Reduced marginTop and paddingTop to eliminate white space
+              // ✅ FIX v325.0: Content starts exactly where header ends
               marginTop: HEADER_MAX_HEIGHT,
-              paddingTop: 8,
+              paddingTop: 0,
               paddingBottom: getContentBottomPadding(100),
             },
           ]}
