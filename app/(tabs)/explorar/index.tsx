@@ -46,8 +46,8 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 
 const ITEMS_PER_PAGE = 20;
 
-// ✅ v325.0: UNIFIED HEADER SPACING - Consistent across all pages
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 170 : 210;
+// ✅ v326.0: INCREASED HEADER SPACING - Fixed card overlap with header
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 240;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT;
 
@@ -73,13 +73,13 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v325.0 - UNIFIED HEADER SPACING FIX
+ * ✅ EXPLORAR SCREEN v326.0 - INCREASED HEADER SPACING FIX
  * 
- * NEW CHANGES v325.0:
- * - ✅ FIXED: Unified HEADER_MAX_HEIGHT to 170/210 (consistent with other pages)
- * - ✅ FIXED: Content marginTop matches HEADER_MAX_HEIGHT exactly
- * - ✅ FIXED: No overlap between header and cards
- * - ✅ IMPROVED: Consistent spacing across Eventos, Favoritos, and Explorar pages
+ * NEW CHANGES v326.0:
+ * - ✅ FIXED: Increased HEADER_MAX_HEIGHT to 200/240 to prevent card overlap
+ * - ✅ FIXED: First card no longer hidden by header
+ * - ✅ FIXED: "Cierra pronto" badge and rating fully visible
+ * - ✅ IMPROVED: Proper spacing between header and content
  */
 
 export default function ExplorarScreen() {

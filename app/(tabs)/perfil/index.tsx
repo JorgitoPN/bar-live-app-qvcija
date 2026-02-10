@@ -73,13 +73,13 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v325.0 - COMPACT TAB MENU LAYOUT FIX
+ * ✅ PROFILE SCREEN v326.0 - REMOVED TAB MENU SPACING
  * 
- * NEW CHANGES v325.0:
- * - ✅ FIXED: Removed unnecessary spacing between profile header and tab menu
- * - ✅ FIXED: Tabs now directly follow profile section with no gap (marginTop: 0)
- * - ✅ IMPROVED: More compact and visually coherent design
- * - ✅ IMPROVED: Consistent with other pages' spacing adjustments
+ * NEW CHANGES v326.0:
+ * - ✅ FIXED: Eliminated spacing between profile header and tab menu
+ * - ✅ FIXED: Tabs now directly follow profile section (marginTop: 0)
+ * - ✅ IMPROVED: Compact and visually coherent design
+ * - ✅ IMPROVED: Consistent spacing across all pages
  */
 
 export default function PerfilScreen() {
