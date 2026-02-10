@@ -1,6 +1,6 @@
 
 // ⚠️ PASO 1: CONSOLE LOG DE VERIFICACIÓN
-console.log("⚠️ CHAT ACTIVADO - VERSIÓN 2.9 - NAVEGACIÓN CON router.push() + refresh");
+console.log("⚠️ CHAT ACTIVADO - VERSIÓN 2.10 - NAVEGACIÓN CON useFocusEffect + router.navigate()");
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -22,7 +22,7 @@ import {
   Keyboard,
   ImageBackground,
 } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
@@ -215,35 +215,45 @@ export default function SalaVirtualEnhancedScreen() {
   const [activeTab, setActiveTab] = useState<'chat' | 'users' | 'private'>(initialTab);
   
   // ═══════════════════════════════════════════════════════════════════════════════
-  // 🔥🔥🔥 NAVEGACIÓN CONTEXTUAL v2.9 - SINCRONIZACIÓN DE PESTAÑA CON router.push()
+  // 🔥🔥🔥 NAVEGACIÓN CONTEXTUAL v2.10 - SINCRONIZACIÓN DE PESTAÑA CON useFocusEffect
   // 
-  // Este useEffect escucha cambios en params.returnTab Y params.refresh
+  // CAMBIO CRÍTICO: Ahora usa useFocusEffect en lugar de useEffect
+  // 
+  // ¿POR QUÉ?
+  // - useFocusEffect se ejecuta cuando la pantalla gana foco (cuando volvemos a ella)
+  // - useEffect solo se ejecuta cuando los parámetros cambian, pero con router.back()
+  //   los parámetros pueden no cambiar porque la pantalla ya estaba en el stack
+  // - useFocusEffect garantiza que detectamos el cambio de pestaña al volver
   // 
   // ¿CUÁNDO SE EJECUTA?
-  // - Cuando el usuario vuelve del perfil usando router.push()
-  // - El perfil ejecutó router.push({ pathname: '/detalle/sala-virtual-enhanced', params: { localId, returnTab, refresh: Date.now() } })
-  // - El parámetro refresh cambia cada vez (timestamp único), forzando la re-evaluación
-  // - Este useEffect detecta el cambio y actualiza setActiveTab()
+  // - Cuando el usuario vuelve del perfil usando router.back()
+  // - El perfil ejecutó router.setParams({ returnTab }) ANTES de router.back()
+  // - useFocusEffect detecta que la pantalla ganó foco y lee params.returnTab
+  // - setActiveTab() cambia la pestaña automáticamente
+  // - Limpia el parámetro para evitar re-ejecuciones
   // 
   // RESULTADO:
-  // - La Sala Virtual se reactiva correctamente (no se queda en negro)
+  // - La Sala Virtual mantiene su presentación modal (no se muestra en pantalla completa)
   // - La pestaña cambia automáticamente a la que el usuario tenía antes
-  // - El parámetro refresh obliga a React a re-renderizar la pantalla
-  // - La presentación de modal se mantiene porque push encuentra la instancia existente
+  // - No hay problemas de diseño al volver
   // ═══════════════════════════════════════════════════════════════════════════════
-  useEffect(() => {
-    if (params.returnTab) {
-      // Forzamos el cambio de pestaña cuando detectamos el cambio en los parámetros de la ruta
-      console.log('[SalaVirtual Enhanced v2.9] 🎯 NAVEGACIÓN CON router.push(): params.returnTab changed to:', params.returnTab);
-      console.log('[SalaVirtual Enhanced v2.9] 🎯 NAVEGACIÓN CON router.push(): params.refresh:', params.refresh);
-      console.log('[SalaVirtual Enhanced v2.9] 🎯 NAVEGACIÓN CON router.push(): Updating activeTab state...');
-      
-      setActiveTab(params.returnTab as any);
-      
-      console.log('[SalaVirtual Enhanced v2.9] ✅ NAVEGACIÓN CON router.push(): Pestaña sincronizada desde parámetros:', params.returnTab);
-      console.log('[SalaVirtual Enhanced v2.9] ✅ NAVEGACIÓN CON router.push(): Refresh parameter detected - screen re-activated');
-    }
-  }, [params.returnTab, params.refresh]); // Escuchamos también el refresh
+  useFocusEffect(
+    useCallback(() => {
+      if (params.returnTab) {
+        console.log('[SalaVirtual Enhanced v2.10] 🎯 NAVEGACIÓN CON useFocusEffect: Screen gained focus');
+        console.log('[SalaVirtual Enhanced v2.10] 🎯 NAVEGACIÓN CON useFocusEffect: params.returnTab detected:', params.returnTab);
+        console.log('[SalaVirtual Enhanced v2.10] 🎯 NAVEGACIÓN CON useFocusEffect: Updating activeTab state...');
+        
+        setActiveTab(params.returnTab as any);
+        
+        console.log('[SalaVirtual Enhanced v2.10] ✅ NAVEGACIÓN CON useFocusEffect: Pestaña sincronizada desde parámetros:', params.returnTab);
+        
+        // Limpiar el parámetro para evitar re-ejecuciones
+        console.log('[SalaVirtual Enhanced v2.10] 🧹 NAVEGACIÓN CON useFocusEffect: Clearing returnTab parameter');
+        router.setParams({ returnTab: undefined });
+      }
+    }, [params.returnTab, router])
+  );
   
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [selectedUser, setSelectedUser] = useState<ActiveUser | null>(null);
@@ -2372,35 +2382,39 @@ export default function SalaVirtualEnhancedScreen() {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // 🔥🔥🔥 NAVEGACIÓN CONTEXTUAL INTELIGENTE v2.8
+  // 🔥🔥🔥 NAVEGACIÓN CONTEXTUAL INTELIGENTE v2.10 - SOLUCIÓN DEFINITIVA CON router.navigate()
   // 
-  // NUEVA FUNCIONALIDAD:
-  // - Al navegar al perfil, se pasan parámetros: from=sala-virtual, returnTab=<tab_actual>, localId=<id>
-  // - El perfil puede usar estos parámetros para saber exactamente a dónde volver
-  // - El botón "Atrás" del perfil será inteligente y volverá a la sala con la pestaña correcta
+  // CAMBIO CRÍTICO: Ahora usa router.navigate() en lugar de dismissAll + push
+  // 
+  // ¿POR QUÉ?
+  // - router.navigate() abre el perfil ENCIMA del modal de la Sala Virtual
+  // - Esto mantiene la Sala Virtual en el stack sin desmontarla
+  // - Cuando el usuario presiona "Atrás", vuelve a la Sala Virtual que sigue siendo modal
+  // - No hay problemas de diseño porque la Sala Virtual nunca se desmonta
   // 
   // FLUJO:
   // 1. Cerrar el bottom sheet con animación
-  // 2. Hacer checkout de la sala virtual (marcar activo = false en DB)
-  // 3. Usar router.dismissAll() para cerrar TODOS los modales/stacks
-  // 4. Usar router.push() con parámetros de contexto para navegar al perfil
+  // 2. Usar router.navigate() con parámetros de contexto para navegar al perfil
+  // 3. El perfil se abre ENCIMA del modal de la Sala Virtual
+  // 4. Al presionar "Atrás", router.setParams() + router.back() vuelve a la Sala Virtual
+  // 5. useFocusEffect detecta params.returnTab y cambia la pestaña
   // ═══════════════════════════════════════════════════════════════════════════════
   const handleViewProfile = useCallback(async () => {
     if (!selectedUser) {
-      console.log('[SalaVirtual Enhanced] ⚠️ NAVEGACIÓN CONTEXTUAL: No selected user');
+      console.log('[SalaVirtual Enhanced v2.10] ⚠️ NAVEGACIÓN CON router.navigate(): No selected user');
       return;
     }
     
-    console.log('[SalaVirtual Enhanced] 🚀 NAVEGACIÓN CONTEXTUAL: Starting profile navigation sequence');
-    console.log('[SalaVirtual Enhanced] 👤 NAVEGACIÓN CONTEXTUAL: Target user ID:', selectedUser.id);
-    console.log('[SalaVirtual Enhanced] 👤 NAVEGACIÓN CONTEXTUAL: Target user name:', selectedUser.nombre);
-    console.log('[SalaVirtual Enhanced] 🎯 NAVEGACIÓN CONTEXTUAL: Current active tab:', activeTab);
-    console.log('[SalaVirtual Enhanced] 🏠 NAVEGACIÓN CONTEXTUAL: Current local ID:', localId);
+    console.log('[SalaVirtual Enhanced v2.10] 🚀 NAVEGACIÓN CON router.navigate(): Starting profile navigation');
+    console.log('[SalaVirtual Enhanced v2.10] 👤 NAVEGACIÓN CON router.navigate(): Target user ID:', selectedUser.id);
+    console.log('[SalaVirtual Enhanced v2.10] 👤 NAVEGACIÓN CON router.navigate(): Target user name:', selectedUser.nombre);
+    console.log('[SalaVirtual Enhanced v2.10] 🎯 NAVEGACIÓN CON router.navigate(): Current active tab:', activeTab);
+    console.log('[SalaVirtual Enhanced v2.10] 🏠 NAVEGACIÓN CON router.navigate(): Current local ID:', localId);
     
     // ═══════════════════════════════════════════════════════════════════════════════
     // PASO 1: Cerrar el bottom sheet con animación
     // ═══════════════════════════════════════════════════════════════════════════════
-    console.log('[SalaVirtual Enhanced] 📋 NAVEGACIÓN CONTEXTUAL: Step 1 - Closing bottom sheet...');
+    console.log('[SalaVirtual Enhanced v2.10] 📋 NAVEGACIÓN CON router.navigate(): Step 1 - Closing bottom sheet...');
     closeBottomSheet();
     setSelectedPrivateChat(null);
     
@@ -2408,65 +2422,29 @@ export default function SalaVirtualEnhancedScreen() {
     await new Promise(resolve => setTimeout(resolve, 300));
     
     // ═══════════════════════════════════════════════════════════════════════════════
-    // PASO 2: Hacer checkout de la sala virtual (sin navegar de vuelta)
-    // ═══════════════════════════════════════════════════════════════════════════════
-    console.log('[SalaVirtual Enhanced] 🚪 NAVEGACIÓN CONTEXTUAL: Step 2 - Checking out from virtual room...');
-    
-    if (user && localId) {
-      try {
-        await supabase
-          .from('sala_virtual_checkins')
-          .update({
-            activo: false,
-            checked_out_at: new Date().toISOString(),
-          })
-          .eq('usuario_id', user.id)
-          .eq('local_id', localId)
-          .eq('activo', true);
-        
-        console.log('[SalaVirtual Enhanced] ✅ NAVEGACIÓN CONTEXTUAL: Checked out successfully');
-      } catch (error) {
-        console.error('[SalaVirtual Enhanced] ❌ NAVEGACIÓN CONTEXTUAL: Error checking out:', error);
-      }
-    }
-    
-    // Esperar un momento para que el checkout se complete
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // PASO 3: Usar router.dismissAll() para cerrar TODOS los modales/stacks
-    // Esto es CRÍTICO para desmontar completamente la Sala Virtual
-    // ═══════════════════════════════════════════════════════════════════════════════
-    console.log('[SalaVirtual Enhanced] 🔥 NAVEGACIÓN CONTEXTUAL: Step 3 - Executing router.dismissAll()...');
-    console.log('[SalaVirtual Enhanced] 🔥 NAVEGACIÓN CONTEXTUAL: This will close ALL modals and stacks');
-    
-    try {
-      router.dismissAll();
-      console.log('[SalaVirtual Enhanced] ✅ NAVEGACIÓN CONTEXTUAL: router.dismissAll() executed successfully');
-    } catch (error) {
-      console.error('[SalaVirtual Enhanced] ❌ NAVEGACIÓN CONTEXTUAL: Error executing dismissAll:', error);
-    }
-    
-    // Esperar a que dismissAll complete su animación
-    await new Promise(resolve => setTimeout(resolve, 350));
-    
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // PASO 4: Navegar al perfil del usuario CON PARÁMETROS DE CONTEXTO
+    // PASO 2: Navegar al perfil del usuario CON PARÁMETROS DE CONTEXTO usando router.navigate()
+    // 
+    // router.navigate() es CRÍTICO porque:
+    // - Abre el perfil ENCIMA del modal de la Sala Virtual
+    // - Mantiene la Sala Virtual en el stack sin desmontarla
+    // - Cuando el usuario presiona "Atrás", vuelve a la Sala Virtual que sigue siendo modal
+    // - No hay problemas de diseño porque la Sala Virtual nunca se desmonta
+    // 
     // Parámetros enviados:
     // - userId: ID del usuario a ver
     // - from: 'sala-virtual' (indica el origen)
     // - returnTab: pestaña activa actual ('chat', 'users', 'private')
     // - localId: ID del local (para poder volver a la sala correcta)
     // ═══════════════════════════════════════════════════════════════════════════════
-    console.log('[SalaVirtual Enhanced] 🎯 NAVEGACIÓN CONTEXTUAL: Step 4 - Navigating to profile with context params...');
-    console.log('[SalaVirtual Enhanced] 🎯 NAVEGACIÓN CONTEXTUAL: Params to send:');
-    console.log('[SalaVirtual Enhanced] 🎯 NAVEGACIÓN CONTEXTUAL:   - userId:', selectedUser.id);
-    console.log('[SalaVirtual Enhanced] 🎯 NAVEGACIÓN CONTEXTUAL:   - from: sala-virtual');
-    console.log('[SalaVirtual Enhanced] 🎯 NAVEGACIÓN CONTEXTUAL:   - returnTab:', activeTab);
-    console.log('[SalaVirtual Enhanced] 🎯 NAVEGACIÓN CONTEXTUAL:   - localId:', localId);
+    console.log('[SalaVirtual Enhanced v2.10] 🎯 NAVEGACIÓN CON router.navigate(): Step 2 - Navigating to profile with context params...');
+    console.log('[SalaVirtual Enhanced v2.10] 🎯 NAVEGACIÓN CON router.navigate(): Params to send:');
+    console.log('[SalaVirtual Enhanced v2.10] 🎯 NAVEGACIÓN CON router.navigate():   - userId:', selectedUser.id);
+    console.log('[SalaVirtual Enhanced v2.10] 🎯 NAVEGACIÓN CON router.navigate():   - from: sala-virtual');
+    console.log('[SalaVirtual Enhanced v2.10] 🎯 NAVEGACIÓN CON router.navigate():   - returnTab:', activeTab);
+    console.log('[SalaVirtual Enhanced v2.10] 🎯 NAVEGACIÓN CON router.navigate():   - localId:', localId);
     
     try {
-      router.push({
+      router.navigate({
         pathname: '/perfil/usuario',
         params: {
           userId: selectedUser.id,
@@ -2475,12 +2453,11 @@ export default function SalaVirtualEnhancedScreen() {
           localId: localId,
         },
       });
-      console.log('[SalaVirtual Enhanced] ✅ NAVEGACIÓN CONTEXTUAL: Navigation executed successfully');
+      console.log('[SalaVirtual Enhanced v2.10] ✅ NAVEGACIÓN CON router.navigate(): Navigation executed successfully');
+      console.log('[SalaVirtual Enhanced v2.10] 🎉 NAVEGACIÓN CON router.navigate(): Profile will open ABOVE the virtual room modal');
     } catch (error) {
-      console.error('[SalaVirtual Enhanced] ❌ NAVEGACIÓN CONTEXTUAL: Error navigating:', error);
+      console.error('[SalaVirtual Enhanced v2.10] ❌ NAVEGACIÓN CON router.navigate(): Error navigating:', error);
     }
-    
-    console.log('[SalaVirtual Enhanced] 🎉 NAVEGACIÓN CONTEXTUAL: Profile navigation sequence COMPLETE');
   }, [selectedUser, user, localId, router, closeBottomSheet, activeTab]);
 
   const renderMessage = ({ item }: { item: Message }) => {
@@ -3797,64 +3774,29 @@ export default function SalaVirtualEnhancedScreen() {
                     </View>
                     
                     {/* ═══════════════════════════════════════════════════════════════════════════════
-                        🔥🔥🔥 NAVEGACIÓN CONTEXTUAL: Botón de perfil en el header del chat privado
-                        Usa router.dismissAll() + router.push() con parámetros de contexto
+                        🔥🔥🔥 NAVEGACIÓN CONTEXTUAL v2.10: Botón de perfil en el header del chat privado
+                        Usa router.navigate() con parámetros de contexto
                         ═══════════════════════════════════════════════════════════════════════════════ */}
                     <TouchableOpacity
                       onPress={async () => {
-                        console.log('[SalaVirtual Enhanced] 🚀 NAVEGACIÓN CONTEXTUAL: Profile button pressed in private chat header');
-                        console.log('[SalaVirtual Enhanced] 👤 NAVEGACIÓN CONTEXTUAL: Partner ID:', selectedPrivateChat.userId);
-                        console.log('[SalaVirtual Enhanced] 🎯 NAVEGACIÓN CONTEXTUAL: Current active tab:', activeTab);
+                        console.log('[SalaVirtual Enhanced v2.10] 🚀 NAVEGACIÓN CON router.navigate(): Profile button pressed in private chat header');
+                        console.log('[SalaVirtual Enhanced v2.10] 👤 NAVEGACIÓN CON router.navigate(): Partner ID:', selectedPrivateChat.userId);
+                        console.log('[SalaVirtual Enhanced v2.10] 🎯 NAVEGACIÓN CON router.navigate(): Current active tab:', activeTab);
                         
                         const targetUserId = selectedPrivateChat.userId;
                         
                         // Cerrar el chat privado primero
-                        console.log('[SalaVirtual Enhanced] 💬 NAVEGACIÓN CONTEXTUAL: Closing private chat...');
+                        console.log('[SalaVirtual Enhanced v2.10] 💬 NAVEGACIÓN CON router.navigate(): Closing private chat...');
                         closePrivateChat();
                         
                         // Esperar a que el estado se actualice
-                        await new Promise(resolve => setTimeout(resolve, 200));
+                        await new Promise(resolve => setTimeout(resolve, 300));
                         
-                        // Hacer checkout de la sala virtual
-                        console.log('[SalaVirtual Enhanced] 🚪 NAVEGACIÓN CONTEXTUAL: Checking out from virtual room...');
-                        if (user && localId) {
-                          try {
-                            await supabase
-                              .from('sala_virtual_checkins')
-                              .update({
-                                activo: false,
-                                checked_out_at: new Date().toISOString(),
-                              })
-                              .eq('usuario_id', user.id)
-                              .eq('local_id', localId)
-                              .eq('activo', true);
-                            
-                            console.log('[SalaVirtual Enhanced] ✅ NAVEGACIÓN CONTEXTUAL: Checked out successfully');
-                          } catch (error) {
-                            console.error('[SalaVirtual Enhanced] ❌ NAVEGACIÓN CONTEXTUAL: Error checking out:', error);
-                          }
-                        }
-                        
-                        // Esperar un momento más
-                        await new Promise(resolve => setTimeout(resolve, 200));
-                        
-                        // 🔥🔥🔥 CRÍTICO: Usar router.dismissAll() para cerrar TODOS los modales
-                        console.log('[SalaVirtual Enhanced] 🔥 NAVEGACIÓN CONTEXTUAL: Executing router.dismissAll()...');
+                        // Navegar al perfil CON PARÁMETROS DE CONTEXTO usando router.navigate()
+                        console.log('[SalaVirtual Enhanced v2.10] 🎯 NAVEGACIÓN CON router.navigate(): Executing router.navigate() to profile');
+                        console.log('[SalaVirtual Enhanced v2.10] 🎯 NAVEGACIÓN CON router.navigate(): Params: from=sala-virtual, returnTab=' + activeTab + ', localId=' + localId);
                         try {
-                          router.dismissAll();
-                          console.log('[SalaVirtual Enhanced] ✅ NAVEGACIÓN CONTEXTUAL: router.dismissAll() executed');
-                        } catch (error) {
-                          console.error('[SalaVirtual Enhanced] ❌ NAVEGACIÓN CONTEXTUAL: Error executing dismissAll:', error);
-                        }
-                        
-                        // Esperar a que dismissAll complete
-                        await new Promise(resolve => setTimeout(resolve, 350));
-                        
-                        // Navegar al perfil CON PARÁMETROS DE CONTEXTO
-                        console.log('[SalaVirtual Enhanced] 🎯 NAVEGACIÓN CONTEXTUAL: Executing router.push to profile with context');
-                        console.log('[SalaVirtual Enhanced] 🎯 NAVEGACIÓN CONTEXTUAL: Params: from=sala-virtual, returnTab=' + activeTab + ', localId=' + localId);
-                        try {
-                          router.push({
+                          router.navigate({
                             pathname: '/perfil/usuario',
                             params: {
                               userId: targetUserId,
@@ -3863,9 +3805,10 @@ export default function SalaVirtualEnhancedScreen() {
                               localId: localId,
                             },
                           });
-                          console.log('[SalaVirtual Enhanced] ✅ NAVEGACIÓN CONTEXTUAL: Navigation complete');
+                          console.log('[SalaVirtual Enhanced v2.10] ✅ NAVEGACIÓN CON router.navigate(): Navigation complete');
+                          console.log('[SalaVirtual Enhanced v2.10] 🎉 NAVEGACIÓN CON router.navigate(): Profile will open ABOVE the virtual room modal');
                         } catch (error) {
-                          console.error('[SalaVirtual Enhanced] ❌ NAVEGACIÓN CONTEXTUAL: Error navigating:', error);
+                          console.error('[SalaVirtual Enhanced v2.10] ❌ NAVEGACIÓN CON router.navigate(): Error navigating:', error);
                         }
                       }}
                       style={[styles.privateChatProfileButton, { backgroundColor: themeColors.primary + '20' }]}

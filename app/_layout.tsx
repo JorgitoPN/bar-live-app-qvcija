@@ -44,7 +44,13 @@ export default function RootLayout() {
                                 <Stack.Screen name="detalle" options={{ headerShown: false }} />
                                 <Stack.Screen name="crear" options={{ headerShown: false }} />
                                 <Stack.Screen name="editar" options={{ headerShown: false }} />
-                                <Stack.Screen name="perfil" options={{ headerShown: false }} />
+                                <Stack.Screen 
+                                  name="perfil" 
+                                  options={{ 
+                                    headerShown: false,
+                                    presentation: 'card',
+                                  }} 
+                                />
                                 <Stack.Screen name="chat" options={{ headerShown: false }} />
                                 <Stack.Screen name="social" options={{ headerShown: false }} />
                                 <Stack.Screen name="explorar" options={{ headerShown: false }} />
