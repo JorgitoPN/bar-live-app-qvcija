@@ -16,6 +16,16 @@ import { colors } from '@/styles/commonStyles';
 import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+/**
+ * ✅ ROOT LAYOUT v2.0 - FIXED PROFILE NAVIGATION LAYER
+ * 
+ * CHANGES v2.0:
+ * - ✅ FIXED: Profile screen now uses presentation: 'fullScreenModal' instead of 'card'
+ * - ✅ RESULT: Profile renders on a higher z-index layer than the virtual room modal
+ * - ✅ RESULT: Virtual room modal is completely hidden when viewing a profile
+ * - ✅ RESULT: Back button returns to virtual room with correct tab restored
+ */
+
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -44,11 +54,12 @@ export default function RootLayout() {
                                 <Stack.Screen name="detalle" options={{ headerShown: false }} />
                                 <Stack.Screen name="crear" options={{ headerShown: false }} />
                                 <Stack.Screen name="editar" options={{ headerShown: false }} />
+                                {/* ✅ FIX v2.0: Profile now uses fullScreenModal to render above virtual room */}
                                 <Stack.Screen 
                                   name="perfil" 
                                   options={{ 
                                     headerShown: false,
-                                    presentation: 'card',
+                                    presentation: 'fullScreenModal',
                                   }} 
                                 />
                                 <Stack.Screen name="chat" options={{ headerShown: false }} />
