@@ -26,13 +26,12 @@ import { WebView } from 'react-native-webview';
 import NewDocumentUploader from '@/components/propiedad/NewDocumentUploader';
 
 /**
- * ✅ SISTEMA COMPLETAMENTE NUEVO v3.0 - SOLICITAR PROPIEDAD
+ * ✅ SISTEMA COMPLETAMENTE NUEVO v4.0 - SOLICITAR PROPIEDAD
  * 
- * Sistema reconstruido desde cero con nuevos componentes:
- * - Usa NewDocumentUploader (sistema completamente nuevo)
- * - Sin dependencias del código anterior
- * - Subida y visualización garantizada
- * - Código limpio y simple
+ * NEW CHANGES v4.0:
+ * - ✅ ADDED: Initial screen to choose between "Reclamar Local" or "Crear Nuevo Local"
+ * - ✅ IMPROVED: Clear visual distinction between both options
+ * - ✅ RESULT: User can now choose their preferred action before proceeding
  */
 
 interface LocalSearchResult {
@@ -85,8 +84,13 @@ export default function SolicitarPropiedadScreenV2() {
   const { user } = useAuth();
   const webViewRef = useRef<WebView>(null);
 
-  const requestType = (params.type as 'reclamar_local' | 'nuevo_local') || 'reclamar_local';
+  // ✅ NEW v4.0: Check if user came from a specific flow or needs to choose
+  const requestTypeParam = params.type as 'reclamar_local' | 'nuevo_local' | undefined;
   const preselectedLocalId = params.localId as string | undefined;
+
+  // ✅ NEW v4.0: Add selection screen state
+  const [showSelectionScreen, setShowSelectionScreen] = useState(!requestTypeParam);
+  const [requestType, setRequestType] = useState<'reclamar_local' | 'nuevo_local' | null>(requestTypeParam || null);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -120,9 +124,10 @@ export default function SolicitarPropiedadScreenV2() {
 
   const [showDocumentTypeModal, setShowDocumentTypeModal] = useState(false);
 
-  console.log('[SolicitarPropiedadV2] 🎬 Pantalla inicializada con NUEVO sistema');
-  console.log('[SolicitarPropiedadV2] 📋 Tipo de solicitud:', requestType);
-  console.log('[SolicitarPropiedadV2] 👤 Usuario:', user?.nombre);
+  console.log('[SolicitarPropiedadV2 v4.0] 🎬 Pantalla inicializada');
+  console.log('[SolicitarPropiedadV2 v4.0] 📋 Show selection screen:', showSelectionScreen);
+  console.log('[SolicitarPropiedadV2 v4.0] 📋 Request type:', requestType);
+  console.log('[SolicitarPropiedadV2 v4.0] 👤 Usuario:', user?.nombre);
 
   useEffect(() => {
     const defaultHorarios: Record<string, { abierto: boolean; apertura: string; cierre: string }> = {};
@@ -138,16 +143,9 @@ export default function SolicitarPropiedadScreenV2() {
     }
   }, [user]);
 
-  // ✅ LINT FIX v225.0: Added loadPreselectedLocal to dependencies
-  useEffect(() => {
-    if (preselectedLocalId && requestType === 'reclamar_local') {
-      loadPreselectedLocal(preselectedLocalId);
-    }
-  }, [preselectedLocalId, requestType, loadPreselectedLocal]);
-
   const loadPreselectedLocal = useCallback(async (localId: string) => {
     try {
-      console.log('[SolicitarPropiedadV2] 🔍 Cargando local preseleccionado:', localId);
+      console.log('[SolicitarPropiedadV2 v4.0] 🔍 Cargando local preseleccionado:', localId);
       
       const { data, error } = await supabase
         .from('locales')
@@ -158,7 +156,7 @@ export default function SolicitarPropiedadScreenV2() {
       if (error) throw error;
 
       if (data.propietario_id) {
-        console.log('[SolicitarPropiedadV2] ⚠️ Local ya tiene propietario');
+        console.log('[SolicitarPropiedadV2 v4.0] ⚠️ Local ya tiene propietario');
         Alert.alert(
           'Local No Disponible',
           'Este local ya tiene un propietario asignado.',
@@ -167,14 +165,20 @@ export default function SolicitarPropiedadScreenV2() {
         return;
       }
 
-      console.log('[SolicitarPropiedadV2] ✅ Local cargado:', data.nombre);
+      console.log('[SolicitarPropiedadV2 v4.0] ✅ Local cargado:', data.nombre);
       setSelectedLocal(data);
       setCurrentStep(2);
     } catch (error) {
-      console.error('[SolicitarPropiedadV2] ❌ Error cargando local:', error);
+      console.error('[SolicitarPropiedadV2 v4.0] ❌ Error cargando local:', error);
       Alert.alert('Error', 'No se pudo cargar el local');
     }
   }, [router]);
+
+  useEffect(() => {
+    if (preselectedLocalId && requestType === 'reclamar_local') {
+      loadPreselectedLocal(preselectedLocalId);
+    }
+  }, [preselectedLocalId, requestType, loadPreselectedLocal]);
 
   const searchLocales = useCallback(async (query: string) => {
     if (!query.trim() || query.length < 3) {
@@ -184,7 +188,7 @@ export default function SolicitarPropiedadScreenV2() {
 
     try {
       setSearchingLocales(true);
-      console.log('[SolicitarPropiedadV2] 🔍 Buscando locales:', query);
+      console.log('[SolicitarPropiedadV2 v4.0] 🔍 Buscando locales:', query);
 
       const { data, error } = await supabase
         .from('locales')
@@ -196,10 +200,10 @@ export default function SolicitarPropiedadScreenV2() {
 
       if (error) throw error;
 
-      console.log('[SolicitarPropiedadV2] ✅ Locales encontrados:', data?.length || 0);
+      console.log('[SolicitarPropiedadV2 v4.0] ✅ Locales encontrados:', data?.length || 0);
       setSearchResults(data || []);
     } catch (error) {
-      console.error('[SolicitarPropiedadV2] ❌ Error buscando:', error);
+      console.error('[SolicitarPropiedadV2 v4.0] ❌ Error buscando:', error);
     } finally {
       setSearchingLocales(false);
     }
@@ -216,7 +220,7 @@ export default function SolicitarPropiedadScreenV2() {
   }, [searchQuery, requestType, searchLocales]);
 
   const handleSelectLocal = async (local: LocalSearchResult) => {
-    console.log('[SolicitarPropiedadV2] ✅ Local seleccionado:', local.nombre);
+    console.log('[SolicitarPropiedadV2 v4.0] ✅ Local seleccionado:', local.nombre);
 
     const { data: existingRequest } = await supabase
       .from('solicitudes_propietario')
@@ -237,7 +241,7 @@ export default function SolicitarPropiedadScreenV2() {
   const handleGetCurrentLocation = async () => {
     setLoading(true);
     try {
-      console.log('[SolicitarPropiedadV2] 📍 Obteniendo ubicación actual...');
+      console.log('[SolicitarPropiedadV2 v4.0] 📍 Obteniendo ubicación actual...');
       
       const { status } = await Location.requestForegroundPermissionsAsync();
       
@@ -253,7 +257,7 @@ export default function SolicitarPropiedadScreenV2() {
         longitude: location.coords.longitude,
       });
 
-      console.log('[SolicitarPropiedadV2] ✅ Ubicación obtenida:', location.coords);
+      console.log('[SolicitarPropiedadV2 v4.0] ✅ Ubicación obtenida:', location.coords);
 
       if (geocode.length > 0) {
         const place = geocode[0];
@@ -265,10 +269,10 @@ export default function SolicitarPropiedadScreenV2() {
         if (place.region) setProvinciaLocal(place.region);
         if (place.postalCode) setCodigoPostalLocal(place.postalCode);
         
-        console.log('[SolicitarPropiedadV2] ✅ Dirección obtenida:', place.street);
+        console.log('[SolicitarPropiedadV2 v4.0] ✅ Dirección obtenida:', place.street);
       }
     } catch (error) {
-      console.error('[SolicitarPropiedadV2] ❌ Error obteniendo ubicación:', error);
+      console.error('[SolicitarPropiedadV2 v4.0] ❌ Error obteniendo ubicación:', error);
       Alert.alert('Error', 'No se pudo obtener tu ubicación');
     } finally {
       setLoading(false);
@@ -279,12 +283,12 @@ export default function SolicitarPropiedadScreenV2() {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'location_selected') {
-        console.log('[SolicitarPropiedadV2] 📍 Ubicación seleccionada en mapa:', data.lat, data.lng);
+        console.log('[SolicitarPropiedadV2 v4.0] 📍 Ubicación seleccionada en mapa:', data.lat, data.lng);
         setLatitudLocal(data.lat);
         setLongitudLocal(data.lng);
       }
     } catch (error) {
-      console.error('[SolicitarPropiedadV2] ❌ Error procesando mensaje del mapa:', error);
+      console.error('[SolicitarPropiedadV2 v4.0] ❌ Error procesando mensaje del mapa:', error);
     }
   };
 
@@ -464,7 +468,7 @@ export default function SolicitarPropiedadScreenV2() {
 
     setLoading(true);
     try {
-      console.log('[SolicitarPropiedadV2] 📤 Enviando solicitud con NUEVO sistema...');
+      console.log('[SolicitarPropiedadV2 v4.0] 📤 Enviando solicitud...');
 
       if (requestType === 'reclamar_local') {
         if (!selectedLocal) {
@@ -473,8 +477,8 @@ export default function SolicitarPropiedadScreenV2() {
           return;
         }
 
-        console.log('[SolicitarPropiedadV2] 💾 Guardando solicitud de reclamar local');
-        console.log('[SolicitarPropiedadV2] 📄 URL del documento:', documentoUrl);
+        console.log('[SolicitarPropiedadV2 v4.0] 💾 Guardando solicitud de reclamar local');
+        console.log('[SolicitarPropiedadV2 v4.0] 📄 URL del documento:', documentoUrl);
         
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
@@ -496,7 +500,7 @@ export default function SolicitarPropiedadScreenV2() {
 
         if (insertError) throw insertError;
 
-        console.log('[SolicitarPropiedadV2] ✅ Solicitud creada exitosamente');
+        console.log('[SolicitarPropiedadV2 v4.0] ✅ Solicitud creada exitosamente');
 
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
@@ -518,8 +522,8 @@ export default function SolicitarPropiedadScreenV2() {
           return;
         }
 
-        console.log('[SolicitarPropiedadV2] 💾 Guardando solicitud de nuevo local');
-        console.log('[SolicitarPropiedadV2] 📄 URL del documento:', documentoUrl);
+        console.log('[SolicitarPropiedadV2 v4.0] 💾 Guardando solicitud de nuevo local');
+        console.log('[SolicitarPropiedadV2 v4.0] 📄 URL del documento:', documentoUrl);
         
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
@@ -551,7 +555,7 @@ export default function SolicitarPropiedadScreenV2() {
 
         if (insertError) throw insertError;
 
-        console.log('[SolicitarPropiedadV2] ✅ Solicitud de nuevo local creada exitosamente');
+        console.log('[SolicitarPropiedadV2 v4.0] ✅ Solicitud de nuevo local creada exitosamente');
 
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
@@ -567,12 +571,126 @@ export default function SolicitarPropiedadScreenV2() {
         );
       }
     } catch (error) {
-      console.error('[SolicitarPropiedadV2] ❌ Error enviando solicitud:', error);
+      console.error('[SolicitarPropiedadV2 v4.0] ❌ Error enviando solicitud:', error);
       Alert.alert('Error', 'No se pudo enviar la solicitud. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
   };
+
+  // ✅ NEW v4.0: Handle selection of request type
+  const handleSelectRequestType = (type: 'reclamar_local' | 'nuevo_local') => {
+    console.log('[SolicitarPropiedadV2 v4.0] ✅ User selected request type:', type);
+    setRequestType(type);
+    setShowSelectionScreen(false);
+    setCurrentStep(1);
+  };
+
+  // ✅ NEW v4.0: Render selection screen
+  const renderSelectionScreen = () => (
+    <View style={styles.selectionContainer}>
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        style={styles.selectionHeader}
+      >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+        </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <Text style={styles.selectionHeaderTitle}>¿Tienes un local?</Text>
+          <Text style={styles.selectionHeaderSubtitle}>Elige una opción</Text>
+        </View>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
+
+      <ScrollView style={styles.selectionContent} contentContainerStyle={styles.selectionContentContainer}>
+        <Text style={styles.selectionTitle}>¿Qué deseas hacer?</Text>
+        <Text style={styles.selectionDescription}>
+          Selecciona si quieres reclamar un local existente en nuestra plataforma o crear uno nuevo
+        </Text>
+
+        <TouchableOpacity
+          style={styles.selectionOption}
+          onPress={() => handleSelectRequestType('reclamar_local')}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={['#2DD4BF', '#06B6D4']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.selectionOptionGradient}
+          >
+            <View style={styles.selectionOptionIconContainer}>
+              <IconSymbol 
+                ios_icon_name="building.2.fill" 
+                android_material_icon_name="store" 
+                size={48} 
+                color={colors.headerText} 
+              />
+            </View>
+            <View style={styles.selectionOptionContent}>
+              <Text style={styles.selectionOptionTitle}>Reclamar Local Existente</Text>
+              <Text style={styles.selectionOptionDescription}>
+                Tu local ya está en BarLive. Reclámalo para gestionarlo.
+              </Text>
+            </View>
+            <IconSymbol 
+              ios_icon_name="chevron.right" 
+              android_material_icon_name="chevron_right" 
+              size={24} 
+              color={colors.headerText} 
+            />
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.selectionOption}
+          onPress={() => handleSelectRequestType('nuevo_local')}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={['#8B5CF6', '#6366F1']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.selectionOptionGradient}
+          >
+            <View style={styles.selectionOptionIconContainer}>
+              <IconSymbol 
+                ios_icon_name="plus.circle.fill" 
+                android_material_icon_name="add_circle" 
+                size={48} 
+                color={colors.headerText} 
+              />
+            </View>
+            <View style={styles.selectionOptionContent}>
+              <Text style={styles.selectionOptionTitle}>Crear Nuevo Local</Text>
+              <Text style={styles.selectionOptionDescription}>
+                Tu local no está en BarLive. Créalo desde cero.
+              </Text>
+            </View>
+            <IconSymbol 
+              ios_icon_name="chevron.right" 
+              android_material_icon_name="chevron_right" 
+              size={24} 
+              color={colors.headerText} 
+            />
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <View style={styles.selectionInfoBox}>
+          <IconSymbol 
+            ios_icon_name="info.circle.fill" 
+            android_material_icon_name="info" 
+            size={24} 
+            color={colors.primary} 
+          />
+          <Text style={styles.selectionInfoText}>
+            Ambas opciones requieren verificación. Recibirás una notificación cuando tu solicitud sea revisada.
+          </Text>
+        </View>
+      </ScrollView>
+    </View>
+  );
 
   const renderStepIndicator = () => {
     const maxSteps = requestType === 'reclamar_local' ? 2 : 5;
@@ -675,12 +793,7 @@ export default function SolicitarPropiedadScreenV2() {
           </Text>
           <TouchableOpacity
             style={styles.createNewButton}
-            onPress={() => {
-              router.replace({
-                pathname: '/solicitudes/solicitar-propiedad-v2',
-                params: { type: 'nuevo_local' },
-              });
-            }}
+            onPress={() => handleSelectRequestType('nuevo_local')}
           >
             <Text style={styles.createNewButtonText}>Crear Nuevo Local</Text>
           </TouchableOpacity>
@@ -731,10 +844,9 @@ export default function SolicitarPropiedadScreenV2() {
         />
       </View>
 
-      {/* 🆕 NUEVO: Componente completamente nuevo de subida */}
       <NewDocumentUploader
         onUploadComplete={(url) => {
-          console.log('[SolicitarPropiedadV2] ✅ Documento recibido del NUEVO uploader:', url);
+          console.log('[SolicitarPropiedadV2 v4.0] ✅ Documento recibido:', url);
           setDocumentoUrl(url);
         }}
         currentUrl={documentoUrl}
@@ -1059,10 +1171,9 @@ export default function SolicitarPropiedadScreenV2() {
         Añade fotos y documentación
       </Text>
 
-      {/* 🆕 NUEVO: Componente completamente nuevo de subida para documento */}
       <NewDocumentUploader
         onUploadComplete={(url) => {
-          console.log('[SolicitarPropiedadV2] ✅ Documento recibido:', url);
+          console.log('[SolicitarPropiedadV2 v4.0] ✅ Documento recibido:', url);
           setDocumentoUrl(url);
         }}
         currentUrl={documentoUrl}
@@ -1104,6 +1215,11 @@ export default function SolicitarPropiedadScreenV2() {
     </View>
   );
 
+  // ✅ NEW v4.0: Show selection screen if no request type is set
+  if (showSelectionScreen) {
+    return renderSelectionScreen();
+  }
+
   return (
     <KeyboardAvoidingView 
       style={styles.container}
@@ -1113,7 +1229,15 @@ export default function SolicitarPropiedadScreenV2() {
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
       >
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => {
+          if (currentStep === 1) {
+            // If on first step, go back to selection screen
+            setShowSelectionScreen(true);
+            setRequestType(null);
+          } else {
+            router.back();
+          }
+        }}>
           <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
@@ -1226,6 +1350,103 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  // ✅ NEW v4.0: Selection screen styles
+  selectionContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  selectionHeader: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectionHeaderTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.headerText,
+  },
+  selectionHeaderSubtitle: {
+    fontSize: 13,
+    color: colors.headerText,
+    opacity: 0.9,
+    marginTop: 2,
+  },
+  selectionContent: {
+    flex: 1,
+  },
+  selectionContentContainer: {
+    padding: 20,
+  },
+  selectionTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  selectionDescription: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  selectionOption: {
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  selectionOptionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    gap: 16,
+  },
+  selectionOptionIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectionOptionContent: {
+    flex: 1,
+  },
+  selectionOptionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.headerText,
+    marginBottom: 6,
+  },
+  selectionOptionDescription: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    lineHeight: 20,
+  },
+  selectionInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: colors.primary + '15',
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 24,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  selectionInfoText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 60 : 50,
