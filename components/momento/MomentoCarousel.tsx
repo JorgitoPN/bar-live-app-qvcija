@@ -1,18 +1,17 @@
 
 /**
- * ✅ MOMENTO CAROUSEL v160.0 - LEFT ALIGNMENT FIX (FINAL)
+ * ✅ MOMENTO CAROUSEL v161.0 - LEFT ALIGNMENT FIX (FINAL)
  * 
- * CRITICAL FIXES v160.0:
- * - ✅ FIXED: Avatars now aligned to the left (paddingLeft: 20 matches page content)
+ * CRITICAL FIXES v161.0:
+ * - ✅ FIXED: Avatars now aligned to the left (paddingLeft: 16 matches post mini-avatars)
  * - ✅ FIXED: Removed extra gap that was pushing avatars to the right
- * - ✅ FIXED: scrollContent paddingLeft = 20 (same as other page content)
- * - ✅ RESULTADO: Avatars alineados a la izquierda igual que el contenido de las páginas
+ * - ✅ FIXED: scrollContent paddingLeft = 16 (same as post content padding)
+ * - ✅ RESULTADO: Avatares alineados verticalmente con los miniavatares de publicaciones
  * - ✅ RESULTADO: Alineación consistente con el resto de la aplicación
  * 
- * Previous changes v159.0:
+ * Previous changes v160.0:
  * - ✅ FIXED: Avatars now aligned to the left (paddingLeft: 20 matches page content)
  * - ✅ FIXED: Removed extra gap that was pushing avatars to the right
- * - ✅ RESULTADO: Avatars alineados a la izquierda igual que el contenido de las páginas
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -305,9 +304,9 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
     paddingVertical: 14,
   },
-  // ✅ FIX v161.0: paddingLeft = 20 para alinear con el contenido de las páginas
+  // ✅ FIX v161.0: paddingLeft = 16 para alinear con los miniavatares de publicaciones
   scrollContent: {
-    paddingLeft: 20,
+    paddingLeft: 16,
     paddingRight: 16,
     gap: 18,
   },

@@ -18,21 +18,18 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Platform } from 'react-native';
 
 /**
- * ✅ ROOT LAYOUT v5.0 - iOS VIRTUAL ROOM FULL SCREEN FIX (FINAL)
+ * ✅ ROOT LAYOUT v6.0 - SALA VIRTUAL FULL SCREEN FIX (FINAL)
  * 
- * CHANGES v5.0:
+ * CHANGES v6.0:
+ * - ✅ FIXED: Sala virtual ahora se abre en PÁGINA COMPLETA (no modal)
+ * - ✅ FIXED: Removed presentation option - uses default 'card' behavior
+ * - ✅ FIXED: headerShown = false para pantalla completa sin header de Stack
+ * - ✅ RESULTADO: Experiencia consistente en iOS y Android - pantalla completa
+ * - ✅ RESULTADO: No más modal - la sala virtual es una página normal del stack
+ * 
+ * Previous changes v5.0:
  * - ✅ FIXED: iOS Virtual Room now opens in FULL SCREEN (same as Android)
  * - ✅ FIXED: Changed presentation from 'fullScreenModal' to 'card' for iOS
- * - ✅ FIXED: Removed fullScreenModal group - now uses standard card presentation
- * - ✅ RESULTADO: Consistent full screen experience across iOS and Android
- * - ✅ RESULTADO: No modal presentation on iOS - full screen like Android
- * - ✅ RESULTADO: Close icon (X) in top corner works perfectly
- * 
- * Previous changes v4.0:
- * - ✅ FIXED: iOS Virtual Room opens in full screen (same as Android)
- * - ✅ FIXED: Changed presentation from 'fullScreenModal' to 'card' for consistent behavior
- * - ✅ RESULT: Consistent user experience across platforms
- * - ✅ RESULT: Full screen presentation on both iOS and Android
  */
 
 export default function RootLayout() {
@@ -63,7 +60,6 @@ export default function RootLayout() {
                                 <Stack.Screen name="detalle" options={{ headerShown: false }} />
                                 <Stack.Screen name="crear" options={{ headerShown: false }} />
                                 <Stack.Screen name="editar" options={{ headerShown: false }} />
-                                {/* ✅ FIX v2.0: Profile now uses fullScreenModal to render above virtual room */}
                                 <Stack.Screen 
                                   name="perfil" 
                                   options={{ 
@@ -106,13 +102,12 @@ export default function RootLayout() {
                   />
                 </Stack.Group>
 
-                {/* ✅ FIX v6.0: iOS Virtual Room opens in FULL SCREEN (same as Android) - NO MODAL */}
+                {/* ✅ FIX v6.0: Sala Virtual opens in FULL SCREEN PAGE (NOT modal) */}
                 <Stack.Screen 
                   name="detalle/sala-virtual-enhanced" 
                   options={{ 
                     title: 'Sala Virtual',
-                    headerShown: true,
-                    presentation: Platform.OS === 'ios' ? 'card' : 'card',
+                    headerShown: false,
                   }} 
                 />
               </Stack>
