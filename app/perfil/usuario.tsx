@@ -31,13 +31,13 @@ const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
 
 /**
- * ✅ USER PROFILE v119.0 - MARGEN ELIMINADO COMPLETAMENTE
+ * ✅ USER PROFILE v120.0 - RESTAURAR SECCIÓN AZUL DEL HEADER
  * 
- * CAMBIOS v119.0:
- * - ✅ CORREGIDO: profileHeaderGradient ahora tiene paddingBottom: 0 (sin espacio)
- * - ✅ CORREGIDO: tabsContainer mantiene marginTop: 0 (sin espacio)
+ * CAMBIOS v120.0:
+ * - ✅ RESTAURADO: profileHeaderGradient ahora tiene paddingBottom: 16 (sección azul visible)
+ * - ✅ CORREGIDO: tabsContainer mantiene marginTop: 0 (sin espacio blanco)
+ * - ✅ RESULTADO: La sección azul del header está visible y separa el encabezado de las pestañas
  * - ✅ RESULTADO: NO HAY ESPACIO BLANCO entre el header azul y las pestañas blancas
- * - ✅ RESULTADO: Los componentes están completamente adyacentes (margen = 0)
  */
 
 export default function UsuarioPerfilScreen() {
@@ -78,30 +78,30 @@ export default function UsuarioPerfilScreen() {
   const returnTab = params.returnTab as string | undefined;
   const returnLocalId = params.localId as string | undefined;
 
-  console.log('[UsuarioPerfil v119.0] 🎯 NAVEGACIÓN CONTEXTUAL: Navigation params received:');
-  console.log('[UsuarioPerfil v119.0] 🎯 NAVEGACIÓN CONTEXTUAL:   - from:', from || 'NOT SET');
-  console.log('[UsuarioPerfil v119.0] 🎯 NAVEGACIÓN CONTEXTUAL:   - returnTab:', returnTab || 'NOT SET');
-  console.log('[UsuarioPerfil v119.0] 🎯 NAVEGACIÓN CONTEXTUAL:   - localId:', returnLocalId || 'NOT SET');
+  console.log('[UsuarioPerfil v120.0] 🎯 NAVEGACIÓN CONTEXTUAL: Navigation params received:');
+  console.log('[UsuarioPerfil v120.0] 🎯 NAVEGACIÓN CONTEXTUAL:   - from:', from || 'NOT SET');
+  console.log('[UsuarioPerfil v120.0] 🎯 NAVEGACIÓN CONTEXTUAL:   - returnTab:', returnTab || 'NOT SET');
+  console.log('[UsuarioPerfil v120.0] 🎯 NAVEGACIÓN CONTEXTUAL:   - localId:', returnLocalId || 'NOT SET');
 
   const handleGoBack = useCallback(() => {
-    console.log('[UsuarioPerfil v119.0] 🔙 NAVEGACIÓN CON router.setParams() + router.back(): Back button pressed');
-    console.log('[UsuarioPerfil v119.0] 🔙 NAVEGACIÓN CON router.setParams() + router.back(): Evaluating navigation context...');
+    console.log('[UsuarioPerfil v120.0] 🔙 NAVEGACIÓN CON router.setParams() + router.back(): Back button pressed');
+    console.log('[UsuarioPerfil v120.0] 🔙 NAVEGACIÓN CON router.setParams() + router.back(): Evaluating navigation context...');
     
     if (from === 'sala-virtual' && returnTab) {
-      console.log('[UsuarioPerfil v119.0] ✅ NAVEGACIÓN CON router.setParams() + router.back(): Context detected - returning to virtual room');
-      console.log('[UsuarioPerfil v119.0] 🎯 NAVEGACIÓN CON router.setParams() + router.back(): Target tab:', returnTab);
-      console.log('[UsuarioPerfil v119.0] 🏠 NAVEGACIÓN CON router.setParams() + router.back(): Target local:', returnLocalId || 'NOT SET');
+      console.log('[UsuarioPerfil v120.0] ✅ NAVEGACIÓN CON router.setParams() + router.back(): Context detected - returning to virtual room');
+      console.log('[UsuarioPerfil v120.0] 🎯 NAVEGACIÓN CON router.setParams() + router.back(): Target tab:', returnTab);
+      console.log('[UsuarioPerfil v120.0] 🏠 NAVEGACIÓN CON router.setParams() + router.back(): Target local:', returnLocalId || 'NOT SET');
       
-      console.log('[UsuarioPerfil v119.0] 🔥 NAVEGACIÓN CON router.setParams() + router.back(): Step 1 - Updating previous screen params with router.setParams()');
+      console.log('[UsuarioPerfil v120.0] 🔥 NAVEGACIÓN CON router.setParams() + router.back(): Step 1 - Updating previous screen params with router.setParams()');
       router.setParams({ returnTab: returnTab });
-      console.log('[UsuarioPerfil v119.0] ✅ NAVEGACIÓN CON router.setParams() + router.back(): router.setParams() executed');
+      console.log('[UsuarioPerfil v120.0] ✅ NAVEGACIÓN CON router.setParams() + router.back(): router.setParams() executed');
       
-      console.log('[UsuarioPerfil v119.0] 🔥 NAVEGACIÓN CON router.setParams() + router.back(): Step 2 - Executing router.back()');
+      console.log('[UsuarioPerfil v120.0] 🔥 NAVEGACIÓN CON router.setParams() + router.back(): Step 2 - Executing router.back()');
       router.back();
-      console.log('[UsuarioPerfil v119.0] ✅ NAVEGACIÓN CON router.setParams() + router.back(): router.back() executed');
-      console.log('[UsuarioPerfil v119.0] 🎯 NAVEGACIÓN CON router.setParams() + router.back(): The virtual room will detect params.returnTab and restore the tab');
+      console.log('[UsuarioPerfil v120.0] ✅ NAVEGACIÓN CON router.setParams() + router.back(): router.back() executed');
+      console.log('[UsuarioPerfil v120.0] 🎯 NAVEGACIÓN CON router.setParams() + router.back(): The virtual room will detect params.returnTab and restore the tab');
     } else {
-      console.log('[UsuarioPerfil v119.0] ℹ️ NAVEGACIÓN CON router.setParams() + router.back(): No context - using standard back navigation');
+      console.log('[UsuarioPerfil v120.0] ℹ️ NAVEGACIÓN CON router.setParams() + router.back(): No context - using standard back navigation');
       
       if (router.canGoBack()) {
         router.back();
@@ -127,7 +127,7 @@ export default function UsuarioPerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[UsuarioPerfil v119.0] Error loading current local:', error);
+        console.error('[UsuarioPerfil v120.0] Error loading current local:', error);
         return;
       }
 
@@ -171,7 +171,7 @@ export default function UsuarioPerfilScreen() {
         setCanViewLocation(false);
       }
     } catch (error) {
-      console.error('[UsuarioPerfil v119.0] Error loading current local:', error);
+      console.error('[UsuarioPerfil v120.0] Error loading current local:', error);
     }
   }, [userId, isOwnProfile, currentUser, isAdminView]);
 
@@ -181,14 +181,14 @@ export default function UsuarioPerfilScreen() {
         .rpc('get_total_seguidores_count', { p_usuario_id: targetUserId });
 
       if (seguidoresError) {
-        console.error('[UsuarioPerfil v119.0] Error counting followers:', seguidoresError);
+        console.error('[UsuarioPerfil v120.0] Error counting followers:', seguidoresError);
       }
 
       const { data: seguidosData, error: seguidosError } = await supabase
         .rpc('get_total_siguiendo_count', { p_usuario_id: targetUserId });
 
       if (seguidosError) {
-        console.error('[UsuarioPerfil v119.0] Error counting following:', seguidosError);
+        console.error('[UsuarioPerfil v120.0] Error counting following:', seguidosError);
       }
 
       const actualSeguidores = seguidoresData || 0;
@@ -203,12 +203,12 @@ export default function UsuarioPerfilScreen() {
         .eq('id', targetUserId);
 
       if (updateError) {
-        console.error('[UsuarioPerfil v119.0] Error updating user counters:', updateError);
+        console.error('[UsuarioPerfil v120.0] Error updating user counters:', updateError);
       }
 
       return { seguidores: actualSeguidores, seguidos: actualSeguidos };
     } catch (error) {
-      console.error('[UsuarioPerfil v119.0] Error loading follower counts:', error);
+      console.error('[UsuarioPerfil v120.0] Error loading follower counts:', error);
       return { seguidores: 0, seguidos: 0 };
     }
   }, []);
@@ -231,7 +231,7 @@ export default function UsuarioPerfilScreen() {
         .single();
 
       if (userError || !userData) {
-        console.error('[UsuarioPerfil v119.0] Error loading user:', userError);
+        console.error('[UsuarioPerfil v120.0] Error loading user:', userError);
         if (!silent) {
           Alert.alert('Error', 'No se pudo cargar el perfil del usuario');
           router.back();
@@ -302,7 +302,7 @@ export default function UsuarioPerfilScreen() {
         stats: newStats,
       });
 
-      console.log('[UsuarioPerfil v119.0] ✅ Data loaded and cached');
+      console.log('[UsuarioPerfil v120.0] ✅ Data loaded and cached');
 
       if (currentUser) {
         const { data: followData } = await supabase
@@ -327,7 +327,7 @@ export default function UsuarioPerfilScreen() {
       await loadCurrentLocal();
       hasLoadedOnce.current = true;
     } catch (error) {
-      console.error('[UsuarioPerfil v119.0] Error loading data:', error);
+      console.error('[UsuarioPerfil v120.0] Error loading data:', error);
     } finally {
       if (!silent) {
         setLoading(false);
@@ -342,12 +342,12 @@ export default function UsuarioPerfilScreen() {
     }
 
     try {
-      console.log('[UsuarioPerfil v119.0] ⚡⚡⚡ INSTANT LOAD - Checking cache...');
+      console.log('[UsuarioPerfil v120.0] ⚡⚡⚡ INSTANT LOAD - Checking cache...');
       
       const cachedData = await profileCache.get(userId, 'user');
       
       if (cachedData) {
-        console.log('[UsuarioPerfil v119.0] ⚡ INSTANT display with cached data');
+        console.log('[UsuarioPerfil v120.0] ⚡ INSTANT display with cached data');
         
         const safeProfile = {
           ...cachedData.profile,
@@ -362,32 +362,32 @@ export default function UsuarioPerfilScreen() {
         hasLoadedOnce.current = true;
         
         setTimeout(() => {
-          console.log('[UsuarioPerfil v119.0] 🔄 Background refresh...');
+          console.log('[UsuarioPerfil v120.0] 🔄 Background refresh...');
           loadUserData(true);
         }, 100);
       } else {
-        console.log('[UsuarioPerfil v119.0] 📡 No cache, loading from database...');
+        console.log('[UsuarioPerfil v120.0] 📡 No cache, loading from database...');
         await loadUserData(false);
       }
     } catch (error) {
-      console.error('[UsuarioPerfil v119.0] Error in loadUserDataWithCache:', error);
+      console.error('[UsuarioPerfil v120.0] Error in loadUserDataWithCache:', error);
       await loadUserData(false);
     }
   }, [userId, router, loadUserData]);
 
   useFocusEffect(
     useCallback(() => {
-      console.log('[UsuarioPerfil v119.0] ⚡ Screen focused - keeping state alive');
+      console.log('[UsuarioPerfil v120.0] ⚡ Screen focused - keeping state alive');
       
       if (!hasLoadedOnce.current) {
         loadUserDataWithCache();
       } else {
-        console.log('[UsuarioPerfil v119.0] 🔄 Background refresh...');
+        console.log('[UsuarioPerfil v120.0] 🔄 Background refresh...');
         loadUserData(true);
       }
       
       return () => {
-        console.log('[UsuarioPerfil v119.0] Screen unfocused - state persisted');
+        console.log('[UsuarioPerfil v120.0] Screen unfocused - state persisted');
       };
     }, [loadUserDataWithCache, loadUserData])
   );
@@ -421,7 +421,7 @@ export default function UsuarioPerfilScreen() {
             filter: `seguido_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v119.0] ⚡ INSTANT update - Followers changed');
+            console.log('[UsuarioPerfil v120.0] ⚡ INSTANT update - Followers changed');
             const followerCounts = await loadFollowerCounts(userId);
             setStats(prev => ({
               ...prev,
@@ -438,7 +438,7 @@ export default function UsuarioPerfilScreen() {
             filter: `seguidor_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v119.0] ⚡ INSTANT update - Following changed');
+            console.log('[UsuarioPerfil v120.0] ⚡ INSTANT update - Following changed');
             const followerCounts = await loadFollowerCounts(userId);
             setStats(prev => ({
               ...prev,
@@ -455,7 +455,7 @@ export default function UsuarioPerfilScreen() {
             filter: `autor_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v119.0] ⚡ INSTANT update - Posts changed');
+            console.log('[UsuarioPerfil v120.0] ⚡ INSTANT update - Posts changed');
             await loadUserData(true);
           }
         )
@@ -468,7 +468,7 @@ export default function UsuarioPerfilScreen() {
             filter: `usuario_id=eq.${userId}`,
           },
           async () => {
-            console.log('[UsuarioPerfil v119.0] ⚡ INSTANT update - Check-in changed');
+            console.log('[UsuarioPerfil v120.0] ⚡ INSTANT update - Check-in changed');
             await loadCurrentLocal();
           }
         )
@@ -482,7 +482,7 @@ export default function UsuarioPerfilScreen() {
 
   useEffect(() => {
     if (params.openMomento === 'true' && !loading && usuario) {
-      console.log('[UsuarioPerfil v119.0] 🎬 Auto-opening momento viewer from message');
+      console.log('[UsuarioPerfil v120.0] 🎬 Auto-opening momento viewer from message');
       setShowMomentoViewer(true);
     }
   }, [params.openMomento, loading, usuario]);
@@ -572,7 +572,7 @@ export default function UsuarioPerfilScreen() {
         seguidores: updatedCounts.seguidores,
       }));
     } catch (error) {
-      console.error('[UsuarioPerfil v119.0] Error toggling follow:', error);
+      console.error('[UsuarioPerfil v120.0] Error toggling follow:', error);
       
       setIsFollowing(wasFollowing);
       setStats(prev => ({
@@ -646,7 +646,7 @@ export default function UsuarioPerfilScreen() {
                 Alert.alert('Éxito', 'Usuario bloqueado');
               }
             } catch (error) {
-              console.error('[UsuarioPerfil v119.0] Error toggling block:', error);
+              console.error('[UsuarioPerfil v120.0] Error toggling block:', error);
               Alert.alert('Error', 'No se pudo completar la acción');
             }
           },
@@ -705,7 +705,7 @@ export default function UsuarioPerfilScreen() {
               setCanViewLocation(false);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
-              console.error('[UsuarioPerfil v119.0] Error exiting local:', error);
+              console.error('[UsuarioPerfil v120.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -784,7 +784,7 @@ export default function UsuarioPerfilScreen() {
           )}
         </LinearGradient>
 
-        {/* ✅ FIX v119.0: paddingBottom = 0 para eliminar el espacio blanco */}
+        {/* ✅ FIX v120.0: RESTAURAR paddingBottom = 16 para mantener la sección azul visible */}
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -984,7 +984,7 @@ export default function UsuarioPerfilScreen() {
           </Animated.View>
         </LinearGradient>
 
-        {/* ✅ FIX v119.0: marginTop = 0 para eliminar completamente el espacio blanco */}
+        {/* ✅ FIX v120.0: marginTop = 0 para eliminar el espacio blanco */}
         <View style={styles.tabsContainer}>
           <View style={styles.tab}>
             <IconSymbol 
@@ -1113,10 +1113,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.white,
   },
-  // ✅ FIX v119.0: paddingBottom = 0 para eliminar el espacio blanco
+  // ✅ FIX v120.0: RESTAURAR paddingBottom = 16 para mantener la sección azul visible
   profileHeaderGradient: {
     paddingTop: 12,
-    paddingBottom: 0,
+    paddingBottom: 16,
     paddingHorizontal: 20,
   },
   profileSection: {
@@ -1336,7 +1336,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
-  // ✅ FIX v119.0: marginTop = 0 para eliminar completamente el espacio blanco
+  // ✅ FIX v120.0: marginTop = 0 para eliminar el espacio blanco
   tabsContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
