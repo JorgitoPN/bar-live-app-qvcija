@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -19,16 +19,19 @@ interface UnifiedMomentoAvatarProps {
 }
 
 /**
- * ✅ UNIFIED MOMENTO AVATAR v53.0 - FURTHER REDUCED NEON BORDER THICKNESS
+ * ✅ UNIFIED MOMENTO AVATAR v54.0 - REDUCED AVATAR SIZES FOR ANDROID & iOS
  * 
- * CRITICAL FIXES v53.0:
- * - ✅ Neon border thickness FURTHER REDUCED to 1.5px (was 2px)
- * - ✅ Border is ALWAYS visible (not covered by image)
- * - ✅ Image is rendered INSIDE the border with proper padding
- * - ✅ Border uses LinearGradient for neon effect
+ * CRITICAL FIXES v54.0:
+ * - ✅ ANDROID: Avatar size reduced by 20% (e.g., 88 → 70, 96 → 77)
+ * - ✅ iOS: Avatar size reduced by 10% (e.g., 88 → 79, 96 → 86)
+ * - ✅ Border thickness remains at 1.5px for neon effect
+ * - ✅ Proportional scaling maintained for all avatar sizes
  * - ✅ Real-time synchronization of momento status
- * - ✅ Consistent design across all pages
- * - ✅ Add button for uploading momentos
+ * 
+ * Previous changes v53.0:
+ * - ✅ Neon border thickness reduced to 1.5px
+ * - ✅ Border always visible (not covered by image)
+ * - ✅ Image rendered inside border with proper padding
  */
 
 export default function UnifiedMomentoAvatar({
@@ -45,30 +48,33 @@ export default function UnifiedMomentoAvatar({
   const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // ✅ CRITICAL FIX v53.0: Border width FURTHER REDUCED from 2 to 1.5
-  const BORDER_WIDTH = 1.5; // Even thinner neon border (was 2)
-  const PADDING = 3; // Space between border and image
-  const innerSize = size - (BORDER_WIDTH + PADDING) * 2;
+  // ✅ CRITICAL FIX v54.0: Reduce avatar size based on platform
+  const adjustedSize = Platform.OS === 'android' 
+    ? Math.round(size * 0.8)  // Android: 20% reduction
+    : Math.round(size * 0.9); // iOS: 10% reduction
+
+  const BORDER_WIDTH = 1.5;
+  const PADDING = 3;
+  const innerSize = adjustedSize - (BORDER_WIDTH + PADDING) * 2;
 
   const checkUnviewedMomentos = useCallback(async () => {
     if (!user) {
-      console.log('[UnifiedMomentoAvatar v53.0] ℹ️ No user, skipping check');
+      console.log('[UnifiedMomentoAvatar v54.0] ℹ️ No user, skipping check');
       setLoading(false);
       setHasUnviewedMomentos(false);
       return;
     }
 
     if (!userId && !localId) {
-      console.log('[UnifiedMomentoAvatar v53.0] ℹ️ No userId or localId provided');
+      console.log('[UnifiedMomentoAvatar v54.0] ℹ️ No userId or localId provided');
       setLoading(false);
       setHasUnviewedMomentos(false);
       return;
     }
 
     try {
-      console.log('[UnifiedMomentoAvatar v53.0] 🔍 Checking momentos for:', { userId, localId });
+      console.log('[UnifiedMomentoAvatar v54.0] 🔍 Checking momentos for:', { userId, localId });
 
-      // Get momentos for this user/local
       const query = supabase
         .from('momentos')
         .select('id')
@@ -83,22 +89,21 @@ export default function UnifiedMomentoAvatar({
       const { data: momentosData, error: momentosError } = await query;
 
       if (momentosError) {
-        console.error('[UnifiedMomentoAvatar v53.0] ❌ Error fetching momentos:', momentosError);
+        console.error('[UnifiedMomentoAvatar v54.0] ❌ Error fetching momentos:', momentosError);
         setHasUnviewedMomentos(false);
         setLoading(false);
         return;
       }
 
       if (!momentosData || momentosData.length === 0) {
-        console.log('[UnifiedMomentoAvatar v53.0] ℹ️ No momentos found');
+        console.log('[UnifiedMomentoAvatar v54.0] ℹ️ No momentos found');
         setHasUnviewedMomentos(false);
         setLoading(false);
         return;
       }
 
-      console.log('[UnifiedMomentoAvatar v53.0] ✅ Found momentos:', momentosData.length);
+      console.log('[UnifiedMomentoAvatar v54.0] ✅ Found momentos:', momentosData.length);
 
-      // Check if user has viewed any of these momentos
       const momentoIds = momentosData.map(m => m.id);
       const { data: viewsData, error: viewsError } = await supabase
         .from('momento_views')
@@ -107,26 +112,29 @@ export default function UnifiedMomentoAvatar({
         .in('momento_id', momentoIds);
 
       if (viewsError) {
-        console.error('[UnifiedMomentoAvatar v53.0] ❌ Error fetching views:', viewsError);
+        console.error('[UnifiedMomentoAvatar v54.0] ❌ Error fetching views:', viewsError);
       }
 
       const viewedIds = new Set(viewsData?.map(v => v.momento_id) || []);
       const hasUnviewed = momentosData.some(m => !viewedIds.has(m.id));
 
-      console.log('[UnifiedMomentoAvatar v53.0] 🎯 Result:', {
+      console.log('[UnifiedMomentoAvatar v54.0] 🎯 Result:', {
         totalMomentos: momentosData.length,
         viewedCount: viewedIds.size,
         hasUnviewed,
+        platform: Platform.OS,
+        originalSize: size,
+        adjustedSize,
       });
 
       setHasUnviewedMomentos(hasUnviewed);
     } catch (error) {
-      console.error('[UnifiedMomentoAvatar v53.0] ❌ Error checking momentos:', error);
+      console.error('[UnifiedMomentoAvatar v54.0] ❌ Error checking momentos:', error);
       setHasUnviewedMomentos(false);
     } finally {
       setLoading(false);
     }
-  }, [user, userId, localId]);
+  }, [user, userId, localId, size, adjustedSize]);
 
   useEffect(() => {
     checkUnviewedMomentos();
@@ -135,7 +143,6 @@ export default function UnifiedMomentoAvatar({
       return;
     }
 
-    // Subscribe to real-time updates for momentos and views
     const momentosChannel = supabase
       .channel(`momento-updates-unified-${userId || localId}`)
       .on(
@@ -147,13 +154,12 @@ export default function UnifiedMomentoAvatar({
           filter: userId ? `autor_id=eq.${userId}` : `local_id=eq.${localId}`,
         },
         (payload) => {
-          console.log('[UnifiedMomentoAvatar v53.0] 🔄 Momento update detected:', payload);
+          console.log('[UnifiedMomentoAvatar v54.0] 🔄 Momento update detected:', payload);
           checkUnviewedMomentos();
         }
       )
       .subscribe();
 
-    // Subscribe to view updates for current user
     const viewsChannel = user ? supabase
       .channel(`momento-views-unified-${user.id}`)
       .on(
@@ -165,7 +171,7 @@ export default function UnifiedMomentoAvatar({
           filter: `usuario_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('[UnifiedMomentoAvatar v53.0] 🔄 View update detected:', payload);
+          console.log('[UnifiedMomentoAvatar v54.0] 🔄 View update detected:', payload);
           checkUnviewedMomentos();
         }
       )
@@ -179,19 +185,17 @@ export default function UnifiedMomentoAvatar({
     };
   }, [userId, localId, checkUnviewedMomentos, user]);
 
-  // ✅ CRITICAL FIX: Render border OUTSIDE the image container
   const renderAvatar = () => (
     <View
       style={[
         styles.avatarContainer,
         {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
+          width: adjustedSize,
+          height: adjustedSize,
+          borderRadius: adjustedSize / 2,
         },
       ]}
     >
-      {/* ✅ NEON BORDER - Rendered FIRST (bottom layer) */}
       {hasUnviewedMomentos && !loading ? (
         <LinearGradient
           colors={['#00FF88', '#00FFAA', '#00FF88']}
@@ -200,9 +204,9 @@ export default function UnifiedMomentoAvatar({
           style={[
             styles.neonBorder,
             {
-              width: size,
-              height: size,
-              borderRadius: size / 2,
+              width: adjustedSize,
+              height: adjustedSize,
+              borderRadius: adjustedSize / 2,
             },
           ]}
         />
@@ -211,15 +215,14 @@ export default function UnifiedMomentoAvatar({
           style={[
             styles.normalBorder,
             {
-              width: size,
-              height: size,
-              borderRadius: size / 2,
+              width: adjustedSize,
+              height: adjustedSize,
+              borderRadius: adjustedSize / 2,
             },
           ]}
         />
       )}
 
-      {/* ✅ IMAGE - Rendered INSIDE the border (top layer) */}
       <View
         style={[
           styles.imageContainer,
@@ -267,15 +270,14 @@ export default function UnifiedMomentoAvatar({
         )}
       </View>
 
-      {/* ✅ ADD BUTTON - Only for owner */}
       {showAddButton && isOwner && onAddPress && (
         <TouchableOpacity
           style={[
             styles.addButton,
             {
-              width: size * 0.3,
-              height: size * 0.3,
-              borderRadius: (size * 0.3) / 2,
+              width: adjustedSize * 0.3,
+              height: adjustedSize * 0.3,
+              borderRadius: (adjustedSize * 0.3) / 2,
               bottom: 0,
               right: 0,
             },
@@ -290,7 +292,7 @@ export default function UnifiedMomentoAvatar({
             <IconSymbol
               ios_icon_name="plus"
               android_material_icon_name="add"
-              size={size * 0.18}
+              size={adjustedSize * 0.18}
               color={colors.white}
             />
           </LinearGradient>
