@@ -18,16 +18,17 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Platform } from 'react-native';
 
 /**
- * ✅ ROOT LAYOUT v6.0 - SALA VIRTUAL FULL SCREEN FIX (FINAL)
+ * ✅ ROOT LAYOUT v7.0 - SALA VIRTUAL FULL SCREEN FIX (FINAL)
  * 
- * CHANGES v6.0:
- * - ✅ FIXED: Sala virtual ahora se abre en PÁGINA COMPLETA (no modal)
- * - ✅ FIXED: Removed presentation option - uses default 'card' behavior
+ * CHANGES v7.0:
+ * - ✅ FIXED: Sala virtual ahora se abre en PÁGINA COMPLETA en iOS (no modal)
+ * - ✅ FIXED: Movido fuera del Stack.Group de modals
+ * - ✅ FIXED: Sin presentation option - usa comportamiento por defecto 'card'
  * - ✅ FIXED: headerShown = false para pantalla completa sin header de Stack
  * - ✅ RESULTADO: Experiencia consistente en iOS y Android - pantalla completa
  * - ✅ RESULTADO: No más modal - la sala virtual es una página normal del stack
  * 
- * Previous changes v5.0:
+ * Previous changes v6.0:
  * - ✅ FIXED: iOS Virtual Room now opens in FULL SCREEN (same as Android)
  * - ✅ FIXED: Changed presentation from 'fullScreenModal' to 'card' for iOS
  */
@@ -102,7 +103,8 @@ export default function RootLayout() {
                   />
                 </Stack.Group>
 
-                {/* ✅ FIX v6.0: Sala Virtual opens in FULL SCREEN PAGE (NOT modal) */}
+                {/* ✅ FIX v7.0: Sala Virtual opens in FULL SCREEN PAGE (NOT modal) */}
+                {/* Movido FUERA del Stack.Group de modals para que use presentation por defecto */}
                 <Stack.Screen 
                   name="detalle/sala-virtual-enhanced" 
                   options={{ 

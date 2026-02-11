@@ -73,16 +73,18 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v340.0 - TABS ALIGNMENT FIX (FINAL)
+ * ✅ PROFILE SCREEN v341.0 - TABS ALIGNMENT FIX (FINAL)
  * 
- * CAMBIOS v340.0:
- * - ✅ FIXED: Eliminado el espacio vacío entre header y tabs
- * - ✅ FIXED: profileHeaderGradient ahora se extiende hasta las tabs sin espacio
- * - ✅ FIXED: tabsContainer tiene backgroundColor del gradiente azul
+ * CAMBIOS v341.0:
+ * - ✅ FIXED: Eliminado completamente el espacio vacío entre header y tabs
+ * - ✅ FIXED: profileHeaderGradient se extiende hasta las tabs sin separación
+ * - ✅ FIXED: tabsContainer integrado en el gradiente azul sin marginTop
+ * - ✅ FIXED: Continuidad visual perfecta del header azul hasta las pestañas
  * - ✅ RESULTADO: Sección azulada de Barlive ocupa todo el espacio hasta las tabs
  * - ✅ RESULTADO: No hay espacio blanco entre el header y las pestañas
+ * - ✅ RESULTADO: Coherencia visual completa del diseño
  * 
- * Previous changes v339.0:
+ * Previous changes v340.0:
  * - ✅ FIXED: profileHeaderGradient paddingBottom = 0 (elimina espacio entre header y tabs)
  * - ✅ FIXED: tabsContainer marginTop = 0 (tabs pegadas al header)
  */
@@ -162,7 +164,7 @@ export default function PerfilScreen() {
         setUnreadMessages(totalUnread);
       }
     } catch (error) {
-      console.error('[Perfil v340.0] Error loading unread counts:', error);
+      console.error('[Perfil v341.0] Error loading unread counts:', error);
     }
   }, [userId]);
 
@@ -176,14 +178,14 @@ export default function PerfilScreen() {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('[Perfil v340.0] ❌ Error loading cart count:', error);
+        console.error('[Perfil v341.0] ❌ Error loading cart count:', error);
         return;
       }
 
-      console.log('[Perfil v340.0] 🛒 Cart items count:', count);
+      console.log('[Perfil v341.0] 🛒 Cart items count:', count);
       setCartItemsCount(count || 0);
     } catch (error) {
-      console.error('[Perfil v340.0] ❌ Error loading cart count:', error);
+      console.error('[Perfil v341.0] ❌ Error loading cart count:', error);
     }
   }, [userId, isPropietario]);
 
@@ -203,7 +205,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v340.0] Error loading current local:', error);
+        console.error('[Perfil v341.0] Error loading current local:', error);
         return;
       }
 
@@ -218,7 +220,7 @@ export default function PerfilScreen() {
         setCheckInInfo(null);
       }
     } catch (error) {
-      console.error('[Perfil v340.0] Error loading current local:', error);
+      console.error('[Perfil v341.0] Error loading current local:', error);
     }
   }, [userId]);
 
@@ -277,7 +279,7 @@ export default function PerfilScreen() {
         return [];
       }
     } catch (error) {
-      console.error('[Perfil v340.0] Error cargando posts:', error);
+      console.error('[Perfil v341.0] Error cargando posts:', error);
       return [];
     }
   }, [userId]);
@@ -340,7 +342,7 @@ export default function PerfilScreen() {
         setSavedPosts([]);
       }
     } catch (error) {
-      console.error('[Perfil v340.0] Error cargando favoritos:', error);
+      console.error('[Perfil v341.0] Error cargando favoritos:', error);
     }
   }, [userId]);
 
@@ -419,7 +421,7 @@ export default function PerfilScreen() {
 
       setTaggedPosts(postsWithStatus);
     } catch (error) {
-      console.error('[Perfil v340.0] Error cargando etiquetados:', error);
+      console.error('[Perfil v341.0] Error cargando etiquetados:', error);
       setTaggedPosts([]);
     }
   }, [userId]);
@@ -436,7 +438,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v340.0] Error loading professional profile:', error);
+        console.error('[Perfil v341.0] Error loading professional profile:', error);
       }
 
       if (data) {
@@ -445,7 +447,7 @@ export default function PerfilScreen() {
         setPerfilProfesional(null);
       }
     } catch (error) {
-      console.error('[Perfil v340.0] Error loading professional profile:', error);
+      console.error('[Perfil v341.0] Error loading professional profile:', error);
     } finally {
       setLoadingEmpleo(false);
     }
@@ -456,7 +458,7 @@ export default function PerfilScreen() {
 
     try {
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v340.0] 🔄 Loading profile data...');
+        console.log('[Perfil v341.0] 🔄 Loading profile data...');
       }
 
       await loadUnreadCounts();
@@ -474,7 +476,7 @@ export default function PerfilScreen() {
       const seguidosCount = userFollowsCount || 0;
 
       if (seguidoresError) {
-        console.error('[Perfil v340.0] Error loading seguidores count:', seguidoresError);
+        console.error('[Perfil v341.0] Error loading seguidores count:', seguidoresError);
       }
 
       const seguidoresCount = seguidoresData || 0;
@@ -504,10 +506,10 @@ export default function PerfilScreen() {
       }
 
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v340.0] ✅ Profile data loaded and cached');
+        console.log('[Perfil v341.0] ✅ Profile data loaded and cached');
       }
     } catch (error) {
-      console.error('[Perfil v340.0] Error cargando datos:', error);
+      console.error('[Perfil v341.0] Error cargando datos:', error);
     } finally {
       setRefreshing(false);
     }
@@ -517,22 +519,22 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const loadCachedData = async () => {
-      console.log('[Perfil v340.0] ⚡ Loading from cache...');
+      console.log('[Perfil v341.0] ⚡ Loading from cache...');
       const cached = await profileCache.get(userId, 'user');
       
       if (cached) {
-        console.log('[Perfil v340.0] ⚡⚡⚡ INSTANT LOAD from cache');
+        console.log('[Perfil v341.0] ⚡⚡⚡ INSTANT LOAD from cache');
         setSeguidores(cached.stats.seguidores);
         setSeguidos(cached.stats.seguidos);
         setPublicaciones(cached.stats.posts);
         setPosts(cached.posts);
         
         setTimeout(() => {
-          console.log('[Perfil v340.0] 🔄 Background refresh...');
+          console.log('[Perfil v341.0] 🔄 Background refresh...');
           cargarDatosPerfil(true);
         }, 100);
       } else {
-        console.log('[Perfil v340.0] 📡 No cache, loading from database...');
+        console.log('[Perfil v341.0] 📡 No cache, loading from database...');
         cargarDatosPerfil(false);
       }
     };
@@ -559,7 +561,7 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const subscription = supabase
-      .channel('profile-updates-v340')
+      .channel('profile-updates-v341')
       .on(
         'postgres_changes',
         {
@@ -606,7 +608,7 @@ export default function PerfilScreen() {
     if (!userId || !isPropietario) return;
 
     const subscription = supabase
-      .channel('cart-updates-v340')
+      .channel('cart-updates-v341')
       .on(
         'postgres_changes',
         {
@@ -616,7 +618,7 @@ export default function PerfilScreen() {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          console.log('[Perfil v340.0] 🛒 Cart updated, reloading count...');
+          console.log('[Perfil v341.0] 🛒 Cart updated, reloading count...');
           loadCartItemsCount();
         }
       )
@@ -697,7 +699,7 @@ export default function PerfilScreen() {
   };
 
   const handleCartCheckout = async (items: any[], total: number) => {
-    console.log('[Perfil v340.0] 💳 Checkout requested:', { items: items.length, total });
+    console.log('[Perfil v341.0] 💳 Checkout requested:', { items: items.length, total });
     Alert.alert(
       'Pago en Desarrollo',
       `Total a pagar: €${total.toFixed(2)}\n\nLa integración con Stripe está en desarrollo.`,
@@ -730,7 +732,7 @@ export default function PerfilScreen() {
               setCheckInInfo(null);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
-              console.error('[Perfil v340.0] Error exiting local:', error);
+              console.error('[Perfil v341.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -1106,7 +1108,7 @@ export default function PerfilScreen() {
           </View>
         </LinearGradient>
 
-        {/* ✅ FIX v340.0: Gradiente azul se extiende hasta las tabs sin espacio */}
+        {/* ✅ FIX v341.0: Gradiente azul se extiende hasta las tabs sin espacio */}
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -1114,65 +1116,60 @@ export default function PerfilScreen() {
           style={styles.profileHeaderGradient}
         >
           {renderProfileHeader()}
-        </LinearGradient>
 
-        {userId && (
-          <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
-            <SolicitudPropiedadStatus userId={userId} />
+          {userId && (
+            <View style={{ paddingTop: 16 }}>
+              <SolicitudPropiedadStatus userId={userId} />
+            </View>
+          )}
+
+          {/* ✅ FIX v341.0: Tabs integradas en el gradiente azul sin separación */}
+          <View style={styles.tabsContainer}>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
+              onPress={() => setActiveTab('posts')}
+            >
+              <IconSymbol 
+                ios_icon_name="square.grid.3x3" 
+                android_material_icon_name="grid_on"
+                size={24} 
+                color={activeTab === 'posts' ? colors.white : 'rgba(255, 255, 255, 0.6)'} 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'favoritos' && styles.tabActive]}
+              onPress={() => setActiveTab('favoritos')}
+            >
+              <IconSymbol 
+                ios_icon_name="bookmark" 
+                android_material_icon_name="bookmark_border"
+                size={24} 
+                color={activeTab === 'favoritos' ? colors.white : 'rgba(255, 255, 255, 0.6)'} 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'etiquetados' && styles.tabActive]}
+              onPress={() => setActiveTab('etiquetados')}
+            >
+              <IconSymbol 
+                ios_icon_name="person.crop.square" 
+                android_material_icon_name="person_outline"
+                size={24} 
+                color={activeTab === 'etiquetados' ? colors.white : 'rgba(255, 255, 255, 0.6)'} 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
+              onPress={() => setActiveTab('empleo')}
+            >
+              <IconSymbol 
+                ios_icon_name="briefcase.fill" 
+                android_material_icon_name="work"
+                size={24} 
+                color={activeTab === 'empleo' ? colors.white : 'rgba(255, 255, 255, 0.6)'} 
+              />
+            </TouchableOpacity>
           </View>
-        )}
-
-        {/* ✅ FIX v340.0: Tabs con fondo azul del gradiente */}
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.tabsContainer}
-        >
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
-            onPress={() => setActiveTab('posts')}
-          >
-            <IconSymbol 
-              ios_icon_name="square.grid.3x3" 
-              android_material_icon_name="grid_on"
-              size={24} 
-              color={activeTab === 'posts' ? colors.white : 'rgba(255, 255, 255, 0.6)'} 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'favoritos' && styles.tabActive]}
-            onPress={() => setActiveTab('favoritos')}
-          >
-            <IconSymbol 
-              ios_icon_name="bookmark" 
-              android_material_icon_name="bookmark_border"
-              size={24} 
-              color={activeTab === 'favoritos' ? colors.white : 'rgba(255, 255, 255, 0.6)'} 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'etiquetados' && styles.tabActive]}
-            onPress={() => setActiveTab('etiquetados')}
-          >
-            <IconSymbol 
-              ios_icon_name="person.crop.square" 
-              android_material_icon_name="person_outline"
-              size={24} 
-              color={activeTab === 'etiquetados' ? colors.white : 'rgba(255, 255, 255, 0.6)'} 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
-            onPress={() => setActiveTab('empleo')}
-          >
-            <IconSymbol 
-              ios_icon_name="briefcase.fill" 
-              android_material_icon_name="work"
-              size={24} 
-              color={activeTab === 'empleo' ? colors.white : 'rgba(255, 255, 255, 0.6)'} 
-            />
-          </TouchableOpacity>
         </LinearGradient>
 
         <View style={styles.content}>
@@ -1386,10 +1383,10 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'android' ? 6 : 8,
     paddingHorizontal: 20,
   },
-  // ✅ FIX v340.0: Gradiente azul se extiende hasta las tabs
+  // ✅ FIX v341.0: Gradiente azul se extiende hasta las tabs sin separación
   profileHeaderGradient: {
     paddingTop: 8,
-    paddingBottom: 16,
+    paddingBottom: 0,
     paddingHorizontal: 20,
   },
   headerActions: {
@@ -1725,6 +1722,7 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     gap: 10,
+    marginTop: 14,
   },
   actionButton: {
     flex: 1,
@@ -1747,11 +1745,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
-  // ✅ FIX v340.0: Tabs con fondo azul del gradiente
+  // ✅ FIX v341.0: Tabs integradas en el gradiente azul sin separación
   tabsContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+    marginTop: 16,
   },
   tab: {
     flex: 1,
