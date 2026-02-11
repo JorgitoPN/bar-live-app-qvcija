@@ -691,23 +691,28 @@ export default function DetalleLocalScreen() {
   }, [params.id, user, loadCheckedInUsers, checkUserCheckInStatus]);
 
   /**
-   * ✅ FIX v282.0: INTELLIGENT CLOSE NAVIGATION
+   * ✅ FIX v283.0: SINGLE TAP CLOSE FIX
    * 
-   * This handler now respects the actual navigation history:
-   * - Uses router.back() to return to the previous screen in the stack
+   * This handler now uses router.dismiss() for immediate close:
+   * - Uses router.dismiss() to close the modal immediately with one tap
+   * - Falls back to router.back() if dismiss is not available
    * - Falls back to home if no history exists
-   * - No longer forces navigation to virtual room
+   * - No longer requires double tap to close
    * 
-   * The user's expectation is met: closing returns to where they came from
+   * The user's expectation is met: ONE tap closes the page
    */
   const handleClose = useCallback(() => {
-    console.log('[DetalleLocal v282.0] 🔙 Close button pressed - using intelligent navigation');
+    console.log('[DetalleLocal v283.0] 🔙 Close button pressed - using single tap close');
     
-    if (router.canGoBack()) {
-      console.log('[DetalleLocal v282.0] ✅ History exists - navigating back');
+    // Try dismiss first (for modal presentation)
+    if (router.dismiss) {
+      console.log('[DetalleLocal v283.0] ✅ Using router.dismiss() for immediate close');
+      router.dismiss();
+    } else if (router.canGoBack()) {
+      console.log('[DetalleLocal v283.0] ✅ History exists - navigating back');
       router.back();
     } else {
-      console.log('[DetalleLocal v282.0] ⚠️ No history - redirecting to home');
+      console.log('[DetalleLocal v283.0] ⚠️ No history - redirecting to home');
       router.replace('/');
     }
   }, [router]);

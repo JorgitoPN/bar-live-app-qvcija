@@ -34,9 +34,15 @@ const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 /**
- * 🗺️ MAPA SCREEN v293.0 - GREY MARKER POPUP FIX
+ * 🗺️ MAPA SCREEN v294.0 - CLUSTER COUNT DISPLAY
  * 
- * NEW FIXES v293.0:
+ * NEW FIXES v294.0:
+ * - ✅ CLUSTER COUNT: Each cluster now displays the number of venues inside
+ * - ✅ USER EXPERIENCE: Users can see how many markers are in each cluster area
+ * - ✅ VISIBILITY: White text with dark halo for maximum readability
+ * - ✅ SIZING: Responsive text size based on cluster size (14-18px)
+ * 
+ * Previous fixes maintained (v293.0):
  * - ✅ CRITICAL FIX: Grey markers (sin_info) now open popups correctly
  * - ✅ BEHAVIOR: Grey markers behave identically to green and red markers
  * - ✅ FILTER LOGIC: When "Abiertos" filter is active, grey markers are now INCLUDED
@@ -251,8 +257,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 <body>
 <div id="map"></div>
 <script>
-// 🚀🚀🚀 MAPLIBRE GL JS v293.0 - GREY MARKER POPUP FIX 🚀🚀🚀
-console.log('🗺️ [MAPA v293.0] Inicializando MapLibre GL JS con grey marker popup fix');
+// 🚀🚀🚀 MAPLIBRE GL JS v294.0 - CLUSTER COUNT DISPLAY 🚀🚀🚀
+console.log('🗺️ [MAPA v294.0] Inicializando MapLibre GL JS con cluster count display');
 
 // 🚀 CREAR MAPA CON MAPLIBRE GL JS
 var map = new maplibregl.Map({
@@ -607,7 +613,7 @@ map.on('load', function() {
     }
   });
   
-  // 🚀 AÑADIR LAYER DE CONTEO DE CLUSTERS
+  // 🚀 AÑADIR LAYER DE CONTEO DE CLUSTERS - ✅ v294.0: ENABLED cluster count display
   map.addLayer({
     id: 'cluster-count',
     type: 'symbol',
@@ -619,9 +625,9 @@ map.on('load', function() {
       'text-size': [
         'step',
         ['get', 'point_count'],
-        22,
-        10, 24,
-        100, 26
+        14,
+        10, 16,
+        100, 18
       ],
       'text-allow-overlap': true,
       'text-ignore-placement': true,
@@ -631,8 +637,8 @@ map.on('load', function() {
     },
     paint: {
       'text-color': '#FFFFFF',
-      'text-halo-color': 'rgba(0, 0, 0, 0.7)',
-      'text-halo-width': 3,
+      'text-halo-color': 'rgba(0, 0, 0, 0.8)',
+      'text-halo-width': 2,
       'text-halo-blur': 0.5
     }
   });
@@ -1326,31 +1332,35 @@ window.addEventListener('resize', function() {
   console.log('🗺️ [MAPA v293.0] ✅ map.resize() ejecutado en window resize');
 });
 
-console.log('🗺️ [MAPA v293.0] ═══════════════════════════════════════════════════════');
-console.log('🗺️ [MAPA v293.0] ✅ Sistema de mapa configurado completamente');
-console.log('🗺️ [MAPA v293.0] ✅ GREY MARKER POPUP FIX APLICADO');
-console.log('🗺️ [MAPA v293.0] ✅ Marcadores grises (sin_info) ahora abren popup correctamente');
-console.log('🗺️ [MAPA v293.0] ✅ Comportamiento idéntico a marcadores verdes y rojos');
-console.log('🗺️ [MAPA v293.0] ✅ Filtro "Abiertos" ahora INCLUYE locales sin información de horario');
-console.log('🗺️ [MAPA v293.0] ✅ POPUP WIDTH:', ${popupWidth}, 'px (REDUCED for consistency)');
-console.log('🗺️ [MAPA v293.0] ✅ POPUP IMAGE HEIGHT:', ${popupImageHeight}, 'px (REDUCED for proportions)');
-console.log('🗺️ [MAPA v293.0] ✅ MARKER SCALE:', ${markerScale}, '(15% reduction)');
-console.log('🗺️ [MAPA v293.0] ✅ USER MARKER SIZE:', ${userMarkerSize}, 'px (20px en Android, 24px en iOS)');
-console.log('🗺️ [MAPA v293.0] ✅ MARCADOR DE USUARIO con display INSTANTÁNEO en Android');
-console.log('🗺️ [MAPA v293.0] ✅ POPUP TEXT SCALING AUMENTADO en Android (mejor legibilidad)');
-console.log('🗺️ [MAPA v293.0] ✅ Título del local: scaleFontSize(16) en Android');
-console.log('🗺️ [MAPA v293.0] ✅ Rating y estrella: scaleFontSize(13) en Android');
-console.log('🗺️ [MAPA v293.0] ✅ Botón "Ver detalles": scaleFontSize(13) en Android');
-console.log('🗺️ [MAPA v293.0] ✅ Categoría del local: scaleFontSize(12) en Android');
-console.log('🗺️ [MAPA v293.0] ✅ CÁLCULO DE ESTADO EN TIEMPO REAL activado');
-console.log('🗺️ [MAPA v293.0] ✅ Sincronizado con horarios_completos de cada local');
-console.log('🗺️ [MAPA v293.0] ✅ Manejo correcto de horarios nocturnos (23:00-06:00)');
-console.log('🗺️ [MAPA v293.0] ✅ Manejo correcto de locales que abren después de medianoche');
-console.log('🗺️ [MAPA v293.0] ✅ DETECCIÓN MANUAL CON PROYECCIÓN A PÍXELES activada');
-console.log('🗺️ [MAPA v293.0] ✅ Tolerancia fija: 20 píxeles (tamaño del dedo)');
-console.log('🗺️ [MAPA v293.0] ✅ Área de clic CONSISTENTE sin importar el zoom');
-console.log('🗺️ [MAPA v293.0] ✅ POPUP CENTRADO DINÁMICAMENTE (v267.0)');
-console.log('🗺️ [MAPA v293.0] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA v294.0] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA v294.0] ✅ Sistema de mapa configurado completamente');
+console.log('🗺️ [MAPA v294.0] ✅ CLUSTER COUNT DISPLAY HABILITADO');
+console.log('🗺️ [MAPA v294.0] ✅ Cada cluster muestra el número de locales que contiene');
+console.log('🗺️ [MAPA v294.0] ✅ Texto blanco con halo oscuro para máxima legibilidad');
+console.log('🗺️ [MAPA v294.0] ✅ Tamaño de texto responsive (14-18px según tamaño del cluster)');
+console.log('🗺️ [MAPA v294.0] ✅ GREY MARKER POPUP FIX APLICADO');
+console.log('🗺️ [MAPA v294.0] ✅ Marcadores grises (sin_info) ahora abren popup correctamente');
+console.log('🗺️ [MAPA v294.0] ✅ Comportamiento idéntico a marcadores verdes y rojos');
+console.log('🗺️ [MAPA v294.0] ✅ Filtro "Abiertos" ahora INCLUYE locales sin información de horario');
+console.log('🗺️ [MAPA v294.0] ✅ POPUP WIDTH:', ${popupWidth}, 'px (REDUCED for consistency)');
+console.log('🗺️ [MAPA v294.0] ✅ POPUP IMAGE HEIGHT:', ${popupImageHeight}, 'px (REDUCED for proportions)');
+console.log('🗺️ [MAPA v294.0] ✅ MARKER SCALE:', ${markerScale}, '(15% reduction)');
+console.log('🗺️ [MAPA v294.0] ✅ USER MARKER SIZE:', ${userMarkerSize}, 'px (20px en Android, 24px en iOS)');
+console.log('🗺️ [MAPA v294.0] ✅ MARCADOR DE USUARIO con display INSTANTÁNEO en Android');
+console.log('🗺️ [MAPA v294.0] ✅ POPUP TEXT SCALING AUMENTADO en Android (mejor legibilidad)');
+console.log('🗺️ [MAPA v294.0] ✅ Título del local: scaleFontSize(16) en Android');
+console.log('🗺️ [MAPA v294.0] ✅ Rating y estrella: scaleFontSize(13) en Android');
+console.log('🗺️ [MAPA v294.0] ✅ Botón "Ver detalles": scaleFontSize(13) en Android');
+console.log('🗺️ [MAPA v294.0] ✅ Categoría del local: scaleFontSize(12) en Android');
+console.log('🗺️ [MAPA v294.0] ✅ CÁLCULO DE ESTADO EN TIEMPO REAL activado');
+console.log('🗺️ [MAPA v294.0] ✅ Sincronizado con horarios_completos de cada local');
+console.log('🗺️ [MAPA v294.0] ✅ Manejo correcto de horarios nocturnos (23:00-06:00)');
+console.log('🗺️ [MAPA v294.0] ✅ Manejo correcto de locales que abren después de medianoche');
+console.log('🗺️ [MAPA v294.0] ✅ DETECCIÓN MANUAL CON PROYECCIÓN A PÍXELES activada');
+console.log('🗺️ [MAPA v294.0] ✅ Tolerancia fija: 20 píxeles (tamaño del dedo)');
+console.log('🗺️ [MAPA v294.0] ✅ Área de clic CONSISTENTE sin importar el zoom');
+console.log('🗺️ [MAPA v294.0] ✅ POPUP CENTRADO DINÁMICAMENTE (v267.0)');
+console.log('🗺️ [MAPA v294.0] ═══════════════════════════════════════════════════════');
 </script>
 </body>
 </html>`;

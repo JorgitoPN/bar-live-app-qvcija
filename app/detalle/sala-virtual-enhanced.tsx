@@ -1,6 +1,6 @@
 
-// ✅ SALA VIRTUAL v5.6 - FIX NAVIGATION LOOP
-console.log("✅ SALA VIRTUAL v5.6 - FIX NAVIGATION LOOP");
+// ✅ SALA VIRTUAL v5.7 - ANDROID INPUT POSITIONING FIX
+console.log("✅ SALA VIRTUAL v5.7 - ANDROID INPUT POSITIONING FIX");
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
@@ -185,19 +185,19 @@ interface UserProfile {
 }
 
 /**
- * ✅ SALA VIRTUAL v5.6 - FIX NAVIGATION LOOP
+ * ✅ SALA VIRTUAL v5.7 - ANDROID INPUT POSITIONING FIX
  * 
- * CAMBIOS v5.6:
+ * CAMBIOS v5.7:
  * 
- * 1. NAVIGATION LOOP FIX:
- *    - ✅ FIXED: handleCheckOut now uses router.replace() instead of router.push()
- *    - ✅ RESULT: Virtual room is removed from navigation stack when closing
- *    - ✅ RESULT: Closing local details no longer returns to virtual room
- *    - ✅ FLOW: Virtual Room → Close → Local Details → Close → Previous screen (NOT virtual room)
+ * 1. ANDROID INPUT POSITIONING FIX:
+ *    - ✅ FIXED: Text input now positioned 0px above system buttons (just above, not covering)
+ *    - ✅ RESULT: Input field is fully visible and accessible on Android
+ *    - ✅ BEHAVIOR: When keyboard closed: 0px margin (just above buttons)
+ *    - ✅ BEHAVIOR: When keyboard open: normal safe area padding (unchanged)
  * 
- * Previous fixes maintained (v5.5):
+ * Previous fixes maintained (v5.6):
+ * - ✅ Navigation loop fix (router.replace() to remove virtual room from stack)
  * - ✅ In-room login flow without leaving virtual room
- * - ✅ Android input positioning (8px above system buttons when keyboard closed)
  * - ✅ Green pulsing dot clipping fix
  * - ✅ Keyboard vertical offset adjustment
  */
@@ -282,14 +282,14 @@ export default function SalaVirtualEnhancedScreen() {
 
   const themeColors = mode === 'day' ? DAY_COLORS : NIGHT_COLORS;
 
-  // ✅ v5.4: Listen to keyboard events
+  // ✅ v5.7: Listen to keyboard events
   useEffect(() => {
-    console.log('[SalaVirtual v5.6] 🎹 Setting up keyboard listeners');
+    console.log('[SalaVirtual v5.7] 🎹 Setting up keyboard listeners');
     
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
       (e) => {
-        console.log('[SalaVirtual v5.6] ⬆️ Keyboard opened, height:', e.endCoordinates.height);
+        console.log('[SalaVirtual v5.7] ⬆️ Keyboard opened, height:', e.endCoordinates.height);
         setKeyboardHeight(e.endCoordinates.height);
       }
     );
@@ -297,13 +297,13 @@ export default function SalaVirtualEnhancedScreen() {
     const keyboardDidHideListener = Keyboard.addListener(
       'keyboardDidHide',
       () => {
-        console.log('[SalaVirtual v5.6] ⬇️ Keyboard closed');
+        console.log('[SalaVirtual v5.7] ⬇️ Keyboard closed');
         setKeyboardHeight(0);
       }
     );
 
     return () => {
-      console.log('[SalaVirtual v5.6] 🧹 Removing keyboard listeners');
+      console.log('[SalaVirtual v5.7] 🧹 Removing keyboard listeners');
       keyboardDidShowListener.remove();
       keyboardDidHideListener.remove();
     };
@@ -538,7 +538,7 @@ export default function SalaVirtualEnhancedScreen() {
     if (!user || !localId) return false;
 
     try {
-      console.log('[SalaVirtual v5.6] 🔍 Checking if user is checked in...');
+      console.log('[SalaVirtual v5.7] 🔍 Checking if user is checked in...');
       
       const { data, error } = await supabase
         .from('sala_virtual_checkins')
@@ -3031,21 +3031,21 @@ export default function SalaVirtualEnhancedScreen() {
 
   const headerTitleSize = Platform.OS === 'android' ? scaleFontSize(16) : 17;
 
-  // ✅ FIX v5.4: Dynamic padding based on keyboard state
-  // When keyboard is closed on Android: small margin (8px) above system buttons
+  // ✅ FIX v5.7: Dynamic padding based on keyboard state with CORRECT Android positioning
+  // When keyboard is closed on Android: position just above system buttons (0px margin)
   // When keyboard is open: normal safe area padding
   const contentPaddingBottom = useMemo(() => {
     const baseInputHeight = 68;
     const quickMessagesHeight = showQuickMessages && activeTab === 'chat' ? 60 : 0;
     
-    // ✅ ANDROID FIX v5.4: 8px margin when keyboard closed, normal padding when open
+    // ✅ ANDROID FIX v5.7: 0px margin when keyboard closed (just above system buttons), normal padding when open
     const safeAreaBottom = Platform.OS === 'android' && keyboardHeight === 0 
-      ? 8 
+      ? 0 
       : Math.max(insets.bottom, 12);
     
     const totalPadding = baseInputHeight + quickMessagesHeight + safeAreaBottom;
     
-    console.log('[SalaVirtual v5.6] 📏 Content padding bottom:', totalPadding, '| Keyboard height:', keyboardHeight, '| Safe area:', safeAreaBottom);
+    console.log('[SalaVirtual v5.7] 📏 Content padding bottom:', totalPadding, '| Keyboard height:', keyboardHeight, '| Safe area:', safeAreaBottom);
     
     return totalPadding;
   }, [showQuickMessages, activeTab, insets.bottom, keyboardHeight]);
@@ -3423,7 +3423,7 @@ export default function SalaVirtualEnhancedScreen() {
                     overflow: 'visible',
                   }}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 4, overflow: 'visible' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, overflow: 'visible' }}>
                     <Animated.View 
                       style={[
                         styles.activeUsersDotHeader,
@@ -3733,9 +3733,9 @@ export default function SalaVirtualEnhancedScreen() {
                 { 
                   backgroundColor: themeColors.cardBg, 
                   borderTopColor: themeColors.cardBorder,
-                  // ✅ FIX v5.4: 8px margin when keyboard closed on Android
+                  // ✅ FIX v5.7: 0px margin when keyboard closed on Android (just above system buttons)
                   paddingBottom: Platform.OS === 'android' && keyboardHeight === 0 
-                    ? 8 
+                    ? 0 
                     : Math.max(insets.bottom, 12),
                 }
               ]}>
@@ -4041,9 +4041,9 @@ export default function SalaVirtualEnhancedScreen() {
                     { 
                       backgroundColor: themeColors.cardBg, 
                       borderTopColor: themeColors.cardBorder,
-                      // ✅ FIX v5.4: 8px margin when keyboard closed on Android
+                      // ✅ FIX v5.7: 0px margin when keyboard closed on Android (just above system buttons)
                       paddingBottom: Platform.OS === 'android' && keyboardHeight === 0 
-                        ? 8 
+                        ? 0 
                         : Math.max(insets.bottom, 12),
                     }
                   ]}>
