@@ -73,9 +73,9 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v338.0 - ELIMINACIÓN TOTAL DEL MARGEN BLANCO
+ * ✅ PROFILE SCREEN v339.0 - ELIMINACIÓN TOTAL DEL MARGEN BLANCO
  * 
- * CAMBIOS v338.0:
+ * CAMBIOS v339.0:
  * - ✅ ELIMINADO: TODO el margen blanco entre el header azul y las pestañas
  * - ✅ CORREGIDO: profileHeaderGradient tiene paddingBottom: 0 (sin espacio extra)
  * - ✅ CORREGIDO: tabsContainer tiene marginTop: 0 (sin espacio blanco)
@@ -159,7 +159,7 @@ export default function PerfilScreen() {
         setUnreadMessages(totalUnread);
       }
     } catch (error) {
-      console.error('[Perfil v338.0] Error loading unread counts:', error);
+      console.error('[Perfil v339.0] Error loading unread counts:', error);
     }
   }, [userId]);
 
@@ -173,14 +173,14 @@ export default function PerfilScreen() {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('[Perfil v338.0] ❌ Error loading cart count:', error);
+        console.error('[Perfil v339.0] ❌ Error loading cart count:', error);
         return;
       }
 
-      console.log('[Perfil v338.0] 🛒 Cart items count:', count);
+      console.log('[Perfil v339.0] 🛒 Cart items count:', count);
       setCartItemsCount(count || 0);
     } catch (error) {
-      console.error('[Perfil v338.0] ❌ Error loading cart count:', error);
+      console.error('[Perfil v339.0] ❌ Error loading cart count:', error);
     }
   }, [userId, isPropietario]);
 
@@ -200,7 +200,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v338.0] Error loading current local:', error);
+        console.error('[Perfil v339.0] Error loading current local:', error);
         return;
       }
 
@@ -215,7 +215,7 @@ export default function PerfilScreen() {
         setCheckInInfo(null);
       }
     } catch (error) {
-      console.error('[Perfil v338.0] Error loading current local:', error);
+      console.error('[Perfil v339.0] Error loading current local:', error);
     }
   }, [userId]);
 
@@ -274,7 +274,7 @@ export default function PerfilScreen() {
         return [];
       }
     } catch (error) {
-      console.error('[Perfil v338.0] Error cargando posts:', error);
+      console.error('[Perfil v339.0] Error cargando posts:', error);
       return [];
     }
   }, [userId]);
@@ -337,7 +337,7 @@ export default function PerfilScreen() {
         setSavedPosts([]);
       }
     } catch (error) {
-      console.error('[Perfil v338.0] Error cargando favoritos:', error);
+      console.error('[Perfil v339.0] Error cargando favoritos:', error);
     }
   }, [userId]);
 
@@ -416,7 +416,7 @@ export default function PerfilScreen() {
 
       setTaggedPosts(postsWithStatus);
     } catch (error) {
-      console.error('[Perfil v338.0] Error cargando etiquetados:', error);
+      console.error('[Perfil v339.0] Error cargando etiquetados:', error);
       setTaggedPosts([]);
     }
   }, [userId]);
@@ -433,7 +433,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v338.0] Error loading professional profile:', error);
+        console.error('[Perfil v339.0] Error loading professional profile:', error);
       }
 
       if (data) {
@@ -442,7 +442,7 @@ export default function PerfilScreen() {
         setPerfilProfesional(null);
       }
     } catch (error) {
-      console.error('[Perfil v338.0] Error loading professional profile:', error);
+      console.error('[Perfil v339.0] Error loading professional profile:', error);
     } finally {
       setLoadingEmpleo(false);
     }
@@ -453,7 +453,7 @@ export default function PerfilScreen() {
 
     try {
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v338.0] 🔄 Loading profile data...');
+        console.log('[Perfil v339.0] 🔄 Loading profile data...');
       }
 
       await loadUnreadCounts();
@@ -471,7 +471,7 @@ export default function PerfilScreen() {
       const seguidosCount = userFollowsCount || 0;
 
       if (seguidoresError) {
-        console.error('[Perfil v338.0] Error loading seguidores count:', seguidoresError);
+        console.error('[Perfil v339.0] Error loading seguidores count:', seguidoresError);
       }
 
       const seguidoresCount = seguidoresData || 0;
@@ -501,10 +501,10 @@ export default function PerfilScreen() {
       }
 
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v338.0] ✅ Profile data loaded and cached');
+        console.log('[Perfil v339.0] ✅ Profile data loaded and cached');
       }
     } catch (error) {
-      console.error('[Perfil v338.0] Error cargando datos:', error);
+      console.error('[Perfil v339.0] Error cargando datos:', error);
     } finally {
       setRefreshing(false);
     }
@@ -514,22 +514,22 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const loadCachedData = async () => {
-      console.log('[Perfil v338.0] ⚡ Loading from cache...');
+      console.log('[Perfil v339.0] ⚡ Loading from cache...');
       const cached = await profileCache.get(userId, 'user');
       
       if (cached) {
-        console.log('[Perfil v338.0] ⚡⚡⚡ INSTANT LOAD from cache');
+        console.log('[Perfil v339.0] ⚡⚡⚡ INSTANT LOAD from cache');
         setSeguidores(cached.stats.seguidores);
         setSeguidos(cached.stats.seguidos);
         setPublicaciones(cached.stats.posts);
         setPosts(cached.posts);
         
         setTimeout(() => {
-          console.log('[Perfil v338.0] 🔄 Background refresh...');
+          console.log('[Perfil v339.0] 🔄 Background refresh...');
           cargarDatosPerfil(true);
         }, 100);
       } else {
-        console.log('[Perfil v338.0] 📡 No cache, loading from database...');
+        console.log('[Perfil v339.0] 📡 No cache, loading from database...');
         cargarDatosPerfil(false);
       }
     };
@@ -556,7 +556,7 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const subscription = supabase
-      .channel('profile-updates-v338')
+      .channel('profile-updates-v339')
       .on(
         'postgres_changes',
         {
@@ -603,7 +603,7 @@ export default function PerfilScreen() {
     if (!userId || !isPropietario) return;
 
     const subscription = supabase
-      .channel('cart-updates-v338')
+      .channel('cart-updates-v339')
       .on(
         'postgres_changes',
         {
@@ -613,7 +613,7 @@ export default function PerfilScreen() {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          console.log('[Perfil v338.0] 🛒 Cart updated, reloading count...');
+          console.log('[Perfil v339.0] 🛒 Cart updated, reloading count...');
           loadCartItemsCount();
         }
       )
@@ -694,7 +694,7 @@ export default function PerfilScreen() {
   };
 
   const handleCartCheckout = async (items: any[], total: number) => {
-    console.log('[Perfil v338.0] 💳 Checkout requested:', { items: items.length, total });
+    console.log('[Perfil v339.0] 💳 Checkout requested:', { items: items.length, total });
     Alert.alert(
       'Pago en Desarrollo',
       `Total a pagar: €${total.toFixed(2)}\n\nLa integración con Stripe está en desarrollo.`,
@@ -727,7 +727,7 @@ export default function PerfilScreen() {
               setCheckInInfo(null);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
-              console.error('[Perfil v338.0] Error exiting local:', error);
+              console.error('[Perfil v339.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -1092,7 +1092,7 @@ export default function PerfilScreen() {
           </View>
         </LinearGradient>
 
-        {/* ✅ FIX v338.0: paddingBottom = 0 para eliminar TODO el espacio entre header y pestañas */}
+        {/* ✅ FIX v339.0: paddingBottom = 0 para eliminar TODO el espacio entre header y pestañas */}
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -1108,7 +1108,7 @@ export default function PerfilScreen() {
           </View>
         )}
 
-        {/* ✅ FIX v338.0: marginTop = 0 para eliminar el espacio blanco */}
+        {/* ✅ FIX v339.0: marginTop = 0 para eliminar el espacio blanco */}
         <View style={styles.tabsContainer}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
@@ -1367,7 +1367,7 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'android' ? 6 : 8,
     paddingHorizontal: 20,
   },
-  // ✅ FIX v338.0: paddingBottom = 0 para eliminar TODO el espacio entre header y pestañas
+  // ✅ FIX v339.0: paddingBottom = 0 para eliminar TODO el espacio entre header y pestañas
   profileHeaderGradient: {
     paddingTop: 8,
     paddingBottom: 0,
@@ -1465,7 +1465,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
   },
-  // ✅ FIX v338.0: paddingBottom = 16 para mantener el espacio interno del contenido
+  // ✅ FIX v339.0: paddingBottom = 16 para mantener el espacio interno del contenido
   profileSection: {
     paddingTop: 0,
     paddingBottom: 16,
@@ -1726,7 +1726,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
-  // ✅ FIX v338.0: marginTop = 0 para eliminar el espacio blanco
+  // ✅ FIX v339.0: marginTop = 0 para eliminar el espacio blanco
   tabsContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
