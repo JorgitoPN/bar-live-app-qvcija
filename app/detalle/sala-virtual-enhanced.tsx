@@ -1,6 +1,6 @@
 
-// ✅ SALA VIRTUAL v5.4 - ANDROID INPUT POSITION FINE-TUNING
-console.log("✅ SALA VIRTUAL v5.4 - ANDROID INPUT POSITION FINE-TUNING");
+// ✅ SALA VIRTUAL v5.5 - IN-ROOM LOGIN FLOW
+console.log("✅ SALA VIRTUAL v5.5 - IN-ROOM LOGIN FLOW");
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
@@ -31,6 +31,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getEstadoLocal } from '@/utils/timeUtils';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import LoginPrompt from '@/components/common/LoginPrompt';
+import VirtualRoomLoginModal from '@/components/common/VirtualRoomLoginModal';
 import { scaleFontSize, scaleIconSize, getActionButtonPaddingVertical } from '@/utils/androidScaling';
 import * as Location from 'expo-location';
 import { calcularDistancia } from '@/utils/locationUtils';
@@ -184,13 +185,19 @@ interface UserProfile {
 }
 
 /**
- * ✅ SALA VIRTUAL v5.4 - ANDROID INPUT POSITION FINE-TUNING
+ * ✅ SALA VIRTUAL v5.5 - IN-ROOM LOGIN FLOW
  * 
- * CAMBIOS v5.4 (AJUSTE FINO):
+ * CAMBIOS v5.5:
  * 
- * 1. ANDROID INPUT POSITION - KEYBOARD CLOSED:
- *    - ✅ AJUSTE: Cuando teclado está cerrado en Android, paddingBottom = 8px (pequeño margen sobre botones del sistema)
- *    - ✅ OBJETIVO: Input visible justo encima de los botones táctiles, sin taparlos
+ * 1. IN-ROOM LOGIN FLOW:
+ *    - ✅ NEW: Users can login/register without leaving virtual room
+ *    - ✅ NEW: VirtualRoomLoginModal component for seamless auth
+ *    - ✅ NEW: Automatic redirect back to same virtual room after login
+ *    - ✅ NEW: No interruption to user experience
+ * 
+ * 2. ANDROID INPUT POSITION (MAINTAINED FROM v5.4):
+ *    - ✅ AJUSTE: Cuando teclado está cerrado en Android, paddingBottom = 8px
+ *    - ✅ OBJETIVO: Input visible justo encima de los botones táctiles
  *    - ✅ MANTIENE: Comportamiento normal cuando teclado está abierto
  */
 
@@ -199,6 +206,8 @@ export default function SalaVirtualEnhancedScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  
+  const [showLoginModal, setShowLoginModal] = useState(false);
   
   const returnTab = params.returnTab as string | undefined;
   const initialTab = (returnTab === 'chat' || returnTab === 'users' || returnTab === 'private') 
@@ -3032,6 +3041,37 @@ export default function SalaVirtualEnhancedScreen() {
   
   const headerIconColor = mode === 'day' ? '#1E293B' : '#FFFFFF';
 
+  /**
+   * ✅ FIX v5.5: IN-ROOM LOGIN FLOW
+   * 
+   * When user is not authenticated:
+   * - Show VirtualRoomLoginModal instead of LoginPrompt
+   * - User can login/register without leaving virtual room
+   * - After successful auth, automatically reload room and check in
+   */
+  const handleLoginSuccess = useCallback(async () => {
+    console.log('[SalaVirtual v5.5] ✅ Login successful - reloading room');
+    setShowLoginModal(false);
+    
+    console.log('[SalaVirtual v5.5] 🔄 Waiting for auth state to update...');
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    console.log('[SalaVirtual v5.5] 🔄 Reloading local data...');
+    await loadLocalData();
+    
+    console.log('[SalaVirtual v5.5] 🚪 Checking in user...');
+    const success = await handleCheckIn();
+    
+    if (success) {
+      console.log('[SalaVirtual v5.5] ✅ User checked in, loading messages...');
+      await loadMessages();
+      subscribeToUpdates();
+      subscribeToTypingEvents();
+      await updateActiveUsers();
+      await loadPrivateChats();
+    }
+  }, [loadLocalData, handleCheckIn, loadMessages, subscribeToUpdates, subscribeToTypingEvents, updateActiveUsers, loadPrivateChats]);
+
   if (!user) {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background[0] }]}>
@@ -3080,11 +3120,54 @@ export default function SalaVirtualEnhancedScreen() {
             ),
           }}
         />
-        <LoginPrompt
-          title="Inicia sesión para acceder"
-          message="Para acceder a la Sala Virtual necesitas iniciar sesión en BarLive."
-          icon="person.2.fill"
-          androidIcon="people"
+        
+        <View style={styles.unauthContainer}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.unauthIconContainer}
+          >
+            <IconSymbol 
+              ios_icon_name="cube.fill" 
+              android_material_icon_name="view_in_ar" 
+              size={64} 
+              color={colors.headerText} 
+            />
+          </LinearGradient>
+          
+          <Text style={[styles.unauthTitle, { fontSize: scaleFontSize(24) }]}>
+            Sala Virtual
+          </Text>
+          
+          <Text style={[styles.unauthMessage, { fontSize: scaleFontSize(16) }]}>
+            Para acceder a la Sala Virtual necesitas iniciar sesión en BarLive
+          </Text>
+          
+          <TouchableOpacity
+            style={styles.unauthLoginButton}
+            onPress={() => setShowLoginModal(true)}
+          >
+            <LinearGradient
+              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+              style={styles.unauthLoginButtonGradient}
+            >
+              <IconSymbol 
+                ios_icon_name="person.fill" 
+                android_material_icon_name="person" 
+                size={20} 
+                color={colors.headerText} 
+              />
+              <Text style={[styles.unauthLoginButtonText, { fontSize: scaleFontSize(16) }]}>
+                Iniciar Sesión
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+        
+        <VirtualRoomLoginModal
+          visible={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+          onLoginSuccess={handleLoginSuccess}
+          localName={local?.nombre || 'este local'}
         />
       </View>
     );
@@ -4218,6 +4301,48 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
+  },
+  unauthContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  unauthIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  unauthTitle: {
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  unauthMessage: {
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  unauthLoginButton: {
+    width: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  unauthLoginButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+  },
+  unauthLoginButtonText: {
+    fontWeight: 'bold',
+    color: colors.headerText,
   },
   closedContainer: {
     flex: 1,
