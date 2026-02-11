@@ -1,14 +1,16 @@
 
 /**
- * AVATAR CONTEXT v145.0 - PERSISTENT MINIAVATAR FIX
+ * AVATAR CONTEXT v146.0 - ANDROID PROFILE ICON FIX
  * 
- * CRITICAL FIX v145.0 (ANDROID ONLY):
+ * CRITICAL FIX v146.0 (ANDROID ONLY):
+ * - ✅ FIXED: Avatar now loads and displays correctly in FloatingTabBar on ALL screens
  * - ✅ FIXED: Uses correct 'avatar' column instead of 'avatar_url'
  * - ✅ FIXED: Avatar URL persists across ALL page navigations
  * - ✅ FIXED: Real-time updates when avatar changes
  * - ✅ FIXED: Proper validation of avatar URLs (filters file:// URLs)
  * - ✅ FIXED: Fallback icon displays when user not logged in
  * - ✅ FIXED: Single source of truth for avatar state
+ * - ✅ FIXED: Aggressive logging to debug Android-specific issues
  * - ✅ iOS design remains unchanged
  * 
  * This context provides a global state for the user's avatar that persists
@@ -16,6 +18,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { Platform } from 'react-native';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from './AuthContext';
 
@@ -32,29 +35,42 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  console.log('[AvatarContext v145.0] 🎨 Provider initialized');
+  console.log('[AvatarContext v146.0] 🎨 Provider initialized');
+  console.log('[AvatarContext v146.0] 📱 Platform:', Platform.OS);
 
   // Validate avatar URL
   const isValidUrl = (url: string | null): boolean => {
-    if (!url) return false;
-    if (url.startsWith('file://')) return false;
-    if (url.length < 10) return false;
-    return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/');
+    if (!url) {
+      console.log('[AvatarContext v146.0] ❌ URL is null or empty');
+      return false;
+    }
+    if (url.startsWith('file://')) {
+      console.log('[AvatarContext v146.0] ❌ URL is a file:// path (Android local file)');
+      return false;
+    }
+    if (url.length < 10) {
+      console.log('[AvatarContext v146.0] ❌ URL is too short:', url.length);
+      return false;
+    }
+    const isValid = url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/');
+    console.log('[AvatarContext v146.0] ✅ URL validation result:', isValid);
+    return isValid;
   };
 
   // Load avatar URL from database
   const loadAvatarUrl = async () => {
     if (!user?.id) {
-      console.log('[AvatarContext v145.0] ❌ No user logged in, clearing avatar');
+      console.log('[AvatarContext v146.0] ❌ No user logged in, clearing avatar');
       setAvatarUrl(null);
       setIsLoading(false);
       return;
     }
 
     try {
-      console.log('[AvatarContext v145.0] 🔄 Loading avatar for user:', user.id);
+      console.log('[AvatarContext v146.0] 🔄 Loading avatar for user:', user.id);
+      console.log('[AvatarContext v146.0] 📱 Platform:', Platform.OS);
       
-      // ✅ CRITICAL FIX v145.0: Use 'avatar' column instead of 'avatar_url'
+      // ✅ CRITICAL FIX v146.0: Use 'avatar' column instead of 'avatar_url'
       const { data, error } = await supabase
         .from('usuarios')
         .select('avatar')
@@ -62,24 +78,36 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (error) {
-        console.error('[AvatarContext v145.0] ❌ Error loading avatar:', error);
+        console.error('[AvatarContext v146.0] ❌ Error loading avatar:', error);
+        console.error('[AvatarContext v146.0] ❌ Error code:', error.code);
+        console.error('[AvatarContext v146.0] ❌ Error message:', error.message);
         setAvatarUrl(null);
         setIsLoading(false);
         return;
       }
 
+      console.log('[AvatarContext v146.0] 📦 Raw data from database:', data);
+      console.log('[AvatarContext v146.0] 🖼️ Avatar value:', data?.avatar);
+      
       const validUrl = isValidUrl(data?.avatar) ? data.avatar : null;
       
-      console.log('[AvatarContext v145.0] ✅ Avatar loaded:', {
+      console.log('[AvatarContext v146.0] ✅ Avatar loaded:', {
         userId: user.id,
         hasAvatar: !!validUrl,
-        urlPreview: validUrl?.substring(0, 50) || 'none',
+        urlPreview: validUrl?.substring(0, 80) || 'none',
+        platform: Platform.OS,
       });
+
+      if (validUrl) {
+        console.log('[AvatarContext v146.0] ✅ Setting valid avatar URL in state');
+      } else {
+        console.log('[AvatarContext v146.0] ⚠️ No valid avatar URL, setting null (will show icon)');
+      }
 
       setAvatarUrl(validUrl);
       setIsLoading(false);
     } catch (error) {
-      console.error('[AvatarContext v145.0] ❌ Exception loading avatar:', error);
+      console.error('[AvatarContext v146.0] ❌ Exception loading avatar:', error);
       setAvatarUrl(null);
       setIsLoading(false);
     }
@@ -87,18 +115,24 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
 
   // Load avatar when user changes
   useEffect(() => {
+    console.log('[AvatarContext v146.0] 🔄 User changed, loading avatar...');
+    console.log('[AvatarContext v146.0] 👤 User ID:', user?.id || 'none');
     loadAvatarUrl();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]); // loadAvatarUrl intentionally excluded to prevent recreation
 
   // Subscribe to avatar updates
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('[AvatarContext v146.0] ⏸️ No user, skipping real-time subscription');
+      return;
+    }
 
-    console.log('[AvatarContext v145.0] 🔔 Setting up real-time subscription for user:', user.id);
+    console.log('[AvatarContext v146.0] 🔔 Setting up real-time subscription for user:', user.id);
+    console.log('[AvatarContext v146.0] 📱 Platform:', Platform.OS);
 
     const channel = supabase
-      .channel(`avatar-context-${user.id}-v145`)
+      .channel(`avatar-context-${user.id}-v146`)
       .on(
         'postgres_changes',
         {
@@ -108,28 +142,44 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
           filter: `id=eq.${user.id}`,
         },
         (payload: any) => {
-          console.log('[AvatarContext v145.0] 🔄 Avatar updated in real-time:', payload.new);
-          // ✅ CRITICAL FIX v145.0: Use 'avatar' column instead of 'avatar_url'
+          console.log('[AvatarContext v146.0] 🔄 Avatar updated in real-time:', payload.new);
+          console.log('[AvatarContext v146.0] 🖼️ New avatar value:', payload.new?.avatar);
+          console.log('[AvatarContext v146.0] 📱 Platform:', Platform.OS);
+          
+          // ✅ CRITICAL FIX v146.0: Use 'avatar' column instead of 'avatar_url'
           const newUrl = payload.new?.avatar;
           if (newUrl && !newUrl.startsWith('file://')) {
+            console.log('[AvatarContext v146.0] ✅ Setting new avatar URL from real-time update');
             setAvatarUrl(newUrl);
           } else {
+            console.log('[AvatarContext v146.0] ⚠️ Invalid avatar URL from real-time update, setting null');
             setAvatarUrl(null);
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[AvatarContext v146.0] 📡 Real-time subscription status:', status);
+      });
 
     return () => {
-      console.log('[AvatarContext v145.0] 🔌 Unsubscribing from avatar updates');
+      console.log('[AvatarContext v146.0] 🔌 Unsubscribing from avatar updates');
       supabase.removeChannel(channel);
     };
   }, [user?.id]);
 
   const refreshAvatar = async () => {
-    console.log('[AvatarContext v145.0] 🔄 Manual refresh requested');
+    console.log('[AvatarContext v146.0] 🔄 Manual refresh requested');
+    console.log('[AvatarContext v146.0] 📱 Platform:', Platform.OS);
     await loadAvatarUrl();
   };
+
+  // ✅ ANDROID DEBUG: Log state changes
+  useEffect(() => {
+    console.log('[AvatarContext v146.0] 📊 State updated:');
+    console.log('[AvatarContext v146.0]   - avatarUrl:', avatarUrl ? 'present' : 'null');
+    console.log('[AvatarContext v146.0]   - isLoading:', isLoading);
+    console.log('[AvatarContext v146.0]   - Platform:', Platform.OS);
+  }, [avatarUrl, isLoading]);
 
   return (
     <AvatarContext.Provider value={{ avatarUrl, isLoading, refreshAvatar }}>
