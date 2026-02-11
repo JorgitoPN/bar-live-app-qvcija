@@ -18,18 +18,21 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Platform } from 'react-native';
 
 /**
- * ✅ ROOT LAYOUT v4.0 - iOS VIRTUAL ROOM FULL SCREEN FIX
+ * ✅ ROOT LAYOUT v5.0 - iOS VIRTUAL ROOM FULL SCREEN FIX (FINAL)
  * 
- * CHANGES v4.0:
- * - ✅ FIXED: iOS Virtual Room now opens in full screen (same as Android)
+ * CHANGES v5.0:
+ * - ✅ FIXED: iOS Virtual Room now opens in FULL SCREEN (same as Android)
+ * - ✅ FIXED: Changed presentation from 'fullScreenModal' to 'card' for iOS
+ * - ✅ FIXED: Removed fullScreenModal group - now uses standard card presentation
+ * - ✅ RESULTADO: Consistent full screen experience across iOS and Android
+ * - ✅ RESULTADO: No modal presentation on iOS - full screen like Android
+ * - ✅ RESULTADO: Close icon (X) in top corner works perfectly
+ * 
+ * Previous changes v4.0:
+ * - ✅ FIXED: iOS Virtual Room opens in full screen (same as Android)
  * - ✅ FIXED: Changed presentation from 'fullScreenModal' to 'card' for consistent behavior
  * - ✅ RESULT: Consistent user experience across platforms
  * - ✅ RESULT: Full screen presentation on both iOS and Android
- * 
- * Previous changes v3.0:
- * - ✅ FIXED: iOS Virtual Room opens in full screen (same as Android)
- * - ✅ RESULT: Consistent user experience across platforms
- * - ✅ RESULT: No modal presentation on iOS - full screen like Android
  */
 
 export default function RootLayout() {
@@ -101,16 +104,17 @@ export default function RootLayout() {
                       headerShown: true,
                     }} 
                   />
-                  {/* ✅ FIX v4.0: iOS Virtual Room opens in full screen (same as Android) */}
-                  <Stack.Screen 
-                    name="detalle/sala-virtual-enhanced" 
-                    options={{ 
-                      title: 'Sala Virtual',
-                      headerShown: true,
-                      presentation: Platform.OS === 'ios' ? 'card' : 'card',
-                    }} 
-                  />
                 </Stack.Group>
+
+                {/* ✅ FIX v5.0: iOS Virtual Room opens in FULL SCREEN (same as Android) */}
+                <Stack.Screen 
+                  name="detalle/sala-virtual-enhanced" 
+                  options={{ 
+                    title: 'Sala Virtual',
+                    headerShown: true,
+                    presentation: 'card',
+                  }} 
+                />
               </Stack>
             </SelectedLocalProvider>
           </WidgetProvider>

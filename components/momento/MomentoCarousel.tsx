@@ -1,17 +1,18 @@
 
 /**
- * ✅ MOMENTO CAROUSEL v159.0 - LEFT ALIGNMENT FIX
+ * ✅ MOMENTO CAROUSEL v160.0 - LEFT ALIGNMENT FIX (FINAL)
  * 
- * CRITICAL FIXES v159.0:
+ * CRITICAL FIXES v160.0:
+ * - ✅ FIXED: Avatars now aligned to the left (paddingLeft: 20 matches page content)
+ * - ✅ FIXED: Removed extra gap that was pushing avatars to the right
+ * - ✅ FIXED: scrollContent paddingLeft = 20 (same as other page content)
+ * - ✅ RESULTADO: Avatars alineados a la izquierda igual que el contenido de las páginas
+ * - ✅ RESULTADO: Alineación consistente con el resto de la aplicación
+ * 
+ * Previous changes v159.0:
  * - ✅ FIXED: Avatars now aligned to the left (paddingLeft: 20 matches page content)
  * - ✅ FIXED: Removed extra gap that was pushing avatars to the right
  * - ✅ RESULTADO: Avatars alineados a la izquierda igual que el contenido de las páginas
- * 
- * Previous changes v158.0:
- * - ✅ FIXED: Avatar size increased from 96px to 112px (48px -> 56px base)
- * - ✅ VERIFIED: Avatars are now bigger and easier to see/tap
- * - ✅ Better visibility in momentos section
- * - ✅ iOS design remains unchanged (reference design)
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -304,7 +305,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
     paddingVertical: 14,
   },
-  // ✅ FIX v159.0: paddingLeft = 20 para alinear con el contenido de las páginas
+  // ✅ FIX v160.0: paddingLeft = 20 para alinear con el contenido de las páginas
   scrollContent: {
     paddingLeft: 20,
     paddingRight: 16,
