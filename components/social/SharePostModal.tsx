@@ -13,6 +13,7 @@ import {
   Platform,
   Image,
   Dimensions,
+  StatusBar,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -22,6 +23,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 import { useRouter } from 'expo-router';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -50,17 +52,19 @@ interface SharePostModalProps {
 }
 
 /**
- * ✅ SHARE POST MODAL v5.0 - FULL SCREEN + ANDROID SCALING
+ * ✅ SHARE POST MODAL v6.0 - FULL SCREEN + ANDROID FULL COVERAGE
  * 
- * CRITICAL FIXES v5.0:
+ * CRITICAL FIXES v6.0:
+ * - ✅ FIXED: Modal covers entire screen on Android (top and bottom)
+ * - ✅ FIXED: Header paddingTop uses SafeAreaInsets for proper status bar coverage
+ * - ✅ FIXED: StatusBar configured for proper display
+ * - ✅ FIXED: Content scaling consistent with other Android pages
+ * 
+ * Previous changes v5.0:
  * - ✅ FIXED: Modal opens in full screen (presentationStyle="fullScreen")
  * - ✅ FIXED: Android content scaled down using scaleFontSize and scaleIconSize
  * - ✅ FIXED: Consistent scaling with other Android pages
  * - ✅ OPTIMIZED: Direct URL passing for instant image display
- * 
- * Previous changes v4.0:
- * - ✅ Use original post image URL directly (no screenshot corruption)
- * - ✅ Changed 'post_id' to 'post_compartido_id' to match MessageBubble
  */
 
 export default function SharePostModal({
@@ -74,6 +78,7 @@ export default function SharePostModal({
 }: SharePostModalProps) {
   const { user } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [allLocals, setAllLocals] = useState<Local[]>([]);
@@ -91,7 +96,7 @@ export default function SharePostModal({
 
     try {
       setLoading(true);
-      console.log('[SharePostModal v5.0] 📥 Loading recipients for user:', user.id);
+      console.log('[SharePostModal v6.0] 📥 Loading recipients for user:', user.id);
 
       const [followersResult, followingResult] = await Promise.all([
         supabase
@@ -140,12 +145,12 @@ export default function SharePostModal({
       
       setFilteredResults([...uniqueUsers, ...activeLocals] as (User | Local)[]);
       
-      console.log('[SharePostModal v5.0] ✅ Loaded recipients:', {
+      console.log('[SharePostModal v6.0] ✅ Loaded recipients:', {
         users: uniqueUsers.length,
         locals: activeLocals.length,
       });
     } catch (error) {
-      console.error('[SharePostModal v5.0] ❌ Error loading recipients:', error);
+      console.error('[SharePostModal v6.0] ❌ Error loading recipients:', error);
       Alert.alert('Error', 'No se pudieron cargar los destinatarios');
     } finally {
       setLoading(false);
@@ -188,8 +193,8 @@ export default function SharePostModal({
     setSending(true);
 
     try {
-      console.log('[SharePostModal v5.0] 📤 Starting share process for post:', postId);
-      console.log('[SharePostModal v5.0] 🖼️ Post image URL:', postImage);
+      console.log('[SharePostModal v6.0] 📤 Starting share process for post:', postId);
+      console.log('[SharePostModal v6.0] 🖼️ Post image URL:', postImage);
 
       const shareMessage = `📤 Publicación compartida`;
       let successCount = 0;
@@ -225,7 +230,7 @@ export default function SharePostModal({
               .single();
 
             if (error) {
-              console.error('[SharePostModal v5.0] Error creating local chat:', error);
+              console.error('[SharePostModal v6.0] Error creating local chat:', error);
               failCount++;
               continue;
             }
@@ -259,7 +264,7 @@ export default function SharePostModal({
               .single();
 
             if (error) {
-              console.error('[SharePostModal v5.0] Error creating user chat:', error);
+              console.error('[SharePostModal v6.0] Error creating user chat:', error);
               failCount++;
               continue;
             }
@@ -277,15 +282,15 @@ export default function SharePostModal({
 
         if (postImage) {
           messageData.post_imagen = postImage;
-          console.log('[SharePostModal v5.0] ✅ Using original post image URL:', postImage);
+          console.log('[SharePostModal v6.0] ✅ Using original post image URL:', postImage);
         }
 
-        console.log('[SharePostModal v5.0] 📤 Sending message with data:', messageData);
+        console.log('[SharePostModal v6.0] 📤 Sending message with data:', messageData);
 
         const { error: messageError } = await supabase.from('mensajes').insert(messageData);
 
         if (messageError) {
-          console.error('[SharePostModal v5.0] ❌ Error sending message:', messageError);
+          console.error('[SharePostModal v6.0] ❌ Error sending message:', messageError);
           failCount++;
           continue;
         }
@@ -315,7 +320,7 @@ export default function SharePostModal({
         Alert.alert('Error', 'No se pudo compartir la publicación con ningún destinatario');
       }
     } catch (error) {
-      console.error('[SharePostModal v5.0] ❌ Error sharing post:', error);
+      console.error('[SharePostModal v6.0] ❌ Error sharing post:', error);
       Alert.alert('Error', 'No se pudo compartir la publicación');
     } finally {
       setSending(false);
@@ -334,7 +339,7 @@ export default function SharePostModal({
     });
   };
 
-  // ✅ ANDROID SCALING v5.0
+  // ✅ ANDROID SCALING v6.0
   const headerIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
   const searchIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
   const checkIconSize = Platform.OS === 'android' ? scaleIconSize(16) : 16;
@@ -384,6 +389,9 @@ export default function SharePostModal({
     );
   };
 
+  // ✅ CRITICAL FIX v6.0: Calculate proper header padding for Android to cover status bar
+  const headerPaddingTop = Platform.OS === 'ios' ? 60 : Math.max(insets.top + 16, 56);
+
   return (
     <Modal
       visible={visible}
@@ -392,12 +400,19 @@ export default function SharePostModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
+      {/* ✅ FIX v6.0: Configure StatusBar for proper display */}
+      <StatusBar 
+        barStyle="light-content" 
+        backgroundColor={colors.headerGradientStart}
+        translucent={false}
+      />
+      
       <View style={styles.container}>
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={styles.header}
+          style={[styles.header, { paddingTop: headerPaddingTop }]}
         >
           <TouchableOpacity
             style={styles.closeButton}
@@ -487,7 +502,10 @@ export default function SharePostModal({
             data={filteredResults}
             renderItem={renderItem}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: Math.max(insets.bottom + 20, 40) }
+            ]}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptyState}>
@@ -526,7 +544,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 60 : 48,
     paddingBottom: 16,
   },
   closeButton: {

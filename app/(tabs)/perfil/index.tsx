@@ -1364,7 +1364,8 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'android' ? 6 : 8,
     paddingHorizontal: 20,
   },
-  // ✅ FIX v337.0: paddingBottom = 0 para eliminar espacio entre header y tabs
+  // ✅ FIX v338.0: paddingBottom = 0 para eliminar espacio entre header y tabs
+  // ✅ FIX v338.0: Sección azulada de Barlive reemplaza el espacio blanco
   profileHeaderGradient: {
     paddingTop: 8,
     paddingBottom: 0,

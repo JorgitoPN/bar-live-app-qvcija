@@ -15,11 +15,17 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { colors } from '@/styles/commonStyles';
 import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Platform } from 'react-native';
 
 /**
- * ✅ ROOT LAYOUT v2.0 - FIXED PROFILE NAVIGATION LAYER
+ * ✅ ROOT LAYOUT v3.0 - iOS VIRTUAL ROOM FULL SCREEN FIX
  * 
- * CHANGES v2.0:
+ * CHANGES v3.0:
+ * - ✅ FIXED: iOS Virtual Room now opens in full screen (same as Android)
+ * - ✅ RESULT: Consistent user experience across platforms
+ * - ✅ RESULT: No modal presentation on iOS - full screen like Android
+ * 
+ * Previous changes v2.0:
  * - ✅ FIXED: Profile screen now uses presentation: 'fullScreenModal' instead of 'card'
  * - ✅ RESULT: Profile renders on a higher z-index layer than the virtual room modal
  * - ✅ RESULT: Virtual room modal is completely hidden when viewing a profile
@@ -95,11 +101,13 @@ export default function RootLayout() {
                       headerShown: true,
                     }} 
                   />
+                  {/* ✅ FIX v3.0: iOS Virtual Room opens in full screen (same as Android) */}
                   <Stack.Screen 
                     name="detalle/sala-virtual-enhanced" 
                     options={{ 
                       title: 'Sala Virtual',
                       headerShown: true,
+                      presentation: 'fullScreenModal',
                     }} 
                   />
                 </Stack.Group>
