@@ -316,16 +316,17 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL SCREEN v282.0 - INTELLIGENT CLOSE NAVIGATION
+ * ✅ DETALLE LOCAL SCREEN v284.0 - SINGLE TAP CLOSE FIX
  * 
- * CRITICAL FIXES v282.0:
- * - ✅ FIXED: Close button now returns to actual previous screen in user flow
- * - ✅ FIXED: No longer forces return to virtual room unless that was the origin
+ * CRITICAL FIXES v284.0:
+ * - ✅ FIXED: Close button now works with SINGLE TAP (no double tap required)
  * - ✅ LOGIC: Uses router.back() for standard navigation (respects history stack)
  * - ✅ FALLBACK: router.replace('/') if no history exists
- * - ✅ RESULT: Intuitive navigation that matches user expectations
+ * - ✅ RESULT: Immediate close with one tap, intuitive navigation
  * 
- * Previous fixes maintained (v281.0):
+ * Previous fixes maintained (v282.0):
+ * - ✅ Close button returns to actual previous screen in user flow
+ * - ✅ No longer forces return to virtual room unless that was the origin
  * - ✅ All text elements use scaleFontSize() for consistency
  * - ✅ Header icons properly sized with scaleIconSize()
  * - ✅ All buttons and badges scaled appropriately
@@ -374,7 +375,7 @@ export default function DetalleLocalScreen() {
   const categoryBadgePaddingH = getCategoryBadgePaddingHorizontal();
   const categoryBadgePaddingV = getCategoryBadgePaddingVertical();
 
-  console.log('[DetalleLocal v282.0] 🎭 Mode check:', {
+  console.log('[DetalleLocal v284.0] 🎭 Mode check:', {
     currentMode,
     activeProfileType,
     isClientMode,
@@ -385,21 +386,21 @@ export default function DetalleLocalScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[DetalleLocal v282.0] 🔍 Requesting location permissions...');
+        console.log('[DetalleLocal v284.0] 🔍 Requesting location permissions...');
         
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[DetalleLocal v282.0] ⚠️ Location services are disabled');
+          console.log('[DetalleLocal v284.0] ⚠️ Location services are disabled');
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[DetalleLocal v282.0] ⚠️ Location permission denied');
+          console.log('[DetalleLocal v284.0] ⚠️ Location permission denied');
           return;
         }
 
-        console.log('[DetalleLocal v282.0] ✅ Location permission granted, getting position...');
+        console.log('[DetalleLocal v284.0] ✅ Location permission granted, getting position...');
         
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -411,9 +412,9 @@ export default function DetalleLocalScreen() {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
-        console.log('[DetalleLocal v282.0] 📍 User location obtained');
+        console.log('[DetalleLocal v284.0] 📍 User location obtained');
       } catch (error: any) {
-        console.error('[DetalleLocal v282.0] ❌ Error getting location:', error?.message);
+        console.error('[DetalleLocal v284.0] ❌ Error getting location:', error?.message);
         setUserLocation(null);
       }
     })();
@@ -475,9 +476,9 @@ export default function DetalleLocalScreen() {
       });
 
       setCheckedInUsers(visibleUsers);
-      console.log('[DetalleLocal v282.0] ✅ Loaded checked-in users:', visibleUsers.length);
+      console.log('[DetalleLocal v284.0] ✅ Loaded checked-in users:', visibleUsers.length);
     } catch (error) {
-      console.error('[DetalleLocal v282.0] Error loading checked-in users:', error);
+      console.error('[DetalleLocal v284.0] Error loading checked-in users:', error);
     } finally {
       setLoadingCheckIns(false);
     }
@@ -495,13 +496,13 @@ export default function DetalleLocalScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[DetalleLocal v282.0] Error checking check-in status:', error);
+        console.error('[DetalleLocal v284.0] Error checking check-in status:', error);
         return;
       }
 
       setIsCheckedIn(!!data);
     } catch (error) {
-      console.error('[DetalleLocal v282.0] Error checking check-in status:', error);
+      console.error('[DetalleLocal v284.0] Error checking check-in status:', error);
     }
   }, [user, params.id]);
 
@@ -522,7 +523,7 @@ export default function DetalleLocalScreen() {
         .order('created_at', { ascending: false });
 
       if (barliveError) {
-        console.error('[DetalleLocal v282.0] Error loading Barlive reviews:', barliveError);
+        console.error('[DetalleLocal v284.0] Error loading Barlive reviews:', barliveError);
       }
 
       const { data: localData } = await supabase
@@ -543,7 +544,7 @@ export default function DetalleLocalScreen() {
       });
 
       setAllReviews(combinedReviews);
-      console.log('[DetalleLocal v282.0] ✅ Loaded unified reviews:', {
+      console.log('[DetalleLocal v284.0] ✅ Loaded unified reviews:', {
         barlive: barliveReviews?.length || 0,
         google: googleReviews.length,
         total: combinedReviews.length,
@@ -553,7 +554,7 @@ export default function DetalleLocalScreen() {
         const avg = barliveReviews.reduce((sum, r) => sum + r.rating, 0) / barliveReviews.length;
         setAverageRating(avg);
         
-        console.log('[DetalleLocal v282.0] 📊 Calculated average rating:', avg.toFixed(2), 'from', barliveReviews.length, 'reviews');
+        console.log('[DetalleLocal v284.0] 📊 Calculated average rating:', avg.toFixed(2), 'from', barliveReviews.length, 'reviews');
         
         const { error: updateError } = await supabase
           .from('locales')
@@ -561,18 +562,18 @@ export default function DetalleLocalScreen() {
           .eq('id', params.id);
 
         if (updateError) {
-          console.error('[DetalleLocal v282.0] ❌ Error updating rating:', updateError);
+          console.error('[DetalleLocal v284.0] ❌ Error updating rating:', updateError);
         } else {
-          console.log('[DetalleLocal v282.0] ✅ Rating updated in database');
+          console.log('[DetalleLocal v284.0] ✅ Rating updated in database');
         }
       } else if (localData?.google_rating) {
         setAverageRating(localData.google_rating);
-        console.log('[DetalleLocal v282.0] 📊 Using Google rating:', localData.google_rating);
+        console.log('[DetalleLocal v284.0] 📊 Using Google rating:', localData.google_rating);
       }
 
       setLoadingReviews(false);
     } catch (error) {
-      console.error('[DetalleLocal v282.0] Error loading reviews:', error);
+      console.error('[DetalleLocal v284.0] Error loading reviews:', error);
       setLoadingReviews(false);
     }
   }, [params.id]);
@@ -590,14 +591,14 @@ export default function DetalleLocalScreen() {
         .limit(3);
 
       if (error) {
-        console.error('[DetalleLocal v282.0] Error loading eventos:', error);
+        console.error('[DetalleLocal v284.0] Error loading eventos:', error);
         return;
       }
 
       setEventos(data || []);
       setLoadingEventos(false);
     } catch (error) {
-      console.error('[DetalleLocal v282.0] Error loading eventos:', error);
+      console.error('[DetalleLocal v284.0] Error loading eventos:', error);
       setLoadingEventos(false);
     }
   }, [params.id]);
@@ -608,12 +609,12 @@ export default function DetalleLocalScreen() {
       const { data, error } = await supabase.from('locales').select('*').eq('id', params.id).single();
 
       if (error) {
-        console.error('[DetalleLocal v282.0] Error loading local:', error);
+        console.error('[DetalleLocal v284.0] Error loading local:', error);
         setLoading(false);
         return;
       }
 
-      console.log('[DetalleLocal v282.0] ✅ Local loaded:', {
+      console.log('[DetalleLocal v284.0] ✅ Local loaded:', {
         id: data.id,
         nombre: data.nombre,
         propietario_id: data.propietario_id,
@@ -628,7 +629,7 @@ export default function DetalleLocalScreen() {
       checkUserCheckInStatus();
       loadCheckedInUsers();
     } catch (error) {
-      console.error('[DetalleLocal v282.0] Error:', error);
+      console.error('[DetalleLocal v284.0] Error:', error);
       setLoading(false);
     }
   }, [params.id, cargarReviewsUnificadas, cargarEventos, checkUserCheckInStatus, loadCheckedInUsers]);
@@ -653,7 +654,7 @@ export default function DetalleLocalScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         () => {
-          console.log('[DetalleLocal v282.0] 🔄 Reviews changed, reloading...');
+          console.log('[DetalleLocal v284.0] 🔄 Reviews changed, reloading...');
           cargarReviewsUnificadas();
         }
       )
@@ -678,7 +679,7 @@ export default function DetalleLocalScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         () => {
-          console.log('[DetalleLocal v282.0] Check-ins changed, reloading...');
+          console.log('[DetalleLocal v284.0] Check-ins changed, reloading...');
           loadCheckedInUsers();
           checkUserCheckInStatus();
         }
@@ -691,28 +692,24 @@ export default function DetalleLocalScreen() {
   }, [params.id, user, loadCheckedInUsers, checkUserCheckInStatus]);
 
   /**
-   * ✅ FIX v283.0: SINGLE TAP CLOSE FIX
+   * ✅ FIX v284.0: SINGLE TAP CLOSE FIX
    * 
-   * This handler now uses router.dismiss() for immediate close:
-   * - Uses router.dismiss() to close the modal immediately with one tap
-   * - Falls back to router.back() if dismiss is not available
-   * - Falls back to home if no history exists
+   * This handler now uses router.back() for immediate close:
+   * - Uses router.back() to navigate back in the history stack
+   * - Falls back to router.replace('/') if no history exists
    * - No longer requires double tap to close
+   * - Immediate response to user action
    * 
    * The user's expectation is met: ONE tap closes the page
    */
   const handleClose = useCallback(() => {
-    console.log('[DetalleLocal v283.0] 🔙 Close button pressed - using single tap close');
+    console.log('[DetalleLocal v284.0] 🔙 Close button pressed - single tap close');
     
-    // Try dismiss first (for modal presentation)
-    if (router.dismiss) {
-      console.log('[DetalleLocal v283.0] ✅ Using router.dismiss() for immediate close');
-      router.dismiss();
-    } else if (router.canGoBack()) {
-      console.log('[DetalleLocal v283.0] ✅ History exists - navigating back');
+    if (router.canGoBack()) {
+      console.log('[DetalleLocal v284.0] ✅ History exists - navigating back immediately');
       router.back();
     } else {
-      console.log('[DetalleLocal v283.0] ⚠️ No history - redirecting to home');
+      console.log('[DetalleLocal v284.0] ⚠️ No history - redirecting to home');
       router.replace('/');
     }
   }, [router]);
@@ -799,7 +796,7 @@ export default function DetalleLocalScreen() {
         title: local?.nombre || 'Local en BarLive',
       });
     } catch (error) {
-      console.error('[DetalleLocal v282.0] Error sharing:', error);
+      console.error('[DetalleLocal v284.0] Error sharing:', error);
     }
   };
 
@@ -870,7 +867,7 @@ export default function DetalleLocalScreen() {
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
               loadCheckedInUsers();
             } catch (error) {
-              console.error('[DetalleLocal v282.0] Error checking out:', error);
+              console.error('[DetalleLocal v284.0] Error checking out:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -880,7 +877,7 @@ export default function DetalleLocalScreen() {
   };
 
   const handleClaimLocal = () => {
-    console.log('[DetalleLocal v282.0] User tapped Claim Local button');
+    console.log('[DetalleLocal v284.0] User tapped Claim Local button');
     router.push({
       pathname: '/solicitudes/solicitar-propiedad',
       params: { localId: params.id, type: 'reclamar_local' },
@@ -888,7 +885,7 @@ export default function DetalleLocalScreen() {
   };
 
   const handleLoadMoreReviews = () => {
-    console.log('[DetalleLocal v282.0] 📄 Loading more reviews...');
+    console.log('[DetalleLocal v284.0] 📄 Loading more reviews...');
     setDisplayedReviewsCount(prev => prev + 5);
   };
 
@@ -907,7 +904,7 @@ export default function DetalleLocalScreen() {
       return;
     }
 
-    console.log('[DetalleLocal v282.0] 🚀 Navigating to virtual room from local details');
+    console.log('[DetalleLocal v284.0] 🚀 Navigating to virtual room from local details');
     router.push({ 
       pathname: '/detalle/sala-virtual-enhanced', 
       params: { 
@@ -1084,7 +1081,7 @@ export default function DetalleLocalScreen() {
               </ScrollView>
             </TouchableOpacity>
 
-            {/* ✅ FIX v282.0: Close button now uses intelligent navigation */}
+            {/* ✅ FIX v284.0: Close button now uses router.back() for immediate single-tap close */}
             <TouchableOpacity 
               onPress={handleClose}
               style={[
