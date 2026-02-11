@@ -18,9 +18,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Platform } from 'react-native';
 
 /**
- * ✅ ROOT LAYOUT v7.0 - SALA VIRTUAL FULL SCREEN FIX (FINAL)
+ * ✅ ROOT LAYOUT v8.0 - SALA VIRTUAL FULL SCREEN FIX (FINAL)
  * 
- * CHANGES v7.0:
+ * CHANGES v8.0:
  * - ✅ FIXED: Sala virtual ahora se abre en PÁGINA COMPLETA en iOS (no modal)
  * - ✅ FIXED: Movido fuera del Stack.Group de modals
  * - ✅ FIXED: Sin presentation option - usa comportamiento por defecto 'card'
@@ -28,7 +28,7 @@ import { Platform } from 'react-native';
  * - ✅ RESULTADO: Experiencia consistente en iOS y Android - pantalla completa
  * - ✅ RESULTADO: No más modal - la sala virtual es una página normal del stack
  * 
- * Previous changes v6.0:
+ * Previous changes v7.0:
  * - ✅ FIXED: iOS Virtual Room now opens in FULL SCREEN (same as Android)
  * - ✅ FIXED: Changed presentation from 'fullScreenModal' to 'card' for iOS
  */
@@ -78,53 +78,53 @@ export default function RootLayout() {
                                 <Stack.Screen name="soporte" options={{ headerShown: false }} />
                                 <Stack.Screen name="legal" options={{ headerShown: false }} />
                                 
-                {/* Modal presentations */}
-                <Stack.Group screenOptions={{ presentation: 'modal' }}>
-                  <Stack.Screen name="modal" options={{ title: 'Modal' }} />
-                  <Stack.Screen name="formsheet" options={{ presentation: 'formSheet' }} />
-                  <Stack.Screen name="transparent-modal" options={{ presentation: 'transparentModal' }} />
-                </Stack.Group>
+                                {/* Modal presentations */}
+                                <Stack.Group screenOptions={{ presentation: 'modal' }}>
+                                  <Stack.Screen name="modal" options={{ title: 'Modal' }} />
+                                  <Stack.Screen name="formsheet" options={{ presentation: 'formSheet' }} />
+                                  <Stack.Screen name="transparent-modal" options={{ presentation: 'transparentModal' }} />
+                                </Stack.Group>
 
-                {/* Full screen modals for social features */}
-                <Stack.Group screenOptions={{ presentation: 'fullScreenModal' }}>
-                  <Stack.Screen 
-                    name="social/editar-descripcion" 
-                    options={{ 
-                      title: 'Editar Descripción',
-                      headerShown: true,
-                    }} 
-                  />
-                  <Stack.Screen 
-                    name="social/gestionar-etiquetas" 
-                    options={{ 
-                      title: 'Gestionar Etiquetas',
-                      headerShown: true,
-                    }} 
-                  />
-                </Stack.Group>
+                                {/* Full screen modals for social features */}
+                                <Stack.Group screenOptions={{ presentation: 'fullScreenModal' }}>
+                                  <Stack.Screen 
+                                    name="social/editar-descripcion" 
+                                    options={{ 
+                                      title: 'Editar Descripción',
+                                      headerShown: true,
+                                    }} 
+                                  />
+                                  <Stack.Screen 
+                                    name="social/gestionar-etiquetas" 
+                                    options={{ 
+                                      title: 'Gestionar Etiquetas',
+                                      headerShown: true,
+                                    }} 
+                                  />
+                                </Stack.Group>
 
-                {/* ✅ FIX v7.0: Sala Virtual opens in FULL SCREEN PAGE (NOT modal) */}
-                {/* Movido FUERA del Stack.Group de modals para que use presentation por defecto */}
-                <Stack.Screen 
-                  name="detalle/sala-virtual-enhanced" 
-                  options={{ 
-                    title: 'Sala Virtual',
-                    headerShown: false,
-                  }} 
-                />
-              </Stack>
-            </SelectedLocalProvider>
-          </WidgetProvider>
-        </UIScalingProvider>
-      </AvatarProvider>
-    </PostsProvider>
-  </FilterProvider>
-</GlobalDataProvider>
-</FavoritesProvider>
-</ModeProvider>
-</ImpersonationProvider>
-</AuthProvider>
-</ErrorBoundary>
+                                {/* ✅ FIX v8.0: Sala Virtual opens in FULL SCREEN PAGE (NOT modal) */}
+                                {/* Movido FUERA del Stack.Group de modals para que use presentation por defecto */}
+                                <Stack.Screen 
+                                  name="detalle/sala-virtual-enhanced" 
+                                  options={{ 
+                                    title: 'Sala Virtual',
+                                    headerShown: false,
+                                  }} 
+                                />
+                              </Stack>
+                            </SelectedLocalProvider>
+                          </WidgetProvider>
+                        </UIScalingProvider>
+                      </AvatarProvider>
+                    </PostsProvider>
+                  </FilterProvider>
+                </GlobalDataProvider>
+              </FavoritesProvider>
+            </ModeProvider>
+          </ImpersonationProvider>
+        </AuthProvider>
+      </ErrorBoundary>
     </GestureHandlerRootView>
   );
 }
