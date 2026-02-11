@@ -18,9 +18,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Platform } from 'react-native';
 
 /**
- * ✅ ROOT LAYOUT v9.0 - SALA VIRTUAL FULL SCREEN FIX (FINAL)
+ * ✅ ROOT LAYOUT v10.0 - SALA VIRTUAL FULL SCREEN FIX (FINAL)
  * 
- * CHANGES v9.0:
+ * CHANGES v10.0:
  * - ✅ FIXED: Sala virtual ahora se abre en PÁGINA COMPLETA (NO modal)
  * - ✅ FIXED: Movido fuera del Stack.Group de modals
  * - ✅ FIXED: Sin presentation option - usa comportamiento por defecto 'card'
@@ -28,10 +28,6 @@ import { Platform } from 'react-native';
  * - ✅ RESULTADO: Experiencia consistente en iOS y Android - pantalla completa
  * - ✅ RESULTADO: No más modal - la sala virtual es una página normal del stack
  * - ✅ RESULTADO: El icono X en la sala virtual permite cerrar la página
- * 
- * Previous changes v8.0:
- * - ✅ FIXED: iOS Virtual Room now opens in FULL SCREEN (same as Android)
- * - ✅ FIXED: Changed presentation from 'fullScreenModal' to 'card' for iOS
  */
 
 export default function RootLayout() {
@@ -66,7 +62,7 @@ export default function RootLayout() {
                                   name="perfil" 
                                   options={{ 
                                     headerShown: false,
-                                    presentation: 'fullScreenModal',
+                                    presentation: 'card',
                                   }} 
                                 />
                                 <Stack.Screen name="chat" options={{ headerShown: false }} />
@@ -104,7 +100,7 @@ export default function RootLayout() {
                                   />
                                 </Stack.Group>
 
-                                {/* ✅ FIX v9.0: Sala Virtual opens in FULL SCREEN PAGE (NOT modal) */}
+                                {/* ✅ FIX v10.0: Sala Virtual opens in FULL SCREEN PAGE (NOT modal) */}
                                 {/* Movido FUERA del Stack.Group de modals para que use presentation por defecto 'card' */}
                                 <Stack.Screen 
                                   name="detalle/sala-virtual-enhanced" 
