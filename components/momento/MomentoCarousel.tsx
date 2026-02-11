@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
     paddingVertical: 14,
   },
-  // ✅ FIX v160.0: paddingLeft = 20 para alinear con el contenido de las páginas
+  // ✅ FIX v161.0: paddingLeft = 20 para alinear con el contenido de las páginas
   scrollContent: {
     paddingLeft: 20,
     paddingRight: 16,

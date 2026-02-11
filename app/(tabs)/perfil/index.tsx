@@ -1383,8 +1383,8 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'android' ? 6 : 8,
     paddingHorizontal: 20,
   },
-  // ✅ FIX v339.0: paddingBottom = 0 para eliminar espacio entre header y tabs
-  // ✅ FIX v339.0: Sección azulada de Barlive reemplaza el espacio blanco
+  // ✅ FIX v340.0: paddingBottom = 0 para eliminar espacio entre header y tabs
+  // ✅ FIX v340.0: Sección azulada de Barlive reemplaza el espacio blanco
   profileHeaderGradient: {
     paddingTop: 8,
     paddingBottom: 0,
@@ -1745,7 +1745,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
-  // ✅ FIX v339.0: marginTop = 0 para eliminar el espacio blanco
+  // ✅ FIX v340.0: marginTop = 0 para eliminar el espacio blanco
   tabsContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,

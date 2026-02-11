@@ -106,13 +106,13 @@ export default function RootLayout() {
                   />
                 </Stack.Group>
 
-                {/* ✅ FIX v5.0: iOS Virtual Room opens in FULL SCREEN (same as Android) */}
+                {/* ✅ FIX v6.0: iOS Virtual Room opens in FULL SCREEN (same as Android) - NO MODAL */}
                 <Stack.Screen 
                   name="detalle/sala-virtual-enhanced" 
                   options={{ 
                     title: 'Sala Virtual',
                     headerShown: true,
-                    presentation: 'card',
+                    presentation: Platform.OS === 'ios' ? 'card' : 'card',
                   }} 
                 />
               </Stack>

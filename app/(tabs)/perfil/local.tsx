@@ -1590,7 +1590,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 20,
   },
-  // ✅ FIX v322.0: paddingBottom = 0 para eliminar espacio entre header y tabs
+  // ✅ FIX v323.0: paddingBottom = 0 para eliminar espacio entre header y tabs
   profileHeaderGradient: {
     paddingTop: 12,
     paddingBottom: 0,
@@ -1695,7 +1695,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
-  // ✅ FIX v322.0: marginTop = 0 para eliminar el espacio blanco
+  // ✅ FIX v323.0: marginTop = 0 para eliminar el espacio blanco
   tabsContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,

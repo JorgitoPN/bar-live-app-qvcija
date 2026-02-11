@@ -1,4 +1,5 @@
+# BarLive
 
-# React Native + Expo 54 App
+This app was built using [Natively.dev](https://natively.dev) - a platform for creating mobile apps.
 
-<!-- This is a comment in the README -->
+Made with 💙 for creativity.
