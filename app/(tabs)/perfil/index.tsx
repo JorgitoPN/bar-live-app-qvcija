@@ -73,9 +73,15 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v337.0 - TAB MENU ALIGNMENT FIX
+ * ✅ PROFILE SCREEN v338.0 - ANDROID BUTTON HEIGHT FIX
  * 
- * CAMBIOS v337.0:
+ * CAMBIOS v338.0:
+ * - ✅ FIXED: Android buttons "Editar perfil" y "+ Crear" height reduced by 50%
+ * - ✅ FIXED: paddingVertical changed from 12 to 6 on Android only
+ * - ✅ iOS: Buttons remain unchanged (paddingVertical: 12)
+ * - ✅ RESULTADO: Botones más compactos en Android, sin cambios en iOS
+ * 
+ * Previous changes v337.0:
  * - ✅ FIXED: profileHeaderGradient paddingBottom = 0 (elimina espacio entre header y tabs)
  * - ✅ FIXED: tabsContainer marginTop = 0 (tabs pegadas al header)
  * - ✅ RESULTADO: Tabs alineadas directamente con el header azul sin espacio intermedio
@@ -156,7 +162,7 @@ export default function PerfilScreen() {
         setUnreadMessages(totalUnread);
       }
     } catch (error) {
-      console.error('[Perfil v337.0] Error loading unread counts:', error);
+      console.error('[Perfil v338.0] Error loading unread counts:', error);
     }
   }, [userId]);
 
@@ -170,14 +176,14 @@ export default function PerfilScreen() {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('[Perfil v337.0] ❌ Error loading cart count:', error);
+        console.error('[Perfil v338.0] ❌ Error loading cart count:', error);
         return;
       }
 
-      console.log('[Perfil v337.0] 🛒 Cart items count:', count);
+      console.log('[Perfil v338.0] 🛒 Cart items count:', count);
       setCartItemsCount(count || 0);
     } catch (error) {
-      console.error('[Perfil v337.0] ❌ Error loading cart count:', error);
+      console.error('[Perfil v338.0] ❌ Error loading cart count:', error);
     }
   }, [userId, isPropietario]);
 
@@ -197,7 +203,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v337.0] Error loading current local:', error);
+        console.error('[Perfil v338.0] Error loading current local:', error);
         return;
       }
 
@@ -212,7 +218,7 @@ export default function PerfilScreen() {
         setCheckInInfo(null);
       }
     } catch (error) {
-      console.error('[Perfil v337.0] Error loading current local:', error);
+      console.error('[Perfil v338.0] Error loading current local:', error);
     }
   }, [userId]);
 
@@ -271,7 +277,7 @@ export default function PerfilScreen() {
         return [];
       }
     } catch (error) {
-      console.error('[Perfil v337.0] Error cargando posts:', error);
+      console.error('[Perfil v338.0] Error cargando posts:', error);
       return [];
     }
   }, [userId]);
@@ -334,7 +340,7 @@ export default function PerfilScreen() {
         setSavedPosts([]);
       }
     } catch (error) {
-      console.error('[Perfil v337.0] Error cargando favoritos:', error);
+      console.error('[Perfil v338.0] Error cargando favoritos:', error);
     }
   }, [userId]);
 
@@ -413,7 +419,7 @@ export default function PerfilScreen() {
 
       setTaggedPosts(postsWithStatus);
     } catch (error) {
-      console.error('[Perfil v337.0] Error cargando etiquetados:', error);
+      console.error('[Perfil v338.0] Error cargando etiquetados:', error);
       setTaggedPosts([]);
     }
   }, [userId]);
@@ -430,7 +436,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v337.0] Error loading professional profile:', error);
+        console.error('[Perfil v338.0] Error loading professional profile:', error);
       }
 
       if (data) {
@@ -439,7 +445,7 @@ export default function PerfilScreen() {
         setPerfilProfesional(null);
       }
     } catch (error) {
-      console.error('[Perfil v337.0] Error loading professional profile:', error);
+      console.error('[Perfil v338.0] Error loading professional profile:', error);
     } finally {
       setLoadingEmpleo(false);
     }
@@ -450,7 +456,7 @@ export default function PerfilScreen() {
 
     try {
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v337.0] 🔄 Loading profile data...');
+        console.log('[Perfil v338.0] 🔄 Loading profile data...');
       }
 
       await loadUnreadCounts();
@@ -468,7 +474,7 @@ export default function PerfilScreen() {
       const seguidosCount = userFollowsCount || 0;
 
       if (seguidoresError) {
-        console.error('[Perfil v337.0] Error loading seguidores count:', seguidoresError);
+        console.error('[Perfil v338.0] Error loading seguidores count:', seguidoresError);
       }
 
       const seguidoresCount = seguidoresData || 0;
@@ -498,10 +504,10 @@ export default function PerfilScreen() {
       }
 
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v337.0] ✅ Profile data loaded and cached');
+        console.log('[Perfil v338.0] ✅ Profile data loaded and cached');
       }
     } catch (error) {
-      console.error('[Perfil v337.0] Error cargando datos:', error);
+      console.error('[Perfil v338.0] Error cargando datos:', error);
     } finally {
       setRefreshing(false);
     }
@@ -511,22 +517,22 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const loadCachedData = async () => {
-      console.log('[Perfil v337.0] ⚡ Loading from cache...');
+      console.log('[Perfil v338.0] ⚡ Loading from cache...');
       const cached = await profileCache.get(userId, 'user');
       
       if (cached) {
-        console.log('[Perfil v337.0] ⚡⚡⚡ INSTANT LOAD from cache');
+        console.log('[Perfil v338.0] ⚡⚡⚡ INSTANT LOAD from cache');
         setSeguidores(cached.stats.seguidores);
         setSeguidos(cached.stats.seguidos);
         setPublicaciones(cached.stats.posts);
         setPosts(cached.posts);
         
         setTimeout(() => {
-          console.log('[Perfil v337.0] 🔄 Background refresh...');
+          console.log('[Perfil v338.0] 🔄 Background refresh...');
           cargarDatosPerfil(true);
         }, 100);
       } else {
-        console.log('[Perfil v337.0] 📡 No cache, loading from database...');
+        console.log('[Perfil v338.0] 📡 No cache, loading from database...');
         cargarDatosPerfil(false);
       }
     };
@@ -553,7 +559,7 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const subscription = supabase
-      .channel('profile-updates-v337')
+      .channel('profile-updates-v338')
       .on(
         'postgres_changes',
         {
@@ -600,7 +606,7 @@ export default function PerfilScreen() {
     if (!userId || !isPropietario) return;
 
     const subscription = supabase
-      .channel('cart-updates-v337')
+      .channel('cart-updates-v338')
       .on(
         'postgres_changes',
         {
@@ -610,7 +616,7 @@ export default function PerfilScreen() {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          console.log('[Perfil v337.0] 🛒 Cart updated, reloading count...');
+          console.log('[Perfil v338.0] 🛒 Cart updated, reloading count...');
           loadCartItemsCount();
         }
       )
@@ -691,7 +697,7 @@ export default function PerfilScreen() {
   };
 
   const handleCartCheckout = async (items: any[], total: number) => {
-    console.log('[Perfil v337.0] 💳 Checkout requested:', { items: items.length, total });
+    console.log('[Perfil v338.0] 💳 Checkout requested:', { items: items.length, total });
     Alert.alert(
       'Pago en Desarrollo',
       `Total a pagar: €${total.toFixed(2)}\n\nLa integración con Stripe está en desarrollo.`,
@@ -724,7 +730,7 @@ export default function PerfilScreen() {
               setCheckInInfo(null);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
-              console.error('[Perfil v337.0] Error exiting local:', error);
+              console.error('[Perfil v338.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -950,13 +956,24 @@ export default function PerfilScreen() {
           </View>
         )}
 
+        {/* ✅ FIX v338.0: Android button height reduced by 50% */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
+          <TouchableOpacity 
+            style={[
+              styles.actionButton,
+              Platform.OS === 'android' && styles.actionButtonAndroid
+            ]} 
+            onPress={handleEditProfile}
+          >
             <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.headerText} />
             <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(15) }]}>Editar Perfil</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.actionButton, styles.createButton]} 
+            style={[
+              styles.actionButton, 
+              styles.createButton,
+              Platform.OS === 'android' && styles.actionButtonAndroid
+            ]} 
             onPress={handleCrearPublicacion}
           >
             <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={18} color={colors.white} />
@@ -1364,8 +1381,8 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'android' ? 6 : 8,
     paddingHorizontal: 20,
   },
-  // ✅ FIX v338.0: paddingBottom = 0 para eliminar espacio entre header y tabs
-  // ✅ FIX v338.0: Sección azulada de Barlive reemplaza el espacio blanco
+  // ✅ FIX v337.0: paddingBottom = 0 para eliminar espacio entre header y tabs
+  // ✅ FIX v337.0: Sección azulada de Barlive reemplaza el espacio blanco
   profileHeaderGradient: {
     paddingTop: 8,
     paddingBottom: 0,
@@ -1714,6 +1731,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     gap: 6,
+  },
+  // ✅ FIX v338.0: Android button height reduced by 50%
+  actionButtonAndroid: {
+    paddingVertical: 6,
   },
   createButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.4)',

@@ -1,8 +1,13 @@
 
 /**
- * ✅ MOMENTO CAROUSEL v158.0 - ANDROID AVATAR SIZE INCREASED
+ * ✅ MOMENTO CAROUSEL v159.0 - LEFT ALIGNMENT FIX
  * 
- * CRITICAL FIXES v158.0 (ANDROID ONLY):
+ * CRITICAL FIXES v159.0:
+ * - ✅ FIXED: Avatars now aligned to the left (paddingLeft: 20 matches page content)
+ * - ✅ FIXED: Removed extra gap that was pushing avatars to the right
+ * - ✅ RESULTADO: Avatars alineados a la izquierda igual que el contenido de las páginas
+ * 
+ * Previous changes v158.0:
  * - ✅ FIXED: Avatar size increased from 96px to 112px (48px -> 56px base)
  * - ✅ VERIFIED: Avatars are now bigger and easier to see/tap
  * - ✅ Better visibility in momentos section
@@ -299,8 +304,10 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
     paddingVertical: 14,
   },
+  // ✅ FIX v159.0: paddingLeft = 20 para alinear con el contenido de las páginas
   scrollContent: {
-    paddingHorizontal: 16,
+    paddingLeft: 20,
+    paddingRight: 16,
     gap: 18,
   },
   avatarWrapper: {
