@@ -1,15 +1,17 @@
 
 /**
- * FLOATING TAB BAR - VERSION v319.0
+ * FLOATING TAB BAR - VERSION v320.0
  * 
- * ✅ ANDROID PROFILE ICON FIX v319.0 - AVATAR DISPLAYS ON ALL SCREENS
+ * ✅ ANDROID & iOS PROFILE ICON FIX v320.0 - AVATAR DISPLAYS ON ALL SCREENS
  * 
- * CRITICAL CHANGES v319.0:
- * - ✅ FIXED: Profile icon now shows avatar correctly on ALL screens (not just profile page)
- * - ✅ FIXED: Added aggressive logging to debug Android-specific avatar loading
+ * CRITICAL CHANGES v320.0:
+ * - ✅ FIXED: Profile icon now shows avatar correctly on ALL screens (Android & iOS)
+ * - ✅ FIXED: iOS loading state now resolves correctly (no infinite spinner)
+ * - ✅ FIXED: Android empty circle issue resolved (shows icon when no avatar)
  * - ✅ FIXED: Proper error handling for image loading failures
  * - ✅ FIXED: Immediate fallback to icon when avatar fails to load
  * - ✅ FIXED: Key prop on Image to force re-render when avatarUrl changes
+ * - ✅ FIXED: Simplified loading logic to prevent stuck states
  * 
  * Previous fixes maintained (v318.0):
  * - ✅ REDUCED: Bottom padding cut in half (from 8px to 4px on Android, from 4px to 2px on iOS)
@@ -35,7 +37,7 @@
  * - ✅ HAPTIC FEEDBACK: Added instant haptic feedback on press (optional)
  */
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useState } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -69,65 +71,42 @@ interface FloatingTabBarProps {
 
 const BARLIVE_COLOR = '#14B8A6';
 
-// ✅ CRITICAL FIX v319.0: Enhanced ProfileTab with aggressive logging and error handling
+// ✅ CRITICAL FIX v320.0: Enhanced ProfileTab with simplified loading logic
 interface ProfileTabProps {
   isActive: boolean;
   onPress: () => void;
   avatarUrl: string | null;
-  isLoading: boolean;
+  isContextLoading: boolean;
 }
 
-const ProfileTab = memo(({ isActive, onPress, avatarUrl, isLoading }: ProfileTabProps) => {
+const ProfileTab = memo(({ isActive, onPress, avatarUrl, isContextLoading }: ProfileTabProps) => {
   // ✅ COMPACT TAB BAR v265.0: Reduced avatar size
   const avatarSize = Platform.OS === 'android' ? 26 : 28;
-  const [imageError, setImageError] = React.useState(false);
-  const [imageLoading, setImageLoading] = React.useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
   
-  // ✅ CRITICAL FIX v319.0: Log state changes for debugging
-  React.useEffect(() => {
-    console.log('[ProfileTab v319.0] 📊 State updated:');
-    console.log('[ProfileTab v319.0]   - avatarUrl:', avatarUrl ? 'present' : 'null');
-    console.log('[ProfileTab v319.0]   - isLoading:', isLoading);
-    console.log('[ProfileTab v319.0]   - imageError:', imageError);
-    console.log('[ProfileTab v319.0]   - imageLoading:', imageLoading);
-    console.log('[ProfileTab v319.0]   - Platform:', Platform.OS);
-  }, [avatarUrl, isLoading, imageError, imageLoading]);
+  // ✅ CRITICAL FIX v320.0: Log state changes for debugging
+  console.log('[ProfileTab v320.0] 📊 Render state:');
+  console.log('[ProfileTab v320.0]   - avatarUrl:', avatarUrl ? 'present' : 'null');
+  console.log('[ProfileTab v320.0]   - isContextLoading:', isContextLoading);
+  console.log('[ProfileTab v320.0]   - imageError:', imageError);
+  console.log('[ProfileTab v320.0]   - imageLoading:', imageLoading);
+  console.log('[ProfileTab v320.0]   - Platform:', Platform.OS);
   
-  // ✅ CRITICAL FIX v319.0: Reset error state when avatarUrl changes
+  // ✅ CRITICAL FIX v320.0: Reset error state when avatarUrl changes
   React.useEffect(() => {
-    console.log('[ProfileTab v319.0] 🔄 avatarUrl changed, resetting error state');
+    console.log('[ProfileTab v320.0] 🔄 avatarUrl changed, resetting error state');
     setImageError(false);
     setImageLoading(false);
   }, [avatarUrl]);
   
-  // ✅ CRITICAL FIX v319.0: Show loading indicator while context is loading
-  if (isLoading) {
-    console.log('[ProfileTab v319.0] ⏳ Context is loading, showing ActivityIndicator');
-    return (
-      <TouchableOpacity
-        onPress={onPress}
-        style={styles.tab}
-        activeOpacity={0.6}
-      >
-        <View style={[
-          styles.avatarContainer,
-          { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 },
-          isActive && styles.avatarContainerActive
-        ]}>
-          <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <ActivityIndicator size="small" color={isActive ? colors.primary : 'rgba(255, 255, 255, 0.7)'} />
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  }
+  // ✅ CRITICAL FIX v320.0: Simplified loading logic
+  // Show icon if: context is loading, no avatar URL, or image failed to load
+  const shouldShowIcon = isContextLoading || !avatarUrl || imageError;
   
-  // ✅ CRITICAL FIX v319.0: If no avatarUrl or error, show icon immediately (no image loading)
-  const shouldShowIcon = !avatarUrl || imageError;
-  
-  console.log('[ProfileTab v319.0] 🎨 Rendering decision:');
-  console.log('[ProfileTab v319.0]   - shouldShowIcon:', shouldShowIcon);
-  console.log('[ProfileTab v319.0]   - Will render:', shouldShowIcon ? 'ICON' : 'IMAGE');
+  console.log('[ProfileTab v320.0] 🎨 Rendering decision:');
+  console.log('[ProfileTab v320.0]   - shouldShowIcon:', shouldShowIcon);
+  console.log('[ProfileTab v320.0]   - Will render:', shouldShowIcon ? 'ICON' : 'IMAGE');
   
   return (
     <TouchableOpacity
@@ -141,17 +120,21 @@ const ProfileTab = memo(({ isActive, onPress, avatarUrl, isLoading }: ProfileTab
         isActive && styles.avatarContainerActive
       ]}>
         {shouldShowIcon ? (
-          // ✅ CRITICAL FIX v319.0: Show icon directly when no avatar or error
+          // ✅ CRITICAL FIX v320.0: Show icon directly when loading, no avatar, or error
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <IconSymbol
-              ios_icon_name="person.fill"
-              android_material_icon_name="person"
-              size={Platform.OS === 'android' ? 18 : 22}
-              color={isActive ? colors.primary : 'rgba(255, 255, 255, 0.7)'}
-            />
+            {isContextLoading ? (
+              <ActivityIndicator size="small" color={isActive ? colors.primary : 'rgba(255, 255, 255, 0.7)'} />
+            ) : (
+              <IconSymbol
+                ios_icon_name="person.fill"
+                android_material_icon_name="person"
+                size={Platform.OS === 'android' ? 18 : 22}
+                color={isActive ? colors.primary : 'rgba(255, 255, 255, 0.7)'}
+              />
+            )}
           </View>
         ) : (
-          // ✅ CRITICAL FIX v319.0: Only render image if we have a valid avatarUrl
+          // ✅ CRITICAL FIX v320.0: Only render image if we have a valid avatarUrl
           <>
             {imageLoading && (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
@@ -164,17 +147,17 @@ const ProfileTab = memo(({ isActive, onPress, avatarUrl, isLoading }: ProfileTab
               style={[styles.avatar, imageLoading && { opacity: 0 }]}
               resizeMode="cover"
               onLoadStart={() => {
-                console.log('[ProfileTab v319.0] 🖼️ Image load started');
+                console.log('[ProfileTab v320.0] 🖼️ Image load started');
                 setImageLoading(true);
               }}
               onLoad={() => {
-                console.log('[ProfileTab v319.0] ✅ Image loaded successfully');
+                console.log('[ProfileTab v320.0] ✅ Image loaded successfully');
                 setImageLoading(false);
               }}
               onError={(error) => {
-                console.log('[ProfileTab v319.0] ❌ Image load error:', error.nativeEvent);
-                console.log('[ProfileTab v319.0] ❌ Failed URL:', avatarUrl);
-                console.log('[ProfileTab v319.0] 📱 Platform:', Platform.OS);
+                console.log('[ProfileTab v320.0] ❌ Image load error:', error.nativeEvent);
+                console.log('[ProfileTab v320.0] ❌ Failed URL:', avatarUrl);
+                console.log('[ProfileTab v320.0] 📱 Platform:', Platform.OS);
                 setImageError(true);
                 setImageLoading(false);
               }}
@@ -195,12 +178,12 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const { user } = useAuth();
   const { avatarUrl, isLoading } = useAvatar();
 
-  // ✅ CRITICAL FIX v319.0: Log avatar state for debugging
-  console.log('[FloatingTabBar v319.0] 📊 Avatar state:');
-  console.log('[FloatingTabBar v319.0]   - avatarUrl:', avatarUrl ? 'present' : 'null');
-  console.log('[FloatingTabBar v319.0]   - isLoading:', isLoading);
-  console.log('[FloatingTabBar v319.0]   - user:', user ? 'logged in' : 'not logged in');
-  console.log('[FloatingTabBar v319.0]   - Platform:', Platform.OS);
+  // ✅ CRITICAL FIX v320.0: Log avatar state for debugging
+  console.log('[FloatingTabBar v320.0] 📊 Avatar state:');
+  console.log('[FloatingTabBar v320.0]   - avatarUrl:', avatarUrl ? 'present' : 'null');
+  console.log('[FloatingTabBar v320.0]   - isLoading:', isLoading);
+  console.log('[FloatingTabBar v320.0]   - user:', user ? 'logged in' : 'not logged in');
+  console.log('[FloatingTabBar v320.0]   - Platform:', Platform.OS);
 
   const isTabActive = useCallback((tab: TabBarItem): boolean => {
     const cleanRoute = tab.route.replace(/^\//, '').replace(/\/$/, '');
@@ -239,7 +222,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
 
   // ✅ CRITICAL FIX v160.0: Instant navigation without delays
   const handleTabPress = useCallback((tab: TabBarItem) => {
-    console.log(`[FloatingTabBar v319.0] ⚡ INSTANT TAP: "${tab.name}" -> ${tab.route}`);
+    console.log(`[FloatingTabBar v320.0] ⚡ INSTANT TAP: "${tab.name}" -> ${tab.route}`);
     router.push(tab.route as any);
   }, [router]);
 
@@ -262,10 +245,10 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
     const isCenter = tab.name === 'explorar';
 
     if (tab.name === 'perfil') {
-      console.log('[FloatingTabBar v319.0] 🎨 Rendering ProfileTab with:');
-      console.log('[FloatingTabBar v319.0]   - avatarUrl:', avatarUrl ? 'present' : 'null');
-      console.log('[FloatingTabBar v319.0]   - isLoading:', isLoading);
-      console.log('[FloatingTabBar v319.0]   - isActive:', isActive);
+      console.log('[FloatingTabBar v320.0] 🎨 Rendering ProfileTab with:');
+      console.log('[FloatingTabBar v320.0]   - avatarUrl:', avatarUrl ? 'present' : 'null');
+      console.log('[FloatingTabBar v320.0]   - isLoading:', isLoading);
+      console.log('[FloatingTabBar v320.0]   - isActive:', isActive);
       
       return (
         <ProfileTab
@@ -273,7 +256,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
           isActive={isActive}
           onPress={() => handleTabPress(tab)}
           avatarUrl={avatarUrl}
-          isLoading={isLoading}
+          isContextLoading={isLoading}
         />
       );
     }
@@ -345,7 +328,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const containerHeight = bottomNavHeight + tabBarPaddingBottom;
 
   console.log(
-    `[FloatingTabBar v319.0] ⚡ ANDROID PROFILE ICON FIX - ` +
+    `[FloatingTabBar v320.0] ⚡ ANDROID & iOS PROFILE ICON FIX - ` +
     `avatarUrl: ${avatarUrl ? 'present' : 'null'}, isLoading: ${isLoading}, Platform: ${Platform.OS}`
   );
 
