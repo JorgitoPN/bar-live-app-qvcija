@@ -3,20 +3,23 @@ import { StyleSheet, Platform } from 'react-native';
 import { getHeaderTitleSize, getHeaderIconSize } from '@/utils/androidScaling';
 
 /**
- * ✅ COMMON STYLES v144.0 - ANDROID COMPACT HEADERS
+ * ✅ COMMON STYLES v284.0 - ANDROID FONT SIZE INCREASE (+2 POINTS)
  * 
- * CRITICAL FIXES v144.0 (ANDROID ONLY):
- * - ✅ COMPACT header title size across ALL pages (20sp on Android - matching venue cards)
- * - ✅ COMPACT header icon size across ALL pages (20dp on Android)
- * - ✅ Headers take less vertical space on Android
- * - ✅ All text sizes properly scaled for Android
+ * CRITICAL FIXES v284.0 (ANDROID ONLY):
+ * - ✅ INCREASED all Android font sizes by exactly 2 points
+ * - ✅ Title: 22sp (increased from 20)
+ * - ✅ Subtitle: 18sp (increased from 16)
+ * - ✅ Body: 17sp (increased from 15)
+ * - ✅ Caption: 15sp (increased from 13)
+ * - ✅ Header Subtitle: 15sp (increased from 13)
+ * - ✅ Uniform scaling across all text elements
  * - ✅ iOS design remains unchanged (reference design)
  * 
- * Previous fixes maintained (v93.0):
- * - ✅ Significantly reduced font sizes on Android for better responsiveness
- * - ✅ Reduced header padding to save screen space
- * - ✅ Adjusted all text sizes to prevent oversized appearance
- * - ✅ Content now scales properly on Android devices
+ * Previous fixes maintained (v144.0):
+ * - ✅ COMPACT header title size across ALL pages (now 22sp on Android)
+ * - ✅ COMPACT header icon size across ALL pages (now 22dp on Android)
+ * - ✅ Headers take less vertical space on Android
+ * - ✅ All text sizes properly scaled for Android
  * - ✅ Consistent colors across all platforms
  * - ✅ Proper safe area handling
  * - ✅ Platform-specific adjustments for optimal UX
@@ -102,9 +105,10 @@ export const commonStyles = StyleSheet.create({
     color: colors.headerText,
   },
   
-  // ✅ ANDROID FIX v143.0: Reduced header subtitle size on Android
+  // ✅ ANDROID FIX v284.0: Increased header subtitle size by 2 points on Android
+  // ✅ Previous fix v143.0: Reduced header subtitle size on Android
   headerSubtitle: {
-    fontSize: Platform.OS === 'ios' ? 15 : 13, // Reduced from 14 to 13 on Android
+    fontSize: Platform.OS === 'ios' ? 15 : 15, // Increased from 13 to 15 on Android (+2)
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 4,
@@ -193,27 +197,28 @@ export const commonStyles = StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   
-  // ✅ ANDROID FIX v143.0: Significantly reduced text sizes for better Android responsiveness
+  // ✅ ANDROID FIX v284.0: Increased all text sizes by 2 points on Android
+  // ✅ Previous fix v143.0: Significantly reduced text sizes for better Android responsiveness
   title: {
-    fontSize: Platform.OS === 'ios' ? 24 : 20, // Reduced from 22 to 20 on Android
+    fontSize: Platform.OS === 'ios' ? 24 : 22, // Increased from 20 to 22 on Android (+2)
     fontWeight: 'bold',
     color: colors.text,
   },
   
   subtitle: {
-    fontSize: Platform.OS === 'ios' ? 18 : 16, // Reduced from 17 to 16 on Android
+    fontSize: Platform.OS === 'ios' ? 18 : 18, // Increased from 16 to 18 on Android (+2)
     fontWeight: '600',
     color: colors.text,
   },
   
   body: {
-    fontSize: Platform.OS === 'ios' ? 16 : 15, // Reduced from 16 to 15 on Android
+    fontSize: Platform.OS === 'ios' ? 16 : 17, // Increased from 15 to 17 on Android (+2)
     color: colors.text,
     lineHeight: 24,
   },
   
   caption: {
-    fontSize: Platform.OS === 'ios' ? 14 : 13, // Reduced from 14 to 13 on Android
+    fontSize: Platform.OS === 'ios' ? 14 : 15, // Increased from 13 to 15 on Android (+2)
     color: colors.textSecondary,
   },
   

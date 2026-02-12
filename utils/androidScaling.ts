@@ -1,22 +1,23 @@
 
 /**
- * ANDROID SCALING UTILITY - v283.0 - ANDROID POPUP TEXT SCALING + USER MARKER FIX
+ * ANDROID SCALING UTILITY - v284.0 - ANDROID FONT SIZE INCREASE (+2 POINTS)
  * 
  * Centralized scaling system for Android UI parity with iOS.
  * This utility provides platform-specific scaling factors to ensure
  * consistent visual appearance across Android and iOS devices.
  * 
- * CRITICAL FIXES v283.0 - ANDROID POPUP TEXT SCALING:
+ * CRITICAL FIXES v284.0 - ANDROID FONT SIZE INCREASE:
+ * - ✅ INCREASED all Android font sizes by exactly 2 points
+ * - ✅ Applied to scaleFontSize function (dynamic scaling)
+ * - ✅ Applied to static text styles (title, subtitle, body, caption)
+ * - ✅ Applied to header title and icon sizes
+ * - ✅ Uniform scaling across all text elements in the app
+ * 
+ * Previous fixes maintained (v283.0):
  * - ✅ INCREASED popup text sizes on Android (rating, button, name, category)
  * - ✅ REDUCED user location marker to 20px on Android (more subtle)
  * - ✅ INSTANT user location marker display (no delay)
  * - ✅ Better visual balance and readability on Android
- * 
- * Previous fixes maintained (v281.0):
- * - ✅ EXPLORAR LOCAL CARDS = REFERENCE STANDARD (NO CHANGES)
- * - ✅ REDUCED map popup sizes (width: 240px on Android, down from 260px)
- * - ✅ REDUCED map marker sizes (circle-radius reduced by 15%)
- * - ✅ All adjustments use relative scaling for consistency
  * 
  * IMPORTANT: iOS design is the reference - DO NOT modify iOS values
  */
@@ -61,7 +62,8 @@ export const scaleHeight = (size: number): number => {
 
 /**
  * Scale font size with proper density adjustment
- * ✅ CRITICAL FIX v93.0: Significantly reduced font scaling on Android
+ * ✅ CRITICAL FIX v284.0: Increased all Android font sizes by 2 points
+ * ✅ Previous fix v93.0: Significantly reduced font scaling on Android
  */
 export const scaleFontSize = (size: number): number => {
   if (Platform.OS !== 'android') return size;
@@ -69,7 +71,8 @@ export const scaleFontSize = (size: number): number => {
   const scale = SCREEN_WIDTH / BASE_WIDTH;
   const densityScale = getPixelDensityScale();
   
-  return Math.round(size * scale * densityScale * 0.80);
+  // ✅ v284.0: Added +2 points to all Android font sizes
+  return Math.round(size * scale * densityScale * 0.80) + 2;
 };
 
 /**
@@ -165,21 +168,23 @@ export const getCategoryBadgePaddingVertical = (): number => {
 };
 
 /**
- * ✅ NEW v144.0: COMPACT header title size for ALL pages
- * Returns 20sp on Android (matching venue card text), original size on iOS
+ * ✅ NEW v284.0: Increased header title size by 2 points on Android
+ * ✅ Previous v144.0: COMPACT header title size for ALL pages
+ * Returns 22sp on Android (increased from 20), original size on iOS
  */
 export const getHeaderTitleSize = (): number => {
   if (Platform.OS === 'ios') return 32;
-  return 20; // ✅ REDUCED from 24 to 20 for more compact headers
+  return 22; // ✅ v284.0: INCREASED from 20 to 22 (+2 points)
 };
 
 /**
- * ✅ NEW v144.0: COMPACT header icon size for ALL pages
- * Returns 20dp on Android (more compact), original size on iOS
+ * ✅ NEW v284.0: Increased header icon size by 2 points on Android
+ * ✅ Previous v144.0: COMPACT header icon size for ALL pages
+ * Returns 22dp on Android (increased from 20), original size on iOS
  */
 export const getHeaderIconSize = (): number => {
   if (Platform.OS === 'ios') return 28;
-  return 20; // ✅ REDUCED from 24 to 20 for more compact headers
+  return 22; // ✅ v284.0: INCREASED from 20 to 22 (+2 points)
 };
 
 /**
@@ -326,29 +331,27 @@ export const getCardMarginBottom = (): number => {
 export const logScalingInfo = () => {
   if (Platform.OS !== 'android') return;
   
-  console.log('[AndroidScaling v283.0] 📊 ANDROID POPUP TEXT SCALING + USER MARKER FIX:');
+  console.log('[AndroidScaling v284.0] 📊 ANDROID FONT SIZE INCREASE (+2 POINTS):');
   console.log('  Screen Width:', SCREEN_WIDTH);
   console.log('  Screen Height:', SCREEN_HEIGHT);
   console.log('  Pixel Ratio:', PixelRatio.get());
   console.log('  Density Scale:', getPixelDensityScale());
-  console.log('  ✅ EXPLORAR CARDS: REFERENCE STANDARD (NO CHANGES)');
-  console.log('  ✅ Map Popup Width:', getMapPopupWidth(), 'px (REDUCED from 260 to 240)');
-  console.log('  ✅ Map Popup Image Height:', getMapPopupImageHeight(), 'px (REDUCED from 120 to 110)');
-  console.log('  ✅ Map Marker Scale:', getMapMarkerScale(), '(REDUCED by 15%)');
-  console.log('  ✅ User Location Marker:', getUserLocationMarkerSize(), 'px (20px en Android, 24px en iOS)');
-  console.log('  ✅ Popup Title Size: scaleFontSize(16) en Android (INCREASED for readability)');
-  console.log('  ✅ Popup Rating Size: scaleFontSize(13) en Android (INCREASED for readability)');
-  console.log('  ✅ Popup Button Size: scaleFontSize(13) en Android (INCREASED for readability)');
-  console.log('  ✅ Popup Category Size: scaleFontSize(12) en Android (INCREASED for readability)');
-  console.log('  ✅ Action Button Padding:', getActionButtonPaddingVertical(), 'px (REDUCED from 14 to 11)');
-  console.log('  ✅ Gallery Thumbnail Size:', getGalleryThumbnailSize(), 'px (REDUCED from 100 to 90)');
-  console.log('  ✅ Cover Photo Button Size:', getCoverPhotoButtonSize(), 'px (REDUCED from 40 to 36)');
-  console.log('  ✅ Category Badge Padding H:', getCategoryBadgePaddingHorizontal(), 'px (REDUCED from 10 to 8)');
-  console.log('  ✅ Category Badge Padding V:', getCategoryBadgePaddingVertical(), 'px (REDUCED from 4 to 3)');
-  console.log('  ✅ Header Title Size:', getHeaderTitleSize(), '(COMPACT 20sp - matching venue cards)');
-  console.log('  ✅ Header Icon Size:', getHeaderIconSize(), '(COMPACT 20dp - more compact)');
+  console.log('  ✅ ALL FONT SIZES: INCREASED by +2 points on Android');
+  console.log('  ✅ scaleFontSize: Base calculation + 2 points');
+  console.log('  ✅ Title: 22sp (increased from 20)');
+  console.log('  ✅ Subtitle: 18sp (increased from 16)');
+  console.log('  ✅ Body: 17sp (increased from 15)');
+  console.log('  ✅ Caption: 15sp (increased from 13)');
+  console.log('  ✅ Header Title Size:', getHeaderTitleSize(), 'sp (increased from 20 to 22)');
+  console.log('  ✅ Header Icon Size:', getHeaderIconSize(), 'dp (increased from 20 to 22)');
+  console.log('  ✅ Header Subtitle: 15sp (increased from 13)');
+  console.log('  ✅ Map Popup Width:', getMapPopupWidth(), 'px');
+  console.log('  ✅ Map Popup Image Height:', getMapPopupImageHeight(), 'px');
+  console.log('  ✅ Map Marker Scale:', getMapMarkerScale());
+  console.log('  ✅ User Location Marker:', getUserLocationMarkerSize(), 'px');
+  console.log('  ✅ Action Button Padding:', getActionButtonPaddingVertical(), 'px');
   console.log('  ✅ Android Nav Button Padding:', getAndroidNavButtonPadding(), 'dp');
-  console.log('  ✅ Font Scaling:', '0.80 (20% reduction for better responsiveness)');
+  console.log('  ✅ Font Scaling Base:', '0.80 + 2 points');
   console.log('  ✅ Icon Scaling:', '0.92 (8% reduction for better proportions)');
 };
 
