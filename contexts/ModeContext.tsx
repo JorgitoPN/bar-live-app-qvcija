@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { useAuth } from './AuthContext';
 import { useImpersonation } from './ImpersonationContext';
 import { supabase } from '@/utils/supabase';
@@ -42,14 +43,14 @@ const ACTIVE_PROFILE_STORAGE_KEY = '@barlive_active_profile';
 const ACTIVE_PROFILE_TYPE_STORAGE_KEY = '@barlive_active_profile_type';
 
 /**
- * ✅ MODE CONTEXT v292.0 - ANDROID CRITICAL PERFORMANCE FIX
+ * ✅ MODE CONTEXT v293.0 - ANDROID CRITICAL PERFORMANCE FIX
  * 
- * CRITICAL FIXES v292.0:
+ * CRITICAL FIXES v293.0:
  * - ✅ DISABLED CONSOLE LOGS: Removed ALL console.log on Android
- * - ✅ SILENT MODE: All operations run silently
+ * - ✅ SILENT MODE: All operations run silently on Android
  * - ✅ ANDROID OPTIMIZATION: Zero console output = zero UI blocking
  * 
- * Previous fixes maintained (v290.0):
+ * Previous fixes maintained (v292.0):
  * - ✅ ADMIN ACCESS: Admin can access propietario mode without owned locals
  * - ✅ VERIFICATION MODE: Allows admin to see and verify owner interface
  * - ✅ NO LOCAL REQUIRED: Admin doesn't need to select a local to access owner mode
@@ -95,7 +96,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     try {
       isLoadingLocalsRef.current = true;
       lastUserIdRef.current = user.id;
-      // ✅ v292.0: Silent loading
+      // ✅ v293.0: Silent loading on Android
       
       const { data, error } = await supabase
         .from('propietarios_locales')
@@ -112,7 +113,10 @@ export function ModeProvider({ children }: { children: ReactNode }) {
         .eq('activo', true);
 
       if (error) {
-        // ✅ v292.0: Silent error
+        // ✅ v293.0: Silent error on Android
+        if (Platform.OS !== 'android') {
+          console.error('[ModeContext v293.0] Error loading owned locals:', error);
+        }
         return;
       }
 
@@ -126,10 +130,16 @@ export function ModeProvider({ children }: { children: ReactNode }) {
           tipo: local.tipo,
         })) || [];
 
-      // ✅ v292.0: Silent success
+      // ✅ v293.0: Silent success on Android
+      if (Platform.OS !== 'android') {
+        console.log('[ModeContext v293.0] Loaded', locals.length, 'owned locals');
+      }
       setOwnedLocals(locals);
     } catch (error) {
-      // ✅ v292.0: Silent error
+      // ✅ v293.0: Silent error on Android
+      if (Platform.OS !== 'android') {
+        console.error('[ModeContext v293.0] Error loading owned locals:', error);
+      }
       setOwnedLocals([]);
     } finally {
       isLoadingLocalsRef.current = false;
@@ -139,7 +149,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initializeMode = async () => {
       try {
-        // ✅ v292.0: Silent initialization
+        // ✅ v293.0: Silent initialization on Android
         
         const [savedMode, savedProfileId, savedProfileType] = await Promise.all([
           AsyncStorage.getItem(MODE_STORAGE_KEY),
@@ -158,10 +168,14 @@ export function ModeProvider({ children }: { children: ReactNode }) {
               (savedMode === 'admin' && userIsAdmin);
             
             if (isValidMode) {
-              console.log('[ModeContext v290.0] ✅ Restored mode from storage:', savedMode);
+              if (Platform.OS !== 'android') {
+                console.log('[ModeContext v293.0] ✅ Restored mode from storage:', savedMode);
+              }
               setCurrentModeState(savedMode as UserMode);
             } else {
-              console.log('[ModeContext v290.0] ⚠️ Invalid mode for user, resetting to cliente');
+              if (Platform.OS !== 'android') {
+                console.log('[ModeContext v293.0] ⚠️ Invalid mode for user, resetting to cliente');
+              }
               setCurrentModeState('cliente');
               await AsyncStorage.setItem(MODE_STORAGE_KEY, 'cliente');
             }
@@ -169,16 +183,22 @@ export function ModeProvider({ children }: { children: ReactNode }) {
             setCurrentModeState('cliente');
           }
         } else if (user) {
-          console.log('[ModeContext v290.0] ℹ️ No saved mode, defaulting to cliente');
+          if (Platform.OS !== 'android') {
+            console.log('[ModeContext v293.0] ℹ️ No saved mode, defaulting to cliente');
+          }
           setCurrentModeState('cliente');
           await AsyncStorage.setItem(MODE_STORAGE_KEY, 'cliente');
         }
 
         if (savedProfileId && savedProfileType) {
-          console.log('[ModeContext v290.0] ✅ Restoring active profile:', savedProfileId, savedProfileType);
+          if (Platform.OS !== 'android') {
+            console.log('[ModeContext v293.0] ✅ Restoring active profile:', savedProfileId, savedProfileType);
+          }
           
           if (savedProfileType === 'local' && user) {
-            console.log('[ModeContext v290.0] 🔄 Verifying local ownership for:', savedProfileId);
+            if (Platform.OS !== 'android') {
+              console.log('[ModeContext v293.0] 🔄 Verifying local ownership for:', savedProfileId);
+            }
             
             const { data: ownershipData, error: ownershipError } = await supabase
               .from('propietarios_locales')
@@ -189,7 +209,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
               .single();
 
             if (ownershipError || !ownershipData) {
-              console.error('[ModeContext v290.0] ❌ User does not own saved local, resetting to client profile');
+              if (Platform.OS !== 'android') {
+                console.error('[ModeContext v293.0] ❌ User does not own saved local, resetting to client profile');
+              }
               setActiveProfileIdState(user.id);
               setActiveProfileTypeState('cliente');
               setActiveLocalData(null);
@@ -205,7 +227,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
                 .single();
               
               if (localError || !localData) {
-                console.error('[ModeContext v290.0] ❌ Error loading local data, resetting to client profile:', localError);
+                if (Platform.OS !== 'android') {
+                  console.error('[ModeContext v293.0] ❌ Error loading local data, resetting to client profile:', localError);
+                }
                 setActiveProfileIdState(user.id);
                 setActiveProfileTypeState('cliente');
                 setActiveLocalData(null);
@@ -214,12 +238,16 @@ export function ModeProvider({ children }: { children: ReactNode }) {
                 await AsyncStorage.setItem(ACTIVE_PROFILE_TYPE_STORAGE_KEY, 'cliente');
                 await AsyncStorage.setItem(MODE_STORAGE_KEY, 'cliente');
               } else {
-                console.log('[ModeContext v290.0] ✅ Loaded local data:', localData.nombre);
+                if (Platform.OS !== 'android') {
+                  console.log('[ModeContext v293.0] ✅ Loaded local data:', localData.nombre);
+                }
                 setActiveProfileIdState(savedProfileId);
                 setActiveProfileTypeState('local');
                 setActiveLocalData(localData);
                 if (savedMode !== 'propietario') {
-                  console.log('[ModeContext v290.0] ⚠️ Mode was not propietario, correcting...');
+                  if (Platform.OS !== 'android') {
+                    console.log('[ModeContext v293.0] ⚠️ Mode was not propietario, correcting...');
+                  }
                   setCurrentModeState('propietario');
                   await AsyncStorage.setItem(MODE_STORAGE_KEY, 'propietario');
                 }
@@ -230,7 +258,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
             setActiveProfileTypeState('cliente');
             setActiveLocalData(null);
           } else {
-            console.log('[ModeContext v290.0] ⚠️ Invalid saved profile, resetting to default');
+            if (Platform.OS !== 'android') {
+              console.log('[ModeContext v293.0] ⚠️ Invalid saved profile, resetting to default');
+            }
             if (user) {
               setActiveProfileIdState(user.id);
               setActiveProfileTypeState('cliente');
@@ -240,7 +270,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
             }
           }
         } else if (user) {
-          console.log('[ModeContext v290.0] ℹ️ No saved profile, defaulting to client profile');
+          if (Platform.OS !== 'android') {
+            console.log('[ModeContext v293.0] ℹ️ No saved profile, defaulting to client profile');
+          }
           setActiveProfileIdState(user.id);
           setActiveProfileTypeState('cliente');
           setActiveLocalData(null);
@@ -249,9 +281,13 @@ export function ModeProvider({ children }: { children: ReactNode }) {
         }
         
         setIsInitialized(true);
-        console.log('[ModeContext v290.0] ✅ Initialization complete');
+        if (Platform.OS !== 'android') {
+          console.log('[ModeContext v293.0] ✅ Initialization complete');
+        }
       } catch (error) {
-        console.error('[ModeContext v290.0] ❌ Error initializing mode:', error);
+        if (Platform.OS !== 'android') {
+          console.error('[ModeContext v293.0] ❌ Error initializing mode:', error);
+        }
         if (user) {
           setCurrentModeState('cliente');
           setActiveProfileIdState(user.id);
@@ -269,9 +305,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isInitialized]);
 
-  // ✅ CRITICAL FIX v290.0: LAZY LOADING - Only load when switching to propietario mode
+  // ✅ CRITICAL FIX v293.0: LAZY LOADING - Only load when switching to propietario mode
   // This prevents loading owned locals on every app startup
-  // ✅ FIX v290.0: Admin can access propietario mode without loading locals
+  // ✅ FIX v293.0: Admin can access propietario mode without loading locals
   useEffect(() => {
     // Only load if:
     // 1. User exists
@@ -279,15 +315,19 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     // 3. Owned locals haven't been loaded yet
     // 4. User is NOT admin (admin doesn't need locals to access owner mode)
     if (user && currentMode === 'propietario' && ownedLocals.length === 0 && !isAdminUser(user)) {
-      console.log('[ModeContext v290.0] 🔄 User switched to propietario mode - loading owned locals...');
+      if (Platform.OS !== 'android') {
+        console.log('[ModeContext v293.0] 🔄 User switched to propietario mode - loading owned locals...');
+      }
       loadOwnedLocals();
     }
   }, [user?.id, currentMode]); // ✅ Only trigger when mode changes to propietario
 
   const setCurrentMode = useCallback(async (mode: UserMode) => {
     try {
-      console.log('[ModeContext v290.0] 🔄 Setting mode to:', mode);
-      console.log('[ModeContext v290.0] 🔍 Impersonation status:', isImpersonating ? 'active' : 'inactive');
+      if (Platform.OS !== 'android') {
+        console.log('[ModeContext v293.0] 🔄 Setting mode to:', mode);
+        console.log('[ModeContext v293.0] 🔍 Impersonation status:', isImpersonating ? 'active' : 'inactive');
+      }
       
       if (user) {
         // ✅ CRITICAL FIX: Use userForPermissions to check role validity during impersonation
@@ -300,26 +340,32 @@ export function ModeProvider({ children }: { children: ReactNode }) {
           (mode === 'admin' && userIsAdmin);
         
         if (!isValidMode) {
-          console.warn('[ModeContext v290.0] ⚠️ Invalid mode for user:', mode, userRole);
+          if (Platform.OS !== 'android') {
+            console.warn('[ModeContext v293.0] ⚠️ Invalid mode for user:', mode, userRole);
+          }
           return;
         }
         
-        if (isImpersonating) {
-          console.log('[ModeContext v290.0] 👑 Admin permissions preserved during impersonation');
+        if (isImpersonating && Platform.OS !== 'android') {
+          console.log('[ModeContext v293.0] 👑 Admin permissions preserved during impersonation');
         }
       }
       
       await AsyncStorage.setItem(MODE_STORAGE_KEY, mode);
       setCurrentModeState(mode);
       
-      console.log('[ModeContext v290.0] ✅ Mode saved to storage:', mode);
+      if (Platform.OS !== 'android') {
+        console.log('[ModeContext v293.0] ✅ Mode saved to storage:', mode);
+      }
 
-      // ✅ FIX v290.0: Admin can access propietario mode without owned locals
+      // ✅ FIX v293.0: Admin can access propietario mode without owned locals
       if (mode === 'propietario' && user) {
         const userIsAdmin = isAdminUser(user);
         
         if (userIsAdmin) {
-          console.log('[ModeContext v290.0] 👑 Admin accessing propietario mode for verification');
+          if (Platform.OS !== 'android') {
+            console.log('[ModeContext v293.0] 👑 Admin accessing propietario mode for verification');
+          }
           // Admin can stay in propietario mode without selecting a local
           // This allows them to see the owner interface and verify functionality
           return;
@@ -327,7 +373,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
         
         // For non-admin users, load owned locals
         if (ownedLocals.length === 0) {
-          console.log('[ModeContext v290.0] 🔍 Loading owned locals for propietario mode...');
+          if (Platform.OS !== 'android') {
+            console.log('[ModeContext v293.0] 🔍 Loading owned locals for propietario mode...');
+          }
           await loadOwnedLocals();
           
           setTimeout(async () => {
@@ -349,11 +397,15 @@ export function ModeProvider({ children }: { children: ReactNode }) {
             if (!error && data && data.length > 0) {
               const firstLocal = data[0].locales;
               if (firstLocal) {
-                console.log('[ModeContext v290.0] ✅ Auto-selecting first local:', firstLocal.nombre);
+                if (Platform.OS !== 'android') {
+                  console.log('[ModeContext v293.0] ✅ Auto-selecting first local:', firstLocal.nombre);
+                }
                 await switchToLocalProfile(firstLocal.id);
               }
             } else {
-              console.log('[ModeContext v290.0] ℹ️ User has no active locals, staying in cliente mode');
+              if (Platform.OS !== 'android') {
+                console.log('[ModeContext v293.0] ℹ️ User has no active locals, staying in cliente mode');
+              }
               await switchToClientProfile();
             }
           }, 100);
@@ -361,30 +413,40 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       }
       
       if (mode === 'cliente' && user) {
-        console.log('[ModeContext v290.0] 🔄 Mode changed to cliente, switching to client profile');
+        if (Platform.OS !== 'android') {
+          console.log('[ModeContext v293.0] 🔄 Mode changed to cliente, switching to client profile');
+        }
         await switchToClientProfile();
       }
     } catch (error) {
-      console.error('[ModeContext v290.0] ❌ Error saving mode:', error);
+      if (Platform.OS !== 'android') {
+        console.error('[ModeContext v293.0] ❌ Error saving mode:', error);
+      }
       setCurrentModeState(mode);
     }
   }, [user, ownedLocals.length, loadOwnedLocals]);
 
   const switchToClientProfile = useCallback(async () => {
     if (!user) {
-      console.warn('[ModeContext v290.0] ⚠️ Cannot switch to client profile: no user');
+      if (Platform.OS !== 'android') {
+        console.warn('[ModeContext v293.0] ⚠️ Cannot switch to client profile: no user');
+      }
       return;
     }
 
     try {
-      console.log('[ModeContext v290.0] 🔄 Switching to client profile:', user.id);
+      if (Platform.OS !== 'android') {
+        console.log('[ModeContext v293.0] 🔄 Switching to client profile:', user.id);
+      }
       
       setCurrentModeState('cliente');
       setActiveProfileIdState(user.id);
       setActiveProfileTypeState('cliente');
       setActiveLocalData(null);
       
-      console.log('[ModeContext v290.0] ✅ State updated - Mode: cliente, Profile:', user.nombre);
+      if (Platform.OS !== 'android') {
+        console.log('[ModeContext v293.0] ✅ State updated - Mode: cliente, Profile:', user.nombre);
+      }
       
       try {
         await Promise.all([
@@ -393,21 +455,29 @@ export function ModeProvider({ children }: { children: ReactNode }) {
           AsyncStorage.setItem(ACTIVE_PROFILE_TYPE_STORAGE_KEY, 'cliente'),
         ]);
       } catch (storageError) {
-        console.error('[ModeContext v290.0] ⚠️ Error persisting to storage (state is still updated):', storageError);
+        if (Platform.OS !== 'android') {
+          console.error('[ModeContext v293.0] ⚠️ Error persisting to storage (state is still updated):', storageError);
+        }
       }
     } catch (error) {
-      console.error('[ModeContext v290.0] ❌ Error switching to client profile:', error);
+      if (Platform.OS !== 'android') {
+        console.error('[ModeContext v293.0] ❌ Error switching to client profile:', error);
+      }
     }
   }, [user]);
 
   const switchToLocalProfile = useCallback(async (localId: string) => {
     if (!user) {
-      console.warn('[ModeContext v290.0] ⚠️ Cannot switch to local profile: no user');
+      if (Platform.OS !== 'android') {
+        console.warn('[ModeContext v293.0] ⚠️ Cannot switch to local profile: no user');
+      }
       return;
     }
 
     try {
-      console.log('[ModeContext v290.0] 🔄 Switching to local profile:', localId);
+      if (Platform.OS !== 'android') {
+        console.log('[ModeContext v293.0] 🔄 Switching to local profile:', localId);
+      }
       
       const { data: ownershipData, error: ownershipError } = await supabase
         .from('propietarios_locales')
@@ -418,7 +488,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (ownershipError || !ownershipData) {
-        console.error('[ModeContext v290.0] ❌ User does not own this local:', ownershipError);
+        if (Platform.OS !== 'android') {
+          console.error('[ModeContext v293.0] ❌ User does not own this local:', ownershipError);
+        }
         return;
       }
 
@@ -429,7 +501,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (localError || !localData) {
-        console.error('[ModeContext v290.0] ❌ Error loading local data:', localError);
+        if (Platform.OS !== 'android') {
+          console.error('[ModeContext v293.0] ❌ Error loading local data:', localError);
+        }
         return;
       }
 
@@ -438,7 +512,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       setActiveProfileTypeState('local');
       setActiveLocalData(localData);
       
-      console.log('[ModeContext v290.0] ✅ State updated - Mode: propietario, Profile:', localData.nombre);
+      if (Platform.OS !== 'android') {
+        console.log('[ModeContext v293.0] ✅ State updated - Mode: propietario, Profile:', localData.nombre);
+      }
       
       try {
         await Promise.all([
@@ -447,10 +523,14 @@ export function ModeProvider({ children }: { children: ReactNode }) {
           AsyncStorage.setItem(ACTIVE_PROFILE_TYPE_STORAGE_KEY, 'local'),
         ]);
       } catch (storageError) {
-        console.error('[ModeContext v290.0] ⚠️ Error persisting to storage (state is still updated):', storageError);
+        if (Platform.OS !== 'android') {
+          console.error('[ModeContext v293.0] ⚠️ Error persisting to storage (state is still updated):', storageError);
+        }
       }
     } catch (error) {
-      console.error('[ModeContext v290.0] ❌ Error switching to local profile:', error);
+      if (Platform.OS !== 'android') {
+        console.error('[ModeContext v293.0] ❌ Error switching to local profile:', error);
+      }
     }
   }, [user]);
 
