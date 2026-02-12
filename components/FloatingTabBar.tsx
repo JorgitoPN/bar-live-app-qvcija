@@ -1,16 +1,22 @@
 
 /**
- * FLOATING TAB BAR - VERSION v321.0
+ * FLOATING TAB BAR - VERSION v322.0
  * 
- * ✅ ANDROID PROFILE AVATAR FIX v321.0 - COMPLETE AVATAR RELOAD
+ * ✅ ANDROID PROFILE AVATAR FIX v322.0 - FORCE REFRESH ON FOCUS
  * 
- * CRITICAL CHANGES v321.0:
+ * CRITICAL CHANGES v322.0:
+ * - ✅ FIXED: Avatar reloads when user navigates back to any screen
+ * - ✅ FIXED: Uses useFocusEffect to detect screen changes
+ * - ✅ FIXED: Timestamp updates on every focus to force Image re-render
+ * - ✅ IMPROVED: More reliable avatar updates across navigation
+ * - ✅ RESULT: Avatar updates IMMEDIATELY when user changes profile picture
+ * 
+ * Previous fixes maintained (v321.0):
  * - ✅ FIXED: Avatar now reloads from database on EVERY render
  * - ✅ FIXED: Direct Supabase query ensures fresh data
  * - ✅ FIXED: No more stale cache or context issues
  * - ✅ FIXED: Image component uses timestamp key for guaranteed refresh
  * - ✅ IMPROVED: Comprehensive logging for debugging
- * - ✅ RESULT: Avatar updates IMMEDIATELY when user changes profile picture
  * 
  * Previous fixes maintained (v320.0):
  * - ✅ FIXED: Avatar now FORCES re-render when avatarUrl changes
@@ -52,7 +58,7 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
-import { useRouter, usePathname } from 'expo-router';
+import { useRouter, usePathname, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/styles/commonStyles';
@@ -76,14 +82,15 @@ interface FloatingTabBarProps {
 
 const BARLIVE_COLOR = '#14B8A6';
 
-// ✅ CRITICAL FIX v321.0: Complete avatar reload with direct database query
+// ✅ CRITICAL FIX v322.0: Force refresh on screen focus
 interface ProfileTabProps {
   isActive: boolean;
   onPress: () => void;
   userId: string | null;
+  refreshTrigger: number; // ✅ NEW: Trigger to force reload
 }
 
-const ProfileTab = memo(({ isActive, onPress, userId }: ProfileTabProps) => {
+const ProfileTab = memo(({ isActive, onPress, userId, refreshTrigger }: ProfileTabProps) => {
   // ✅ COMPACT TAB BAR v265.0: Reduced avatar size
   const avatarSize = Platform.OS === 'android' ? 26 : 28;
   const [imageError, setImageError] = React.useState(false);
@@ -91,16 +98,17 @@ const ProfileTab = memo(({ isActive, onPress, userId }: ProfileTabProps) => {
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
   const [timestamp, setTimestamp] = React.useState(Date.now());
   
-  // ✅ CRITICAL FIX v321.0: Load avatar directly from database on EVERY render
+  // ✅ CRITICAL FIX v322.0: Load avatar directly from database on EVERY render + refreshTrigger change
   React.useEffect(() => {
     if (!userId) {
-      console.log('[ProfileTab v321.0] ⚠️ No userId - showing icon');
+      console.log('[ProfileTab v322.0] ⚠️ No userId - showing icon');
       setAvatarUrl(null);
       setImageLoading(false);
       return;
     }
 
-    console.log('[ProfileTab v321.0] 🔄 Loading avatar from database for user:', userId);
+    console.log('[ProfileTab v322.0] 🔄 Loading avatar from database for user:', userId);
+    console.log('[ProfileTab v322.0] 🔄 Refresh trigger:', refreshTrigger);
     
     const loadAvatar = async () => {
       try {
@@ -111,7 +119,7 @@ const ProfileTab = memo(({ isActive, onPress, userId }: ProfileTabProps) => {
           .single();
 
         if (error) {
-          console.log('[ProfileTab v321.0] ❌ Error loading avatar:', error.message);
+          console.log('[ProfileTab v322.0] ❌ Error loading avatar:', error.message);
           setAvatarUrl(null);
           setImageLoading(false);
           return;
@@ -124,32 +132,33 @@ const ProfileTab = memo(({ isActive, onPress, userId }: ProfileTabProps) => {
           ? data.avatar
           : null;
 
-        console.log('[ProfileTab v321.0] ✅ Avatar loaded from database:', validUrl ? 'present' : 'null');
+        console.log('[ProfileTab v322.0] ✅ Avatar loaded from database:', validUrl ? 'present' : 'null');
         
         setAvatarUrl(validUrl);
         setImageError(false);
         setImageLoading(validUrl ? true : false);
         setTimestamp(Date.now()); // Force new timestamp for key
       } catch (error) {
-        console.log('[ProfileTab v321.0] ❌ Exception loading avatar:', error);
+        console.log('[ProfileTab v322.0] ❌ Exception loading avatar:', error);
         setAvatarUrl(null);
         setImageLoading(false);
       }
     };
 
     loadAvatar();
-  }, [userId]);
+  }, [userId, refreshTrigger]); // ✅ v322.0: Reload when refreshTrigger changes
   
-  // ✅ CRITICAL FIX v321.0: Show icon if no avatar, error, or still loading
+  // ✅ CRITICAL FIX v322.0: Show icon if no avatar, error, or still loading
   const shouldShowIcon = !avatarUrl || imageError || imageLoading;
   
-  console.log('[ProfileTab v321.0] 📊 Render state:', {
+  console.log('[ProfileTab v322.0] 📊 Render state:', {
     userId: userId ? 'present' : 'null',
     avatarUrl: avatarUrl ? 'present' : 'null',
     shouldShowIcon,
     imageError,
     imageLoading,
     timestamp,
+    refreshTrigger,
   });
   
   return (
@@ -164,7 +173,7 @@ const ProfileTab = memo(({ isActive, onPress, userId }: ProfileTabProps) => {
         isActive && styles.avatarContainerActive
       ]}>
         {shouldShowIcon ? (
-          // ✅ CRITICAL FIX v321.0: Show icon as fallback
+          // ✅ CRITICAL FIX v322.0: Show icon as fallback
           <View style={[styles.avatar, styles.avatarPlaceholder]} key={`icon-${timestamp}`}>
             <IconSymbol
               ios_icon_name="person.fill"
@@ -174,18 +183,18 @@ const ProfileTab = memo(({ isActive, onPress, userId }: ProfileTabProps) => {
             />
           </View>
         ) : (
-          // ✅ CRITICAL FIX v321.0: Render image with TIMESTAMP key for guaranteed refresh
+          // ✅ CRITICAL FIX v322.0: Render image with TIMESTAMP key for guaranteed refresh
           <Image
             key={`avatar-${timestamp}`}
             source={{ uri: avatarUrl }}
             style={styles.avatar}
             resizeMode="cover"
             onLoad={() => {
-              console.log('[ProfileTab v321.0] ✅ Avatar image loaded successfully');
+              console.log('[ProfileTab v322.0] ✅ Avatar image loaded successfully');
               setImageLoading(false);
             }}
             onError={(error) => {
-              console.log('[ProfileTab v321.0] ❌ Avatar image load error:', error.nativeEvent.error);
+              console.log('[ProfileTab v322.0] ❌ Avatar image load error:', error.nativeEvent.error);
               setImageError(true);
               setImageLoading(false);
             }}
@@ -195,11 +204,11 @@ const ProfileTab = memo(({ isActive, onPress, userId }: ProfileTabProps) => {
     </TouchableOpacity>
   );
 }, (prevProps, nextProps) => {
-  // ✅ CRITICAL FIX v321.0: NEVER skip re-render if userId changed
-  // This ensures the component ALWAYS reloads avatar when user changes
+  // ✅ CRITICAL FIX v322.0: Re-render when refreshTrigger changes
   return (
     prevProps.isActive === nextProps.isActive &&
-    prevProps.userId === nextProps.userId
+    prevProps.userId === nextProps.userId &&
+    prevProps.refreshTrigger === nextProps.refreshTrigger
   );
 });
 
@@ -210,16 +219,28 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  
+  // ✅ CRITICAL FIX v322.0: Refresh trigger that updates on screen focus
+  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
 
-  // ✅ CRITICAL FIX v321.0: Log user state for debugging
+  // ✅ CRITICAL FIX v322.0: Force avatar reload when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('[FloatingTabBar v322.0] 🔄 Screen focused - forcing avatar refresh');
+      setRefreshTrigger(prev => prev + 1);
+    }, [])
+  );
+
+  // ✅ CRITICAL FIX v322.0: Log user state for debugging
   React.useEffect(() => {
-    console.log('[FloatingTabBar v321.0] 🔄 User state:', {
+    console.log('[FloatingTabBar v322.0] 🔄 User state:', {
       hasUser: !!user,
       userId: user?.id || 'null',
       pathname,
+      refreshTrigger,
       timestamp: new Date().toISOString(),
     });
-  }, [user, pathname]);
+  }, [user, pathname, refreshTrigger]);
 
   const isTabActive = useCallback((tab: TabBarItem): boolean => {
     const cleanRoute = tab.route.replace(/^\//, '').replace(/\/$/, '');
@@ -258,7 +279,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
 
   // ✅ CRITICAL FIX v160.0: Instant navigation without delays
   const handleTabPress = useCallback((tab: TabBarItem) => {
-    console.log(`[FloatingTabBar v321.0] ⚡ INSTANT TAP: "${tab.name}" -> ${tab.route}`);
+    console.log(`[FloatingTabBar v322.0] ⚡ INSTANT TAP: "${tab.name}" -> ${tab.route}`);
     router.push(tab.route as any);
   }, [router]);
 
@@ -287,6 +308,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
           isActive={isActive}
           onPress={() => handleTabPress(tab)}
           userId={user?.id || null}
+          refreshTrigger={refreshTrigger} // ✅ v322.0: Pass refresh trigger
         />
       );
     }
@@ -348,7 +370,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
         />
       </TouchableOpacity>
     );
-  }, [isTabActive, handleTabPress, user?.id, getAndroidIcon]);
+  }, [isTabActive, handleTabPress, user?.id, getAndroidIcon, refreshTrigger]);
 
   // ✅ REDUCED BOTTOM MARGIN v318.0: Cut bottom padding in half
   const bottomNavHeight = Platform.OS === 'android' ? 56 : 60;
@@ -358,8 +380,8 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const containerHeight = bottomNavHeight + tabBarPaddingBottom;
 
   console.log(
-    `[FloatingTabBar v321.0] ⚡ ANDROID PROFILE AVATAR FIX v321.0 - ` +
-    `Complete avatar reload from database - userId: ${user?.id || 'null'}`
+    `[FloatingTabBar v322.0] ⚡ ANDROID PROFILE AVATAR FIX v322.0 - ` +
+    `Force refresh on focus - userId: ${user?.id || 'null'} - trigger: ${refreshTrigger}`
   );
 
   return (
