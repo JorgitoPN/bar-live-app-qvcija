@@ -288,9 +288,10 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 2,
     borderColor: colors.cardBorder,
+    // ✅ REQUERIMIENTO 1: Removed shadow/elevation on Android to fix gray box issue
     ...Platform.select({
       android: {
-        elevation: 2,
+        elevation: 0, // Changed from 2 to 0
       },
       ios: {
         shadowColor: '#000',
@@ -303,9 +304,10 @@ const styles = StyleSheet.create({
   modeCardActive: {
     borderColor: colors.primary,
     backgroundColor: colors.primary + '08',
+    // ✅ REQUERIMIENTO 1: Removed shadow/elevation on Android to fix gray box issue
     ...Platform.select({
       android: {
-        elevation: 4,
+        elevation: 0, // Changed from 4 to 0
       },
       ios: {
         shadowColor: colors.primary,

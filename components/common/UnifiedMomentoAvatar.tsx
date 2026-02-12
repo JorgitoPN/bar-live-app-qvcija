@@ -19,9 +19,14 @@ interface UnifiedMomentoAvatarProps {
 }
 
 /**
- * ✅ UNIFIED MOMENTO AVATAR v54.0 - REDUCED AVATAR SIZES FOR ANDROID & iOS
+ * ✅ UNIFIED MOMENTO AVATAR v55.0 - REDUCED BORDER THICKNESS ON ANDROID
  * 
- * CRITICAL FIXES v54.0:
+ * NEW CHANGES v55.0:
+ * - ✅ REQUERIMIENTO 3: Border thickness reduced from 1.5px to 1.0px on Android
+ * - ✅ iOS border remains at 1.5px for consistency
+ * - ✅ Thinner border provides cleaner look on Android
+ * 
+ * Previous changes v54.0:
  * - ✅ ANDROID: Avatar size reduced by 20% (e.g., 88 → 70, 96 → 77)
  * - ✅ iOS: Avatar size reduced by 10% (e.g., 88 → 79, 96 → 86)
  * - ✅ Border thickness remains at 1.5px for neon effect
@@ -53,7 +58,8 @@ export default function UnifiedMomentoAvatar({
     ? Math.round(size * 0.8)  // Android: 20% reduction
     : Math.round(size * 0.9); // iOS: 10% reduction
 
-  const BORDER_WIDTH = 1.5;
+  // ✅ REQUERIMIENTO 3: Reduced border thickness from 1.5 to 1.0 on Android
+  const BORDER_WIDTH = Platform.OS === 'android' ? 1.0 : 1.5;
   const PADDING = 3;
   const innerSize = adjustedSize - (BORDER_WIDTH + PADDING) * 2;
 
@@ -118,13 +124,14 @@ export default function UnifiedMomentoAvatar({
       const viewedIds = new Set(viewsData?.map(v => v.momento_id) || []);
       const hasUnviewed = momentosData.some(m => !viewedIds.has(m.id));
 
-      console.log('[UnifiedMomentoAvatar v54.0] 🎯 Result:', {
+      console.log('[UnifiedMomentoAvatar v55.0] 🎯 Result:', {
         totalMomentos: momentosData.length,
         viewedCount: viewedIds.size,
         hasUnviewed,
         platform: Platform.OS,
         originalSize: size,
         adjustedSize,
+        borderWidth: BORDER_WIDTH,
       });
 
       setHasUnviewedMomentos(hasUnviewed);

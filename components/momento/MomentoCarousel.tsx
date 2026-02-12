@@ -1,8 +1,13 @@
 
 /**
- * ✅ MOMENTO CAROUSEL v166.0 - ANDROID SPACING FIX
+ * ✅ MOMENTO CAROUSEL v167.0 - ANDROID BORDER THICKNESS FIX
  * 
- * NEW CHANGES v166.0:
+ * NEW CHANGES v167.0:
+ * - ✅ REQUERIMIENTO 3: Border thickness reduced in UnifiedMomentoAvatar (1.5px → 1.0px on Android)
+ * - ✅ Cleaner, less prominent borders on Android momento avatars
+ * - ✅ iOS border remains at 1.5px for consistency
+ * 
+ * Previous changes v166.0:
  * - ✅ REQUERIMIENTO 3: Reduced spacing between avatars on Android
  * - ✅ Android now shows at least 4 avatars simultaneously without horizontal scroll
  * - ✅ Reduced gap from 18 to 8 on Android (10 on iOS for consistency)
@@ -57,7 +62,7 @@ export default function MomentoCarousel() {
 
   const loadMomentoAuthors = useCallback(async () => {
     if (!userId) {
-      console.log('[MomentoCarousel v166.0] No user ID, skipping load');
+      console.log('[MomentoCarousel v167.0] No user ID, skipping load');
       setLoading(false);
       return;
     }

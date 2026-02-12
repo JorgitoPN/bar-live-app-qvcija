@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -61,9 +61,16 @@ interface Comment {
 }
 
 /**
- * ✅ COMMENTS FULL SCREEN PAGE v320.0 - ANDROID KEYBOARD FIX
+ * ✅ COMMENTS FULL SCREEN PAGE v321.0 - ANDROID KEYBOARD FIX IMPROVED
  * 
- * NEW CHANGES v320.0:
+ * NEW CHANGES v321.0:
+ * - ✅ REQUERIMIENTO 2: Fixed dynamic keyboard offset for Android
+ * - ✅ When keyboard CLOSED: paddingBottom = insets.bottom (or min 8px) to avoid system buttons
+ * - ✅ When keyboard OPEN: paddingBottom = 8px, KeyboardAvoidingView with offset 35 handles positioning
+ * - ✅ Input field now properly visible above keyboard and predictive text bar
+ * - ✅ User can see what they type without field being hidden
+ * 
+ * Previous changes v320.0:
  * - ✅ REQUERIMIENTO 2: Fixed comment input field hidden by system buttons on Android
  * - ✅ Input field now positioned above system navigation buttons
  * - ✅ Proper keyboard handling with KeyboardAvoidingView
@@ -97,19 +104,21 @@ export default function ComentariosScreen() {
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [editingComment, setEditingComment] = useState<Comment | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('[ComentariosScreen v320.0] 🎯 Comments page mounted as overlay');
-    console.log('[ComentariosScreen v320.0] 📱 Bottom inset (system buttons):', insets.bottom);
+    console.log('[ComentariosScreen v321.0] 🎯 Comments page mounted as overlay');
+    console.log('[ComentariosScreen v321.0] 📱 Bottom inset (system buttons):', insets.bottom);
     
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[ComentariosScreen v320.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[ComentariosScreen v321.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
         setKeyboardHeight(e.endCoordinates.height);
+        setIsKeyboardVisible(true);
         
         // ✅ REQUERIMIENTO 2: Scroll to bottom when keyboard opens so user can see input
         setTimeout(() => {
@@ -121,13 +130,14 @@ export default function ComentariosScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[ComentariosScreen v320.0] ⌨️ Keyboard hidden');
+        console.log('[ComentariosScreen v321.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
+        setIsKeyboardVisible(false);
       }
     );
 
     return () => {
-      console.log('[ComentariosScreen v320.0] 🔄 Comments page unmounting');
+      console.log('[ComentariosScreen v321.0] 🔄 Comments page unmounting');
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
@@ -599,11 +609,15 @@ export default function ComentariosScreen() {
   const inputAvatarRadius = inputAvatarSize / 2;
   const inputAvatarTextSize = Platform.OS === 'android' ? scaleFontSize(14) : 14;
 
-  // ✅ REQUERIMIENTO 2: Calculate input container bottom position
-  // On Android, we need to account for system navigation buttons
-  const inputContainerBottom = Platform.OS === 'android' 
-    ? (keyboardHeight > 0 ? keyboardHeight : Math.max(insets.bottom, 0))
-    : (keyboardHeight > 0 ? keyboardHeight : 0);
+  // ✅ REQUERIMIENTO 2: Calculate input container bottom position with dynamic offset
+  // When keyboard is CLOSED: paddingBottom = insets.bottom (or minimum 8px)
+  // When keyboard is OPEN: paddingBottom = 8px (let KeyboardAvoidingView handle positioning)
+  const inputContainerPaddingBottom = useMemo(() => {
+    if (isKeyboardVisible) {
+      return 8; // Keyboard open: minimal padding
+    }
+    return Math.max(insets.bottom, 8); // Keyboard closed: respect system buttons
+  }, [isKeyboardVisible, insets.bottom]);
 
   const renderComment = ({ item }: { item: Comment }) => {
     const displayName = item.tipo === 'local' && item.local 
@@ -757,9 +771,12 @@ export default function ComentariosScreen() {
   );
 
   // ✅ REQUERIMIENTO 2: Calculate proper padding for list to account for input container
-  const listPaddingBottom = Platform.OS === 'android'
-    ? (keyboardHeight > 0 ? keyboardHeight + 100 : Math.max(insets.bottom, 0) + 140)
-    : (keyboardHeight > 0 ? keyboardHeight + 80 : 120);
+  const listPaddingBottom = useMemo(() => {
+    if (Platform.OS === 'android') {
+      return isKeyboardVisible ? 100 : Math.max(insets.bottom, 0) + 140;
+    }
+    return isKeyboardVisible ? 80 : 120;
+  }, [isKeyboardVisible, insets.bottom]);
 
   return (
     <>
@@ -771,8 +788,8 @@ export default function ComentariosScreen() {
       
       <KeyboardAvoidingView 
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'android' ? 35 : 0}
       >
         <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
         
@@ -832,7 +849,7 @@ export default function ComentariosScreen() {
               tint="light" 
               style={[
                 styles.inputContainer, 
-                { bottom: inputContainerBottom }
+                { paddingBottom: inputContainerPaddingBottom }
               ]}
             >
               {(replyingTo || editingComment) && (
