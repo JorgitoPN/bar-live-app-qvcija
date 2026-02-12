@@ -1,13 +1,19 @@
 
 /**
- * ✅ MOMENTO CAROUSEL v165.0 - LEFT ALIGNMENT FIX (FINAL)
+ * ✅ MOMENTO CAROUSEL v166.0 - ANDROID SPACING FIX
  * 
- * CRITICAL FIXES v165.0:
+ * NEW CHANGES v166.0:
+ * - ✅ REQUERIMIENTO 3: Reduced spacing between avatars on Android
+ * - ✅ Android now shows at least 4 avatars simultaneously without horizontal scroll
+ * - ✅ Reduced gap from 18 to 8 on Android (10 on iOS for consistency)
+ * - ✅ Reduced avatar wrapper width from 108 to 80 on Android
+ * - ✅ Better visual density on Android screens
+ * 
+ * Previous changes v165.0:
  * - ✅ FIXED: Avatars now aligned to the left (paddingLeft: 16 matches post mini-avatars)
  * - ✅ FIXED: Removed extra gap that was pushing avatars to the right
  * - ✅ FIXED: scrollContent paddingLeft = 16 (same as post content padding)
  * - ✅ RESULTADO: Avatares alineados verticalmente con los miniavatares de publicaciones
- * - ✅ RESULTADO: Alineación consistente con el resto de la aplicación
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -46,17 +52,18 @@ export default function MomentoCarousel() {
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
   const [selectedAuthor, setSelectedAuthor] = useState<MomentoAuthor | null>(null);
 
-  const AVATAR_SIZE = Platform.OS === 'android' ? scaleIconSize(112) : 100;
+  // ✅ REQUERIMIENTO 3: Reduced avatar size on Android for better density
+  const AVATAR_SIZE = Platform.OS === 'android' ? scaleIconSize(90) : 100;
 
   const loadMomentoAuthors = useCallback(async () => {
     if (!userId) {
-      console.log('[MomentoCarousel] No user ID, skipping load');
+      console.log('[MomentoCarousel v166.0] No user ID, skipping load');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('[MomentoCarousel] 🔄 Loading momento authors...');
+      console.log('[MomentoCarousel v166.0] 🔄 Loading momento authors...');
 
       const { data: momentosData, error: momentosError } = await supabase
         .from('momentos')
@@ -71,19 +78,19 @@ export default function MomentoCarousel() {
         .order('created_at', { ascending: false });
 
       if (momentosError) {
-        console.error('[MomentoCarousel] ❌ Error loading momentos:', momentosError);
+        console.error('[MomentoCarousel v166.0] ❌ Error loading momentos:', momentosError);
         setLoading(false);
         return;
       }
 
       if (!momentosData || momentosData.length === 0) {
-        console.log('[MomentoCarousel] ℹ️ No active momentos found');
+        console.log('[MomentoCarousel v166.0] ℹ️ No active momentos found');
         setAuthors([]);
         setLoading(false);
         return;
       }
 
-      console.log('[MomentoCarousel] ✅ Found momentos:', momentosData.length);
+      console.log('[MomentoCarousel v166.0] ✅ Found momentos:', momentosData.length);
 
       const momentoIds = momentosData.map(m => m.id);
       const { data: viewsData } = await supabase
@@ -157,9 +164,9 @@ export default function MomentoCarousel() {
       });
 
       setAuthors(authorsArray);
-      console.log('[MomentoCarousel] ✅ Loaded authors:', authorsArray.length);
+      console.log('[MomentoCarousel v166.0] ✅ Loaded authors:', authorsArray.length);
     } catch (error) {
-      console.error('[MomentoCarousel] ❌ Error loading authors:', error);
+      console.error('[MomentoCarousel v166.0] ❌ Error loading authors:', error);
     } finally {
       setLoading(false);
     }
@@ -180,7 +187,7 @@ export default function MomentoCarousel() {
           table: 'momentos',
         },
         (payload) => {
-          console.log('[MomentoCarousel] 🔄 Momento update detected:', payload);
+          console.log('[MomentoCarousel v166.0] 🔄 Momento update detected:', payload);
           loadMomentoAuthors();
         }
       )
@@ -193,7 +200,7 @@ export default function MomentoCarousel() {
           filter: `usuario_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('[MomentoCarousel] 🔄 View update detected:', payload);
+          console.log('[MomentoCarousel v166.0] 🔄 View update detected:', payload);
           loadMomentoAuthors();
         }
       )
@@ -217,6 +224,9 @@ export default function MomentoCarousel() {
     return null;
   }
 
+  // ✅ REQUERIMIENTO 3: Reduced avatar wrapper width on Android
+  const avatarWrapperWidth = Platform.OS === 'android' ? 80 : 108;
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -224,7 +234,7 @@ export default function MomentoCarousel() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.avatarWrapper}>
+        <View style={[styles.avatarWrapper, { width: avatarWrapperWidth }]}>
           <UnifiedMomentoAvatar
             userId={userId}
             imageUrl={user?.avatar}
@@ -245,14 +255,14 @@ export default function MomentoCarousel() {
         </View>
 
         {loading ? (
-          <View style={styles.loadingContainer}>
+          <View style={[styles.loadingContainer, { width: avatarWrapperWidth }]}>
             <ActivityIndicator size="small" color={colors.primary} />
           </View>
         ) : (
           authors
             .filter(author => !(author.tipo === 'usuario' && author.id === userId))
             .map((author) => (
-              <View key={`${author.tipo}-${author.id}`} style={styles.avatarWrapper}>
+              <View key={`${author.tipo}-${author.id}`} style={[styles.avatarWrapper, { width: avatarWrapperWidth }]}>
                 <UnifiedMomentoAvatar
                   userId={author.tipo === 'usuario' ? author.id : undefined}
                   localId={author.tipo === 'local' ? author.id : undefined}
@@ -299,15 +309,14 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
     paddingVertical: 14,
   },
-  // ✅ FIX v165.0: paddingLeft = 16 para alinear con los miniavatares de publicaciones
+  // ✅ REQUERIMIENTO 3: Reduced gap from 18 to 8 on Android (10 on iOS)
   scrollContent: {
     paddingLeft: 16,
     paddingRight: 16,
-    gap: 18,
+    gap: Platform.OS === 'android' ? 8 : 10,
   },
   avatarWrapper: {
     alignItems: 'center',
-    width: 108,
   },
   authorName: {
     color: colors.text,
@@ -316,7 +325,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   loadingContainer: {
-    width: 108,
     height: 100,
     justifyContent: 'center',
     alignItems: 'center',
