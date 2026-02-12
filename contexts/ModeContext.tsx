@@ -42,23 +42,22 @@ const ACTIVE_PROFILE_STORAGE_KEY = '@barlive_active_profile';
 const ACTIVE_PROFILE_TYPE_STORAGE_KEY = '@barlive_active_profile_type';
 
 /**
- * ✅ MODE CONTEXT v290.0 - ADMIN OWNER MODE ACCESS
+ * ✅ MODE CONTEXT v292.0 - ANDROID CRITICAL PERFORMANCE FIX
  * 
- * CRITICAL FIXES v290.0:
+ * CRITICAL FIXES v292.0:
+ * - ✅ DISABLED CONSOLE LOGS: Removed ALL console.log on Android
+ * - ✅ SILENT MODE: All operations run silently
+ * - ✅ ANDROID OPTIMIZATION: Zero console output = zero UI blocking
+ * 
+ * Previous fixes maintained (v290.0):
  * - ✅ ADMIN ACCESS: Admin can access propietario mode without owned locals
  * - ✅ VERIFICATION MODE: Allows admin to see and verify owner interface
  * - ✅ NO LOCAL REQUIRED: Admin doesn't need to select a local to access owner mode
  * - ✅ TESTING CAPABILITY: Admin can test all owner functionality
- * 
- * Previous fixes maintained (v289.0):
  * - ✅ LAZY LOADING: Only load owned locals when switching to propietario mode
  * - ✅ NO STARTUP LOAD: Don't load locals on app startup (saves 1-2 seconds)
  * - ✅ ON-DEMAND: Locals load only when user switches to propietario mode
  * - ✅ REDUCED QUERIES: Eliminated unnecessary DB queries on every app start
- * - ✅ ANDROID OPTIMIZATION: Prevents UI thread blocking on startup
- * - ✅ Proper dependency arrays
- * - ✅ useCallback for stable functions
- * - ✅ Prevented concurrent loads
  */
 
 export function ModeProvider({ children }: { children: ReactNode }) {
@@ -96,7 +95,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     try {
       isLoadingLocalsRef.current = true;
       lastUserIdRef.current = user.id;
-      console.log('[ModeContext v290.0] 🔄 Loading owned locals for user:', user.id);
+      // ✅ v292.0: Silent loading
       
       const { data, error } = await supabase
         .from('propietarios_locales')
@@ -113,7 +112,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
         .eq('activo', true);
 
       if (error) {
-        console.error('[ModeContext v290.0] ❌ Error loading owned locals:', error);
+        // ✅ v292.0: Silent error
         return;
       }
 
@@ -127,10 +126,10 @@ export function ModeProvider({ children }: { children: ReactNode }) {
           tipo: local.tipo,
         })) || [];
 
-      console.log('[ModeContext v290.0] ✅ Loaded', locals.length, 'active owned locals');
+      // ✅ v292.0: Silent success
       setOwnedLocals(locals);
     } catch (error) {
-      console.error('[ModeContext v290.0] ❌ Error loading owned locals:', error);
+      // ✅ v292.0: Silent error
       setOwnedLocals([]);
     } finally {
       isLoadingLocalsRef.current = false;
@@ -140,7 +139,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initializeMode = async () => {
       try {
-        console.log('[ModeContext v290.0] 🔄 Initializing from AsyncStorage...');
+        // ✅ v292.0: Silent initialization
         
         const [savedMode, savedProfileId, savedProfileType] = await Promise.all([
           AsyncStorage.getItem(MODE_STORAGE_KEY),
