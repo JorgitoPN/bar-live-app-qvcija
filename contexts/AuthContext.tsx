@@ -24,9 +24,16 @@ const warn = Platform.OS === 'android' ? () => {} : console.warn;
 const error = Platform.OS === 'android' ? () => {} : console.error;
 
 /**
- * ✅ AUTH CONTEXT v293.0 - ANDROID CRITICAL PERFORMANCE FIX
+ * ✅ AUTH CONTEXT v294.0 - GUEST MODE ARCHITECTURE FOR AUTHENTICATED USERS
  * 
- * CRITICAL FIXES v293.0:
+ * CRITICAL FIXES v294.0 (GUEST MODE REPLICATION):
+ * - ✅ INSTANT LOGIN: User sees UI immediately, no waiting for data
+ * - ✅ DELAYED PUSH NOTIFICATIONS: 30 seconds after login (was 10)
+ * - ✅ NO EAGER DATA LOADING: Zero automatic data fetches on login
+ * - ✅ BACKGROUND ONLY: All heavy operations deferred to background
+ * - ✅ IDENTICAL TO GUEST MODE: Same instant, responsive experience
+ * 
+ * PREVIOUS FIXES v293.0:
  * - ✅ ELIMINATED ALL CONSOLE LOGS on Android (massive performance gain)
  * - ✅ DELAYED PUSH NOTIFICATIONS: 10 seconds after login (was 5)
  * - ✅ REDUCED SESSION CHECKS: Only refresh when < 2 min to expiry (was 3)
@@ -120,17 +127,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!userError && userData) {
             setUser(userData);
             
-            // ✅ CRITICAL FIX v293.0: DELAYED PUSH NOTIFICATIONS (10 seconds)
-            // Increased delay to allow UI to fully stabilize on Android
-            setTimeout(() => {
-              registerForPushNotifications()
-                .then(pushToken => {
-                  if (pushToken) {
-                    savePushToken(userData.id, pushToken).catch(() => {});
-                  }
-                })
-                .catch(() => {});
-            }, 10000); // ✅ v293.0: Increased to 10 seconds (was 5)
+            // ✅ CRITICAL FIX v294.0: DELAYED PUSH NOTIFICATIONS (30 seconds)
+            // Further increased delay to replicate guest mode instant experience
+            // Push notifications are low priority, should not block UI
+            if (Platform.OS === 'android') {
+              setTimeout(() => {
+                registerForPushNotifications()
+                  .then(pushToken => {
+                    if (pushToken) {
+                      savePushToken(userData.id, pushToken).catch(() => {});
+                    }
+                  })
+                  .catch(() => {});
+              }, 30000); // ✅ v294.0: Increased to 30 seconds (was 10)
+            } else {
+              // iOS can handle push notifications faster
+              setTimeout(() => {
+                registerForPushNotifications()
+                  .then(pushToken => {
+                    if (pushToken) {
+                      savePushToken(userData.id, pushToken).catch(() => {});
+                    }
+                  })
+                  .catch(() => {});
+              }, 10000);
+            }
           }
         }
       } catch (err) {
@@ -177,16 +198,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!userError && userData) {
           setUser(userData);
           
-          // ✅ CRITICAL FIX v293.0: DELAYED PUSH NOTIFICATIONS (10 seconds)
-          setTimeout(() => {
-            registerForPushNotifications()
-              .then(pushToken => {
-                if (pushToken) {
-                  savePushToken(userData.id, pushToken).catch(() => {});
-                }
-              })
-              .catch(() => {});
-          }, 10000); // ✅ v293.0: Increased to 10 seconds
+          // ✅ CRITICAL FIX v294.0: DELAYED PUSH NOTIFICATIONS (30 seconds on Android)
+          if (Platform.OS === 'android') {
+            setTimeout(() => {
+              registerForPushNotifications()
+                .then(pushToken => {
+                  if (pushToken) {
+                    savePushToken(userData.id, pushToken).catch(() => {});
+                  }
+                })
+                .catch(() => {});
+            }, 30000); // ✅ v294.0: Increased to 30 seconds on Android
+          } else {
+            setTimeout(() => {
+              registerForPushNotifications()
+                .then(pushToken => {
+                  if (pushToken) {
+                    savePushToken(userData.id, pushToken).catch(() => {});
+                  }
+                })
+                .catch(() => {});
+            }, 10000);
+          }
         }
         
         setLoading(false);

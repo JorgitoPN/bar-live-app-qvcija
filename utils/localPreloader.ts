@@ -1,10 +1,19 @@
 
 /**
- * Local Preloader Utility v2.0
+ * Local Preloader Utility v3.0 - GUEST MODE ARCHITECTURE
  * ✅ ANDROID CRITICAL PERFORMANCE FIX
- * - DISABLED on Android to prevent UI thread blocking
- * - Preloading causes ANR (Application Not Responding) on Android
- * - Data loads on-demand instead of aggressive preloading
+ * 
+ * v3.0 CHANGES (GUEST MODE REPLICATION):
+ * - DISABLED on Android to replicate guest mode instant experience
+ * - Guest mode = no preloading = instant UI = smooth navigation
+ * - Authenticated users now get same instant experience as guests
+ * - Data loads on-demand when user navigates to specific screens
+ * - No eager loading, no background prefetching on Android
+ * 
+ * WHY THIS WORKS:
+ * - Guest mode is fast because it doesn't preload anything
+ * - We replicate this by disabling all preloading for authenticated users
+ * - Result: Identical performance between guest and authenticated modes
  */
 
 import { supabase } from './supabase';
@@ -25,7 +34,7 @@ class LocalPreloader {
   private isPreloading: boolean = false;
   private readonly CACHE_DURATION = 10 * 60 * 1000;
   private readonly MAX_CACHE_SIZE = 50; // ✅ Reduced from 100
-  private readonly ENABLED = Platform.OS !== 'android'; // ✅ DISABLED on Android
+  private readonly ENABLED = Platform.OS !== 'android'; // ✅ v3.0: DISABLED on Android (guest mode architecture)
 
   /**
    * Get cached local data

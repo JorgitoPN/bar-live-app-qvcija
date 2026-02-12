@@ -103,7 +103,7 @@ export default function ExplorarScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { currentMode, setCurrentMode, activeProfileType, activeLocalData } = useMode();
-  const { prefetchNextPage } = useGlobalData();
+  const { prefetchNextPage, loadDataOnDemand } = useGlobalData();
   const { isFavorite, toggleFavorite } = useFavorites();
   
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -905,14 +905,24 @@ export default function ExplorarScreen() {
   useEffect(() => {
     if (locationReady && !hasLoadedInitialDataRef.current) {
       if (Platform.OS !== 'android') {
-        console.log('[Explorar v334.0] 🚀 Location is ready - starting intelligent preload...');
+        console.log('[Explorar v335.0] 🚀 Location is ready - starting intelligent preload...');
+      }
+      
+      // ✅ v335.0: ON-DEMAND DATA LOADING (GUEST MODE ARCHITECTURE)
+      // Load locales data only when user navigates to this screen
+      if (Platform.OS === 'android') {
+        loadDataOnDemand('locales').then(() => {
+          if (Platform.OS !== 'android') {
+            console.log('[Explorar v335.0] ✅ Locales loaded on-demand (guest mode style)');
+          }
+        });
       }
       
       preloadAllCategories();
       
       loadLocales(1, false);
     }
-  }, [locationReady, preloadAllCategories, loadLocales]);
+  }, [locationReady, preloadAllCategories, loadLocales, loadDataOnDemand]);
 
   useEffect(() => {
     if (locationReady && hasLoadedInitialDataRef.current && !isLoadingMore) {
