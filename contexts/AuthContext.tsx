@@ -24,27 +24,21 @@ const warn = Platform.OS === 'android' ? () => {} : console.warn;
 const error = Platform.OS === 'android' ? () => {} : console.error;
 
 /**
- * ✅ AUTH CONTEXT v295.0 - COMPLETE GUEST MODE ARCHITECTURE
+ * ✅ AUTH CONTEXT v337.0 - ULTRA-FAST GUEST MODE REPLICATION
  * 
- * CRITICAL FIXES v295.0 (FINAL GUEST MODE REPLICATION):
+ * CRITICAL FIXES v337.0 (FINAL PERFORMANCE PARITY):
+ * - ✅ INSTANT SESSION LOAD: No waiting for session validation on Android
+ * - ✅ ZERO BLOCKING OPERATIONS: All auth operations are non-blocking
+ * - ✅ DISABLED PUSH NOTIFICATIONS: Completely disabled on Android
+ * - ✅ MINIMAL SESSION CHECKS: Only when absolutely necessary
+ * - ✅ BACKGROUND USER FETCH: User data loads in background, doesn't block UI
+ * - ✅ 100% GUEST MODE PARITY: Identical instant experience
+ * 
+ * PREVIOUS FIXES v295.0:
  * - ✅ INSTANT LOGIN: User sees UI immediately, no waiting
- * - ✅ DISABLED PUSH NOTIFICATIONS: Completely disabled on Android (guest mode doesn't use them)
+ * - ✅ DISABLED PUSH NOTIFICATIONS: Completely disabled on Android
  * - ✅ ZERO BACKGROUND OPERATIONS: No automatic operations on Android
  * - ✅ 100% IDENTICAL TO GUEST MODE: Same instant, responsive experience
- * 
- * PREVIOUS FIXES v294.0:
- * - ✅ INSTANT LOGIN: User sees UI immediately, no waiting for data
- * - ✅ DELAYED PUSH NOTIFICATIONS: 30 seconds after login (was 10)
- * - ✅ NO EAGER DATA LOADING: Zero automatic data fetches on login
- * - ✅ BACKGROUND ONLY: All heavy operations deferred to background
- * 
- * PREVIOUS FIXES v293.0:
- * - ✅ ELIMINATED ALL CONSOLE LOGS on Android (massive performance gain)
- * - ✅ DELAYED PUSH NOTIFICATIONS: 10 seconds after login (was 5)
- * - ✅ REDUCED SESSION CHECKS: Only refresh when < 2 min to expiry (was 3)
- * - ✅ INCREASED REFRESH INTERVAL: Check every 3 hours (was 2)
- * - ✅ BACKGROUND ONLY: All operations non-blocking
- * - ✅ ZERO UI THREAD BLOCKING: Instant login experience
  */
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -115,6 +109,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
+        // ✅ v337.0: CRITICAL ANDROID PERFORMANCE FIX
+        // On Android, we load session instantly without validation
+        // This replicates guest mode's instant startup
+        if (Platform.OS === 'android') {
+          // ✅ INSTANT: Get session without waiting for validation
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          
+          if (currentSession) {
+            // ✅ INSTANT: Set session immediately (no validation delay)
+            setSession(currentSession);
+            setSessionReady(true);
+            
+            // ✅ BACKGROUND: Load user data in background (doesn't block UI)
+            setTimeout(() => {
+              getCurrentUser().then(({ user: userData, error: userError }) => {
+                if (!userError && userData) {
+                  setUser(userData);
+                }
+              });
+            }, 100); // Minimal delay to ensure UI renders first
+          }
+          
+          // ✅ INSTANT: Mark as ready immediately
+          setInitializing(false);
+          setLoading(false);
+          return;
+        }
+        
+        // iOS: Keep original behavior (more robust validation)
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -132,23 +155,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!userError && userData) {
             setUser(userData);
             
-            // ✅ CRITICAL FIX v295.0: DISABLED PUSH NOTIFICATIONS on Android
-            // Guest mode doesn't register push notifications, so we don't either
-            // This eliminates ALL background operations on login
-            // Result: Instant login experience identical to guest mode
-            if (Platform.OS !== 'android') {
-              // iOS can handle push notifications
-              setTimeout(() => {
-                registerForPushNotifications()
-                  .then(pushToken => {
-                    if (pushToken) {
-                      savePushToken(userData.id, pushToken).catch(() => {});
-                    }
-                  })
-                  .catch(() => {});
-              }, 10000);
-            }
-            // ✅ Android: Push notifications completely disabled for instant experience
+            // iOS can handle push notifications
+            setTimeout(() => {
+              registerForPushNotifications()
+                .then(pushToken => {
+                  if (pushToken) {
+                    savePushToken(userData.id, pushToken).catch(() => {});
+                  }
+                })
+                .catch(() => {});
+            }, 10000);
           }
         }
       } catch (err) {
@@ -179,6 +195,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       if (event === 'SIGNED_IN' && currentSession) {
+        // ✅ v337.0: INSTANT LOGIN on Android (guest mode parity)
+        if (Platform.OS === 'android') {
+          // ✅ INSTANT: Set session immediately, no validation delay
+          setSession(currentSession);
+          setSessionReady(true);
+          
+          // ✅ BACKGROUND: Load user data in background
+          setTimeout(() => {
+            getCurrentUser().then(({ user: userData, error: userError }) => {
+              if (!userError && userData) {
+                setUser(userData);
+              }
+            });
+          }, 100);
+          
+          return; // Skip iOS validation flow
+        }
+        
+        // iOS: Keep original validation flow
         setLoading(true);
         
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -195,20 +230,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!userError && userData) {
           setUser(userData);
           
-          // ✅ CRITICAL FIX v295.0: DISABLED PUSH NOTIFICATIONS on Android
-          // Guest mode doesn't register push notifications, so we don't either
-          if (Platform.OS !== 'android') {
-            setTimeout(() => {
-              registerForPushNotifications()
-                .then(pushToken => {
-                  if (pushToken) {
-                    savePushToken(userData.id, pushToken).catch(() => {});
-                  }
-                })
-                .catch(() => {});
-            }, 10000);
-          }
-          // ✅ Android: Push notifications completely disabled for instant experience
+          setTimeout(() => {
+            registerForPushNotifications()
+              .then(pushToken => {
+                if (pushToken) {
+                  savePushToken(userData.id, pushToken).catch(() => {});
+                }
+              })
+              .catch(() => {});
+          }, 10000);
         }
         
         setLoading(false);
@@ -228,30 +258,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     subscription = data.subscription;
 
-    // ✅ FIX v293.0: Increased refresh interval to 3 hours (from 2 hours)
-    refreshInterval = setInterval(async () => {
-      try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
-        if (currentSession) {
-          const expiresAt = currentSession.expires_at! * 1000;
-          const now = Date.now();
-          const timeUntilExpiry = expiresAt - now;
+    // ✅ v337.0: DISABLED on Android (guest mode doesn't refresh sessions)
+    // Guest mode = no background session checks = instant performance
+    if (Platform.OS !== 'android') {
+      refreshInterval = setInterval(async () => {
+        try {
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
           
-          // ✅ v293.0: Only refresh if < 2 minutes until expiry (was 3)
-          if (timeUntilExpiry < 2 * 60 * 1000) {
-            const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
+          if (currentSession) {
+            const expiresAt = currentSession.expires_at! * 1000;
+            const now = Date.now();
+            const timeUntilExpiry = expiresAt - now;
             
-            if (!error && refreshedSession) {
-              setSession(refreshedSession);
-              setSessionReady(true);
+            // Only refresh if < 2 minutes until expiry
+            if (timeUntilExpiry < 2 * 60 * 1000) {
+              const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
+              
+              if (!error && refreshedSession) {
+                setSession(refreshedSession);
+                setSessionReady(true);
+              }
             }
           }
+        } catch (err) {
+          // Silent fail
         }
-      } catch (err) {
-        // Silent fail
-      }
-    }, 3 * 60 * 60 * 1000); // ✅ v293.0: Check every 3 hours (was 2 hours)
+      }, 3 * 60 * 60 * 1000);
+    }
 
     return () => {
       if (subscription) {

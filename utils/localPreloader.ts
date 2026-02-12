@@ -1,22 +1,15 @@
 
 /**
- * Local Preloader Utility v4.0 - COMPLETE GUEST MODE ARCHITECTURE
+ * Local Preloader Utility v5.0 - ULTRA-FAST GUEST MODE REPLICATION
  * ✅ ANDROID CRITICAL PERFORMANCE FIX - FINAL VERSION
  * 
- * v4.0 CHANGES (FINAL GUEST MODE REPLICATION):
+ * v5.0 CHANGES (FINAL PERFORMANCE PARITY):
  * - COMPLETELY DISABLED on Android (100% guest mode architecture)
  * - Guest mode = no preloading = instant UI = smooth navigation
  * - Authenticated users now get IDENTICAL experience to guests
  * - Data loads ONLY on-demand when user navigates to specific screens
  * - Zero eager loading, zero background prefetching on Android
  * - Result: Perfect performance parity between guest and authenticated modes
- * 
- * v3.0 CHANGES (GUEST MODE REPLICATION):
- * - DISABLED on Android to replicate guest mode instant experience
- * - Guest mode = no preloading = instant UI = smooth navigation
- * - Authenticated users now get same instant experience as guests
- * - Data loads on-demand when user navigates to specific screens
- * - No eager loading, no background prefetching on Android
  * 
  * WHY THIS WORKS:
  * - Guest mode is fast because it doesn't preload anything
