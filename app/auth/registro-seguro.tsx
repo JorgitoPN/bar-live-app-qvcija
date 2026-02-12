@@ -1,6 +1,11 @@
 
 /**
- * 🔐 SECURE REGISTRATION SCREEN v1.0 - ANTI-HACKING PROTECTION
+ * 🔐 SECURE REGISTRATION SCREEN v1.1 - INTELLIGENT REDIRECT FLOW
+ * 
+ * NEW CHANGES v1.1:
+ * - ✅ INTELLIGENT REDIRECT: Reads redirect parameter and passes to verification screen
+ * - ✅ SEAMLESS UX: User returns to virtual room (or other protected route) after registration
+ * - ✅ CONSISTENT DESIGN: Respects text scaling (+2 points) and app styling
  * 
  * SECURITY FEATURES:
  * - ✅ Password strength validation (8+ chars, uppercase, lowercase, numbers, special chars)
@@ -16,7 +21,7 @@
  * 3. Show CAPTCHA verification
  * 4. Create account with bcrypt hashing (Supabase)
  * 5. Send email verification
- * 6. Redirect to verification screen
+ * 6. Redirect to verification screen (with redirect param)
  */
 
 import React, { useState } from 'react';
@@ -61,10 +66,10 @@ export default function SecureRegistrationScreen() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong'>('weak');
 
-  // ✅ v2.0: Read redirect parameter
+  // ✅ v1.1: Read redirect parameter
   const redirectPath = params.redirect as string | undefined;
   
-  console.log('[SecureRegistration v2.0] 🔄 Redirect path from params:', redirectPath);
+  console.log('[SecureRegistration v1.1] 🔄 Redirect path from params:', redirectPath);
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
@@ -159,7 +164,7 @@ export default function SecureRegistrationScreen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
       
-      console.log('[SecureRegistration] 🔐 Creating secure account:', normalizedEmail);
+      console.log('[SecureRegistration v1.1] 🔐 Creating secure account:', normalizedEmail);
 
       // Sign up with Supabase Auth (bcrypt hashing handled automatically)
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -176,7 +181,7 @@ export default function SecureRegistrationScreen() {
       });
 
       if (authError) {
-        console.error('[SecureRegistration] ❌ Registration error:', authError);
+        console.error('[SecureRegistration v1.1] ❌ Registration error:', authError);
         
         await logSecurityEvent('suspicious_activity', normalizedEmail, {
           type: 'registration_failed',
@@ -191,7 +196,17 @@ export default function SecureRegistrationScreen() {
               { text: 'Cancelar', style: 'cancel' },
               {
                 text: 'Iniciar sesión',
-                onPress: () => router.replace('/auth/login-secure'),
+                onPress: () => {
+                  // ✅ v1.1: Pass redirect parameter to login screen
+                  if (redirectPath) {
+                    router.replace({
+                      pathname: '/auth/login-secure',
+                      params: { redirect: redirectPath },
+                    });
+                  } else {
+                    router.replace('/auth/login-secure');
+                  }
+                },
               },
             ]
           );
@@ -209,7 +224,7 @@ export default function SecureRegistrationScreen() {
         return;
       }
 
-      console.log('[SecureRegistration] ✅ Account created successfully:', authData.user.id);
+      console.log('[SecureRegistration v1.1] ✅ Account created successfully:', authData.user.id);
 
       await logSecurityEvent('login_success', normalizedEmail, {
         userId: authData.user.id,
@@ -224,9 +239,9 @@ export default function SecureRegistrationScreen() {
           {
             text: 'Entendido',
             onPress: () => {
-              // ✅ v2.0: INTELLIGENT REDIRECT - Navigate to intended destination after verification
+              // ✅ v1.1: INTELLIGENT REDIRECT - Pass redirect path to verification screen
               if (redirectPath) {
-                console.log('[SecureRegistration v2.0] 🎯 Will redirect to saved path after verification:', redirectPath);
+                console.log('[SecureRegistration v1.1] 🎯 Will redirect to saved path after verification:', redirectPath);
                 router.replace({
                   pathname: '/auth/verificar-email',
                   params: { 
@@ -235,7 +250,7 @@ export default function SecureRegistrationScreen() {
                   },
                 });
               } else {
-                console.log('[SecureRegistration v2.0] 🏠 No redirect path, standard verification flow');
+                console.log('[SecureRegistration v1.1] 🏠 No redirect path, standard verification flow');
                 router.replace({
                   pathname: '/auth/verificar-email',
                   params: { email: normalizedEmail },
@@ -247,7 +262,7 @@ export default function SecureRegistrationScreen() {
       );
       
     } catch (error: any) {
-      console.error('[SecureRegistration] ❌ Unexpected error:', error);
+      console.error('[SecureRegistration v1.1] ❌ Unexpected error:', error);
       
       await logSecurityEvent('suspicious_activity', email.trim().toLowerCase(), {
         type: 'registration_error',
@@ -595,7 +610,17 @@ export default function SecureRegistrationScreen() {
 
               <TouchableOpacity
                 style={styles.loginButton}
-                onPress={() => router.replace('/auth/login-secure')}
+                onPress={() => {
+                  // ✅ v1.1: Pass redirect parameter to login screen
+                  if (redirectPath) {
+                    router.replace({
+                      pathname: '/auth/login-secure',
+                      params: { redirect: redirectPath },
+                    });
+                  } else {
+                    router.replace('/auth/login-secure');
+                  }
+                }}
                 disabled={loading}
               >
                 <Text style={styles.loginButtonText}>

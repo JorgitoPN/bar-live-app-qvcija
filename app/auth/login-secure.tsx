@@ -1,11 +1,12 @@
 
 /**
- * 🔐 SECURE LOGIN SCREEN v2.0 - INTELLIGENT REDIRECT FLOW
+ * 🔐 SECURE LOGIN SCREEN v2.1 - INTELLIGENT REDIRECT FLOW
  * 
- * NEW CHANGES v2.0:
+ * NEW CHANGES v2.1:
  * - ✅ INTELLIGENT REDIRECT: Reads redirect parameter and navigates to intended destination
  * - ✅ SEAMLESS UX: User returns to virtual room (or other protected route) after login
  * - ✅ CONSISTENT DESIGN: Respects text scaling (+2 points) and app styling
+ * - ✅ FIXED: Proper redirect handling after successful authentication
  * 
  * SECURITY FEATURES:
  * - ✅ Rate limiting (3 attempts before CAPTCHA)
@@ -71,10 +72,10 @@ export default function SecureLoginScreen() {
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [showCookieConsent, setShowCookieConsent] = useState(false);
 
-  // ✅ v2.0: Read redirect parameter
+  // ✅ v2.1: Read redirect parameter
   const redirectPath = params.redirect as string | undefined;
   
-  console.log('[SecureLogin v2.0] 🔄 Redirect path from params:', redirectPath);
+  console.log('[SecureLogin v2.1] 🔄 Redirect path from params:', redirectPath);
 
   useEffect(() => {
     checkCookieConsent();
@@ -185,7 +186,7 @@ export default function SecureLoginScreen() {
     setLoading(true);
 
     try {
-      console.log('[SecureLogin v2.0] 🔐 Attempting secure login:', normalizedEmail);
+      console.log('[SecureLogin v2.1] 🔐 Attempting secure login:', normalizedEmail);
 
       // Sign in with Supabase Auth (bcrypt hashing handled automatically)
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -194,7 +195,7 @@ export default function SecureLoginScreen() {
       });
 
       if (authError) {
-        console.error('[SecureLogin v2.0] ❌ Login failed:', authError.message);
+        console.error('[SecureLogin v2.1] ❌ Login failed:', authError.message);
         
         // Record failed attempt
         const attemptResult = await recordFailedAttempt(normalizedEmail);
@@ -247,13 +248,13 @@ export default function SecureLoginScreen() {
       }
 
       if (!authData.user || !authData.session) {
-        console.error('[SecureLogin v2.0] ❌ No user or session returned');
+        console.error('[SecureLogin v2.1] ❌ No user or session returned');
         Alert.alert('Error', 'No se pudo iniciar sesión. Por favor, intenta de nuevo.');
         setLoading(false);
         return;
       }
 
-      console.log('[SecureLogin v2.0] ✅ Login successful:', authData.user.id);
+      console.log('[SecureLogin v2.1] ✅ Login successful:', authData.user.id);
 
       // Reset login attempts on successful login
       await resetLoginAttempts(normalizedEmail);
@@ -271,25 +272,46 @@ export default function SecureLoginScreen() {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       
       if (!currentSession) {
-        console.error('[SecureLogin v2.0] ❌ Session verification failed');
+        console.error('[SecureLogin v2.1] ❌ Session verification failed');
         Alert.alert('Error', 'Error al establecer la sesión. Por favor, intenta de nuevo.');
         setLoading(false);
         return;
       }
 
-      console.log('[SecureLogin v2.0] ✅ Session verified, redirecting...');
+      console.log('[SecureLogin v2.1] ✅ Session verified, redirecting...');
       
-      // ✅ v2.0: INTELLIGENT REDIRECT - Navigate to intended destination
+      // ✅ v2.1: INTELLIGENT REDIRECT - Navigate to intended destination
       if (redirectPath) {
-        console.log('[SecureLogin v2.0] 🎯 Redirecting to saved path:', redirectPath);
-        router.replace(redirectPath as any);
+        console.log('[SecureLogin v2.1] 🎯 Redirecting to saved path:', redirectPath);
+        
+        // Parse the redirect path to extract pathname and params
+        const [pathname, queryString] = redirectPath.split('?');
+        
+        if (queryString) {
+          // Parse query parameters
+          const params: Record<string, string> = {};
+          queryString.split('&').forEach(param => {
+            const [key, value] = param.split('=');
+            if (key && value) {
+              params[key] = decodeURIComponent(value);
+            }
+          });
+          
+          console.log('[SecureLogin v2.1] 🎯 Navigating with params:', params);
+          router.replace({
+            pathname: pathname as any,
+            params: params,
+          });
+        } else {
+          router.replace(pathname as any);
+        }
       } else {
-        console.log('[SecureLogin v2.0] 🏠 No redirect path, going to explorar');
+        console.log('[SecureLogin v2.1] 🏠 No redirect path, going to explorar');
         router.replace('/(tabs)/explorar');
       }
       
     } catch (error: any) {
-      console.error('[SecureLogin v2.0] ❌ Unexpected error:', error);
+      console.error('[SecureLogin v2.1] ❌ Unexpected error:', error);
       
       await logSecurityEvent('login_failed', normalizedEmail, {
         error: error.message,
@@ -527,14 +549,14 @@ export default function SecureLoginScreen() {
               <TouchableOpacity
                 style={styles.registerButton}
                 onPress={() => {
-                  // ✅ v2.0: Pass redirect parameter to register screen
+                  // ✅ v2.1: Pass redirect parameter to register screen
                   if (redirectPath) {
                     router.replace({
-                      pathname: '/auth/registro-email',
+                      pathname: '/auth/registro-seguro',
                       params: { redirect: redirectPath },
                     });
                   } else {
-                    router.replace('/auth/registro-email');
+                    router.replace('/auth/registro-seguro');
                   }
                 }}
               >
