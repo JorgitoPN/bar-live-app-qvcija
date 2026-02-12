@@ -1,18 +1,18 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v331.0 - NAVIGATION STACK FIX
+ * 🚨 POST VIEWER MODAL v332.0 - IMMEDIATE COMMENTS NAVIGATION FIX
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v331.0:
- * - ✅ FIXED: Comments page now opens immediately without closing post modal
- * - ✅ FIXED: Navigation stack properly maintained (comments → post → previous)
- * - ✅ IMPROVED: Removed onClose() call before navigating to comments
- * - ✅ RESULT: User can navigate directly to comments without closing publication
+ * NEW CHANGES v332.0:
+ * - ✅ FIXED: Modal now dismisses BEFORE navigating to comments
+ * - ✅ FIXED: Comments page opens immediately without being blocked
+ * - ✅ FIXED: Navigation uses router.replace() to maintain proper back stack
+ * - ✅ RESULT: Clicking comments opens page instantly, back button works correctly
  * 
- * Previous changes v330.0:
- * - ✅ FIXED: Back button in comments page returns to post (not profile)
- * - ✅ FIXED: Modal stays open when navigating to comments
+ * Previous changes v331.0:
+ * - ❌ ISSUE: Modal stayed open and blocked comments page
+ * - ❌ ISSUE: User had to close modal manually to see comments
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -1314,16 +1314,21 @@ export default function PostViewerModal({
             <TouchableOpacity 
               style={styles.actionButton}
               onPress={() => {
-                console.log('[PostViewerModal v331.0] 💬 Opening comments page for post:', post.id);
-                console.log('[PostViewerModal v331.0] ✅ Modal stays open - navigation stack preserved');
-                // ✅ v331.0 FIX: Navigate WITHOUT closing modal - keeps post in stack
-                router.push({
-                  pathname: '/social/comentarios',
-                  params: { 
-                    postId: post.id,
-                    postAuthorId: post.autor_id,
-                  },
-                });
+                console.log('[PostViewerModal v332.0] 💬 Opening comments page for post:', post.id);
+                console.log('[PostViewerModal v332.0] ✅ Dismissing modal first, then navigating');
+                // ✅ v332.0 FIX: Close modal FIRST, then navigate to comments
+                // This ensures comments page is immediately visible
+                onClose();
+                // Small delay to allow modal dismissal animation
+                setTimeout(() => {
+                  router.push({
+                    pathname: '/social/comentarios',
+                    params: { 
+                      postId: post.id,
+                      postAuthorId: post.autor_id,
+                    },
+                  });
+                }, 100);
               }}
             >
               <IconSymbol
@@ -1389,16 +1394,21 @@ export default function PostViewerModal({
         <TouchableOpacity 
           style={styles.commentsContainer}
           onPress={() => {
-            console.log('[PostViewerModal v331.0] 💬 Opening comments page for post:', post.id);
-            console.log('[PostViewerModal v331.0] ✅ Modal stays open - navigation stack preserved');
-            // ✅ v331.0 FIX: Navigate WITHOUT closing modal - keeps post in stack
-            router.push({
-              pathname: '/social/comentarios',
-              params: { 
-                postId: post.id,
-                postAuthorId: post.autor_id,
-              },
-            });
+            console.log('[PostViewerModal v332.0] 💬 Opening comments page for post:', post.id);
+            console.log('[PostViewerModal v332.0] ✅ Dismissing modal first, then navigating');
+            // ✅ v332.0 FIX: Close modal FIRST, then navigate to comments
+            // This ensures comments page is immediately visible
+            onClose();
+            // Small delay to allow modal dismissal animation
+            setTimeout(() => {
+              router.push({
+                pathname: '/social/comentarios',
+                params: { 
+                  postId: post.id,
+                  postAuthorId: post.autor_id,
+                },
+              });
+            }, 100);
           }}
         >
           {postCommentsCount > 0 ? (

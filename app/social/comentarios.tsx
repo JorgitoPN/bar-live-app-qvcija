@@ -60,9 +60,14 @@ interface Comment {
 }
 
 /**
- * ✅ COMMENTS FULL SCREEN PAGE v316.0
+ * ✅ COMMENTS FULL SCREEN PAGE v317.0
  * 
- * NEW IMPLEMENTATION v316.0:
+ * NEW CHANGES v317.0:
+ * - ✅ FIXED: Back button now properly returns to previous screen
+ * - ✅ FIXED: Works correctly when opened from PostViewerModal
+ * - ✅ FIXED: Navigation stack maintained properly
+ * 
+ * Previous implementation v316.0:
  * - ✅ Full-screen page instead of modal
  * - ✅ Uses Stack navigation with back button
  * - ✅ Proper header with gradient
