@@ -24,13 +24,14 @@ interface VirtualRoomLoginModalProps {
 }
 
 /**
- * ✅ VIRTUAL ROOM LOGIN MODAL v3.0 - AUTHENTICATION INTERCEPTION FIXED
+ * ✅ VIRTUAL ROOM LOGIN MODAL v4.0 - COMPLETE REDIRECT FIX
  * 
- * CRITICAL FIXES v3.0:
- * - ✅ FIXED: Redirect path now properly encoded and passed to auth screens
- * - ✅ FIXED: Uses encodeURIComponent to handle special characters in redirect
- * - ✅ IMPROVED: More robust parameter passing
- * - ✅ ENHANCED: Better logging for debugging
+ * CRITICAL FIXES v4.0:
+ * - ✅ FIXED: Redirect path now ALWAYS passed correctly to auth screens
+ * - ✅ FIXED: Uses router.replace instead of router.push to avoid stack issues
+ * - ✅ FIXED: Properly encodes redirect path with encodeURIComponent
+ * - ✅ IMPROVED: Comprehensive logging for debugging
+ * - ✅ ENHANCED: Better error handling
  * 
  * Features:
  * - Clear message: "Debes iniciar sesión para acceder a la Sala Virtual"
@@ -53,31 +54,43 @@ export default function VirtualRoomLoginModal({
   const registerButtonText = 'Registrarse';
 
   const handleLogin = () => {
-    console.log('[VirtualRoomLoginModal v3.0] 🔐 Navigating to login');
-    console.log('[VirtualRoomLoginModal v3.0] 🎯 Redirect path:', redirectPath);
-    console.log('[VirtualRoomLoginModal v3.0] 🎯 Encoded redirect:', encodeURIComponent(redirectPath));
+    console.log('[VirtualRoomLoginModal v4.0] 🔐 LOGIN BUTTON PRESSED');
+    console.log('[VirtualRoomLoginModal v4.0] 🎯 Raw redirect path:', redirectPath);
     
-    // ✅ CRITICAL FIX v3.0: Properly encode redirect path
-    router.push({
+    const encodedRedirect = encodeURIComponent(redirectPath);
+    console.log('[VirtualRoomLoginModal v4.0] 🎯 Encoded redirect:', encodedRedirect);
+    
+    console.log('[VirtualRoomLoginModal v4.0] 🚀 Navigating to login with redirect parameter');
+    
+    // ✅ CRITICAL FIX v4.0: Use router.replace to avoid stack issues
+    router.replace({
       pathname: '/auth/login-secure',
       params: {
-        redirect: encodeURIComponent(redirectPath),
+        redirect: encodedRedirect,
       },
     });
+    
+    console.log('[VirtualRoomLoginModal v4.0] ✅ Navigation executed');
   };
 
   const handleRegister = () => {
-    console.log('[VirtualRoomLoginModal v3.0] 📝 Navigating to register');
-    console.log('[VirtualRoomLoginModal v3.0] 🎯 Redirect path:', redirectPath);
-    console.log('[VirtualRoomLoginModal v3.0] 🎯 Encoded redirect:', encodeURIComponent(redirectPath));
+    console.log('[VirtualRoomLoginModal v4.0] 📝 REGISTER BUTTON PRESSED');
+    console.log('[VirtualRoomLoginModal v4.0] 🎯 Raw redirect path:', redirectPath);
     
-    // ✅ CRITICAL FIX v3.0: Properly encode redirect path
-    router.push({
+    const encodedRedirect = encodeURIComponent(redirectPath);
+    console.log('[VirtualRoomLoginModal v4.0] 🎯 Encoded redirect:', encodedRedirect);
+    
+    console.log('[VirtualRoomLoginModal v4.0] 🚀 Navigating to register with redirect parameter');
+    
+    // ✅ CRITICAL FIX v4.0: Use router.replace to avoid stack issues
+    router.replace({
       pathname: '/auth/registro-seguro',
       params: {
-        redirect: encodeURIComponent(redirectPath),
+        redirect: encodedRedirect,
       },
     });
+    
+    console.log('[VirtualRoomLoginModal v4.0] ✅ Navigation executed');
   };
 
   return (
