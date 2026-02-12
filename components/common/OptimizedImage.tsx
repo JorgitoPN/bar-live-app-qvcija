@@ -1,64 +1,113 @@
 
-import React from 'react';
-import { Image, ImageProps } from 'expo-image';
-import { StyleSheet, View, Platform } from 'react-native';
-import { IconSymbol } from '@/components/IconSymbol';
+import React, { memo, useState, useEffect } from 'react';
+import { Image, ImageProps, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { colors } from '@/styles/commonStyles';
+import { memoryManager } from '@/utils/memoryManager';
 
-interface OptimizedImageProps extends Omit<ImageProps, 'source'> {
-  source: { uri: string } | number;
-  recyclingKey?: string;
-  priority?: 'low' | 'normal' | 'high';
+interface OptimizedImageProps extends ImageProps {
+  uri: string;
+  width?: number;
+  height?: number;
+  showLoader?: boolean;
 }
 
 /**
- * ✅ OPTIMIZED IMAGE v335.0 - EXPO-IMAGE WRAPPER
- * 
- * OPTIMIZATIONS v335.0:
- * - ✅ EXPO-IMAGE: Uses expo-image for optimal performance
- * - ✅ PRIORITY: Configurable priority (default: "high")
- * - ✅ CACHE POLICY: "disk" for persistent caching
- * - ✅ TRANSITION: 150ms smooth transition
- * - ✅ RECYCLING KEY: Optional recyclingKey for memory optimization
- * - ✅ PLACEHOLDER: Shows icon while loading
+ * ✅ ULTRA-OPTIMIZED: Image component with aggressive caching and memory management
  */
-
-export default function OptimizedImage({
-  source,
+const OptimizedImage = memo(function OptimizedImage({
+  uri,
+  width,
+  height,
+  showLoader = false,
   style,
-  recyclingKey,
-  priority = 'high',
-  contentFit = 'cover',
   ...props
 }: OptimizedImageProps) {
+  const [loading, setLoading] = useState(showLoader);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    // Track image in memory manager
+    memoryManager.trackImage(uri);
+
+    // Preload image
+    if (uri) {
+      Image.prefetch(uri)
+        .then(() => {
+          setLoading(false);
+          setError(false);
+        })
+        .catch(() => {
+          setLoading(false);
+          setError(true);
+        });
+    }
+
+    return () => {
+      // Cleanup on unmount
+      memoryManager.clearImage(uri);
+    };
+  }, [uri]);
+
+  if (error) {
+    return (
+      <View style={[styles.placeholder, style, width && { width }, height && { height }]}>
+        <View style={styles.errorIcon} />
+      </View>
+    );
+  }
+
   return (
-    <Image
-      source={source}
-      style={style}
-      contentFit={contentFit}
-      priority={priority}
-      cachePolicy="disk"
-      transition={150}
-      recyclingKey={recyclingKey}
-      placeholder={
-        <View style={[StyleSheet.flatten(style), styles.placeholder]}>
-          <IconSymbol
-            ios_icon_name="photo"
-            android_material_icon_name="photo"
-            size={32}
-            color={colors.textSecondary}
-          />
+    <View style={[width && { width }, height && { height }]}>
+      <Image
+        source={{ uri }}
+        style={[style, width && { width }, height && { height }]}
+        // ✅ CRITICAL: Maximum performance settings
+        fadeDuration={0}
+        progressiveRenderingEnabled={true}
+        cache="force-cache"
+        resizeMethod="resize"
+        onLoadStart={() => setLoading(true)}
+        onLoadEnd={() => setLoading(false)}
+        onError={() => {
+          setLoading(false);
+          setError(true);
+        }}
+        {...props}
+      />
+      {loading && showLoader && (
+        <View style={[styles.loaderContainer, width && { width }, height && { height }]}>
+          <ActivityIndicator size="small" color={colors.primary} />
         </View>
-      }
-      {...props}
-    />
+      )}
+    </View>
   );
-}
+}, (prevProps, nextProps) => {
+  // ✅ Only re-render if URI changes
+  return prevProps.uri === nextProps.uri;
+});
 
 const styles = StyleSheet.create({
   placeholder: {
     backgroundColor: colors.cardBorder,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.background,
+  },
+  loaderContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
 });
+
+export default OptimizedImage;

@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from './AuthContext';
 import { Alert } from 'react-native';
@@ -240,16 +240,15 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     await loadFavorites();
   }, [loadFavorites]);
 
-  // ✅ FIXED v100.0: Memoize context value to prevent recreation
-  const contextValue = useMemo(() => ({
+  const value = {
     favorites,
     isFavorite,
     toggleFavorite,
     refreshFavorites,
     loading,
-  }), [favorites, isFavorite, toggleFavorite, refreshFavorites, loading]);
+  };
 
-  return <FavoritesContext.Provider value={contextValue}>{children}</FavoritesContext.Provider>;
+  return <FavoritesContext.Provider value={value}>{children}</FavoritesContext.Provider>;
 }
 
 export function useFavorites() {

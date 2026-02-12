@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
@@ -13,16 +14,14 @@ import {
   Image,
   Dimensions,
   Animated,
-  InteractionManager,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useEffectiveUser } from '@/hooks/useEffectiveUser';
 import { useImpersonation } from '@/contexts/ImpersonationContext';
 import { useMode } from '@/contexts/ModeContext';
-import OptimizedPublicacionCard from '@/components/social/OptimizedPublicacionCard';
+import PublicacionCard from '@/components/social/PublicacionCard';
 import NewPostCard from '@/components/social/NewPostCard';
 import HeaderSocial from '@/components/layout/HeaderSocial';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -35,11 +34,8 @@ import { scaleFontSize } from '@/utils/androidScaling';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// ✅ v324.0: HEADER SPACING FIX - Reduced header height after title removal
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 100 : 80;
-
-// ✅ v335.0: ESTIMATED ITEM SIZE for FlashList
-// Post card average: Header(60) + Image(SCREEN_WIDTH) + Actions(60) + Content(~100) = ~SCREEN_WIDTH + 220
-const ESTIMATED_POST_SIZE = SCREEN_WIDTH + 220;
 
 interface Post {
   id: string;
@@ -88,19 +84,18 @@ interface FriendLocation {
 const POSTS_PER_PAGE = 10;
 
 /**
- * ✅ SOCIAL INDEX SCREEN v335.0 - ANDROID "MAP-LEVEL" PERFORMANCE OPTIMIZATION
+ * ✅ SOCIAL INDEX SCREEN v324.0 - HEADER SPACING FIX
  * 
- * CRITICAL OPTIMIZATIONS v335.0:
- * - ✅ FLASHLIST: Replaced FlatList with @shopify/flash-list for virtualization
- * - ✅ ESTIMATED ITEM SIZE: Precise calculation (~SCREEN_WIDTH + 220px)
- * - ✅ DRAW DISTANCE: Configured for tile-style preloading
- * - ✅ INTERACTION MANAGER: All Supabase calls wrapped in runAfterInteractions
- * - ✅ OPTIMIZED PUBLICACION CARD: Using new OptimizedPublicacionCard with expo-image
- * - ✅ AGGRESSIVE MEMOIZATION: Post cards memoized with custom comparison
- * - ✅ NO SAFE AREA INSETS IN LOOPS: Static padding calculated once
- * - ✅ DEFERRED DATA LOADING: Heavy operations deferred until UI is idle
+ * NEW CHANGES v324.0:
+ * - ✅ FIXED: Removed residual white space below header after title removal
+ * - ✅ FIXED: Reduced HEADER_HEIGHT from 120/100 to 100/80
+ * - ✅ FIXED: Content now properly aligned with header (paddingTop reduced)
+ * - ✅ FIXED: Syntax error at line 976 (duplicate closing tag)
+ * - ✅ IMPROVED: Cleaner visual alignment between header and content
  * 
- * RESULT: 60 FPS UI thread fluidity, instant scrolling, map-level performance
+ * Previous changes v322.0:
+ * - ✅ Header completely disappears when scrolling down
+ * - ✅ Proper translateY animation range
  */
 
 export default function SocialIndexScreen() {
@@ -115,7 +110,7 @@ export default function SocialIndexScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
-  const flashListRef = useRef<FlashList<any>>(null);
+  const flatListRef = useRef<FlatList>(null);
 
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -128,143 +123,140 @@ export default function SocialIndexScreen() {
   const lastScrollY = useRef(0);
   const headerTranslateY = useRef(new Animated.Value(0)).current;
 
-  // ✅ v335.0: Calculate static bottom padding once
-  const staticBottomPadding = useMemo(() => 100, []);
-
   const loadUnreadCounts = useCallback(async () => {
     if (!userId) return;
 
-    // ✅ v335.0: Defer non-critical data loading
-    InteractionManager.runAfterInteractions(async () => {
-      try {
-        const { count: notifCount } = await supabase
-          .from('notificaciones')
-          .select('*', { count: 'exact', head: true })
-          .eq('usuario_id', userId)
-          .eq('leida', false);
+    try {
+      const { count: notifCount } = await supabase
+        .from('notificaciones')
+        .select('*', { count: 'exact', head: true })
+        .eq('usuario_id', userId)
+        .eq('leida', false);
 
-        setUnreadNotifications(notifCount || 0);
+      setUnreadNotifications(notifCount || 0);
 
-        const { data: chatsData } = await supabase
-          .from('chats')
-          .select('id')
-          .or(`usuario1_id.eq.${userId},usuario2_id.eq.${userId}`);
+      const { data: chatsData } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`usuario1_id.eq.${userId},usuario2_id.eq.${userId}`);
 
-        if (chatsData) {
-          let totalUnread = 0;
-          for (const chat of chatsData) {
-            const { count } = await supabase
-              .from('mensajes')
-              .select('*', { count: 'exact', head: true })
-              .eq('chat_id', chat.id)
-              .eq('leido', false)
-              .is('leido_at', null)
-              .neq('remitente_id', userId);
-            
-            totalUnread += count || 0;
-          }
-          setUnreadMessages(totalUnread);
+      if (chatsData) {
+        let totalUnread = 0;
+        for (const chat of chatsData) {
+          const { count } = await supabase
+            .from('mensajes')
+            .select('*', { count: 'exact', head: true })
+            .eq('chat_id', chat.id)
+            .eq('leido', false)
+            .is('leido_at', null)
+            .neq('remitente_id', userId);
+          
+          totalUnread += count || 0;
         }
-      } catch (error) {
-        if (Platform.OS !== 'android') {
-          console.error('[Social v335.0] Error loading unread counts:', error);
-        }
+        setUnreadMessages(totalUnread);
+        
+        console.log('[Social v324.0] ✅ Loaded unread counts:', {
+          notifications: notifCount || 0,
+          messages: totalUnread,
+        });
+      } else {
+        console.log('[Social v324.0] ✅ Loaded unread counts:', {
+          notifications: notifCount || 0,
+          messages: 0,
+        });
       }
-    });
+    } catch (error) {
+      console.error('[Social v324.0] Error loading unread counts:', error);
+    }
   }, [userId]);
 
   const loadFriendsLocations = useCallback(async () => {
     if (!userId) return;
 
-    // ✅ v335.0: Defer non-critical data loading
-    InteractionManager.runAfterInteractions(async () => {
-      try {
-        setLoadingFriendsLocations(true);
+    try {
+      setLoadingFriendsLocations(true);
 
-        const { data: myCheckInData, error: myCheckInError } = await supabase
-          .from('check_ins')
-          .select(`
-            local_id,
-            visibility,
-            locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion)
-          `)
-          .eq('usuario_id', userId)
-          .single();
+      const { data: myCheckInData, error: myCheckInError } = await supabase
+        .from('check_ins')
+        .select(`
+          local_id,
+          visibility,
+          locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion)
+        `)
+        .eq('usuario_id', userId)
+        .single();
 
-        if (myCheckInError && myCheckInError.code !== 'PGRST116') {
-          if (Platform.OS !== 'android') {
-            console.error('[Social v335.0] Error loading my check-in:', myCheckInError);
-          }
-        }
-
-        if (myCheckInData && myCheckInData.locales) {
-          setMyCheckIn(myCheckInData);
-        } else {
-          setMyCheckIn(null);
-        }
-
-        const { data: following, error: followingError } = await supabase
-          .from('seguidores')
-          .select('seguido_id')
-          .eq('seguidor_id', userId);
-
-        if (followingError) throw followingError;
-
-        const followedUserIds = following?.map(f => f.seguido_id) || [];
-
-        if (followedUserIds.length === 0) {
-          setFriendsLocations([]);
-          setLoadingFriendsLocations(false);
-          return;
-        }
-
-        const { data: checkIns, error: checkInsError } = await supabase
-          .from('check_ins')
-          .select(`
-            usuario_id,
-            local_id,
-            visibility,
-            specific_user_ids,
-            usuarios!check_ins_usuario_id_fkey(id, nombre, username, avatar),
-            locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion, latitud, longitud)
-          `)
-          .in('usuario_id', followedUserIds);
-
-        if (checkInsError) throw checkInsError;
-
-        const visibleCheckIns = (checkIns || []).filter(checkIn => {
-          if (checkIn.visibility === 'all_users') return true;
-          if (checkIn.visibility === 'followers') return true;
-          if (checkIn.visibility === 'specific_users') {
-            return checkIn.specific_user_ids?.includes(userId);
-          }
-          return false;
-        });
-
-        const locationsByLocal = new Map<string, FriendLocation>();
-        visibleCheckIns.forEach(checkIn => {
-          if (!checkIn.locales) return;
-
-          const localId = checkIn.locales.id;
-          if (!locationsByLocal.has(localId)) {
-            locationsByLocal.set(localId, {
-              local: checkIn.locales,
-              users: [],
-            });
-          }
-          locationsByLocal.get(localId)!.users.push(checkIn.usuarios);
-        });
-
-        const locations = Array.from(locationsByLocal.values());
-        setFriendsLocations(locations);
-      } catch (error) {
-        if (Platform.OS !== 'android') {
-          console.error('[Social v335.0] Error loading friends locations:', error);
-        }
-      } finally {
-        setLoadingFriendsLocations(false);
+      if (myCheckInError && myCheckInError.code !== 'PGRST116') {
+        console.error('[Social v324.0] Error loading my check-in:', myCheckInError);
       }
-    });
+
+      if (myCheckInData && myCheckInData.locales) {
+        setMyCheckIn(myCheckInData);
+        console.log('[Social v324.0] ✅ I am checked in to:', myCheckInData.locales.nombre);
+      } else {
+        setMyCheckIn(null);
+      }
+
+      const { data: following, error: followingError } = await supabase
+        .from('seguidores')
+        .select('seguido_id')
+        .eq('seguidor_id', userId);
+
+      if (followingError) throw followingError;
+
+      const followedUserIds = following?.map(f => f.seguido_id) || [];
+
+      if (followedUserIds.length === 0) {
+        setFriendsLocations([]);
+        setLoadingFriendsLocations(false);
+        return;
+      }
+
+      const { data: checkIns, error: checkInsError } = await supabase
+        .from('check_ins')
+        .select(`
+          usuario_id,
+          local_id,
+          visibility,
+          specific_user_ids,
+          usuarios!check_ins_usuario_id_fkey(id, nombre, username, avatar),
+          locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion, latitud, longitud)
+        `)
+        .in('usuario_id', followedUserIds);
+
+      if (checkInsError) throw checkInsError;
+
+      const visibleCheckIns = (checkIns || []).filter(checkIn => {
+        if (checkIn.visibility === 'all_users') return true;
+        if (checkIn.visibility === 'followers') return true;
+        if (checkIn.visibility === 'specific_users') {
+          return checkIn.specific_user_ids?.includes(userId);
+        }
+        return false;
+      });
+
+      const locationsByLocal = new Map<string, FriendLocation>();
+      visibleCheckIns.forEach(checkIn => {
+        if (!checkIn.locales) return;
+
+        const localId = checkIn.locales.id;
+        if (!locationsByLocal.has(localId)) {
+          locationsByLocal.set(localId, {
+            local: checkIn.locales,
+            users: [],
+          });
+        }
+        locationsByLocal.get(localId)!.users.push(checkIn.usuarios);
+      });
+
+      const locations = Array.from(locationsByLocal.values());
+      setFriendsLocations(locations);
+      console.log('[Social v324.0] ✅ Loaded friends locations:', locations.length);
+    } catch (error) {
+      console.error('[Social v324.0] Error loading friends locations:', error);
+    } finally {
+      setLoadingFriendsLocations(false);
+    }
   }, [userId]);
 
   useEffect(() => {
@@ -273,7 +265,7 @@ export default function SocialIndexScreen() {
     loadUnreadCounts();
 
     const subscription = supabase
-      .channel('social-feed-updates-v335')
+      .channel('social-feed-updates-v324')
       .on(
         'postgres_changes',
         {
@@ -283,6 +275,7 @@ export default function SocialIndexScreen() {
           filter: `usuario_id=eq.${userId}`,
         },
         () => {
+          console.log('[Social v324.0] 🔔 Notification update detected');
           loadUnreadCounts();
         }
       )
@@ -294,6 +287,7 @@ export default function SocialIndexScreen() {
           table: 'mensajes',
         },
         () => {
+          console.log('[Social v324.0] 💬 Message update detected');
           loadUnreadCounts();
         }
       )
@@ -306,118 +300,116 @@ export default function SocialIndexScreen() {
 
   const cargarPosts = useCallback(async (pageNum: number = 1, isRefresh: boolean = false) => {
     if (!userId) {
+      console.log('[Social v324.0] No user ID, skipping load');
       setLoading(false);
       return;
     }
 
-    // ✅ v335.0: Wrap Supabase calls in InteractionManager
-    InteractionManager.runAfterInteractions(async () => {
-      try {
-        if (isRefresh) {
-          setRefreshing(true);
-        } else if (pageNum === 1) {
-          setLoading(true);
-        } else {
-          setLoadingMore(true);
-        }
-
-        const from = (pageNum - 1) * POSTS_PER_PAGE;
-        const to = from + POSTS_PER_PAGE - 1;
-
-        const { data: followingData, error: followingError } = await supabase
-          .from('seguidores')
-          .select('seguido_id, local_id')
-          .eq('seguidor_id', userId);
-
-        if (followingError) throw followingError;
-
-        const followedUserIds = followingData
-          ?.filter(f => f.seguido_id)
-          .map(f => f.seguido_id) || [];
-        
-        const followedLocalIds = followingData
-          ?.filter(f => f.local_id)
-          .map(f => f.local_id) || [];
-
-        const authorIds = [...followedUserIds, userId];
-
-        let query = supabase
-          .from('posts')
-          .select(`
-            *,
-            autor:usuarios!posts_autor_id_fkey(id, nombre, username, avatar),
-            local:locales!posts_local_id_fkey(id, nombre, imagen_url)
-          `)
-          .order('created_at', { ascending: false })
-          .range(from, to);
-
-        if (authorIds.length > 0 || followedLocalIds.length > 0) {
-          const conditions = [];
-          if (authorIds.length > 0) {
-            conditions.push(`autor_id.in.(${authorIds.join(',')})`);
-          }
-          if (followedLocalIds.length > 0) {
-            conditions.push(`local_id.in.(${followedLocalIds.join(',')})`);
-          }
-          query = query.or(conditions.join(','));
-        }
-
-        const { data: postsData, error: postsError } = await query;
-
-        if (postsError) throw postsError;
-
-        if (postsData && postsData.length > 0) {
-          const postIds = postsData.map(p => p.id);
-          
-          const [likesResult, savedResult] = await Promise.all([
-            supabase
-              .from('likes')
-              .select('post_id')
-              .eq('usuario_id', userId)
-              .in('post_id', postIds),
-            supabase
-              .from('posts_guardados')
-              .select('post_id')
-              .eq('usuario_id', userId)
-              .in('post_id', postIds),
-          ]);
-
-          const likedPostIds = new Set(likesResult.data?.map(l => l.post_id) || []);
-          const savedPostIds = new Set(savedResult.data?.map(s => s.post_id) || []);
-
-          const postsWithStatus = postsData.map(post => ({
-            ...post,
-            user_has_liked: likedPostIds.has(post.id),
-            user_has_saved: savedPostIds.has(post.id),
-          }));
-
-          if (isRefresh || pageNum === 1) {
-            setPosts(postsWithStatus);
-            setPage(2);
-          } else {
-            setPosts(prev => [...prev, ...postsWithStatus]);
-            setPage(pageNum + 1);
-          }
-
-          setHasMore(postsWithStatus.length === POSTS_PER_PAGE);
-        } else {
-          if (isRefresh || pageNum === 1) {
-            setPosts([]);
-          }
-          setHasMore(false);
-        }
-      } catch (error) {
-        if (Platform.OS !== 'android') {
-          console.error('[Social v335.0] Error cargando posts:', error);
-        }
-        Alert.alert('Error', 'No se pudieron cargar las publicaciones');
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-        setLoadingMore(false);
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else if (pageNum === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
       }
-    });
-  }, [userId]);
+
+      const from = (pageNum - 1) * POSTS_PER_PAGE;
+      const to = from + POSTS_PER_PAGE - 1;
+
+      console.log(`[Social v324.0] Loading posts for user ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'}), page ${pageNum}`);
+
+      const { data: followingData, error: followingError } = await supabase
+        .from('seguidores')
+        .select('seguido_id, local_id')
+        .eq('seguidor_id', userId);
+
+      if (followingError) throw followingError;
+
+      const followedUserIds = followingData
+        ?.filter(f => f.seguido_id)
+        .map(f => f.seguido_id) || [];
+      
+      const followedLocalIds = followingData
+        ?.filter(f => f.local_id)
+        .map(f => f.local_id) || [];
+
+      const authorIds = [...followedUserIds, userId];
+
+      let query = supabase
+        .from('posts')
+        .select(`
+          *,
+          autor:usuarios!posts_autor_id_fkey(id, nombre, username, avatar),
+          local:locales!posts_local_id_fkey(id, nombre, imagen_url)
+        `)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (authorIds.length > 0 || followedLocalIds.length > 0) {
+        const conditions = [];
+        if (authorIds.length > 0) {
+          conditions.push(`autor_id.in.(${authorIds.join(',')})`);
+        }
+        if (followedLocalIds.length > 0) {
+          conditions.push(`local_id.in.(${followedLocalIds.join(',')})`);
+        }
+        query = query.or(conditions.join(','));
+      }
+
+      const { data: postsData, error: postsError } = await query;
+
+      if (postsError) throw postsError;
+
+      if (postsData && postsData.length > 0) {
+        const postIds = postsData.map(p => p.id);
+        
+        const [likesResult, savedResult] = await Promise.all([
+          supabase
+            .from('likes')
+            .select('post_id')
+            .eq('usuario_id', userId)
+            .in('post_id', postIds),
+          supabase
+            .from('posts_guardados')
+            .select('post_id')
+            .eq('usuario_id', userId)
+            .in('post_id', postIds),
+        ]);
+
+        const likedPostIds = new Set(likesResult.data?.map(l => l.post_id) || []);
+        const savedPostIds = new Set(savedResult.data?.map(s => s.post_id) || []);
+
+        const postsWithStatus = postsData.map(post => ({
+          ...post,
+          user_has_liked: likedPostIds.has(post.id),
+          user_has_saved: savedPostIds.has(post.id),
+        }));
+
+        if (isRefresh || pageNum === 1) {
+          setPosts(postsWithStatus);
+          setPage(2);
+        } else {
+          setPosts(prev => [...prev, ...postsWithStatus]);
+          setPage(pageNum + 1);
+        }
+
+        setHasMore(postsWithStatus.length === POSTS_PER_PAGE);
+      } else {
+        if (isRefresh || pageNum === 1) {
+          setPosts([]);
+        }
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('[Social v324.0] Error cargando posts:', error);
+      Alert.alert('Error', 'No se pudieron cargar las publicaciones');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+      setLoadingMore(false);
+    }
+  }, [userId, isImpersonating]);
 
   useEffect(() => {
     if (userId) {
@@ -478,7 +470,7 @@ export default function SocialIndexScreen() {
 
     if (userId) {
       const checkInsChannel = supabase
-        .channel('social-check-ins-updates-v335')
+        .channel('social-check-ins-updates-v324')
         .on(
           'postgres_changes',
           {
@@ -487,6 +479,7 @@ export default function SocialIndexScreen() {
             table: 'check_ins',
           },
           () => {
+            console.log('[Social v324.0] 🔔 Check-ins updated');
             loadFriendsLocations();
           }
         )
@@ -547,10 +540,7 @@ export default function SocialIndexScreen() {
                     <Image 
                       source={{ uri: myCheckIn.locales.imagen_url }} 
                       style={styles.friendLocationImage}
-                      contentFit="cover"
-                      priority="normal"
-                      cachePolicy="disk"
-                      transition={150}
+                      resizeMode="cover"
                     />
                   ) : (
                     <View style={[styles.friendLocationImage, styles.friendLocationImagePlaceholder]}>
@@ -594,11 +584,7 @@ export default function SocialIndexScreen() {
                     <Image 
                       source={{ uri: location.local.imagen_url }} 
                       style={styles.friendLocationImage}
-                      contentFit="cover"
-                      priority="normal"
-                      cachePolicy="disk"
-                      transition={150}
-                      recyclingKey={location.local.id}
+                      resizeMode="cover"
                     />
                   ) : (
                     <View style={[styles.friendLocationImage, styles.friendLocationImagePlaceholder]}>
@@ -623,9 +609,6 @@ export default function SocialIndexScreen() {
                           <Image 
                             source={{ uri: user.avatar }} 
                             style={styles.friendLocationAvatarImage}
-                            contentFit="cover"
-                            cachePolicy="disk"
-                            transition={150}
                           />
                         ) : (
                           <View style={styles.friendLocationAvatarPlaceholder}>
@@ -669,7 +652,7 @@ export default function SocialIndexScreen() {
   ), [isImpersonating, impersonationSession, friendsLocations, myCheckIn, router]);
 
   const renderPost = useCallback(({ item }: { item: Post }) => (
-    <OptimizedPublicacionCard post={item} onUpdate={handleRefresh} />
+    <PublicacionCard post={item} onUpdate={handleRefresh} />
   ), [handleRefresh]);
 
   const renderFooter = useCallback(() => {
@@ -742,14 +725,11 @@ export default function SocialIndexScreen() {
         />
       </Animated.View>
 
-      {/* ✅ v335.0: FlashList with optimized configuration */}
-      <FlashList
-        ref={flashListRef}
+      <FlatList
+        ref={flatListRef}
         data={posts}
         renderItem={renderPost}
         keyExtractor={item => item.id}
-        estimatedItemSize={ESTIMATED_POST_SIZE}
-        drawDistance={ESTIMATED_POST_SIZE * 2}
         ListHeaderComponent={renderHeader}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
@@ -763,10 +743,12 @@ export default function SocialIndexScreen() {
         }
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
-        contentContainerStyle={{
-          paddingTop: HEADER_HEIGHT,
-          paddingBottom: staticBottomPadding,
-        }}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={Platform.OS === 'android'}
+        maxToRenderPerBatch={5}
+        updateCellsBatchingPeriod={50}
+        windowSize={10}
         onScroll={handleScroll}
         scrollEventThrottle={16}
       />
@@ -800,6 +782,10 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 1000,
     elevation: 10,
+  },
+  listContent: {
+    paddingTop: HEADER_HEIGHT,
+    paddingBottom: 100,
   },
   impersonationBanner: {
     marginHorizontal: 16,

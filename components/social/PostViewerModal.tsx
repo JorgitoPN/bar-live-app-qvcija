@@ -1190,11 +1190,9 @@ export default function PostViewerModal({
   }, []);
 
   useEffect(() => {
-    if (posts.length > 0) {
-      posts.forEach(post => {
-        loadTaggedUsers(post.id);
-      });
-    }
+    posts.forEach(post => {
+      loadTaggedUsers(post.id);
+    });
   }, [posts, loadTaggedUsers]);
 
   const toggleExpanded = (postId: string) => {

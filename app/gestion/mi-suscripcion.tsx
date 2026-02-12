@@ -250,7 +250,7 @@ export default function MiSuscripcionScreen() {
     }
   };
 
-  const handleCancelSubscription = useCallback(async () => {
+  const handleCancelSubscription = async () => {
     if (!subscription) return;
 
     setCanceling(true);
@@ -272,7 +272,7 @@ export default function MiSuscripcionScreen() {
     } finally {
       setCanceling(false);
     }
-  }, [subscription, loadSubscriptionData, router]);
+  };
 
   const handleChangePlan = async () => {
     if (!selectedNewPlan) {

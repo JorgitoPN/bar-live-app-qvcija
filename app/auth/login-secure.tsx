@@ -73,7 +73,7 @@ export default function SecureLoginScreen() {
     if (email) {
       checkLoginAttempts();
     }
-  }, [email, checkLoginAttempts]);
+  }, [email]);
 
   const checkCookieConsent = async () => {
     try {

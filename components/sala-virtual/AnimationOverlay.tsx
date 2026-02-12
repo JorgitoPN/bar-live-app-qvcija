@@ -119,7 +119,7 @@ export function AnimationOverlay({
         ]).start();
       });
     }
-  }, [visible, onComplete, opacityAnim, scaleAnim, sparkles]);
+  }, [visible]);
 
   if (!visible) return null;
 
