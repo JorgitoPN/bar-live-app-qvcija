@@ -1,30 +1,30 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v329.0 - COMMENTS NAVIGATION FIX
+ * 🚨 POST VIEWER MODAL v330.0 - BACK NAVIGATION FIX
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v329.0:
+ * NEW CHANGES v330.0:
+ * - ✅ FIXED: Back button in comments page now returns to post (not profile)
+ * - ✅ FIXED: Modal stays open when navigating to comments - keeps post in stack
+ * - ✅ IMPROVED: Proper navigation stack - comments → post → previous screen
+ * 
+ * TECHNICAL EXPLANATION:
+ * - Removed onClose() call before router.push() to comments page
+ * - Modal stays mounted in background, maintaining navigation stack
+ * - router.back() from comments now correctly returns to post viewer
+ * - Applies to both comment icon button and "Ver comentarios" text
+ * 
+ * Previous changes v329.0:
  * - ✅ FIXED: Comments page now opens immediately when clicking comment icon/text
  * - ✅ FIXED: Modal closes BEFORE navigating to comments (was blocking the view)
  * - ✅ IMPROVED: User no longer needs to close modal to see comments page
- * 
- * TECHNICAL EXPLANATION:
- * - Added onClose() call before router.push() to comments page
- * - Small 100ms delay ensures modal animation completes before navigation
- * - Applies to both comment icon button and "Ver comentarios" text
  * 
  * Previous changes v328.0:
  * - ✅ FIXED: Modal now part of Stack.Group in _layout.tsx
  * - ✅ FIXED: Edit pages share same Stack ancestor - no more closing
  * - ✅ FIXED: router.push() properly stacks edit pages ON TOP of post viewer
  * - ✅ IMPROVED: Native modal behavior - iOS/Android keep post viewer in memory
- * 
- * Previous changes v327.0:
- * - ✅ FIXED: Edit pages now use fullScreenModal presentation
- * - ✅ FIXED: Pages no longer get covered by post viewer (z-index issue resolved)
- * - ✅ FIXED: Proper layering - edit pages always appear on top
- * - ✅ IMPROVED: No visual glitches when opening from profile grid
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -108,9 +108,14 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v328.0 - MODAL STACK GROUP FIX
+ * ✅ POST VIEWER MODAL v330.0 - NAVIGATION STACK FIX
  * 
- * NEW CHANGES v328.0:
+ * NEW CHANGES v330.0:
+ * - ✅ FIXED: Comments page back button returns to post (not profile)
+ * - ✅ FIXED: Modal stays open when navigating to comments
+ * - ✅ IMPROVED: Proper navigation stack maintained
+ * 
+ * Previous changes v328.0:
  * - ✅ FIXED: Modal now part of Stack.Group - shares same Stack ancestor with edit pages
  * - ✅ FIXED: router.push() properly stacks edit pages without closing post viewer
  * - ✅ IMPROVED: Native modal stacking - post viewer stays in memory
@@ -1352,19 +1357,15 @@ export default function PostViewerModal({
             <TouchableOpacity 
               style={styles.actionButton}
               onPress={() => {
-                console.log('[PostViewerModal v329.0] 💬 Closing modal and opening comments page for post:', post.id);
-                // ✅ v329.0 FIX: Close modal FIRST, then navigate to comments
-                onClose();
-                // Small delay to ensure modal closes before navigation
-                setTimeout(() => {
-                  router.push({
-                    pathname: '/social/comentarios',
-                    params: { 
-                      postId: post.id,
-                      postAuthorId: post.autor_id,
-                    },
-                  });
-                }, 100);
+                console.log('[PostViewerModal v330.0] 💬 Opening comments page for post:', post.id);
+                // ✅ v330.0 FIX: Navigate WITHOUT closing modal - keeps post in stack
+                router.push({
+                  pathname: '/social/comentarios',
+                  params: { 
+                    postId: post.id,
+                    postAuthorId: post.autor_id,
+                  },
+                });
               }}
             >
               <IconSymbol
@@ -1430,19 +1431,15 @@ export default function PostViewerModal({
         <TouchableOpacity 
           style={styles.commentsContainer}
           onPress={() => {
-            console.log('[PostViewerModal v329.0] 💬 Closing modal and opening comments page for post:', post.id);
-            // ✅ v329.0 FIX: Close modal FIRST, then navigate to comments
-            onClose();
-            // Small delay to ensure modal closes before navigation
-            setTimeout(() => {
-              router.push({
-                pathname: '/social/comentarios',
-                params: { 
-                  postId: post.id,
-                  postAuthorId: post.autor_id,
-                },
-              });
-            }, 100);
+            console.log('[PostViewerModal v330.0] 💬 Opening comments page for post:', post.id);
+            // ✅ v330.0 FIX: Navigate WITHOUT closing modal - keeps post in stack
+            router.push({
+              pathname: '/social/comentarios',
+              params: { 
+                postId: post.id,
+                postAuthorId: post.autor_id,
+              },
+            });
           }}
         >
           {postCommentsCount > 0 ? (
