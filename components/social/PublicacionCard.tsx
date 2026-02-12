@@ -77,19 +77,18 @@ export interface TaggableUser {
 }
 
 /**
- * ✅ PUBLICACION CARD v328.0 - MODAL STACK GROUP INTEGRATION
+ * ✅ PUBLICACION CARD v329.0 - ANDROID PERFORMANCE FIX
  * 
- * NEW CHANGES v328.0:
+ * CRITICAL FIXES v329.0:
+ * - ✅ DISABLED REALTIME SUBSCRIPTIONS ON ANDROID: Eliminates CHANNEL_ERROR spam
+ * - ✅ OPTIMISTIC UI ONLY: Instant feedback without WebSocket overhead on Android
+ * - ✅ PERFORMANCE: Fixes severe slowdown when logged in on Android
+ * - ✅ iOS UNAFFECTED: Real-time subscriptions still work on iOS (no performance issues)
+ * 
+ * Previous changes v328.0:
  * - ✅ UPDATED: Edit pages now part of Stack.Group for proper modal stacking
  * - ✅ IMPROVED: Consistent navigation with PostViewerModal architecture
  * - ✅ IMPROVED: Edit pages open as fullScreenModal on top of post viewer
- * 
- * Previous changes v322.0:
- * - ✅ FIXED: "Editar descripción" now navigates to full-screen page (not modal)
- * - ✅ FIXED: "Gestionar etiquetas" now navigates to full-screen page (not modal)
- * - ✅ FIXED: Removed inline modals for editing and tag management
- * - ✅ IMPROVED: Consistent navigation pattern with PostViewerModal
- * - ✅ IMPROVED: Better UX with dedicated full-screen pages
  */
 
 const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
@@ -189,16 +188,19 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     loadInitialLikes();
   }, [post.id]);
 
+  // ✅ CRITICAL FIX v329.0: DISABLED REALTIME SUBSCRIPTIONS ON ANDROID
+  // Real-time subscriptions cause CHANNEL_ERROR spam and severe performance degradation
+  // on Android when users are logged in. Using optimistic UI updates instead.
   useEffect(() => {
     if (!user) return;
-
-    console.log('[PublicacionCard v328.0] 🔄 Setting up real-time subscription for post:', post.id);
-
-    if (channelRef.current?.state === 'subscribed') {
-      console.log('[PublicacionCard v328.0] ⚠️ Already subscribed, skipping');
+    
+    // ✅ v329.0: Real-time subscriptions DISABLED on Android for performance
+    // Optimistic UI updates provide instant feedback without WebSocket overhead
+    if (Platform.OS === 'android') {
       return;
     }
 
+    // iOS can still use real-time subscriptions (no performance issues)
     const channel = supabase.channel(`post-likes-card:${post.id}:${user.id}`);
     channelRef.current = channel;
 
@@ -212,32 +214,21 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           filter: `post_id=eq.${post.id}`,
         },
         async (payload) => {
-          console.log('[PublicacionCard v328.0] 🔄 Real-time like change detected:', payload.eventType);
-          
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
           if (changedByUserId === user.id) {
-            console.log('[PublicacionCard v328.0] ⏭️ Change made by current user, skipping');
             return;
           }
-          
-          console.log('[PublicacionCard v328.0] 🔄 Change made by another user, updating...');
           
           if (payload.eventType === 'INSERT' && payload.new) {
             setLocalLikes(prev => {
               if (prev.some(like => like.id === payload.new.id)) {
                 return prev;
               }
-              const newArray = [...prev, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
-              console.log('[PublicacionCard v328.0] ➕ Added like, new count:', newArray.length);
-              return newArray;
+              return [...prev, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
             });
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            setLocalLikes(prev => {
-              const newArray = prev.filter(like => like.id !== payload.old.id);
-              console.log('[PublicacionCard v328.0] ➖ Removed like, new count:', newArray.length);
-              return newArray;
-            });
+            setLocalLikes(prev => prev.filter(like => like.id !== payload.old.id));
           }
           
           const { count, error: countError } = await supabase
@@ -246,7 +237,6 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
             .eq('post_id', post.id);
           
           if (!countError && count !== null) {
-            console.log('[PublicacionCard v328.0] ✅ Updated likes count:', count);
             setLikesCount(count);
           }
         }
@@ -260,25 +250,19 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           filter: `post_id=eq.${post.id}`,
         },
         async (payload) => {
-          console.log('[PublicacionCard v328.0] 🔄 Real-time comment change detected:', payload.eventType);
-          
           const { count, error: countError } = await supabase
             .from('comentarios')
             .select('id', { count: 'exact', head: true })
             .eq('post_id', post.id);
           
           if (!countError && count !== null) {
-            console.log('[PublicacionCard v328.0] ✅ Updated comments count:', count);
             setCommentsCount(count);
           }
         }
       )
-      .subscribe((status) => {
-        console.log('[PublicacionCard v328.0] 📡 Subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('[PublicacionCard v328.0] 🔄 Cleaning up subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
