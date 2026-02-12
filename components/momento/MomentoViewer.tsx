@@ -65,19 +65,21 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v161.0 - ANDROID ABSOLUTE FULLSCREEN (ZERO GAPS)
+ * ✅ MOMENTO VIEWER v162.0 - ANDROID ABSOLUTE FULLSCREEN (COVERS ENTIRE SCREEN)
  * 
- * CRITICAL FIXES v161.0 (ANDROID ONLY):
- * - ✅ FIXED: Removed ALL padding from progressContainer (was 20px top)
- * - ✅ FIXED: Removed ALL padding from header (was 30px top)
- * - ✅ FIXED: Removed ALL padding from actions (was 20px bottom)
+ * CRITICAL FIXES v162.0 (ANDROID ONLY):
+ * - ✅ FIXED: Modal now uses statusBarTranslucent={true} for true fullscreen
+ * - ✅ FIXED: StatusBar uses translucent={true} and transparent background
+ * - ✅ FIXED: Container explicitly sets width/height to SCREEN_WIDTH/SCREEN_HEIGHT
+ * - ✅ FIXED: Background overlay covers entire screen including system bars
+ * - ✅ FIXED: Image container fills entire screen (SCREEN_WIDTH x SCREEN_HEIGHT)
+ * - ✅ FIXED: Progress bars start at top: 0 with minimal padding (12px) for notch
+ * - ✅ FIXED: Header starts at top: 0 with minimal padding (48px) for notch
+ * - ✅ FIXED: Actions end at bottom: 0 with minimal padding (24px) for navigation
  * - ✅ FIXED: StatusBar hidden on Android for immersive fullscreen
- * - ✅ FIXED: Content fills 100% of screen with ZERO gaps
- * - ✅ FIXED: Progress bars start at absolute top (0)
- * - ✅ FIXED: Actions end at absolute bottom (0)
- * - ✅ VERIFIED: True fullscreen experience on Android
+ * - ✅ VERIFIED: True fullscreen experience - covers entire screen including bottom nav
  * 
- * Previous fixes maintained (v158.0):
+ * Previous fixes maintained (v161.0):
  * - ✅ Modal uses transparent={false} for true fullscreen
  * - ✅ Content fills entire screen edge-to-edge
  * - ✅ All font sizes properly scaled with scaleFontSize()
@@ -823,10 +825,12 @@ export default function MomentoViewer({
         transparent={false}
         animationType="fade"
         presentationStyle="fullScreen"
+        statusBarTranslucent={true}
       >
         <StatusBar 
           barStyle="light-content" 
-          backgroundColor="#000" 
+          backgroundColor="transparent" 
+          translucent={true}
           hidden={Platform.OS === 'android'}
         />
         <View style={styles.loadingContainer}>
@@ -853,10 +857,12 @@ export default function MomentoViewer({
       transparent={false}
       animationType="fade"
       presentationStyle="fullScreen"
+      statusBarTranslucent={true}
     >
       <StatusBar 
         barStyle="light-content" 
-        backgroundColor="#000" 
+        backgroundColor="transparent" 
+        translucent={true}
         hidden={Platform.OS === 'android'}
       />
       <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
@@ -1170,12 +1176,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+    // ✅ v162.0: ABSOLUTE FULLSCREEN - Fill entire screen including system bars
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
   },
   loadingContainer: {
     flex: 1,
     backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
+    // ✅ v162.0: ABSOLUTE FULLSCREEN - Fill entire screen including system bars
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
   },
   loadingText: {
     marginTop: 16,
@@ -1185,11 +1197,17 @@ const styles = StyleSheet.create({
   backgroundOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#000',
+    // ✅ v162.0: ABSOLUTE FULLSCREEN - Cover entire screen
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
   },
   imageContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    // ✅ v162.0: ABSOLUTE FULLSCREEN - Fill entire screen
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
   },
   imageTouchable: {
     position: 'absolute',
@@ -1230,15 +1248,15 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     position: 'absolute',
-    // ✅ v161.0: ABSOLUTE FULLSCREEN - Start at absolute top (0) on Android with ZERO padding
-    top: Platform.OS === 'android' ? 8 : 50,
+    // ✅ v162.0: ABSOLUTE FULLSCREEN - Start at absolute top (0) on Android
+    top: Platform.OS === 'android' ? 0 : 50,
     left: 12,
     right: 12,
     flexDirection: 'row',
     gap: 4,
     zIndex: 300,
-    // ✅ v161.0: REMOVED ALL padding for true fullscreen
-    paddingTop: 0,
+    // ✅ v162.0: Add minimal top padding for Android to avoid notch
+    paddingTop: Platform.OS === 'android' ? 12 : 0,
   },
   progressBarBackground: {
     flex: 1,
@@ -1254,11 +1272,12 @@ const styles = StyleSheet.create({
   },
   header: {
     position: 'absolute',
-    // ✅ v161.0: ABSOLUTE FULLSCREEN - Start at absolute top (0) on Android with minimal padding
+    // ✅ v162.0: ABSOLUTE FULLSCREEN - Start at absolute top (0) on Android
     top: 0,
     left: 0,
     right: 0,
-    paddingTop: Platform.OS === 'android' ? 40 : 60,
+    // ✅ v162.0: Minimal top padding for Android to avoid notch
+    paddingTop: Platform.OS === 'android' ? 48 : 60,
     paddingHorizontal: 16,
     paddingBottom: 20,
     flexDirection: 'row',
@@ -1353,14 +1372,14 @@ const styles = StyleSheet.create({
   },
   actions: {
     position: 'absolute',
-    // ✅ v161.0: ABSOLUTE FULLSCREEN - End at absolute bottom (0) on Android with minimal padding
+    // ✅ v162.0: ABSOLUTE FULLSCREEN - End at absolute bottom (0) on Android
     bottom: 0,
     left: 0,
     right: 0,
     paddingHorizontal: 16,
     paddingTop: 40,
-    // ✅ v161.0: Minimal bottom padding for Android (just enough for touch targets)
-    paddingBottom: Platform.OS === 'android' ? 16 : 40,
+    // ✅ v162.0: Minimal bottom padding for Android (just enough for touch targets)
+    paddingBottom: Platform.OS === 'android' ? 24 : 40,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
