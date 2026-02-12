@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "BarLive",
-    "slug": "BarLive",
+    "slug": "bar-live-app-qvcija",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/natively-dark.png",
@@ -25,7 +25,7 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.Natively",
+      "package": "com.barlive.app",
       "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
