@@ -33,15 +33,19 @@ const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 /**
- * 🗺️ MAPA SCREEN v295.0 - CLUSTER COUNT DISPLAY ENABLED
+ * 🗺️ MAPA SCREEN v296.0 - ULTRA-SIMPLIFIED CLUSTER COUNT DIAGNOSTIC
  * 
- * NEW FIXES v295.0:
- * - ✅ CLUSTER COUNT: Each cluster now displays the number of venues inside
- * - ✅ TEXT STYLING: White text (color: #FFFFFF) with dark halo for maximum readability
- * - ✅ HALO EFFECT: textHaloColor: rgba(0, 0, 0, 0.8) with 2px width for strong contrast
- * - ✅ RESPONSIVE SIZE: Text size scales from 14px to 18px based on cluster size
- * - ✅ VERIFICATION: Cluster count layer added with point_count_abbreviated field
- * - ✅ USER EXPERIENCE: Users can now see how many markers are in each cluster area
+ * DIAGNOSTIC CHANGES v296.0:
+ * - 🔍 REMOVED text-font: Let system use default font (font loading may be the issue)
+ * - 🔍 FIXED TEXT: Changed to '99' instead of ['to-string', ['get', 'point_count']] to test data vs rendering
+ * - 🔍 REMOVED text-halo: Simplified rendering (no halo color/width)
+ * - 🔍 ADDED beforeId: 'locales-icons' to force layer order (text must be on top)
+ * - 🔍 BRIGHT YELLOW: #FFFF00 for maximum visibility during testing
+ * 
+ * WHAT WE'RE TESTING:
+ * - If "99" appears → Problem is with point_count data
+ * - If nothing appears → Problem is with layer rendering or font
+ * - If question marks appear → Problem is with font loading
  */
 
 const CATEGORIAS = [
@@ -155,12 +159,12 @@ export default function MapaScreen() {
   const [isMapReady, setIsMapReady] = useState(false);
   
   const handleCategoriaChange = useCallback((categoriaId: string) => {
-    console.log('🗺️ [MAPA v295.0] Cambiando categoría a:', categoriaId);
+    console.log('🗺️ [MAPA v296.0] Cambiando categoría a:', categoriaId);
     setCategoriaSeleccionada(categoriaId);
   }, []);
   
   const handleEstadoChange = useCallback((estado: 'todos' | 'no_cerrados') => {
-    console.log('🗺️ [MAPA v295.0] Cambiando estado a:', estado);
+    console.log('🗺️ [MAPA v296.0] Cambiando estado a:', estado);
     setFiltroEstado(estado);
   }, []);
   
@@ -215,7 +219,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 <body>
 <div id="map"></div>
 <script>
-console.log('🗺️ [MAPA v295.0] Inicializando MapLibre GL JS con cluster count display');
+console.log('🗺️ [MAPA v296.0] Inicializando MapLibre GL JS - ULTRA-SIMPLIFIED cluster count test');
 
 var map = new maplibregl.Map({
   container: 'map',
@@ -289,7 +293,7 @@ function loadCategoryIcons() {
     });
   });
   
-  console.log('🗺️ [MAPA v295.0] Iconos de categorías cargados');
+  console.log('🗺️ [MAPA v296.0] Iconos de categorías cargados');
 }
 
 window.getEstadoLocalRealTime = function(local) {
@@ -374,11 +378,11 @@ window.getEstadoLocalRealTime = function(local) {
 };
 
 map.on('load', function() {
-  console.log('🗺️ [MAPA v295.0] Mapa cargado, añadiendo source GeoJSON');
+  console.log('🗺️ [MAPA v296.0] Mapa cargado, añadiendo source GeoJSON');
   
   setTimeout(function() {
     map.resize();
-    console.log('🗺️ [MAPA v295.0] ✅ map.resize() ejecutado');
+    console.log('🗺️ [MAPA v296.0] ✅ map.resize() ejecutado');
   }, 100);
   
   loadCategoryIcons();
@@ -420,30 +424,23 @@ map.on('load', function() {
     }
   });
   
-  console.log('🗺️ [MAPA v295.0] ✅ Adding cluster-count SymbolLayer with to-string conversion');
+  console.log('🗺️ [MAPA v296.0] ✅ ULTRA-SIMPLIFIED cluster-count layer - testing rendering');
   map.addLayer({
     id: 'cluster-count',
     type: 'symbol',
     source: 'locales-source',
     filter: ['has', 'point_count'],
     layout: {
-      'text-field': ['to-string', ['get', 'point_count']],
-      'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+      'text-field': '99',
       'text-size': 16,
       'text-allow-overlap': true,
-      'text-ignore-placement': true,
-      'text-anchor': 'center',
-      'text-offset': [0, 0],
-      'text-justify': 'center',
-      'symbol-sort-key': 1000
+      'text-ignore-placement': true
     },
     paint: {
-      'text-color': '#FFFF00',
-      'text-halo-color': '#000000',
-      'text-halo-width': 2
+      'text-color': '#FFFF00'
     }
-  });
-  console.log('🗺️ [MAPA v295.0] ✅ Cluster count layer added with to-string and bright yellow for testing');
+  }, 'locales-icons');
+  console.log('🗺️ [MAPA v296.0] ✅ Cluster count layer: NO font, NO halo, FIXED text "99", beforeId: locales-icons');
   
   map.addLayer({
     id: 'locales-layer',
@@ -534,7 +531,7 @@ map.on('load', function() {
     }
   });
   
-  console.log('🗺️ [MAPA v295.0] ✅ Cluster count display ENABLED');
+  console.log('🗺️ [MAPA v296.0] ✅ ULTRA-SIMPLIFIED cluster count layer added - testing if "99" appears');
   
   window.loadLocales();
   window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_ready' }));
@@ -546,7 +543,7 @@ window.filtros = { cat: 'todas', estado: 'no_cerrados' };
 
 window.loadLocales = async function() {
   try {
-    console.log('🗺️ [MAPA v295.0] Cargando locales desde Supabase...');
+    console.log('🗺️ [MAPA v296.0] Cargando locales desde Supabase...');
     
     const response = await fetch('https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/locales?select=id,nombre,direccion,latitud,longitud,imagen_url,rating,google_rating,barlive_types,horarios_completos,estado_actual,google_business_status,google_user_ratings_total&activo=eq.true&latitud=not.is.null&longitud=not.is.null', {
       headers: {
@@ -558,19 +555,19 @@ window.loadLocales = async function() {
     if (!response.ok) throw new Error('Error cargando locales: ' + response.status);
     
     const locales = await response.json();
-    console.log('🗺️ [MAPA v295.0] Locales cargados:', locales.length);
+    console.log('🗺️ [MAPA v296.0] Locales cargados:', locales.length);
     
     window.allLocales = locales;
     window.applyFilters();
   } catch (error) {
-    console.error('🗺️ [MAPA v295.0] Error cargando locales:', error);
+    console.error('🗺️ [MAPA v296.0] Error cargando locales:', error);
   }
 };
 
 window.applyFilters = function() {
   if (!window.allLocales || window.allLocales.length === 0) return;
   
-  console.log('🗺️ [MAPA v295.0] Aplicando filtros:', window.filtros);
+  console.log('🗺️ [MAPA v296.0] Aplicando filtros:', window.filtros);
   
   var filteredLocales = window.allLocales.filter(function(local) {
     var estado = window.getEstadoLocalRealTime(local);
@@ -599,7 +596,7 @@ window.applyFilters = function() {
     return true;
   });
   
-  console.log('🗺️ [MAPA v295.0] Locales filtrados:', filteredLocales.length);
+  console.log('🗺️ [MAPA v296.0] Locales filtrados:', filteredLocales.length);
   
   var geojson = {
     type: 'FeatureCollection',
@@ -630,7 +627,7 @@ window.applyFilters = function() {
   var source = map.getSource('locales-source');
   if (source) {
     source.setData(geojson);
-    console.log('🗺️ [MAPA v295.0] ✅ GeoJSON actualizado con', geojson.features.length, 'marcadores');
+    console.log('🗺️ [MAPA v296.0] ✅ GeoJSON actualizado con', geojson.features.length, 'marcadores');
   }
 };
 
@@ -647,7 +644,7 @@ window.filtrarCategoria = function(idCategoria) {
 window.setCategoryFilter = window.filtrarCategoria;
 
 window.updateUserLocation = function(lat, lng) {
-  console.log('🗺️ [MAPA v295.0] 📍 Actualizando ubicación del usuario:', lat, lng);
+  console.log('🗺️ [MAPA v296.0] 📍 Actualizando ubicación del usuario:', lat, lng);
   
   if (!map) return;
   
@@ -675,10 +672,10 @@ window.updateUserLocation = function(lat, lng) {
       .setLngLat([lng, lat])
       .addTo(map);
     
-    console.log('🗺️ [MAPA v295.0] ✅ Marcador de usuario creado');
+    console.log('🗺️ [MAPA v296.0] ✅ Marcador de usuario creado');
   } else {
     window.userMarker.setLngLat([lng, lat]);
-    console.log('🗺️ [MAPA v295.0] ✅ Marcador de usuario actualizado');
+    console.log('🗺️ [MAPA v296.0] ✅ Marcador de usuario actualizado');
   }
 };
 
@@ -692,7 +689,7 @@ function showPopupForFeature(feature, coordinates) {
   var properties = feature.properties;
   if (!properties.id) return;
   
-  console.log('🗺️ [MAPA v295.0] ✅ Mostrando popup para local:', properties.name);
+  console.log('🗺️ [MAPA v296.0] ✅ Mostrando popup para local:', properties.name);
   
   var localCompleto = window.allLocales.find(function(l) { return l.id === properties.id; });
   
@@ -756,11 +753,11 @@ function showPopupForFeature(feature, coordinates) {
 }
 
 map.on('click', function(e) {
-  console.log('🗺️ [MAPA v295.0] 🎯 Click detectado');
+  console.log('🗺️ [MAPA v296.0] 🎯 Click detectado');
   
   var clusterFeatures = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
   if (clusterFeatures.length > 0) {
-    console.log('🗺️ [MAPA v295.0] 🔵 CLUSTER detectado - ejecutando zoom-in');
+    console.log('🗺️ [MAPA v296.0] 🔵 CLUSTER detectado - ejecutando zoom-in');
     
     var clusterId = clusterFeatures[0].properties.cluster_id;
     var source = map.getSource('locales-source');
@@ -821,7 +818,7 @@ map.on('click', function(e) {
   });
   
   if (detectado) {
-    console.log('🗺️ [MAPA v295.0] 🎉 Local encontrado:', detectado.nombre);
+    console.log('🗺️ [MAPA v296.0] 🎉 Local encontrado:', detectado.nombre);
     
     var coords = [parseFloat(detectado.longitud), parseFloat(detectado.latitud)];
     var estadoCalculado = window.getEstadoLocalRealTime(detectado);
@@ -905,11 +902,13 @@ window.addEventListener('resize', function() {
   map.resize();
 });
 
-console.log('🗺️ [MAPA v295.0] ═══════════════════════════════════════════════════════');
-console.log('🗺️ [MAPA v295.0] ✅ CLUSTER COUNT DISPLAY HABILITADO');
-console.log('🗺️ [MAPA v295.0] ✅ Texto blanco con halo oscuro para máxima legibilidad');
-console.log('🗺️ [MAPA v295.0] ✅ Tamaño responsive (14-18px según tamaño del cluster)');
-console.log('🗺️ [MAPA v295.0] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA v296.0] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA v296.0] 🔍 DIAGNOSTIC MODE: Ultra-simplified cluster count');
+console.log('🗺️ [MAPA v296.0] 🔍 Fixed text: "99" (not dynamic point_count)');
+console.log('🗺️ [MAPA v296.0] 🔍 No font specified (system default)');
+console.log('🗺️ [MAPA v296.0] 🔍 No halo (simplified rendering)');
+console.log('🗺️ [MAPA v296.0] 🔍 beforeId: locales-icons (forced layer order)');
+console.log('🗺️ [MAPA v296.0] ═══════════════════════════════════════════════════════');
 </script>
 </body>
 </html>`;
@@ -920,30 +919,30 @@ console.log('🗺️ [MAPA v295.0] ═══════════════
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('🗺️ [MAPA v295.0] Permisos de ubicación denegados');
+          console.log('🗺️ [MAPA v296.0] Permisos de ubicación denegados');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
-        console.log('🗺️ [MAPA v295.0] Obteniendo ubicación del usuario...');
+        console.log('🗺️ [MAPA v296.0] Obteniendo ubicación del usuario...');
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
         
-        console.log('🗺️ [MAPA v295.0] Ubicación obtenida:', location.coords.latitude, location.coords.longitude);
+        console.log('🗺️ [MAPA v296.0] Ubicación obtenida:', location.coords.latitude, location.coords.longitude);
         setUserLocation({
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
       } catch (error) {
-        console.error('🗺️ [MAPA v295.0] Error obteniendo ubicación:', error);
+        console.error('🗺️ [MAPA v296.0] Error obteniendo ubicación:', error);
         setUserLocation({ lat: 40.4168, lng: -3.7038 });
       }
     })();
   }, []);
 
   useEffect(() => {
-    console.log('🗺️ [MAPA v295.0] Filtros cambiados');
+    console.log('🗺️ [MAPA v296.0] Filtros cambiados');
   }, [categoriaSeleccionada, globalFiltros]);
 
   useEffect(() => {
@@ -985,7 +984,7 @@ console.log('🗺️ [MAPA v295.0] ═══════════════
       return;
     }
     
-    console.log('🗺️ [MAPA v295.0] 📍 Inyectando ubicación del usuario');
+    console.log('🗺️ [MAPA v296.0] 📍 Inyectando ubicación del usuario');
     
     const injectUserLocation = () => {
       webViewRef.current?.injectJavaScript(`
@@ -1001,7 +1000,7 @@ console.log('🗺️ [MAPA v295.0] ═══════════════
               }, 100);
             }
           } catch (error) {
-            console.error('🗺️ [MAPA v295.0] ❌ Error actualizando ubicación:', error);
+            console.error('🗺️ [MAPA v296.0] ❌ Error actualizando ubicación:', error);
           }
         })();
         true;
@@ -1017,7 +1016,7 @@ console.log('🗺️ [MAPA v295.0] ═══════════════
 
   const centerOnUser = useCallback(() => {
     if (userLocation && webViewRef.current && isMapReady) {
-      console.log('🗺️ [MAPA v295.0] Centrando en ubicación del usuario');
+      console.log('🗺️ [MAPA v296.0] Centrando en ubicación del usuario');
       webViewRef.current.injectJavaScript(`
         if (typeof window.flyToLocation !== 'undefined') {
           window.flyToLocation(${userLocation.lat}, ${userLocation.lng}, 16);
@@ -1032,14 +1031,14 @@ console.log('🗺️ [MAPA v295.0] ═══════════════
       const data = JSON.parse(event.nativeEvent.data);
       
       if (data.type === 'navigate' && data.id) {
-        console.log('🗺️ [MAPA v295.0] Navegando a local:', data.id);
+        console.log('🗺️ [MAPA v296.0] Navegando a local:', data.id);
         router.push(`/detalle/local?id=${data.id}`);
       } else if (data.type === 'map_ready') {
-        console.log('🗺️ [MAPA v295.0] Mapa listo');
+        console.log('🗺️ [MAPA v296.0] Mapa listo');
         setIsMapReady(true);
       }
     } catch (error) {
-      console.error('🗺️ [MAPA v295.0] Error procesando mensaje:', error);
+      console.error('🗺️ [MAPA v296.0] Error procesando mensaje:', error);
     }
   }, [router]);
 
