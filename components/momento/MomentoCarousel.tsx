@@ -1,14 +1,19 @@
 
 /**
- * ✅ MOMENTO CAROUSEL v167.0 - ANDROID BORDER THICKNESS FIX
+ * ✅ MOMENTO CAROUSEL v168.0 - ANDROID AVATAR SIZE INCREASE
  * 
- * NEW CHANGES v167.0:
- * - ✅ REQUERIMIENTO 3: Border thickness reduced in UnifiedMomentoAvatar (1.5px → 1.0px on Android)
+ * NEW CHANGES v168.0:
+ * - ✅ REQUERIMIENTO: Increased momento avatar size on Android
+ * - ✅ Changed from 90 to 100 (same as iOS) for better visibility
+ * - ✅ Avatars now more prominent and easier to tap on Android
+ * 
+ * Previous changes v167.0:
+ * - ✅ Border thickness reduced in UnifiedMomentoAvatar (1.5px → 1.0px on Android)
  * - ✅ Cleaner, less prominent borders on Android momento avatars
  * - ✅ iOS border remains at 1.5px for consistency
  * 
  * Previous changes v166.0:
- * - ✅ REQUERIMIENTO 3: Reduced spacing between avatars on Android
+ * - ✅ Reduced spacing between avatars on Android
  * - ✅ Android now shows at least 4 avatars simultaneously without horizontal scroll
  * - ✅ Reduced gap from 18 to 8 on Android (10 on iOS for consistency)
  * - ✅ Reduced avatar wrapper width from 108 to 80 on Android
@@ -57,18 +62,18 @@ export default function MomentoCarousel() {
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
   const [selectedAuthor, setSelectedAuthor] = useState<MomentoAuthor | null>(null);
 
-  // ✅ REQUERIMIENTO 3: Reduced avatar size on Android for better density
-  const AVATAR_SIZE = Platform.OS === 'android' ? scaleIconSize(90) : 100;
+  // ✅ v168.0: Increased avatar size on Android to match iOS (100)
+  const AVATAR_SIZE = 100;
 
   const loadMomentoAuthors = useCallback(async () => {
     if (!userId) {
-      console.log('[MomentoCarousel v167.0] No user ID, skipping load');
+      console.log('[MomentoCarousel v168.0] No user ID, skipping load');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('[MomentoCarousel v166.0] 🔄 Loading momento authors...');
+      console.log('[MomentoCarousel v168.0] 🔄 Loading momento authors...');
 
       const { data: momentosData, error: momentosError } = await supabase
         .from('momentos')
@@ -83,19 +88,19 @@ export default function MomentoCarousel() {
         .order('created_at', { ascending: false });
 
       if (momentosError) {
-        console.error('[MomentoCarousel v166.0] ❌ Error loading momentos:', momentosError);
+        console.error('[MomentoCarousel v168.0] ❌ Error loading momentos:', momentosError);
         setLoading(false);
         return;
       }
 
       if (!momentosData || momentosData.length === 0) {
-        console.log('[MomentoCarousel v166.0] ℹ️ No active momentos found');
+        console.log('[MomentoCarousel v168.0] ℹ️ No active momentos found');
         setAuthors([]);
         setLoading(false);
         return;
       }
 
-      console.log('[MomentoCarousel v166.0] ✅ Found momentos:', momentosData.length);
+      console.log('[MomentoCarousel v168.0] ✅ Found momentos:', momentosData.length);
 
       const momentoIds = momentosData.map(m => m.id);
       const { data: viewsData } = await supabase
@@ -169,9 +174,9 @@ export default function MomentoCarousel() {
       });
 
       setAuthors(authorsArray);
-      console.log('[MomentoCarousel v166.0] ✅ Loaded authors:', authorsArray.length);
+      console.log('[MomentoCarousel v168.0] ✅ Loaded authors:', authorsArray.length);
     } catch (error) {
-      console.error('[MomentoCarousel v166.0] ❌ Error loading authors:', error);
+      console.error('[MomentoCarousel v168.0] ❌ Error loading authors:', error);
     } finally {
       setLoading(false);
     }
@@ -192,7 +197,7 @@ export default function MomentoCarousel() {
           table: 'momentos',
         },
         (payload) => {
-          console.log('[MomentoCarousel v166.0] 🔄 Momento update detected:', payload);
+          console.log('[MomentoCarousel v168.0] 🔄 Momento update detected:', payload);
           loadMomentoAuthors();
         }
       )
@@ -205,7 +210,7 @@ export default function MomentoCarousel() {
           filter: `usuario_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('[MomentoCarousel v166.0] 🔄 View update detected:', payload);
+          console.log('[MomentoCarousel v168.0] 🔄 View update detected:', payload);
           loadMomentoAuthors();
         }
       )
@@ -229,7 +234,7 @@ export default function MomentoCarousel() {
     return null;
   }
 
-  // ✅ REQUERIMIENTO 3: Reduced avatar wrapper width on Android
+  // ✅ Reduced avatar wrapper width on Android
   const avatarWrapperWidth = Platform.OS === 'android' ? 80 : 108;
 
   return (
@@ -314,7 +319,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
     paddingVertical: 14,
   },
-  // ✅ REQUERIMIENTO 3: Reduced gap from 18 to 8 on Android (10 on iOS)
+  // ✅ Reduced gap from 18 to 8 on Android (10 on iOS)
   scrollContent: {
     paddingLeft: 16,
     paddingRight: 16,
