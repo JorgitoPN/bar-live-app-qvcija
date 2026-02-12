@@ -33,19 +33,17 @@ const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 /**
- * 🗺️ MAPA SCREEN v296.0 - ULTRA-SIMPLIFIED CLUSTER COUNT DIAGNOSTIC
+ * 🗺️ MAPA SCREEN v297.0 - CLUSTER COUNT FIXED
  * 
- * DIAGNOSTIC CHANGES v296.0:
- * - 🔍 REMOVED text-font: Let system use default font (font loading may be the issue)
- * - 🔍 FIXED TEXT: Changed to '99' instead of ['to-string', ['get', 'point_count']] to test data vs rendering
- * - 🔍 REMOVED text-halo: Simplified rendering (no halo color/width)
- * - 🔍 ADDED beforeId: 'locales-icons' to force layer order (text must be on top)
- * - 🔍 BRIGHT YELLOW: #FFFF00 for maximum visibility during testing
+ * FIXES v297.0:
+ * - ✅ RESTORED dynamic text-field: ['to-string', ['get', 'point_count']]
+ * - ✅ ADDED text-halo: Black halo with 1.5px width for visibility
+ * - ✅ WHITE TEXT: #FFFFFF for maximum contrast on colored circles
+ * - ✅ REMOVED beforeId: Let MapLibre handle layer order naturally
+ * - ✅ ADDED text-anchor: 'center' and text-offset: [0, 0] for perfect centering
+ * - ✅ DYNAMIC text-size: Scales with cluster size (14px → 16px → 18px)
  * 
- * WHAT WE'RE TESTING:
- * - If "99" appears → Problem is with point_count data
- * - If nothing appears → Problem is with layer rendering or font
- * - If question marks appear → Problem is with font loading
+ * The cluster count numbers should now be visible in the center of each cluster circle.
  */
 
 const CATEGORIAS = [
@@ -159,12 +157,12 @@ export default function MapaScreen() {
   const [isMapReady, setIsMapReady] = useState(false);
   
   const handleCategoriaChange = useCallback((categoriaId: string) => {
-    console.log('🗺️ [MAPA v296.0] Cambiando categoría a:', categoriaId);
+    console.log('🗺️ [MAPA v297.0] Cambiando categoría a:', categoriaId);
     setCategoriaSeleccionada(categoriaId);
   }, []);
   
   const handleEstadoChange = useCallback((estado: 'todos' | 'no_cerrados') => {
-    console.log('🗺️ [MAPA v296.0] Cambiando estado a:', estado);
+    console.log('🗺️ [MAPA v297.0] Cambiando estado a:', estado);
     setFiltroEstado(estado);
   }, []);
   
@@ -219,7 +217,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 <body>
 <div id="map"></div>
 <script>
-console.log('🗺️ [MAPA v296.0] Inicializando MapLibre GL JS - ULTRA-SIMPLIFIED cluster count test');
+console.log('🗺️ [MAPA v297.0] Inicializando MapLibre GL JS - Cluster count FIXED');
 
 var map = new maplibregl.Map({
   container: 'map',
@@ -293,7 +291,7 @@ function loadCategoryIcons() {
     });
   });
   
-  console.log('🗺️ [MAPA v296.0] Iconos de categorías cargados');
+  console.log('🗺️ [MAPA v297.0] Iconos de categorías cargados');
 }
 
 window.getEstadoLocalRealTime = function(local) {
@@ -378,11 +376,11 @@ window.getEstadoLocalRealTime = function(local) {
 };
 
 map.on('load', function() {
-  console.log('🗺️ [MAPA v296.0] Mapa cargado, añadiendo source GeoJSON');
+  console.log('🗺️ [MAPA v297.0] Mapa cargado, añadiendo source GeoJSON');
   
   setTimeout(function() {
     map.resize();
-    console.log('🗺️ [MAPA v296.0] ✅ map.resize() ejecutado');
+    console.log('🗺️ [MAPA v297.0] ✅ map.resize() ejecutado');
   }, 100);
   
   loadCategoryIcons();
@@ -424,23 +422,33 @@ map.on('load', function() {
     }
   });
   
-  console.log('🗺️ [MAPA v296.0] ✅ ULTRA-SIMPLIFIED cluster-count layer - testing rendering');
+  console.log('🗺️ [MAPA v297.0] ✅ Adding cluster-count layer with proper configuration');
   map.addLayer({
     id: 'cluster-count',
     type: 'symbol',
     source: 'locales-source',
     filter: ['has', 'point_count'],
     layout: {
-      'text-field': '99',
-      'text-size': 16,
+      'text-field': ['to-string', ['get', 'point_count']],
+      'text-size': [
+        'step',
+        ['get', 'point_count'],
+        14,
+        10, 16,
+        100, 18
+      ],
       'text-allow-overlap': true,
-      'text-ignore-placement': true
+      'text-ignore-placement': true,
+      'text-anchor': 'center',
+      'text-offset': [0, 0]
     },
     paint: {
-      'text-color': '#FFFF00'
+      'text-color': '#FFFFFF',
+      'text-halo-color': '#000000',
+      'text-halo-width': 1.5
     }
-  }, 'locales-icons');
-  console.log('🗺️ [MAPA v296.0] ✅ Cluster count layer: NO font, NO halo, FIXED text "99", beforeId: locales-icons');
+  });
+  console.log('🗺️ [MAPA v297.0] ✅ Cluster count layer added with white text and black halo');
   
   map.addLayer({
     id: 'locales-layer',
@@ -531,7 +539,7 @@ map.on('load', function() {
     }
   });
   
-  console.log('🗺️ [MAPA v296.0] ✅ ULTRA-SIMPLIFIED cluster count layer added - testing if "99" appears');
+  console.log('🗺️ [MAPA v297.0] ✅ All layers added - cluster count should now be visible');
   
   window.loadLocales();
   window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_ready' }));
@@ -902,13 +910,13 @@ window.addEventListener('resize', function() {
   map.resize();
 });
 
-console.log('🗺️ [MAPA v296.0] ═══════════════════════════════════════════════════════');
-console.log('🗺️ [MAPA v296.0] 🔍 DIAGNOSTIC MODE: Ultra-simplified cluster count');
-console.log('🗺️ [MAPA v296.0] 🔍 Fixed text: "99" (not dynamic point_count)');
-console.log('🗺️ [MAPA v296.0] 🔍 No font specified (system default)');
-console.log('🗺️ [MAPA v296.0] 🔍 No halo (simplified rendering)');
-console.log('🗺️ [MAPA v296.0] 🔍 beforeId: locales-icons (forced layer order)');
-console.log('🗺️ [MAPA v296.0] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA v297.0] ═══════════════════════════════════════════════════════');
+console.log('🗺️ [MAPA v297.0] ✅ CLUSTER COUNT FIXED');
+console.log('🗺️ [MAPA v297.0] ✅ Dynamic text: point_count converted to string');
+console.log('🗺️ [MAPA v297.0] ✅ White text with black halo for visibility');
+console.log('🗺️ [MAPA v297.0] ✅ Centered with text-anchor and text-offset');
+console.log('🗺️ [MAPA v297.0] ✅ Dynamic sizing based on cluster size');
+console.log('🗺️ [MAPA v297.0] ═══════════════════════════════════════════════════════');
 </script>
 </body>
 </html>`;
