@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import { useMode } from '@/contexts/ModeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useImpersonation } from '@/contexts/ImpersonationContext';
 
 /**
  * ✅ ANDROID MODE SELECTOR FULL SCREEN PAGE v1.0
@@ -31,10 +32,12 @@ export default function SelectorModoScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { currentMode, setCurrentMode } = useMode();
+  const { isImpersonating, adminUser } = useImpersonation();
 
   const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
     try {
       console.log('[SelectorModo Android] 🔄 Changing mode to:', newMode);
+      console.log('[SelectorModo Android] 🔍 Impersonation status:', isImpersonating ? 'active' : 'inactive');
       await setCurrentMode(newMode);
       console.log('[SelectorModo Android] ✅ Mode changed successfully');
       router.back();
@@ -42,6 +45,9 @@ export default function SelectorModoScreen() {
       console.error('[SelectorModo Android] ❌ Error changing mode:', error);
     }
   };
+
+  // ✅ CRITICAL FIX: Use admin user's role when impersonating to show all available modes
+  const effectiveUserForRoles = isImpersonating && adminUser ? adminUser : user;
 
   return (
     <View style={styles.container}>
@@ -68,6 +74,25 @@ export default function SelectorModoScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
+        {isImpersonating && adminUser && (
+          <View style={styles.impersonationBanner}>
+            <View style={styles.impersonationHeader}>
+              <IconSymbol 
+                ios_icon_name="person.crop.circle.badge.checkmark" 
+                android_material_icon_name="supervised_user_circle" 
+                size={scaleIconSize(20)} 
+                color="#8B5CF6" 
+              />
+              <Text style={[styles.impersonationTitle, { fontSize: scaleFontSize(14) }]}>
+                Modo Suplantación Activo
+              </Text>
+            </View>
+            <Text style={[styles.impersonationText, { fontSize: scaleFontSize(13) }]}>
+              Mantienes tus permisos de administrador mientras navegas como otro usuario
+            </Text>
+          </View>
+        )}
+
         <Text style={[styles.subtitle, { fontSize: scaleFontSize(15) }]}>
           Elige con qué rol quieres navegar en la aplicación
         </Text>
@@ -122,7 +147,7 @@ export default function SelectorModoScreen() {
             )}
           </TouchableOpacity>
 
-          {(user?.rol_app === 'propietario' || user?.rol_app === 'admin') && (
+          {(effectiveUserForRoles?.rol_app === 'propietario' || effectiveUserForRoles?.rol_app === 'admin') && (
             <TouchableOpacity
               style={[
                 styles.modeCard,
@@ -173,7 +198,7 @@ export default function SelectorModoScreen() {
             </TouchableOpacity>
           )}
 
-          {user?.rol_app === 'admin' && (
+          {effectiveUserForRoles?.rol_app === 'admin' && (
             <TouchableOpacity
               style={[
                 styles.modeCard,
@@ -371,5 +396,27 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.text,
     lineHeight: 20,
+  },
+  impersonationBanner: {
+    backgroundColor: '#8B5CF6' + '15',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#8B5CF6' + '30',
+  },
+  impersonationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  impersonationTitle: {
+    fontWeight: '700',
+    color: '#8B5CF6',
+  },
+  impersonationText: {
+    color: colors.text,
+    lineHeight: 18,
   },
 });

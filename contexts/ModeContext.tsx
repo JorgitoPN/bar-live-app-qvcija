@@ -63,9 +63,11 @@ const ACTIVE_PROFILE_TYPE_STORAGE_KEY = '@barlive_active_profile_type';
 
 export function ModeProvider({ children }: { children: ReactNode }) {
   const { user: authUser } = useAuth();
-  const { isImpersonating, impersonatedUser, effectiveUser } = useImpersonation();
+  const { isImpersonating, impersonatedUser, effectiveUser, adminUser } = useImpersonation();
   
+  // ✅ CRITICAL FIX: Use effectiveUser for data queries, but adminUser for permission checks
   const user = effectiveUser || authUser;
+  const userForPermissions = isImpersonating && adminUser ? adminUser : user;
   
   const [currentMode, setCurrentModeState] = useState<UserMode>('cliente');
   const [activeProfileId, setActiveProfileIdState] = useState<string | null>(null);
@@ -286,10 +288,12 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   const setCurrentMode = useCallback(async (mode: UserMode) => {
     try {
       console.log('[ModeContext v290.0] 🔄 Setting mode to:', mode);
+      console.log('[ModeContext v290.0] 🔍 Impersonation status:', isImpersonating ? 'active' : 'inactive');
       
       if (user) {
-        const userRole = user.rol_app || 'cliente';
-        const userIsAdmin = isAdminUser(user);
+        // ✅ CRITICAL FIX: Use userForPermissions to check role validity during impersonation
+        const userRole = userForPermissions.rol_app || 'cliente';
+        const userIsAdmin = isAdminUser(userForPermissions);
         
         const isValidMode = 
           (mode === 'cliente') ||
@@ -299,6 +303,10 @@ export function ModeProvider({ children }: { children: ReactNode }) {
         if (!isValidMode) {
           console.warn('[ModeContext v290.0] ⚠️ Invalid mode for user:', mode, userRole);
           return;
+        }
+        
+        if (isImpersonating) {
+          console.log('[ModeContext v290.0] 👑 Admin permissions preserved during impersonation');
         }
       }
       
