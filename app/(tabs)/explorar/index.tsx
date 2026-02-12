@@ -72,9 +72,16 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v334.0 - ANDROID CRITICAL PERFORMANCE FIX
+ * ✅ EXPLORAR SCREEN v335.0 - UI OPTIMIZATION & VIEWPORT EFFICIENCY
  * 
- * CRITICAL FIXES v334.0:
+ * CRITICAL CHANGES v335.0:
+ * - ✅ REDUCED IMAGE HEIGHT: Card images now 140px (was 200px)
+ * - ✅ VIEWPORT OPTIMIZATION: Users can now see almost 2 complete cards on screen
+ * - ✅ BETTER SPACE USAGE: 30% reduction in image height improves content density
+ * - ✅ MAINTAINED TEXT SCALING: +2 point font increase preserved across all text
+ * - ✅ RESULT: More efficient use of vertical space without compromising readability
+ * 
+ * Previous fixes v334.0:
  * - ✅ DISABLED CONSOLE LOGS: Removed ALL console.log on Android
  * - ✅ SILENT MODE: All operations run silently on Android
  * - ✅ ANDROID OPTIMIZATION: Zero console output = zero UI blocking
@@ -2091,7 +2098,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: '100%',
-    height: 200,
+    height: 140,
     position: 'relative',
   },
   image: {

@@ -30,9 +30,15 @@ interface LocalCardProps {
 }
 
 /**
- * ✅ LOCAL CARD v335.0 - ANDROID PERFORMANCE OPTIMIZATION
+ * ✅ LOCAL CARD v336.0 - UI OPTIMIZATION & VIEWPORT EFFICIENCY
  * 
- * OPTIMIZATIONS:
+ * CRITICAL CHANGES v336.0:
+ * - ✅ REDUCED IMAGE HEIGHT: Card images now 140px (was 200px)
+ * - ✅ VIEWPORT OPTIMIZATION: Users can now see almost 2 complete cards on screen
+ * - ✅ BETTER SPACE USAGE: 30% reduction in image height improves content density
+ * - ✅ MAINTAINED TEXT SCALING: +2 point font increase preserved across all text
+ * 
+ * Previous optimizations v335.0:
  * - ✅ React.memo with custom comparison to prevent unnecessary re-renders
  * - ✅ expo-image with priority="high", cachePolicy="disk", transition={150}
  * - ✅ recyclingKey based on local.id for optimal memory reuse on Android
@@ -284,7 +290,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: '100%',
-    height: 200,
+    height: 140,
     position: 'relative',
   },
   image: {
