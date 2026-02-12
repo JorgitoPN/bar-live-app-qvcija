@@ -8,32 +8,36 @@ import {
   TouchableOpacity,
   Platform,
   ActivityIndicator,
-  TextInput,
-  KeyboardAvoidingView,
-  ScrollView,
-  Alert,
+  Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { scaleFontSize } from '@/utils/androidScaling';
-import { supabase } from '@/utils/supabase';
+import { useRouter } from 'expo-router';
 
 interface VirtualRoomLoginModalProps {
   visible: boolean;
   onClose: () => void;
   onLoginSuccess: () => void;
   localName: string;
+  redirectPath: string;
 }
 
 /**
- * ✅ VIRTUAL ROOM LOGIN MODAL v1.0 - IN-ROOM AUTHENTICATION
+ * ✅ VIRTUAL ROOM LOGIN MODAL v2.0 - AUTHENTICATION INTERCEPTION
+ * 
+ * NEW CHANGES v2.0:
+ * - ✅ INTELLIGENT REDIRECT: Passes redirect path to login/register screens
+ * - ✅ SEAMLESS FLOW: User returns to virtual room after authentication
+ * - ✅ CONSISTENT DESIGN: Respects text scaling (+2 points) and app styling
+ * - ✅ TWO ACTIONS: "Iniciar Sesión" and "Registrarse" buttons
  * 
  * Features:
- * - Login/Register without leaving virtual room context
- * - Email + Password authentication
- * - Seamless flow that returns to same virtual room after auth
- * - No interruption to user experience
+ * - Clear message: "Debes iniciar sesión para acceder a la Sala Virtual"
+ * - Two action buttons with proper styling
+ * - Redirect parameter passed to auth screens
+ * - Returns user to virtual room after successful auth
  */
 
 export default function VirtualRoomLoginModal({
@@ -41,269 +45,122 @@ export default function VirtualRoomLoginModal({
   onClose,
   onLoginSuccess,
   localName,
+  redirectPath,
 }: VirtualRoomLoginModalProps) {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [nombre, setNombre] = useState('');
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
-      return;
-    }
+  const messageText = 'Debes iniciar sesión para acceder a la Sala Virtual';
+  const loginButtonText = 'Iniciar Sesión';
+  const registerButtonText = 'Registrarse';
 
-    try {
-      setLoading(true);
-      console.log('[VirtualRoomLogin v1.0] 🔐 Attempting login...');
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: password.trim(),
-      });
-
-      if (error) {
-        console.error('[VirtualRoomLogin v1.0] ❌ Login error:', error);
-        Alert.alert('Error', error.message || 'No se pudo iniciar sesión');
-        return;
-      }
-
-      console.log('[VirtualRoomLogin v1.0] ✅ Login successful');
-      
-      setEmail('');
-      setPassword('');
-      setNombre('');
-      
-      onLoginSuccess();
-    } catch (error: any) {
-      console.error('[VirtualRoomLogin v1.0] ❌ Login error:', error);
-      Alert.alert('Error', 'Ocurrió un error al iniciar sesión');
-    } finally {
-      setLoading(false);
-    }
+  const handleLogin = () => {
+    console.log('[VirtualRoomLoginModal v2.0] 🔐 Navigating to login with redirect:', redirectPath);
+    
+    router.push({
+      pathname: '/auth/login-secure',
+      params: {
+        redirect: redirectPath,
+      },
+    });
   };
 
-  const handleRegister = async () => {
-    if (!email.trim() || !password.trim() || !nombre.trim()) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      console.log('[VirtualRoomLogin v1.0] 📝 Attempting registration...');
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password.trim(),
-        options: {
-          data: {
-            nombre: nombre.trim(),
-          },
-        },
-      });
-
-      if (authError) {
-        console.error('[VirtualRoomLogin v1.0] ❌ Registration error:', authError);
-        Alert.alert('Error', authError.message || 'No se pudo crear la cuenta');
-        return;
-      }
-
-      if (!authData.user) {
-        Alert.alert('Error', 'No se pudo crear la cuenta');
-        return;
-      }
-
-      console.log('[VirtualRoomLogin v1.0] ✅ User created in auth system');
-
-      const { error: profileError } = await supabase
-        .from('usuarios')
-        .insert({
-          id: authData.user.id,
-          email: email.trim(),
-          nombre: nombre.trim(),
-          rol_app: 'cliente',
-        });
-
-      if (profileError) {
-        console.error('[VirtualRoomLogin v1.0] ❌ Profile creation error:', profileError);
-      } else {
-        console.log('[VirtualRoomLogin v1.0] ✅ User profile created');
-      }
-
-      console.log('[VirtualRoomLogin v1.0] ✅ Registration successful');
-      
-      setEmail('');
-      setPassword('');
-      setNombre('');
-      
-      Alert.alert(
-        '¡Cuenta creada!',
-        'Tu cuenta ha sido creada exitosamente. Ya puedes acceder a la Sala Virtual.',
-        [{ text: 'OK', onPress: onLoginSuccess }]
-      );
-    } catch (error: any) {
-      console.error('[VirtualRoomLogin v1.0] ❌ Registration error:', error);
-      Alert.alert('Error', 'Ocurrió un error al crear la cuenta');
-    } finally {
-      setLoading(false);
-    }
+  const handleRegister = () => {
+    console.log('[VirtualRoomLoginModal v2.0] 📝 Navigating to register with redirect:', redirectPath);
+    
+    router.push({
+      pathname: '/auth/registro-seguro',
+      params: {
+        redirect: redirectPath,
+      },
+    });
   };
-
-  const handleSubmit = () => {
-    if (mode === 'login') {
-      handleLogin();
-    } else {
-      handleRegister();
-    }
-  };
-
-  const isLoginMode = mode === 'login';
-  const titleText = isLoginMode ? 'Inicia Sesión' : 'Crear Cuenta';
-  const subtitleText = isLoginMode 
-    ? `Inicia sesión para acceder a la Sala Virtual de ${localName}`
-    : `Crea tu cuenta para acceder a la Sala Virtual de ${localName}`;
-  const buttonText = isLoginMode ? 'Iniciar Sesión' : 'Crear Cuenta';
-  const switchText = isLoginMode ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?';
-  const switchButtonText = isLoginMode ? 'Regístrate' : 'Inicia Sesión';
 
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType="fade"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <TouchableOpacity 
-          style={styles.overlayTouchable} 
-          activeOpacity={1} 
-          onPress={onClose}
-        />
-        
-        <View style={styles.container}>
-          <ScrollView 
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.header}>
-              <LinearGradient
-                colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-                style={styles.iconContainer}
-              >
-                <IconSymbol 
-                  ios_icon_name="cube.fill" 
-                  android_material_icon_name="view_in_ar" 
-                  size={48} 
-                  color={colors.headerText} 
-                />
-              </LinearGradient>
+      <Pressable style={styles.overlay} onPress={onClose}>
+        <Pressable style={styles.container} onPress={(e) => e.stopPropagation()}>
+          <View style={styles.content}>
+            <LinearGradient
+              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+              style={styles.iconContainer}
+            >
+              <IconSymbol 
+                ios_icon_name="cube.fill" 
+                android_material_icon_name="view_in_ar" 
+                size={56} 
+                color={colors.headerText} 
+              />
+            </LinearGradient>
 
-              <Text style={[styles.title, { fontSize: scaleFontSize(24) }]}>{titleText}</Text>
-              <Text style={[styles.subtitle, { fontSize: scaleFontSize(15) }]}>{subtitleText}</Text>
-            </View>
+            <Text style={[styles.title, { fontSize: scaleFontSize(22) }]}>
+              Sala Virtual
+            </Text>
+            
+            <Text style={[styles.message, { fontSize: scaleFontSize(16) }]}>
+              {messageText}
+            </Text>
 
-            <View style={styles.form}>
-              {!isLoginMode && (
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { fontSize: scaleFontSize(14) }]}>Nombre</Text>
-                  <TextInput
-                    style={[styles.input, { fontSize: scaleFontSize(16) }]}
-                    placeholder="Tu nombre"
-                    placeholderTextColor={colors.textSecondary}
-                    value={nombre}
-                    onChangeText={setNombre}
-                    autoCapitalize="words"
-                    editable={!loading}
-                  />
-                </View>
-              )}
-
-              <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { fontSize: scaleFontSize(14) }]}>Email</Text>
-                <TextInput
-                  style={[styles.input, { fontSize: scaleFontSize(16) }]}
-                  placeholder="tu@email.com"
-                  placeholderTextColor={colors.textSecondary}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!loading}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { fontSize: scaleFontSize(14) }]}>Contraseña</Text>
-                <TextInput
-                  style={[styles.input, { fontSize: scaleFontSize(16) }]}
-                  placeholder={isLoginMode ? 'Tu contraseña' : 'Mínimo 6 caracteres'}
-                  placeholderTextColor={colors.textSecondary}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!loading}
-                />
-              </View>
-
+            <View style={styles.buttonsContainer}>
               <TouchableOpacity
-                style={styles.submitButton}
-                onPress={handleSubmit}
+                style={styles.loginButton}
+                onPress={handleLogin}
                 disabled={loading}
+                activeOpacity={0.8}
               >
                 <LinearGradient
                   colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-                  style={styles.submitButtonGradient}
+                  style={styles.loginButtonGradient}
                 >
-                  {loading ? (
-                    <ActivityIndicator size="small" color={colors.headerText} />
-                  ) : (
-                    <Text style={[styles.submitButtonText, { fontSize: scaleFontSize(16) }]}>
-                      {buttonText}
-                    </Text>
-                  )}
+                  <IconSymbol 
+                    ios_icon_name="person.fill" 
+                    android_material_icon_name="person" 
+                    size={20} 
+                    color={colors.headerText} 
+                  />
+                  <Text style={[styles.loginButtonText, { fontSize: scaleFontSize(16) }]}>
+                    {loginButtonText}
+                  </Text>
                 </LinearGradient>
               </TouchableOpacity>
 
-              <View style={styles.switchModeContainer}>
-                <Text style={[styles.switchModeText, { fontSize: scaleFontSize(14) }]}>
-                  {switchText}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    setMode(isLoginMode ? 'register' : 'login');
-                    setEmail('');
-                    setPassword('');
-                    setNombre('');
-                  }}
-                  disabled={loading}
-                >
-                  <Text style={[styles.switchModeButton, { fontSize: scaleFontSize(14) }]}>
-                    {switchButtonText}
+              <TouchableOpacity
+                style={styles.registerButton}
+                onPress={handleRegister}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                <View style={styles.registerButtonContent}>
+                  <IconSymbol 
+                    ios_icon_name="person.badge.plus" 
+                    android_material_icon_name="person_add" 
+                    size={20} 
+                    color={colors.primary} 
+                  />
+                  <Text style={[styles.registerButtonText, { fontSize: scaleFontSize(16) }]}>
+                    {registerButtonText}
                   </Text>
-                </TouchableOpacity>
-              </View>
+                </View>
+              </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose} disabled={loading}>
-              <Text style={[styles.cancelButtonText, { fontSize: scaleFontSize(14) }]}>Cancelar</Text>
+            <TouchableOpacity 
+              style={styles.cancelButton} 
+              onPress={onClose} 
+              disabled={loading}
+            >
+              <Text style={[styles.cancelButtonText, { fontSize: scaleFontSize(14) }]}>
+                Cancelar
+              </Text>
             </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
+          </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
@@ -312,89 +169,86 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'flex-end',
-  },
-  overlayTouchable: {
-    flex: 1,
-  },
-  container: {
-    backgroundColor: colors.cardBackground,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-  },
-  scrollContent: {
-    padding: 24,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  iconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    padding: 24,
   },
-  title: {
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 8,
-    textAlign: 'center',
+  container: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
   },
-  subtitle: {
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 20,
-  },
-  form: {
-    marginBottom: 20,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    color: colors.text,
-  },
-  submitButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginTop: 8,
-  },
-  submitButtonGradient: {
-    paddingVertical: 16,
+  content: {
+    padding: 32,
     alignItems: 'center',
   },
-  submitButtonText: {
-    fontWeight: 'bold',
-    color: colors.headerText,
+  iconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  switchModeContainer: {
+  title: {
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  message: {
+    color: colors.text,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 28,
+    paddingHorizontal: 8,
+  },
+  buttonsContainer: {
+    width: '100%',
+    gap: 12,
+    marginBottom: 16,
+  },
+  loginButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  loginButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
-    gap: 6,
+    gap: 10,
+    paddingVertical: 16,
   },
-  switchModeText: {
-    color: colors.textSecondary,
+  loginButtonText: {
+    fontWeight: 'bold',
+    color: colors.headerText,
   },
-  switchModeButton: {
-    fontWeight: '600',
+  registerButton: {
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    backgroundColor: colors.background,
+  },
+  registerButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 16,
+  },
+  registerButtonText: {
+    fontWeight: 'bold',
     color: colors.primary,
   },
   cancelButton: {
@@ -403,5 +257,6 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: colors.textSecondary,
+    fontWeight: '600',
   },
 });

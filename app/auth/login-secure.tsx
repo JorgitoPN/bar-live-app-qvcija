@@ -1,6 +1,11 @@
 
 /**
- * 🔐 SECURE LOGIN SCREEN v1.0 - ANTI-HACKING PROTECTION
+ * 🔐 SECURE LOGIN SCREEN v2.0 - INTELLIGENT REDIRECT FLOW
+ * 
+ * NEW CHANGES v2.0:
+ * - ✅ INTELLIGENT REDIRECT: Reads redirect parameter and navigates to intended destination
+ * - ✅ SEAMLESS UX: User returns to virtual room (or other protected route) after login
+ * - ✅ CONSISTENT DESIGN: Respects text scaling (+2 points) and app styling
  * 
  * SECURITY FEATURES:
  * - ✅ Rate limiting (3 attempts before CAPTCHA)
@@ -16,6 +21,7 @@
  * 3. Verify credentials with Supabase (bcrypt hashing)
  * 4. If failed: increment attempts, show CAPTCHA if needed
  * 5. If success: reset attempts, create secure session
+ * 6. ✅ NEW: Redirect to intended destination (if redirect param exists)
  */
 
 import React, { useState, useEffect } from 'react';
@@ -32,7 +38,7 @@ import {
   Alert,
   Modal,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -54,6 +60,7 @@ import {
 
 export default function SecureLoginScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { setSessionManually } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -63,6 +70,11 @@ export default function SecureLoginScreen() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [showCookieConsent, setShowCookieConsent] = useState(false);
+
+  // ✅ v2.0: Read redirect parameter
+  const redirectPath = params.redirect as string | undefined;
+  
+  console.log('[SecureLogin v2.0] 🔄 Redirect path from params:', redirectPath);
 
   useEffect(() => {
     checkCookieConsent();
@@ -173,7 +185,7 @@ export default function SecureLoginScreen() {
     setLoading(true);
 
     try {
-      console.log('[SecureLogin] 🔐 Attempting secure login:', normalizedEmail);
+      console.log('[SecureLogin v2.0] 🔐 Attempting secure login:', normalizedEmail);
 
       // Sign in with Supabase Auth (bcrypt hashing handled automatically)
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -182,7 +194,7 @@ export default function SecureLoginScreen() {
       });
 
       if (authError) {
-        console.error('[SecureLogin] ❌ Login failed:', authError.message);
+        console.error('[SecureLogin v2.0] ❌ Login failed:', authError.message);
         
         // Record failed attempt
         const attemptResult = await recordFailedAttempt(normalizedEmail);
@@ -235,13 +247,13 @@ export default function SecureLoginScreen() {
       }
 
       if (!authData.user || !authData.session) {
-        console.error('[SecureLogin] ❌ No user or session returned');
+        console.error('[SecureLogin v2.0] ❌ No user or session returned');
         Alert.alert('Error', 'No se pudo iniciar sesión. Por favor, intenta de nuevo.');
         setLoading(false);
         return;
       }
 
-      console.log('[SecureLogin] ✅ Login successful:', authData.user.id);
+      console.log('[SecureLogin v2.0] ✅ Login successful:', authData.user.id);
 
       // Reset login attempts on successful login
       await resetLoginAttempts(normalizedEmail);
@@ -259,19 +271,25 @@ export default function SecureLoginScreen() {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       
       if (!currentSession) {
-        console.error('[SecureLogin] ❌ Session verification failed');
+        console.error('[SecureLogin v2.0] ❌ Session verification failed');
         Alert.alert('Error', 'Error al establecer la sesión. Por favor, intenta de nuevo.');
         setLoading(false);
         return;
       }
 
-      console.log('[SecureLogin] ✅ Session verified, redirecting...');
+      console.log('[SecureLogin v2.0] ✅ Session verified, redirecting...');
       
-      // Redirect to explorar
-      router.replace('/(tabs)/explorar');
+      // ✅ v2.0: INTELLIGENT REDIRECT - Navigate to intended destination
+      if (redirectPath) {
+        console.log('[SecureLogin v2.0] 🎯 Redirecting to saved path:', redirectPath);
+        router.replace(redirectPath as any);
+      } else {
+        console.log('[SecureLogin v2.0] 🏠 No redirect path, going to explorar');
+        router.replace('/(tabs)/explorar');
+      }
       
     } catch (error: any) {
-      console.error('[SecureLogin] ❌ Unexpected error:', error);
+      console.error('[SecureLogin v2.0] ❌ Unexpected error:', error);
       
       await logSecurityEvent('login_failed', normalizedEmail, {
         error: error.message,
@@ -508,7 +526,17 @@ export default function SecureLoginScreen() {
 
               <TouchableOpacity
                 style={styles.registerButton}
-                onPress={() => router.replace('/auth/registro-email')}
+                onPress={() => {
+                  // ✅ v2.0: Pass redirect parameter to register screen
+                  if (redirectPath) {
+                    router.replace({
+                      pathname: '/auth/registro-email',
+                      params: { redirect: redirectPath },
+                    });
+                  } else {
+                    router.replace('/auth/registro-email');
+                  }
+                }}
               >
                 <Text style={styles.registerButtonText}>
                   ¿No tienes cuenta? <Text style={styles.registerButtonTextBold}>Regístrate</Text>

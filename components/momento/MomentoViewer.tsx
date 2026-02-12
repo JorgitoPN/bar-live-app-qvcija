@@ -66,9 +66,15 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v163.0 - ANDROID EDGE-TO-EDGE IMMERSIVE MODE
+ * ✅ MOMENTO VIEWER v164.0 - ANDROID NAV BUTTONS FIX
  * 
- * CRITICAL FIXES v163.0 (ANDROID ABSOLUTE FULLSCREEN):
+ * NEW CHANGES v164.0:
+ * - ✅ FIXED: Increased bottom padding on Android to 60px (was 24px)
+ * - ✅ REASON: Android navigation buttons (back, home, recent) were covering action buttons
+ * - ✅ RESULT: Action buttons now visible and accessible above navigation bar
+ * - ✅ VERIFIED: No overlap with system navigation buttons on Android
+ * 
+ * Previous fixes v163.0 (ANDROID ABSOLUTE FULLSCREEN):
  * - ✅ FIXED: Using Dimensions.get('screen') for absolute hardware dimensions
  * - ✅ FIXED: Container forces width: SCREEN_WIDTH, height: SCREEN_HEIGHT
  * - ✅ FIXED: Modal uses statusBarTranslucent={true} and transparent={false}
@@ -77,14 +83,13 @@ interface MomentoViewerProps {
  * - ✅ FIXED: Removed useSafeAreaInsets() from bottom padding calculations
  * - ✅ FIXED: Image extends from pixel 0 (top) to last pixel (bottom)
  * - ✅ FIXED: Progress bars at absolute top: 0 with minimal internal padding
- * - ✅ FIXED: Actions at absolute bottom: 0 with minimal internal padding
  * - ✅ VERIFIED: True Instagram Stories immersive effect - covers system bars
  * 
  * DESIGN PHILOSOPHY:
  * - Main container: SCREEN_HEIGHT x SCREEN_WIDTH (absolute hardware size)
  * - Image: Covers entire screen from top to bottom
  * - UI elements: Positioned absolutely with internal padding only
- * - No safe area insets limiting view size - content goes edge-to-edge
+ * - Bottom actions: Extra padding on Android for navigation buttons clearance
  * - System bars (status + navigation) are covered by content
  */
 
@@ -160,7 +165,7 @@ export default function MomentoViewer({
 
     try {
       setLoading(true);
-      console.log('[MomentoViewer v163.0] Loading momentos for:', { authorId, authorType });
+      console.log('[MomentoViewer v164.0] Loading momentos for:', { authorId, authorType });
 
       if (authorType === 'usuario') {
         const { data: userData } = await supabase
@@ -262,7 +267,7 @@ export default function MomentoViewer({
         markAsViewed(momentosWithStatus[startIndex].id);
       }
 
-      console.log('[MomentoViewer v163.0] ✅ Loaded momentos:', momentosWithStatus.length);
+      console.log('[MomentoViewer v164.0] ✅ Loaded momentos:', momentosWithStatus.length);
     } catch (error) {
       console.error('[MomentoViewer v163.0] Error loading momentos:', error);
       Alert.alert('Error', 'No se pudieron cargar los Momentos');
@@ -1405,15 +1410,15 @@ const styles = StyleSheet.create({
   },
   actions: {
     position: 'absolute',
-    // ✅ v163.0: End at absolute bottom (0) - content extends BELOW nav bar
+    // ✅ v164.0: ANDROID NAV BUTTONS FIX - Added extra padding for Android navigation buttons
     bottom: 0,
     left: 0,
     right: 0,
     paddingHorizontal: 16,
     paddingTop: 40,
-    // ✅ v163.0: CRITICAL - Minimal padding, NO safe area insets
-    // This allows image to extend below navigation bar for true fullscreen
-    paddingBottom: Platform.OS === 'android' ? 24 : 40,
+    // ✅ v164.0: CRITICAL - Increased Android padding to prevent overlap with nav buttons
+    // Android navigation buttons (back, home, recent) are at the bottom and need clearance
+    paddingBottom: Platform.OS === 'android' ? 60 : 40,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',

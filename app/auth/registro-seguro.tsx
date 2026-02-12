@@ -32,7 +32,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -49,6 +49,7 @@ import {
 
 export default function SecureRegistrationScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -59,6 +60,11 @@ export default function SecureRegistrationScreen() {
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong'>('weak');
+
+  // ✅ v2.0: Read redirect parameter
+  const redirectPath = params.redirect as string | undefined;
+  
+  console.log('[SecureRegistration v2.0] 🔄 Redirect path from params:', redirectPath);
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
@@ -218,10 +224,23 @@ export default function SecureRegistrationScreen() {
           {
             text: 'Entendido',
             onPress: () => {
-              router.replace({
-                pathname: '/auth/verificar-email',
-                params: { email: normalizedEmail },
-              });
+              // ✅ v2.0: INTELLIGENT REDIRECT - Navigate to intended destination after verification
+              if (redirectPath) {
+                console.log('[SecureRegistration v2.0] 🎯 Will redirect to saved path after verification:', redirectPath);
+                router.replace({
+                  pathname: '/auth/verificar-email',
+                  params: { 
+                    email: normalizedEmail,
+                    redirect: redirectPath,
+                  },
+                });
+              } else {
+                console.log('[SecureRegistration v2.0] 🏠 No redirect path, standard verification flow');
+                router.replace({
+                  pathname: '/auth/verificar-email',
+                  params: { email: normalizedEmail },
+                });
+              }
             },
           },
         ]
