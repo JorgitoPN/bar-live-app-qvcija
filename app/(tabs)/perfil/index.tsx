@@ -14,6 +14,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -25,13 +26,13 @@ import { supabase } from '@/utils/supabase';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import MomentoUpload from '@/components/momento/MomentoUpload';
 import MomentoViewer from '@/components/momento/MomentoViewer';
-import PostViewerModal from '@/components/social/PostViewerModal';
 import ShoppingCart from '@/components/payment/ShoppingCart';
 import { profileCache } from '@/utils/profileCache';
 import UnifiedMomentoAvatar from '@/components/common/UnifiedMomentoAvatar';
 import { scaleFontSize } from '@/utils/androidScaling';
 import SolicitudPropiedadStatus from '@/components/perfil/SolicitudPropiedadStatus';
 import { formatFollowersCount } from '@/utils/formatters';
+import PublicacionCard from '@/components/social/PublicacionCard';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -54,6 +55,10 @@ interface Post {
   liked?: boolean;
   saved?: boolean;
   comentarios?: number;
+  likes_count?: number;
+  comentarios_count?: number;
+  user_has_liked?: boolean;
+  user_has_saved?: boolean;
 }
 
 interface PerfilProfesional {
@@ -73,12 +78,20 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v345.0 - POST VIEWER INTEGRATION FIX
+ * ✅ PROFILE SCREEN v350.0 - UNIFIED WITH SOCIAL SYSTEM
  * 
- * CAMBIOS v345.0:
- * - ✅ FIXED PROBLEM 3: Correct post order passed to PostViewerModal
- * - ✅ IMPROVED: Better logging for debugging post selection
- * - ✅ VERIFIED: Posts array order matches grid display order
+ * CAMBIOS v350.0:
+ * - ✅ PROBLEMA RESUELTO: Ahora usa el MISMO sistema que la página social
+ * - ✅ COHERENCIA: PublicacionCard se usa directamente en lugar de PostViewerModal
+ * - ✅ FUNCIONALIDAD: Navegación a comentarios funciona igual que en social
+ * - ✅ PRESERVACIÓN: Estado se preserva automáticamente (mismo componente)
+ * - ✅ SIMPLICIDAD: Sin modales complejos, solo el feed directo
+ * 
+ * ARQUITECTURA:
+ * - Vista de cuadrícula: Muestra miniaturas de las publicaciones
+ * - Al hacer clic: Cambia a vista de lista con PublicacionCard (igual que social)
+ * - Navegación a comentarios: Funciona igual que en social (Stack navigation)
+ * - Botón de volver: Regresa a la vista de cuadrícula
  */
 
 export default function PerfilScreen() {
@@ -113,9 +126,9 @@ export default function PerfilScreen() {
   const [perfilProfesional, setPerfilProfesional] = useState<PerfilProfesional | null>(null);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
 
-  const [showPostViewer, setShowPostViewer] = useState(false);
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const [allPostIds, setAllPostIds] = useState<string[]>([]);
+  // ✅ v350.0: NEW - Vista de lista (igual que social) vs vista de cuadrícula
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectedPostIndex, setSelectedPostIndex] = useState(0);
 
   const [currentLocal, setCurrentLocal] = useState<any>(null);
   const [checkInInfo, setCheckInInfo] = useState<CheckInInfo | null>(null);
@@ -156,7 +169,7 @@ export default function PerfilScreen() {
         setUnreadMessages(totalUnread);
       }
     } catch (error) {
-      console.error('[Perfil v345.0] Error loading unread counts:', error);
+      console.error('[Perfil v350.0] Error loading unread counts:', error);
     }
   }, [userId]);
 
@@ -170,14 +183,14 @@ export default function PerfilScreen() {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('[Perfil v345.0] ❌ Error loading cart count:', error);
+        console.error('[Perfil v350.0] ❌ Error loading cart count:', error);
         return;
       }
 
-      console.log('[Perfil v345.0] 🛒 Cart items count:', count);
+      console.log('[Perfil v350.0] 🛒 Cart items count:', count);
       setCartItemsCount(count || 0);
     } catch (error) {
-      console.error('[Perfil v345.0] ❌ Error loading cart count:', error);
+      console.error('[Perfil v350.0] ❌ Error loading cart count:', error);
     }
   }, [userId, isPropietario]);
 
@@ -197,7 +210,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v345.0] Error loading current local:', error);
+        console.error('[Perfil v350.0] Error loading current local:', error);
         return;
       }
 
@@ -212,7 +225,7 @@ export default function PerfilScreen() {
         setCheckInInfo(null);
       }
     } catch (error) {
-      console.error('[Perfil v345.0] Error loading current local:', error);
+      console.error('[Perfil v350.0] Error loading current local:', error);
     }
   }, [userId]);
 
@@ -258,21 +271,24 @@ export default function PerfilScreen() {
           return acc;
         }, {} as Record<string, number>) || {};
 
+        // ✅ v350.0: Formato compatible con PublicacionCard (igual que social)
         const postsWithStatus = (data || []).map(post => ({
           ...post,
-          liked: likedPostIds.has(post.id),
-          comentarios: commentCounts[post.id] || 0,
+          user_has_liked: likedPostIds.has(post.id),
+          user_has_saved: false,
+          likes_count: post.likes || 0,
+          comentarios_count: commentCounts[post.id] || 0,
         }));
 
         setPosts(postsWithStatus);
-        console.log('[Perfil v345.0] ✅ Posts loaded:', postsWithStatus.length);
+        console.log('[Perfil v350.0] ✅ Posts loaded:', postsWithStatus.length);
         return postsWithStatus;
       } else {
         setPosts([]);
         return [];
       }
     } catch (error) {
-      console.error('[Perfil v345.0] Error cargando posts:', error);
+      console.error('[Perfil v350.0] Error cargando posts:', error);
       return [];
     }
   }, [userId]);
@@ -323,11 +339,13 @@ export default function PerfilScreen() {
           return acc;
         }, {} as Record<string, number>) || {};
 
+        // ✅ v350.0: Formato compatible con PublicacionCard
         const postsWithStatus = savedPostsData.map(post => ({
           ...post,
-          liked: likedPostIds.has(post.id),
-          saved: true,
-          comentarios: commentCounts[post.id] || 0,
+          user_has_liked: likedPostIds.has(post.id),
+          user_has_saved: true,
+          likes_count: post.likes || 0,
+          comentarios_count: commentCounts[post.id] || 0,
         }));
 
         setSavedPosts(postsWithStatus);
@@ -335,7 +353,7 @@ export default function PerfilScreen() {
         setSavedPosts([]);
       }
     } catch (error) {
-      console.error('[Perfil v345.0] Error cargando favoritos:', error);
+      console.error('[Perfil v350.0] Error cargando favoritos:', error);
     }
   }, [userId]);
 
@@ -405,16 +423,18 @@ export default function PerfilScreen() {
         return acc;
       }, {} as Record<string, number>) || {};
 
+      // ✅ v350.0: Formato compatible con PublicacionCard
       const postsWithStatus = postsData.map(post => ({
         ...post,
-        liked: likedPostIds.has(post.id),
-        saved: savedPostIds.has(post.id),
-        comentarios: commentCounts[post.id] || 0,
+        user_has_liked: likedPostIds.has(post.id),
+        user_has_saved: savedPostIds.has(post.id),
+        likes_count: post.likes || 0,
+        comentarios_count: commentCounts[post.id] || 0,
       }));
 
       setTaggedPosts(postsWithStatus);
     } catch (error) {
-      console.error('[Perfil v345.0] Error cargando etiquetados:', error);
+      console.error('[Perfil v350.0] Error cargando etiquetados:', error);
       setTaggedPosts([]);
     }
   }, [userId]);
@@ -431,7 +451,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v345.0] Error loading professional profile:', error);
+        console.error('[Perfil v350.0] Error loading professional profile:', error);
       }
 
       if (data) {
@@ -440,7 +460,7 @@ export default function PerfilScreen() {
         setPerfilProfesional(null);
       }
     } catch (error) {
-      console.error('[Perfil v345.0] Error loading professional profile:', error);
+      console.error('[Perfil v350.0] Error loading professional profile:', error);
     } finally {
       setLoadingEmpleo(false);
     }
@@ -451,7 +471,7 @@ export default function PerfilScreen() {
 
     try {
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v345.0] 🔄 Loading profile data...');
+        console.log('[Perfil v350.0] 🔄 Loading profile data...');
       }
 
       await loadUnreadCounts();
@@ -469,7 +489,7 @@ export default function PerfilScreen() {
       const seguidosCount = userFollowsCount || 0;
 
       if (seguidoresError) {
-        console.error('[Perfil v345.0] Error loading seguidores count:', seguidoresError);
+        console.error('[Perfil v350.0] Error loading seguidores count:', seguidoresError);
       }
 
       const seguidoresCount = seguidoresData || 0;
@@ -499,10 +519,10 @@ export default function PerfilScreen() {
       }
 
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v345.0] ✅ Profile data loaded and cached');
+        console.log('[Perfil v350.0] ✅ Profile data loaded and cached');
       }
     } catch (error) {
-      console.error('[Perfil v345.0] Error cargando datos:', error);
+      console.error('[Perfil v350.0] Error cargando datos:', error);
     } finally {
       setRefreshing(false);
     }
@@ -512,22 +532,22 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const loadCachedData = async () => {
-      console.log('[Perfil v345.0] ⚡ Loading from cache...');
+      console.log('[Perfil v350.0] ⚡ Loading from cache...');
       const cached = await profileCache.get(userId, 'user');
       
       if (cached) {
-        console.log('[Perfil v345.0] ⚡⚡⚡ INSTANT LOAD from cache');
+        console.log('[Perfil v350.0] ⚡⚡⚡ INSTANT LOAD from cache');
         setSeguidores(cached.stats.seguidores);
         setSeguidos(cached.stats.seguidos);
         setPublicaciones(cached.stats.posts);
         setPosts(cached.posts);
         
         setTimeout(() => {
-          console.log('[Perfil v345.0] 🔄 Background refresh...');
+          console.log('[Perfil v350.0] 🔄 Background refresh...');
           cargarDatosPerfil(true);
         }, 100);
       } else {
-        console.log('[Perfil v345.0] 📡 No cache, loading from database...');
+        console.log('[Perfil v350.0] 📡 No cache, loading from database...');
         cargarDatosPerfil(false);
       }
     };
@@ -554,7 +574,7 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const subscription = supabase
-      .channel('profile-updates-v345')
+      .channel('profile-updates-v350')
       .on(
         'postgres_changes',
         {
@@ -601,7 +621,7 @@ export default function PerfilScreen() {
     if (!userId || !isPropietario) return;
 
     const subscription = supabase
-      .channel('cart-updates-v345')
+      .channel('cart-updates-v350')
       .on(
         'postgres_changes',
         {
@@ -611,7 +631,7 @@ export default function PerfilScreen() {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          console.log('[Perfil v345.0] 🛒 Cart updated, reloading count...');
+          console.log('[Perfil v350.0] 🛒 Cart updated, reloading count...');
           loadCartItemsCount();
         }
       )
@@ -682,30 +702,23 @@ export default function PerfilScreen() {
     router.push('/crear/publicacion');
   };
 
-  const handlePostClick = (postId: string) => {
-    console.log('[Perfil v345.0] 📱 PROBLEM 3 FIX: User clicked post in grid:', postId);
+  // ✅ v350.0: NEW - Cambiar a vista de lista (igual que social)
+  const handlePostClick = (postId: string, index: number) => {
+    console.log('[Perfil v350.0] 📱 User clicked post in grid:', postId, 'at index:', index);
+    console.log('[Perfil v350.0] ✅ Switching to list view (same as social page)');
     
-    // ✅ v345.0 FIX PROBLEM 3: Get current posts array based on active tab
-    const currentPosts = activeTab === 'posts' ? posts : activeTab === 'favoritos' ? savedPosts : taggedPosts;
-    
-    // ✅ v345.0 FIX PROBLEM 3: Pass posts in the SAME order as displayed in grid
-    const postIds = currentPosts.map(p => p.id);
-    
-    console.log('[Perfil v345.0] 📍 PROBLEM 3: Opening PostViewerModal with:', {
-      selectedPostId: postId,
-      totalPosts: postIds.length,
-      postIndex: postIds.indexOf(postId),
-      firstPostId: postIds[0],
-      lastPostId: postIds[postIds.length - 1],
-    });
-    
-    setSelectedPostId(postId);
-    setAllPostIds(postIds);
-    setShowPostViewer(true);
+    setSelectedPostIndex(index);
+    setViewMode('list');
+  };
+
+  // ✅ v350.0: NEW - Volver a vista de cuadrícula
+  const handleBackToGrid = () => {
+    console.log('[Perfil v350.0] ⬅️ Back to grid view');
+    setViewMode('grid');
   };
 
   const handleCartCheckout = async (items: any[], total: number) => {
-    console.log('[Perfil v345.0] 💳 Checkout requested:', { items: items.length, total });
+    console.log('[Perfil v350.0] 💳 Checkout requested:', { items: items.length, total });
     Alert.alert(
       'Pago en Desarrollo',
       `Total a pagar: €${total.toFixed(2)}\n\nLa integración con Stripe está en desarrollo.`,
@@ -738,7 +751,7 @@ export default function PerfilScreen() {
               setCheckInInfo(null);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
-              console.error('[Perfil v345.0] Error exiting local:', error);
+              console.error('[Perfil v350.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -770,11 +783,13 @@ export default function PerfilScreen() {
       ? post.imagenes[0] 
       : post.imagen;
 
+    const postIndex = currentPosts.indexOf(post);
+
     return (
       <View key={post.id} style={styles.gridItemWrapper}>
         <TouchableOpacity
           style={styles.gridItem}
-          onPress={() => handlePostClick(post.id)}
+          onPress={() => handlePostClick(post.id, postIndex)}
           activeOpacity={0.8}
         >
           {firstImage ? (
@@ -1042,6 +1057,76 @@ export default function PerfilScreen() {
   const currentPosts = activeTab === 'posts' ? posts : activeTab === 'favoritos' ? savedPosts : taggedPosts;
 
   const iconSize = Platform.OS === 'android' ? 20 : 24;
+
+  // ✅ v350.0: NEW - Renderizar publicación en lista (igual que social)
+  const renderPostInList = ({ item }: { item: Post }) => (
+    <PublicacionCard 
+      post={item} 
+      onUpdate={() => {
+        console.log('[Perfil v350.0] 🔄 Post updated, refreshing current tab');
+        if (activeTab === 'posts') {
+          cargarPosts();
+        } else if (activeTab === 'favoritos') {
+          cargarFavoritos();
+        } else if (activeTab === 'etiquetados') {
+          cargarEtiquetados();
+        }
+      }}
+    />
+  );
+
+  // ✅ v350.0: Si estamos en vista de lista, mostrar feed igual que social
+  if (viewMode === 'list' && activeTab !== 'empleo') {
+    return (
+      <View style={commonStyles.container}>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.listViewHeader}
+        >
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={handleBackToGrid}
+          >
+            <IconSymbol 
+              ios_icon_name="chevron.left" 
+              android_material_icon_name="arrow_back" 
+              size={24} 
+              color={colors.headerText} 
+            />
+          </TouchableOpacity>
+          <Text style={[styles.listViewHeaderTitle, { fontSize: scaleFontSize(18) }]}>Publicaciones</Text>
+          <View style={{ width: 40 }} />
+        </LinearGradient>
+
+        <FlatList
+          data={currentPosts}
+          renderItem={renderPostInList}
+          keyExtractor={(item) => item.id}
+          initialScrollIndex={selectedPostIndex}
+          getItemLayout={(data, index) => ({
+            length: 600, // Approximate post height
+            offset: 600 * index,
+            index,
+          })}
+          onScrollToIndexFailed={(info) => {
+            console.warn('[Perfil v350.0] ScrollToIndex failed:', info);
+            setTimeout(() => {
+              if (flatListRef.current) {
+                flatListRef.current.scrollToIndex({ index: info.index, animated: false });
+              }
+            }, 100);
+          }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listViewContent}
+          removeClippedSubviews={false}
+          maxToRenderPerBatch={3}
+          windowSize={5}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={commonStyles.container}>
@@ -1335,31 +1420,6 @@ export default function PerfilScreen() {
         authorType="usuario"
         onClose={() => setShowMomentoViewer(false)}
       />
-
-      {selectedPostId && allPostIds.length > 0 && (
-        <PostViewerModal
-          visible={showPostViewer}
-          initialPostId={selectedPostId}
-          allPostIds={allPostIds}
-          hideTagIcon={true}
-          onClose={() => {
-            console.log('[Perfil v345.0] 🔙 PostViewerModal closed');
-            setShowPostViewer(false);
-            setSelectedPostId(null);
-            setAllPostIds([]);
-          }}
-          onUpdate={() => {
-            console.log('[Perfil v345.0] 🔄 Post updated, refreshing current tab');
-            if (activeTab === 'posts') {
-              cargarPosts();
-            } else if (activeTab === 'favoritos') {
-              cargarFavoritos();
-            } else if (activeTab === 'etiquetados') {
-              cargarEtiquetados();
-            }
-          }}
-        />
-      )}
 
       <ProfileSwitcher
         visible={showProfileSwitcher}
@@ -1931,5 +1991,29 @@ const styles = StyleSheet.create({
   },
   perfilProfesionalButtonTextSecondary: {
     color: colors.primary,
+  },
+  // ✅ v350.0: NEW - Estilos para vista de lista
+  listViewHeader: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 48,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  listViewHeaderTitle: {
+    fontWeight: '700',
+    color: colors.headerText,
+    flex: 1,
+    textAlign: 'center',
+  },
+  listViewContent: {
+    paddingBottom: 100,
   },
 });
