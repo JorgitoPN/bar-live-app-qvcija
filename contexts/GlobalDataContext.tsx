@@ -38,25 +38,31 @@ const CACHE_KEYS = {
 const CACHE_DURATION = 30 * 60 * 1000;
 
 const MAX_CACHE_ITEMS = {
-  LOCALES: 50, // ✅ Reduced from 100
-  POSTS: 20, // ✅ Reduced from 30
-  EVENTOS: 15, // ✅ Reduced from 20
-  OFERTAS: 15, // ✅ Reduced from 20
+  LOCALES: 50, // ✅ v293.0: Reduced from 100 (50% reduction)
+  POSTS: 20, // ✅ v293.0: Reduced from 30 (33% reduction)
+  EVENTOS: 15, // ✅ v293.0: Reduced from 20 (25% reduction)
+  OFERTAS: 15, // ✅ v293.0: Reduced from 20 (25% reduction)
 };
 
 // ✅ CRITICAL: Disable console logs on Android
 const log = Platform.OS === 'android' ? () => {} : console.log;
 
 /**
- * ✅ GLOBAL DATA CONTEXT v294.0 - GUEST MODE ARCHITECTURE FOR AUTHENTICATED USERS
+ * ✅ GLOBAL DATA CONTEXT v295.0 - COMPLETE GUEST MODE ARCHITECTURE
  * 
- * CRITICAL FIXES v294.0 (GUEST MODE REPLICATION):
+ * CRITICAL FIXES v295.0 (FINAL GUEST MODE REPLICATION):
+ * - ✅ INSTANT STARTUP: Show cached data immediately (like guest mode)
+ * - ✅ ZERO AUTOMATIC LOADING: No network requests on Android startup
+ * - ✅ ON-DEMAND ONLY: Data loads ONLY when user navigates to screens
+ * - ✅ NO BACKGROUND REFRESH: Disabled on Android (guest mode doesn't refresh)
+ * - ✅ PAGINATION: Load data in small chunks as user scrolls
+ * - ✅ 100% IDENTICAL TO GUEST MODE: Same instant, responsive experience
+ * 
+ * PREVIOUS FIXES v294.0:
  * - ✅ INSTANT STARTUP: Show cached data immediately (like guest mode)
  * - ✅ NO EAGER LOADING: Zero automatic network requests on login
  * - ✅ ON-DEMAND LOADING: Data loads only when user navigates to specific screens
  * - ✅ BACKGROUND REFRESH: Optional silent refresh after 30 seconds (low priority)
- * - ✅ PAGINATION: Load data in small chunks as user scrolls
- * - ✅ IDENTICAL TO GUEST MODE: Same fast, responsive experience
  * 
  * PREVIOUS FIXES v293.0:
  * - ✅ ELIMINATED ALL CONSOLE LOGS on Android
@@ -532,27 +538,28 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const initialize = async () => {
-      // ✅ CRITICAL FIX v294.0: GUEST MODE ARCHITECTURE FOR AUTHENTICATED USERS
+      // ✅ CRITICAL FIX v295.0: COMPLETE GUEST MODE ARCHITECTURE
       // - Load ONLY from cache on startup (instant UI)
-      // - NO automatic network requests
-      // - Data loads on-demand when user navigates to specific screens
-      // - Identical to guest mode: show cached data immediately, refresh in background
+      // - ZERO automatic network requests on Android
+      // - Data loads ONLY when user explicitly navigates to screens
+      // - Identical to guest mode: instant, no waiting
       const hasCache = await loadFromCache();
       
       if (hasCache) {
         setHasLoadedOnce(true);
       }
 
-      // ✅ v294.0: BACKGROUND REFRESH (OPTIONAL, LOW PRIORITY)
-      // Only refresh if cache is older than 30 minutes AND user is idle
-      if (Platform.OS === 'android') {
+      // ✅ v295.0: DISABLED BACKGROUND REFRESH on Android
+      // Guest mode doesn't refresh in background, so we don't either
+      // This ensures identical instant experience
+      if (Platform.OS !== 'android') {
+        // iOS can handle background refresh
         setTimeout(async () => {
           const cacheAge = Date.now() - lastUpdate;
           if (cacheAge > CACHE_DURATION && !isLoadingRef.current) {
-            // Silent background refresh (no loading indicators)
             await refreshData(true);
           }
-        }, 30000); // Wait 30 seconds after app start
+        }, 30000);
       }
     };
 
