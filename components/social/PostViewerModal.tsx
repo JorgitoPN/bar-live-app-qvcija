@@ -1,25 +1,21 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v334.0 - ENHANCED SCROLL RESTORATION
+ * 🚨 POST VIEWER MODAL v335.0 - TRUE STACK NAVIGATION PRESERVATION
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v334.0:
- * - ✅ FIXED: Dual restoration mechanism ensures position is preserved
- * - ✅ FIXED: Handles both modal reopen and focus restoration scenarios
- * - ✅ FIXED: Increased delay to 200ms for better FlatList readiness
- * - ✅ IMPROVED: More robust scroll position restoration on return from comments
- * - ✅ RESULT: Seamless navigation - user returns to exact same post and scroll position
+ * NEW CHANGES v335.0:
+ * - ✅ FIXED: Modal NO LONGER closes before navigating to comments
+ * - ✅ FIXED: Modal stays mounted in background, preserving ALL state
+ * - ✅ FIXED: Comments page opens as overlay on top of modal
+ * - ✅ FIXED: router.back() from comments reveals modal instantly - NO reload
+ * - ✅ FIXED: Scroll position preserved naturally (no AsyncStorage needed)
+ * - ✅ RESULT: True "pop" behavior - instant return to exact same view
  * 
- * Previous changes v333.0:
- * - ✅ FIXED: Scroll position is now preserved when returning from comments
- * - ✅ FIXED: Modal reopens at the exact same post after back navigation
- * - ✅ FIXED: Uses AsyncStorage to persist scroll state across navigation
- * 
- * Previous changes v332.0:
- * - ✅ FIXED: Modal now dismisses BEFORE navigating to comments
- * - ✅ FIXED: Comments page opens immediately without being blocked
- * - ✅ RESULT: Clicking comments opens page instantly, back button works correctly
+ * This now matches the Social section's behavior perfectly:
+ * - Comments open on top of the post viewer
+ * - Back button pops comments page, revealing the still-mounted modal
+ * - No state restoration needed - state never lost
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -61,12 +57,8 @@ import SharePostModal from './SharePostModal';
 import ReportModal from './ReportModal';
 import * as Haptics from 'expo-haptics';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-// Storage key for preserving scroll position when navigating to comments
-const SCROLL_POSITION_KEY = '@post_viewer_scroll_position';
 
 interface Post {
   id: string;
@@ -182,88 +174,10 @@ export default function PostViewerModal({
     }
   }, [visible, allPostIds, initialPostId, singlePost, hideTagIcon]);
 
-  // ✅ v334.0: Restore scroll position when returning from comments
-  // This effect runs when the screen comes back into focus (e.g., after navigating back from comments)
-  useFocusEffect(
-    useCallback(() => {
-      const restoreScrollPosition = async () => {
-        try {
-          const savedPosition = await AsyncStorage.getItem(SCROLL_POSITION_KEY);
-          if (savedPosition) {
-            const { postId, index } = JSON.parse(savedPosition);
-            console.log('[PostViewerModal v334.0] 🔄 Found saved scroll position for post:', postId, 'index:', index);
-            
-            // If modal is not visible, we need to reopen it with the saved position
-            if (!visible && posts.length > 0) {
-              console.log('[PostViewerModal v334.0] 📂 Modal is closed, will restore position when reopened');
-              // The position will be restored when the modal opens via the useEffect below
-              return;
-            }
-            
-            // If modal is visible and posts are loaded, restore the scroll position
-            if (visible && posts.length > 0) {
-              const postIndex = posts.findIndex(p => p.id === postId);
-              if (postIndex !== -1 && flatListRef.current) {
-                console.log('[PostViewerModal v334.0] 📍 Restoring scroll to index:', postIndex);
-                // Small delay to ensure FlatList is ready
-                setTimeout(() => {
-                  flatListRef.current?.scrollToIndex({
-                    index: postIndex,
-                    animated: false,
-                  });
-                  setCurrentIndex(postIndex);
-                  setCurrentPostId(postId);
-                  console.log('[PostViewerModal v334.0] ✅ Scroll position restored successfully');
-                }, 150);
-              }
-              
-              // Clear the saved position after restoring
-              await AsyncStorage.removeItem(SCROLL_POSITION_KEY);
-            }
-          }
-        } catch (error) {
-          console.error('[PostViewerModal v334.0] Error restoring scroll position:', error);
-        }
-      };
-
-      restoreScrollPosition();
-    }, [visible, posts])
-  );
-
-  // ✅ v334.0: Additional effect to handle scroll restoration when modal becomes visible
-  useEffect(() => {
-    const checkAndRestorePosition = async () => {
-      if (visible && posts.length > 0) {
-        try {
-          const savedPosition = await AsyncStorage.getItem(SCROLL_POSITION_KEY);
-          if (savedPosition) {
-            const { postId, index } = JSON.parse(savedPosition);
-            console.log('[PostViewerModal v334.0] 🔄 Modal opened with saved position:', postId);
-            
-            const postIndex = posts.findIndex(p => p.id === postId);
-            if (postIndex !== -1 && flatListRef.current) {
-              console.log('[PostViewerModal v334.0] 📍 Scrolling to saved position on modal open');
-              setTimeout(() => {
-                flatListRef.current?.scrollToIndex({
-                  index: postIndex,
-                  animated: false,
-                });
-                setCurrentIndex(postIndex);
-                setCurrentPostId(postId);
-                console.log('[PostViewerModal v334.0] ✅ Position restored on modal open');
-              }, 200);
-            }
-            
-            await AsyncStorage.removeItem(SCROLL_POSITION_KEY);
-          }
-        } catch (error) {
-          console.error('[PostViewerModal v334.0] Error checking saved position:', error);
-        }
-      }
-    };
-
-    checkAndRestorePosition();
-  }, [visible, posts]);
+  // ✅ v335.0: NO SCROLL RESTORATION NEEDED
+  // The modal stays mounted when navigating to comments, so scroll position is naturally preserved
+  // When user returns via router.back(), the modal is still there with its state intact
+  // This is the true "pop" behavior the user requested
 
   const loadInitialLikes = useCallback(async (postId: string) => {
     try {
@@ -1407,38 +1321,20 @@ export default function PostViewerModal({
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.actionButton}
-              onPress={async () => {
-                console.log('[PostViewerModal v334.0] 💬 Opening comments page for post:', post.id);
-                console.log('[PostViewerModal v334.0] 💾 Saving scroll position before navigation');
+              onPress={() => {
+                console.log('[PostViewerModal v335.0] 💬 Opening comments page for post:', post.id);
+                console.log('[PostViewerModal v335.0] ✅ Modal stays mounted - navigating directly to comments');
                 
-                // ✅ v334.0: Save current scroll position before navigating
-                try {
-                  await AsyncStorage.setItem(
-                    SCROLL_POSITION_KEY,
-                    JSON.stringify({
-                      postId: post.id,
-                      index: currentIndex,
-                    })
-                  );
-                  console.log('[PostViewerModal v334.0] ✅ Scroll position saved:', { postId: post.id, index: currentIndex });
-                } catch (error) {
-                  console.error('[PostViewerModal v334.0] Error saving scroll position:', error);
-                }
-                
-                console.log('[PostViewerModal v334.0] ✅ Dismissing modal first, then navigating');
-                // ✅ v332.0 FIX: Close modal FIRST, then navigate to comments
-                // This ensures comments page is immediately visible
-                onClose();
-                // Small delay to allow modal dismissal animation
-                setTimeout(() => {
-                  router.push({
-                    pathname: '/social/comentarios',
-                    params: { 
-                      postId: post.id,
-                      postAuthorId: post.autor_id,
-                    },
-                  });
-                }, 100);
+                // ✅ v335.0 FIX: DO NOT close modal - keep it mounted in background
+                // This preserves ALL state including scroll position
+                // Comments page opens on top, router.back() reveals modal instantly
+                router.push({
+                  pathname: '/social/comentarios',
+                  params: { 
+                    postId: post.id,
+                    postAuthorId: post.autor_id,
+                  },
+                });
               }}
             >
               <IconSymbol
@@ -1503,38 +1399,20 @@ export default function PostViewerModal({
 
         <TouchableOpacity 
           style={styles.commentsContainer}
-          onPress={async () => {
-            console.log('[PostViewerModal v334.0] 💬 Opening comments page for post:', post.id);
-            console.log('[PostViewerModal v334.0] 💾 Saving scroll position before navigation');
+          onPress={() => {
+            console.log('[PostViewerModal v335.0] 💬 Opening comments page for post:', post.id);
+            console.log('[PostViewerModal v335.0] ✅ Modal stays mounted - navigating directly to comments');
             
-            // ✅ v334.0: Save current scroll position before navigating
-            try {
-              await AsyncStorage.setItem(
-                SCROLL_POSITION_KEY,
-                JSON.stringify({
-                  postId: post.id,
-                  index: currentIndex,
-                })
-              );
-              console.log('[PostViewerModal v334.0] ✅ Scroll position saved:', { postId: post.id, index: currentIndex });
-            } catch (error) {
-              console.error('[PostViewerModal v334.0] Error saving scroll position:', error);
-            }
-            
-            console.log('[PostViewerModal v334.0] ✅ Dismissing modal first, then navigating');
-            // ✅ v332.0 FIX: Close modal FIRST, then navigate to comments
-            // This ensures comments page is immediately visible
-            onClose();
-            // Small delay to allow modal dismissal animation
-            setTimeout(() => {
-              router.push({
-                pathname: '/social/comentarios',
-                params: { 
-                  postId: post.id,
-                  postAuthorId: post.autor_id,
-                },
-              });
-            }, 100);
+            // ✅ v335.0 FIX: DO NOT close modal - keep it mounted in background
+            // This preserves ALL state including scroll position
+            // Comments page opens on top, router.back() reveals modal instantly
+            router.push({
+              pathname: '/social/comentarios',
+              params: { 
+                postId: post.id,
+                postAuthorId: post.autor_id,
+              },
+            });
           }}
         >
           {postCommentsCount > 0 ? (

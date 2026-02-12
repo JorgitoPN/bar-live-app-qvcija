@@ -60,19 +60,19 @@ interface Comment {
 }
 
 /**
- * ✅ COMMENTS FULL SCREEN PAGE v317.0
+ * ✅ COMMENTS FULL SCREEN PAGE v318.0 - TRUE STACK NAVIGATION
  * 
- * NEW CHANGES v317.0:
- * - ✅ FIXED: Back button now properly returns to previous screen
- * - ✅ FIXED: Works correctly when opened from PostViewerModal
- * - ✅ FIXED: Navigation stack maintained properly
+ * NEW CHANGES v318.0:
+ * - ✅ FIXED: Now works as true overlay on top of PostViewerModal
+ * - ✅ FIXED: router.back() reveals modal instantly with preserved state
+ * - ✅ FIXED: No modal closing/reopening - true "pop" behavior
+ * - ✅ RESULT: Seamless navigation matching Social section behavior
  * 
- * Previous implementation v316.0:
- * - ✅ Full-screen page instead of modal
- * - ✅ Uses Stack navigation with back button
- * - ✅ Proper header with gradient
- * - ✅ All functionality from CommentsModal preserved
- * - ✅ Better UX with full-screen real estate
+ * This page opens on top of the PostViewerModal (which stays mounted).
+ * When user taps back, the modal is revealed with scroll position intact.
+ * No state restoration needed - the modal never unmounted.
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 
 export default function ComentariosScreen() {
