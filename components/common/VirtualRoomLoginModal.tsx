@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   Modal,
   TouchableOpacity,
   Platform,
-  ActivityIndicator,
   Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,18 +24,18 @@ interface VirtualRoomLoginModalProps {
 }
 
 /**
- * ✅ VIRTUAL ROOM LOGIN MODAL v2.0 - AUTHENTICATION INTERCEPTION
+ * ✅ VIRTUAL ROOM LOGIN MODAL v3.0 - AUTHENTICATION INTERCEPTION FIXED
  * 
- * NEW CHANGES v2.0:
- * - ✅ INTELLIGENT REDIRECT: Passes redirect path to login/register screens
- * - ✅ SEAMLESS FLOW: User returns to virtual room after authentication
- * - ✅ CONSISTENT DESIGN: Respects text scaling (+2 points) and app styling
- * - ✅ TWO ACTIONS: "Iniciar Sesión" and "Registrarse" buttons
+ * CRITICAL FIXES v3.0:
+ * - ✅ FIXED: Redirect path now properly encoded and passed to auth screens
+ * - ✅ FIXED: Uses encodeURIComponent to handle special characters in redirect
+ * - ✅ IMPROVED: More robust parameter passing
+ * - ✅ ENHANCED: Better logging for debugging
  * 
  * Features:
  * - Clear message: "Debes iniciar sesión para acceder a la Sala Virtual"
  * - Two action buttons with proper styling
- * - Redirect parameter passed to auth screens
+ * - Redirect parameter properly encoded and passed
  * - Returns user to virtual room after successful auth
  */
 
@@ -48,30 +47,35 @@ export default function VirtualRoomLoginModal({
   redirectPath,
 }: VirtualRoomLoginModalProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
 
   const messageText = 'Debes iniciar sesión para acceder a la Sala Virtual';
   const loginButtonText = 'Iniciar Sesión';
   const registerButtonText = 'Registrarse';
 
   const handleLogin = () => {
-    console.log('[VirtualRoomLoginModal v2.0] 🔐 Navigating to login with redirect:', redirectPath);
+    console.log('[VirtualRoomLoginModal v3.0] 🔐 Navigating to login');
+    console.log('[VirtualRoomLoginModal v3.0] 🎯 Redirect path:', redirectPath);
+    console.log('[VirtualRoomLoginModal v3.0] 🎯 Encoded redirect:', encodeURIComponent(redirectPath));
     
+    // ✅ CRITICAL FIX v3.0: Properly encode redirect path
     router.push({
       pathname: '/auth/login-secure',
       params: {
-        redirect: redirectPath,
+        redirect: encodeURIComponent(redirectPath),
       },
     });
   };
 
   const handleRegister = () => {
-    console.log('[VirtualRoomLoginModal v2.0] 📝 Navigating to register with redirect:', redirectPath);
+    console.log('[VirtualRoomLoginModal v3.0] 📝 Navigating to register');
+    console.log('[VirtualRoomLoginModal v3.0] 🎯 Redirect path:', redirectPath);
+    console.log('[VirtualRoomLoginModal v3.0] 🎯 Encoded redirect:', encodeURIComponent(redirectPath));
     
+    // ✅ CRITICAL FIX v3.0: Properly encode redirect path
     router.push({
       pathname: '/auth/registro-seguro',
       params: {
-        redirect: redirectPath,
+        redirect: encodeURIComponent(redirectPath),
       },
     });
   };
@@ -110,7 +114,6 @@ export default function VirtualRoomLoginModal({
               <TouchableOpacity
                 style={styles.loginButton}
                 onPress={handleLogin}
-                disabled={loading}
                 activeOpacity={0.8}
               >
                 <LinearGradient
@@ -132,7 +135,6 @@ export default function VirtualRoomLoginModal({
               <TouchableOpacity
                 style={styles.registerButton}
                 onPress={handleRegister}
-                disabled={loading}
                 activeOpacity={0.8}
               >
                 <View style={styles.registerButtonContent}>
@@ -151,8 +153,7 @@ export default function VirtualRoomLoginModal({
 
             <TouchableOpacity 
               style={styles.cancelButton} 
-              onPress={onClose} 
-              disabled={loading}
+              onPress={onClose}
             >
               <Text style={[styles.cancelButtonText, { fontSize: scaleFontSize(14) }]}>
                 Cancelar
