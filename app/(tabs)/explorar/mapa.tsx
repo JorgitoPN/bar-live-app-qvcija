@@ -420,36 +420,30 @@ map.on('load', function() {
     }
   });
   
-  console.log('🗺️ [MAPA v295.0] ✅ Adding cluster-count SymbolLayer with white text and dark halo');
+  console.log('🗺️ [MAPA v295.0] ✅ Adding cluster-count SymbolLayer with to-string conversion');
   map.addLayer({
     id: 'cluster-count',
     type: 'symbol',
     source: 'locales-source',
     filter: ['has', 'point_count'],
     layout: {
-      'text-field': ['get', 'point_count_abbreviated'],
+      'text-field': ['to-string', ['get', 'point_count']],
       'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-      'text-size': [
-        'step',
-        ['get', 'point_count'],
-        14,
-        10, 16,
-        100, 18
-      ],
+      'text-size': 16,
       'text-allow-overlap': true,
       'text-ignore-placement': true,
       'text-anchor': 'center',
       'text-offset': [0, 0],
-      'text-justify': 'center'
+      'text-justify': 'center',
+      'symbol-sort-key': 1000
     },
     paint: {
-      'text-color': '#FFFFFF',
-      'text-halo-color': 'rgba(0, 0, 0, 0.8)',
-      'text-halo-width': 2,
-      'text-halo-blur': 0.5
+      'text-color': '#FFFF00',
+      'text-halo-color': '#000000',
+      'text-halo-width': 2
     }
   });
-  console.log('🗺️ [MAPA v295.0] ✅ Cluster count layer added successfully');
+  console.log('🗺️ [MAPA v295.0] ✅ Cluster count layer added with to-string and bright yellow for testing');
   
   map.addLayer({
     id: 'locales-layer',
