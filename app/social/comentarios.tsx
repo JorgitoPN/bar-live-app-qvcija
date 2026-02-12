@@ -61,27 +61,19 @@ interface Comment {
 }
 
 /**
- * ✅ COMMENTS FULL SCREEN PAGE v321.0 - ANDROID KEYBOARD FIX IMPROVED
+ * ✅ COMMENTS FULL SCREEN PAGE v322.0 - INPUT BOX POSITION FIX
  * 
- * NEW CHANGES v321.0:
+ * NEW CHANGES v322.0:
+ * - ✅ REQUERIMIENTO 1: Fixed comment input box positioned in header (now at bottom)
+ * - ✅ Added bottom: 0 to inputContainer to ensure it stays at the bottom
+ * - ✅ Input box now correctly positioned at the bottom of the screen
+ * 
+ * Previous changes v321.0:
  * - ✅ REQUERIMIENTO 2: Fixed dynamic keyboard offset for Android
  * - ✅ When keyboard CLOSED: paddingBottom = insets.bottom (or min 8px) to avoid system buttons
  * - ✅ When keyboard OPEN: paddingBottom = 8px, KeyboardAvoidingView with offset 35 handles positioning
  * - ✅ Input field now properly visible above keyboard and predictive text bar
  * - ✅ User can see what they type without field being hidden
- * 
- * Previous changes v320.0:
- * - ✅ REQUERIMIENTO 2: Fixed comment input field hidden by system buttons on Android
- * - ✅ Input field now positioned above system navigation buttons
- * - ✅ Proper keyboard handling with KeyboardAvoidingView
- * - ✅ Input scrolls up when keyboard opens so user can see what they type
- * - ✅ Uses useSafeAreaInsets to respect system UI
- * 
- * Previous changes v319.0:
- * - ✅ PROBLEM 1 SOLVED: Opens immediately as overlay on top of PostViewerModal
- * - ✅ PROBLEM 2 SOLVED: router.back() reveals modal with preserved scroll position
- * - ✅ ARCHITECTURE: True Stack navigation - modal stays mounted underneath
- * - ✅ RESULT: Seamless navigation matching Social section behavior
  */
 
 export default function ComentariosScreen() {
@@ -110,13 +102,13 @@ export default function ComentariosScreen() {
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('[ComentariosScreen v321.0] 🎯 Comments page mounted as overlay');
-    console.log('[ComentariosScreen v321.0] 📱 Bottom inset (system buttons):', insets.bottom);
+    console.log('[ComentariosScreen v322.0] 🎯 Comments page mounted as overlay');
+    console.log('[ComentariosScreen v322.0] 📱 Bottom inset (system buttons):', insets.bottom);
     
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[ComentariosScreen v321.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[ComentariosScreen v322.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
         setKeyboardHeight(e.endCoordinates.height);
         setIsKeyboardVisible(true);
         
@@ -130,14 +122,14 @@ export default function ComentariosScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[ComentariosScreen v321.0] ⌨️ Keyboard hidden');
+        console.log('[ComentariosScreen v322.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
         setIsKeyboardVisible(false);
       }
     );
 
     return () => {
-      console.log('[ComentariosScreen v321.0] 🔄 Comments page unmounting');
+      console.log('[ComentariosScreen v322.0] 🔄 Comments page unmounting');
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
@@ -222,7 +214,7 @@ export default function ComentariosScreen() {
         setComments(commentsData || []);
       }
     } catch (error) {
-      console.error('[ComentariosScreen v320.0] Error loading comments:', error);
+      console.error('[ComentariosScreen v322.0] Error loading comments:', error);
       Alert.alert('Error', 'No se pudieron cargar los comentarios');
     } finally {
       setLoading(false);
@@ -249,7 +241,7 @@ export default function ComentariosScreen() {
           filter: `id=eq.${postId}`,
         },
         () => {
-          console.log('[ComentariosScreen v320.0] ⚠️ Post was deleted');
+          console.log('[ComentariosScreen v322.0] ⚠️ Post was deleted');
           Alert.alert(
             'Contenido Eliminado',
             'Esta publicación ha sido eliminada por su autor',
@@ -265,7 +257,7 @@ export default function ComentariosScreen() {
   }, [postId, router]);
 
   const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
-    console.log('[ComentariosScreen v320.0] ✅ Selected mention:', mention);
+    console.log('[ComentariosScreen v322.0] ✅ Selected mention:', mention);
     
     const textBeforeCursor = commentText.substring(0, cursorPosition);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
@@ -298,11 +290,11 @@ export default function ComentariosScreen() {
     setSending(true);
 
     try {
-      console.log('[ComentariosScreen v320.0] 🔄 Ensuring valid session before sending comment...');
+      console.log('[ComentariosScreen v322.0] 🔄 Ensuring valid session before sending comment...');
       const validSession = await ensureValidSession();
       
       if (!validSession || !validSession.user) {
-        console.error('[ComentariosScreen v320.0] ❌ No valid session available');
+        console.error('[ComentariosScreen v322.0] ❌ No valid session available');
         Alert.alert(
           'Error de autenticación',
           'Tu sesión ha expirado o no tienes permisos. Por favor inicia sesión de nuevo.',
@@ -318,7 +310,7 @@ export default function ComentariosScreen() {
         return;
       }
 
-      console.log('[ComentariosScreen v320.0] ✅ Valid session confirmed, user ID:', validSession.user.id);
+      console.log('[ComentariosScreen v322.0] ✅ Valid session confirmed, user ID:', validSession.user.id);
 
       if (editingComment) {
         const { error } = await supabase
@@ -345,7 +337,7 @@ export default function ComentariosScreen() {
           commentData.tipo = 'usuario';
         }
 
-        console.log('[ComentariosScreen v320.0] 📝 Inserting comment with data:', commentData);
+        console.log('[ComentariosScreen v322.0] 📝 Inserting comment with data:', commentData);
 
         const { data: newComment, error } = await supabase
           .from('comentarios')
@@ -363,19 +355,19 @@ export default function ComentariosScreen() {
           .single();
 
         if (error) {
-          console.error('[ComentariosScreen v320.0] ❌ Error inserting comment:', error);
+          console.error('[ComentariosScreen v322.0] ❌ Error inserting comment:', error);
           throw error;
         }
 
-        console.log('[ComentariosScreen v320.0] ✅ Comment inserted successfully:', newComment.id);
+        console.log('[ComentariosScreen v322.0] ✅ Comment inserted successfully:', newComment.id);
 
         if (newComment && text) {
-          console.log('[ComentariosScreen v320.0] 🏷️ Processing hashtags and mentions in comment...');
+          console.log('[ComentariosScreen v322.0] 🏷️ Processing hashtags and mentions in comment...');
           await Promise.all([
             processCommentHashtags(newComment.id, text),
             processCommentMentions(newComment.id, text, postId),
           ]);
-          console.log('[ComentariosScreen v320.0] ✅ Comment hashtags and mentions processed');
+          console.log('[ComentariosScreen v322.0] ✅ Comment hashtags and mentions processed');
         }
 
         if (replyingTo) {
@@ -386,7 +378,7 @@ export default function ComentariosScreen() {
         }
       }
     } catch (error: any) {
-      console.error('[ComentariosScreen v320.0] ❌ Error sending comment:', error);
+      console.error('[ComentariosScreen v322.0] ❌ Error sending comment:', error);
       
       let errorMessage = 'No se pudo enviar el comentario';
       
@@ -435,7 +427,7 @@ export default function ComentariosScreen() {
           .eq('usuario_id', user.id);
       }
     } catch (error) {
-      console.error('[ComentariosScreen v320.0] Error toggling like:', error);
+      console.error('[ComentariosScreen v322.0] Error toggling like:', error);
       setComments(prev => prev.map(c => 
         c.id === comment.id 
           ? { 
@@ -487,7 +479,7 @@ export default function ComentariosScreen() {
                 Alert.alert('Éxito', 'Comentario eliminado correctamente');
               }
             } catch (error) {
-              console.error('[ComentariosScreen v320.0] Error deleting comment:', error);
+              console.error('[ComentariosScreen v322.0] Error deleting comment:', error);
               Alert.alert('Error', 'No se pudo eliminar el comentario');
             }
           },
@@ -507,7 +499,7 @@ export default function ComentariosScreen() {
 
       await loadComments();
     } catch (error) {
-      console.error('[ComentariosScreen v320.0] Error pinning comment:', error);
+      console.error('[ComentariosScreen v322.0] Error pinning comment:', error);
       Alert.alert('Error', 'No se pudo fijar el comentario');
     }
   };
@@ -802,8 +794,8 @@ export default function ComentariosScreen() {
           <View style={styles.headerTop}>
             <TouchableOpacity 
               onPress={() => {
-                console.log('[ComentariosScreen v320.0] ⬅️ Back button pressed');
-                console.log('[ComentariosScreen v320.0] ✅ Popping comments page - PostViewerModal will be revealed with preserved state');
+                console.log('[ComentariosScreen v322.0] ⬅️ Back button pressed');
+                console.log('[ComentariosScreen v322.0] ✅ Popping comments page - PostViewerModal will be revealed with preserved state');
                 router.back();
               }} 
               style={styles.backButton}
@@ -892,16 +884,16 @@ export default function ComentariosScreen() {
                   placeholderTextColor="rgba(0, 0, 0, 0.4)"
                   value={commentText}
                   onChangeText={(text) => {
-                    console.log('[ComentariosScreen v320.0] 📝 Text changed:', text);
+                    console.log('[ComentariosScreen v322.0] 📝 Text changed:', text);
                     setCommentText(text);
                   }}
                   onSelectionChange={(event) => {
                     const newPosition = event.nativeEvent.selection.start;
-                    console.log('[ComentariosScreen v320.0] 📍 Cursor position changed to:', newPosition);
+                    console.log('[ComentariosScreen v322.0] 📍 Cursor position changed to:', newPosition);
                     setCursorPosition(newPosition);
                   }}
                   onFocus={() => {
-                    console.log('[ComentariosScreen v320.0] 🎯 REQUERIMIENTO 2: Input focused - scrolling to show input field');
+                    console.log('[ComentariosScreen v322.0] 🎯 REQUERIMIENTO 2: Input focused - scrolling to show input field');
                     setTimeout(() => {
                       flatListRef.current?.scrollToEnd({ animated: true });
                     }, 300);
@@ -1081,6 +1073,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     position: 'absolute',
+    bottom: 0, // ✅ REQUERIMIENTO 1: Added bottom: 0 to fix position
     left: 0,
     right: 0,
     overflow: 'hidden',

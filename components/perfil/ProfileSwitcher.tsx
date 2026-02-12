@@ -11,6 +11,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -27,12 +28,12 @@ interface ProfileSwitcherProps {
 }
 
 /**
- * ✅ PROFILE SWITCHER v115.0 - ADMIN OWNER MODE ACCESS
+ * ✅ PROFILE SWITCHER v116.0 - ANDROID FULL SCREEN NAVIGATION
  * 
- * CRITICAL FIXES v115.0:
- * - ✅ Admin can now access owner mode without owning locals (for verification)
- * - ✅ New "Modo Propietario (Verificación)" option for admins
- * - ✅ Admin can see and test owner interface functionality
+ * CRITICAL FIXES v116.0:
+ * - ✅ REQUERIMIENTO 2: On Android, navigate to full-screen page instead of showing modal
+ * - ✅ Better UX on Android with native full-screen navigation
+ * - ✅ iOS keeps modal behavior for consistency with platform patterns
  * - ✅ All previous fixes maintained
  */
 
@@ -56,17 +57,26 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
   const [ownedLocals, setOwnedLocals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // ✅ REQUERIMIENTO 2: On Android, navigate to full-screen page instead of showing modal
+  useEffect(() => {
+    if (visible && Platform.OS === 'android') {
+      console.log('[ProfileSwitcher v116.0] 📱 Android detected - navigating to full-screen page');
+      onClose(); // Close modal immediately
+      router.push('/perfil/selector-perfil');
+    }
+  }, [visible, onClose, router]);
+
   const loadOwnedLocals = useCallback(async () => {
     const effectiveId = isImpersonating && impersonatedUser ? impersonatedUser.id : user?.id;
     
     if (!effectiveId) {
-      console.log('[ProfileSwitcher v115.0] ⚠️ No effective user ID, skipping load');
+      console.log('[ProfileSwitcher v116.0] ⚠️ No effective user ID, skipping load');
       return;
     }
 
     try {
       setLoading(true);
-      console.log('[ProfileSwitcher v115.0] 🔄 Loading owned locals for user:', effectiveId, isImpersonating ? '(impersonated)' : '(actual)');
+      console.log('[ProfileSwitcher v116.0] 🔄 Loading owned locals for user:', effectiveId, isImpersonating ? '(impersonated)' : '(actual)');
 
       const { data: propietariosData, error: propietariosError } = await supabase
         .from('propietarios_locales')
@@ -85,7 +95,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
         .eq('activo', true);
 
       if (propietariosError) {
-        console.error('[ProfileSwitcher v115.0] ❌ Error loading owned locals:', propietariosError);
+        console.error('[ProfileSwitcher v116.0] ❌ Error loading owned locals:', propietariosError);
         return;
       }
 
@@ -93,18 +103,18 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
         .filter(p => p.locales && p.locales.activo === true)
         .map(p => p.locales);
 
-      console.log('[ProfileSwitcher v115.0] ✅ Loaded', activeOwnedLocals.length, 'active owned locals');
+      console.log('[ProfileSwitcher v116.0] ✅ Loaded', activeOwnedLocals.length, 'active owned locals');
       setOwnedLocals(activeOwnedLocals);
     } catch (error) {
-      console.error('[ProfileSwitcher v115.0] ❌ Error loading owned locals:', error);
+      console.error('[ProfileSwitcher v116.0] ❌ Error loading owned locals:', error);
     } finally {
       setLoading(false);
     }
   }, [user?.id, isImpersonating, impersonatedUser]);
 
   useEffect(() => {
-    if (visible && user?.id) {
-      console.log('[ProfileSwitcher v114.0] 🔄 Modal opened, loading owned locals');
+    if (visible && user?.id && Platform.OS !== 'android') {
+      console.log('[ProfileSwitcher v116.0] 🔄 Modal opened (iOS), loading owned locals');
       loadOwnedLocals();
     }
   }, [visible, user?.id, loadOwnedLocals]);
@@ -112,21 +122,21 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
   const handleSwitchToClient = useCallback(async () => {
     setSwitching(true);
     try {
-      console.log('[ProfileSwitcher v115.0] 🔄 Switching to client profile');
+      console.log('[ProfileSwitcher v116.0] 🔄 Switching to client profile');
       
       await setCurrentMode('cliente');
       await switchToClientProfile();
       
-      console.log('[ProfileSwitcher v115.0] ✅ Profile switched to client, mode set to cliente');
+      console.log('[ProfileSwitcher v116.0] ✅ Profile switched to client, mode set to cliente');
       
       onClose();
       
       setTimeout(() => {
-        console.log('[ProfileSwitcher v115.0] ✅ Navigating to user profile');
+        console.log('[ProfileSwitcher v116.0] ✅ Navigating to user profile');
         router.push('/(tabs)/perfil');
       }, 100);
     } catch (error) {
-      console.error('[ProfileSwitcher v115.0] ❌ Error switching to client:', error);
+      console.error('[ProfileSwitcher v116.0] ❌ Error switching to client:', error);
     } finally {
       setSwitching(false);
     }
@@ -135,21 +145,21 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
   const handleSwitchToLocal = useCallback(async (localId: string) => {
     setSwitching(true);
     try {
-      console.log('[ProfileSwitcher v115.0] 🔄 Switching to local profile:', localId);
+      console.log('[ProfileSwitcher v116.0] 🔄 Switching to local profile:', localId);
       
       await setCurrentMode('propietario');
       await switchToLocalProfile(localId);
       
-      console.log('[ProfileSwitcher v115.0] ✅ Profile switched to local, mode set to propietario');
+      console.log('[ProfileSwitcher v116.0] ✅ Profile switched to local, mode set to propietario');
       
       onClose();
       
       setTimeout(() => {
-        console.log('[ProfileSwitcher v115.0] ✅ Navigating to local profile');
+        console.log('[ProfileSwitcher v116.0] ✅ Navigating to local profile');
         router.push(`/perfil/local?localId=${localId}`);
       }, 100);
     } catch (error) {
-      console.error('[ProfileSwitcher v115.0] ❌ Error switching to local:', error);
+      console.error('[ProfileSwitcher v116.0] ❌ Error switching to local:', error);
     } finally {
       setSwitching(false);
     }
@@ -158,11 +168,11 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
   const handleSwitchToOwnerMode = useCallback(async () => {
     setSwitching(true);
     try {
-      console.log('[ProfileSwitcher v115.0] 👑 Admin switching to owner mode for verification');
+      console.log('[ProfileSwitcher v116.0] 👑 Admin switching to owner mode for verification');
       
       await setCurrentMode('propietario');
       
-      console.log('[ProfileSwitcher v115.0] ✅ Mode set to propietario (admin verification mode)');
+      console.log('[ProfileSwitcher v116.0] ✅ Mode set to propietario (admin verification mode)');
       
       onClose();
       
@@ -179,7 +189,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
         ]
       );
     } catch (error) {
-      console.error('[ProfileSwitcher v115.0] ❌ Error switching to owner mode:', error);
+      console.error('[ProfileSwitcher v116.0] ❌ Error switching to owner mode:', error);
       Alert.alert('Error', 'No se pudo cambiar al modo propietario');
     } finally {
       setSwitching(false);
@@ -216,7 +226,7 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
                 ]
               );
             } catch (error) {
-              console.error('[ProfileSwitcher v115.0] Error ending impersonation:', error);
+              console.error('[ProfileSwitcher v116.0] Error ending impersonation:', error);
               Alert.alert('Error', 'No se pudo finalizar la suplantación');
             } finally {
               setSwitching(false);
@@ -237,6 +247,11 @@ const ProfileSwitcher = memo(function ProfileSwitcher({ visible, onClose }: Prof
   }, [user]);
 
   if (!user) return null;
+
+  // ✅ REQUERIMIENTO 2: On Android, don't render modal (navigation happens in useEffect)
+  if (Platform.OS === 'android') {
+    return null;
+  }
 
   return (
     <Modal
