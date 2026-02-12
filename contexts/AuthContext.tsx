@@ -18,17 +18,19 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
- * ✅ AUTH CONTEXT v289.0 - ANDROID PERFORMANCE OPTIMIZATION
+ * ✅ AUTH CONTEXT v291.0 - ANDROID PERFORMANCE OPTIMIZATION
  * 
- * CRITICAL FIXES v289.0:
+ * CRITICAL FIXES v291.0:
+ * - ✅ EXTENDED REFRESH: Increased refresh interval from 30 to 60 minutes
+ * - ✅ REDUCED CHECKS: Session refresh only when truly needed (< 5 min to expiry)
+ * - ✅ BACKGROUND ONLY: All session checks happen in background (non-blocking)
+ * - ✅ MINIMAL LOGGING: Reduced console logs to absolute minimum
+ * - ✅ ANDROID OPTIMIZATION: Zero blocking operations on UI thread
+ * 
+ * Previous fixes maintained (v289.0):
  * - ✅ LAZY PUSH NOTIFICATIONS: Moved push token registration to background (non-blocking)
  * - ✅ DELAYED REGISTRATION: Push notifications register 3 seconds after login
  * - ✅ NO UI BLOCKING: User can interact immediately while notifications register
- * - ✅ REDUCED LOGGING: Minimized console logs to prevent performance overhead
- * - ✅ OPTIMIZED REFRESH: Increased refresh interval from 15 to 30 minutes
- * - ✅ ANDROID OPTIMIZATION: Eliminated startup blocking operations
- * 
- * Previous fixes maintained (v35.0):
  * - ✅ Immediate session updates
  * - ✅ Proper session refresh handling
  * - ✅ Error recovery mechanisms
@@ -224,7 +226,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     subscription = data.subscription;
 
-    // ✅ FIX v289.0: Increased refresh interval to 30 minutes (from 15)
+    // ✅ FIX v291.0: Increased refresh interval to 60 minutes (from 30)
+    // Session tokens typically last 1 hour, so checking every 60 minutes is sufficient
     refreshInterval = setInterval(async () => {
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -234,7 +237,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const now = Date.now();
           const timeUntilExpiry = expiresAt - now;
           
-          if (timeUntilExpiry < 10 * 60 * 1000) {
+          // ✅ Only refresh if less than 5 minutes until expiry (was 10 minutes)
+          if (timeUntilExpiry < 5 * 60 * 1000) {
             const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
             
             if (!error && refreshedSession) {
@@ -246,7 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         // Silent fail - non-critical background operation
       }
-    }, 30 * 60 * 1000); // ✅ Check every 30 minutes (from 15)
+    }, 60 * 60 * 1000); // ✅ Check every 60 minutes (from 30)
 
     return () => {
       if (subscription) {
