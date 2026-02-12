@@ -1,18 +1,20 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v332.0 - IMMEDIATE COMMENTS NAVIGATION FIX
+ * 🚨 POST VIEWER MODAL v333.0 - SCROLL POSITION RESTORATION FIX
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v332.0:
+ * NEW CHANGES v333.0:
+ * - ✅ FIXED: Scroll position is now preserved when returning from comments
+ * - ✅ FIXED: Modal reopens at the exact same post after back navigation
+ * - ✅ FIXED: Uses AsyncStorage to persist scroll state across navigation
+ * - ✅ RESULT: Seamless back navigation maintains user context
+ * 
+ * Previous changes v332.0:
  * - ✅ FIXED: Modal now dismisses BEFORE navigating to comments
  * - ✅ FIXED: Comments page opens immediately without being blocked
  * - ✅ FIXED: Navigation uses router.replace() to maintain proper back stack
  * - ✅ RESULT: Clicking comments opens page instantly, back button works correctly
- * 
- * Previous changes v331.0:
- * - ❌ ISSUE: Modal stayed open and blocked comments page
- * - ❌ ISSUE: User had to close modal manually to see comments
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -54,8 +56,12 @@ import SharePostModal from './SharePostModal';
 import ReportModal from './ReportModal';
 import * as Haptics from 'expo-haptics';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Storage key for preserving scroll position when navigating to comments
+const SCROLL_POSITION_KEY = '@post_viewer_scroll_position';
 
 interface Post {
   id: string;
@@ -161,7 +167,7 @@ export default function PostViewerModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[PostViewerModal v331.0] Props received:', { 
+      console.log('[PostViewerModal v333.0] Props received:', { 
         visible, 
         initialPostId, 
         singlePost: !!singlePost,
@@ -170,6 +176,45 @@ export default function PostViewerModal({
       });
     }
   }, [visible, allPostIds, initialPostId, singlePost, hideTagIcon]);
+
+  // ✅ v333.0: Restore scroll position when returning from comments
+  useFocusEffect(
+    useCallback(() => {
+      const restoreScrollPosition = async () => {
+        try {
+          const savedPosition = await AsyncStorage.getItem(SCROLL_POSITION_KEY);
+          if (savedPosition && visible && posts.length > 0) {
+            const { postId, index } = JSON.parse(savedPosition);
+            console.log('[PostViewerModal v333.0] 🔄 Restoring scroll position to post:', postId, 'index:', index);
+            
+            // Find the post index in current posts array
+            const postIndex = posts.findIndex(p => p.id === postId);
+            if (postIndex !== -1 && flatListRef.current) {
+              // Small delay to ensure FlatList is ready
+              setTimeout(() => {
+                flatListRef.current?.scrollToIndex({
+                  index: postIndex,
+                  animated: false,
+                });
+                setCurrentIndex(postIndex);
+                setCurrentPostId(postId);
+                console.log('[PostViewerModal v333.0] ✅ Scroll position restored successfully');
+              }, 100);
+            }
+            
+            // Clear the saved position after restoring
+            await AsyncStorage.removeItem(SCROLL_POSITION_KEY);
+          }
+        } catch (error) {
+          console.error('[PostViewerModal v333.0] Error restoring scroll position:', error);
+        }
+      };
+
+      if (visible) {
+        restoreScrollPosition();
+      }
+    }, [visible, posts])
+  );
 
   const loadInitialLikes = useCallback(async (postId: string) => {
     try {
@@ -180,10 +225,10 @@ export default function PostViewerModal({
 
       if (!error && data) {
         setLocalLikes(prev => new Map(prev).set(postId, data));
-        console.log('[PostViewerModal v331.0] ✅ Loaded initial likes for post:', postId, 'count:', data.length);
+        console.log('[PostViewerModal v333.0] ✅ Loaded initial likes for post:', postId, 'count:', data.length);
       }
     } catch (error) {
-      console.error('[PostViewerModal v331.0] Error loading initial likes:', error);
+      console.error('[PostViewerModal v333.0] Error loading initial likes:', error);
     }
   }, []);
 
@@ -196,10 +241,10 @@ export default function PostViewerModal({
 
       if (!error && count !== null) {
         setCommentsCount(prev => new Map(prev).set(postId, count));
-        console.log('[PostViewerModal v331.0] ✅ Loaded comment count for post:', postId, 'count:', count);
+        console.log('[PostViewerModal v333.0] ✅ Loaded comment count for post:', postId, 'count:', count);
       }
     } catch (error) {
-      console.error('[PostViewerModal v331.0] Error loading comment count:', error);
+      console.error('[PostViewerModal v333.0] Error loading comment count:', error);
     }
   };
 
@@ -207,7 +252,7 @@ export default function PostViewerModal({
     if (!currentPostId) return;
 
     try {
-      console.log('[PostViewerModal v331.0] 🔄 Refreshing post data after edit:', currentPostId);
+      console.log('[PostViewerModal v333.0] 🔄 Refreshing post data after edit:', currentPostId);
 
       const { data: postData, error: postError } = await supabase
         .from('posts')
@@ -1313,9 +1358,25 @@ export default function PostViewerModal({
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.actionButton}
-              onPress={() => {
-                console.log('[PostViewerModal v332.0] 💬 Opening comments page for post:', post.id);
-                console.log('[PostViewerModal v332.0] ✅ Dismissing modal first, then navigating');
+              onPress={async () => {
+                console.log('[PostViewerModal v333.0] 💬 Opening comments page for post:', post.id);
+                console.log('[PostViewerModal v333.0] 💾 Saving scroll position before navigation');
+                
+                // ✅ v333.0: Save current scroll position before navigating
+                try {
+                  await AsyncStorage.setItem(
+                    SCROLL_POSITION_KEY,
+                    JSON.stringify({
+                      postId: post.id,
+                      index: currentIndex,
+                    })
+                  );
+                  console.log('[PostViewerModal v333.0] ✅ Scroll position saved:', { postId: post.id, index: currentIndex });
+                } catch (error) {
+                  console.error('[PostViewerModal v333.0] Error saving scroll position:', error);
+                }
+                
+                console.log('[PostViewerModal v333.0] ✅ Dismissing modal first, then navigating');
                 // ✅ v332.0 FIX: Close modal FIRST, then navigate to comments
                 // This ensures comments page is immediately visible
                 onClose();
@@ -1393,9 +1454,25 @@ export default function PostViewerModal({
 
         <TouchableOpacity 
           style={styles.commentsContainer}
-          onPress={() => {
-            console.log('[PostViewerModal v332.0] 💬 Opening comments page for post:', post.id);
-            console.log('[PostViewerModal v332.0] ✅ Dismissing modal first, then navigating');
+          onPress={async () => {
+            console.log('[PostViewerModal v333.0] 💬 Opening comments page for post:', post.id);
+            console.log('[PostViewerModal v333.0] 💾 Saving scroll position before navigation');
+            
+            // ✅ v333.0: Save current scroll position before navigating
+            try {
+              await AsyncStorage.setItem(
+                SCROLL_POSITION_KEY,
+                JSON.stringify({
+                  postId: post.id,
+                  index: currentIndex,
+                })
+              );
+              console.log('[PostViewerModal v333.0] ✅ Scroll position saved:', { postId: post.id, index: currentIndex });
+            } catch (error) {
+              console.error('[PostViewerModal v333.0] Error saving scroll position:', error);
+            }
+            
+            console.log('[PostViewerModal v333.0] ✅ Dismissing modal first, then navigating');
             // ✅ v332.0 FIX: Close modal FIRST, then navigate to comments
             // This ensures comments page is immediately visible
             onClose();
