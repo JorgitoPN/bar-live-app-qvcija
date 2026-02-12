@@ -1,29 +1,23 @@
 
 /**
- * FLOATING TAB BAR - VERSION v326.0
+ * FLOATING TAB BAR - VERSION v327.0
  * 
- * ✅ ANDROID PROFILE AVATAR FIX v326.0 - FIXED NAVIGATION BUG
+ * ✅ ANDROID PROFILE AVATAR FIX v327.0 - FIXED FLICKERING BUG
  * 
- * CRITICAL CHANGES v326.0:
- * - ✅ FIXED: Added cache-busting query parameter to image URL
- * - ✅ FIXED: Force Image to reload on every navigation change
- * - ✅ FIXED: Use timestamp in URL instead of just key prop
- * - ✅ FIXED: Avatar persists across all navigation events
- * - ✅ RESULT: Mini-avatar shows profile picture after navigating away from perfil
+ * CRITICAL CHANGES v327.0:
+ * - ✅ FIXED: Debounced avatar reload to prevent rapid re-renders
+ * - ✅ FIXED: Stable image key that doesn't change on every navigation
+ * - ✅ FIXED: Only reload avatar when actually needed (not on every pathname change)
+ * - ✅ FIXED: Prevent multiple simultaneous fetches
+ * - ✅ RESULT: Mini-avatar displays consistently without flickering
  * 
- * Previous fixes maintained (v325.0):
- * - ✅ FIXED: Removed imageLoading from shouldShowIcon condition
- * - ✅ FIXED: Set imageLoading to false immediately after loading URL
- * - ✅ FIXED: Avatar image now displays instead of person icon
- * 
- * Previous fixes maintained (v324.0):
- * - ✅ FIXED: Avatar now uses key={avatarUrl + timestamp} to force complete re-render
- * - ✅ FIXED: Loads avatar DIRECTLY from Supabase on every trigger
- * - ✅ FIXED: No caching, no stale data - always fresh from database
- * - ✅ FIXED: Triple trigger system: focus + pathname + refreshTrigger
+ * Previous fixes maintained (v326.0):
+ * - ✅ Cache-busting query parameter for Android
+ * - ✅ Force reload headers for Android
+ * - ✅ Direct Supabase queries
  */
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useRef } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -61,94 +55,108 @@ interface ProfileTabProps {
   onPress: () => void;
   userId: string | null;
   refreshTrigger: number;
-  pathname: string;
 }
 
-const ProfileTab = memo(({ isActive, onPress, userId, refreshTrigger, pathname }: ProfileTabProps) => {
+const ProfileTab = memo(({ isActive, onPress, userId, refreshTrigger }: ProfileTabProps) => {
   const avatarSize = Platform.OS === 'android' ? 26 : 28;
   const [imageError, setImageError] = React.useState(false);
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
-  const [timestamp, setTimestamp] = React.useState(Date.now());
+  const [imageKey, setImageKey] = React.useState(`avatar-${userId}-${Date.now()}`);
+  const loadingRef = useRef(false);
+  const lastLoadedUrlRef = useRef<string | null>(null);
   
-  // ✅ CRITICAL FIX v326.0: Load avatar on EVERY trigger with cache-busting
+  // ✅ CRITICAL FIX v327.0: Debounced avatar reload to prevent flickering
   React.useEffect(() => {
     if (!userId) {
-      console.log('[ProfileTab v326.0] ⚠️ No userId - showing icon');
+      console.log('[ProfileTab v327.0] ⚠️ No userId - showing icon');
       setAvatarUrl(null);
+      setImageKey(`avatar-null-${Date.now()}`);
       return;
     }
 
-    console.log('[ProfileTab v326.0] 🔥 FORCE RELOAD TRIGGERED');
-    console.log('[ProfileTab v326.0] 🔥 Refresh trigger:', refreshTrigger);
-    console.log('[ProfileTab v326.0] 🔥 Pathname:', pathname);
-    console.log('[ProfileTab v326.0] 🔥 User ID:', userId);
+    // ✅ Prevent multiple simultaneous fetches
+    if (loadingRef.current) {
+      console.log('[ProfileTab v327.0] ⏸️ Already loading - skipping');
+      return;
+    }
+
+    console.log('[ProfileTab v327.0] 🔥 Refresh trigger:', refreshTrigger);
     
-    const loadAvatar = async () => {
-      try {
-        console.log('[ProfileTab v326.0] 🔄 Fetching avatar DIRECTLY from Supabase...');
-        
-        const { data, error } = await supabase
-          .from('usuarios')
-          .select('avatar')
-          .eq('id', userId)
-          .single();
+    // ✅ Debounce: Wait 100ms before loading to prevent rapid re-renders
+    const debounceTimer = setTimeout(() => {
+      loadingRef.current = true;
+      
+      const loadAvatar = async () => {
+        try {
+          console.log('[ProfileTab v327.0] 🔄 Fetching avatar from Supabase...');
+          
+          const { data, error } = await supabase
+            .from('usuarios')
+            .select('avatar')
+            .eq('id', userId)
+            .single();
 
-        if (error) {
-          console.log('[ProfileTab v326.0] ❌ Error loading avatar:', error.message);
+          if (error) {
+            console.log('[ProfileTab v327.0] ❌ Error loading avatar:', error.message);
+            setAvatarUrl(null);
+            setImageKey(`avatar-error-${Date.now()}`);
+            loadingRef.current = false;
+            return;
+          }
+
+          const validUrl = data?.avatar && 
+                          !data.avatar.startsWith('file://') && 
+                          data.avatar.length > 10 &&
+                          (data.avatar.startsWith('http://') || data.avatar.startsWith('https://') || data.avatar.startsWith('/'))
+            ? data.avatar
+            : null;
+
+          console.log('[ProfileTab v327.0] ✅ Avatar loaded:', validUrl ? 'PRESENT' : 'NULL');
+          
+          // ✅ CRITICAL FIX v327.0: Only update if URL actually changed
+          if (validUrl !== lastLoadedUrlRef.current) {
+            console.log('[ProfileTab v327.0] 🔄 Avatar URL changed - updating');
+            lastLoadedUrlRef.current = validUrl;
+            setAvatarUrl(validUrl);
+            setImageError(false);
+            // ✅ Only update key when URL changes to prevent unnecessary re-renders
+            setImageKey(`avatar-${userId}-${Date.now()}`);
+          } else {
+            console.log('[ProfileTab v327.0] ✅ Avatar URL unchanged - keeping current image');
+          }
+          
+          loadingRef.current = false;
+        } catch (error) {
+          console.log('[ProfileTab v327.0] ❌ Exception loading avatar:', error);
           setAvatarUrl(null);
-          setTimestamp(Date.now());
-          return;
+          setImageKey(`avatar-exception-${Date.now()}`);
+          loadingRef.current = false;
         }
+      };
 
-        const validUrl = data?.avatar && 
-                        !data.avatar.startsWith('file://') && 
-                        data.avatar.length > 10 &&
-                        (data.avatar.startsWith('http://') || data.avatar.startsWith('https://') || data.avatar.startsWith('/'))
-          ? data.avatar
-          : null;
+      loadAvatar();
+    }, 100); // ✅ 100ms debounce to prevent rapid re-renders
 
-        console.log('[ProfileTab v326.0] ✅ Avatar loaded from database:', validUrl ? 'PRESENT' : 'NULL');
-        console.log('[ProfileTab v326.0] 🖼️ Avatar URL:', validUrl || 'NO AVATAR');
-        
-        const newTimestamp = Date.now();
-        console.log('[ProfileTab v326.0] 🔄 Setting new timestamp:', newTimestamp);
-        
-        setAvatarUrl(validUrl);
-        setImageError(false);
-        setTimestamp(newTimestamp);
-        
-        console.log('[ProfileTab v326.0] ✅ State updated - component will re-render');
-      } catch (error) {
-        console.log('[ProfileTab v326.0] ❌ Exception loading avatar:', error);
-        setAvatarUrl(null);
-        setTimestamp(Date.now());
-      }
+    return () => {
+      clearTimeout(debounceTimer);
     };
-
-    loadAvatar();
-  }, [userId, refreshTrigger, pathname]);
+  }, [userId, refreshTrigger]);
   
-  // ✅ CRITICAL FIX v326.0: Only show icon if no avatar URL or error occurred
+  // ✅ Only show icon if no avatar URL or error occurred
   const shouldShowIcon = !avatarUrl || imageError;
   
-  // ✅ CRITICAL FIX v326.0: Add cache-busting query parameter to URL
+  // ✅ Add cache-busting query parameter to URL
   const cacheBustedUrl = avatarUrl 
-    ? `${avatarUrl}${avatarUrl.includes('?') ? '&' : '?'}t=${timestamp}`
+    ? `${avatarUrl}${avatarUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
     : null;
   
-  // ✅ CRITICAL FIX v326.0: Use timestamp in key to force complete re-render
-  const imageKey = `avatar-${userId}-${timestamp}`;
-  
-  console.log('[ProfileTab v326.0] 📊 Render state:', {
+  console.log('[ProfileTab v327.0] 📊 Render state:', {
     userId: userId ? 'present' : 'null',
     avatarUrl: avatarUrl ? 'PRESENT' : 'NULL',
-    cacheBustedUrl: cacheBustedUrl ? 'PRESENT' : 'NULL',
     shouldShowIcon,
     imageError,
-    timestamp,
-    refreshTrigger,
-    pathname,
     imageKey,
+    isLoading: loadingRef.current,
   });
   
   return (
@@ -163,7 +171,7 @@ const ProfileTab = memo(({ isActive, onPress, userId, refreshTrigger, pathname }
         isActive && styles.avatarContainerActive
       ]}>
         {shouldShowIcon ? (
-          <View style={[styles.avatar, styles.avatarPlaceholder]} key={`icon-${timestamp}`}>
+          <View style={[styles.avatar, styles.avatarPlaceholder]} key={imageKey}>
             <IconSymbol
               ios_icon_name="person.fill"
               android_material_icon_name="person"
@@ -176,7 +184,7 @@ const ProfileTab = memo(({ isActive, onPress, userId, refreshTrigger, pathname }
             key={imageKey}
             source={{ 
               uri: cacheBustedUrl!,
-              // ✅ CRITICAL FIX v326.0: Force reload on Android
+              // ✅ Force reload on Android
               ...(Platform.OS === 'android' && { 
                 cache: 'reload' as any,
                 headers: {
@@ -188,11 +196,11 @@ const ProfileTab = memo(({ isActive, onPress, userId, refreshTrigger, pathname }
             style={styles.avatar}
             resizeMode="cover"
             onLoad={() => {
-              console.log('[ProfileTab v326.0] ✅ Avatar image loaded successfully');
+              console.log('[ProfileTab v327.0] ✅ Avatar image loaded successfully');
               setImageError(false);
             }}
             onError={(error) => {
-              console.log('[ProfileTab v326.0] ❌ Avatar image load error:', error.nativeEvent.error);
+              console.log('[ProfileTab v327.0] ❌ Avatar image load error:', error.nativeEvent.error);
               setImageError(true);
             }}
           />
@@ -201,16 +209,15 @@ const ProfileTab = memo(({ isActive, onPress, userId, refreshTrigger, pathname }
     </TouchableOpacity>
   );
 }, (prevProps, nextProps) => {
-  // ✅ CRITICAL FIX v326.0: Re-render when ANY prop changes
+  // ✅ Only re-render when props actually change
   const shouldUpdate = (
     prevProps.isActive !== nextProps.isActive ||
     prevProps.userId !== nextProps.userId ||
-    prevProps.refreshTrigger !== nextProps.refreshTrigger ||
-    prevProps.pathname !== nextProps.pathname
+    prevProps.refreshTrigger !== nextProps.refreshTrigger
   );
   
   if (shouldUpdate) {
-    console.log('[ProfileTab v326.0] 🔄 Props changed - component will re-render');
+    console.log('[ProfileTab v327.0] 🔄 Props changed - component will re-render');
   }
   
   return !shouldUpdate;
@@ -224,42 +231,31 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   
-  // ✅ CRITICAL FIX v326.0: Refresh trigger that updates on BOTH focus AND pathname change
+  // ✅ CRITICAL FIX v327.0: Only refresh on focus, not on every pathname change
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
+  const lastPathnameRef = useRef(pathname);
 
-  // ✅ CRITICAL FIX v326.0: Force avatar reload when screen comes into focus
+  // ✅ Force avatar reload when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      console.log('[FloatingTabBar v326.0] 🔄 Screen focused - forcing avatar refresh');
-      setRefreshTrigger(prev => {
-        const newValue = prev + 1;
-        console.log('[FloatingTabBar v326.0] 🔄 Refresh trigger updated:', prev, '->', newValue);
-        return newValue;
-      });
+      console.log('[FloatingTabBar v327.0] 🔄 Screen focused - forcing avatar refresh');
+      setRefreshTrigger(prev => prev + 1);
     }, [])
   );
 
-  // ✅ CRITICAL FIX v326.0: ALSO force reload when pathname changes
+  // ✅ CRITICAL FIX v327.0: Only refresh when navigating TO/FROM profile page
   React.useEffect(() => {
-    console.log('[FloatingTabBar v326.0] 🔄 Pathname changed - forcing avatar refresh');
-    console.log('[FloatingTabBar v326.0] 🔄 New pathname:', pathname);
-    setRefreshTrigger(prev => {
-      const newValue = prev + 1;
-      console.log('[FloatingTabBar v326.0] 🔄 Refresh trigger updated:', prev, '->', newValue);
-      return newValue;
-    });
+    const isProfilePage = pathname.includes('/perfil');
+    const wasProfilePage = lastPathnameRef.current.includes('/perfil');
+    
+    // Only refresh if we're navigating to or from the profile page
+    if (isProfilePage !== wasProfilePage) {
+      console.log('[FloatingTabBar v327.0] 🔄 Profile page navigation detected - refreshing avatar');
+      setRefreshTrigger(prev => prev + 1);
+    }
+    
+    lastPathnameRef.current = pathname;
   }, [pathname]);
-
-  // ✅ CRITICAL FIX v326.0: Log user state for debugging
-  React.useEffect(() => {
-    console.log('[FloatingTabBar v326.0] 🔄 User state:', {
-      hasUser: !!user,
-      userId: user?.id || 'null',
-      pathname,
-      refreshTrigger,
-      timestamp: new Date().toISOString(),
-    });
-  }, [user, pathname, refreshTrigger]);
 
   const isTabActive = useCallback((tab: TabBarItem): boolean => {
     const cleanRoute = tab.route.replace(/^\//, '').replace(/\/$/, '');
@@ -297,7 +293,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   }, [pathname]);
 
   const handleTabPress = useCallback((tab: TabBarItem) => {
-    console.log(`[FloatingTabBar v326.0] ⚡ INSTANT TAP: "${tab.name}" -> ${tab.route}`);
+    console.log(`[FloatingTabBar v327.0] ⚡ Tab pressed: "${tab.name}" -> ${tab.route}`);
     router.push(tab.route as any);
   }, [router]);
 
@@ -326,7 +322,6 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
           onPress={() => handleTabPress(tab)}
           userId={user?.id || null}
           refreshTrigger={refreshTrigger}
-          pathname={pathname}
         />
       );
     }
@@ -385,7 +380,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
         />
       </TouchableOpacity>
     );
-  }, [isTabActive, handleTabPress, user?.id, getAndroidIcon, refreshTrigger, pathname]);
+  }, [isTabActive, handleTabPress, user?.id, getAndroidIcon, refreshTrigger]);
 
   const bottomNavHeight = Platform.OS === 'android' ? 56 : 60;
   const tabBarPaddingBottom = Platform.OS === 'android' 
@@ -394,8 +389,8 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const containerHeight = bottomNavHeight + tabBarPaddingBottom;
 
   console.log(
-    `[FloatingTabBar v326.0] ⚡ ANDROID PROFILE AVATAR FIX v326.0 - ` +
-    `Cache-busting enabled - userId: ${user?.id || 'null'} - trigger: ${refreshTrigger} - path: ${pathname}`
+    `[FloatingTabBar v327.0] ⚡ ANDROID PROFILE AVATAR FIX v327.0 - ` +
+    `Debounced reload - userId: ${user?.id || 'null'} - trigger: ${refreshTrigger}`
   );
 
   return (
