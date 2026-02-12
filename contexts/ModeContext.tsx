@@ -424,7 +424,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       }
       setCurrentModeState(mode);
     }
-  }, [user, ownedLocals.length, loadOwnedLocals]);
+  }, [user, ownedLocals.length, loadOwnedLocals, isImpersonating, switchToClientProfile, switchToLocalProfile, userForPermissions]);
 
   const switchToClientProfile = useCallback(async () => {
     if (!user) {

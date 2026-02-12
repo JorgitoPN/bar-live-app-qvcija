@@ -163,7 +163,7 @@ export default function FavoritosScreen() {
     } catch (error) {
       console.error('[Favoritos v325.0] Error checking social profiles:', error);
     }
-  }, []);
+  }, [userLocation]);
 
   const loadSavedLocales = useCallback(async () => {
     if (!user) {
@@ -268,7 +268,7 @@ export default function FavoritosScreen() {
         supabase.removeChannel(savedLocalesChannel);
       };
     }
-  }, [user]);
+  }, [user, loadSavedLocales]);
 
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
@@ -287,7 +287,7 @@ export default function FavoritosScreen() {
       });
       setAllSavedLocales(updatedLocales);
     }
-  }, [userLocation]);
+  }, [userLocation, allSavedLocales]);
 
   const filteredLocales = useMemo(() => {
     const query = debouncedQuery.toLowerCase().trim();

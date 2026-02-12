@@ -91,7 +91,7 @@ export function InteractionBubbleCarousel({
       scaleAnim.setValue(0);
       rotateAnim.setValue(0);
     }
-  }, [visible]);
+  }, [visible, mode, recipientName, rotateAnim, scaleAnim, themeColors]);
 
   const handleSelectMessage = (message: string) => {
     console.log('[InteractionBubbleCarousel] Message selected:', message);

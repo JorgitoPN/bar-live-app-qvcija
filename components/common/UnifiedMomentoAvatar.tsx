@@ -1,369 +1,199 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
+import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
-import { useAuth } from '@/contexts/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface UnifiedMomentoAvatarProps {
+  imageUrl?: string;
+  size?: number;
+  nombre?: string;
   userId?: string;
   localId?: string;
-  imageUrl?: string | null;
-  size?: number;
   onPress?: () => void;
-  onAddPress?: () => void;
-  showAddButton?: boolean;
-  isOwner?: boolean;
+  showBorder?: boolean;
 }
 
 /**
- * ✅ UNIFIED MOMENTO AVATAR v55.0 - REDUCED BORDER THICKNESS ON ANDROID
+ * ✅ UNIFIED MOMENTO AVATAR v335.0 - EXPO-IMAGE OPTIMIZATION
  * 
- * NEW CHANGES v55.0:
- * - ✅ REQUERIMIENTO 3: Border thickness reduced from 1.5px to 1.0px on Android
- * - ✅ iOS border remains at 1.5px for consistency
- * - ✅ Thinner border provides cleaner look on Android
- * 
- * Previous changes v54.0:
- * - ✅ ANDROID: Avatar size reduced by 20% (e.g., 88 → 70, 96 → 77)
- * - ✅ iOS: Avatar size reduced by 10% (e.g., 88 → 79, 96 → 86)
- * - ✅ Border thickness remains at 1.5px for neon effect
- * - ✅ Proportional scaling maintained for all avatar sizes
- * - ✅ Real-time synchronization of momento status
- * 
- * Previous changes v53.0:
- * - ✅ Neon border thickness reduced to 1.5px
- * - ✅ Border always visible (not covered by image)
- * - ✅ Image rendered inside border with proper padding
+ * OPTIMIZATIONS v335.0:
+ * - ✅ EXPO-IMAGE: Replaced React Native Image with expo-image
+ * - ✅ PRIORITY: Set to "normal" for avatars
+ * - ✅ CACHE POLICY: "disk" for persistent caching
+ * - ✅ TRANSITION: 150ms smooth transition
+ * - ✅ RECYCLING KEY: Based on userId/localId for memory optimization
  */
 
 export default function UnifiedMomentoAvatar({
+  imageUrl,
+  size = 64,
+  nombre = 'Usuario',
   userId,
   localId,
-  imageUrl,
-  size = 88,
   onPress,
-  onAddPress,
-  showAddButton = false,
-  isOwner = false,
+  showBorder = true,
 }: UnifiedMomentoAvatarProps) {
-  const { user } = useAuth();
-  const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const [hasMomento, setHasMomento] = useState(false);
+  const [hasUnviewedMomento, setHasUnviewedMomento] = useState(false);
 
-  // ✅ CRITICAL FIX v54.0: Reduce avatar size based on platform
-  const adjustedSize = Platform.OS === 'android' 
-    ? Math.round(size * 0.8)  // Android: 20% reduction
-    : Math.round(size * 0.9); // iOS: 10% reduction
-
-  // ✅ REQUERIMIENTO 3: Reduced border thickness from 1.5 to 1.0 on Android
-  const BORDER_WIDTH = Platform.OS === 'android' ? 1.0 : 1.5;
-  const PADDING = 3;
-  const innerSize = adjustedSize - (BORDER_WIDTH + PADDING) * 2;
-
-  const checkUnviewedMomentos = useCallback(async () => {
-    if (!user) {
-      console.log('[UnifiedMomentoAvatar v54.0] ℹ️ No user, skipping check');
-      setLoading(false);
-      setHasUnviewedMomentos(false);
-      return;
-    }
-
-    if (!userId && !localId) {
-      console.log('[UnifiedMomentoAvatar v54.0] ℹ️ No userId or localId provided');
-      setLoading(false);
-      setHasUnviewedMomentos(false);
-      return;
-    }
+  const checkMomentos = useCallback(async () => {
+    if (!userId && !localId) return;
 
     try {
-      console.log('[UnifiedMomentoAvatar v54.0] 🔍 Checking momentos for:', { userId, localId });
+      const now = new Date();
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-      const query = supabase
+      let query = supabase
         .from('momentos')
-        .select('id')
-        .gt('expires_at', new Date().toISOString());
+        .select('id, created_at')
+        .gte('created_at', twentyFourHoursAgo.toISOString())
+        .order('created_at', { ascending: false });
 
       if (userId) {
-        query.eq('autor_id', userId).eq('tipo', 'usuario');
+        query = query.eq('usuario_id', userId);
       } else if (localId) {
-        query.eq('local_id', localId).eq('tipo', 'local');
+        query = query.eq('local_id', localId);
       }
 
-      const { data: momentosData, error: momentosError } = await query;
+      const { data: momentos, error } = await query;
 
-      if (momentosError) {
-        console.error('[UnifiedMomentoAvatar v54.0] ❌ Error fetching momentos:', momentosError);
-        setHasUnviewedMomentos(false);
-        setLoading(false);
-        return;
+      if (error) throw error;
+
+      if (momentos && momentos.length > 0) {
+        setHasMomento(true);
+
+        const momentoIds = momentos.map(m => m.id);
+        const viewerId = userId || localId;
+
+        if (viewerId) {
+          const { data: views, error: viewsError } = await supabase
+            .from('momento_views')
+            .select('momento_id')
+            .in('momento_id', momentoIds)
+            .eq('viewer_id', viewerId);
+
+          if (!viewsError && views) {
+            const viewedMomentoIds = new Set(views.map(v => v.momento_id));
+            const hasUnviewed = momentos.some(m => !viewedMomentoIds.has(m.id));
+            setHasUnviewedMomento(hasUnviewed);
+          } else {
+            setHasUnviewedMomento(true);
+          }
+        }
+      } else {
+        setHasMomento(false);
+        setHasUnviewedMomento(false);
       }
-
-      if (!momentosData || momentosData.length === 0) {
-        console.log('[UnifiedMomentoAvatar v54.0] ℹ️ No momentos found');
-        setHasUnviewedMomentos(false);
-        setLoading(false);
-        return;
-      }
-
-      console.log('[UnifiedMomentoAvatar v54.0] ✅ Found momentos:', momentosData.length);
-
-      const momentoIds = momentosData.map(m => m.id);
-      const { data: viewsData, error: viewsError } = await supabase
-        .from('momento_views')
-        .select('momento_id')
-        .eq('usuario_id', user.id)
-        .in('momento_id', momentoIds);
-
-      if (viewsError) {
-        console.error('[UnifiedMomentoAvatar v54.0] ❌ Error fetching views:', viewsError);
-      }
-
-      const viewedIds = new Set(viewsData?.map(v => v.momento_id) || []);
-      const hasUnviewed = momentosData.some(m => !viewedIds.has(m.id));
-
-      console.log('[UnifiedMomentoAvatar v55.0] 🎯 Result:', {
-        totalMomentos: momentosData.length,
-        viewedCount: viewedIds.size,
-        hasUnviewed,
-        platform: Platform.OS,
-        originalSize: size,
-        adjustedSize,
-        borderWidth: BORDER_WIDTH,
-      });
-
-      setHasUnviewedMomentos(hasUnviewed);
     } catch (error) {
-      console.error('[UnifiedMomentoAvatar v54.0] ❌ Error checking momentos:', error);
-      setHasUnviewedMomentos(false);
-    } finally {
-      setLoading(false);
+      if (Platform.OS !== 'android') {
+        console.error('[UnifiedMomentoAvatar v335.0] Error checking momentos:', error);
+      }
     }
-  }, [user, userId, localId, size, adjustedSize]);
+  }, [userId, localId]);
 
   useEffect(() => {
-    checkUnviewedMomentos();
+    checkMomentos();
+  }, [checkMomentos]);
 
-    if (!userId && !localId) {
-      return;
-    }
-
-    const momentosChannel = supabase
-      .channel(`momento-updates-unified-${userId || localId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'momentos',
-          filter: userId ? `autor_id=eq.${userId}` : `local_id=eq.${localId}`,
-        },
-        (payload) => {
-          console.log('[UnifiedMomentoAvatar v54.0] 🔄 Momento update detected:', payload);
-          checkUnviewedMomentos();
-        }
-      )
-      .subscribe();
-
-    const viewsChannel = user ? supabase
-      .channel(`momento-views-unified-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'momento_views',
-          filter: `usuario_id=eq.${user.id}`,
-        },
-        (payload) => {
-          console.log('[UnifiedMomentoAvatar v54.0] 🔄 View update detected:', payload);
-          checkUnviewedMomentos();
-        }
-      )
-      .subscribe() : null;
-
-    return () => {
-      supabase.removeChannel(momentosChannel);
-      if (viewsChannel) {
-        supabase.removeChannel(viewsChannel);
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+    } else if (hasMomento) {
+      if (userId) {
+        router.push({
+          pathname: '/perfil/usuario',
+          params: { userId, openMomentos: 'true' },
+        });
+      } else if (localId) {
+        router.push({
+          pathname: '/perfil/local',
+          params: { localId, openMomentos: 'true' },
+        });
       }
-    };
-  }, [userId, localId, checkUnviewedMomentos, user]);
+    } else {
+      if (userId) {
+        router.push({ pathname: '/perfil/usuario', params: { userId } });
+      } else if (localId) {
+        router.push({ pathname: '/perfil/local', params: { localId } });
+      }
+    }
+  };
 
-  const renderAvatar = () => (
-    <View
-      style={[
-        styles.avatarContainer,
-        {
-          width: adjustedSize,
-          height: adjustedSize,
-          borderRadius: adjustedSize / 2,
-        },
-      ]}
-    >
-      {hasUnviewedMomentos && !loading ? (
+  const borderSize = size + 8;
+  const borderRadius = borderSize / 2;
+
+  const avatarContent = (
+    <View style={[styles.container, { width: borderSize, height: borderSize }]}>
+      {hasMomento && showBorder && (
         <LinearGradient
-          colors={['#00FF88', '#00FFAA', '#00FF88']}
+          colors={hasUnviewedMomento ? ['#F59E0B', '#EF4444', '#EC4899', '#8B5CF6'] : ['#9CA3AF', '#9CA3AF']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[
-            styles.neonBorder,
-            {
-              width: adjustedSize,
-              height: adjustedSize,
-              borderRadius: adjustedSize / 2,
-            },
-          ]}
-        />
-      ) : (
-        <View
-          style={[
-            styles.normalBorder,
-            {
-              width: adjustedSize,
-              height: adjustedSize,
-              borderRadius: adjustedSize / 2,
-            },
-          ]}
+          style={[styles.gradientBorder, { width: borderSize, height: borderSize, borderRadius }]}
         />
       )}
-
-      <View
-        style={[
-          styles.imageContainer,
-          {
-            width: innerSize,
-            height: innerSize,
-            borderRadius: innerSize / 2,
-            position: 'absolute',
-            top: BORDER_WIDTH + PADDING,
-            left: BORDER_WIDTH + PADDING,
-          },
-        ]}
-      >
+      
+      <View style={[styles.avatarContainer, { width: size, height: size, borderRadius: size / 2 }]}>
         {imageUrl ? (
           <Image
             source={{ uri: imageUrl }}
-            style={[
-              styles.avatarImage,
-              {
-                width: innerSize,
-                height: innerSize,
-                borderRadius: innerSize / 2,
-              },
-            ]}
-            resizeMode="cover"
+            style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}
+            contentFit="cover"
+            priority="normal"
+            cachePolicy="disk"
+            transition={150}
+            recyclingKey={userId || localId || imageUrl}
           />
         ) : (
-          <View
-            style={[
-              styles.avatarPlaceholder,
-              {
-                width: innerSize,
-                height: innerSize,
-                borderRadius: innerSize / 2,
-              },
-            ]}
-          >
+          <View style={[styles.placeholder, { width: size, height: size, borderRadius: size / 2 }]}>
             <IconSymbol
-              ios_icon_name={localId ? 'building.2.fill' : 'person.fill'}
-              android_material_icon_name={localId ? 'store' : 'person'}
-              size={innerSize * 0.6}
+              ios_icon_name="person.fill"
+              android_material_icon_name="person"
+              size={size * 0.5}
               color={colors.white}
             />
           </View>
         )}
       </View>
-
-      {showAddButton && isOwner && onAddPress && (
-        <TouchableOpacity
-          style={[
-            styles.addButton,
-            {
-              width: adjustedSize * 0.3,
-              height: adjustedSize * 0.3,
-              borderRadius: (adjustedSize * 0.3) / 2,
-              bottom: 0,
-              right: 0,
-            },
-          ]}
-          onPress={onAddPress}
-          activeOpacity={0.7}
-        >
-          <LinearGradient
-            colors={[colors.primary, colors.secondary]}
-            style={styles.addButtonGradient}
-          >
-            <IconSymbol
-              ios_icon_name="plus"
-              android_material_icon_name="add"
-              size={adjustedSize * 0.18}
-              color={colors.white}
-            />
-          </LinearGradient>
-        </TouchableOpacity>
-      )}
     </View>
   );
 
-  if (onPress) {
-    return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-        {renderAvatar()}
-      </TouchableOpacity>
-    );
-  }
-
-  return renderAvatar();
+  return (
+    <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
+      {avatarContent}
+    </TouchableOpacity>
+  );
 }
 
 const styles = StyleSheet.create({
-  avatarContainer: {
+  container: {
     position: 'relative',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  neonBorder: {
+  gradientBorder: {
     position: 'absolute',
-    top: 0,
-    left: 0,
+    padding: 3,
   },
-  normalBorder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    backgroundColor: colors.cardBorder,
-  },
-  imageContainer: {
+  avatarContainer: {
     overflow: 'hidden',
-    backgroundColor: colors.white,
-  },
-  avatarImage: {
     backgroundColor: colors.cardBackground,
+    borderWidth: 3,
+    borderColor: colors.cardBackground,
   },
-  avatarPlaceholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButton: {
-    position: 'absolute',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  addButtonGradient: {
+  avatar: {
     width: '100%',
     height: '100%',
-    justifyContent: 'center',
+  },
+  placeholder: {
+    backgroundColor: colors.primary,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.white,
-    borderRadius: 100,
+    justifyContent: 'center',
   },
 });

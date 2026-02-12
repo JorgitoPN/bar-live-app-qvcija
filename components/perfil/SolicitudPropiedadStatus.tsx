@@ -42,32 +42,6 @@ export default function SolicitudPropiedadStatus({ userId }: Props) {
   const [solicitud, setSolicitud] = useState<SolicitudStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadSolicitud();
-
-    // Subscribe to changes
-    const channel = supabase
-      .channel(`solicitud-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'solicitudes_propietario',
-          filter: `usuario_id=eq.${userId}`,
-        },
-        () => {
-          console.log('[SolicitudStatus v2.0] Request changed, reloading...');
-          loadSolicitud();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId]);
-
   const loadSolicitud = async () => {
     try {
       const { data, error } = await supabase
@@ -92,6 +66,32 @@ export default function SolicitudPropiedadStatus({ userId }: Props) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadSolicitud();
+
+    // Subscribe to changes
+    const channel = supabase
+      .channel(`solicitud-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'solicitudes_propietario',
+          filter: `usuario_id=eq.${userId}`,
+        },
+        () => {
+          console.log('[SolicitudStatus v2.0] Request changed, reloading...');
+          loadSolicitud();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, loadSolicitud]);
 
   const getEstadoInfo = (estado: string) => {
     switch (estado) {

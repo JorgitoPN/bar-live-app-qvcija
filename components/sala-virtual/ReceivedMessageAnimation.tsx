@@ -118,7 +118,7 @@ export function ReceivedMessageAnimation({
         ]).start();
       });
     }
-  }, [visible]);
+  }, [visible, bubbles, onComplete, opacityAnim, scaleAnim]);
 
   if (!visible) return null;
 

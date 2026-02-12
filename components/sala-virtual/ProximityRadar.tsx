@@ -46,7 +46,7 @@ export function ProximityRadar({ nearbyCount, themeColors, mode }: ProximityRada
         useNativeDriver: true,
       })
     ).start();
-  }, []);
+  }, [pulseAnim, rotateAnim]);
 
   const rotate = rotateAnim.interpolate({
     inputRange: [0, 1],
