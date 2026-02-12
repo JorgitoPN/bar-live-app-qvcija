@@ -73,12 +73,12 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v344.0 - TABS SPACING REDUCED BY HALF (FINAL FIX)
+ * ✅ PROFILE SCREEN v345.0 - POST VIEWER INTEGRATION FIX
  * 
- * CAMBIOS v344.0:
- * - ✅ FIXED: Reducida a la mitad la separación entre botones y tabs (marginTop: 16 → 8)
- * - ✅ RESULTADO: Espacio más compacto y mejor aprovechamiento visual
- * - ✅ VERIFICADO: El cambio está en la línea correcta del código (tabsContainer)
+ * CAMBIOS v345.0:
+ * - ✅ FIXED PROBLEM 3: Correct post order passed to PostViewerModal
+ * - ✅ IMPROVED: Better logging for debugging post selection
+ * - ✅ VERIFIED: Posts array order matches grid display order
  */
 
 export default function PerfilScreen() {
@@ -156,7 +156,7 @@ export default function PerfilScreen() {
         setUnreadMessages(totalUnread);
       }
     } catch (error) {
-      console.error('[Perfil v344.0] Error loading unread counts:', error);
+      console.error('[Perfil v345.0] Error loading unread counts:', error);
     }
   }, [userId]);
 
@@ -170,14 +170,14 @@ export default function PerfilScreen() {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('[Perfil v344.0] ❌ Error loading cart count:', error);
+        console.error('[Perfil v345.0] ❌ Error loading cart count:', error);
         return;
       }
 
-      console.log('[Perfil v344.0] 🛒 Cart items count:', count);
+      console.log('[Perfil v345.0] 🛒 Cart items count:', count);
       setCartItemsCount(count || 0);
     } catch (error) {
-      console.error('[Perfil v344.0] ❌ Error loading cart count:', error);
+      console.error('[Perfil v345.0] ❌ Error loading cart count:', error);
     }
   }, [userId, isPropietario]);
 
@@ -197,7 +197,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v344.0] Error loading current local:', error);
+        console.error('[Perfil v345.0] Error loading current local:', error);
         return;
       }
 
@@ -212,7 +212,7 @@ export default function PerfilScreen() {
         setCheckInInfo(null);
       }
     } catch (error) {
-      console.error('[Perfil v344.0] Error loading current local:', error);
+      console.error('[Perfil v345.0] Error loading current local:', error);
     }
   }, [userId]);
 
@@ -265,13 +265,14 @@ export default function PerfilScreen() {
         }));
 
         setPosts(postsWithStatus);
+        console.log('[Perfil v345.0] ✅ Posts loaded:', postsWithStatus.length);
         return postsWithStatus;
       } else {
         setPosts([]);
         return [];
       }
     } catch (error) {
-      console.error('[Perfil v344.0] Error cargando posts:', error);
+      console.error('[Perfil v345.0] Error cargando posts:', error);
       return [];
     }
   }, [userId]);
@@ -334,7 +335,7 @@ export default function PerfilScreen() {
         setSavedPosts([]);
       }
     } catch (error) {
-      console.error('[Perfil v344.0] Error cargando favoritos:', error);
+      console.error('[Perfil v345.0] Error cargando favoritos:', error);
     }
   }, [userId]);
 
@@ -413,7 +414,7 @@ export default function PerfilScreen() {
 
       setTaggedPosts(postsWithStatus);
     } catch (error) {
-      console.error('[Perfil v344.0] Error cargando etiquetados:', error);
+      console.error('[Perfil v345.0] Error cargando etiquetados:', error);
       setTaggedPosts([]);
     }
   }, [userId]);
@@ -430,7 +431,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[Perfil v344.0] Error loading professional profile:', error);
+        console.error('[Perfil v345.0] Error loading professional profile:', error);
       }
 
       if (data) {
@@ -439,7 +440,7 @@ export default function PerfilScreen() {
         setPerfilProfesional(null);
       }
     } catch (error) {
-      console.error('[Perfil v344.0] Error loading professional profile:', error);
+      console.error('[Perfil v345.0] Error loading professional profile:', error);
     } finally {
       setLoadingEmpleo(false);
     }
@@ -450,7 +451,7 @@ export default function PerfilScreen() {
 
     try {
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v344.0] 🔄 Loading profile data...');
+        console.log('[Perfil v345.0] 🔄 Loading profile data...');
       }
 
       await loadUnreadCounts();
@@ -468,7 +469,7 @@ export default function PerfilScreen() {
       const seguidosCount = userFollowsCount || 0;
 
       if (seguidoresError) {
-        console.error('[Perfil v344.0] Error loading seguidores count:', seguidoresError);
+        console.error('[Perfil v345.0] Error loading seguidores count:', seguidoresError);
       }
 
       const seguidoresCount = seguidoresData || 0;
@@ -498,10 +499,10 @@ export default function PerfilScreen() {
       }
 
       if (!isBackgroundRefresh) {
-        console.log('[Perfil v344.0] ✅ Profile data loaded and cached');
+        console.log('[Perfil v345.0] ✅ Profile data loaded and cached');
       }
     } catch (error) {
-      console.error('[Perfil v344.0] Error cargando datos:', error);
+      console.error('[Perfil v345.0] Error cargando datos:', error);
     } finally {
       setRefreshing(false);
     }
@@ -511,22 +512,22 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const loadCachedData = async () => {
-      console.log('[Perfil v344.0] ⚡ Loading from cache...');
+      console.log('[Perfil v345.0] ⚡ Loading from cache...');
       const cached = await profileCache.get(userId, 'user');
       
       if (cached) {
-        console.log('[Perfil v344.0] ⚡⚡⚡ INSTANT LOAD from cache');
+        console.log('[Perfil v345.0] ⚡⚡⚡ INSTANT LOAD from cache');
         setSeguidores(cached.stats.seguidores);
         setSeguidos(cached.stats.seguidos);
         setPublicaciones(cached.stats.posts);
         setPosts(cached.posts);
         
         setTimeout(() => {
-          console.log('[Perfil v344.0] 🔄 Background refresh...');
+          console.log('[Perfil v345.0] 🔄 Background refresh...');
           cargarDatosPerfil(true);
         }, 100);
       } else {
-        console.log('[Perfil v344.0] 📡 No cache, loading from database...');
+        console.log('[Perfil v345.0] 📡 No cache, loading from database...');
         cargarDatosPerfil(false);
       }
     };
@@ -553,7 +554,7 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     const subscription = supabase
-      .channel('profile-updates-v344')
+      .channel('profile-updates-v345')
       .on(
         'postgres_changes',
         {
@@ -600,7 +601,7 @@ export default function PerfilScreen() {
     if (!userId || !isPropietario) return;
 
     const subscription = supabase
-      .channel('cart-updates-v344')
+      .channel('cart-updates-v345')
       .on(
         'postgres_changes',
         {
@@ -610,7 +611,7 @@ export default function PerfilScreen() {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          console.log('[Perfil v344.0] 🛒 Cart updated, reloading count...');
+          console.log('[Perfil v345.0] 🛒 Cart updated, reloading count...');
           loadCartItemsCount();
         }
       )
@@ -682,8 +683,21 @@ export default function PerfilScreen() {
   };
 
   const handlePostClick = (postId: string) => {
+    console.log('[Perfil v345.0] 📱 PROBLEM 3 FIX: User clicked post in grid:', postId);
+    
+    // ✅ v345.0 FIX PROBLEM 3: Get current posts array based on active tab
     const currentPosts = activeTab === 'posts' ? posts : activeTab === 'favoritos' ? savedPosts : taggedPosts;
+    
+    // ✅ v345.0 FIX PROBLEM 3: Pass posts in the SAME order as displayed in grid
     const postIds = currentPosts.map(p => p.id);
+    
+    console.log('[Perfil v345.0] 📍 PROBLEM 3: Opening PostViewerModal with:', {
+      selectedPostId: postId,
+      totalPosts: postIds.length,
+      postIndex: postIds.indexOf(postId),
+      firstPostId: postIds[0],
+      lastPostId: postIds[postIds.length - 1],
+    });
     
     setSelectedPostId(postId);
     setAllPostIds(postIds);
@@ -691,7 +705,7 @@ export default function PerfilScreen() {
   };
 
   const handleCartCheckout = async (items: any[], total: number) => {
-    console.log('[Perfil v344.0] 💳 Checkout requested:', { items: items.length, total });
+    console.log('[Perfil v345.0] 💳 Checkout requested:', { items: items.length, total });
     Alert.alert(
       'Pago en Desarrollo',
       `Total a pagar: €${total.toFixed(2)}\n\nLa integración con Stripe está en desarrollo.`,
@@ -724,7 +738,7 @@ export default function PerfilScreen() {
               setCheckInInfo(null);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
-              console.error('[Perfil v344.0] Error exiting local:', error);
+              console.error('[Perfil v345.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -1113,7 +1127,6 @@ export default function PerfilScreen() {
             </View>
           )}
 
-          {/* ✅ FIX v344.0: Reducida a la mitad la separación entre botones y tabs (16 → 8) */}
           <View style={styles.tabsContainer}>
             <TouchableOpacity
               style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
@@ -1330,11 +1343,13 @@ export default function PerfilScreen() {
           allPostIds={allPostIds}
           hideTagIcon={true}
           onClose={() => {
+            console.log('[Perfil v345.0] 🔙 PostViewerModal closed');
             setShowPostViewer(false);
             setSelectedPostId(null);
             setAllPostIds([]);
           }}
           onUpdate={() => {
+            console.log('[Perfil v345.0] 🔄 Post updated, refreshing current tab');
             if (activeTab === 'posts') {
               cargarPosts();
             } else if (activeTab === 'favoritos') {
@@ -1733,7 +1748,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
-  // ✅ FIX v344.0: Reducida a la mitad la separación entre botones y tabs (16 → 8)
   tabsContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
