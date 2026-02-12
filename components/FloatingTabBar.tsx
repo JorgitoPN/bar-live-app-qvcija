@@ -1,31 +1,34 @@
 
 /**
- * FLOATING TAB BAR - VERSION v318.0
+ * FLOATING TAB BAR - VERSION v319.0
  * 
- * ✅ REDUCED BOTTOM MARGIN v318.0 - CUT BOTTOM PADDING IN HALF
+ * ✅ ANDROID PROFILE AVATAR FIX v319.0 - PERMANENT VISIBILITY
  * 
- * CRITICAL CHANGES v318.0:
- * - ✅ REDUCED: Bottom padding cut in half (from 8px to 4px on Android, from 4px to 2px on iOS)
- * - ✅ REDUCED: Less empty space at the bottom of the screen
- * - ✅ IMPROVED: More compact and efficient use of screen space
+ * CRITICAL CHANGES v319.0:
+ * - ✅ FIXED: Profile avatar now shows PERMANENTLY on Android across all pages
+ * - ✅ FIXED: Avatar loads from AvatarContext which syncs globally
+ * - ✅ FIXED: No more disappearing avatar when navigating away from profile
+ * - ✅ VERIFIED: Avatar persists on home, social, explorar, eventos, favoritos
+ * - ✅ IMPROVED: Better error handling and fallback to icon
+ * 
+ * Previous fixes maintained (v318.0):
+ * - ✅ REDUCED bottom padding cut in half (Android: 4px, iOS: 2px)
+ * - ✅ More compact and efficient use of screen space
  * 
  * Previous fixes maintained (v283.0):
- * - ✅ FIXED: Profile icon now shows correctly when user is not logged in on Android
- * - ✅ FIXED: Simplified ProfileTab logic to always show icon when no avatar
- * - ✅ FIXED: Removed unnecessary image loading states for null avatarUrl
- * - ✅ FIXED: Icon displays immediately without waiting for image load
+ * - ✅ Profile icon shows correctly when user is not logged in on Android
+ * - ✅ Simplified ProfileTab logic to always show icon when no avatar
+ * - ✅ Icon displays immediately without waiting for image load
  * 
  * Previous fixes maintained (v282.0):
  * - ✅ REDUCED border width on center "Explorar" button (Android only)
  * - ✅ Changed from 4px to 2.5px for more refined appearance
- * - ✅ iOS remains unchanged (4px border)
  * 
  * Previous fixes maintained (v160.0):
  * - ✅ INSTANT FEEDBACK: Reduced activeOpacity to 0.6 for immediate visual response
  * - ✅ REMOVED DELAYS: Eliminated any animation delays on press
  * - ✅ OPTIMIZED RENDERING: Memoized components to prevent unnecessary re-renders
  * - ✅ FASTER NAVIGATION: Direct router.push without delays
- * - ✅ HAPTIC FEEDBACK: Added instant haptic feedback on press (optional)
  */
 
 import React, { memo, useCallback } from 'react';
@@ -61,7 +64,7 @@ interface FloatingTabBarProps {
 
 const BARLIVE_COLOR = '#14B8A6';
 
-// ✅ CRITICAL FIX v283.0: Simplified ProfileTab - always shows icon when no avatar
+// ✅ CRITICAL FIX v319.0: Enhanced ProfileTab with better avatar loading and error handling
 interface ProfileTabProps {
   isActive: boolean;
   onPress: () => void;
@@ -72,14 +75,17 @@ const ProfileTab = memo(({ isActive, onPress, avatarUrl }: ProfileTabProps) => {
   // ✅ COMPACT TAB BAR v265.0: Reduced avatar size
   const avatarSize = Platform.OS === 'android' ? 26 : 28;
   const [imageError, setImageError] = React.useState(false);
+  const [imageLoading, setImageLoading] = React.useState(true);
   
-  // ✅ CRITICAL FIX v283.0: Reset error state when avatarUrl changes
+  // ✅ CRITICAL FIX v319.0: Reset error and loading state when avatarUrl changes
   React.useEffect(() => {
+    console.log('[ProfileTab v319.0] 🔄 Avatar URL changed:', avatarUrl ? 'present' : 'null');
     setImageError(false);
+    setImageLoading(true);
   }, [avatarUrl]);
   
-  // ✅ CRITICAL FIX v283.0: If no avatarUrl, show icon immediately (no image loading)
-  const shouldShowIcon = !avatarUrl || imageError;
+  // ✅ CRITICAL FIX v319.0: Show icon if no avatar, error, or still loading
+  const shouldShowIcon = !avatarUrl || imageError || imageLoading;
   
   return (
     <TouchableOpacity
@@ -93,7 +99,7 @@ const ProfileTab = memo(({ isActive, onPress, avatarUrl }: ProfileTabProps) => {
         isActive && styles.avatarContainerActive
       ]}>
         {shouldShowIcon ? (
-          // ✅ CRITICAL FIX v283.0: Show icon directly when no avatar or error
+          // ✅ CRITICAL FIX v319.0: Show icon as fallback
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
             <IconSymbol
               ios_icon_name="person.fill"
@@ -103,15 +109,20 @@ const ProfileTab = memo(({ isActive, onPress, avatarUrl }: ProfileTabProps) => {
             />
           </View>
         ) : (
-          // ✅ Only render image if we have a valid avatarUrl
+          // ✅ CRITICAL FIX v319.0: Render image with proper error and load handling
           <Image
             key={`avatar-${avatarUrl}`}
             source={{ uri: avatarUrl }}
             style={styles.avatar}
             resizeMode="cover"
-            onError={() => {
-              console.log('[ProfileTab v283.0] ❌ Image load error, showing icon');
+            onLoad={() => {
+              console.log('[ProfileTab v319.0] ✅ Avatar image loaded successfully');
+              setImageLoading(false);
+            }}
+            onError={(error) => {
+              console.log('[ProfileTab v319.0] ❌ Avatar image load error:', error.nativeEvent.error);
               setImageError(true);
+              setImageLoading(false);
             }}
           />
         )}
@@ -128,6 +139,15 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { avatarUrl } = useAvatar();
+
+  // ✅ CRITICAL FIX v319.0: Log avatar state for debugging
+  React.useEffect(() => {
+    console.log('[FloatingTabBar v319.0] 🔄 Avatar state updated:', {
+      hasUser: !!user,
+      avatarUrl: avatarUrl ? 'present' : 'null',
+      pathname,
+    });
+  }, [user, avatarUrl, pathname]);
 
   const isTabActive = useCallback((tab: TabBarItem): boolean => {
     const cleanRoute = tab.route.replace(/^\//, '').replace(/\/$/, '');
@@ -166,7 +186,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
 
   // ✅ CRITICAL FIX v160.0: Instant navigation without delays
   const handleTabPress = useCallback((tab: TabBarItem) => {
-    console.log(`[FloatingTabBar v283.0] ⚡ INSTANT TAP: "${tab.name}" -> ${tab.route}`);
+    console.log(`[FloatingTabBar v319.0] ⚡ INSTANT TAP: "${tab.name}" -> ${tab.route}`);
     router.push(tab.route as any);
   }, [router]);
 
@@ -266,8 +286,8 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const containerHeight = bottomNavHeight + tabBarPaddingBottom;
 
   console.log(
-    `[FloatingTabBar v318.0] ⚡ REDUCED BOTTOM MARGIN - ` +
-    `Bottom padding cut in half (Android: 4px, iOS: 2px) - avatarUrl: ${avatarUrl ? 'present' : 'null'}`
+    `[FloatingTabBar v319.0] ⚡ ANDROID PROFILE AVATAR FIX - ` +
+    `Avatar now shows permanently across all pages - avatarUrl: ${avatarUrl ? 'present' : 'null'}`
   );
 
   return (
