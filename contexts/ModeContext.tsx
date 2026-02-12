@@ -43,14 +43,18 @@ const ACTIVE_PROFILE_STORAGE_KEY = '@barlive_active_profile';
 const ACTIVE_PROFILE_TYPE_STORAGE_KEY = '@barlive_active_profile_type';
 
 /**
- * ✅ MODE CONTEXT v293.0 - ANDROID CRITICAL PERFORMANCE FIX
+ * ✅ MODE CONTEXT v294.0 - TEMPORAL DEAD ZONE FIX
  * 
- * CRITICAL FIXES v293.0:
+ * CRITICAL FIXES v294.0:
+ * - ✅ TEMPORAL DEAD ZONE: Fixed "Cannot access 'switchToClientProfile' before initialization"
+ * - ✅ FUNCTION ORDER: Moved setCurrentMode definition AFTER switchToClientProfile and switchToLocalProfile
+ * - ✅ CIRCULAR DEPENDENCY: Resolved circular dependency between callbacks
+ * - ✅ INITIALIZATION ORDER: Functions are now defined in the correct order to prevent TDZ errors
+ * 
+ * Previous fixes maintained (v293.0):
  * - ✅ DISABLED CONSOLE LOGS: Removed ALL console.log on Android
  * - ✅ SILENT MODE: All operations run silently on Android
  * - ✅ ANDROID OPTIMIZATION: Zero console output = zero UI blocking
- * 
- * Previous fixes maintained (v292.0):
  * - ✅ ADMIN ACCESS: Admin can access propietario mode without owned locals
  * - ✅ VERIFICATION MODE: Allows admin to see and verify owner interface
  * - ✅ NO LOCAL REQUIRED: Admin doesn't need to select a local to access owner mode
@@ -322,110 +326,6 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.id, currentMode]); // ✅ Only trigger when mode changes to propietario
 
-  const setCurrentMode = useCallback(async (mode: UserMode) => {
-    try {
-      if (Platform.OS !== 'android') {
-        console.log('[ModeContext v293.0] 🔄 Setting mode to:', mode);
-        console.log('[ModeContext v293.0] 🔍 Impersonation status:', isImpersonating ? 'active' : 'inactive');
-      }
-      
-      if (user) {
-        // ✅ CRITICAL FIX: Use userForPermissions to check role validity during impersonation
-        const userRole = userForPermissions.rol_app || 'cliente';
-        const userIsAdmin = isAdminUser(userForPermissions);
-        
-        const isValidMode = 
-          (mode === 'cliente') ||
-          (mode === 'propietario' && (userRole === 'propietario' || userRole === 'admin')) ||
-          (mode === 'admin' && userIsAdmin);
-        
-        if (!isValidMode) {
-          if (Platform.OS !== 'android') {
-            console.warn('[ModeContext v293.0] ⚠️ Invalid mode for user:', mode, userRole);
-          }
-          return;
-        }
-        
-        if (isImpersonating && Platform.OS !== 'android') {
-          console.log('[ModeContext v293.0] 👑 Admin permissions preserved during impersonation');
-        }
-      }
-      
-      await AsyncStorage.setItem(MODE_STORAGE_KEY, mode);
-      setCurrentModeState(mode);
-      
-      if (Platform.OS !== 'android') {
-        console.log('[ModeContext v293.0] ✅ Mode saved to storage:', mode);
-      }
-
-      // ✅ FIX v293.0: Admin can access propietario mode without owned locals
-      if (mode === 'propietario' && user) {
-        const userIsAdmin = isAdminUser(user);
-        
-        if (userIsAdmin) {
-          if (Platform.OS !== 'android') {
-            console.log('[ModeContext v293.0] 👑 Admin accessing propietario mode for verification');
-          }
-          // Admin can stay in propietario mode without selecting a local
-          // This allows them to see the owner interface and verify functionality
-          return;
-        }
-        
-        // For non-admin users, load owned locals
-        if (ownedLocals.length === 0) {
-          if (Platform.OS !== 'android') {
-            console.log('[ModeContext v293.0] 🔍 Loading owned locals for propietario mode...');
-          }
-          await loadOwnedLocals();
-          
-          setTimeout(async () => {
-            const { data, error } = await supabase
-              .from('propietarios_locales')
-              .select(`
-                local_id,
-                locales (
-                  id,
-                  nombre,
-                  imagen_url,
-                  tipo
-                )
-              `)
-              .eq('propietario_id', user.id)
-              .eq('activo', true)
-              .limit(1);
-
-            if (!error && data && data.length > 0) {
-              const firstLocal = data[0].locales;
-              if (firstLocal) {
-                if (Platform.OS !== 'android') {
-                  console.log('[ModeContext v293.0] ✅ Auto-selecting first local:', firstLocal.nombre);
-                }
-                await switchToLocalProfile(firstLocal.id);
-              }
-            } else {
-              if (Platform.OS !== 'android') {
-                console.log('[ModeContext v293.0] ℹ️ User has no active locals, staying in cliente mode');
-              }
-              await switchToClientProfile();
-            }
-          }, 100);
-        }
-      }
-      
-      if (mode === 'cliente' && user) {
-        if (Platform.OS !== 'android') {
-          console.log('[ModeContext v293.0] 🔄 Mode changed to cliente, switching to client profile');
-        }
-        await switchToClientProfile();
-      }
-    } catch (error) {
-      if (Platform.OS !== 'android') {
-        console.error('[ModeContext v293.0] ❌ Error saving mode:', error);
-      }
-      setCurrentModeState(mode);
-    }
-  }, [user, ownedLocals.length, loadOwnedLocals, isImpersonating, switchToClientProfile, switchToLocalProfile, userForPermissions]);
-
   const switchToClientProfile = useCallback(async () => {
     if (!user) {
       if (Platform.OS !== 'android') {
@@ -533,6 +433,112 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [user]);
+
+  // ✅ CRITICAL FIX v294.0: Define setCurrentMode AFTER switchToClientProfile and switchToLocalProfile
+  // This prevents the Temporal Dead Zone error
+  const setCurrentMode = useCallback(async (mode: UserMode) => {
+    try {
+      if (Platform.OS !== 'android') {
+        console.log('[ModeContext v294.0] 🔄 Setting mode to:', mode);
+        console.log('[ModeContext v294.0] 🔍 Impersonation status:', isImpersonating ? 'active' : 'inactive');
+      }
+      
+      if (user) {
+        // ✅ CRITICAL FIX: Use userForPermissions to check role validity during impersonation
+        const userRole = userForPermissions.rol_app || 'cliente';
+        const userIsAdmin = isAdminUser(userForPermissions);
+        
+        const isValidMode = 
+          (mode === 'cliente') ||
+          (mode === 'propietario' && (userRole === 'propietario' || userRole === 'admin')) ||
+          (mode === 'admin' && userIsAdmin);
+        
+        if (!isValidMode) {
+          if (Platform.OS !== 'android') {
+            console.warn('[ModeContext v294.0] ⚠️ Invalid mode for user:', mode, userRole);
+          }
+          return;
+        }
+        
+        if (isImpersonating && Platform.OS !== 'android') {
+          console.log('[ModeContext v294.0] 👑 Admin permissions preserved during impersonation');
+        }
+      }
+      
+      await AsyncStorage.setItem(MODE_STORAGE_KEY, mode);
+      setCurrentModeState(mode);
+      
+      if (Platform.OS !== 'android') {
+        console.log('[ModeContext v294.0] ✅ Mode saved to storage:', mode);
+      }
+
+      // ✅ FIX v293.0: Admin can access propietario mode without owned locals
+      if (mode === 'propietario' && user) {
+        const userIsAdmin = isAdminUser(user);
+        
+        if (userIsAdmin) {
+          if (Platform.OS !== 'android') {
+            console.log('[ModeContext v294.0] 👑 Admin accessing propietario mode for verification');
+          }
+          // Admin can stay in propietario mode without selecting a local
+          // This allows them to see the owner interface and verify functionality
+          return;
+        }
+        
+        // For non-admin users, load owned locals
+        if (ownedLocals.length === 0) {
+          if (Platform.OS !== 'android') {
+            console.log('[ModeContext v294.0] 🔍 Loading owned locals for propietario mode...');
+          }
+          await loadOwnedLocals();
+          
+          setTimeout(async () => {
+            const { data, error } = await supabase
+              .from('propietarios_locales')
+              .select(`
+                local_id,
+                locales (
+                  id,
+                  nombre,
+                  imagen_url,
+                  tipo
+                )
+              `)
+              .eq('propietario_id', user.id)
+              .eq('activo', true)
+              .limit(1);
+
+            if (!error && data && data.length > 0) {
+              const firstLocal = data[0].locales;
+              if (firstLocal) {
+                if (Platform.OS !== 'android') {
+                  console.log('[ModeContext v294.0] ✅ Auto-selecting first local:', firstLocal.nombre);
+                }
+                await switchToLocalProfile(firstLocal.id);
+              }
+            } else {
+              if (Platform.OS !== 'android') {
+                console.log('[ModeContext v294.0] ℹ️ User has no active locals, staying in cliente mode');
+              }
+              await switchToClientProfile();
+            }
+          }, 100);
+        }
+      }
+      
+      if (mode === 'cliente' && user) {
+        if (Platform.OS !== 'android') {
+          console.log('[ModeContext v294.0] 🔄 Mode changed to cliente, switching to client profile');
+        }
+        await switchToClientProfile();
+      }
+    } catch (error) {
+      if (Platform.OS !== 'android') {
+        console.error('[ModeContext v294.0] ❌ Error saving mode:', error);
+      }
+      setCurrentModeState(mode);
+    }
+  }, [user, ownedLocals.length, loadOwnedLocals, isImpersonating, switchToClientProfile, switchToLocalProfile, userForPermissions]);
 
   const selectedLocalId = activeProfileType === 'local' ? activeProfileId : null;
   const isInteractingAsLocal = activeProfileType === 'local';
