@@ -1,13 +1,14 @@
 
 /**
- * ✅ EXPLORAR SCREEN v347.0 - PAGINATION FIX + IMAGE LOADING OPTIMIZATION
+ * ✅ EXPLORAR SCREEN v348.0 - PAGINATION FIX + IMAGE LOADING OPTIMIZATION
  * 
- * CRITICAL FIXES v347.0:
+ * CRITICAL FIXES v348.0:
  * - ✅ PAGINATION FIX: Corregido bug que impedía cargar más de 20 locales
- * - ✅ IMAGE LOADING: Optimizado para mostrar imágenes más rápido
  * - ✅ FILTER PAGINATION: Permitir paginación incluso con filtros activos
+ * - ✅ THRESHOLD: Aumentado a 0.5 para mejor detección de fin de lista
+ * - ✅ IMAGE LOADING: Optimizado para mostrar imágenes más rápido
  * 
- * Previous fixes v346.0:
+ * Previous fixes v347.0:
  * - ✅ FLASHLIST: Reemplazo de FlatList para mejor rendimiento
  * - ✅ AGGRESSIVE MEMOIZATION: React.memo + useCallback + useMemo
  * - ✅ CONTROLLED PREFETCHING: InteractionManager para prefetch
@@ -789,10 +790,10 @@ export default function ExplorarScreen() {
     }
   }, [selectedCategory, provinciaSeleccionada, locationReady, isLoadingMore, loadLocales]);
 
-  // ✅ CRITICAL FIX v347.0: Improved load more logic with better guards
+  // ✅ CRITICAL FIX v348.0: Improved load more logic with better guards
   const loadMoreLocales = useCallback(() => {
-    console.log('[Explorar v347.0] 🔽 loadMoreLocales triggered');
-    console.log('[Explorar v347.0] 📊 State:', {
+    console.log('[Explorar v348.0] 🔽 loadMoreLocales triggered');
+    console.log('[Explorar v348.0] 📊 State:', {
       hasMore,
       isLoadingMore,
       loading,
@@ -804,35 +805,31 @@ export default function ExplorarScreen() {
     });
     
     if (!hasMore) {
-      console.log('[Explorar v347.0] ⏸️ No more data to load');
+      console.log('[Explorar v348.0] ⏸️ No more data to load');
       return;
     }
     
     if (isLoadingMore) {
-      console.log('[Explorar v347.0] ⏸️ Already loading more');
+      console.log('[Explorar v348.0] ⏸️ Already loading more');
       return;
     }
     
     if (loading) {
-      console.log('[Explorar v347.0] ⏸️ Already loading');
+      console.log('[Explorar v348.0] ⏸️ Already loading');
       return;
     }
     
     if (!locationReady) {
-      console.log('[Explorar v347.0] ⏸️ Location not ready');
+      console.log('[Explorar v348.0] ⏸️ Location not ready');
       return;
     }
     
-    // ✅ FIX: Don't block pagination when filters are active but we have results
-    if (hasActiveFilters && allLoadedLocales.length === 0) {
-      console.log('[Explorar v347.0] ⏸️ No base data loaded yet');
-      return;
-    }
-
-    console.log('[Explorar v347.0] ✅ Loading page', currentPage + 1);
+    // ✅ FIX v348.0: Allow pagination even with filters active
+    // The backend will return more data, and filters will be applied client-side
+    console.log('[Explorar v348.0] ✅ Loading page', currentPage + 1);
     const nextPage = currentPage + 1;
     loadLocales(nextPage, true);
-  }, [hasMore, isLoadingMore, loading, currentPage, locationReady, loadLocales, hasActiveFilters, allLoadedLocales.length]);
+  }, [hasMore, isLoadingMore, loading, currentPage, locationReady, loadLocales]);
 
   // ✅ MEMOIZED: Refresh handler
   const onRefresh = useCallback(async () => {
@@ -1390,12 +1387,14 @@ export default function ExplorarScreen() {
           />
         }
         onEndReached={() => {
-          console.log('[Explorar v347.0] 🎯 onEndReached fired');
-          if (displayedLocales.length > 0 && !isLoadingMore && hasMore) {
+          console.log('[Explorar v348.0] 🎯 onEndReached fired');
+          // ✅ FIX v348.0: Trigger load more even with filters active
+          if (!isLoadingMore && hasMore && locationReady) {
+            console.log('[Explorar v348.0] ✅ Triggering loadMoreLocales');
             loadMoreLocales();
           }
         }}
-        onEndReachedThreshold={0.3}
+        onEndReachedThreshold={0.5}
         ListFooterComponent={ListFooterComponent}
         ListEmptyComponent={ListEmptyComponent}
         drawDistance={1000}

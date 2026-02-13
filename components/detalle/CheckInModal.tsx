@@ -1,20 +1,20 @@
 
 /**
- * ✅ CHECK-IN MODAL v60.0 - ANDROID BUTTON POSITIONING FINAL FIX
+ * ✅ CHECK-IN MODAL v61.0 - ANDROID BUTTON POSITIONING ULTIMATE FIX
  * 
- * CRITICAL CHANGES v60.0:
+ * CRITICAL CHANGES v61.0:
+ * - ✅ KEYBOARD AVOIDING: KeyboardAvoidingView con behavior correcto
+ * - ✅ ZERO BOTTOM PADDING: Eliminado padding innecesario en Android
+ * - ✅ SCROLL TO INPUT: Auto-scroll cuando el teclado aparece
+ * - ✅ FOOTER STICKY: Footer siempre visible encima del teclado
+ * - ✅ RESULT: Botones siempre accesibles justo encima del teclado
+ * 
+ * Previous fixes v60.0:
  * - ✅ KEYBOARD AWARE: Buttons move up when keyboard is visible
  * - ✅ MINIMAL PADDING: Just 12px + safe area on Android
- * - ✅ PROPER SCROLL: Content scrolls to show buttons above keyboard
- * - ✅ SAFE AREAS: Respects system UI with minimal padding
- * - ✅ RESULT: Buttons always visible and accessible, just above navigation
- * 
- * Previous fixes v59.0:
- * - ✅ HOOKS FIX: Moved useMemo calls before early returns
- * - ✅ MINIMAL FOOTER PADDING: Buttons positioned just above navigation buttons
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -57,6 +57,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
   const { user } = useAuth();
   const { currentMode, setCurrentMode, activeProfileType, activeLocalData } = useMode();
   const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef<ScrollView>(null);
   
   const [visibility, setVisibility] = useState<'followers' | 'all_users' | 'specific_users'>('followers');
   const [sendNotifications, setSendNotifications] = useState(false);
@@ -69,7 +70,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
   const isClientMode = currentMode === 'cliente' && activeProfileType === 'cliente';
 
-  // ✅ CRITICAL FIX v60.0: Minimal padding for Android
+  // ✅ CRITICAL FIX v61.0: Zero bottom padding for Android
   const headerPaddingTop = useMemo(() => {
     return Platform.OS === 'android' 
       ? Math.max(insets.top + 20, 60)
@@ -78,21 +79,29 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
   
   const footerPaddingBottom = useMemo(() => {
     return Platform.OS === 'android' 
-      ? Math.max(insets.bottom + 12, 12) // ✅ MINIMAL: Just 12px + safe area
+      ? 8 // ✅ ZERO: Minimal padding, buttons right above keyboard
       : Math.max(insets.bottom + 20, 20);
   }, [insets.bottom]);
   
   const scrollContentPaddingBottom = useMemo(() => {
     return Platform.OS === 'android' 
-      ? 140 + Math.max(insets.bottom, 12) // ✅ REDUCED: Minimal padding
+      ? 180 // ✅ FIXED: Space for footer + keyboard
       : 140;
-  }, [insets.bottom]);
+  }, []);
 
-  // ✅ FIX v60.0: Track keyboard visibility
+  // ✅ FIX v61.0: Track keyboard visibility and scroll to bottom
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
-      () => setKeyboardVisible(true)
+      () => {
+        setKeyboardVisible(true);
+        // ✅ Scroll to bottom when keyboard appears
+        if (Platform.OS === 'android') {
+          setTimeout(() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        }
+      }
     );
     const keyboardDidHideListener = Keyboard.addListener(
       'keyboardDidHide',
@@ -113,7 +122,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
     insets,
   });
 
-  console.log('[CheckInModal v60.0] 📐 Layout calculations:', {
+  console.log('[CheckInModal v61.0] 📐 Layout calculations:', {
     platform: Platform.OS,
     insets,
     headerPaddingTop,
@@ -124,7 +133,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
   useEffect(() => {
     if (visible && !isClientMode) {
-      console.log('[CheckInModal v60.0] ❌ Not in client mode, showing error');
+      console.log('[CheckInModal v61.0] ❌ Not in client mode, showing error');
       Alert.alert(
         'No Disponible',
         'La función "Estoy en este local" solo está disponible en modo cliente.',
@@ -135,7 +144,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
   useEffect(() => {
     if (visible && !user) {
-      console.log('[CheckInModal v60.0] ❌ User not authenticated, showing error');
+      console.log('[CheckInModal v61.0] ❌ User not authenticated, showing error');
       Alert.alert(
         'Inicia Sesión',
         'Debes iniciar sesión para usar la función "Estoy en este local".',
@@ -167,7 +176,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
       setSearchResults(users);
     } catch (error) {
-      console.error('[CheckInModal v60.0] Error searching users:', error);
+      console.error('[CheckInModal v61.0] Error searching users:', error);
     } finally {
       setSearching(false);
     }
@@ -216,7 +225,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
     setSubmitting(true);
 
     try {
-      console.log('[CheckInModal v60.0] Checking for existing check-in...');
+      console.log('[CheckInModal v61.0] Checking for existing check-in...');
 
       const { data: existingCheckIn, error: checkError } = await supabase
         .from('check_ins')
@@ -256,7 +265,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
       await performCheckIn();
     } catch (error) {
-      console.error('[CheckInModal v60.0] Error creating check-in:', error);
+      console.error('[CheckInModal v61.0] Error creating check-in:', error);
       Alert.alert('Error', 'No se pudo realizar el check-in');
       setSubmitting(false);
     }
@@ -266,7 +275,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
     if (!user) return;
 
     try {
-      console.log('[CheckInModal v60.0] Creating check-in...');
+      console.log('[CheckInModal v61.0] Creating check-in...');
 
       const { error: deleteError } = await supabase
         .from('check_ins')
@@ -287,10 +296,10 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
       if (insertError) throw insertError;
 
-      console.log('[CheckInModal v60.0] ✅ Check-in created successfully');
+      console.log('[CheckInModal v61.0] ✅ Check-in created successfully');
 
       if (sendNotifications) {
-        console.log('[CheckInModal v60.0] Sending notifications...');
+        console.log('[CheckInModal v61.0] Sending notifications...');
         
         let recipientIds: string[] = [];
 
@@ -327,9 +336,9 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
             .insert(notifications);
 
           if (notifError) {
-            console.error('[CheckInModal v60.0] Error sending notifications:', notifError);
+            console.error('[CheckInModal v61.0] Error sending notifications:', notifError);
           } else {
-            console.log('[CheckInModal v60.0] ✅ Notifications sent to', recipientIds.length, 'users');
+            console.log('[CheckInModal v61.0] ✅ Notifications sent to', recipientIds.length, 'users');
           }
         }
       }
@@ -343,7 +352,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
         }}]
       );
     } catch (error) {
-      console.error('[CheckInModal v60.0] Error creating check-in:', error);
+      console.error('[CheckInModal v61.0] Error creating check-in:', error);
       Alert.alert('Error', 'No se pudo realizar el check-in');
     } finally {
       setSubmitting(false);
@@ -365,8 +374,8 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
     >
       <KeyboardAvoidingView 
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <View style={[styles.fullScreenContainer, Platform.OS === 'android' && { paddingTop: 0 }]}>
           <View style={styles.modalHeader}>
@@ -385,6 +394,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
           </View>
 
           <ScrollView 
+            ref={scrollViewRef}
             style={styles.modalBody} 
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollContentPaddingBottom }]}
@@ -524,6 +534,14 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
                   onChangeText={setSearchQuery}
                   placeholder="Buscar seguidores..."
                   placeholderTextColor={colors.textSecondary}
+                  onFocus={() => {
+                    // ✅ v61.0: Scroll to bottom when input is focused
+                    if (Platform.OS === 'android') {
+                      setTimeout(() => {
+                        scrollViewRef.current?.scrollToEnd({ animated: true });
+                      }, 300);
+                    }
+                  }}
                 />
                 {searching && <ActivityIndicator size="small" color={colors.primary} />}
               </View>
@@ -919,6 +937,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
     backgroundColor: colors.cardBackground,
+    ...Platform.select({
+      android: {
+        // ✅ v61.0: Minimal padding for Android - buttons right above keyboard
+        paddingBottom: 8,
+      },
+    }),
   },
   confirmButton: {
     flexDirection: 'row',

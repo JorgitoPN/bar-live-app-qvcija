@@ -1,18 +1,17 @@
 
 /**
- * ✅ LOCAL CARD OPTIMIZED v3.0 - FAST IMAGE LOADING + AGGRESSIVE MEMOIZATION
+ * ✅ LOCAL CARD OPTIMIZED v4.0 - ULTRA FAST IMAGE LOADING
  * 
- * Optimizaciones implementadas v3.0:
- * - ✅ FAST IMAGE LOADING: Imágenes se muestran inmediatamente sin skeleton
+ * Optimizaciones implementadas v4.0:
+ * - ✅ INSTANT DISPLAY: Imágenes se muestran inmediatamente sin esperar carga
+ * - ✅ SMALLER THUMBNAILS: 300x200 en lugar de 400x300 para carga más rápida
+ * - ✅ QUALITY 70: Reducida calidad para mejor velocidad sin pérdida visual notable
  * - ✅ PROGRESSIVE RENDERING: Carga progresiva de imágenes
- * - ✅ CACHE HINTS: Uso de cache para imágenes repetidas
+ * - ✅ CACHE HINTS: force-cache para reutilizar imágenes
  * - ✅ React.memo: Previene re-renders innecesarios
- * - ✅ useCallback: Estabiliza funciones
- * - ✅ useMemo: Estabiliza valores computados
  * - ✅ Optimistic UI: Favoritos instantáneos
- * - ✅ Payload Reduction: Solicita thumbnails apropiados (140px, no 1080px)
  * 
- * OBJETIVO: Imágenes visibles en <100ms, sin parpadeos
+ * OBJETIVO: Imágenes visibles en <50ms, sin parpadeos
  */
 
 import React, { useState, useCallback, memo, useEffect, useMemo } from 'react';
@@ -35,10 +34,10 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { intelligentPreloader } from '@/utils/intelligentPreloader';
 
-// ✅ THUMBNAIL SIZE: Solicitar imágenes apropiadas (140px, no 1080px)
+// ✅ THUMBNAIL SIZE v4.0: Imágenes más pequeñas para carga ultra rápida
 const CARD_IMAGE_HEIGHT = 140;
-const THUMBNAIL_WIDTH = 400; // Suficiente para pantallas HD
-const THUMBNAIL_HEIGHT = 300;
+const THUMBNAIL_WIDTH = 300; // Reducido para carga más rápida
+const THUMBNAIL_HEIGHT = 200; // Reducido para carga más rápida
 
 interface LocalCardOptimizedProps {
   local: any;
@@ -50,7 +49,7 @@ interface LocalCardOptimizedProps {
 
 /**
  * ✅ HELPER: Generar URL de thumbnail optimizado
- * v3.0: Optimizado para carga rápida con parámetros de calidad ajustados
+ * v4.0: Optimizado para carga ultra rápida con calidad reducida
  */
 const getOptimizedImageUrl = (originalUrl: string, width: number, height: number): string => {
   if (!originalUrl) return '';
@@ -63,8 +62,8 @@ const getOptimizedImageUrl = (originalUrl: string, width: number, height: number
   // Para Supabase Storage, agregar parámetros de optimización
   if (originalUrl.includes('supabase')) {
     const separator = originalUrl.includes('?') ? '&' : '?';
-    // ✅ v3.0: Calidad 80 para mejor balance velocidad/calidad
-    return `${originalUrl}${separator}width=${Math.round(width)}&height=${Math.round(height)}&quality=80&resize=cover`;
+    // ✅ v4.0: Calidad 70 para carga más rápida (diferencia visual mínima)
+    return `${originalUrl}${separator}width=${Math.round(width)}&height=${Math.round(height)}&quality=70&resize=cover`;
   }
   
   return originalUrl;
@@ -75,8 +74,7 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   const { user } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
   
-  // ✅ FIX v3.0: Start with image loaded = true for instant display
-  const [imageLoaded, setImageLoaded] = useState(true);
+  // ✅ FIX v4.0: No loading state needed - images display instantly
   const [imageError, setImageError] = useState(false);
   const [localIsFavorite, setLocalIsFavorite] = useState(isFavorite(local.id));
 
@@ -92,15 +90,20 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   const hasSocialProfile = socialProfiles.get(local.id) || false;
   const activeEvent = activeEvents.get(local.id);
 
-  // ✅ FIX v3.0: Prefetch gallery images when card is visible
+  // ✅ FIX v4.0: Prefetch gallery images with lower priority
   useEffect(() => {
     if (optimizedImageUrl && local.imagenes && local.imagenes.length > 1) {
-      InteractionManager.runAfterInteractions(() => {
-        const galleryImages = local.imagenes.slice(1, 4).map((img: string) => 
-          getOptimizedImageUrl(img, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
-        );
-        intelligentPreloader.prefetchImages(galleryImages, 'LOW');
-      });
+      // Delay prefetch to prioritize visible images
+      const timer = setTimeout(() => {
+        InteractionManager.runAfterInteractions(() => {
+          const galleryImages = local.imagenes.slice(1, 3).map((img: string) => 
+            getOptimizedImageUrl(img, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
+          );
+          intelligentPreloader.prefetchImages(galleryImages, 'LOW');
+        });
+      }, 1000); // Wait 1 second before prefetching
+      
+      return () => clearTimeout(timer);
     }
   }, [optimizedImageUrl, local.imagenes]);
 
@@ -243,11 +246,7 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
             source={{ uri: optimizedImageUrl, cache: 'force-cache' }}
             style={styles.image}
             resizeMode="cover"
-            onLoad={() => setImageLoaded(true)}
-            onError={() => {
-              setImageError(true);
-              setImageLoaded(false);
-            }}
+            onError={() => setImageError(true)}
             fadeDuration={0}
             progressiveRenderingEnabled={true}
             defaultSource={require('@/assets/images/natively-dark.png')}
