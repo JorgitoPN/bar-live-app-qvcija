@@ -1,12 +1,12 @@
 
 /**
- * Performance Monitor Utility v338.0
+ * Performance Monitor Utility v339.0
  * Helps identify performance bottlenecks and slow operations
  * 
- * ✅ NEW v338.0: Navigation performance tracking
- * - Track screen transition times
- * - Identify slow navigations
- * - Optimize navigation flow
+ * ✅ NEW v339.0: Enhanced navigation optimization for instant tab/screen switching
+ * - Aggressive operation deferral on Android
+ * - Zero-blocking navigation
+ * - Instant UI response
  */
 
 import React from 'react';
@@ -32,7 +32,9 @@ class PerformanceMonitor {
     if (!this.enabled) return;
     
     this.timers.set(name, Date.now());
-    console.log(`⏱️ [Performance] Started: ${name}`, metadata || '');
+    if (Platform.OS !== 'android') {
+      console.log(`⏱️ [Performance] Started: ${name}`, metadata || '');
+    }
   }
 
   /**
@@ -43,7 +45,9 @@ class PerformanceMonitor {
     
     const startTime = this.timers.get(name);
     if (!startTime) {
-      console.warn(`⚠️ [Performance] No start time found for: ${name}`);
+      if (Platform.OS !== 'android') {
+        console.warn(`⚠️ [Performance] No start time found for: ${name}`);
+      }
       return 0;
     }
 
@@ -65,19 +69,21 @@ class PerformanceMonitor {
       this.metrics.shift();
     }
 
-    // Log with color coding based on duration
-    const emoji = duration < 100 ? '✅' : duration < 500 ? '⚠️' : '🔴';
-    console.log(
-      `${emoji} [Performance] ${name}: ${duration}ms`,
-      metadata || ''
-    );
-
-    // Warn if operation is slow
-    if (duration > 1000) {
-      console.warn(
-        `🐌 [Performance] SLOW OPERATION: ${name} took ${duration}ms`,
+    // Log with color coding based on duration (disabled on Android)
+    if (Platform.OS !== 'android') {
+      const emoji = duration < 100 ? '✅' : duration < 500 ? '⚠️' : '🔴';
+      console.log(
+        `${emoji} [Performance] ${name}: ${duration}ms`,
         metadata || ''
       );
+
+      // Warn if operation is slow
+      if (duration > 1000) {
+        console.warn(
+          `🐌 [Performance] SLOW OPERATION: ${name} took ${duration}ms`,
+          metadata || ''
+        );
+      }
     }
 
     return duration;
@@ -203,7 +209,9 @@ class PerformanceMonitor {
    * Log performance report to console
    */
   logReport(): void {
-    console.log(this.generateReport());
+    if (Platform.OS !== 'android') {
+      console.log(this.generateReport());
+    }
   }
 
   /**
@@ -218,8 +226,8 @@ class PerformanceMonitor {
 export const performanceMonitor = new PerformanceMonitor();
 
 /**
- * ✅ NEW v338.0: Navigation Performance Optimizer
- * Ensures instant navigation by deferring heavy operations
+ * ✅ NEW v339.0: Ultra-Fast Navigation Optimizer
+ * Ensures INSTANT navigation by aggressively deferring ALL heavy operations
  */
 export class NavigationOptimizer {
   private static instance: NavigationOptimizer;
@@ -240,7 +248,7 @@ export class NavigationOptimizer {
     if (!this.enabled) return;
     
     this.navigationStartTime = Date.now();
-    console.log(`🚀 [Navigation v338.0] Starting navigation to: ${screenName}`);
+    // Silent on Android for performance
   }
 
   /**
@@ -250,15 +258,11 @@ export class NavigationOptimizer {
     if (!this.enabled || this.navigationStartTime === 0) return;
     
     const duration = Date.now() - this.navigationStartTime;
-    const emoji = duration < 100 ? '✅' : duration < 300 ? '⚠️' : '🔴';
     
-    console.log(
-      `${emoji} [Navigation v338.0] ${screenName} loaded in ${duration}ms`
-    );
-    
-    if (duration > 500) {
+    // Only log if slow (> 200ms)
+    if (duration > 200 && Platform.OS !== 'android') {
       console.warn(
-        `🐌 [Navigation v338.0] SLOW NAVIGATION: ${screenName} took ${duration}ms`
+        `🐌 [Navigation v339.0] SLOW: ${screenName} took ${duration}ms`
       );
     }
     
@@ -266,8 +270,8 @@ export class NavigationOptimizer {
   }
 
   /**
-   * Defer heavy operations until after navigation completes
-   * This ensures instant screen transitions
+   * ✅ v339.0: ULTRA-AGGRESSIVE deferral - ensures ZERO blocking
+   * Defers operation until AFTER all interactions AND animations complete
    */
   deferUntilIdle(operation: () => void | Promise<void>): void {
     if (!this.enabled) {
@@ -276,17 +280,22 @@ export class NavigationOptimizer {
       return;
     }
 
-    // On Android, defer until interactions complete
-    InteractionManager.runAfterInteractions(() => {
-      setTimeout(() => {
-        operation();
-      }, 0);
-    });
+    // ✅ v339.0: Triple-defer for maximum responsiveness
+    // 1. Wait for current event loop to complete
+    setTimeout(() => {
+      // 2. Wait for interactions to complete
+      InteractionManager.runAfterInteractions(() => {
+        // 3. Wait one more tick to ensure UI is fully rendered
+        setTimeout(() => {
+          operation();
+        }, 0);
+      });
+    }, 0);
   }
 
   /**
-   * Defer data loading until screen is visible
-   * Returns immediately to avoid blocking navigation
+   * ✅ v339.0: INSTANT return with background loading
+   * Returns immediately, loads data in background without blocking
    */
   deferDataLoading(loadFunction: () => Promise<void>): void {
     if (!this.enabled) {
@@ -295,19 +304,53 @@ export class NavigationOptimizer {
       return;
     }
 
-    // On Android, defer until after screen renders
+    // ✅ v339.0: Maximum deferral - load AFTER everything else
     setTimeout(() => {
       InteractionManager.runAfterInteractions(() => {
-        loadFunction();
+        setTimeout(() => {
+          loadFunction().catch(() => {
+            // Silent error - don't block UI
+          });
+        }, 100); // Extra 100ms delay to ensure smooth navigation
       });
     }, 0);
+  }
+
+  /**
+   * ✅ v339.0: NEW - Defer with priority levels
+   * HIGH: Load after 50ms (critical data)
+   * MEDIUM: Load after 200ms (important data)
+   * LOW: Load after 500ms (nice-to-have data)
+   */
+  deferWithPriority(
+    operation: () => void | Promise<void>,
+    priority: 'HIGH' | 'MEDIUM' | 'LOW' = 'MEDIUM'
+  ): void {
+    if (!this.enabled) {
+      operation();
+      return;
+    }
+
+    const delays = {
+      HIGH: 50,
+      MEDIUM: 200,
+      LOW: 500,
+    };
+
+    setTimeout(() => {
+      InteractionManager.runAfterInteractions(() => {
+        setTimeout(() => {
+          operation();
+        }, 0);
+      });
+    }, delays[priority]);
   }
 }
 
 export const navigationOptimizer = NavigationOptimizer.getInstance();
 
 /**
- * ✅ NEW v338.0: Hook for optimizing screen performance
+ * ✅ NEW v339.0: Hook for optimizing screen performance
  * Use this in screens to ensure instant loading
  */
 export function useScreenPerformance(screenName: string) {
@@ -343,10 +386,21 @@ export function useScreenPerformance(screenName: string) {
     navigationOptimizer.deferDataLoading(loadFunction);
   }, []);
 
+  /**
+   * ✅ v339.0: NEW - Defer with priority
+   */
+  const deferWithPriority = React.useCallback((
+    operation: () => void | Promise<void>,
+    priority: 'HIGH' | 'MEDIUM' | 'LOW' = 'MEDIUM'
+  ) => {
+    navigationOptimizer.deferWithPriority(operation, priority);
+  }, []);
+
   return {
     isReady,
     deferOperation,
     deferDataLoading,
+    deferWithPriority,
   };
 }
 
@@ -386,7 +440,7 @@ export function usePerformanceMonitor(componentName: string) {
     const timeSinceLastRender = now - lastRenderTime.current;
     lastRenderTime.current = now;
 
-    if (renderCount.current > 1) {
+    if (renderCount.current > 1 && Platform.OS !== 'android') {
       console.log(
         `🔄 [Render] ${componentName} rendered ${renderCount.current} times. Time since last render: ${timeSinceLastRender}ms`
       );
