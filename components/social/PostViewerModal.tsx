@@ -1189,7 +1189,6 @@ export default function PostViewerModal({
     }
   }, []);
 
-  // ✅ LINT FIX: Added loadTaggedUsers to dependencies
   useEffect(() => {
     posts.forEach(post => {
       loadTaggedUsers(post.id);

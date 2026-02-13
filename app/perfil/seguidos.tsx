@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Platform,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +19,16 @@ import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+
+/**
+ * ✅ SEGUIDOS SCREEN v2.0 - UNFOLLOW BUTTON ADDED
+ * 
+ * NEW CHANGES v2.0:
+ * - ✅ ADDED: "Dejar de seguir" button for each followed user
+ * - ✅ ADDED: Confirmation before unfollowing
+ * - ✅ ADDED: Optimistic UI update (instant feedback)
+ * - ✅ RESULT: Users can now unfollow directly from this screen
+ */
 
 interface Seguido {
   id: string;
@@ -38,6 +49,7 @@ export default function SeguidosScreen() {
   const [seguidos, setSeguidos] = useState<Seguido[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [unfollowingIds, setUnfollowingIds] = useState<Set<string>>(new Set());
   
   const userId = params.userId as string;
   const isOwnProfile = user?.id === userId;
@@ -46,8 +58,8 @@ export default function SeguidosScreen() {
     if (!userId) return;
 
     try {
-      console.log('[Seguidos] 📥 Loading ONLY FOLLOWED profiles (social network) for user:', userId);
-      console.log('[Seguidos] ⚠️ EXCLUDING saved locals from "Locales favoritos"');
+      console.log('[Seguidos v2.0] 📥 Loading ONLY FOLLOWED profiles (social network) for user:', userId);
+      console.log('[Seguidos v2.0] ⚠️ EXCLUDING saved locals from "Locales favoritos"');
 
       const { data, error } = await supabase
         .from('seguidores')
@@ -64,13 +76,13 @@ export default function SeguidosScreen() {
         .eq('seguidor_id', userId);
 
       if (error) {
-        console.error('[Seguidos] ❌ Error loading seguidos:', error);
+        console.error('[Seguidos v2.0] ❌ Error loading seguidos:', error);
         setLoading(false);
         setRefreshing(false);
         return;
       }
 
-      console.log('[Seguidos] Raw data from seguidores table:', data);
+      console.log('[Seguidos v2.0] Raw data from seguidores table:', data);
 
       const formattedSeguidos: Seguido[] = [];
 
@@ -132,12 +144,12 @@ export default function SeguidosScreen() {
       const localCount = formattedSeguidos.filter(s => s.tipo === 'local').length;
       const userCount = formattedSeguidos.filter(s => s.tipo === 'usuario').length;
       
-      console.log('[Seguidos] ✅ Loaded', formattedSeguidos.length, 'seguidos from SOCIAL NETWORK ONLY');
-      console.log('[Seguidos] 🏪 Local profiles:', localCount);
-      console.log('[Seguidos] 👤 User profiles:', userCount);
-      console.log('[Seguidos] ✅ Favorites (locales_guardados) are NOT included here');
+      console.log('[Seguidos v2.0] ✅ Loaded', formattedSeguidos.length, 'seguidos from SOCIAL NETWORK ONLY');
+      console.log('[Seguidos v2.0] 🏪 Local profiles:', localCount);
+      console.log('[Seguidos v2.0] 👤 User profiles:', userCount);
+      console.log('[Seguidos v2.0] ✅ Favorites (locales_guardados) are NOT included here');
     } catch (error) {
-      console.error('[Seguidos] ❌ Error:', error);
+      console.error('[Seguidos v2.0] ❌ Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -156,10 +168,10 @@ export default function SeguidosScreen() {
   const handleUserPress = (seguido: Seguido) => {
     try {
       if (seguido.tipo === 'local' && seguido.localId) {
-        console.log('[Seguidos] 🏪 Opening local profile:', seguido.nombre, seguido.localId);
+        console.log('[Seguidos v2.0] 🏪 Opening local profile:', seguido.nombre, seguido.localId);
         router.push(`/perfil/local?localId=${seguido.localId}`);
       } else {
-        console.log('[Seguidos] 👤 Opening user profile:', seguido.nombre);
+        console.log('[Seguidos v2.0] 👤 Opening user profile:', seguido.nombre);
         if (user && seguido.id === user.id) {
           router.push('/(tabs)/perfil');
         } else {
@@ -167,10 +179,64 @@ export default function SeguidosScreen() {
         }
       }
     } catch (error) {
-      console.error('[Seguidos] ❌ Error navigating to profile:', error);
+      console.error('[Seguidos v2.0] ❌ Error navigating to profile:', error);
       alert('No se pudo abrir el perfil. Por favor, intenta de nuevo.');
     }
   };
+
+  const handleUnfollow = useCallback(async (seguido: Seguido) => {
+    if (!user || !userId) return;
+
+    const displayName = seguido.username 
+      ? `@${seguido.username}` 
+      : seguido.nombre;
+
+    Alert.alert(
+      'Dejar de seguir',
+      `¿Estás seguro de que quieres dejar de seguir a ${displayName}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Dejar de seguir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('[Seguidos v2.0] 🔄 Unfollowing user:', seguido.id);
+              
+              setUnfollowingIds(prev => new Set(prev).add(seguido.id));
+              
+              setSeguidos(prev => prev.filter(s => s.id !== seguido.id));
+
+              const { error } = await supabase
+                .from('seguidores')
+                .delete()
+                .eq('seguidor_id', userId)
+                .eq('seguido_id', seguido.id);
+
+              if (error) {
+                console.error('[Seguidos v2.0] ❌ Error unfollowing:', error);
+                
+                setSeguidos(prev => [...prev, seguido].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+                
+                Alert.alert('Error', 'No se pudo dejar de seguir. Intenta de nuevo.');
+              } else {
+                console.log('[Seguidos v2.0] ✅ Successfully unfollowed');
+              }
+            } catch (error) {
+              console.error('[Seguidos v2.0] ❌ Error:', error);
+              Alert.alert('Error', 'Ocurrió un error. Intenta de nuevo.');
+            } finally {
+              setUnfollowingIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(seguido.id);
+                return newSet;
+              });
+            }
+          },
+        },
+      ]
+    );
+  }, [user, userId]);
 
   const handleGoBack = () => {
     if (router.canGoBack()) {
@@ -180,7 +246,6 @@ export default function SeguidosScreen() {
     }
   };
 
-  // ✅ ANDROID SCALING: Icon sizes
   const backIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
   const emptyIconSize = Platform.OS === 'android' ? scaleIconSize(64) : 64;
   const avatarSize = Platform.OS === 'android' ? scaleIconSize(56) : 56;
@@ -190,58 +255,90 @@ export default function SeguidosScreen() {
   const verifiedIconSize = Platform.OS === 'android' ? scaleIconSize(18) : 18;
   const localBadgeIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
   const chevronIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
+  const unfollowIconSize = Platform.OS === 'android' ? scaleIconSize(18) : 18;
 
-  const renderSeguido = ({ item }: { item: Seguido }) => (
-    <TouchableOpacity
-      style={styles.userItem}
-      onPress={() => handleUserPress(item)}
-      activeOpacity={0.7}
-    >
-      {item.avatar ? (
-        <Image source={{ uri: item.avatar }} style={[styles.userAvatar, { width: avatarSize, height: avatarSize, borderRadius: avatarRadius }]} />
-      ) : (
-        <View style={[styles.userAvatar, styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarRadius }]}>
-          {item.tipo === 'local' ? (
-            <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={storeIconSize} color={colors.primary} />
+  const renderSeguido = ({ item }: { item: Seguido }) => {
+    const isUnfollowing = unfollowingIds.has(item.id);
+
+    return (
+      <View style={styles.userItemContainer}>
+        <TouchableOpacity
+          style={styles.userItem}
+          onPress={() => handleUserPress(item)}
+          activeOpacity={0.7}
+        >
+          {item.avatar ? (
+            <Image source={{ uri: item.avatar }} style={[styles.userAvatar, { width: avatarSize, height: avatarSize, borderRadius: avatarRadius }]} />
           ) : (
-            <Text style={[styles.avatarText, { fontSize: avatarTextSize }]}>
-              {item.nombre.charAt(0).toUpperCase()}
-            </Text>
-          )}
-        </View>
-      )}
-      <View style={styles.userInfo}>
-        <View style={styles.userNameRow}>
-          <Text style={[styles.userName, { fontSize: scaleFontSize(16) }]}>{item.nombre}</Text>
-          {item.tipo === 'local' && item.hasPaymentPlan && (
-            <View style={styles.verifiedBadge}>
-              <IconSymbol 
-                ios_icon_name="checkmark.seal.fill" 
-                android_material_icon_name="verified" 
-                size={verifiedIconSize} 
-                color={colors.primary} 
-              />
+            <View style={[styles.userAvatar, styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarRadius }]}>
+              {item.tipo === 'local' ? (
+                <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={storeIconSize} color={colors.primary} />
+              ) : (
+                <Text style={[styles.avatarText, { fontSize: avatarTextSize }]}>
+                  {item.nombre.charAt(0).toUpperCase()}
+                </Text>
+              )}
             </View>
           )}
-          {item.tipo === 'local' && (
-            <View style={styles.localBadge}>
-              <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={localBadgeIconSize} color={colors.primary} />
-              <Text style={[styles.localBadgeText, { fontSize: scaleFontSize(11) }]}>Local</Text>
+          <View style={styles.userInfo}>
+            <View style={styles.userNameRow}>
+              <Text style={[styles.userName, { fontSize: scaleFontSize(16) }]}>{item.nombre}</Text>
+              {item.tipo === 'local' && item.hasPaymentPlan && (
+                <View style={styles.verifiedBadge}>
+                  <IconSymbol 
+                    ios_icon_name="checkmark.seal.fill" 
+                    android_material_icon_name="verified" 
+                    size={verifiedIconSize} 
+                    color={colors.primary} 
+                  />
+                </View>
+              )}
+              {item.tipo === 'local' && (
+                <View style={styles.localBadge}>
+                  <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={localBadgeIconSize} color={colors.primary} />
+                  <Text style={[styles.localBadgeText, { fontSize: scaleFontSize(11) }]}>Local</Text>
+                </View>
+              )}
             </View>
-          )}
-        </View>
-        {item.username && (
-          <Text style={[styles.userUsername, { fontSize: scaleFontSize(14) }]}>@{item.username}</Text>
-        )}
-        {item.bio && (
-          <Text style={[styles.userBio, { fontSize: scaleFontSize(13) }]} numberOfLines={2}>
-            {item.bio}
-          </Text>
+            {item.username && (
+              <Text style={[styles.userUsername, { fontSize: scaleFontSize(14) }]}>@{item.username}</Text>
+            )}
+            {item.bio && (
+              <Text style={[styles.userBio, { fontSize: scaleFontSize(13) }]} numberOfLines={2}>
+                {item.bio}
+              </Text>
+            )}
+          </View>
+          <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={chevronIconSize} color={colors.textSecondary} />
+        </TouchableOpacity>
+
+        {isOwnProfile && (
+          <TouchableOpacity
+            style={styles.unfollowButton}
+            onPress={() => handleUnfollow(item)}
+            disabled={isUnfollowing}
+            activeOpacity={0.7}
+          >
+            {isUnfollowing ? (
+              <ActivityIndicator size="small" color={colors.danger} />
+            ) : (
+              <>
+                <IconSymbol 
+                  ios_icon_name="person.fill.xmark" 
+                  android_material_icon_name="person_remove" 
+                  size={unfollowIconSize} 
+                  color={colors.danger} 
+                />
+                <Text style={[styles.unfollowButtonText, { fontSize: scaleFontSize(14) }]}>
+                  Dejar de seguir
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
         )}
       </View>
-      <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={chevronIconSize} color={colors.textSecondary} />
-    </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -323,12 +420,14 @@ const styles = StyleSheet.create({
   listContent: {
     flexGrow: 1,
   },
+  userItemContainer: {
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.cardBorder,
+  },
   userItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 0.5,
-    borderBottomColor: colors.cardBorder,
   },
   userAvatar: {
     marginRight: 12,
@@ -378,6 +477,24 @@ const styles = StyleSheet.create({
   userBio: {
     color: colors.text,
     lineHeight: 18,
+  },
+  unfollowButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: colors.danger + '10',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.danger + '30',
+  },
+  unfollowButtonText: {
+    fontWeight: '600',
+    color: colors.danger,
   },
   emptyState: {
     flex: 1,

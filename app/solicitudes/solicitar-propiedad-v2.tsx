@@ -27,13 +27,12 @@ import NewDocumentUploader from '@/components/propiedad/NewDocumentUploader';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 /**
- * ✅ SISTEMA COMPLETAMENTE NUEVO v4.1 - SOLICITAR PROPIEDAD
+ * ✅ SISTEMA COMPLETAMENTE NUEVO v4.2 - SOLICITAR PROPIEDAD
  * 
- * NEW CHANGES v4.1:
- * - ✅ FIXED: Android scaling applied to selection screen
- * - ✅ FIXED: Android scaling applied to all text elements
- * - ✅ FIXED: Android scaling applied to all icons
- * - ✅ RESULT: Proper scaling on Android for all pages
+ * NEW CHANGES v4.2:
+ * - ✅ FIXED: "Siguiente" button now part of scroll flow (not fixed)
+ * - ✅ FIXED: Button no longer hidden by Android system navigation
+ * - ✅ RESULT: Button scrolls with content, always accessible
  */
 
 interface LocalSearchResult {
@@ -122,10 +121,10 @@ export default function SolicitarPropiedadScreenV2() {
 
   const [showDocumentTypeModal, setShowDocumentTypeModal] = useState(false);
 
-  console.log('[SolicitarPropiedadV2 v4.1] 🎬 Pantalla inicializada');
-  console.log('[SolicitarPropiedadV2 v4.1] 📋 Show selection screen:', showSelectionScreen);
-  console.log('[SolicitarPropiedadV2 v4.1] 📋 Request type:', requestType);
-  console.log('[SolicitarPropiedadV2 v4.1] 👤 Usuario:', user?.nombre);
+  console.log('[SolicitarPropiedadV2 v4.2] 🎬 Pantalla inicializada');
+  console.log('[SolicitarPropiedadV2 v4.2] 📋 Show selection screen:', showSelectionScreen);
+  console.log('[SolicitarPropiedadV2 v4.2] 📋 Request type:', requestType);
+  console.log('[SolicitarPropiedadV2 v4.2] 👤 Usuario:', user?.nombre);
 
   useEffect(() => {
     const defaultHorarios: Record<string, { abierto: boolean; apertura: string; cierre: string }> = {};
@@ -143,7 +142,7 @@ export default function SolicitarPropiedadScreenV2() {
 
   const loadPreselectedLocal = useCallback(async (localId: string) => {
     try {
-      console.log('[SolicitarPropiedadV2 v4.1] 🔍 Cargando local preseleccionado:', localId);
+      console.log('[SolicitarPropiedadV2 v4.2] 🔍 Cargando local preseleccionado:', localId);
       
       const { data, error } = await supabase
         .from('locales')
@@ -154,7 +153,7 @@ export default function SolicitarPropiedadScreenV2() {
       if (error) throw error;
 
       if (data.propietario_id) {
-        console.log('[SolicitarPropiedadV2 v4.1] ⚠️ Local ya tiene propietario');
+        console.log('[SolicitarPropiedadV2 v4.2] ⚠️ Local ya tiene propietario');
         Alert.alert(
           'Local No Disponible',
           'Este local ya tiene un propietario asignado.',
@@ -163,11 +162,11 @@ export default function SolicitarPropiedadScreenV2() {
         return;
       }
 
-      console.log('[SolicitarPropiedadV2 v4.1] ✅ Local cargado:', data.nombre);
+      console.log('[SolicitarPropiedadV2 v4.2] ✅ Local cargado:', data.nombre);
       setSelectedLocal(data);
       setCurrentStep(2);
     } catch (error) {
-      console.error('[SolicitarPropiedadV2 v4.1] ❌ Error cargando local:', error);
+      console.error('[SolicitarPropiedadV2 v4.2] ❌ Error cargando local:', error);
       Alert.alert('Error', 'No se pudo cargar el local');
     }
   }, [router]);
@@ -186,7 +185,7 @@ export default function SolicitarPropiedadScreenV2() {
 
     try {
       setSearchingLocales(true);
-      console.log('[SolicitarPropiedadV2 v4.1] 🔍 Buscando locales:', query);
+      console.log('[SolicitarPropiedadV2 v4.2] 🔍 Buscando locales:', query);
 
       const { data, error } = await supabase
         .from('locales')
@@ -198,10 +197,10 @@ export default function SolicitarPropiedadScreenV2() {
 
       if (error) throw error;
 
-      console.log('[SolicitarPropiedadV2 v4.1] ✅ Locales encontrados:', data?.length || 0);
+      console.log('[SolicitarPropiedadV2 v4.2] ✅ Locales encontrados:', data?.length || 0);
       setSearchResults(data || []);
     } catch (error) {
-      console.error('[SolicitarPropiedadV2 v4.1] ❌ Error buscando:', error);
+      console.error('[SolicitarPropiedadV2 v4.2] ❌ Error buscando:', error);
     } finally {
       setSearchingLocales(false);
     }
@@ -218,7 +217,7 @@ export default function SolicitarPropiedadScreenV2() {
   }, [searchQuery, requestType, searchLocales]);
 
   const handleSelectLocal = async (local: LocalSearchResult) => {
-    console.log('[SolicitarPropiedadV2 v4.1] ✅ Local seleccionado:', local.nombre);
+    console.log('[SolicitarPropiedadV2 v4.2] ✅ Local seleccionado:', local.nombre);
 
     const { data: existingRequest } = await supabase
       .from('solicitudes_propietario')
@@ -239,7 +238,7 @@ export default function SolicitarPropiedadScreenV2() {
   const handleGetCurrentLocation = async () => {
     setLoading(true);
     try {
-      console.log('[SolicitarPropiedadV2 v4.1] 📍 Obteniendo ubicación actual...');
+      console.log('[SolicitarPropiedadV2 v4.2] 📍 Obteniendo ubicación actual...');
       
       const { status } = await Location.requestForegroundPermissionsAsync();
       
@@ -255,7 +254,7 @@ export default function SolicitarPropiedadScreenV2() {
         longitude: location.coords.longitude,
       });
 
-      console.log('[SolicitarPropiedadV2 v4.1] ✅ Ubicación obtenida:', location.coords);
+      console.log('[SolicitarPropiedadV2 v4.2] ✅ Ubicación obtenida:', location.coords);
 
       if (geocode.length > 0) {
         const place = geocode[0];
@@ -267,10 +266,10 @@ export default function SolicitarPropiedadScreenV2() {
         if (place.region) setProvinciaLocal(place.region);
         if (place.postalCode) setCodigoPostalLocal(place.postalCode);
         
-        console.log('[SolicitarPropiedadV2 v4.1] ✅ Dirección obtenida:', place.street);
+        console.log('[SolicitarPropiedadV2 v4.2] ✅ Dirección obtenida:', place.street);
       }
     } catch (error) {
-      console.error('[SolicitarPropiedadV2 v4.1] ❌ Error obteniendo ubicación:', error);
+      console.error('[SolicitarPropiedadV2 v4.2] ❌ Error obteniendo ubicación:', error);
       Alert.alert('Error', 'No se pudo obtener tu ubicación');
     } finally {
       setLoading(false);
@@ -281,12 +280,12 @@ export default function SolicitarPropiedadScreenV2() {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'location_selected') {
-        console.log('[SolicitarPropiedadV2 v4.1] 📍 Ubicación seleccionada en mapa:', data.lat, data.lng);
+        console.log('[SolicitarPropiedadV2 v4.2] 📍 Ubicación seleccionada en mapa:', data.lat, data.lng);
         setLatitudLocal(data.lat);
         setLongitudLocal(data.lng);
       }
     } catch (error) {
-      console.error('[SolicitarPropiedadV2 v4.1] ❌ Error procesando mensaje del mapa:', error);
+      console.error('[SolicitarPropiedadV2 v4.2] ❌ Error procesando mensaje del mapa:', error);
     }
   };
 
@@ -466,7 +465,7 @@ export default function SolicitarPropiedadScreenV2() {
 
     setLoading(true);
     try {
-      console.log('[SolicitarPropiedadV2 v4.1] 📤 Enviando solicitud...');
+      console.log('[SolicitarPropiedadV2 v4.2] 📤 Enviando solicitud...');
 
       if (requestType === 'reclamar_local') {
         if (!selectedLocal) {
@@ -475,8 +474,8 @@ export default function SolicitarPropiedadScreenV2() {
           return;
         }
 
-        console.log('[SolicitarPropiedadV2 v4.1] 💾 Guardando solicitud de reclamar local');
-        console.log('[SolicitarPropiedadV2 v4.1] 📄 URL del documento:', documentoUrl);
+        console.log('[SolicitarPropiedadV2 v4.2] 💾 Guardando solicitud de reclamar local');
+        console.log('[SolicitarPropiedadV2 v4.2] 📄 URL del documento:', documentoUrl);
         
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
@@ -498,7 +497,7 @@ export default function SolicitarPropiedadScreenV2() {
 
         if (insertError) throw insertError;
 
-        console.log('[SolicitarPropiedadV2 v4.1] ✅ Solicitud creada exitosamente');
+        console.log('[SolicitarPropiedadV2 v4.2] ✅ Solicitud creada exitosamente');
 
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
@@ -519,8 +518,8 @@ export default function SolicitarPropiedadScreenV2() {
           return;
         }
 
-        console.log('[SolicitarPropiedadV2 v4.1] 💾 Guardando solicitud de nuevo local');
-        console.log('[SolicitarPropiedadV2 v4.1] 📄 URL del documento:', documentoUrl);
+        console.log('[SolicitarPropiedadV2 v4.2] 💾 Guardando solicitud de nuevo local');
+        console.log('[SolicitarPropiedadV2 v4.2] 📄 URL del documento:', documentoUrl);
         
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
@@ -552,7 +551,7 @@ export default function SolicitarPropiedadScreenV2() {
 
         if (insertError) throw insertError;
 
-        console.log('[SolicitarPropiedadV2 v4.1] ✅ Solicitud de nuevo local creada exitosamente');
+        console.log('[SolicitarPropiedadV2 v4.2] ✅ Solicitud de nuevo local creada exitosamente');
 
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
@@ -568,7 +567,7 @@ export default function SolicitarPropiedadScreenV2() {
         );
       }
     } catch (error) {
-      console.error('[SolicitarPropiedadV2 v4.1] ❌ Error enviando solicitud:', error);
+      console.error('[SolicitarPropiedadV2 v4.2] ❌ Error enviando solicitud:', error);
       Alert.alert('Error', 'No se pudo enviar la solicitud. Intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -576,7 +575,7 @@ export default function SolicitarPropiedadScreenV2() {
   };
 
   const handleSelectRequestType = (type: 'reclamar_local' | 'nuevo_local') => {
-    console.log('[SolicitarPropiedadV2 v4.1] ✅ User selected request type:', type);
+    console.log('[SolicitarPropiedadV2 v4.2] ✅ User selected request type:', type);
     setRequestType(type);
     setShowSelectionScreen(false);
     setCurrentStep(1);
@@ -871,7 +870,7 @@ export default function SolicitarPropiedadScreenV2() {
 
       <NewDocumentUploader
         onUploadComplete={(url) => {
-          console.log('[SolicitarPropiedadV2 v4.1] ✅ Documento recibido:', url);
+          console.log('[SolicitarPropiedadV2 v4.2] ✅ Documento recibido:', url);
           setDocumentoUrl(url);
         }}
         currentUrl={documentoUrl}
@@ -1208,7 +1207,7 @@ export default function SolicitarPropiedadScreenV2() {
 
       <NewDocumentUploader
         onUploadComplete={(url) => {
-          console.log('[SolicitarPropiedadV2 v4.1] ✅ Documento recibido:', url);
+          console.log('[SolicitarPropiedadV2 v4.2] ✅ Documento recibido:', url);
           setDocumentoUrl(url);
         }}
         currentUrl={documentoUrl}
@@ -1304,41 +1303,41 @@ export default function SolicitarPropiedadScreenV2() {
             {currentStep === 5 && renderNuevoStep5()}
           </>
         )}
-      </ScrollView>
 
-      <View style={styles.footer}>
-        {currentStep > 1 && (
-          <TouchableOpacity style={styles.secondaryButton} onPress={handlePrevious}>
-            <Text style={[styles.secondaryButtonText, { fontSize: scaleFontSize(16) }]}>Anterior</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.footerInScroll}>
+          {currentStep > 1 && (
+            <TouchableOpacity style={styles.secondaryButton} onPress={handlePrevious}>
+              <Text style={[styles.secondaryButtonText, { fontSize: scaleFontSize(16) }]}>Anterior</Text>
+            </TouchableOpacity>
+          )}
 
-        <TouchableOpacity 
-          style={styles.primaryButton} 
-          onPress={() => {
-            const maxSteps = requestType === 'reclamar_local' ? 2 : 5;
-            if (currentStep === maxSteps) {
-              handleSubmit();
-            } else {
-              handleNext();
-            }
-          }}
-          disabled={loading}
-        >
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            style={styles.primaryGradient}
+          <TouchableOpacity 
+            style={styles.primaryButton} 
+            onPress={() => {
+              const maxSteps = requestType === 'reclamar_local' ? 2 : 5;
+              if (currentStep === maxSteps) {
+                handleSubmit();
+              } else {
+                handleNext();
+              }
+            }}
+            disabled={loading}
           >
-            {loading ? (
-              <ActivityIndicator size="small" color={colors.headerText} />
-            ) : (
-              <Text style={[styles.primaryButtonText, { fontSize: scaleFontSize(16) }]}>
-                {currentStep === (requestType === 'reclamar_local' ? 2 : 5) ? 'Enviar Solicitud' : 'Siguiente'}
-              </Text>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
+            <LinearGradient
+              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+              style={styles.primaryGradient}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color={colors.headerText} />
+              ) : (
+                <Text style={[styles.primaryButtonText, { fontSize: scaleFontSize(16) }]}>
+                  {currentStep === (requestType === 'reclamar_local' ? 2 : 5) ? 'Enviar Solicitud' : 'Siguiente'}
+                </Text>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
 
       <Modal
         visible={showDocumentTypeModal}
@@ -1551,7 +1550,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 120,
+    paddingBottom: 40,
   },
   stepContent: {
     padding: 20,
@@ -1939,18 +1938,11 @@ const styles = StyleSheet.create({
   servicioChipTextActive: {
     color: colors.headerText,
   },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+  footerInScroll: {
     flexDirection: 'row',
     gap: 12,
     padding: 16,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
-    backgroundColor: colors.cardBackground,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 24,
   },
   secondaryButton: {
     flex: 1,
