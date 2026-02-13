@@ -218,6 +218,50 @@ export default function PostViewerModal({
     }
   };
 
+  const loadTaggedUsers = useCallback(async (postId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('post_tags')
+        .select(`
+          *,
+          usuario:usuarios!post_tags_usuario_id_fkey(id, nombre, username, avatar),
+          local:locales(id, nombre, imagen_url)
+        `)
+        .eq('post_id', postId)
+        .eq('estado', 'aceptado');
+
+      if (error) throw error;
+
+      const tags: TaggableUser[] = [];
+      
+      if (data) {
+        data.forEach(tag => {
+          if (tag.tipo === 'usuario' && tag.usuario) {
+            tags.push({
+              id: tag.usuario.id,
+              nombre: tag.usuario.nombre,
+              username: tag.usuario.username || tag.usuario.nombre,
+              avatar: tag.usuario.avatar,
+              tipo: 'usuario',
+            });
+          } else if (tag.tipo === 'local' && tag.local) {
+            tags.push({
+              id: tag.local.id,
+              nombre: tag.local.nombre,
+              username: tag.local.nombre,
+              avatar: tag.local.imagen_url,
+              tipo: 'local',
+            });
+          }
+        });
+      }
+
+      setTaggedUsers(prev => new Map(prev).set(postId, tags));
+    } catch (error) {
+      console.error('[PostViewerModal v338.0] Error loading tagged users:', error);
+    }
+  }, []);
+
   const refreshCurrentPost = useCallback(async () => {
     if (!currentPostId) return;
 
@@ -274,7 +318,7 @@ export default function PostViewerModal({
     } catch (error) {
       console.error('[PostViewerModal v338.0] Error refreshing post:', error);
     }
-  }, [currentPostId]);
+  }, [currentPostId, loadTaggedUsers]);
 
   useFocusEffect(
     useCallback(() => {
@@ -1144,50 +1188,6 @@ export default function PostViewerModal({
   };
 
   const [taggedUsers, setTaggedUsers] = useState<Map<string, TaggableUser[]>>(new Map());
-
-  const loadTaggedUsers = useCallback(async (postId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('post_tags')
-        .select(`
-          *,
-          usuario:usuarios!post_tags_usuario_id_fkey(id, nombre, username, avatar),
-          local:locales(id, nombre, imagen_url)
-        `)
-        .eq('post_id', postId)
-        .eq('estado', 'aceptado');
-
-      if (error) throw error;
-
-      const tags: TaggableUser[] = [];
-      
-      if (data) {
-        data.forEach(tag => {
-          if (tag.tipo === 'usuario' && tag.usuario) {
-            tags.push({
-              id: tag.usuario.id,
-              nombre: tag.usuario.nombre,
-              username: tag.usuario.username || tag.usuario.nombre,
-              avatar: tag.usuario.avatar,
-              tipo: 'usuario',
-            });
-          } else if (tag.tipo === 'local' && tag.local) {
-            tags.push({
-              id: tag.local.id,
-              nombre: tag.local.nombre,
-              username: tag.local.nombre,
-              avatar: tag.local.imagen_url,
-              tipo: 'local',
-            });
-          }
-        });
-      }
-
-      setTaggedUsers(prev => new Map(prev).set(postId, tags));
-    } catch (error) {
-      console.error('[PostViewerModal v338.0] Error loading tagged users:', error);
-    }
-  }, []);
 
   useEffect(() => {
     posts.forEach(post => {

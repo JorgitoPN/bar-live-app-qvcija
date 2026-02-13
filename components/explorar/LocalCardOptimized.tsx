@@ -1,18 +1,21 @@
 
 /**
- * ✅ LOCAL CARD OPTIMIZED v1.0 - INSTAGRAM-LEVEL PERFORMANCE
+ * ✅ LOCAL CARD OPTIMIZED v2.0 - AGGRESSIVE MEMOIZATION + PAYLOAD REDUCTION
  * 
- * Optimizaciones implementadas:
+ * Optimizaciones implementadas v2.0:
+ * - ✅ React.memo: Previene re-renders innecesarios
+ * - ✅ useCallback: Estabiliza funciones
+ * - ✅ useMemo: Estabiliza valores computados
  * - ✅ Optimistic UI: Favoritos instantáneos
  * - ✅ Skeleton Loader: Placeholder mientras carga imagen
- * - ✅ Image Prefetching: Precarga automática
- * - ✅ Memoization: Previene re-renders
+ * - ✅ Image Prefetching: Precarga controlada con InteractionManager
  * - ✅ Lazy Loading: Datos bajo demanda
+ * - ✅ Payload Reduction: Solicita thumbnails apropiados (140px, no 1080px)
  * 
- * RESULTADO: Scroll fluido, interacciones instantáneas
+ * OBJETIVO: Solo re-renderizar cuando los datos del local cambien
  */
 
-import React, { useState, useCallback, memo, useEffect } from 'react';
+import React, { useState, useCallback, memo, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,7 +23,8 @@ import {
   TouchableOpacity,
   Image,
   Platform,
-  ActivityIndicator,
+  Linking,
+  InteractionManager,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
@@ -29,9 +33,13 @@ import { getCategoryIcon } from '@/utils/categoryIcons';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { optimisticUI } from '@/utils/optimisticUI';
 import { intelligentPreloader } from '@/utils/intelligentPreloader';
 import { Skeleton } from '@/components/common/SkeletonLoader';
+
+// ✅ THUMBNAIL SIZE: Solicitar imágenes apropiadas (140px, no 1080px)
+const CARD_IMAGE_HEIGHT = 140;
+const THUMBNAIL_WIDTH = 400; // Suficiente para pantallas HD
+const THUMBNAIL_HEIGHT = 300;
 
 interface LocalCardOptimizedProps {
   local: any;
@@ -41,6 +49,24 @@ interface LocalCardOptimizedProps {
   activeEvents: Map<string, any>;
 }
 
+/**
+ * ✅ HELPER: Generar URL de thumbnail optimizado
+ */
+const getOptimizedImageUrl = (originalUrl: string, width: number, height: number): string => {
+  if (!originalUrl) return '';
+  
+  if (originalUrl.includes('w=') || originalUrl.includes('width=')) {
+    return originalUrl;
+  }
+  
+  if (originalUrl.includes('supabase')) {
+    const separator = originalUrl.includes('?') ? '&' : '?';
+    return `${originalUrl}${separator}width=${Math.round(width)}&height=${Math.round(height)}&quality=75`;
+  }
+  
+  return originalUrl;
+};
+
 const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, activeEvents }: LocalCardOptimizedProps) => {
   const router = useRouter();
   const { user } = useAuth();
@@ -49,26 +75,34 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   const [imageLoaded, setImageLoaded] = useState(false);
   const [localIsFavorite, setLocalIsFavorite] = useState(isFavorite(local.id));
 
-  const imagenPrincipal = local.imagenes?.[0] || local.imagen_url;
+  // ✅ MEMOIZED: Optimized image URL
+  const optimizedImageUrl = useMemo(() => {
+    const imagenPrincipal = local.imagenes?.[0] || local.imagen_url;
+    if (!imagenPrincipal) return null;
+    
+    return getOptimizedImageUrl(imagenPrincipal, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT);
+  }, [local.imagenes, local.imagen_url]);
+
   const isDestacado = local.destacado;
   const hasSocialProfile = socialProfiles.get(local.id) || false;
   const activeEvent = activeEvents.get(local.id);
 
-  // ✅ PREFETCH: Precargar imagen cuando el componente se monta
+  // ✅ CONTROLLED PREFETCH: Solo cuando JS thread está inactivo
   useEffect(() => {
-    if (imagenPrincipal) {
-      intelligentPreloader.prefetchImages([imagenPrincipal], 'MEDIUM');
-    }
-    
-    // ✅ Precargar galería en segundo plano
-    if (local.imagenes && local.imagenes.length > 1) {
-      requestAnimationFrame(() => {
-        intelligentPreloader.prefetchImages(local.imagenes.slice(1, 3), 'LOW');
-      });
-    }
-  }, [imagenPrincipal, local.imagenes]);
+    InteractionManager.runAfterInteractions(() => {
+      if (optimizedImageUrl) {
+        intelligentPreloader.prefetchImages([optimizedImageUrl], 'MEDIUM');
+      }
+      
+      if (local.imagenes && local.imagenes.length > 1) {
+        const otherImages = local.imagenes.slice(1, 3).map((img: string) => 
+          getOptimizedImageUrl(img, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
+        );
+        intelligentPreloader.prefetchImages(otherImages, 'LOW');
+      }
+    });
+  }, [optimizedImageUrl, local.imagenes]);
 
-  // ✅ Sincronizar estado de favorito
   useEffect(() => {
     setLocalIsFavorite(isFavorite(local.id));
   }, [isFavorite, local.id]);
@@ -86,18 +120,15 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
 
     if (!local.id) return;
 
-    console.log('[LocalCardOptimized] ⭐ INSTANT favorite toggle');
+    console.log('[LocalCardOptimized v2.0] ⭐ INSTANT favorite toggle');
 
-    // ✅ Actualización INSTANTÁNEA de UI
     const newFavoriteState = !localIsFavorite;
     setLocalIsFavorite(newFavoriteState);
 
-    // ✅ Sincronización en segundo plano
     try {
       await toggleFavorite(local.id);
     } catch (error) {
-      // ✅ Rollback en caso de error
-      console.log('[LocalCardOptimized] 🔄 Rolling back favorite');
+      console.log('[LocalCardOptimized v2.0] 🔄 Rolling back favorite');
       setLocalIsFavorite(!newFavoriteState);
     }
   }, [user, router, local.id, localIsFavorite, toggleFavorite]);
@@ -114,7 +145,8 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
     router.push(`/perfil/local?localId=${local.id}`);
   }, [router, local.id]);
 
-  const getBadgeInfo = () => {
+  // ✅ MEMOIZED: Badge info
+  const badgeInfo = useMemo(() => {
     if (local.estadoCompleto) {
       const estado = local.estadoCompleto;
       
@@ -150,17 +182,19 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
         color: '#9CA3AF',
       };
     }
-  };
+  }, [local.estadoCompleto, local.estaAbierto]);
 
-  const getShouldDimImage = () => {
+  // ✅ MEMOIZED: Should dim image
+  const shouldDimImage = useMemo(() => {
     if (local.estadoCompleto) {
       return local.estadoCompleto.estaAbierto === false && 
              !local.estadoCompleto.badge.includes('pronto');
     }
     return local.estaAbierto === false;
-  };
+  }, [local.estadoCompleto, local.estaAbierto]);
 
-  const getCategoriasAMostrar = () => {
+  // ✅ MEMOIZED: Categorias a mostrar
+  const categoriasAMostrar = useMemo(() => {
     const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
     let categories = local.barlive_types || [];
     if (categories.length === 0 && local.barlive_type) {
@@ -170,9 +204,10 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
     return categories.filter((cat: string) => 
       !CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
     );
-  };
+  }, [local.barlive_types, local.barlive_type]);
 
-  const getDisplayRating = () => {
+  // ✅ MEMOIZED: Display rating
+  const displayRating = useMemo(() => {
     if (local.rating && local.rating > 0) {
       return local.rating;
     }
@@ -180,23 +215,20 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
       return local.google_rating;
     }
     return 0;
-  };
+  }, [local.rating, local.google_rating]);
 
-  const badgeInfo = getBadgeInfo();
-  const shouldDimImage = getShouldDimImage();
-  const categoriasAMostrar = getCategoriasAMostrar();
-  const displayRating = getDisplayRating();
+  // ✅ MEMOIZED: Icon sizes
+  const iconSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(14) : 14, []);
+  const starIconSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(12) : 12, []);
+  const heartIconSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(20) : 20, []);
+  const actionIconSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(16) : 16, []);
 
-  const iconSize = Platform.OS === 'android' ? scaleIconSize(14) : 14;
-  const starIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
-  const heartIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
-  const actionIconSize = Platform.OS === 'android' ? scaleIconSize(16) : 16;
-
-  const cardStyle = [
+  // ✅ MEMOIZED: Card style
+  const cardStyle = useMemo(() => [
     styles.card,
     isDestacado && styles.cardDestacado,
     Platform.OS === 'android' && index === 0 && { marginTop: 8 }
-  ];
+  ], [isDestacado, index]);
 
   return (
     <TouchableOpacity 
@@ -207,16 +239,18 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
       <View style={styles.imageContainer}>
         {!imageLoaded && (
           <View style={styles.skeletonImageContainer}>
-            <Skeleton width="100%" height={140} borderRadius={0} />
+            <Skeleton width="100%" height={CARD_IMAGE_HEIGHT} borderRadius={0} />
           </View>
         )}
         
-        {imagenPrincipal ? (
+        {optimizedImageUrl ? (
           <Image
-            source={{ uri: imagenPrincipal }}
+            source={{ uri: optimizedImageUrl }}
             style={[styles.image, !imageLoaded && styles.imageHidden]}
             resizeMode="cover"
             onLoad={() => setImageLoaded(true)}
+            fadeDuration={0}
+            progressiveRenderingEnabled={true}
           />
         ) : (
           <View style={[styles.image, styles.placeholderImage]}>
@@ -353,14 +387,20 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
       </View>
     </TouchableOpacity>
   );
+}, (prevProps, nextProps) => {
+  // ✅ CRITICAL: Solo re-renderizar si los datos del local cambian
+  return (
+    prevProps.local.id === nextProps.local.id &&
+    prevProps.local.destacado === nextProps.local.destacado &&
+    prevProps.local.estaAbierto === nextProps.local.estaAbierto &&
+    prevProps.socialProfiles.get(prevProps.local.id) === nextProps.socialProfiles.get(nextProps.local.id) &&
+    prevProps.activeEvents.get(prevProps.local.id) === nextProps.activeEvents.get(nextProps.local.id)
+  );
 });
 
 LocalCardOptimized.displayName = 'LocalCardOptimized';
 
 export default LocalCardOptimized;
-
-// ✅ Necesario para Linking
-import { Linking } from 'react-native';
 
 const styles = StyleSheet.create({
   card: {
@@ -399,7 +439,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: '100%',
-    height: 140,
+    height: CARD_IMAGE_HEIGHT,
     position: 'relative',
   },
   skeletonImageContainer: {

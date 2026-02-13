@@ -1,18 +1,21 @@
 
 /**
- * ✅ PUBLICACION CARD OPTIMIZED v1.0 - INSTAGRAM-LEVEL PERFORMANCE
+ * ✅ PUBLICACION CARD OPTIMIZED v2.0 - AGGRESSIVE MEMOIZATION + PAYLOAD REDUCTION
  * 
- * Optimizaciones implementadas:
+ * Optimizaciones implementadas v2.0:
+ * - ✅ React.memo: Previene re-renders innecesarios
+ * - ✅ useCallback: Estabiliza funciones para evitar re-creación
+ * - ✅ useMemo: Estabiliza valores computados
  * - ✅ Optimistic UI: Likes instantáneos (< 50ms)
  * - ✅ Skeleton Loader: Placeholder mientras carga
- * - ✅ Image Prefetching: Precarga de imágenes
- * - ✅ Memoization: Previene re-renders innecesarios
+ * - ✅ Image Prefetching: Precarga controlada con InteractionManager
  * - ✅ Lazy Loading: Carga de datos bajo demanda
+ * - ✅ Payload Reduction: Solicita thumbnails apropiados
  * 
- * RESULTADO: Interacciones instantáneas, sin lag, sin spinners
+ * OBJETIVO: Solo re-renderizar cuando los datos del post cambien
  */
 
-import React, { useState, useCallback, memo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, memo, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -24,8 +27,8 @@ import {
   Platform,
   ActionSheetIOS,
   ScrollView,
-  Share,
   Animated,
+  InteractionManager,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
@@ -33,7 +36,6 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInteractionContext } from '@/hooks/useInteractionContext';
-import OptimizedImage from '@/components/common/OptimizedImage';
 import ParsedText from '@/components/social/ParsedText';
 import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 import SharePostModal from '@/components/social/SharePostModal';
@@ -46,6 +48,10 @@ import { optimisticUI } from '@/utils/optimisticUI';
 import { intelligentPreloader } from '@/utils/intelligentPreloader';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// ✅ THUMBNAIL SIZE: Solicitar imágenes apropiadas (no 1080p para 200px)
+const THUMBNAIL_WIDTH = SCREEN_WIDTH;
+const THUMBNAIL_HEIGHT = SCREEN_WIDTH;
 
 interface Post {
   id: string;
@@ -89,6 +95,27 @@ export interface TaggableUser {
   tipo: 'usuario' | 'local';
 }
 
+/**
+ * ✅ HELPER: Generar URL de thumbnail optimizado
+ */
+const getOptimizedImageUrl = (originalUrl: string, width: number, height: number): string => {
+  if (!originalUrl) return '';
+  
+  // ✅ Si la URL ya tiene parámetros de tamaño, no modificar
+  if (originalUrl.includes('w=') || originalUrl.includes('width=')) {
+    return originalUrl;
+  }
+  
+  // ✅ Para URLs de Supabase Storage, añadir parámetros de transformación
+  if (originalUrl.includes('supabase')) {
+    const separator = originalUrl.includes('?') ? '&' : '?';
+    return `${originalUrl}${separator}width=${Math.round(width)}&height=${Math.round(height)}&quality=80`;
+  }
+  
+  // ✅ Para otras URLs, devolver original (el CDN debería manejar esto)
+  return originalUrl;
+};
+
 const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: PublicacionCardOptimizedProps) => {
   const router = useRouter();
   const { user } = useAuth();
@@ -111,29 +138,38 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
-  // ✅ PREFETCH: Precargar imágenes cuando el componente se monta
-  useEffect(() => {
-    if (post.imagenes && post.imagenes.length > 0) {
-      // ✅ Precargar primera imagen con alta prioridad
-      intelligentPreloader.prefetchImages([post.imagenes[0]], 'HIGH');
-      
-      // ✅ Precargar resto de imágenes con baja prioridad
-      if (post.imagenes.length > 1) {
-        requestAnimationFrame(() => {
-          intelligentPreloader.prefetchImages(post.imagenes.slice(1), 'LOW');
-        });
-      }
-    }
-
-    // ✅ Precargar avatar del autor
-    const authorAvatar = post.tipo === 'local' && post.local?.imagen_url
-      ? post.local.imagen_url
-      : post.autor?.avatar;
+  // ✅ MEMOIZED: Optimized image URLs
+  const optimizedImages = useMemo(() => {
+    if (!post.imagenes || post.imagenes.length === 0) return [];
     
-    if (authorAvatar) {
-      intelligentPreloader.prefetchImages([authorAvatar], 'MEDIUM');
-    }
-  }, [post.imagenes, post.autor?.avatar, post.local?.imagen_url, post.tipo]);
+    return post.imagenes.map(img => 
+      getOptimizedImageUrl(img, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
+    );
+  }, [post.imagenes]);
+
+  // ✅ CONTROLLED PREFETCH: Solo cuando JS thread está inactivo
+  useEffect(() => {
+    InteractionManager.runAfterInteractions(() => {
+      if (optimizedImages.length > 0) {
+        // ✅ Precargar primera imagen con alta prioridad
+        intelligentPreloader.prefetchImages([optimizedImages[0]], 'HIGH');
+        
+        // ✅ Precargar resto de imágenes con baja prioridad
+        if (optimizedImages.length > 1) {
+          intelligentPreloader.prefetchImages(optimizedImages.slice(1), 'LOW');
+        }
+      }
+
+      // ✅ Precargar avatar del autor
+      const authorAvatar = post.tipo === 'local' && post.local?.imagen_url
+        ? post.local.imagen_url
+        : post.autor?.avatar;
+      
+      if (authorAvatar) {
+        intelligentPreloader.prefetchImages([authorAvatar], 'MEDIUM');
+      }
+    });
+  }, [optimizedImages, post.autor?.avatar, post.local?.imagen_url, post.tipo]);
 
   // ✅ LAZY LOAD: Cargar tagged users solo cuando se necesitan
   const loadTaggedUsers = useCallback(async () => {
@@ -176,13 +212,13 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
 
       setTaggedUsers(tags);
     } catch (error) {
-      console.error('[PublicacionCardOptimized] Error loading tagged users:', error);
+      console.error('[PublicacionCardOptimized v2.0] Error loading tagged users:', error);
     }
   }, [post.id]);
 
   useEffect(() => {
     // ✅ Cargar tagged users en segundo plano
-    requestAnimationFrame(() => {
+    InteractionManager.runAfterInteractions(() => {
       loadTaggedUsers();
     });
   }, [loadTaggedUsers]);
@@ -195,18 +231,17 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
           .from('likes')
           .select('id, usuario_id')
           .eq('post_id', post.id)
-          .limit(10); // Solo primeros 10 para avatares
+          .limit(10);
 
         if (!error && data) {
           setLocalLikes(data);
         }
       } catch (error) {
-        console.error('[PublicacionCardOptimized] Error loading likes:', error);
+        console.error('[PublicacionCardOptimized v2.0] Error loading likes:', error);
       }
     };
 
-    // ✅ Cargar en segundo plano
-    requestAnimationFrame(() => {
+    InteractionManager.runAfterInteractions(() => {
       loadInitialLikes();
     });
   }, [post.id]);
@@ -220,18 +255,16 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
       return;
     }
 
-    console.log('[PublicacionCardOptimized] 💖 INSTANT like - Optimistic UI');
+    console.log('[PublicacionCardOptimized v2.0] 💖 INSTANT like - Optimistic UI');
 
     await optimisticUI.toggleLike(
       post.id,
       user.id,
       liked,
       (newLiked, countDelta) => {
-        // ✅ Actualización INSTANTÁNEA de UI
         setLiked(newLiked);
         setLikesCount(prev => Math.max(0, prev + countDelta));
         
-        // ✅ Actualizar avatares de likes
         if (newLiked) {
           setLocalLikes(prev => [...prev, { id: `temp-${Date.now()}`, usuario_id: user.id }]);
         } else {
@@ -239,8 +272,7 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
         }
       },
       (rolledBackLiked, countDelta) => {
-        // ✅ Rollback en caso de error
-        console.log('[PublicacionCardOptimized] 🔄 Rolling back like');
+        console.log('[PublicacionCardOptimized v2.0] 🔄 Rolling back like');
         setLiked(rolledBackLiked);
         setLikesCount(prev => Math.max(0, prev - countDelta));
         
@@ -260,19 +292,17 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
       return;
     }
 
-    console.log('[PublicacionCardOptimized] 🔖 INSTANT save - Optimistic UI');
+    console.log('[PublicacionCardOptimized v2.0] 🔖 INSTANT save - Optimistic UI');
 
     await optimisticUI.toggleSave(
       post.id,
       user.id,
       saved,
       (newSaved) => {
-        // ✅ Actualización INSTANTÁNEA de UI
         setSaved(newSaved);
       },
       (rolledBackSaved) => {
-        // ✅ Rollback en caso de error
-        console.log('[PublicacionCardOptimized] 🔄 Rolling back save');
+        console.log('[PublicacionCardOptimized v2.0] 🔄 Rolling back save');
         setSaved(rolledBackSaved);
       }
     );
@@ -289,7 +319,6 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
       }
 
       if (!liked) {
-        // ✅ Animación de corazón
         scaleAnim.setValue(0);
         opacityAnim.setValue(1);
         
@@ -307,7 +336,6 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
           }),
         ]).start();
 
-        // ✅ Like optimista
         await handleLike();
       }
     }
@@ -319,7 +347,7 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
       return;
     }
     
-    console.log('[PublicacionCardOptimized] 💬 Opening comments');
+    console.log('[PublicacionCardOptimized v2.0] 💬 Opening comments');
     router.push({
       pathname: '/social/comentarios',
       params: { 
@@ -378,7 +406,7 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
                 onUpdate();
               }
             } catch (error) {
-              console.error('[PublicacionCardOptimized] Error deleting post:', error);
+              console.error('[PublicacionCardOptimized v2.0] Error deleting post:', error);
               Alert.alert('Error', 'No se pudo eliminar la publicación');
             }
           },
@@ -464,8 +492,9 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
     }
   }, [user, post, interactionLocalId, handleDeletePost, handleReportPost, router]);
 
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
+  // ✅ MEMOIZED: Format time ago
+  const timeAgo = useMemo(() => {
+    const date = new Date(post.created_at);
     const now = new Date();
     const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
@@ -474,34 +503,44 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
     if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
     return `${Math.floor(seconds / 604800)}sem`;
-  };
+  }, [post.created_at]);
 
-  const displayName = post.tipo === 'local' && post.local 
-    ? post.local.nombre 
-    : post.autor?.username 
-      ? post.autor.username.replace(/^@/, '')
-      : post.autor?.nombre || 'Usuario';
+  // ✅ MEMOIZED: Display name and avatar
+  const displayName = useMemo(() => {
+    return post.tipo === 'local' && post.local 
+      ? post.local.nombre 
+      : post.autor?.username 
+        ? post.autor.username.replace(/^@/, '')
+        : post.autor?.nombre || 'Usuario';
+  }, [post.tipo, post.local, post.autor]);
 
-  const displayAvatar = post.tipo === 'local' && post.local 
-    ? post.local.imagen_url 
-    : post.autor?.avatar || '';
+  const displayAvatar = useMemo(() => {
+    return post.tipo === 'local' && post.local 
+      ? post.local.imagen_url 
+      : post.autor?.avatar || '';
+  }, [post.tipo, post.local, post.autor]);
 
-  const canEdit = user && (
-    (post.tipo === 'usuario' && post.autor_id === user.id) ||
-    (post.tipo === 'local' && interactionLocalId === post.local_id)
-  );
+  // ✅ MEMOIZED: Can edit check
+  const canEdit = useMemo(() => {
+    return user && (
+      (post.tipo === 'usuario' && post.autor_id === user.id) ||
+      (post.tipo === 'local' && interactionLocalId === post.local_id)
+    );
+  }, [user, post.tipo, post.autor_id, post.local_id, interactionLocalId]);
 
-  const handleScroll = (event: any) => {
+  // ✅ MEMOIZED: Handle scroll
+  const handleScroll = useCallback((event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffsetX / SCREEN_WIDTH);
     setCurrentImageIndex(index);
-  };
+  }, []);
 
-  const avatarSize = Platform.OS === 'android' ? scaleIconSize(40) : 40;
-  const actionIconSize = Platform.OS === 'android' ? scaleIconSize(26) : 26;
-  const optionsIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
-  const tagIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
-  const doubleTapHeartSize = Platform.OS === 'android' ? scaleIconSize(100) : 100;
+  // ✅ MEMOIZED: Icon sizes
+  const avatarSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(40) : 40, []);
+  const actionIconSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(26) : 26, []);
+  const optionsIconSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(24) : 24, []);
+  const tagIconSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(12) : 12, []);
+  const doubleTapHeartSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(100) : 100, []);
 
   return (
     <View style={styles.card}>
@@ -558,7 +597,7 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
           />
           <View style={styles.headerInfo}>
             <Text style={[styles.username, { fontSize: scaleFontSize(15) }]}>{displayName}</Text>
-            <Text style={[styles.timestamp, { fontSize: scaleFontSize(13) }]}>{formatTimeAgo(post.created_at)}</Text>
+            <Text style={[styles.timestamp, { fontSize: scaleFontSize(13) }]}>{timeAgo}</Text>
           </View>
         </TouchableOpacity>
         {(canEdit || user) && (
@@ -573,7 +612,7 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
         )}
       </View>
 
-      {post.imagenes && post.imagenes.length > 0 && (
+      {optimizedImages.length > 0 && (
         <View style={styles.imageContainer}>
           <ScrollView
             horizontal
@@ -582,17 +621,19 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
             onScroll={handleScroll}
             scrollEventThrottle={16}
           >
-            {post.imagenes.map((imageUrl, imgIndex) => (
+            {optimizedImages.map((imageUrl, imgIndex) => (
               <TapGestureHandler
                 key={imgIndex}
                 onHandlerStateChange={handleDoubleTap}
                 numberOfTaps={2}
               >
                 <View style={styles.imageWrapper}>
-                  <OptimizedImage
+                  <Image
                     source={{ uri: imageUrl }}
                     style={styles.postImage}
                     resizeMode="cover"
+                    fadeDuration={0}
+                    progressiveRenderingEnabled={true}
                   />
                   
                   <Animated.View
@@ -631,9 +672,9 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
               </TapGestureHandler>
             ))}
           </ScrollView>
-          {post.imagenes.length > 1 && (
+          {optimizedImages.length > 1 && (
             <View style={styles.imageIndicatorContainer}>
-              {post.imagenes.map((_, imgIndex) => (
+              {optimizedImages.map((_, imgIndex) => (
                 <View
                   key={imgIndex}
                   style={[
@@ -721,7 +762,7 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
         visible={shareModalVisible}
         postId={post.id}
         postContent={post.contenido}
-        postImage={post.imagenes && post.imagenes.length > 0 ? post.imagenes[0] : undefined}
+        postImage={optimizedImages.length > 0 ? optimizedImages[0] : undefined}
         postAuthorName={displayName}
         postAuthorAvatar={displayAvatar}
         onClose={() => setShareModalVisible(false)}
@@ -734,6 +775,15 @@ const PublicacionCardOptimized = memo(({ post, onUpdate, index = 0 }: Publicacio
         onClose={() => setShowReportModal(false)}
       />
     </View>
+  );
+}, (prevProps, nextProps) => {
+  // ✅ CRITICAL: Solo re-renderizar si los datos del post cambian
+  return (
+    prevProps.post.id === nextProps.post.id &&
+    prevProps.post.likes_count === nextProps.post.likes_count &&
+    prevProps.post.comentarios_count === nextProps.post.comentarios_count &&
+    prevProps.post.user_has_liked === nextProps.post.user_has_liked &&
+    prevProps.post.user_has_saved === nextProps.post.user_has_saved
   );
 });
 

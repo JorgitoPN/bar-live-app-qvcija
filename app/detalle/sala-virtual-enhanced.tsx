@@ -404,7 +404,7 @@ export default function SalaVirtualEnhancedScreen() {
   }, []);
 
   useEffect(() => {
-    Animated.loop(
+    const pulseAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.3,
@@ -417,9 +417,9 @@ export default function SalaVirtualEnhancedScreen() {
           useNativeDriver: true,
         }),
       ])
-    ).start();
+    );
 
-    Animated.loop(
+    const glowAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, {
           toValue: 1,
@@ -432,7 +432,15 @@ export default function SalaVirtualEnhancedScreen() {
           useNativeDriver: false,
         }),
       ])
-    ).start();
+    );
+
+    pulseAnimation.start();
+    glowAnimation.start();
+
+    return () => {
+      pulseAnimation.stop();
+      glowAnimation.stop();
+    };
   }, [pulseAnim, glowAnim]);
 
   useEffect(() => {
@@ -840,6 +848,84 @@ export default function SalaVirtualEnhancedScreen() {
     });
   }, [animationScale, animationOpacity]);
 
+  const loadPrivateChats = useCallback(async () => {
+    if (!user || !localId) return;
+
+    try {
+      const readPartners = await loadReadMessagesFromStorage(localId, user.id);
+      
+      const { data: privateMessages, error } = await supabase
+        .from('sala_virtual_interacciones')
+        .select(`
+          id,
+          usuario_id,
+          recipient_id,
+          contenido,
+          created_at,
+          leido,
+          usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(
+            id,
+            nombre,
+            username,
+            avatar
+          )
+        `)
+        .eq('local_id', localId)
+        .eq('tipo', 'privado')
+        .or(`usuario_id.eq.${user.id},recipient_id.eq.${user.id}`)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[SalaVirtual v6.7] ❌ Error loading private chats:', error);
+        return;
+      }
+
+      const chatMap = new Map<string, PrivateChat>();
+      const unreadCountMap = new Map<string, number>();
+      
+      (privateMessages || []).forEach(msg => {
+        const partnerId = msg.usuario_id === user.id ? msg.recipient_id : msg.usuario_id;
+        if (!partnerId) return;
+        
+        if (msg.recipient_id === user.id && msg.usuario_id !== user.id && msg.leido === false) {
+          if (!readPartners.has(partnerId)) {
+            const currentCount = unreadCountMap.get(partnerId) || 0;
+            unreadCountMap.set(partnerId, currentCount + 1);
+          }
+        }
+        
+        if (!chatMap.has(partnerId)) {
+          const partnerData = msg.usuario_id === user.id 
+            ? activeUsers.find(u => u.id === partnerId)
+            : msg.usuario;
+          
+          if (partnerData) {
+            chatMap.set(partnerId, {
+              userId: partnerId,
+              username: partnerData.username || '',
+              nombre: partnerData.nombre || 'Usuario',
+              avatar: partnerData.avatar,
+              lastMessage: msg.contenido,
+              lastMessageTime: msg.created_at,
+              unreadCount: 0,
+            });
+          }
+        }
+      });
+      
+      const chats = Array.from(chatMap.values()).map(chat => ({
+        ...chat,
+        unreadCount: unreadCountMap.get(chat.userId) || 0,
+      }));
+      
+      if (isMounted.current) {
+        setPrivateChats(chats);
+      }
+    } catch (error) {
+      console.error('[SalaVirtual v6.7] ❌ Error loading private chats:', error);
+    }
+  }, [user, localId, activeUsers, loadReadMessagesFromStorage]);
+
   const syncMessages = useCallback(async () => {
     if (!localId || !user) {
       return;
@@ -1037,7 +1123,7 @@ export default function SalaVirtualEnhancedScreen() {
     } catch (error) {
       console.error('[SalaVirtual v6.7] ❌ Error syncing messages:', error);
     }
-  }, [localId, user, selectedPrivateChat, triggerReceivedAnimation]);
+  }, [localId, user, selectedPrivateChat, triggerReceivedAnimation, loadPrivateChats]);
 
   useEffect(() => {
     if (!localId || !user || !isCheckedIn) {
@@ -1141,8 +1227,7 @@ export default function SalaVirtualEnhancedScreen() {
       
       const { error } = await supabase
         .from('sala_virtual_interacciones')
-        .update({ leido: true })
-        .eq('local_id', localId)
+        .update({ leido: true }).eq('local_id', localId)
         .eq('tipo', 'privado')
         .eq('recipient_id', user.id)
         .eq('usuario_id', partnerId)
@@ -1168,84 +1253,6 @@ export default function SalaVirtualEnhancedScreen() {
       console.error('[SalaVirtual v6.7] ❌ Error:', error);
     }
   }, [user, localId, saveReadMessagesToStorage]);
-
-  const loadPrivateChats = useCallback(async () => {
-    if (!user || !localId) return;
-
-    try {
-      const readPartners = await loadReadMessagesFromStorage(localId, user.id);
-      
-      const { data: privateMessages, error } = await supabase
-        .from('sala_virtual_interacciones')
-        .select(`
-          id,
-          usuario_id,
-          recipient_id,
-          contenido,
-          created_at,
-          leido,
-          usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(
-            id,
-            nombre,
-            username,
-            avatar
-          )
-        `)
-        .eq('local_id', localId)
-        .eq('tipo', 'privado')
-        .or(`usuario_id.eq.${user.id},recipient_id.eq.${user.id}`)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('[SalaVirtual v6.7] ❌ Error loading private chats:', error);
-        return;
-      }
-
-      const chatMap = new Map<string, PrivateChat>();
-      const unreadCountMap = new Map<string, number>();
-      
-      (privateMessages || []).forEach(msg => {
-        const partnerId = msg.usuario_id === user.id ? msg.recipient_id : msg.usuario_id;
-        if (!partnerId) return;
-        
-        if (msg.recipient_id === user.id && msg.usuario_id !== user.id && msg.leido === false) {
-          if (!readPartners.has(partnerId)) {
-            const currentCount = unreadCountMap.get(partnerId) || 0;
-            unreadCountMap.set(partnerId, currentCount + 1);
-          }
-        }
-        
-        if (!chatMap.has(partnerId)) {
-          const partnerData = msg.usuario_id === user.id 
-            ? activeUsers.find(u => u.id === partnerId)
-            : msg.usuario;
-          
-          if (partnerData) {
-            chatMap.set(partnerId, {
-              userId: partnerId,
-              username: partnerData.username || '',
-              nombre: partnerData.nombre || 'Usuario',
-              avatar: partnerData.avatar,
-              lastMessage: msg.contenido,
-              lastMessageTime: msg.created_at,
-              unreadCount: 0,
-            });
-          }
-        }
-      });
-      
-      const chats = Array.from(chatMap.values()).map(chat => ({
-        ...chat,
-        unreadCount: unreadCountMap.get(chat.userId) || 0,
-      }));
-      
-      if (isMounted.current) {
-        setPrivateChats(chats);
-      }
-    } catch (error) {
-      console.error('[SalaVirtual v6.7] ❌ Error loading private chats:', error);
-    }
-  }, [user, localId, activeUsers, loadReadMessagesFromStorage]);
 
   const handleTypingStart = useCallback(() => {
     if (!selectedPrivateChat || !user || !localId) return;
@@ -1433,7 +1440,7 @@ export default function SalaVirtualEnhancedScreen() {
       supabase.removeChannel(chatChannel);
       supabase.removeChannel(checkinsChannel);
     };
-  }, [localId, user, updateActiveUsers, syncMessages]);
+  }, [localId, user, updateActiveUsers, syncMessages, loadPrivateChats]);
 
   useEffect(() => {
     if (!localId || hasInitialized.current) return;
@@ -1469,13 +1476,13 @@ export default function SalaVirtualEnhancedScreen() {
     return () => {
       console.log('[SalaVirtual v6.7] 🧹 Cleanup: Cleaning up subscriptions only');
     };
-  }, [localId, loadLocalData, checkUserCheckin, handleCheckIn, loadMessages, subscribeToUpdates, subscribeToTypingEvents, updateActiveUsers, localClosed, user]);
+  }, [localId, loadLocalData, checkUserCheckin, handleCheckIn, loadMessages, subscribeToUpdates, subscribeToTypingEvents, updateActiveUsers, localClosed, user, loadPrivateChats]);
 
   useEffect(() => {
     if (activeTab === 'private' && user && localId) {
       loadPrivateChats();
     }
-  }, [activeTab, user, localId]);
+  }, [activeTab, user, localId, loadPrivateChats]);
 
   useEffect(() => {
     if (selectedPrivateChat && user && localId) {
@@ -1843,7 +1850,8 @@ export default function SalaVirtualEnhancedScreen() {
           tension: 40,
           useNativeDriver: true,
         }),
-      ]),
+      ]);
+      
       Animated.sequence([
         Animated.timing(animationOpacity, {
           toValue: 1,
@@ -1908,7 +1916,7 @@ export default function SalaVirtualEnhancedScreen() {
         }
       });
     }
-  }, [user, localId, activeUsers, privateChats, animationScale, animationOpacity, mode, fetchUserProfile, triggerFloatingReaction]);
+  }, [user, localId, activeUsers, privateChats, animationScale, animationOpacity, mode, fetchUserProfile, triggerFloatingReaction, loadPrivateChats]);
 
   const closeBottomSheet = useCallback(() => {
     Animated.timing(bottomSheetAnim, {
@@ -3920,6 +3928,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
   },
   privateChatName: {
     fontWeight: '700',
