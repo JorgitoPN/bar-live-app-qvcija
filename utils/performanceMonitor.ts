@@ -1,10 +1,16 @@
 
 /**
- * Performance Monitor Utility
+ * Performance Monitor Utility v338.0
  * Helps identify performance bottlenecks and slow operations
+ * 
+ * ✅ NEW v338.0: Navigation performance tracking
+ * - Track screen transition times
+ * - Identify slow navigations
+ * - Optimize navigation flow
  */
 
 import React from 'react';
+import { Platform, InteractionManager } from 'react-native';
 
 interface PerformanceMetric {
   name: string;
@@ -210,6 +216,139 @@ class PerformanceMonitor {
 
 // Export singleton instance
 export const performanceMonitor = new PerformanceMonitor();
+
+/**
+ * ✅ NEW v338.0: Navigation Performance Optimizer
+ * Ensures instant navigation by deferring heavy operations
+ */
+export class NavigationOptimizer {
+  private static instance: NavigationOptimizer;
+  private navigationStartTime: number = 0;
+  private enabled: boolean = Platform.OS === 'android'; // Only optimize on Android
+
+  static getInstance(): NavigationOptimizer {
+    if (!NavigationOptimizer.instance) {
+      NavigationOptimizer.instance = new NavigationOptimizer();
+    }
+    return NavigationOptimizer.instance;
+  }
+
+  /**
+   * Call this before navigation to mark the start
+   */
+  startNavigation(screenName: string): void {
+    if (!this.enabled) return;
+    
+    this.navigationStartTime = Date.now();
+    console.log(`🚀 [Navigation v338.0] Starting navigation to: ${screenName}`);
+  }
+
+  /**
+   * Call this after screen renders to measure navigation time
+   */
+  endNavigation(screenName: string): void {
+    if (!this.enabled || this.navigationStartTime === 0) return;
+    
+    const duration = Date.now() - this.navigationStartTime;
+    const emoji = duration < 100 ? '✅' : duration < 300 ? '⚠️' : '🔴';
+    
+    console.log(
+      `${emoji} [Navigation v338.0] ${screenName} loaded in ${duration}ms`
+    );
+    
+    if (duration > 500) {
+      console.warn(
+        `🐌 [Navigation v338.0] SLOW NAVIGATION: ${screenName} took ${duration}ms`
+      );
+    }
+    
+    this.navigationStartTime = 0;
+  }
+
+  /**
+   * Defer heavy operations until after navigation completes
+   * This ensures instant screen transitions
+   */
+  deferUntilIdle(operation: () => void | Promise<void>): void {
+    if (!this.enabled) {
+      // On iOS, execute immediately
+      operation();
+      return;
+    }
+
+    // On Android, defer until interactions complete
+    InteractionManager.runAfterInteractions(() => {
+      setTimeout(() => {
+        operation();
+      }, 0);
+    });
+  }
+
+  /**
+   * Defer data loading until screen is visible
+   * Returns immediately to avoid blocking navigation
+   */
+  deferDataLoading(loadFunction: () => Promise<void>): void {
+    if (!this.enabled) {
+      // On iOS, load immediately
+      loadFunction();
+      return;
+    }
+
+    // On Android, defer until after screen renders
+    setTimeout(() => {
+      InteractionManager.runAfterInteractions(() => {
+        loadFunction();
+      });
+    }, 0);
+  }
+}
+
+export const navigationOptimizer = NavigationOptimizer.getInstance();
+
+/**
+ * ✅ NEW v338.0: Hook for optimizing screen performance
+ * Use this in screens to ensure instant loading
+ */
+export function useScreenPerformance(screenName: string) {
+  const [isReady, setIsReady] = React.useState(false);
+
+  React.useEffect(() => {
+    navigationOptimizer.startNavigation(screenName);
+    
+    // Mark screen as ready immediately
+    setIsReady(true);
+    
+    // End navigation tracking after a short delay
+    const timer = setTimeout(() => {
+      navigationOptimizer.endNavigation(screenName);
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [screenName]);
+
+  /**
+   * Defer heavy operations until after screen renders
+   */
+  const deferOperation = React.useCallback((operation: () => void | Promise<void>) => {
+    navigationOptimizer.deferUntilIdle(operation);
+  }, []);
+
+  /**
+   * Defer data loading until screen is visible
+   */
+  const deferDataLoading = React.useCallback((loadFunction: () => Promise<void>) => {
+    navigationOptimizer.deferDataLoading(loadFunction);
+  }, []);
+
+  return {
+    isReady,
+    deferOperation,
+    deferDataLoading,
+  };
+}
 
 /**
  * Decorator for measuring method performance

@@ -42,6 +42,7 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
+import { navigationOptimizer } from '@/utils/performanceMonitor';
 import { useFavorites } from '@/contexts/FavoritesContext';
 
 // ✅ v337.0: Reduced page size on Android for faster loading (guest mode parity)
