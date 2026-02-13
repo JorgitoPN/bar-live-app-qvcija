@@ -722,7 +722,7 @@ export default function ExplorarScreen() {
 
   const loadMoreLocalesRef = useRef(false);
   
-  // ✅ LINT FIX: Added locationReady to dependencies
+  // ✅ LINT FIX: Added isLoadingMore and locationReady to dependencies
   const loadMoreLocales = useCallback(() => {
     if (loadMoreLocalesRef.current) return;
     if (!hasMore) return;
