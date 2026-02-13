@@ -422,6 +422,7 @@ export default function ExplorarScreen() {
       lastFiltersRef.current = filtersKey;
       setCurrentPage(1);
       setAllLoadedLocales([]);
+      setDisplayedLocales([]);
       setHasMore(true);
       setIsLoadingMore(false);
       page = 1;
@@ -627,7 +628,7 @@ export default function ExplorarScreen() {
       setIsInitialLoad(false);
       setIsLoadingMore(false);
     }
-  }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada, isLoadingMore, locationReady, deferWithPriority]);
+  }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada, deferWithPriority]);
 
   const filteredLocales = useMemo(() => {
     const query = debouncedQuery.toLowerCase().trim();
@@ -693,7 +694,7 @@ export default function ExplorarScreen() {
     setDisplayedLocales(filteredLocales);
   }, [filteredLocales]);
 
-  // ✅ LINT FIX: Added missing dependencies to useEffect
+  // ✅ LINT FIX: Added all missing dependencies to useEffect
   useEffect(() => {
     if (locationReady && !hasLoadedInitialDataRef.current && !isLoadingMore) {
       // ✅ v339.0: INSTANT loading on Android
@@ -721,11 +722,13 @@ export default function ExplorarScreen() {
 
   const loadMoreLocalesRef = useRef(false);
   
+  // ✅ LINT FIX: Added locationReady to dependencies
   const loadMoreLocales = useCallback(() => {
     if (loadMoreLocalesRef.current) return;
     if (!hasMore) return;
     if (isLoadingMore) return;
     if (loading) return;
+    if (!locationReady) return;
 
     loadMoreLocalesRef.current = true;
     
@@ -733,7 +736,7 @@ export default function ExplorarScreen() {
     loadLocales(nextPage, true).finally(() => {
       loadMoreLocalesRef.current = false;
     });
-  }, [hasMore, isLoadingMore, loading, currentPage, loadLocales]);
+  }, [hasMore, isLoadingMore, loading, currentPage, locationReady, loadLocales]);
 
   const onRefresh = async () => {
     setRefreshing(true);

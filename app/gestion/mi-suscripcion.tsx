@@ -183,7 +183,7 @@ export default function MiSuscripcionScreen() {
     } finally {
       setLoading(false);
     }
-  }, [localId, user?.id]);
+  }, [localId, user?.id, router]);
 
   useEffect(() => {
     loadSubscriptionData();
@@ -1473,16 +1473,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 16,
-  },
-  recommendedBadge: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  recommendedBadgeText: {
-    fontWeight: '700',
-    color: colors.white,
   },
   modalPrimaryButton: {
     flexDirection: 'row',

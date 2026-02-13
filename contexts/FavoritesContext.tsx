@@ -235,7 +235,6 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.id, favorites, ensureValidSession]);
 
-  // ✅ LINT FIX: Added loadFavorites to dependencies (already present, no change needed)
   const refreshFavorites = useCallback(async () => {
     hasLoadedRef.current = false; // Reset to force reload
     await loadFavorites();
