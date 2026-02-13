@@ -33,20 +33,19 @@ const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 /**
- * 🗺️ MAPA SCREEN v341.0 - ADVANCED FILTERS INTEGRATION
+ * 🗺️ MAPA SCREEN v344.0 - ADVANCED FILTERS UX IMPROVEMENTS
  * 
- * NEW FEATURES v341.0:
- * - ✅ ADVANCED FILTERS: Integrated FiltrosAvanzadosSheet (same as Explorar)
- * - ✅ SHARED CONTENT: Both Explorar and Mapa use identical filter options
- * - ✅ CONSISTENT UX: Unified filtering experience across both pages
- * - ✅ FILTER CONTEXT: Uses FilterContext for state management
- * - ✅ RESULT: Users can apply same advanced filters on map view
+ * NEW FEATURES v344.0:
+ * - ✅ VISUAL INDICATOR: Red dot on filter button when advanced filters are active
+ * - ✅ QUICK CLEAR: Button to clear advanced filters without opening sheet
+ * - ✅ INSTANT RESPONSE: Filters apply immediately (already working)
+ * - ✅ CONSISTENT UX: Matches Explorar screen filter experience
+ * - ✅ RESULT: Professional, intuitive filter interface
  * 
- * Previous features maintained (v298.0):
- * - ✅ Cluster count maximum visibility
- * - ✅ Category filtering
- * - ✅ Open/closed state filtering
- * - ✅ User location marker
+ * Previous features v341.0:
+ * - ✅ Advanced filters integration
+ * - ✅ Shared FiltrosAvanzadosSheet with Explorar
+ * - ✅ Filter Context state management
  */
 
 const CATEGORIAS = [
@@ -150,7 +149,7 @@ const EstadoSelector = React.memo(({
 
 export default function MapaScreen() {
   const router = useRouter();
-  const { filtros: globalFiltros } = useFilters();
+  const { filtros: globalFiltros, limpiarFiltros } = useFilters();
   
   const webViewRef = useRef<WebView>(null);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todas');
@@ -173,14 +172,33 @@ export default function MapaScreen() {
   
   // ✅ NEW v341.0: Advanced filters handlers
   const handleToggleFiltros = useCallback(() => {
-    console.log('🗺️ [MAPA v341.0] 🔍 Opening advanced filters');
+    console.log('🗺️ [MAPA v344.0] 🔍 Opening advanced filters');
     setMostrarFiltros(prev => !prev);
   }, []);
   
   const handleCloseFiltros = useCallback(() => {
-    console.log('🗺️ [MAPA v341.0] ✅ Closing advanced filters');
+    console.log('🗺️ [MAPA v344.0] ✅ Closing advanced filters');
     setMostrarFiltros(false);
   }, []);
+
+  // ✅ NEW v344.0: Check if advanced filters are active
+  const hasAdvancedFilters = useMemo(() => {
+    return !!(
+      (globalFiltros.tipo && globalFiltros.tipo.length > 0) ||
+      (globalFiltros.servicios && globalFiltros.servicios.length > 0) ||
+      (globalFiltros.ambiente && globalFiltros.ambiente.length > 0) ||
+      (globalFiltros.clientela && globalFiltros.clientela.length > 0) ||
+      globalFiltros.comunidad ||
+      globalFiltros.provincia ||
+      globalFiltros.distancia
+    );
+  }, [globalFiltros]);
+
+  // ✅ NEW v344.0: Clear advanced filters
+  const handleClearAdvancedFilters = useCallback(() => {
+    console.log('🗺️ [MAPA v344.0] 🧹 Clearing advanced filters');
+    limpiarFiltros();
+  }, [limpiarFiltros]);
 
   const popupWidth = getMapPopupWidth();
   const popupImageHeight = getMapPopupImageHeight();
@@ -1282,22 +1300,47 @@ console.log('🗺️ [MAPA v342.0] ✅ Map initialization complete with advanced
           />
         </TouchableOpacity>
 
-        {/* ✅ NEW v341.0: Advanced filters button */}
-        <TouchableOpacity 
-          style={[styles.controlButton, {
-            width: controlButtonSize,
-            height: controlButtonSize,
-            borderRadius: controlButtonSize / 2,
-          }]}
-          onPress={handleToggleFiltros}
-        >
-          <IconSymbol 
-            ios_icon_name="slider.horizontal.3" 
-            android_material_icon_name="tune" 
-            size={controlIconSize} 
-            color={colors.primary} 
-          />
-        </TouchableOpacity>
+        {/* ✅ UPDATED v344.0: Advanced filters button with indicator */}
+        <View style={styles.filterButtonWrapper}>
+          <TouchableOpacity 
+            style={[styles.controlButton, {
+              width: controlButtonSize,
+              height: controlButtonSize,
+              borderRadius: controlButtonSize / 2,
+            }]}
+            onPress={handleToggleFiltros}
+          >
+            <IconSymbol 
+              ios_icon_name="slider.horizontal.3" 
+              android_material_icon_name="tune" 
+              size={controlIconSize} 
+              color={colors.primary} 
+            />
+            {/* ✅ NEW v344.0: Red dot indicator when advanced filters are active */}
+            {hasAdvancedFilters && (
+              <View style={styles.filterActiveDotMap} />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* ✅ NEW v344.0: Quick clear button when advanced filters are active */}
+        {hasAdvancedFilters && (
+          <TouchableOpacity 
+            style={[styles.controlButton, styles.clearAdvancedFiltersButtonMap, {
+              width: controlButtonSize,
+              height: controlButtonSize,
+              borderRadius: controlButtonSize / 2,
+            }]}
+            onPress={handleClearAdvancedFilters}
+          >
+            <IconSymbol 
+              ios_icon_name="xmark.circle.fill" 
+              android_material_icon_name="cancel" 
+              size={controlIconSize} 
+              color={colors.white} 
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.controlsRight}>
@@ -1447,6 +1490,48 @@ const styles = StyleSheet.create({
     top: Platform.OS === 'ios' ? 148 : 138,
     gap: 12,
     zIndex: 5,
+  },
+  // ✅ NEW v344.0: Wrapper for filter button with indicator
+  filterButtonWrapper: {
+    position: 'relative',
+  },
+  // ✅ NEW v344.0: Red dot indicator for active filters on map
+  filterActiveDotMap: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EF4444',
+    borderWidth: 2,
+    borderColor: colors.white,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#EF4444',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  // ✅ NEW v344.0: Quick clear button for advanced filters on map
+  clearAdvancedFiltersButtonMap: {
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#EF4444',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   controlsRight: {
     position: 'absolute',
