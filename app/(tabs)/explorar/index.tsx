@@ -45,6 +45,8 @@ import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { navigationOptimizer, useScreenPerformance } from '@/utils/performanceMonitor';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import FiltrosAvanzadosSheet from '@/components/home/FiltrosAvanzadosSheet';
+import { useFilters } from '@/contexts/FilterContext';
+import { applyAdvancedFilters } from '@/utils/filterLocals';
 
 const ITEMS_PER_PAGE = Platform.OS === 'android' ? 10 : 20;
 
@@ -90,6 +92,7 @@ export default function ExplorarScreen() {
   const { currentMode, setCurrentMode, activeProfileType, activeLocalData } = useMode();
   const { prefetchNextPage, loadDataOnDemand } = useGlobalData();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { filtros: globalFiltros } = useFilters();
   
   const { isReady, deferOperation, deferDataLoading, deferWithPriority } = useScreenPerformance('Explorar');
   
@@ -620,10 +623,14 @@ export default function ExplorarScreen() {
   }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada, deferWithPriority, isLoadingMore, locationReady]);
 
   const filteredLocales = useMemo(() => {
+    console.log('[Explorar v341.0] 🔍 Applying filters to', allLoadedLocales.length, 'locals');
+    console.log('[Explorar v341.0] 📋 Global filters:', globalFiltros);
+    
     const query = debouncedQuery.toLowerCase().trim();
     
     let filtered = allLoadedLocales;
     
+    // ✅ STEP 1: Apply category filter (existing logic)
     if (selectedCategory && selectedCategory !== 'todas') {
       filtered = filtered.filter(local => {
         const barliveTypes = local.barlive_types || [];
@@ -656,6 +663,7 @@ export default function ExplorarScreen() {
       });
     }
     
+    // ✅ STEP 2: Apply search query filter (existing logic)
     if (query) {
       filtered = filtered.filter(local => {
         const nombre = local.nombre?.toLowerCase() || '';
@@ -672,12 +680,18 @@ export default function ExplorarScreen() {
       });
     }
 
+    // ✅ STEP 3: Apply advanced filters from FilterContext
+    filtered = applyAdvancedFilters(filtered, globalFiltros);
+
+    // ✅ STEP 4: Remove duplicates
     const uniqueLocales = filtered.filter((item, index, self) =>
       index === self.findIndex((t) => t.id === item.id)
     );
 
+    console.log('[Explorar v341.0] ✅ Final filtered result:', uniqueLocales.length, 'locals');
+
     return uniqueLocales;
-  }, [allLoadedLocales, debouncedQuery, selectedCategory]);
+  }, [allLoadedLocales, debouncedQuery, selectedCategory, globalFiltros]);
 
   useEffect(() => {
     setDisplayedLocales(filteredLocales);

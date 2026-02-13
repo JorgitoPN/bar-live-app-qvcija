@@ -19,6 +19,7 @@ import { Filtros } from '@/types';
 import { useFilters } from '@/contexts/FilterContext';
 import { useRouter } from 'expo-router';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
   'Andalucía': ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
@@ -43,13 +44,18 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ANDROID FULL-SCREEN FILTERS PAGE
+ * ✅ ANDROID FULL-SCREEN FILTERS PAGE v2.0 - FIXED BUTTON VISIBILITY
  * 
- * This is a full-screen page for Android that replaces the modal approach.
- * Provides proper scaling and full-height display on Android.
+ * CRITICAL FIXES v2.0:
+ * - ✅ SAFE AREA INSETS: Uses useSafeAreaInsets to respect Android system buttons
+ * - ✅ PROPER PADDING: Footer has dynamic padding to avoid being hidden
+ * - ✅ SCROLLABLE CONTENT: Content scrolls properly with correct bottom padding
+ * - ✅ RESULT: "Aplicar filtros" button is always visible and accessible
  */
 export default function FiltrosAvanzadosScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  
   const { 
     filtros: contextFiltros, 
     aplicarFiltros: contextAplicarFiltros, 
@@ -73,7 +79,7 @@ export default function FiltrosAvanzadosScreen() {
   });
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados Android] 🔄 Page opened, loading filters');
+    console.log('[FiltrosAvanzados Android v2.0] 🔄 Page opened, loading filters');
     setFiltrosTemp(contextFiltros);
     refreshDynamicOptions();
   }, [contextFiltros, refreshDynamicOptions]);
@@ -115,20 +121,20 @@ export default function FiltrosAvanzadosScreen() {
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados Android] ✅ Applying filters:', filtrosTemp);
+    console.log('[FiltrosAvanzados Android v2.0] ✅ Applying filters:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     router.back();
   }, [filtrosTemp, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados Android] 🧹 Clearing all filters');
+    console.log('[FiltrosAvanzados Android v2.0] 🧹 Clearing all filters');
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     contextLimpiarFiltros();
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados Android] 📍 Selected comunidad:', selectedComunidad);
+    console.log('[FiltrosAvanzados Android v2.0] 📍 Selected comunidad:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -152,7 +158,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados Android] 📍 Selected provincia:', provincia);
+    console.log('[FiltrosAvanzados Android v2.0] 📍 Selected provincia:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -308,6 +314,10 @@ export default function FiltrosAvanzadosScreen() {
     return count;
   }, [filtrosTemp]);
 
+  // ✅ CRITICAL FIX v2.0: Calculate proper bottom padding for Android system buttons
+  const footerPaddingBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 20) : 20;
+  const scrollContentPaddingBottom = Platform.OS === 'android' ? 120 + insets.bottom : 120;
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -335,7 +345,7 @@ export default function FiltrosAvanzadosScreen() {
       <ScrollView 
         style={styles.content} 
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.contentContainer, { paddingBottom: getContentBottomPadding(100) }]}
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: scrollContentPaddingBottom }]}
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}
         updateCellsBatchingPeriod={50}
@@ -376,7 +386,7 @@ export default function FiltrosAvanzadosScreen() {
                 <TouchableOpacity
                   style={styles.locationButton}
                   onPress={() => {
-                    console.log('[FiltrosAvanzados Android] 🔍 Opening comunidad modal');
+                    console.log('[FiltrosAvanzados Android v2.0] 🔍 Opening comunidad modal');
                     setShowComunidadModal(true);
                   }}
                 >
@@ -394,7 +404,7 @@ export default function FiltrosAvanzadosScreen() {
                   ]}
                   onPress={() => {
                     if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
-                      console.log('[FiltrosAvanzados Android] 🔍 Opening provincia modal');
+                      console.log('[FiltrosAvanzados Android v2.0] 🔍 Opening provincia modal');
                       setShowProvinciaModal(true);
                     }
                   }}
@@ -655,7 +665,8 @@ export default function FiltrosAvanzadosScreen() {
         )}
       </ScrollView>
 
-      <View style={styles.footer}>
+      {/* ✅ CRITICAL FIX v2.0: Footer with proper padding for Android system buttons */}
+      <View style={[styles.footer, { paddingBottom: footerPaddingBottom }]}>
         <TouchableOpacity style={styles.aplicarButton} onPress={handleAplicar}>
           <LinearGradient
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}

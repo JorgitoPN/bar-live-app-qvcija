@@ -550,21 +550,39 @@ map.on('load', function() {
     }
   });
   
-  console.log('🗺️ [MAPA v341.0] ✅ All layers added');
+  console.log('🗺️ [MAPA v342.0] ✅ All layers added');
   
   window.loadLocales();
+  
+  // ✅ Apply pending advanced filters if any
+  if (window.pendingAdvancedFilters) {
+    console.log('🗺️ [MAPA v342.0] Applying pending advanced filters');
+    window.applyAdvancedFilters(window.pendingAdvancedFilters);
+    window.pendingAdvancedFilters = null;
+  }
+  
   window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_ready' }));
 });
 
 window.allLocales = [];
 window.currentPopup = null;
 window.filtros = { cat: 'todas', estado: 'no_cerrados' };
+window.advancedFilters = {
+  tipo: [],
+  servicios: [],
+  ambiente: [],
+  clientela: [],
+  comunidad: null,
+  provincia: null,
+  distancia: null
+};
+window.pendingAdvancedFilters = null;
 
 window.loadLocales = async function() {
   try {
     console.log('🗺️ [MAPA v341.0] Cargando locales desde Supabase...');
     
-    const response = await fetch('https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/locales?select=id,nombre,direccion,latitud,longitud,imagen_url,rating,google_rating,barlive_types,horarios_completos,estado_actual,google_business_status,google_user_ratings_total&activo=eq.true&latitud=not.is.null&longitud=not.is.null', {
+    const response = await fetch('https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/locales?select=id,nombre,direccion,latitud,longitud,imagen_url,rating,google_rating,barlive_types,horarios_completos,estado_actual,google_business_status,google_user_ratings_total,servicios_disponibles,ambiente_completo,clientela,comunidad,provincia&activo=eq.true&latitud=not.is.null&longitud=not.is.null', {
       headers: {
         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtYm50YXF3bHdtZ2F6dnJnbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5Mjk1NzMsImV4cCI6MjA3NzUwNTU3M30.mgqmCBX7FVpuejaN6pGuFHhMxKA033U-ALJwC-DCUEI',
         'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtYm50YXF3bHdtZ2F6dnJnbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5Mjk1NzMsImV4cCI6MjA3NzUwNTU3M30.mgqmCBX7FVpuejaN6pGuFHhMxKA033U-ALJwC-DCUEI'
@@ -583,18 +601,27 @@ window.loadLocales = async function() {
   }
 };
 
+window.applyAdvancedFilters = function(filterCriteria) {
+  console.log('🗺️ [MAPA v342.0] 🔍 Setting advanced filters:', filterCriteria);
+  window.advancedFilters = filterCriteria;
+  window.applyFilters();
+};
+
 window.applyFilters = function() {
   if (!window.allLocales || window.allLocales.length === 0) return;
   
-  console.log('🗺️ [MAPA v341.0] Aplicando filtros:', window.filtros);
+  console.log('🗺️ [MAPA v342.0] Aplicando filtros:', window.filtros);
+  console.log('🗺️ [MAPA v342.0] Advanced filters:', window.advancedFilters);
   
   var filteredLocales = window.allLocales.filter(function(local) {
+    // ✅ STEP 1: Estado filter (abierto/cerrado)
     var estado = window.getEstadoLocalRealTime(local);
     
     if (window.filtros.estado === 'no_cerrados') {
       if (estado === 'cerrado') return false;
     }
     
+    // ✅ STEP 2: Category filter (cafe, bar, etc.)
     if (window.filtros.cat !== 'todas') {
       var types = local.barlive_types || [];
       var hasCategory = false;
@@ -612,10 +639,94 @@ window.applyFilters = function() {
       if (!hasCategory) return false;
     }
     
+    // ✅ STEP 3: Advanced tipo filter (from FilterContext)
+    if (window.advancedFilters.tipo && window.advancedFilters.tipo.length > 0) {
+      var localTypes = local.barlive_types || [];
+      var hasAdvancedType = false;
+      
+      for (var i = 0; i < window.advancedFilters.tipo.length; i++) {
+        var filterTipo = window.advancedFilters.tipo[i].toLowerCase();
+        
+        for (var j = 0; j < localTypes.length; j++) {
+          var localType = localTypes[j].toLowerCase();
+          
+          if (localType === filterTipo || localType.includes(filterTipo) || filterTipo.includes(localType)) {
+            hasAdvancedType = true;
+            break;
+          }
+        }
+        
+        if (hasAdvancedType) break;
+      }
+      
+      if (!hasAdvancedType) return false;
+    }
+    
+    // ✅ STEP 4: Servicios filter
+    if (window.advancedFilters.servicios && window.advancedFilters.servicios.length > 0) {
+      if (!local.servicios_disponibles) return false;
+      
+      for (var i = 0; i < window.advancedFilters.servicios.length; i++) {
+        var servicio = window.advancedFilters.servicios[i];
+        if (local.servicios_disponibles[servicio] !== true) {
+          return false;
+        }
+      }
+    }
+    
+    // ✅ STEP 5: Ambiente filter
+    if (window.advancedFilters.ambiente && window.advancedFilters.ambiente.length > 0) {
+      if (!local.ambiente_completo) return false;
+      
+      var hasAmbiente = false;
+      for (var i = 0; i < window.advancedFilters.ambiente.length; i++) {
+        var ambiente = window.advancedFilters.ambiente[i];
+        if (local.ambiente_completo[ambiente] === true) {
+          hasAmbiente = true;
+          break;
+        }
+      }
+      
+      if (!hasAmbiente) return false;
+    }
+    
+    // ✅ STEP 6: Clientela filter
+    if (window.advancedFilters.clientela && window.advancedFilters.clientela.length > 0) {
+      if (!local.clientela) return false;
+      
+      var hasClientela = false;
+      for (var i = 0; i < window.advancedFilters.clientela.length; i++) {
+        var clientelaTipo = window.advancedFilters.clientela[i];
+        if (local.clientela[clientelaTipo] === true) {
+          hasClientela = true;
+          break;
+        }
+      }
+      
+      if (!hasClientela) return false;
+    }
+    
+    // ✅ STEP 7: Comunidad filter
+    if (window.advancedFilters.comunidad && window.advancedFilters.comunidad !== 'Todas las Comunidades') {
+      if (local.comunidad !== window.advancedFilters.comunidad) return false;
+    }
+    
+    // ✅ STEP 8: Provincia filter
+    if (window.advancedFilters.provincia) {
+      if (local.provincia !== window.advancedFilters.provincia) return false;
+    }
+    
+    // ✅ STEP 9: Distance filter (if user location is available)
+    if (window.advancedFilters.distancia && window.advancedFilters.distancia > 0) {
+      if (local.distancia !== null && local.distancia !== undefined) {
+        if (local.distancia > window.advancedFilters.distancia) return false;
+      }
+    }
+    
     return true;
   });
   
-  console.log('🗺️ [MAPA v341.0] Locales filtrados:', filteredLocales.length);
+  console.log('🗺️ [MAPA v342.0] Locales filtrados:', filteredLocales.length);
   
   var geojson = {
     type: 'FeatureCollection',
@@ -921,7 +1032,7 @@ window.addEventListener('resize', function() {
   map.resize();
 });
 
-console.log('🗺️ [MAPA v341.0] ✅ Map initialization complete with advanced filters support');
+console.log('🗺️ [MAPA v342.0] ✅ Map initialization complete with advanced filters support');
 </script>
 </body>
 </html>`;
@@ -954,9 +1065,41 @@ console.log('🗺️ [MAPA v341.0] ✅ Map initialization complete with advanced
     })();
   }, []);
 
+  // ✅ CRITICAL FIX v342.0: Apply advanced filters to map
   useEffect(() => {
-    console.log('🗺️ [MAPA v341.0] Filtros cambiados');
-  }, [categoriaSeleccionada, globalFiltros]);
+    if (!webViewRef.current || !isMapReady) {
+      return;
+    }
+    
+    console.log('🗺️ [MAPA v342.0] 🔍 Applying advanced filters to map:', globalFiltros);
+    
+    // Build filter criteria for WebView
+    const filterCriteria = {
+      tipo: globalFiltros.tipo || [],
+      servicios: globalFiltros.servicios || [],
+      ambiente: globalFiltros.ambiente || [],
+      clientela: globalFiltros.clientela || [],
+      comunidad: globalFiltros.comunidad || null,
+      provincia: globalFiltros.provincia || null,
+      distancia: globalFiltros.distancia || null,
+    };
+    
+    requestAnimationFrame(() => {
+      webViewRef.current?.injectJavaScript(`
+        (function() {
+          console.log('🗺️ [MAPA v342.0] Applying advanced filters in WebView:', ${JSON.stringify(filterCriteria)});
+          
+          if (typeof window.applyAdvancedFilters !== 'undefined') {
+            window.applyAdvancedFilters(${JSON.stringify(filterCriteria)});
+          } else {
+            // Store filters for when map is ready
+            window.pendingAdvancedFilters = ${JSON.stringify(filterCriteria)};
+          }
+        })();
+        true;
+      `);
+    });
+  }, [categoriaSeleccionada, globalFiltros, isMapReady]);
 
   useEffect(() => {
     if (!webViewRef.current || !isMapReady) {
