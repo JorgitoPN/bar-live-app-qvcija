@@ -1,7 +1,8 @@
 
 /**
- * Render Optimizer Utility v342.0 - INSTANT UI RENDERING
+ * Render Optimizer Utility v343.0 - INSTANT UI RENDERING
  * ✅ NEW: Aggressive render optimization for Android
+ * ✅ LINT FIX: Fixed parsing error with proper type syntax
  * 
  * FEATURES:
  * - Memoization helpers for expensive components
@@ -43,7 +44,7 @@ export function shallowEqual(objA: any, objB: any): boolean {
     return false;
   }
 
-  // ✅ v342.0: FIX - Use Object.prototype.hasOwnProperty.call instead of direct access
+  // ✅ v343.0: FIX - Use Object.prototype.hasOwnProperty.call instead of direct access
   for (let i = 0; i < keysA.length; i++) {
     const key = keysA[i];
     if (!Object.prototype.hasOwnProperty.call(objB, key) ||

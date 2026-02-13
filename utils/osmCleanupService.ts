@@ -26,7 +26,7 @@ export interface OSMCleanupResult {
   success: boolean;
   localesMovidos: number;
   espacioLiberadoMB: number;
-  // ✅ LINT FIX: Change Array<T> to T[]
+  // ✅ LINT FIX: Changed Array<T> to T[]
   detalles: {
     id: string;
     nombre: string;

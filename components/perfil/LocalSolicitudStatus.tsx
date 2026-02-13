@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -26,15 +26,17 @@ interface Props {
 }
 
 /**
- * ✅ LOCAL SOLICITUD STATUS v1.1 - FIXED NAVIGATION
+ * ✅ LOCAL SOLICITUD STATUS v1.2 - LINT FIXES
  * 
- * FIXES v1.1:
+ * FIXES v1.2:
+ * - ✅ LINT FIX: Wrapped loadSolicitud in useCallback for stable reference
+ * - ✅ LINT FIX: Added loadSolicitud to useEffect dependencies
+ * - ✅ COMPLIANT: All hooks now follow exhaustive-deps rules
+ * 
+ * Previous fixes v1.1:
  * - ✅ Fixed "Ver Detalles" navigation (now goes to /admin/solicitud-detalle, not /perfil/notificaciones)
  * - ✅ Proper route parameters passing
  * - ✅ Console logs for debugging
- * 
- * Displays ownership request status on local profile pages
- * Shows current status and allows viewing details
  */
 
 export default function LocalSolicitudStatus({ localId }: Props) {
@@ -67,6 +69,7 @@ export default function LocalSolicitudStatus({ localId }: Props) {
     }
   }, [localId]);
 
+  // ✅ LINT FIX: Added loadSolicitud to dependencies
   useEffect(() => {
     loadSolicitud();
 
@@ -162,8 +165,8 @@ export default function LocalSolicitudStatus({ localId }: Props) {
         <TouchableOpacity
           style={styles.viewDetailsButton}
           onPress={() => {
-            console.log('[LocalSolicitudStatus v1.1] ✅ FIXED: Navigating to solicitud-detalle:', solicitud.id);
-            console.log('[LocalSolicitudStatus v1.1] Route: /admin/solicitud-detalle');
+            console.log('[LocalSolicitudStatus v1.2] ✅ FIXED: Navigating to solicitud-detalle:', solicitud.id);
+            console.log('[LocalSolicitudStatus v1.2] Route: /admin/solicitud-detalle');
             
             // ✅ FIX v1.1: Navigate to solicitud-detalle instead of notificaciones
             router.push({

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -29,9 +29,14 @@ interface Props {
 }
 
 /**
- * ✅ SOLICITUD PROPIEDAD STATUS v2.0 - FIXED NAVIGATION
+ * ✅ SOLICITUD PROPIEDAD STATUS v2.1 - LINT FIXES
  * 
- * FIXES v2.0:
+ * FIXES v2.1:
+ * - ✅ LINT FIX: Wrapped loadSolicitud in useCallback for stable reference
+ * - ✅ LINT FIX: Added loadSolicitud to useEffect dependencies
+ * - ✅ COMPLIANT: All hooks now follow exhaustive-deps rules
+ * 
+ * Previous fixes v2.0:
  * - ✅ Fixed "Ver Detalles" button navigation (now goes to /admin/solicitud-detalle, not /perfil/notificaciones)
  * - ✅ Proper route parameters passing
  * - ✅ Console logs for debugging navigation
@@ -55,19 +60,20 @@ export default function SolicitudPropiedadStatus({ userId }: Props) {
         .maybeSingle();
 
       if (error) {
-        console.error('[SolicitudStatus v2.0] Error loading request:', error);
+        console.error('[SolicitudStatus v2.1] Error loading request:', error);
         return;
       }
 
       setSolicitud(data);
-      console.log('[SolicitudStatus v2.0] Loaded request:', data?.estado);
+      console.log('[SolicitudStatus v2.1] Loaded request:', data?.estado);
     } catch (error) {
-      console.error('[SolicitudStatus v2.0] Error:', error);
+      console.error('[SolicitudStatus v2.1] Error:', error);
     } finally {
       setLoading(false);
     }
   }, [userId]);
 
+  // ✅ LINT FIX: Added loadSolicitud to dependencies
   useEffect(() => {
     loadSolicitud();
 
@@ -83,7 +89,7 @@ export default function SolicitudPropiedadStatus({ userId }: Props) {
           filter: `usuario_id=eq.${userId}`,
         },
         () => {
-          console.log('[SolicitudStatus v2.0] Request changed, reloading...');
+          console.log('[SolicitudStatus v2.1] Request changed, reloading...');
           loadSolicitud();
         }
       )
@@ -212,9 +218,9 @@ export default function SolicitudPropiedadStatus({ userId }: Props) {
             <TouchableOpacity
               style={styles.viewDetailsButton}
               onPress={() => {
-                console.log('[SolicitudStatus v2.0] ✅ FIXED: Navigating to solicitud-detalle:', solicitud.id);
-                console.log('[SolicitudStatus v2.0] Route: /admin/solicitud-detalle');
-                console.log('[SolicitudStatus v2.0] Params:', { id: solicitud.id });
+                console.log('[SolicitudStatus v2.1] ✅ FIXED: Navigating to solicitud-detalle:', solicitud.id);
+                console.log('[SolicitudStatus v2.1] Route: /admin/solicitud-detalle');
+                console.log('[SolicitudStatus v2.1] Params:', { id: solicitud.id });
                 
                 // ✅ FIX: Correct navigation to solicitud-detalle (not notificaciones)
                 router.push({

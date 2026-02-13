@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "BarLive",
-    "slug": "bar-live-app-qvcija",
+    "slug": "BarLive",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/natively-dark.png",
