@@ -25,18 +25,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 
 /**
- * ✅ PERFIL PROFESIONAL v3.0 - ANDROID FONT SCALING APPLIED
+ * ✅ PERFIL PROFESIONAL v4.0 - DROPDOWN OPTIMIZATION
  * 
- * NEW CHANGES v3.0:
- * - ✅ ANDROID SCALING: Applied scaleFontSize to ALL text elements
- * - ✅ CONSISTENT DESIGN: Respects +2 points font increase on Android
- * - ✅ IMPROVED READABILITY: Better text sizing across all sections
- * 
- * Previous changes v2.0:
- * - ✅ Added comprehensive nightlife industry job categories
- * - ✅ Organized by sections: Barra y bebidas, Música y ambiente, Seguridad y control, etc.
- * - ✅ Total of 30+ job position options
- * - ✅ Emoji icons for better visual organization
+ * NEW CHANGES v4.0:
+ * - ✅ CONVERTED: "Puesto deseado" from scrollable list to dropdown (saves vertical space)
+ * - ✅ REMOVED: "Comunidad Autónoma" field (no longer needed)
+ * - ✅ SIMPLIFIED: Only "Provincia" dropdown remains for location
+ * - ✅ RESULT: More compact form with better UX
  */
 
 const PUESTOS = [
@@ -88,39 +83,17 @@ const PUESTOS = [
   { id: 'cocinero', label: 'Cocinero/a', icon: '👨‍🍳', category: 'Cocina' },
 ];
 
-const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
-  'Andalucía': ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
-  'Aragón': ['Huesca', 'Teruel', 'Zaragoza'],
-  'Asturias': ['Asturias'],
-  'Baleares': ['Islas Baleares'],
-  'Canarias': ['Las Palmas', 'Santa Cruz de Tenerife'],
-  'Cantabria': ['Cantabria'],
-  'Castilla y León': ['Ávila', 'Burgos', 'León', 'Palencia', 'Salamanca', 'Segovia', 'Soria', 'Valladolid', 'Zamora'],
-  'Castilla-La Mancha': ['Albacete', 'Ciudad Real', 'Cuenca', 'Guadalajara', 'Toledo'],
-  'Cataluña': ['Barcelona', 'Girona', 'Lleida', 'Tarragona'],
-  'Comunidad de Madrid': ['Madrid'],
-  'Comunidad Valenciana': ['Alicante', 'Castellón', 'Valencia'],
-  'Extremadura': ['Badajoz', 'Cáceres'],
-  'Galicia': ['A Coruña', 'Lugo', 'Ourense', 'Pontevedra'],
-  'La Rioja': ['La Rioja'],
-  'Navarra': ['Navarra'],
-  'País Vasco': ['Álava', 'Guipúzcoa', 'Vizcaya'],
-  'Región de Murcia': ['Murcia'],
-  'Ceuta': ['Ceuta'],
-  'Melilla': ['Melilla'],
-};
-
-const COMUNIDADES = Object.keys(COMUNIDADES_PROVINCIAS);
-
-// Group positions by category for better UI organization
-const groupedPuestos = PUESTOS.reduce((acc, puesto) => {
-  const category = puesto.category;
-  if (!acc[category]) {
-    acc[category] = [];
-  }
-  acc[category].push(puesto);
-  return acc;
-}, {} as Record<string, typeof PUESTOS>);
+// All Spanish provinces in alphabetical order
+const PROVINCIAS = [
+  'A Coruña', 'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila',
+  'Badajoz', 'Barcelona', 'Burgos', 'Cáceres', 'Cádiz', 'Cantabria', 'Castellón',
+  'Ceuta', 'Ciudad Real', 'Córdoba', 'Cuenca', 'Girona', 'Granada', 'Guadalajara',
+  'Guipúzcoa', 'Huelva', 'Huesca', 'Islas Baleares', 'Jaén', 'La Rioja', 'Las Palmas',
+  'León', 'Lleida', 'Lugo', 'Madrid', 'Málaga', 'Melilla', 'Murcia', 'Navarra',
+  'Ourense', 'Palencia', 'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife',
+  'Segovia', 'Sevilla', 'Soria', 'Tarragona', 'Teruel', 'Toledo', 'Valencia',
+  'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
+];
 
 export default function CrearPerfilProfesionalScreen() {
   const router = useRouter();
@@ -133,13 +106,12 @@ export default function CrearPerfilProfesionalScreen() {
   const [experiencia, setExperiencia] = useState('');
   const [habilidades, setHabilidades] = useState('');
   const [disponibilidad, setDisponibilidad] = useState('');
-  const [comunidad, setComunidad] = useState('');
   const [provincia, setProvincia] = useState('');
   const [foto, setFoto] = useState<string | null>(null);
 
-  const [showComunidadModal, setShowComunidadModal] = useState(false);
+  const [showPuestoModal, setShowPuestoModal] = useState(false);
   const [showProvinciaModal, setShowProvinciaModal] = useState(false);
-  const [comunidadSearch, setComunidadSearch] = useState('');
+  const [puestoSearch, setPuestoSearch] = useState('');
   const [provinciaSearch, setProvinciaSearch] = useState('');
 
   const checkExistingProfile = useCallback(async () => {
@@ -171,16 +143,6 @@ export default function CrearPerfilProfesionalScreen() {
                 setDisponibilidad(existingProfile.disponibilidad || '');
                 setProvincia(existingProfile.provincia || '');
                 setFoto(existingProfile.foto_url || null);
-                
-                // Auto-detect community from province
-                if (existingProfile.provincia) {
-                  for (const [com, provs] of Object.entries(COMUNIDADES_PROVINCIAS)) {
-                    if (provs.includes(existingProfile.provincia)) {
-                      setComunidad(com);
-                      break;
-                    }
-                  }
-                }
               }
             }
           ]
@@ -190,7 +152,7 @@ export default function CrearPerfilProfesionalScreen() {
         setFoto(user.avatar || null);
       }
     } catch (error) {
-      console.error('[PerfilProfesional v3.0] Error checking existing profile:', error);
+      console.error('[PerfilProfesional v4.0] Error checking existing profile:', error);
     } finally {
       setCheckingExisting(false);
     }
@@ -242,7 +204,7 @@ export default function CrearPerfilProfesionalScreen() {
 
       return publicUrl;
     } catch (error) {
-      console.error('[PerfilProfesional v3.0] Error uploading image:', error);
+      console.error('[PerfilProfesional v4.0] Error uploading image:', error);
       return null;
     }
   };
@@ -323,28 +285,22 @@ export default function CrearPerfilProfesionalScreen() {
         );
       }
     } catch (error) {
-      console.error('[PerfilProfesional v3.0] Error saving profile:', error);
+      console.error('[PerfilProfesional v4.0] Error saving profile:', error);
       Alert.alert('Error', 'No se pudo guardar el perfil. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredComunidades = COMUNIDADES.filter(c => 
-    c.toLowerCase().includes(comunidadSearch.toLowerCase())
+  const filteredPuestos = PUESTOS.filter(p => 
+    p.label.toLowerCase().includes(puestoSearch.toLowerCase())
   );
 
-  const availableProvincias = comunidad ? COMUNIDADES_PROVINCIAS[comunidad] : [];
-  const filteredProvincias = availableProvincias.filter(p => 
+  const filteredProvincias = PROVINCIAS.filter(p => 
     p.toLowerCase().includes(provinciaSearch.toLowerCase())
   );
 
-  const handleComunidadSelect = (selectedComunidad: string) => {
-    setComunidad(selectedComunidad);
-    setProvincia(''); // Reset province when community changes
-    setShowComunidadModal(false);
-    setComunidadSearch('');
-  };
+  const selectedPuestoLabel = PUESTOS.find(p => p.id === puesto)?.label || '';
 
   if (checkingExisting) {
     return (
@@ -457,39 +413,27 @@ export default function CrearPerfilProfesionalScreen() {
               <Text style={[styles.floatingLabel, { fontSize: scaleFontSize(12) }]}>
                 Puesto deseado *
               </Text>
-              <ScrollView 
-                style={styles.puestoScrollContainer}
-                showsVerticalScrollIndicator={false}
-                nestedScrollEnabled={true}
+              <TouchableOpacity 
+                style={styles.dropdownButton}
+                onPress={() => setShowPuestoModal(true)}
               >
-                {Object.entries(groupedPuestos).map(([category, puestos]) => (
-                  <View key={category} style={styles.categorySection}>
-                    <Text style={[styles.categoryTitle, { fontSize: scaleFontSize(14) }]}>
-                      {category}
+                <View style={styles.dropdownButtonContent}>
+                  {puesto && (
+                    <Text style={styles.dropdownIcon}>
+                      {PUESTOS.find(p => p.id === puesto)?.icon}
                     </Text>
-                    <View style={styles.puestoButtons}>
-                      {puestos.map((p) => (
-                        <TouchableOpacity
-                          key={p.id}
-                          style={[styles.puestoButton, puesto === p.id && styles.puestoButtonActive]}
-                          onPress={() => setPuesto(p.id)}
-                        >
-                          <Text style={styles.puestoIcon}>{p.icon}</Text>
-                          <Text
-                            style={[
-                              styles.puestoButtonText,
-                              { fontSize: scaleFontSize(13) },
-                              puesto === p.id && styles.puestoButtonTextActive,
-                            ]}
-                          >
-                            {p.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
+                  )}
+                  <Text style={[styles.dropdownButtonText, { fontSize: scaleFontSize(15) }, !puesto && styles.dropdownPlaceholder]}>
+                    {selectedPuestoLabel || 'Selecciona un puesto'}
+                  </Text>
+                </View>
+                <IconSymbol 
+                  ios_icon_name="chevron.down" 
+                  android_material_icon_name="arrow_drop_down" 
+                  size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+                  color={colors.textSecondary} 
+                />
+              </TouchableOpacity>
             </View>
 
             <View style={styles.inputGroup}>
@@ -551,47 +495,20 @@ export default function CrearPerfilProfesionalScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={[styles.floatingLabel, { fontSize: scaleFontSize(12) }]}>
-                Comunidad Autónoma
+                Provincia
               </Text>
               <TouchableOpacity 
                 style={styles.dropdownButton}
-                onPress={() => setShowComunidadModal(true)}
+                onPress={() => setShowProvinciaModal(true)}
               >
-                <Text style={[styles.dropdownButtonText, { fontSize: scaleFontSize(15) }, !comunidad && styles.dropdownPlaceholder]}>
-                  {comunidad || 'Selecciona una comunidad'}
+                <Text style={[styles.dropdownButtonText, { fontSize: scaleFontSize(15) }, !provincia && styles.dropdownPlaceholder]}>
+                  {provincia || 'Selecciona una provincia'}
                 </Text>
                 <IconSymbol 
                   ios_icon_name="chevron.down" 
                   android_material_icon_name="arrow_drop_down" 
                   size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
                   color={colors.textSecondary} 
-                />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.floatingLabel, { fontSize: scaleFontSize(12) }]}>
-                Provincia
-              </Text>
-              <TouchableOpacity 
-                style={[styles.dropdownButton, !comunidad && styles.dropdownButtonDisabled]}
-                onPress={() => {
-                  if (comunidad) {
-                    setShowProvinciaModal(true);
-                  } else {
-                    Alert.alert('Atención', 'Primero selecciona una comunidad autónoma');
-                  }
-                }}
-                disabled={!comunidad}
-              >
-                <Text style={[styles.dropdownButtonText, { fontSize: scaleFontSize(15) }, !provincia && styles.dropdownPlaceholder]}>
-                  {provincia || (comunidad ? 'Selecciona una provincia' : 'Primero selecciona comunidad')}
-                </Text>
-                <IconSymbol 
-                  ios_icon_name="chevron.down" 
-                  android_material_icon_name="arrow_drop_down" 
-                  size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
-                  color={comunidad ? colors.textSecondary : colors.cardBorder} 
                 />
               </TouchableOpacity>
             </View>
@@ -626,17 +543,17 @@ export default function CrearPerfilProfesionalScreen() {
         </View>
       </ScrollView>
 
-      {/* Community Modal - Bottom Sheet */}
+      {/* Puesto Modal - Bottom Sheet */}
       <Modal
-        visible={showComunidadModal}
+        visible={showPuestoModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowComunidadModal(false)}
+        onRequestClose={() => setShowPuestoModal(false)}
       >
         <View style={styles.bottomSheetOverlay}>
           <Pressable 
             style={styles.bottomSheetBackdrop}
-            onPress={() => setShowComunidadModal(false)}
+            onPress={() => setShowPuestoModal(false)}
           />
           <KeyboardAvoidingView 
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -647,9 +564,9 @@ export default function CrearPerfilProfesionalScreen() {
               
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { fontSize: scaleFontSize(19) }]}>
-                  Comunidad Autónoma
+                  Puesto deseado
                 </Text>
-                <TouchableOpacity onPress={() => setShowComunidadModal(false)}>
+                <TouchableOpacity onPress={() => setShowPuestoModal(false)}>
                   <IconSymbol 
                     ios_icon_name="xmark" 
                     android_material_icon_name="close" 
@@ -668,13 +585,13 @@ export default function CrearPerfilProfesionalScreen() {
                 />
                 <TextInput
                   style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
-                  placeholder="Buscar comunidad..."
+                  placeholder="Buscar puesto..."
                   placeholderTextColor={colors.textSecondary}
-                  value={comunidadSearch}
-                  onChangeText={setComunidadSearch}
+                  value={puestoSearch}
+                  onChangeText={setPuestoSearch}
                 />
-                {comunidadSearch.length > 0 && (
-                  <TouchableOpacity onPress={() => setComunidadSearch('')}>
+                {puestoSearch.length > 0 && (
+                  <TouchableOpacity onPress={() => setPuestoSearch('')}>
                     <IconSymbol 
                       ios_icon_name="xmark.circle.fill" 
                       android_material_icon_name="cancel" 
@@ -690,23 +607,30 @@ export default function CrearPerfilProfesionalScreen() {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
               >
-                {filteredComunidades.map((c) => (
+                {filteredPuestos.map((p) => (
                   <TouchableOpacity
-                    key={c}
+                    key={p.id}
                     style={[
                       styles.optionItem,
-                      comunidad === c && styles.optionItemActive
+                      puesto === p.id && styles.optionItemActive
                     ]}
-                    onPress={() => handleComunidadSelect(c)}
+                    onPress={() => {
+                      setPuesto(p.id);
+                      setShowPuestoModal(false);
+                      setPuestoSearch('');
+                    }}
                   >
-                    <Text style={[
-                      styles.optionItemText,
-                      { fontSize: scaleFontSize(16) },
-                      comunidad === c && styles.optionItemTextActive
-                    ]}>
-                      {c}
-                    </Text>
-                    {comunidad === c && (
+                    <View style={styles.optionItemContent}>
+                      <Text style={styles.optionIcon}>{p.icon}</Text>
+                      <Text style={[
+                        styles.optionItemText,
+                        { fontSize: scaleFontSize(16) },
+                        puesto === p.id && styles.optionItemTextActive
+                      ]}>
+                        {p.label}
+                      </Text>
+                    </View>
+                    {puesto === p.id && (
                       <IconSymbol 
                         ios_icon_name="checkmark.circle.fill" 
                         android_material_icon_name="check_circle" 
@@ -743,7 +667,7 @@ export default function CrearPerfilProfesionalScreen() {
               
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { fontSize: scaleFontSize(19) }]}>
-                  Provincia de {comunidad}
+                  Provincia
                 </Text>
                 <TouchableOpacity onPress={() => setShowProvinciaModal(false)}>
                   <IconSymbol 
@@ -820,7 +744,7 @@ export default function CrearPerfilProfesionalScreen() {
                 ) : (
                   <View style={styles.emptyState}>
                     <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(14) }]}>
-                      No hay provincias disponibles
+                      No se encontraron provincias
                     </Text>
                   </View>
                 )}
@@ -957,8 +881,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  dropdownButtonDisabled: {
-    opacity: 0.5,
+  dropdownButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  dropdownIcon: {
+    fontSize: 18,
   },
   dropdownButtonText: {
     color: colors.text,
@@ -966,49 +896,6 @@ const styles = StyleSheet.create({
   },
   dropdownPlaceholder: {
     color: colors.textSecondary,
-  },
-  puestoScrollContainer: {
-    maxHeight: 400,
-  },
-  categorySection: {
-    marginBottom: 20,
-  },
-  categoryTitle: {
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 10,
-    paddingLeft: 4,
-  },
-  puestoButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  puestoButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderWidth: 1.5,
-    borderColor: colors.cardBorder,
-    borderRadius: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    gap: 6,
-  },
-  puestoButtonActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  puestoIcon: {
-    fontSize: 16,
-  },
-  puestoButtonText: {
-    fontWeight: '600',
-    color: colors.text,
-  },
-  puestoButtonTextActive: {
-    color: colors.headerText,
-    fontWeight: '700',
   },
   submitButton: {
     marginTop: 16,
@@ -1114,6 +1001,15 @@ const styles = StyleSheet.create({
   },
   optionItemActive: {
     backgroundColor: colors.primary + '10',
+  },
+  optionItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  optionIcon: {
+    fontSize: 20,
   },
   optionItemText: {
     color: colors.text,

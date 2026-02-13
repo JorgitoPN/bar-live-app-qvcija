@@ -14,6 +14,7 @@ import {
   Share as RNShare,
   Image as RNImage,
   StatusBar,
+  Animated,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -316,14 +317,14 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL SCREEN v335.0 - ENHANCED VIRTUAL ROOM BUTTON
+ * ✅ DETALLE LOCAL SCREEN v336.0 - IMMERSIVE VIRTUAL ROOM PORTAL
  * 
- * 🚨 NEW CHANGES v335.0:
- * - ✅ REDESIGNED: Virtual Room button with immersive 3D-style design
- * - ✅ ENHANCED: Gradient with purple/violet tones matching virtual room essence
- * - ✅ IMPROVED: Larger icon with container for better visual hierarchy
- * - ✅ ADDED: Subtitle explaining functionality
- * - ✅ RESULT: More attractive and coherent with virtual room concept
+ * 🚨 NEW CHANGES v336.0:
+ * - ✅ REDESIGNED: Virtual Room as an immersive portal card with holographic effect
+ * - ✅ ENHANCED: Floating 3D cube with rotation animation
+ * - ✅ IMPROVED: Glassmorphism design with gradient borders
+ * - ✅ ADDED: Particle effects and ambient glow
+ * - ✅ RESULT: Stunning, futuristic portal that captures virtual room essence
  */
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
@@ -369,7 +370,70 @@ export default function DetalleLocalScreen() {
   const categoryBadgePaddingH = getCategoryBadgePaddingHorizontal();
   const categoryBadgePaddingV = getCategoryBadgePaddingVertical();
 
-  console.log('[DetalleLocal v335.0] 🎭 Mode check:', {
+  // Animation values for Virtual Room portal
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Rotation animation
+    Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 8000,
+        useNativeDriver: true,
+      })
+    ).start();
+
+    // Float animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Glow pulse animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  const rotateInterpolate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  const floatInterpolate = floatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -8],
+  });
+
+  const glowOpacity = glowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.8],
+  });
+
+  console.log('[DetalleLocal v336.0] 🎭 Mode check:', {
     currentMode,
     activeProfileType,
     isClientMode,
@@ -380,21 +444,21 @@ export default function DetalleLocalScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[DetalleLocal v335.0] 🔍 Requesting location permissions...');
+        console.log('[DetalleLocal v336.0] 🔍 Requesting location permissions...');
         
         const isAvailable = await Location.hasServicesEnabledAsync();
         if (!isAvailable) {
-          console.log('[DetalleLocal v335.0] ⚠️ Location services are disabled');
+          console.log('[DetalleLocal v336.0] ⚠️ Location services are disabled');
           return;
         }
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('[DetalleLocal v335.0] ⚠️ Location permission denied');
+          console.log('[DetalleLocal v336.0] ⚠️ Location permission denied');
           return;
         }
 
-        console.log('[DetalleLocal v335.0] ✅ Location permission granted, getting position...');
+        console.log('[DetalleLocal v336.0] ✅ Location permission granted, getting position...');
         
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -406,9 +470,9 @@ export default function DetalleLocalScreen() {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
-        console.log('[DetalleLocal v335.0] 📍 User location obtained');
+        console.log('[DetalleLocal v336.0] 📍 User location obtained');
       } catch (error: any) {
-        console.error('[DetalleLocal v335.0] ❌ Error getting location:', error?.message);
+        console.error('[DetalleLocal v336.0] ❌ Error getting location:', error?.message);
         setUserLocation(null);
       }
     })();
@@ -470,9 +534,9 @@ export default function DetalleLocalScreen() {
       });
 
       setCheckedInUsers(visibleUsers);
-      console.log('[DetalleLocal v335.0] ✅ Loaded checked-in users:', visibleUsers.length);
+      console.log('[DetalleLocal v336.0] ✅ Loaded checked-in users:', visibleUsers.length);
     } catch (error) {
-      console.error('[DetalleLocal v335.0] Error loading checked-in users:', error);
+      console.error('[DetalleLocal v336.0] Error loading checked-in users:', error);
     } finally {
       setLoadingCheckIns(false);
     }
@@ -490,13 +554,13 @@ export default function DetalleLocalScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[DetalleLocal v335.0] Error checking check-in status:', error);
+        console.error('[DetalleLocal v336.0] Error checking check-in status:', error);
         return;
       }
 
       setIsCheckedIn(!!data);
     } catch (error) {
-      console.error('[DetalleLocal v335.0] Error checking check-in status:', error);
+      console.error('[DetalleLocal v336.0] Error checking check-in status:', error);
     }
   }, [user, params.id]);
 
@@ -517,7 +581,7 @@ export default function DetalleLocalScreen() {
         .order('created_at', { ascending: false });
 
       if (barliveError) {
-        console.error('[DetalleLocal v335.0] Error loading Barlive reviews:', barliveError);
+        console.error('[DetalleLocal v336.0] Error loading Barlive reviews:', barliveError);
       }
 
       const { data: localData } = await supabase
@@ -538,7 +602,7 @@ export default function DetalleLocalScreen() {
       });
 
       setAllReviews(combinedReviews);
-      console.log('[DetalleLocal v335.0] ✅ Loaded unified reviews:', {
+      console.log('[DetalleLocal v336.0] ✅ Loaded unified reviews:', {
         barlive: barliveReviews?.length || 0,
         google: googleReviews.length,
         total: combinedReviews.length,
@@ -548,7 +612,7 @@ export default function DetalleLocalScreen() {
         const avg = barliveReviews.reduce((sum, r) => sum + r.rating, 0) / barliveReviews.length;
         setAverageRating(avg);
         
-        console.log('[DetalleLocal v335.0] 📊 Calculated average rating:', avg.toFixed(2), 'from', barliveReviews.length, 'reviews');
+        console.log('[DetalleLocal v336.0] 📊 Calculated average rating:', avg.toFixed(2), 'from', barliveReviews.length, 'reviews');
         
         const { error: updateError } = await supabase
           .from('locales')
@@ -556,18 +620,18 @@ export default function DetalleLocalScreen() {
           .eq('id', params.id);
 
         if (updateError) {
-          console.error('[DetalleLocal v335.0] ❌ Error updating rating:', updateError);
+          console.error('[DetalleLocal v336.0] ❌ Error updating rating:', updateError);
         } else {
-          console.log('[DetalleLocal v335.0] ✅ Rating updated in database');
+          console.log('[DetalleLocal v336.0] ✅ Rating updated in database');
         }
       } else if (localData?.google_rating) {
         setAverageRating(localData.google_rating);
-        console.log('[DetalleLocal v335.0] 📊 Using Google rating:', localData.google_rating);
+        console.log('[DetalleLocal v336.0] 📊 Using Google rating:', localData.google_rating);
       }
 
       setLoadingReviews(false);
     } catch (error) {
-      console.error('[DetalleLocal v335.0] Error loading reviews:', error);
+      console.error('[DetalleLocal v336.0] Error loading reviews:', error);
       setLoadingReviews(false);
     }
   }, [params.id]);
@@ -585,14 +649,14 @@ export default function DetalleLocalScreen() {
         .limit(3);
 
       if (error) {
-        console.error('[DetalleLocal v335.0] Error loading eventos:', error);
+        console.error('[DetalleLocal v336.0] Error loading eventos:', error);
         return;
       }
 
       setEventos(data || []);
       setLoadingEventos(false);
     } catch (error) {
-      console.error('[DetalleLocal v335.0] Error loading eventos:', error);
+      console.error('[DetalleLocal v336.0] Error loading eventos:', error);
       setLoadingEventos(false);
     }
   }, [params.id]);
@@ -603,12 +667,12 @@ export default function DetalleLocalScreen() {
       const { data, error } = await supabase.from('locales').select('*').eq('id', params.id).single();
 
       if (error) {
-        console.error('[DetalleLocal v335.0] Error loading local:', error);
+        console.error('[DetalleLocal v336.0] Error loading local:', error);
         setLoading(false);
         return;
       }
 
-      console.log('[DetalleLocal v335.0] ✅ Local loaded:', {
+      console.log('[DetalleLocal v336.0] ✅ Local loaded:', {
         id: data.id,
         nombre: data.nombre,
         propietario_id: data.propietario_id,
@@ -623,7 +687,7 @@ export default function DetalleLocalScreen() {
       checkUserCheckInStatus();
       loadCheckedInUsers();
     } catch (error) {
-      console.error('[DetalleLocal v335.0] Error:', error);
+      console.error('[DetalleLocal v336.0] Error:', error);
       setLoading(false);
     }
   }, [params.id, cargarReviewsUnificadas, cargarEventos, checkUserCheckInStatus, loadCheckedInUsers]);
@@ -648,7 +712,7 @@ export default function DetalleLocalScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         () => {
-          console.log('[DetalleLocal v335.0] 🔄 Reviews changed, reloading...');
+          console.log('[DetalleLocal v336.0] 🔄 Reviews changed, reloading...');
           cargarReviewsUnificadas();
         }
       )
@@ -673,7 +737,7 @@ export default function DetalleLocalScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         () => {
-          console.log('[DetalleLocal v335.0] Check-ins changed, reloading...');
+          console.log('[DetalleLocal v336.0] Check-ins changed, reloading...');
           loadCheckedInUsers();
           checkUserCheckInStatus();
         }
@@ -686,9 +750,9 @@ export default function DetalleLocalScreen() {
   }, [params.id, user, loadCheckedInUsers, checkUserCheckInStatus]);
 
   const handleClose = useCallback(() => {
-    console.log('[DetalleLocal v335.0] 🔙 Close button pressed - using fast navigation');
+    console.log('[DetalleLocal v336.0] 🔙 Close button pressed - using fast navigation');
     router.back();
-    console.log('[DetalleLocal v335.0] ✅ Fast navigation executed - scroll position preserved');
+    console.log('[DetalleLocal v336.0] ✅ Fast navigation executed - scroll position preserved');
   }, [router]);
 
   const handleToggleFavorito = async (e: any) => {
@@ -773,7 +837,7 @@ export default function DetalleLocalScreen() {
         title: local?.nombre || 'Local en BarLive',
       });
     } catch (error) {
-      console.error('[DetalleLocal v335.0] Error sharing:', error);
+      console.error('[DetalleLocal v336.0] Error sharing:', error);
     }
   };
 
@@ -844,7 +908,7 @@ export default function DetalleLocalScreen() {
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
               loadCheckedInUsers();
             } catch (error) {
-              console.error('[DetalleLocal v335.0] Error checking out:', error);
+              console.error('[DetalleLocal v336.0] Error checking out:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -854,7 +918,7 @@ export default function DetalleLocalScreen() {
   };
 
   const handleClaimLocal = () => {
-    console.log('[DetalleLocal v335.0] User tapped Claim Local button');
+    console.log('[DetalleLocal v336.0] User tapped Claim Local button');
     router.push({
       pathname: '/solicitudes/solicitar-propiedad',
       params: { localId: params.id, type: 'reclamar_local' },
@@ -862,7 +926,7 @@ export default function DetalleLocalScreen() {
   };
 
   const handleLoadMoreReviews = () => {
-    console.log('[DetalleLocal v335.0] 📄 Loading more reviews...');
+    console.log('[DetalleLocal v336.0] 📄 Loading more reviews...');
     setDisplayedReviewsCount(prev => prev + 5);
   };
 
@@ -881,7 +945,7 @@ export default function DetalleLocalScreen() {
       return;
     }
 
-    console.log('[DetalleLocal v335.0] 🚀 Navigating to virtual room from local details');
+    console.log('[DetalleLocal v336.0] 🚀 Navigating to virtual room from local details');
     router.push({ 
       pathname: '/detalle/sala-virtual-enhanced', 
       params: { 
@@ -1409,45 +1473,135 @@ export default function DetalleLocalScreen() {
 
           {isOpen && isClientMode && (
             <TouchableOpacity
-              style={styles.virtualRoomButton}
+              style={styles.virtualRoomPortal}
               onPress={handleVirtualRoom}
-              activeOpacity={0.85}
+              activeOpacity={0.9}
             >
               <LinearGradient 
-                colors={['#A855F7', '#8B5CF6', '#7C3AED', '#6D28D9']} 
+                colors={['#1a0033', '#2d0052', '#4a0080', '#6b00b8']} 
                 start={{ x: 0, y: 0 }} 
                 end={{ x: 1, y: 1 }} 
-                style={[
-                  styles.virtualRoomButtonGradient,
-                  { paddingVertical: Platform.OS === 'android' ? actionButtonPaddingVertical + 4 : 18 }
-                ]}
+                style={styles.virtualRoomPortalGradient}
               >
-                <View style={styles.virtualRoomIconContainer}>
-                  <View style={styles.virtualRoomIconGlow} />
-                  <IconSymbol 
-                    ios_icon_name="cube.fill" 
-                    android_material_icon_name="view_in_ar" 
-                    size={Platform.OS === 'android' ? 24 : 28} 
-                    color="#fff" 
-                  />
+                {/* Animated glow background */}
+                <Animated.View 
+                  style={[
+                    styles.portalGlowBackground,
+                    { opacity: glowOpacity }
+                  ]}
+                />
+
+                {/* Floating particles */}
+                <View style={styles.particlesContainer}>
+                  <View style={[styles.particle, styles.particle1]} />
+                  <View style={[styles.particle, styles.particle2]} />
+                  <View style={[styles.particle, styles.particle3]} />
+                  <View style={[styles.particle, styles.particle4]} />
                 </View>
-                <View style={styles.virtualRoomTextContainer}>
-                  <View style={styles.virtualRoomTitleRow}>
-                    <Text style={[styles.virtualRoomButtonTitle, { fontSize: scaleFontSize(18) }]}>Sala Virtual</Text>
-                    <View style={styles.livePulseDot} />
+
+                {/* 3D Rotating Cube Icon */}
+                <Animated.View 
+                  style={[
+                    styles.portalIconContainer,
+                    {
+                      transform: [
+                        { rotateY: rotateInterpolate },
+                        { translateY: floatInterpolate },
+                      ],
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={['#a855f7', '#ec4899', '#8b5cf6']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.portalIconGradient}
+                  >
+                    <IconSymbol 
+                      ios_icon_name="cube.fill" 
+                      android_material_icon_name="view_in_ar" 
+                      size={Platform.OS === 'android' ? 36 : 40} 
+                      color="#fff" 
+                    />
+                  </LinearGradient>
+                  
+                  {/* Glow rings */}
+                  <Animated.View 
+                    style={[
+                      styles.glowRing,
+                      { opacity: glowOpacity }
+                    ]} 
+                  />
+                </Animated.View>
+
+                {/* Content */}
+                <View style={styles.portalContent}>
+                  <View style={styles.portalHeader}>
+                    <Text style={[styles.portalTitle, { fontSize: scaleFontSize(22) }]}>
+                      Sala Virtual
+                    </Text>
+                    <View style={styles.liveIndicator}>
+                      <View style={styles.liveDot} />
+                      <Text style={[styles.liveText, { fontSize: scaleFontSize(11) }]}>EN VIVO</Text>
+                    </View>
                   </View>
-                  <Text style={[styles.virtualRoomButtonSubtitle, { fontSize: scaleFontSize(13) }]}>
-                    Chatea en tiempo real con otros usuarios
+                  
+                  <Text style={[styles.portalDescription, { fontSize: scaleFontSize(14) }]}>
+                    Entra al espacio virtual del local y conecta con otros usuarios en tiempo real
                   </Text>
+
+                  <View style={styles.portalFeatures}>
+                    <View style={styles.portalFeature}>
+                      <IconSymbol 
+                        ios_icon_name="message.fill" 
+                        android_material_icon_name="chat" 
+                        size={14} 
+                        color="rgba(255, 255, 255, 0.8)" 
+                      />
+                      <Text style={[styles.portalFeatureText, { fontSize: scaleFontSize(12) }]}>
+                        Chat en vivo
+                      </Text>
+                    </View>
+                    <View style={styles.portalFeature}>
+                      <IconSymbol 
+                        ios_icon_name="person.2.fill" 
+                        android_material_icon_name="people" 
+                        size={14} 
+                        color="rgba(255, 255, 255, 0.8)" 
+                      />
+                      <Text style={[styles.portalFeatureText, { fontSize: scaleFontSize(12) }]}>
+                        Conoce gente
+                      </Text>
+                    </View>
+                    <View style={styles.portalFeature}>
+                      <IconSymbol 
+                        ios_icon_name="sparkles" 
+                        android_material_icon_name="auto_awesome" 
+                        size={14} 
+                        color="rgba(255, 255, 255, 0.8)" 
+                      />
+                      <Text style={[styles.portalFeatureText, { fontSize: scaleFontSize(12) }]}>
+                        Experiencia única
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Enter button */}
+                  <View style={styles.portalEnterButton}>
+                    <Text style={[styles.portalEnterText, { fontSize: scaleFontSize(16) }]}>
+                      Entrar a la Sala
+                    </Text>
+                    <IconSymbol 
+                      ios_icon_name="arrow.right.circle.fill" 
+                      android_material_icon_name="arrow_circle_right" 
+                      size={24} 
+                      color="#fff" 
+                    />
+                  </View>
                 </View>
-                <View style={styles.virtualRoomArrowContainer}>
-                  <IconSymbol 
-                    ios_icon_name="chevron.right" 
-                    android_material_icon_name="chevron_right" 
-                    size={Platform.OS === 'android' ? 20 : 24} 
-                    color="rgba(255, 255, 255, 0.9)" 
-                  />
-                </View>
+
+                {/* Border gradient effect */}
+                <View style={styles.portalBorderGradient} />
               </LinearGradient>
             </TouchableOpacity>
           )}
@@ -2258,74 +2412,178 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginLeft: 10,
   },
-  virtualRoomButton: {
-    borderRadius: 18,
+  // 🎨 NEW: Immersive Virtual Room Portal Design
+  virtualRoomPortal: {
+    borderRadius: 24,
     overflow: 'hidden',
-    marginBottom: 10,
+    marginBottom: 16,
     shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  virtualRoomPortalGradient: {
+    padding: 20,
+    minHeight: 180,
+    position: 'relative',
+  },
+  portalGlowBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(168, 85, 247, 0.3)',
+  },
+  particlesContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  particle: {
+    position: 'absolute',
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+  },
+  particle1: {
+    top: '20%',
+    left: '15%',
+  },
+  particle2: {
+    top: '60%',
+    right: '20%',
+  },
+  particle3: {
+    bottom: '30%',
+    left: '70%',
+  },
+  particle4: {
+    top: '40%',
+    right: '40%',
+  },
+  portalIconContainer: {
+    width: 80,
+    height: 80,
+    alignSelf: 'center',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  portalIconGradient: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#a855f7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.8,
     shadowRadius: 12,
     elevation: 8,
   },
-  virtualRoomButtonGradient: {
+  glowRing: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: 'rgba(168, 85, 247, 0.6)',
+    top: -10,
+    left: -10,
+  },
+  portalContent: {
+    alignItems: 'center',
+  },
+  portalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    gap: 14,
+    gap: 10,
+    marginBottom: 8,
   },
-  virtualRoomIconContainer: {
-    width: Platform.OS === 'android' ? 52 : 56,
-    height: Platform.OS === 'android' ? 52 : 56,
-    borderRadius: Platform.OS === 'android' ? 26 : 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  portalTitle: {
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: 1,
+    textShadowColor: 'rgba(168, 85, 247, 0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+  },
+  liveIndicator: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
+    gap: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.3)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.5)',
   },
-  virtualRoomIconGlow: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    borderRadius: Platform.OS === 'android' ? 26 : 28,
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  liveText: {
+    fontWeight: '800',
+    color: '#10B981',
+    letterSpacing: 0.5,
+  },
+  portalDescription: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 16,
+    paddingHorizontal: 10,
+  },
+  portalFeatures: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 16,
+  },
+  portalFeature: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
-  virtualRoomTextContainer: {
-    flex: 1,
+  portalFeatureText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
   },
-  virtualRoomTitleRow: {
+  portalEnterButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  virtualRoomButtonTitle: {
+  portalEnterText: {
     fontWeight: '800',
     color: '#fff',
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
-  livePulseDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-  },
-  virtualRoomButtonSubtitle: {
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
-    lineHeight: 18,
-  },
-  virtualRoomArrowContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  portalBorderGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: 'rgba(168, 85, 247, 0.4)',
   },
   compactSection: {
     marginTop: 20,
