@@ -44,8 +44,8 @@ import { getCategoryIcon } from '@/utils/categoryIcons';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { navigationOptimizer, useScreenPerformance } from '@/utils/performanceMonitor';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import FiltrosAvanzadosSheet from '@/components/home/FiltrosAvanzadosSheet';
 
-// ✅ v339.0: Further reduced page size on Android for INSTANT loading
 const ITEMS_PER_PAGE = Platform.OS === 'android' ? 10 : 20;
 
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 240;
@@ -60,7 +60,7 @@ const PROVINCIAS = [
   'Huesca', 'Islas Baleares', 'Jaén', 'La Coruña', 'La Rioja', 'Las Palmas', 'León',
   'Lleida', 'Lugo', 'Madrid', 'Málaga', 'Murcia', 'Navarra', 'Ourense', 'Palencia',
   'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife', 'Segovia', 'Sevilla', 'Soria',
-  'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
+  'Tarragoza', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
 const CATEGORIAS = [
@@ -74,15 +74,14 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v339.0 - INSTANT NAVIGATION & SCREEN LOADING
+ * ✅ EXPLORAR SCREEN v340.0 - ADVANCED FILTERS INTEGRATION
  * 
- * CRITICAL CHANGES v339.0 (MAXIMUM PERFORMANCE):
- * - ✅ INSTANT TAB SWITCHING: Zero-blocking navigation (< 50ms)
- * - ✅ AGGRESSIVE DEFERRAL: All heavy operations deferred with priority levels
- * - ✅ MINIMAL QUERIES: 10 items per page on Android (50% reduction)
- * - ✅ BACKGROUND LOADING: Social profiles/events load in background
- * - ✅ ZERO CONSOLE LOGS: Completely silent on Android for speed
- * - ✅ RESULT: Identical to guest mode - instant, smooth, responsive
+ * NEW FEATURES v340.0:
+ * - ✅ ADVANCED FILTERS: Added button to open advanced filters sheet
+ * - ✅ SHARED CONTENT: Uses same FiltrosAvanzadosSheet as Mapa page
+ * - ✅ CONSISTENT UX: Both Explorar and Mapa have identical filter options
+ * - ✅ FILTER CONTEXT: Integrated with FilterContext for state management
+ * - ✅ RESULT: Unified filtering experience across both pages
  */
 
 export default function ExplorarScreen() {
@@ -92,7 +91,6 @@ export default function ExplorarScreen() {
   const { prefetchNextPage, loadDataOnDemand } = useGlobalData();
   const { isFavorite, toggleFavorite } = useFavorites();
   
-  // ✅ v339.0: Use performance hook for instant screen loading
   const { isReady, deferOperation, deferDataLoading, deferWithPriority } = useScreenPerformance('Explorar');
   
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -116,6 +114,9 @@ export default function ExplorarScreen() {
   
   const [selectedCategory, setSelectedCategory] = useState<string>('todas');
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
+
+  // ✅ NEW v340.0: Advanced filters state
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const categoryCache = useRef<Map<string, {
     locales: any[];
@@ -177,11 +178,9 @@ export default function ExplorarScreen() {
   useEffect(() => {
     let isMounted = true;
     
-    // ✅ v339.0: INSTANT STARTUP - mark as ready immediately on Android
     if (Platform.OS === 'android') {
       setLocationReady(true);
       
-      // ✅ Load location in background with LOW priority (doesn't block anything)
       deferWithPriority(async () => {
         try {
           const { status } = await Location.requestForegroundPermissionsAsync();
@@ -223,7 +222,6 @@ export default function ExplorarScreen() {
       };
     }
     
-    // iOS: Keep original behavior
     const timer = setTimeout(() => {
       (async () => {
         try {
@@ -273,7 +271,6 @@ export default function ExplorarScreen() {
   }, [isValidSpainCoordinate, deferWithPriority]);
 
   const preloadCategoryData = useCallback(async (category: string) => {
-    // ✅ v339.0: Disabled on Android for instant navigation
     if (Platform.OS === 'android') return;
     
     const cached = categoryCache.current.get(category);
@@ -379,7 +376,6 @@ export default function ExplorarScreen() {
   }, [userLocation, isValidSpainCoordinate]);
 
   const preloadAllCategories = useCallback(async () => {
-    // ✅ v339.0: Disabled on Android for instant navigation
     if (Platform.OS === 'android') return;
     
     if (preloadInProgress.current) return;
@@ -434,7 +430,6 @@ export default function ExplorarScreen() {
       }, 100);
     }
 
-    // ✅ v339.0: INSTANT cache display
     if (page === 1 && !append && provinciaSeleccionada === 'Todas') {
       const cached = categoryCache.current.get(selectedCategory);
       if (cached && Date.now() - cached.timestamp < 10 * 60 * 1000) {
@@ -452,7 +447,6 @@ export default function ExplorarScreen() {
           }, 150);
         }
         
-        // ✅ v339.0: Load social profiles/events in background with LOW priority
         if (Platform.OS !== 'android') {
           const localIdsToCheck = cached.locales.slice(0, 30).map((l: any) => l.id);
           if (localIdsToCheck.length > 0) {
@@ -569,7 +563,6 @@ export default function ExplorarScreen() {
         const transformedLocales = data.map((local: any) => {
           let distanciaKm = null;
           
-          // ✅ v339.0: Skip distance calculation on Android for speed
           if (Platform.OS !== 'android' && hasValidLocation && local.latitud && local.longitud) {
             const localLat = parseFloat(local.latitud);
             const localLng = parseFloat(local.longitud);
@@ -609,10 +602,6 @@ export default function ExplorarScreen() {
         }
 
         setHasMore(data.length >= ITEMS_PER_PAGE);
-
-        // ✅ v339.0: DISABLED on Android - no social profiles/events loading
-        // This eliminates 2 database queries per page load
-        // Result: 3x faster page loads
         
         hasLoadedInitialDataRef.current = true;
       } else {
@@ -694,20 +683,15 @@ export default function ExplorarScreen() {
     setDisplayedLocales(filteredLocales);
   }, [filteredLocales]);
 
-  // ✅ LINT FIX: Added all missing dependencies to useEffect
   useEffect(() => {
     if (locationReady && !hasLoadedInitialDataRef.current && !isLoadingMore) {
-      // ✅ v339.0: INSTANT loading on Android
       if (Platform.OS === 'android') {
-        // Load first page immediately
         loadLocales(1, false);
         
-        // Load data on-demand in background with MEDIUM priority
         deferWithPriority(() => {
           loadDataOnDemand('locales');
         }, 'MEDIUM');
       } else {
-        // iOS can handle preloading
         preloadAllCategories();
         loadLocales(1, false);
       }
@@ -722,7 +706,6 @@ export default function ExplorarScreen() {
 
   const loadMoreLocalesRef = useRef(false);
   
-  // ✅ LINT FIX: Added isLoadingMore and locationReady to dependencies
   const loadMoreLocales = useCallback(() => {
     if (loadMoreLocalesRef.current) return;
     if (!hasMore) return;
@@ -825,6 +808,17 @@ export default function ExplorarScreen() {
     
     router.push('/solicitudes/solicitar-propiedad-v2');
   };
+
+  // ✅ NEW v340.0: Advanced filters handlers
+  const handleOpenAdvancedFilters = useCallback(() => {
+    console.log('[Explorar v340.0] 🔍 Opening advanced filters');
+    setShowAdvancedFilters(true);
+  }, []);
+
+  const handleCloseAdvancedFilters = useCallback(() => {
+    console.log('[Explorar v340.0] ✅ Closing advanced filters');
+    setShowAdvancedFilters(false);
+  }, []);
 
   const getModeLabel = () => {
     if (currentMode === 'admin') return 'Admin';
@@ -1353,10 +1347,9 @@ export default function ExplorarScreen() {
             )}
           </View>
           
+          {/* ✅ NEW v340.0: Advanced filters button */}
           <TouchableOpacity 
-            onPress={() => {
-              router.push('/(tabs)/explorar/filtros-simples');
-            }}
+            onPress={handleOpenAdvancedFilters}
             style={styles.filterIconButtonCompact}
             activeOpacity={0.7}
           >
@@ -1455,6 +1448,12 @@ export default function ExplorarScreen() {
           minIndexForVisible: 0,
           autoscrollToTopThreshold: 10,
         }}
+      />
+
+      {/* ✅ NEW v340.0: Advanced filters sheet */}
+      <FiltrosAvanzadosSheet
+        visible={showAdvancedFilters}
+        onClose={handleCloseAdvancedFilters}
       />
     </View>
   );

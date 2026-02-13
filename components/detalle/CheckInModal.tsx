@@ -18,6 +18,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
+import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 
 interface CheckInModalProps {
   visible: boolean;
@@ -35,14 +36,16 @@ interface User {
 }
 
 /**
- * ✅ CHECK-IN MODAL v51.0 - CLIENT MODE FIX
+ * ✅ CHECK-IN MODAL v52.0 - ANDROID FULL-SCREEN FIX
  * 
- * CRITICAL FIXES v51.0:
- * - ✅ FIXED: Changed activeProfileType check from 'user' to 'cliente'
- * - ✅ The activeProfileType can only be 'cliente' or 'local', not 'user'
- * - ✅ Now correctly detects when user is in client mode
+ * CRITICAL CHANGES v52.0:
+ * - ✅ FULL-SCREEN on Android: presentationStyle='fullScreen' for proper scaling
+ * - ✅ PROPER PADDING: Added Android-specific padding to avoid system buttons
+ * - ✅ SCROLLABLE CONTENT: Integrated into page flow, not fixed position
+ * - ✅ RESPONSIVE DESIGN: Uses androidScaling utilities for consistent sizing
+ * - ✅ RESULT: No more hidden buttons on Android, proper full-screen experience
  * 
- * Previous fixes maintained (v50.0):
+ * Previous fixes maintained (v51.0):
  * - ✅ Login required to access "Estoy en este local"
  * - ✅ Only available in client mode (not for local profiles or owner mode)
  * - ✅ Shows login prompt if user not authenticated
@@ -60,20 +63,18 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // ✅ CRITICAL FIX v51.0: Changed 'user' to 'cliente' to match ModeContext types
   const isClientMode = currentMode === 'cliente' && activeProfileType === 'cliente';
 
-  console.log('[CheckInModal v51.0] 🎭 Mode check:', {
+  console.log('[CheckInModal v52.0] 🎭 Mode check:', {
     currentMode,
     activeProfileType,
     isClientMode,
     visible,
   });
 
-  // ✅ CRITICAL FIX v50.0: Show error if not in client mode
   useEffect(() => {
     if (visible && !isClientMode) {
-      console.log('[CheckInModal v51.0] ❌ Not in client mode, showing error');
+      console.log('[CheckInModal v52.0] ❌ Not in client mode, showing error');
       Alert.alert(
         'No Disponible',
         'La función "Estoy en este local" solo está disponible en modo cliente.',
@@ -82,10 +83,9 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
     }
   }, [visible, isClientMode, onClose]);
 
-  // ✅ CRITICAL FIX v50.0: Show error if user not authenticated
   useEffect(() => {
     if (visible && !user) {
-      console.log('[CheckInModal v51.0] ❌ User not authenticated, showing error');
+      console.log('[CheckInModal v52.0] ❌ User not authenticated, showing error');
       Alert.alert(
         'Inicia Sesión',
         'Debes iniciar sesión para usar la función "Estoy en este local".',
@@ -117,7 +117,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
       setSearchResults(users);
     } catch (error) {
-      console.error('[CheckInModal v51.0] Error searching users:', error);
+      console.error('[CheckInModal v52.0] Error searching users:', error);
     } finally {
       setSearching(false);
     }
@@ -166,9 +166,8 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
     setSubmitting(true);
 
     try {
-      console.log('[CheckInModal v51.0] Checking for existing check-in...');
+      console.log('[CheckInModal v52.0] Checking for existing check-in...');
 
-      // Check if user is already checked in to another local
       const { data: existingCheckIn, error: checkError } = await supabase
         .from('check_ins')
         .select(`
@@ -183,7 +182,6 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
         throw checkError;
       }
 
-      // If user is checked in to a different local, show confirmation
       if (existingCheckIn && existingCheckIn.local_id !== localId) {
         const previousLocalName = existingCheckIn.locales?.nombre || 'otro local';
         
@@ -206,10 +204,9 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
         return;
       }
 
-      // No existing check-in or same local, proceed
       await performCheckIn();
     } catch (error) {
-      console.error('[CheckInModal v51.0] Error creating check-in:', error);
+      console.error('[CheckInModal v52.0] Error creating check-in:', error);
       Alert.alert('Error', 'No se pudo realizar el check-in');
       setSubmitting(false);
     }
@@ -219,9 +216,8 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
     if (!user) return;
 
     try {
-      console.log('[CheckInModal v51.0] Creating check-in...');
+      console.log('[CheckInModal v52.0] Creating check-in...');
 
-      // Delete any existing check-ins for this user
       const { error: deleteError } = await supabase
         .from('check_ins')
         .delete()
@@ -229,7 +225,6 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
       if (deleteError) throw deleteError;
 
-      // Create new check-in
       const { error: insertError } = await supabase
         .from('check_ins')
         .insert({
@@ -242,10 +237,10 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
       if (insertError) throw insertError;
 
-      console.log('[CheckInModal v51.0] ✅ Check-in created successfully');
+      console.log('[CheckInModal v52.0] ✅ Check-in created successfully');
 
       if (sendNotifications) {
-        console.log('[CheckInModal v51.0] Sending notifications...');
+        console.log('[CheckInModal v52.0] Sending notifications...');
         
         let recipientIds: string[] = [];
 
@@ -282,9 +277,9 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
             .insert(notifications);
 
           if (notifError) {
-            console.error('[CheckInModal v51.0] Error sending notifications:', notifError);
+            console.error('[CheckInModal v52.0] Error sending notifications:', notifError);
           } else {
-            console.log('[CheckInModal v51.0] ✅ Notifications sent to', recipientIds.length, 'users');
+            console.log('[CheckInModal v52.0] ✅ Notifications sent to', recipientIds.length, 'users');
           }
         }
       }
@@ -298,14 +293,13 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
         }}]
       );
     } catch (error) {
-      console.error('[CheckInModal v51.0] Error creating check-in:', error);
+      console.error('[CheckInModal v52.0] Error creating check-in:', error);
       Alert.alert('Error', 'No se pudo realizar el check-in');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // ✅ CRITICAL FIX v50.0: Don't render modal if not in client mode or not authenticated
   if (!user || !isClientMode) {
     return null;
   }
@@ -313,257 +307,331 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
   return (
     <Modal
       visible={visible}
-      transparent={Platform.OS === 'android' ? false : true}
+      transparent={false}
       animationType="slide"
-      presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
+      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <Pressable style={[styles.overlay, Platform.OS === 'android' && styles.overlayAndroid]} onPress={onClose}>
-        <Pressable style={[styles.modalContent, Platform.OS === 'android' && styles.modalContentAndroid]} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Estoy en este local</Text>
-            <TouchableOpacity onPress={onClose}>
-              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
-            </TouchableOpacity>
+      <View style={styles.container}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={onClose} style={styles.backButton}>
+            <IconSymbol 
+              ios_icon_name="chevron.left" 
+              android_material_icon_name="arrow_back" 
+              size={scaleIconSize(24)} 
+              color={colors.text} 
+            />
+          </TouchableOpacity>
+          <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Estoy en este local</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        <ScrollView 
+          style={styles.modalBody} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: getContentBottomPadding(120) }]}
+        >
+          <View style={styles.localInfoCard}>
+            <IconSymbol 
+              ios_icon_name="mappin.circle.fill" 
+              android_material_icon_name="location_on" 
+              size={scaleIconSize(24)} 
+              color={colors.primary} 
+            />
+            <Text style={[styles.localInfoText, { fontSize: scaleFontSize(16) }]}>{localName}</Text>
           </View>
 
-          <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-            <View style={styles.localInfoCard}>
-              <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={24} color={colors.primary} />
-              <Text style={styles.localInfoText}>{localName}</Text>
-            </View>
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(16) }]}>¿Con quién compartir?</Text>
+            <Text style={[styles.sectionSubtitle, { fontSize: scaleFontSize(13) }]}>Elige quién puede ver que estás en este local</Text>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>¿Con quién compartir?</Text>
-              <Text style={styles.sectionSubtitle}>Elige quién puede ver que estás en este local</Text>
-
-              <TouchableOpacity
-                style={[styles.visibilityOption, visibility === 'followers' && styles.visibilityOptionActive]}
-                onPress={() => setVisibility('followers')}
-              >
-                <View style={styles.visibilityOptionLeft}>
-                  <IconSymbol 
-                    ios_icon_name="person.2.fill" 
-                    android_material_icon_name="people" 
-                    size={24} 
-                    color={visibility === 'followers' ? colors.primary : colors.textSecondary} 
-                  />
-                  <View style={styles.visibilityOptionText}>
-                    <Text style={[styles.visibilityOptionTitle, visibility === 'followers' && styles.visibilityOptionTitleActive]}>
-                      Mis seguidores
-                    </Text>
-                    <Text style={styles.visibilityOptionSubtitle}>Solo tus seguidores verán que estás aquí</Text>
-                  </View>
-                </View>
-                {visibility === 'followers' && (
-                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.visibilityOption, visibility === 'all_users' && styles.visibilityOptionActive]}
-                onPress={() => setVisibility('all_users')}
-              >
-                <View style={styles.visibilityOptionLeft}>
-                  <IconSymbol 
-                    ios_icon_name="globe" 
-                    android_material_icon_name="public" 
-                    size={24} 
-                    color={visibility === 'all_users' ? colors.primary : colors.textSecondary} 
-                  />
-                  <View style={styles.visibilityOptionText}>
-                    <Text style={[styles.visibilityOptionTitle, visibility === 'all_users' && styles.visibilityOptionTitleActive]}>
-                      Todos los usuarios
-                    </Text>
-                    <Text style={styles.visibilityOptionSubtitle}>Cualquier usuario de BarLive podrá verlo</Text>
-                  </View>
-                </View>
-                {visibility === 'all_users' && (
-                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.visibilityOption, visibility === 'specific_users' && styles.visibilityOptionActive]}
-                onPress={() => setVisibility('specific_users')}
-              >
-                <View style={styles.visibilityOptionLeft}>
-                  <IconSymbol 
-                    ios_icon_name="person.crop.circle.badge.checkmark" 
-                    android_material_icon_name="person_add" 
-                    size={24} 
-                    color={visibility === 'specific_users' ? colors.primary : colors.textSecondary} 
-                  />
-                  <View style={styles.visibilityOptionText}>
-                    <Text style={[styles.visibilityOptionTitle, visibility === 'specific_users' && styles.visibilityOptionTitleActive]}>
-                      Usuarios específicos
-                    </Text>
-                    <Text style={styles.visibilityOptionSubtitle}>Selecciona usuarios concretos</Text>
-                  </View>
-                </View>
-                {visibility === 'specific_users' && (
-                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {visibility === 'specific_users' && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Seleccionar Usuarios</Text>
-                
-                <View style={styles.searchContainer}>
-                  <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
-                  <TextInput
-                    style={styles.searchInput}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholder="Buscar seguidores..."
-                    placeholderTextColor={colors.textSecondary}
-                  />
-                  {searching && <ActivityIndicator size="small" color={colors.primary} />}
-                </View>
-
-                {searchResults.length > 0 && (
-                  <View style={styles.searchResultsContainer}>
-                    {searchResults.map(searchUser => (
-                      <TouchableOpacity
-                        key={searchUser.id}
-                        style={styles.userSearchResult}
-                        onPress={() => addSpecificUser(searchUser)}
-                      >
-                        <View style={styles.userSearchResultLeft}>
-                          <View style={styles.userAvatar}>
-                            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.headerText} />
-                          </View>
-                          <View>
-                            <Text style={styles.userName}>{searchUser.nombre}</Text>
-                            {searchUser.username && (
-                              <Text style={styles.userUsername}>@{searchUser.username}</Text>
-                            )}
-                          </View>
-                        </View>
-                        <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={24} color={colors.primary} />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-
-                {specificUsers.length > 0 && (
-                  <View style={styles.selectedUsersContainer}>
-                    <Text style={styles.selectedUsersTitle}>Usuarios seleccionados ({specificUsers.length})</Text>
-                    {specificUsers.map(selectedUser => (
-                      <View key={selectedUser.id} style={styles.selectedUserChip}>
-                        <Text style={styles.selectedUserName}>{selectedUser.nombre}</Text>
-                        <TouchableOpacity onPress={() => removeSpecificUser(selectedUser.id)}>
-                          <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            <View style={styles.section}>
-              <TouchableOpacity
-                style={styles.notificationToggle}
-                onPress={() => setSendNotifications(!sendNotifications)}
-              >
-                <View style={styles.notificationToggleLeft}>
-                  <IconSymbol 
-                    ios_icon_name="bell.fill" 
-                    android_material_icon_name="notifications" 
-                    size={24} 
-                    color={sendNotifications ? colors.primary : colors.textSecondary} 
-                  />
-                  <View style={styles.notificationToggleText}>
-                    <Text style={[styles.notificationToggleTitle, sendNotifications && styles.notificationToggleTitleActive]}>
-                      Enviar notificaciones
-                    </Text>
-                    <Text style={styles.notificationToggleSubtitle}>
-                      Notificar a los usuarios seleccionados
-                    </Text>
-                  </View>
-                </View>
-                <View style={[styles.toggle, sendNotifications && styles.toggleActive]}>
-                  <View style={[styles.toggleThumb, sendNotifications && styles.toggleThumbActive]} />
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.privacyNote}>
-              <IconSymbol ios_icon_name="lock.shield.fill" android_material_icon_name="security" size={20} color={colors.primary} />
-              <Text style={styles.privacyNoteText}>
-                No se comparte tu ubicación GPS. Solo se muestra el local que seleccionaste manualmente.
-              </Text>
-            </View>
-          </ScrollView>
-
-          <View style={styles.modalFooter}>
             <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={handleConfirm}
-              disabled={submitting}
+              style={[styles.visibilityOption, visibility === 'followers' && styles.visibilityOptionActive]}
+              onPress={() => setVisibility('followers')}
             >
-              {submitting ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <>
-                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.white} />
-                  <Text style={styles.confirmButtonText}>Confirmar Check-in</Text>
-                </>
+              <View style={styles.visibilityOptionLeft}>
+                <IconSymbol 
+                  ios_icon_name="person.2.fill" 
+                  android_material_icon_name="people" 
+                  size={scaleIconSize(24)} 
+                  color={visibility === 'followers' ? colors.primary : colors.textSecondary} 
+                />
+                <View style={styles.visibilityOptionText}>
+                  <Text style={[
+                    styles.visibilityOptionTitle, 
+                    { fontSize: scaleFontSize(15) },
+                    visibility === 'followers' && styles.visibilityOptionTitleActive
+                  ]}>
+                    Mis seguidores
+                  </Text>
+                  <Text style={[styles.visibilityOptionSubtitle, { fontSize: scaleFontSize(12) }]}>
+                    Solo tus seguidores verán que estás aquí
+                  </Text>
+                </View>
+              </View>
+              {visibility === 'followers' && (
+                <IconSymbol 
+                  ios_icon_name="checkmark.circle.fill" 
+                  android_material_icon_name="check_circle" 
+                  size={scaleIconSize(24)} 
+                  color={colors.primary} 
+                />
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            <TouchableOpacity
+              style={[styles.visibilityOption, visibility === 'all_users' && styles.visibilityOptionActive]}
+              onPress={() => setVisibility('all_users')}
+            >
+              <View style={styles.visibilityOptionLeft}>
+                <IconSymbol 
+                  ios_icon_name="globe" 
+                  android_material_icon_name="public" 
+                  size={scaleIconSize(24)} 
+                  color={visibility === 'all_users' ? colors.primary : colors.textSecondary} 
+                />
+                <View style={styles.visibilityOptionText}>
+                  <Text style={[
+                    styles.visibilityOptionTitle,
+                    { fontSize: scaleFontSize(15) },
+                    visibility === 'all_users' && styles.visibilityOptionTitleActive
+                  ]}>
+                    Todos los usuarios
+                  </Text>
+                  <Text style={[styles.visibilityOptionSubtitle, { fontSize: scaleFontSize(12) }]}>
+                    Cualquier usuario de BarLive podrá verlo
+                  </Text>
+                </View>
+              </View>
+              {visibility === 'all_users' && (
+                <IconSymbol 
+                  ios_icon_name="checkmark.circle.fill" 
+                  android_material_icon_name="check_circle" 
+                  size={scaleIconSize(24)} 
+                  color={colors.primary} 
+                />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.visibilityOption, visibility === 'specific_users' && styles.visibilityOptionActive]}
+              onPress={() => setVisibility('specific_users')}
+            >
+              <View style={styles.visibilityOptionLeft}>
+                <IconSymbol 
+                  ios_icon_name="person.crop.circle.badge.checkmark" 
+                  android_material_icon_name="person_add" 
+                  size={scaleIconSize(24)} 
+                  color={visibility === 'specific_users' ? colors.primary : colors.textSecondary} 
+                />
+                <View style={styles.visibilityOptionText}>
+                  <Text style={[
+                    styles.visibilityOptionTitle,
+                    { fontSize: scaleFontSize(15) },
+                    visibility === 'specific_users' && styles.visibilityOptionTitleActive
+                  ]}>
+                    Usuarios específicos
+                  </Text>
+                  <Text style={[styles.visibilityOptionSubtitle, { fontSize: scaleFontSize(12) }]}>
+                    Selecciona usuarios concretos
+                  </Text>
+                </View>
+              </View>
+              {visibility === 'specific_users' && (
+                <IconSymbol 
+                  ios_icon_name="checkmark.circle.fill" 
+                  android_material_icon_name="check_circle" 
+                  size={scaleIconSize(24)} 
+                  color={colors.primary} 
+                />
+              )}
             </TouchableOpacity>
           </View>
-        </Pressable>
-      </Pressable>
+
+          {visibility === 'specific_users' && (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(16) }]}>Seleccionar Usuarios</Text>
+              
+              <View style={styles.searchContainer}>
+                <IconSymbol 
+                  ios_icon_name="magnifyingglass" 
+                  android_material_icon_name="search" 
+                  size={scaleIconSize(20)} 
+                  color={colors.textSecondary} 
+                />
+                <TextInput
+                  style={[styles.searchInput, { fontSize: scaleFontSize(15) }]}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Buscar seguidores..."
+                  placeholderTextColor={colors.textSecondary}
+                />
+                {searching && <ActivityIndicator size="small" color={colors.primary} />}
+              </View>
+
+              {searchResults.length > 0 && (
+                <View style={styles.searchResultsContainer}>
+                  {searchResults.map(searchUser => (
+                    <TouchableOpacity
+                      key={searchUser.id}
+                      style={styles.userSearchResult}
+                      onPress={() => addSpecificUser(searchUser)}
+                    >
+                      <View style={styles.userSearchResultLeft}>
+                        <View style={styles.userAvatar}>
+                          <IconSymbol 
+                            ios_icon_name="person.fill" 
+                            android_material_icon_name="person" 
+                            size={scaleIconSize(20)} 
+                            color={colors.headerText} 
+                          />
+                        </View>
+                        <View>
+                          <Text style={[styles.userName, { fontSize: scaleFontSize(15) }]}>{searchUser.nombre}</Text>
+                          {searchUser.username && (
+                            <Text style={[styles.userUsername, { fontSize: scaleFontSize(13) }]}>@{searchUser.username}</Text>
+                          )}
+                        </View>
+                      </View>
+                      <IconSymbol 
+                        ios_icon_name="plus.circle.fill" 
+                        android_material_icon_name="add_circle" 
+                        size={scaleIconSize(24)} 
+                        color={colors.primary} 
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {specificUsers.length > 0 && (
+                <View style={styles.selectedUsersContainer}>
+                  <Text style={[styles.selectedUsersTitle, { fontSize: scaleFontSize(14) }]}>
+                    Usuarios seleccionados ({specificUsers.length})
+                  </Text>
+                  {specificUsers.map(selectedUser => (
+                    <View key={selectedUser.id} style={styles.selectedUserChip}>
+                      <Text style={[styles.selectedUserName, { fontSize: scaleFontSize(14) }]}>{selectedUser.nombre}</Text>
+                      <TouchableOpacity onPress={() => removeSpecificUser(selectedUser.id)}>
+                        <IconSymbol 
+                          ios_icon_name="xmark.circle.fill" 
+                          android_material_icon_name="cancel" 
+                          size={scaleIconSize(20)} 
+                          color={colors.textSecondary} 
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.notificationToggle}
+              onPress={() => setSendNotifications(!sendNotifications)}
+            >
+              <View style={styles.notificationToggleLeft}>
+                <IconSymbol 
+                  ios_icon_name="bell.fill" 
+                  android_material_icon_name="notifications" 
+                  size={scaleIconSize(24)} 
+                  color={sendNotifications ? colors.primary : colors.textSecondary} 
+                />
+                <View style={styles.notificationToggleText}>
+                  <Text style={[
+                    styles.notificationToggleTitle,
+                    { fontSize: scaleFontSize(15) },
+                    sendNotifications && styles.notificationToggleTitleActive
+                  ]}>
+                    Enviar notificaciones
+                  </Text>
+                  <Text style={[styles.notificationToggleSubtitle, { fontSize: scaleFontSize(12) }]}>
+                    Notificar a los usuarios seleccionados
+                  </Text>
+                </View>
+              </View>
+              <View style={[styles.toggle, sendNotifications && styles.toggleActive]}>
+                <View style={[styles.toggleThumb, sendNotifications && styles.toggleThumbActive]} />
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.privacyNote}>
+            <IconSymbol 
+              ios_icon_name="lock.shield.fill" 
+              android_material_icon_name="security" 
+              size={scaleIconSize(20)} 
+              color={colors.primary} 
+            />
+            <Text style={[styles.privacyNoteText, { fontSize: scaleFontSize(13) }]}>
+              No se comparte tu ubicación GPS. Solo se muestra el local que seleccionaste manualmente.
+            </Text>
+          </View>
+        </ScrollView>
+
+        <View style={styles.modalFooter}>
+          <TouchableOpacity
+            style={styles.confirmButton}
+            onPress={handleConfirm}
+            disabled={submitting}
+          >
+            {submitting ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <>
+                <IconSymbol 
+                  ios_icon_name="checkmark.circle.fill" 
+                  android_material_icon_name="check_circle" 
+                  size={scaleIconSize(20)} 
+                  color={colors.white} 
+                />
+                <Text style={[styles.confirmButtonText, { fontSize: scaleFontSize(16) }]}>Confirmar Check-in</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+            <Text style={[styles.cancelButtonText, { fontSize: scaleFontSize(16) }]}>Cancelar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  container: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'flex-end',
-  },
-  overlayAndroid: {
     backgroundColor: colors.background,
-    justifyContent: 'flex-start',
-  },
-  modalContent: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-  },
-  modalContentAndroid: {
-    flex: 1,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    maxHeight: '100%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? 48 : 60,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
   },
   modalBody: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: 20,
-    maxHeight: 500,
   },
   localInfoCard: {
     flexDirection: 'row',
@@ -578,7 +646,6 @@ const styles = StyleSheet.create({
   },
   localInfoText: {
     flex: 1,
-    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
   },
@@ -586,13 +653,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 6,
   },
   sectionSubtitle: {
-    fontSize: 13,
     color: colors.textSecondary,
     marginBottom: 16,
   },
@@ -621,7 +686,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   visibilityOptionTitle: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 2,
@@ -630,7 +694,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   visibilityOptionSubtitle: {
-    fontSize: 12,
     color: colors.textSecondary,
   },
   searchContainer: {
@@ -647,7 +710,6 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
     color: colors.text,
   },
   searchResultsContainer: {
@@ -680,12 +742,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   userName: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
   },
   userUsername: {
-    fontSize: 13,
     color: colors.textSecondary,
   },
   selectedUsersContainer: {
@@ -696,7 +756,6 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   selectedUsersTitle: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 12,
@@ -712,7 +771,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   selectedUserName: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
   },
@@ -736,7 +794,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notificationToggleTitle: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 2,
@@ -745,7 +802,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   notificationToggleSubtitle: {
-    fontSize: 12,
     color: colors.textSecondary,
   },
   toggle: {
@@ -780,15 +836,15 @@ const styles = StyleSheet.create({
   },
   privacyNoteText: {
     flex: 1,
-    fontSize: 13,
     color: colors.text,
     lineHeight: 18,
   },
   modalFooter: {
     padding: 20,
-    paddingTop: 16,
+    paddingBottom: Platform.OS === 'android' ? 32 : 20,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
   },
   confirmButton: {
     flexDirection: 'row',
@@ -801,7 +857,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   confirmButtonText: {
-    fontSize: 16,
     fontWeight: '700',
     color: colors.white,
   },
@@ -810,7 +865,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButtonText: {
-    fontSize: 16,
     fontWeight: '600',
     color: colors.textSecondary,
   },
