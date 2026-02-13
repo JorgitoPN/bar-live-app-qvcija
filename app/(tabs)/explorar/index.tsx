@@ -1,19 +1,17 @@
 
 /**
- * ✅ EXPLORAR SCREEN v346.0 - FLASHLIST + AGGRESSIVE MEMOIZATION + PAGINATION FIX
+ * ✅ EXPLORAR SCREEN v347.0 - PAGINATION FIX + IMAGE LOADING OPTIMIZATION
  * 
- * CRITICAL FIXES v346.0:
+ * CRITICAL FIXES v347.0:
+ * - ✅ PAGINATION FIX: Corregido bug que impedía cargar más de 20 locales
+ * - ✅ IMAGE LOADING: Optimizado para mostrar imágenes más rápido
+ * - ✅ FILTER PAGINATION: Permitir paginación incluso con filtros activos
+ * 
+ * Previous fixes v346.0:
  * - ✅ FLASHLIST: Reemplazo de FlatList para mejor rendimiento
  * - ✅ AGGRESSIVE MEMOIZATION: React.memo + useCallback + useMemo
- * - ✅ PAGINATION FIX: Corregido bug de carga de siguiente tanda
  * - ✅ CONTROLLED PREFETCHING: InteractionManager para prefetch
  * - ✅ PAYLOAD REDUCTION: Thumbnails optimizados
- * 
- * Previous features v345.0:
- * - ✅ Visual indicator (red dot) when filters are active
- * - ✅ Quick clear button for advanced filters
- * - ✅ Instant filter application
- * - ✅ Fixed infinite loading loop
  * 
  * OBJETIVO: JS Thread > 55 FPS durante scroll e interacciones
  */
@@ -66,6 +64,7 @@ import FiltrosAvanzadosSheet from '@/components/home/FiltrosAvanzadosSheet';
 import { useFilters } from '@/contexts/FilterContext';
 import { applyAdvancedFilters } from '@/utils/filterLocals';
 import LocalCardOptimized from '@/components/explorar/LocalCardOptimized';
+import { intelligentPreloader } from '@/utils/intelligentPreloader';
 
 const ITEMS_PER_PAGE = Platform.OS === 'android' ? 10 : 20;
 
@@ -391,7 +390,7 @@ export default function ExplorarScreen() {
         preloadedCategories.current.add(category);
       }
     } catch (error) {
-      console.error('[Explorar v346.0] Error preloading category:', error);
+      console.error('[Explorar v347.0] Error preloading category:', error);
     }
   }, [userLocation, isValidSpainCoordinate]);
 
@@ -416,23 +415,23 @@ export default function ExplorarScreen() {
       }, 500);
 
     } catch (error) {
-      console.error('[Explorar v346.0] Error preloading categories:', error);
+      console.error('[Explorar v347.0] Error preloading categories:', error);
     } finally {
       preloadInProgress.current = false;
     }
   }, [preloadCategoryData]);
 
   const loadLocales = useCallback(async (page: number = 1, append: boolean = false) => {
-    console.log('[Explorar v346.0] 📥 loadLocales called:', { page, append, locationReady, isLoadingMore });
+    console.log('[Explorar v347.0] 📥 loadLocales called:', { page, append, locationReady, isLoadingMore });
     
     if (!locationReady && !hasLoadedInitialDataRef.current) {
-      console.log('[Explorar v346.0] ⏸️ Skipping - location not ready');
+      console.log('[Explorar v347.0] ⏸️ Skipping - location not ready');
       return;
     }
     
-    // ✅ CRITICAL FIX v346.0: Prevent duplicate load more calls
+    // ✅ CRITICAL FIX v347.0: Prevent duplicate load more calls
     if (isLoadingMore && append) {
-      console.log('[Explorar v346.0] ⏸️ Skipping - already loading more');
+      console.log('[Explorar v347.0] ⏸️ Skipping - already loading more');
       return;
     }
 
@@ -440,7 +439,7 @@ export default function ExplorarScreen() {
     const filtersChanged = filtersKey !== lastFiltersRef.current;
 
     if (filtersChanged) {
-      console.log('[Explorar v346.0] 🔄 Filters changed, resetting pagination');
+      console.log('[Explorar v347.0] 🔄 Filters changed, resetting pagination');
       lastFiltersRef.current = filtersKey;
       setCurrentPage(1);
       setAllLoadedLocales([]);
@@ -459,7 +458,7 @@ export default function ExplorarScreen() {
     if (page === 1 && !append && provinciaSeleccionada === 'Todas') {
       const cached = categoryCache.current.get(selectedCategory);
       if (cached && Date.now() - cached.timestamp < 10 * 60 * 1000) {
-        console.log('[Explorar v346.0] ⚡ Loading from cache');
+        console.log('[Explorar v347.0] ⚡ Loading from cache');
         setAllLoadedLocales(cached.locales);
         setHasMore(cached.hasMore);
         setIsInitialLoad(false);
@@ -560,11 +559,11 @@ export default function ExplorarScreen() {
     }
 
     if (append) {
-      console.log('[Explorar v346.0] 📄 Loading page', page, '(append mode)');
+      console.log('[Explorar v347.0] 📄 Loading page', page, '(append mode)');
       setIsLoadingMore(true);
       setCurrentPage(page);
     } else {
-      console.log('[Explorar v346.0] 📄 Loading page', page, '(replace mode)');
+      console.log('[Explorar v347.0] 📄 Loading page', page, '(replace mode)');
       if (!hasLoadedInitialDataRef.current) {
         setIsInitialLoad(true);
       }
@@ -580,7 +579,7 @@ export default function ExplorarScreen() {
       
       const offset = (page - 1) * ITEMS_PER_PAGE;
       
-      console.log('[Explorar v346.0] 🔍 Fetching locales:', { page, offset, limit: ITEMS_PER_PAGE });
+      console.log('[Explorar v347.0] 🔍 Fetching locales:', { page, offset, limit: ITEMS_PER_PAGE });
       
       const { data, error } = await supabase.rpc('get_locales_paginados', {
         ...locationParams,
@@ -590,7 +589,7 @@ export default function ExplorarScreen() {
 
       if (error) throw error;
 
-      console.log('[Explorar v346.0] ✅ Fetched', data?.length || 0, 'locales');
+      console.log('[Explorar v347.0] ✅ Fetched', data?.length || 0, 'locales');
 
       if (data && data.length > 0) {
         const transformedLocales = data.map((local: any) => {
@@ -629,28 +628,32 @@ export default function ExplorarScreen() {
         });
 
         if (append) {
-          console.log('[Explorar v346.0] ➕ Appending', transformedLocales.length, 'locales to existing', allLoadedLocales.length);
-          setAllLoadedLocales(prev => [...prev, ...transformedLocales]);
+          console.log('[Explorar v347.0] ➕ Appending', transformedLocales.length, 'locales to existing', allLoadedLocales.length);
+          setAllLoadedLocales(prev => {
+            const newLocales = [...prev, ...transformedLocales];
+            console.log('[Explorar v347.0] 📊 Total locales after append:', newLocales.length);
+            return newLocales;
+          });
         } else {
-          console.log('[Explorar v346.0] 🔄 Replacing with', transformedLocales.length, 'locales');
+          console.log('[Explorar v347.0] 🔄 Replacing with', transformedLocales.length, 'locales');
           setAllLoadedLocales(transformedLocales);
         }
 
-        // ✅ CRITICAL FIX v346.0: Proper hasMore calculation
+        // ✅ CRITICAL FIX v347.0: Proper hasMore calculation
         const hasMoreData = data.length >= ITEMS_PER_PAGE;
-        console.log('[Explorar v346.0] 📊 hasMore:', hasMoreData, '(received', data.length, 'items, page size:', ITEMS_PER_PAGE, ')');
+        console.log('[Explorar v347.0] 📊 hasMore:', hasMoreData, '(received', data.length, 'items, page size:', ITEMS_PER_PAGE, ')');
         setHasMore(hasMoreData);
         
         hasLoadedInitialDataRef.current = true;
       } else {
-        console.log('[Explorar v346.0] ⚠️ No data received');
+        console.log('[Explorar v347.0] ⚠️ No data received');
         setHasMore(false);
         if (!append) {
           setAllLoadedLocales([]);
         }
       }
     } catch (error) {
-      console.error('[Explorar v346.0] ❌ Error loading locales:', error);
+      console.error('[Explorar v347.0] ❌ Error loading locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
     } finally {
       setLoading(false);
@@ -662,8 +665,8 @@ export default function ExplorarScreen() {
   // ✅ MEMOIZED: Apply filters efficiently
   const filteredLocales = useMemo(() => {
     const startTime = Date.now();
-    console.log('[Explorar v346.0] 🔍 Starting filter application...');
-    console.log('[Explorar v346.0] 📊 Input:', allLoadedLocales.length, 'locals');
+    console.log('[Explorar v347.0] 🔍 Starting filter application...');
+    console.log('[Explorar v347.0] 📊 Input:', allLoadedLocales.length, 'locals');
     
     const query = debouncedQuery.toLowerCase().trim();
     
@@ -726,7 +729,7 @@ export default function ExplorarScreen() {
     const endTime = Date.now();
     const duration = endTime - startTime;
     
-    console.log('[Explorar v346.0] ✅ Filter complete:', uniqueLocales.length, 'locals in', duration, 'ms');
+    console.log('[Explorar v347.0] ✅ Filter complete:', uniqueLocales.length, 'locals in', duration, 'ms');
 
     return uniqueLocales;
   }, [allLoadedLocales, debouncedQuery, selectedCategory, globalFiltros]);
@@ -742,7 +745,8 @@ export default function ExplorarScreen() {
     const hasData = allLoadedLocales.length > 0;
     
     if (filtersChanged && hasData) {
-      console.log('[Explorar v346.0] 🔄 Filters changed, applying...');
+      console.log('[Explorar v347.0] 🔄 Filters changed, applying...');
+      console.log('[Explorar v347.0] 📊 Filtered result:', filteredLocales.length, 'locales');
       
       if (hasActiveFilters) {
         setApplyingFilters(true);
@@ -785,52 +789,54 @@ export default function ExplorarScreen() {
     }
   }, [selectedCategory, provinciaSeleccionada, locationReady, isLoadingMore, loadLocales]);
 
-  // ✅ CRITICAL FIX v346.0: Improved load more logic
+  // ✅ CRITICAL FIX v347.0: Improved load more logic with better guards
   const loadMoreLocales = useCallback(() => {
-    console.log('[Explorar v346.0] 🔽 loadMoreLocales triggered');
-    console.log('[Explorar v346.0] 📊 State:', {
+    console.log('[Explorar v347.0] 🔽 loadMoreLocales triggered');
+    console.log('[Explorar v347.0] 📊 State:', {
       hasMore,
       isLoadingMore,
       loading,
       locationReady,
       currentPage,
+      allLoadedLocalesCount: allLoadedLocales.length,
       displayedLocalesCount: displayedLocales.length,
       hasActiveFilters,
     });
     
     if (!hasMore) {
-      console.log('[Explorar v346.0] ⏸️ No more data to load');
+      console.log('[Explorar v347.0] ⏸️ No more data to load');
       return;
     }
     
     if (isLoadingMore) {
-      console.log('[Explorar v346.0] ⏸️ Already loading more');
+      console.log('[Explorar v347.0] ⏸️ Already loading more');
       return;
     }
     
     if (loading) {
-      console.log('[Explorar v346.0] ⏸️ Already loading');
+      console.log('[Explorar v347.0] ⏸️ Already loading');
       return;
     }
     
     if (!locationReady) {
-      console.log('[Explorar v346.0] ⏸️ Location not ready');
+      console.log('[Explorar v347.0] ⏸️ Location not ready');
       return;
     }
     
-    if (hasActiveFilters && displayedLocales.length === 0) {
-      console.log('[Explorar v346.0] ⏸️ No results with active filters');
+    // ✅ FIX: Don't block pagination when filters are active but we have results
+    if (hasActiveFilters && allLoadedLocales.length === 0) {
+      console.log('[Explorar v347.0] ⏸️ No base data loaded yet');
       return;
     }
 
-    console.log('[Explorar v346.0] ✅ Loading page', currentPage + 1);
+    console.log('[Explorar v347.0] ✅ Loading page', currentPage + 1);
     const nextPage = currentPage + 1;
     loadLocales(nextPage, true);
-  }, [hasMore, isLoadingMore, loading, currentPage, locationReady, loadLocales, hasActiveFilters, displayedLocales.length]);
+  }, [hasMore, isLoadingMore, loading, currentPage, locationReady, loadLocales, hasActiveFilters, allLoadedLocales.length]);
 
   // ✅ MEMOIZED: Refresh handler
   const onRefresh = useCallback(async () => {
-    console.log('[Explorar v346.0] 🔄 Refreshing...');
+    console.log('[Explorar v347.0] 🔄 Refreshing...');
     setRefreshing(true);
     setSearchQuery('');
     setDebouncedQuery('');
@@ -930,7 +936,10 @@ export default function ExplorarScreen() {
     const currentScrollY = event.nativeEvent.contentOffset.y;
     savedScrollPosition.current = currentScrollY;
     
-    isScrollingRef.current = true;
+    if (!isScrollingRef.current) {
+      isScrollingRef.current = true;
+      intelligentPreloader.setScrolling(true);
+    }
     
     const diff = currentScrollY - lastScrollY.current;
     
@@ -958,11 +967,13 @@ export default function ExplorarScreen() {
   const handleScrollEndDrag = useCallback(() => {
     setTimeout(() => {
       isScrollingRef.current = false;
+      intelligentPreloader.setScrolling(false);
     }, 300);
   }, []);
 
   const handleMomentumScrollEnd = useCallback(() => {
     isScrollingRef.current = false;
+    intelligentPreloader.setScrolling(false);
   }, []);
 
   // ✅ MEMOIZED: Render skeleton card
@@ -1378,8 +1389,13 @@ export default function ExplorarScreen() {
             tintColor={colors.primary}
           />
         }
-        onEndReached={displayedLocales.length > 0 ? loadMoreLocales : undefined}
-        onEndReachedThreshold={0.5}
+        onEndReached={() => {
+          console.log('[Explorar v347.0] 🎯 onEndReached fired');
+          if (displayedLocales.length > 0 && !isLoadingMore && hasMore) {
+            loadMoreLocales();
+          }
+        }}
+        onEndReachedThreshold={0.3}
         ListFooterComponent={ListFooterComponent}
         ListEmptyComponent={ListEmptyComponent}
         drawDistance={1000}

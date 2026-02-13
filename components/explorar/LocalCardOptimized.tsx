@@ -1,18 +1,18 @@
 
 /**
- * ✅ LOCAL CARD OPTIMIZED v2.0 - AGGRESSIVE MEMOIZATION + PAYLOAD REDUCTION
+ * ✅ LOCAL CARD OPTIMIZED v3.0 - FAST IMAGE LOADING + AGGRESSIVE MEMOIZATION
  * 
- * Optimizaciones implementadas v2.0:
+ * Optimizaciones implementadas v3.0:
+ * - ✅ FAST IMAGE LOADING: Imágenes se muestran inmediatamente sin skeleton
+ * - ✅ PROGRESSIVE RENDERING: Carga progresiva de imágenes
+ * - ✅ CACHE HINTS: Uso de cache para imágenes repetidas
  * - ✅ React.memo: Previene re-renders innecesarios
  * - ✅ useCallback: Estabiliza funciones
  * - ✅ useMemo: Estabiliza valores computados
  * - ✅ Optimistic UI: Favoritos instantáneos
- * - ✅ Skeleton Loader: Placeholder mientras carga imagen
- * - ✅ Image Prefetching: Precarga controlada con InteractionManager
- * - ✅ Lazy Loading: Datos bajo demanda
  * - ✅ Payload Reduction: Solicita thumbnails apropiados (140px, no 1080px)
  * 
- * OBJETIVO: Solo re-renderizar cuando los datos del local cambien
+ * OBJETIVO: Imágenes visibles en <100ms, sin parpadeos
  */
 
 import React, { useState, useCallback, memo, useEffect, useMemo } from 'react';
@@ -34,7 +34,6 @@ import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { intelligentPreloader } from '@/utils/intelligentPreloader';
-import { Skeleton } from '@/components/common/SkeletonLoader';
 
 // ✅ THUMBNAIL SIZE: Solicitar imágenes apropiadas (140px, no 1080px)
 const CARD_IMAGE_HEIGHT = 140;
@@ -51,17 +50,21 @@ interface LocalCardOptimizedProps {
 
 /**
  * ✅ HELPER: Generar URL de thumbnail optimizado
+ * v3.0: Optimizado para carga rápida con parámetros de calidad ajustados
  */
 const getOptimizedImageUrl = (originalUrl: string, width: number, height: number): string => {
   if (!originalUrl) return '';
   
+  // Si ya tiene parámetros de optimización, usarlos
   if (originalUrl.includes('w=') || originalUrl.includes('width=')) {
     return originalUrl;
   }
   
+  // Para Supabase Storage, agregar parámetros de optimización
   if (originalUrl.includes('supabase')) {
     const separator = originalUrl.includes('?') ? '&' : '?';
-    return `${originalUrl}${separator}width=${Math.round(width)}&height=${Math.round(height)}&quality=75`;
+    // ✅ v3.0: Calidad 80 para mejor balance velocidad/calidad
+    return `${originalUrl}${separator}width=${Math.round(width)}&height=${Math.round(height)}&quality=80&resize=cover`;
   }
   
   return originalUrl;
@@ -72,7 +75,9 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   const { user } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
   
-  const [imageLoaded, setImageLoaded] = useState(false);
+  // ✅ FIX v3.0: Start with image loaded = true for instant display
+  const [imageLoaded, setImageLoaded] = useState(true);
+  const [imageError, setImageError] = useState(false);
   const [localIsFavorite, setLocalIsFavorite] = useState(isFavorite(local.id));
 
   // ✅ MEMOIZED: Optimized image URL
@@ -87,20 +92,16 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   const hasSocialProfile = socialProfiles.get(local.id) || false;
   const activeEvent = activeEvents.get(local.id);
 
-  // ✅ CONTROLLED PREFETCH: Solo cuando JS thread está inactivo
+  // ✅ FIX v3.0: Prefetch gallery images when card is visible
   useEffect(() => {
-    InteractionManager.runAfterInteractions(() => {
-      if (optimizedImageUrl) {
-        intelligentPreloader.prefetchImages([optimizedImageUrl], 'MEDIUM');
-      }
-      
-      if (local.imagenes && local.imagenes.length > 1) {
-        const otherImages = local.imagenes.slice(1, 3).map((img: string) => 
+    if (optimizedImageUrl && local.imagenes && local.imagenes.length > 1) {
+      InteractionManager.runAfterInteractions(() => {
+        const galleryImages = local.imagenes.slice(1, 4).map((img: string) => 
           getOptimizedImageUrl(img, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
         );
-        intelligentPreloader.prefetchImages(otherImages, 'LOW');
-      }
-    });
+        intelligentPreloader.prefetchImages(galleryImages, 'LOW');
+      });
+    }
   }, [optimizedImageUrl, local.imagenes]);
 
   useEffect(() => {
@@ -120,7 +121,7 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
 
     if (!local.id) return;
 
-    console.log('[LocalCardOptimized v2.0] ⭐ INSTANT favorite toggle');
+    console.log('[LocalCardOptimized v3.0] ⭐ INSTANT favorite toggle');
 
     const newFavoriteState = !localIsFavorite;
     setLocalIsFavorite(newFavoriteState);
@@ -128,7 +129,7 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
     try {
       await toggleFavorite(local.id);
     } catch (error) {
-      console.log('[LocalCardOptimized v2.0] 🔄 Rolling back favorite');
+      console.log('[LocalCardOptimized v3.0] 🔄 Rolling back favorite');
       setLocalIsFavorite(!newFavoriteState);
     }
   }, [user, router, local.id, localIsFavorite, toggleFavorite]);
@@ -237,20 +238,19 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
       activeOpacity={0.9}
     >
       <View style={styles.imageContainer}>
-        {!imageLoaded && (
-          <View style={styles.skeletonImageContainer}>
-            <Skeleton width="100%" height={CARD_IMAGE_HEIGHT} borderRadius={0} />
-          </View>
-        )}
-        
-        {optimizedImageUrl ? (
+        {optimizedImageUrl && !imageError ? (
           <Image
-            source={{ uri: optimizedImageUrl }}
-            style={[styles.image, !imageLoaded && styles.imageHidden]}
+            source={{ uri: optimizedImageUrl, cache: 'force-cache' }}
+            style={styles.image}
             resizeMode="cover"
             onLoad={() => setImageLoaded(true)}
+            onError={() => {
+              setImageError(true);
+              setImageLoaded(false);
+            }}
             fadeDuration={0}
             progressiveRenderingEnabled={true}
+            defaultSource={require('@/assets/images/natively-dark.png')}
           />
         ) : (
           <View style={[styles.image, styles.placeholderImage]}>
@@ -258,20 +258,20 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
           </View>
         )}
 
-        {shouldDimImage && imageLoaded && (
+        {shouldDimImage && !imageError && (
           <View style={styles.dimmedOverlay} />
         )}
 
-        {imageLoaded && <View style={styles.imageOverlay} />}
+        {!imageError && <View style={styles.imageOverlay} />}
 
-        {isDestacado && imageLoaded && (
+        {isDestacado && !imageError && (
           <View style={styles.badgeDestacadoHeader}>
             <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={starIconSize} color="#92400E" />
             <Text style={[styles.badgeDestacadoHeaderText, { fontSize: scaleFontSize(12) }]}>Destacado</Text>
           </View>
         )}
 
-        {imageLoaded && (
+        {!imageError && (
           <View style={[
             styles.badgeEstadoSuperior, 
             { backgroundColor: badgeInfo.color + 'E6' },
@@ -283,14 +283,14 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
           </View>
         )}
 
-        {displayRating > 0 && imageLoaded && (
+        {displayRating > 0 && !imageError && (
           <View style={styles.ratingBadge}>
             <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={starIconSize} color="#FACC15" />
             <Text style={[styles.ratingBadgeText, { fontSize: scaleFontSize(12) }]}>{displayRating.toFixed(1)}</Text>
           </View>
         )}
 
-        {local.nuevo && imageLoaded && (
+        {local.nuevo && !imageError && (
           <View style={styles.badgeNuevoContainer}>
             <View style={styles.badgeNuevo}>
               <Text style={[styles.badgeNuevoText, { fontSize: scaleFontSize(12) }]}>Nuevo</Text>
@@ -298,7 +298,7 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
           </View>
         )}
 
-        {activeEvent && imageLoaded && (
+        {activeEvent && !imageError && (
           <View style={styles.badgeEventoContainer}>
             <View style={styles.badgeEvento}>
               <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={starIconSize} color="#FFFFFF" />
@@ -309,7 +309,7 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
           </View>
         )}
 
-        {imageLoaded && (
+        {!imageError && (
           <TouchableOpacity
             style={styles.favoritoButton}
             onPress={handleToggleFavorito}
@@ -442,20 +442,9 @@ const styles = StyleSheet.create({
     height: CARD_IMAGE_HEIGHT,
     position: 'relative',
   },
-  skeletonImageContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1,
-  },
   image: {
     width: '100%',
     height: '100%',
-  },
-  imageHidden: {
-    opacity: 0,
   },
   placeholderImage: {
     backgroundColor: colors.cardBorder,
