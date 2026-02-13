@@ -628,7 +628,7 @@ export default function ExplorarScreen() {
       setIsInitialLoad(false);
       setIsLoadingMore(false);
     }
-  }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada, deferWithPriority]);
+  }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada, deferWithPriority, isLoadingMore, locationReady]);
 
   const filteredLocales = useMemo(() => {
     const query = debouncedQuery.toLowerCase().trim();
@@ -718,7 +718,7 @@ export default function ExplorarScreen() {
     if (locationReady && hasLoadedInitialDataRef.current && !isLoadingMore) {
       loadLocales(1, false);
     }
-  }, [selectedCategory, provinciaSeleccionada]);
+  }, [selectedCategory, provinciaSeleccionada, locationReady, isLoadingMore, loadLocales]);
 
   const loadMoreLocalesRef = useRef(false);
   
