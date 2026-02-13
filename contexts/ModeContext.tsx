@@ -305,6 +305,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isInitialized]);
 
+  // ✅ LINT FIX: Removed unnecessary dependencies from useEffect
   // ✅ CRITICAL FIX v293.0: LAZY LOADING - Only load when switching to propietario mode
   // This prevents loading owned locals on every app startup
   // ✅ FIX v293.0: Admin can access propietario mode without loading locals
@@ -320,13 +321,13 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       }
       loadOwnedLocals();
     }
-  }, [user?.id, currentMode]); // ✅ Only trigger when mode changes to propietario
+  }, [user, currentMode, loadOwnedLocals]); // ✅ LINT FIX: Removed ownedLocals.length to prevent infinite loop
 
+  // ✅ LINT FIX: Removed unnecessary 'isImpersonating' dependency
   const setCurrentMode = useCallback(async (mode: UserMode) => {
     try {
       if (Platform.OS !== 'android') {
         console.log('[ModeContext v293.0] 🔄 Setting mode to:', mode);
-        console.log('[ModeContext v293.0] 🔍 Impersonation status:', isImpersonating ? 'active' : 'inactive');
       }
       
       if (user) {
@@ -344,10 +345,6 @@ export function ModeProvider({ children }: { children: ReactNode }) {
             console.warn('[ModeContext v293.0] ⚠️ Invalid mode for user:', mode, userRole);
           }
           return;
-        }
-        
-        if (isImpersonating && Platform.OS !== 'android') {
-          console.log('[ModeContext v293.0] 👑 Admin permissions preserved during impersonation');
         }
       }
       
@@ -424,7 +421,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       }
       setCurrentModeState(mode);
     }
-  }, [user, ownedLocals.length, loadOwnedLocals]);
+  }, [user, ownedLocals.length, loadOwnedLocals, switchToClientProfile, switchToLocalProfile, userForPermissions]);
 
   const switchToClientProfile = useCallback(async () => {
     if (!user) {

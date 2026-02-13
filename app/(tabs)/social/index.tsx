@@ -202,6 +202,7 @@ export default function SocialIndexScreen() {
   }, [userId, loadUnreadCounts]);
 
   // ✅ v342.0: INSTANT posts load (background)
+  // ✅ LINT FIX: Removed unnecessary 'isImpersonating' dependency
   const cargarPosts = useCallback(async (pageNum: number = 1, isRefresh: boolean = false) => {
     if (!userId) {
       setLoading(false);
@@ -307,7 +308,7 @@ export default function SocialIndexScreen() {
       setRefreshing(false);
       setLoadingMore(false);
     }
-  }, [userId, isImpersonating]);
+  }, [userId]);
 
   // ✅ v342.0: INSTANT friends locations load (only when focused)
   const loadFriendsLocations = useCallback(async () => {

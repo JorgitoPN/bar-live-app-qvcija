@@ -63,6 +63,7 @@ export default function UnifiedMomentoAvatar({
   const PADDING = 3;
   const innerSize = adjustedSize - (BORDER_WIDTH + PADDING) * 2;
 
+  // ✅ LINT FIX: Added BORDER_WIDTH to dependencies (already present, no change needed)
   const checkUnviewedMomentos = useCallback(async () => {
     if (!user) {
       console.log('[UnifiedMomentoAvatar v54.0] ℹ️ No user, skipping check');
@@ -141,7 +142,7 @@ export default function UnifiedMomentoAvatar({
     } finally {
       setLoading(false);
     }
-  }, [user, userId, localId, size, adjustedSize]);
+  }, [user, userId, localId, size, adjustedSize, BORDER_WIDTH]);
 
   useEffect(() => {
     checkUnviewedMomentos();

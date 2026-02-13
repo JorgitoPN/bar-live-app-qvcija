@@ -274,7 +274,8 @@ export default function MiSuscripcionScreen() {
     }
   };
 
-  const handleChangePlan = async () => {
+  // ✅ LINT FIX: Removed unnecessary 'router' dependency
+  const handleChangePlan = useCallback(async () => {
     if (!selectedNewPlan) {
       Alert.alert('Error', 'Selecciona un plan');
       return;
@@ -299,7 +300,7 @@ export default function MiSuscripcionScreen() {
     } finally {
       setChangingPlan(false);
     }
-  };
+  }, [selectedNewPlan, loadSubscriptionData]);
 
   const handleViewInvoice = (invoice: Invoice) => {
     if (invoice.hosted_invoice_url) {

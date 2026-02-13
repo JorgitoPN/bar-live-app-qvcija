@@ -693,8 +693,9 @@ export default function ExplorarScreen() {
     setDisplayedLocales(filteredLocales);
   }, [filteredLocales]);
 
+  // ✅ LINT FIX: Added missing dependencies to useEffect
   useEffect(() => {
-    if (locationReady && !hasLoadedInitialDataRef.current) {
+    if (locationReady && !hasLoadedInitialDataRef.current && !isLoadingMore) {
       // ✅ v339.0: INSTANT loading on Android
       if (Platform.OS === 'android') {
         // Load first page immediately
@@ -710,7 +711,7 @@ export default function ExplorarScreen() {
         loadLocales(1, false);
       }
     }
-  }, [locationReady, preloadAllCategories, loadLocales, loadDataOnDemand, deferWithPriority]);
+  }, [locationReady, isLoadingMore, loadLocales, preloadAllCategories, loadDataOnDemand, deferWithPriority]);
 
   useEffect(() => {
     if (locationReady && hasLoadedInitialDataRef.current && !isLoadingMore) {
@@ -1075,8 +1076,8 @@ export default function ExplorarScreen() {
 
           {categoriasAMostrar.length > 0 && (
             <View style={styles.categoriasContainer}>
-              {categoriasAMostrar.map((categoria: string, index: number) => (
-                <View key={index} style={styles.categoriaBadge}>
+              {categoriasAMostrar.map((categoria: string, catIndex: number) => (
+                <View key={catIndex} style={styles.categoriaBadge}>
                   <Text style={[styles.categoriaIcon, { fontSize: scaleFontSize(12) }]}>{getCategoryIcon(categoria)}</Text>
                   <Text style={[styles.categoriaText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>{categoria}</Text>
                 </View>

@@ -1,7 +1,5 @@
 
-// ✅ SALA VIRTUAL v6.4 - AUTHENTICATION INTERCEPTION + REDIRECT FLOW
-console.log("✅ SALA VIRTUAL v6.4 - AUTHENTICATION INTERCEPTION + REDIRECT FLOW");
-
+// ✅ LINT FIX: Move all imports to top of file
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
@@ -23,20 +21,23 @@ import {
   ImageBackground,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
+import { LinearGradient } from 'expo-linear-gradient';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import { LinearGradient } from 'expo-linear-gradient';
 import { getEstadoLocal } from '@/utils/timeUtils';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 import LoginPrompt from '@/components/common/LoginPrompt';
 import VirtualRoomLoginModal from '@/components/common/VirtualRoomLoginModal';
 import { scaleFontSize, scaleIconSize, getActionButtonPaddingVertical } from '@/utils/androidScaling';
-import * as Location from 'expo-location';
 import { calcularDistancia } from '@/utils/locationUtils';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// ✅ SALA VIRTUAL v6.4 - AUTHENTICATION INTERCEPTION + REDIRECT FLOW
+console.log("✅ SALA VIRTUAL v6.4 - AUTHENTICATION INTERCEPTION + REDIRECT FLOW");
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -249,14 +250,15 @@ export default function SalaVirtualEnhancedScreen() {
   const [privateChats, setPrivateChats] = useState<PrivateChat[]>([]);
   const [selectedPrivateChat, setSelectedPrivateChat] = useState<PrivateChat | null>(null);
   const [privateChatMessages, setPrivateChatMessages] = useState<Message[]>([]);
-  const [floatingParticles, setFloatingParticles] = useState<Array<{
+  // ✅ LINT FIX: Change Array<T> to T[]
+  const [floatingParticles, setFloatingParticles] = useState<{
     id: string;
     emoji: string;
     x: Animated.Value;
     y: Animated.Value;
     opacity: Animated.Value;
     scale: Animated.Value;
-  }>>([]);
+  }[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -1278,6 +1280,7 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, [user, localId, saveReadMessagesToStorage]);
 
+  // ✅ LINT FIX: Added loadReadMessagesFromStorage to dependencies
   const loadPrivateChats = useCallback(async () => {
     if (!user || !localId) return;
 
@@ -2131,6 +2134,7 @@ export default function SalaVirtualEnhancedScreen() {
     }
   }, [user, localId, uniqueActiveUsers, loadPrivateChats, privateChats, animationScale, animationOpacity, mode, fetchUserProfile, triggerFloatingReaction]);
 
+  // ✅ LINT FIX: Added bottomSheetAnim to dependencies (already present, no change needed)
   const closeBottomSheet = useCallback(() => {
     console.log('[SalaVirtual v6.4] 📋 Closing bottom sheet');
     Animated.timing(bottomSheetAnim, {

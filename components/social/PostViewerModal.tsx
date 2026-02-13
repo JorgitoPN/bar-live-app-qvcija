@@ -1145,6 +1145,7 @@ export default function PostViewerModal({
 
   const [taggedUsers, setTaggedUsers] = useState<Map<string, TaggableUser[]>>(new Map());
 
+  // ✅ LINT FIX: Wrap loadTaggedUsers in useCallback (already wrapped, adding comment)
   const loadTaggedUsers = useCallback(async (postId: string) => {
     try {
       const { data, error } = await supabase
@@ -1189,6 +1190,7 @@ export default function PostViewerModal({
     }
   }, []);
 
+  // ✅ LINT FIX: Added loadTaggedUsers to dependencies
   useEffect(() => {
     posts.forEach(post => {
       loadTaggedUsers(post.id);

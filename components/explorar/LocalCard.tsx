@@ -1,5 +1,7 @@
 
+// ✅ LINT FIX: Added React import and PropTypes for prop validation
 import React, { memo } from 'react';
+import PropTypes from 'prop-types';
 import {
   View,
   Text,
@@ -13,13 +15,37 @@ import { colors } from '@/styles/commonStyles';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 
+interface LocalData {
+  id: string;
+  nombre: string;
+  direccion: string;
+  imagenes?: string[];
+  imagen_url?: string;
+  estadoCompleto?: {
+    estaAbierto: boolean;
+    badge: string;
+  };
+  estaAbierto?: boolean;
+  nuevo?: boolean;
+  distancia?: number;
+}
+
+interface ActiveEventData {
+  titulo: string;
+}
+
+interface BadgeInfo {
+  text: string;
+  color: string;
+}
+
 interface LocalCardProps {
-  local: any;
+  local: LocalData;
   isDestacado: boolean;
   hasSocialProfile: boolean;
-  activeEvent: any;
+  activeEvent: ActiveEventData | null;
   isFavorite: boolean;
-  badgeInfo: { text: string; color: string };
+  badgeInfo: BadgeInfo;
   categoriasAMostrar: string[];
   displayRating: number;
   onPress: () => void;
@@ -250,6 +276,23 @@ const LocalCard = memo<LocalCardProps>(({
 });
 
 LocalCard.displayName = 'LocalCard';
+
+// ✅ LINT FIX: Add PropTypes validation to satisfy react/prop-types rule
+LocalCard.propTypes = {
+  local: PropTypes.object.isRequired,
+  isDestacado: PropTypes.bool.isRequired,
+  hasSocialProfile: PropTypes.bool.isRequired,
+  activeEvent: PropTypes.object,
+  isFavorite: PropTypes.bool.isRequired,
+  badgeInfo: PropTypes.object.isRequired,
+  categoriasAMostrar: PropTypes.array.isRequired,
+  displayRating: PropTypes.number.isRequired,
+  onPress: PropTypes.func.isRequired,
+  onToggleFavorite: PropTypes.func.isRequired,
+  onComoLlegar: PropTypes.func.isRequired,
+  onPerfilSocial: PropTypes.func.isRequired,
+  index: PropTypes.number.isRequired,
+};
 
 export default LocalCard;
 

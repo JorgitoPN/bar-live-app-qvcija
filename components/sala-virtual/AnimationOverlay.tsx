@@ -40,6 +40,7 @@ export function AnimationOverlay({
     }))
   ).current;
 
+  // ✅ LINT FIX: Added all animation dependencies
   useEffect(() => {
     if (visible) {
       // Main animation
@@ -119,7 +120,7 @@ export function AnimationOverlay({
         ]).start();
       });
     }
-  }, [visible]);
+  }, [visible, onComplete, scaleAnim, opacityAnim, sparkles]);
 
   if (!visible) return null;
 

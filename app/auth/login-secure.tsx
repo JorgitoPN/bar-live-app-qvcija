@@ -85,12 +85,24 @@ export default function SecureLoginScreen() {
     checkCookieConsent();
   }, []);
 
+  // ✅ LINT FIX: Wrap checkLoginAttempts in useCallback to stabilize dependency
+  const checkLoginAttempts = useCallback(async () => {
+    try {
+      const attempts = await getLoginAttempts(email.trim().toLowerCase());
+      setLoginAttempts(attempts.attempts);
+      
+      console.log('[SecureLogin] Login attempts for', email, ':', attempts.attempts);
+    } catch (error) {
+      console.error('[SecureLogin] Error checking login attempts:', error);
+    }
+  }, [email]);
+
   useEffect(() => {
     // Check login attempts when email changes
     if (email) {
       checkLoginAttempts();
     }
-  }, [email]);
+  }, [email, checkLoginAttempts]);
 
   const checkCookieConsent = async () => {
     try {
@@ -127,16 +139,7 @@ export default function SecureLoginScreen() {
     }
   };
 
-  const checkLoginAttempts = async () => {
-    try {
-      const attempts = await getLoginAttempts(email.trim().toLowerCase());
-      setLoginAttempts(attempts.attempts);
-      
-      console.log('[SecureLogin] Login attempts for', email, ':', attempts.attempts);
-    } catch (error) {
-      console.error('[SecureLogin] Error checking login attempts:', error);
-    }
-  };
+
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
