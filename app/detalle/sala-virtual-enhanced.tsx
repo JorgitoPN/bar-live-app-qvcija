@@ -3270,7 +3270,8 @@ export default function SalaVirtualEnhancedScreen() {
             },
             headerStyle: {
               backgroundColor: headerBackgroundColor,
-              height: 60,Perfect! Now let me fix the remaining lint errors in the other files:
+              height: 60,
+            },Perfect! Now let me fix the remaining lint errors in the other files:
 
 <write file="app/admin/gestionar-locales.tsx">
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';

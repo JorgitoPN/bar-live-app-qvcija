@@ -79,29 +79,29 @@ export function AnimationOverlay({
         const angle = (index / sparkles.length) * Math.PI * 2;
         const distance = 150;
         const targetX = Math.cos(angle) * distance;
-        const targetY = Math.sin(angle) * distance;
+        const targetY = Math.sin(angle) * distance - 50;
 
         Animated.parallel([
           Animated.timing(sparkle.x, {
             toValue: targetX,
-            duration: 1000,
+            duration: 1500 + Math.random() * 500,
             useNativeDriver: true,
           }),
           Animated.timing(sparkle.y, {
             toValue: targetY,
-            duration: 1000,
+            duration: 1500 + Math.random() * 500,
             useNativeDriver: true,
           }),
           Animated.sequence([
             Animated.timing(sparkle.opacity, {
-              toValue: 1,
+              toValue: 0.8,
               duration: 200,
               useNativeDriver: true,
             }),
-            Animated.delay(600),
+            Animated.delay(800),
             Animated.timing(sparkle.opacity, {
               toValue: 0,
-              duration: 200,
+              duration: 500,
               useNativeDriver: true,
             }),
           ]),
@@ -113,7 +113,7 @@ export function AnimationOverlay({
             }),
             Animated.timing(sparkle.scale, {
               toValue: 0,
-              duration: 800,
+              duration: 1300,
               useNativeDriver: true,
             }),
           ]),
