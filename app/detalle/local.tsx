@@ -317,14 +317,21 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL SCREEN v336.0 - IMMERSIVE VIRTUAL ROOM PORTAL
+ * ✅ DETALLE LOCAL SCREEN v337.0 - COMPACT & ORGANIZED UX
  * 
- * 🚨 NEW CHANGES v336.0:
- * - ✅ REDESIGNED: Virtual Room as an immersive portal card with holographic effect
- * - ✅ ENHANCED: Floating 3D cube with rotation animation
- * - ✅ IMPROVED: Glassmorphism design with gradient borders
- * - ✅ ADDED: Particle effects and ambient glow
- * - ✅ RESULT: Stunning, futuristic portal that captures virtual room essence
+ * 🚨 NEW CHANGES v337.0:
+ * - ✅ REDESIGNED: Virtual Room button - compact, responsive with community icon (groups)
+ * - ✅ REORGANIZED: All action buttons in logical grid layout
+ * - ✅ IMPROVED: Better visual hierarchy and cleaner spacing
+ * - ✅ ENHANCED: Purple gradient matching BarLive colors but distinctive
+ * - ✅ OPTIMIZED: Responsive design that adapts to screen sizes
+ * - ✅ RESULT: Professional UX with clear action priorities
+ * 
+ * Button Organization Logic:
+ * 1. Check-in (most important when local is open)
+ * 2. Virtual Room (community feature, prominent but not overwhelming)
+ * 3. Contact Actions (Call & Directions - practical needs)
+ * 4. Social & Web (additional information)
  */
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
@@ -1361,250 +1368,183 @@ export default function DetalleLocalScreen() {
             </TouchableOpacity>
           )}
 
-          {user && isOpen && isClientMode && (
-            <View style={styles.checkInButtonsContainer}>
-              {!isCheckedIn ? (
-                <TouchableOpacity style={styles.checkInButton} onPress={handleCheckIn}>
-                  <LinearGradient colors={['#10B981', '#059669']} style={styles.checkInButtonGradient}>
-                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="add_location" size={22} color="#fff" />
-                    <Text style={[styles.checkInButtonText, { fontSize: scaleFontSize(15) }]}>Estoy en este local</Text>
+
+
+          {/* Primary Actions Grid - Organized by importance and logic */}
+          <View style={styles.primaryActionsGrid}>
+            {/* Row 1: Check-in (most important when open) */}
+            {user && isOpen && isClientMode && (
+              <View style={styles.actionGridFullWidth}>
+                {!isCheckedIn ? (
+                  <TouchableOpacity style={styles.checkInButtonCompact} onPress={handleCheckIn}>
+                    <LinearGradient colors={['#10B981', '#059669']} style={styles.checkInButtonGradientCompact}>
+                      <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="add_location" size={20} color="#fff" />
+                      <Text style={[styles.checkInButtonTextCompact, { fontSize: scaleFontSize(14) }]}>Estoy en este local</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={styles.checkOutButtonCompact} onPress={handleCheckOut}>
+                    <LinearGradient colors={['#9CA3AF', '#6B7280']} style={styles.checkInButtonGradientCompact}>
+                      <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={20} color="#fff" />
+                      <Text style={[styles.checkInButtonTextCompact, { fontSize: scaleFontSize(14) }]}>Ya no estoy aquí</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            {/* Row 2: Virtual Room (when open and client mode) */}
+            {isOpen && isClientMode && (
+              <TouchableOpacity
+                style={styles.virtualRoomCompact}
+                onPress={handleVirtualRoom}
+                activeOpacity={0.85}
+              >
+                <LinearGradient 
+                  colors={['#7C3AED', '#A855F7', '#C084FC']} 
+                  start={{ x: 0, y: 0 }} 
+                  end={{ x: 1, y: 0 }} 
+                  style={styles.virtualRoomGradient}
+                >
+                  {/* Animated glow */}
+                  <Animated.View 
+                    style={[
+                      styles.virtualRoomGlow,
+                      { opacity: glowOpacity }
+                    ]}
+                  />
+                  
+                  {/* Icon with animation */}
+                  <Animated.View 
+                    style={[
+                      styles.virtualRoomIconWrapper,
+                      {
+                        transform: [
+                          { scale: glowAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [1, 1.1],
+                          })},
+                        ],
+                      },
+                    ]}
+                  >
+                    <View style={styles.virtualRoomIconCircle}>
+                      <IconSymbol 
+                        ios_icon_name="person.3.fill" 
+                        android_material_icon_name="groups" 
+                        size={22} 
+                        color="#fff" 
+                      />
+                    </View>
+                  </Animated.View>
+
+                  {/* Content */}
+                  <View style={styles.virtualRoomContent}>
+                    <View style={styles.virtualRoomHeader}>
+                      <Text style={[styles.virtualRoomTitle, { fontSize: scaleFontSize(16) }]}>
+                        Sala Virtual
+                      </Text>
+                      <View style={styles.liveIndicatorCompact}>
+                        <View style={styles.liveDotCompact} />
+                        <Text style={[styles.liveTextCompact, { fontSize: scaleFontSize(10) }]}>LIVE</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.virtualRoomSubtitle, { fontSize: scaleFontSize(12) }]}>
+                      Conecta con otros usuarios ahora
+                    </Text>
+                  </View>
+
+                  {/* Arrow */}
+                  <IconSymbol 
+                    ios_icon_name="chevron.right" 
+                    android_material_icon_name="chevron_right" 
+                    size={20} 
+                    color="rgba(255, 255, 255, 0.8)" 
+                  />
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+
+            {/* Row 3: Contact Actions (Call & Directions) */}
+            <View style={styles.actionGridRow}>
+              {local.telefono && (
+                <TouchableOpacity style={styles.actionGridItem} onPress={handleCall}>
+                  <LinearGradient 
+                    colors={['#10B981', '#059669']} 
+                    start={{ x: 0, y: 0 }} 
+                    end={{ x: 1, y: 1 }} 
+                    style={styles.actionGridItemGradient}
+                  >
+                    <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
+                    <Text style={[styles.actionGridItemText, { fontSize: scaleFontSize(13) }]}>Llamar</Text>
                   </LinearGradient>
                 </TouchableOpacity>
-              ) : (
-                <TouchableOpacity style={styles.checkOutButton} onPress={handleCheckOut}>
-                  <LinearGradient colors={['#9CA3AF', '#6B7280']} style={styles.checkInButtonGradient}>
-                    <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={22} color="#fff" />
-                    <Text style={[styles.checkInButtonText, { fontSize: scaleFontSize(15) }]}>Ya no estoy en este local</Text>
+              )}
+
+              {local.latitud && local.longitud && (
+                <TouchableOpacity style={styles.actionGridItem} onPress={handleDirections}>
+                  <LinearGradient 
+                    colors={[colors.primary, colors.secondary]} 
+                    start={{ x: 0, y: 0 }} 
+                    end={{ x: 1, y: 1 }} 
+                    style={styles.actionGridItemGradient}
+                  >
+                    <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
+                    <Text style={[styles.actionGridItemText, { fontSize: scaleFontSize(13) }]}>Cómo llegar</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               )}
             </View>
-          )}
 
-          <View style={styles.actionsRow}>
-            {local.telefono && (
-              <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
-                <LinearGradient 
-                  colors={['#10B981', '#059669']} 
-                  start={{ x: 0, y: 0 }} 
-                  end={{ x: 1, y: 1 }} 
-                  style={[
-                    styles.actionBtnGradient,
-                    { paddingVertical: actionButtonPaddingVertical }
-                  ]}
-                >
-                  <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
-                  <Text style={[styles.actionBtnText, { fontSize: scaleFontSize(14) }]}>Llamar</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
+            {/* Row 4: Social & Web Actions */}
+            {(hasSocialProfile || local.website || local.email) && (
+              <View style={styles.actionGridRow}>
+                {hasSocialProfile && (
+                  <TouchableOpacity style={styles.actionGridItem} onPress={handleSocialProfile}>
+                    <LinearGradient 
+                      colors={[colors.primary, colors.secondary]} 
+                      start={{ x: 0, y: 0 }} 
+                      end={{ x: 1, y: 1 }} 
+                      style={styles.actionGridItemGradient}
+                    >
+                      <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color="#fff" />
+                      <Text style={[styles.actionGridItemText, { fontSize: scaleFontSize(13) }]}>Perfil Social</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
 
-            {local.latitud && local.longitud && (
-              <TouchableOpacity style={styles.actionBtn} onPress={handleDirections}>
-                <LinearGradient 
-                  colors={[colors.primary, colors.secondary]} 
-                  start={{ x: 0, y: 0 }} 
-                  end={{ x: 1, y: 1 }} 
-                  style={[
-                    styles.actionBtnGradient,
-                    { paddingVertical: actionButtonPaddingVertical }
-                  ]}
-                >
-                  <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
-                  <Text style={[styles.actionBtnText, { fontSize: scaleFontSize(14) }]}>Cómo llegar</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View style={styles.socialButtonsContainer}>
-            {hasSocialProfile && (
-              <TouchableOpacity style={styles.specialButton} onPress={handleSocialProfile}>
-                <LinearGradient 
-                  colors={[colors.primary, colors.secondary]} 
-                  start={{ x: 0, y: 0 }} 
-                  end={{ x: 1, y: 1 }} 
-                  style={[
-                    styles.specialButtonGradient,
-                    { paddingVertical: actionButtonPaddingVertical }
-                  ]}
-                >
-                  <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color="#fff" />
-                  <Text style={[styles.specialButtonText, { fontSize: scaleFontSize(15) }]}>Ver Perfil Social</Text>
-                  <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-
-            {(local.website || local.email) && (
-              <TouchableOpacity 
-                style={styles.specialButton} 
-                onPress={() => {
-                  if (local.website) {
-                    Linking.openURL(local.website.startsWith('http') ? local.website : `https://${local.website}`);
-                  } else if (local.email) {
-                    Linking.openURL(`mailto:${local.email}`);
-                  }
-                }}
-              >
-                <LinearGradient 
-                  colors={['#10B981', '#059669']} 
-                  start={{ x: 0, y: 0 }} 
-                  end={{ x: 1, y: 1 }} 
-                  style={[
-                    styles.specialButtonGradient,
-                    { paddingVertical: actionButtonPaddingVertical }
-                  ]}
-                >
-                  <IconSymbol 
-                    ios_icon_name={local.website ? "globe" : "envelope.fill"} 
-                    android_material_icon_name={local.website ? "language" : "email"} 
-                    size={22} 
-                    color="#fff" 
-                  />
-                  <Text style={[styles.specialButtonText, { fontSize: scaleFontSize(15) }]}>
-                    {local.website ? 'Sitio Web' : 'Enviar Email'}
-                  </Text>
-                  <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {isOpen && isClientMode && (
-            <TouchableOpacity
-              style={styles.virtualRoomPortal}
-              onPress={handleVirtualRoom}
-              activeOpacity={0.9}
-            >
-              <LinearGradient 
-                colors={['#1a0033', '#2d0052', '#4a0080', '#6b00b8']} 
-                start={{ x: 0, y: 0 }} 
-                end={{ x: 1, y: 1 }} 
-                style={styles.virtualRoomPortalGradient}
-              >
-                {/* Animated glow background */}
-                <Animated.View 
-                  style={[
-                    styles.portalGlowBackground,
-                    { opacity: glowOpacity }
-                  ]}
-                />
-
-                {/* Floating particles */}
-                <View style={styles.particlesContainer}>
-                  <View style={[styles.particle, styles.particle1]} />
-                  <View style={[styles.particle, styles.particle2]} />
-                  <View style={[styles.particle, styles.particle3]} />
-                  <View style={[styles.particle, styles.particle4]} />
-                </View>
-
-                {/* 3D Rotating Cube Icon */}
-                <Animated.View 
-                  style={[
-                    styles.portalIconContainer,
-                    {
-                      transform: [
-                        { rotateY: rotateInterpolate },
-                        { translateY: floatInterpolate },
-                      ],
-                    },
-                  ]}
-                >
-                  <LinearGradient
-                    colors={['#a855f7', '#ec4899', '#8b5cf6']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.portalIconGradient}
+                {(local.website || local.email) && (
+                  <TouchableOpacity 
+                    style={styles.actionGridItem} 
+                    onPress={() => {
+                      if (local.website) {
+                        Linking.openURL(local.website.startsWith('http') ? local.website : `https://${local.website}`);
+                      } else if (local.email) {
+                        Linking.openURL(`mailto:${local.email}`);
+                      }
+                    }}
                   >
-                    <IconSymbol 
-                      ios_icon_name="cube.fill" 
-                      android_material_icon_name="view_in_ar" 
-                      size={Platform.OS === 'android' ? 36 : 40} 
-                      color="#fff" 
-                    />
-                  </LinearGradient>
-                  
-                  {/* Glow rings */}
-                  <Animated.View 
-                    style={[
-                      styles.glowRing,
-                      { opacity: glowOpacity }
-                    ]} 
-                  />
-                </Animated.View>
-
-                {/* Content */}
-                <View style={styles.portalContent}>
-                  <View style={styles.portalHeader}>
-                    <Text style={[styles.portalTitle, { fontSize: scaleFontSize(22) }]}>
-                      Sala Virtual
-                    </Text>
-                    <View style={styles.liveIndicator}>
-                      <View style={styles.liveDot} />
-                      <Text style={[styles.liveText, { fontSize: scaleFontSize(11) }]}>EN VIVO</Text>
-                    </View>
-                  </View>
-                  
-                  <Text style={[styles.portalDescription, { fontSize: scaleFontSize(14) }]}>
-                    Entra al espacio virtual del local y conecta con otros usuarios en tiempo real
-                  </Text>
-
-                  <View style={styles.portalFeatures}>
-                    <View style={styles.portalFeature}>
+                    <LinearGradient 
+                      colors={['#10B981', '#059669']} 
+                      start={{ x: 0, y: 0 }} 
+                      end={{ x: 1, y: 1 }} 
+                      style={styles.actionGridItemGradient}
+                    >
                       <IconSymbol 
-                        ios_icon_name="message.fill" 
-                        android_material_icon_name="chat" 
-                        size={14} 
-                        color="rgba(255, 255, 255, 0.8)" 
+                        ios_icon_name={local.website ? "globe" : "envelope.fill"} 
+                        android_material_icon_name={local.website ? "language" : "email"} 
+                        size={20} 
+                        color="#fff" 
                       />
-                      <Text style={[styles.portalFeatureText, { fontSize: scaleFontSize(12) }]}>
-                        Chat en vivo
+                      <Text style={[styles.actionGridItemText, { fontSize: scaleFontSize(13) }]}>
+                        {local.website ? 'Sitio Web' : 'Email'}
                       </Text>
-                    </View>
-                    <View style={styles.portalFeature}>
-                      <IconSymbol 
-                        ios_icon_name="person.2.fill" 
-                        android_material_icon_name="people" 
-                        size={14} 
-                        color="rgba(255, 255, 255, 0.8)" 
-                      />
-                      <Text style={[styles.portalFeatureText, { fontSize: scaleFontSize(12) }]}>
-                        Conoce gente
-                      </Text>
-                    </View>
-                    <View style={styles.portalFeature}>
-                      <IconSymbol 
-                        ios_icon_name="sparkles" 
-                        android_material_icon_name="auto_awesome" 
-                        size={14} 
-                        color="rgba(255, 255, 255, 0.8)" 
-                      />
-                      <Text style={[styles.portalFeatureText, { fontSize: scaleFontSize(12) }]}>
-                        Experiencia única
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Enter button */}
-                  <View style={styles.portalEnterButton}>
-                    <Text style={[styles.portalEnterText, { fontSize: scaleFontSize(16) }]}>
-                      Entrar a la Sala
-                    </Text>
-                    <IconSymbol 
-                      ios_icon_name="arrow.right.circle.fill" 
-                      android_material_icon_name="arrow_circle_right" 
-                      size={24} 
-                      color="#fff" 
-                    />
-                  </View>
-                </View>
-
-                {/* Border gradient effect */}
-                <View style={styles.portalBorderGradient} />
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
 
           {eventos.length > 0 && (
             <View style={styles.compactSection}>
@@ -2350,240 +2290,154 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'center',
   },
-  checkInButtonsContainer: {
+  // 🎯 NEW: Organized Primary Actions Grid
+  primaryActionsGrid: {
+    gap: 10,
     marginBottom: 16,
   },
-  checkInButton: {
+  actionGridFullWidth: {
+    width: '100%',
+  },
+  actionGridRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  actionGridItem: {
+    flex: 1,
     borderRadius: 12,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  checkOutButton: {
+  actionGridItemGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  actionGridItemText: {
+    fontWeight: '700',
+    color: '#fff',
+  },
+  // Check-in Compact Styles
+  checkInButtonCompact: {
     borderRadius: 12,
     overflow: 'hidden',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  checkInButtonGradient: {
+  checkOutButtonCompact: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  checkInButtonGradientCompact: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 14,
+    paddingVertical: 12,
   },
-  checkInButtonText: {
+  checkInButtonTextCompact: {
     fontWeight: '700',
     color: '#fff',
   },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 10,
-  },
-  actionBtn: {
-    flex: 1,
-    borderRadius: 12,
+  // 🎨 NEW: Compact Virtual Room Design
+  virtualRoomCompact: {
+    borderRadius: 16,
     overflow: 'hidden',
-  },
-  actionBtnGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  actionBtnText: {
-    fontWeight: '700',
-    color: '#fff',
-  },
-  socialButtonsContainer: {
-    gap: 10,
-    marginBottom: 10,
-  },
-  specialButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  specialButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-  },
-  specialButtonText: {
-    flex: 1,
-    fontWeight: '700',
-    color: '#fff',
-    marginLeft: 10,
-  },
-  // 🎨 NEW: Immersive Virtual Room Portal Design
-  virtualRoomPortal: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    marginBottom: 16,
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  virtualRoomPortalGradient: {
-    padding: 20,
-    minHeight: 180,
-    position: 'relative',
-  },
-  portalGlowBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(168, 85, 247, 0.3)',
-  },
-  particlesContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  particle: {
-    position: 'absolute',
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-  },
-  particle1: {
-    top: '20%',
-    left: '15%',
-  },
-  particle2: {
-    top: '60%',
-    right: '20%',
-  },
-  particle3: {
-    bottom: '30%',
-    left: '70%',
-  },
-  particle4: {
-    top: '40%',
-    right: '40%',
-  },
-  portalIconContainer: {
-    width: 80,
-    height: 80,
-    alignSelf: 'center',
-    marginBottom: 16,
-    position: 'relative',
-  },
-  portalIconGradient: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#a855f7',
+    shadowColor: '#7C3AED',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.8,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  glowRing: {
+  virtualRoomGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+    position: 'relative',
+    minHeight: 70,
+  },
+  virtualRoomGlow: {
     position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(168, 85, 247, 0.2)',
+  },
+  virtualRoomIconWrapper: {
+    zIndex: 2,
+  },
+  virtualRoomIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(168, 85, 247, 0.6)',
-    top: -10,
-    left: -10,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
-  portalContent: {
-    alignItems: 'center',
+  virtualRoomContent: {
+    flex: 1,
+    zIndex: 2,
   },
-  portalHeader: {
+  virtualRoomHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 8,
+    gap: 8,
+    marginBottom: 2,
   },
-  portalTitle: {
-    fontWeight: '900',
+  virtualRoomTitle: {
+    fontWeight: '800',
     color: '#fff',
-    letterSpacing: 1,
-    textShadowColor: 'rgba(168, 85, 247, 0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    letterSpacing: 0.5,
   },
-  liveIndicator: {
+  liveIndicatorCompact: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     backgroundColor: 'rgba(16, 185, 129, 0.3)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.5)',
   },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  liveDotCompact: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: '#10B981',
   },
-  liveText: {
+  liveTextCompact: {
     fontWeight: '800',
     color: '#10B981',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
-  portalDescription: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 16,
-    paddingHorizontal: 10,
-  },
-  portalFeatures: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 16,
-  },
-  portalFeature: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  portalFeatureText: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '600',
-  },
-  portalEnterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  portalEnterText: {
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 0.5,
-  },
-  portalBorderGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: 'rgba(168, 85, 247, 0.4)',
+  virtualRoomSubtitle: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontWeight: '500',
   },
   compactSection: {
     marginTop: 20,
