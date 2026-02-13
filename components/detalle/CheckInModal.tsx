@@ -37,21 +37,19 @@ interface User {
 }
 
 /**
- * ✅ CHECK-IN MODAL v56.0 - ANDROID FULL-SCREEN FIX (FINAL)
+ * ✅ CHECK-IN MODAL v57.0 - ANDROID BUTTON POSITIONING FIX
  * 
- * CRITICAL CHANGES v56.0:
- * - ✅ ENHANCED PADDING: Increased minimum padding for Android system buttons
- * - ✅ FULL COVERAGE: Ensures 100% screen height on Android
- * - ✅ NO GAPS: Solid background covers entire screen
- * - ✅ SAFE AREAS: Proper handling of notch and navigation buttons
- * - ✅ SCROLLING: Content scrolls smoothly with footer always visible
- * - ✅ CONSISTENCY: Matches iOS full-screen behavior
- * - ✅ RESULT: Perfect full-screen experience on Android
+ * CRITICAL CHANGES v57.0:
+ * - ✅ REDUCED FOOTER PADDING: Buttons now sit just above navigation buttons
+ * - ✅ MINIMAL SPACING: Removed excessive bottom padding on Android
+ * - ✅ PROPER POSITIONING: Buttons are now accessible and well-positioned
+ * - ✅ SAFE AREAS: Still respects system UI but with minimal padding
+ * - ✅ RESULT: Buttons positioned correctly above phone's navigation buttons
  */
 
 export default function CheckInModal({ visible, localId, localName, onClose, onCheckInComplete }: CheckInModalProps) {
   const { user } = useAuth();
-  const { currentMode, activeProfileType } = useMode();
+  const { currentMode, setCurrentMode, activeProfileType, activeLocalData } = useMode();
   const insets = useSafeAreaInsets();
   
   const [visibility, setVisibility] = useState<'followers' | 'all_users' | 'specific_users'>('followers');
@@ -64,7 +62,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
   const isClientMode = currentMode === 'cliente' && activeProfileType === 'cliente';
 
-  console.log('[CheckInModal v54.0] 🎭 Mode check:', {
+  console.log('[CheckInModal v57.0] 🎭 Mode check:', {
     currentMode,
     activeProfileType,
     isClientMode,
@@ -74,7 +72,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
   useEffect(() => {
     if (visible && !isClientMode) {
-      console.log('[CheckInModal v54.0] ❌ Not in client mode, showing error');
+      console.log('[CheckInModal v57.0] ❌ Not in client mode, showing error');
       Alert.alert(
         'No Disponible',
         'La función "Estoy en este local" solo está disponible en modo cliente.',
@@ -85,7 +83,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
   useEffect(() => {
     if (visible && !user) {
-      console.log('[CheckInModal v54.0] ❌ User not authenticated, showing error');
+      console.log('[CheckInModal v57.0] ❌ User not authenticated, showing error');
       Alert.alert(
         'Inicia Sesión',
         'Debes iniciar sesión para usar la función "Estoy en este local".',
@@ -117,7 +115,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
       setSearchResults(users);
     } catch (error) {
-      console.error('[CheckInModal v54.0] Error searching users:', error);
+      console.error('[CheckInModal v57.0] Error searching users:', error);
     } finally {
       setSearching(false);
     }
@@ -166,7 +164,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
     setSubmitting(true);
 
     try {
-      console.log('[CheckInModal v54.0] Checking for existing check-in...');
+      console.log('[CheckInModal v57.0] Checking for existing check-in...');
 
       const { data: existingCheckIn, error: checkError } = await supabase
         .from('check_ins')
@@ -206,7 +204,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
       await performCheckIn();
     } catch (error) {
-      console.error('[CheckInModal v54.0] Error creating check-in:', error);
+      console.error('[CheckInModal v57.0] Error creating check-in:', error);
       Alert.alert('Error', 'No se pudo realizar el check-in');
       setSubmitting(false);
     }
@@ -216,7 +214,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
     if (!user) return;
 
     try {
-      console.log('[CheckInModal v54.0] Creating check-in...');
+      console.log('[CheckInModal v57.0] Creating check-in...');
 
       const { error: deleteError } = await supabase
         .from('check_ins')
@@ -237,10 +235,10 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 
       if (insertError) throw insertError;
 
-      console.log('[CheckInModal v54.0] ✅ Check-in created successfully');
+      console.log('[CheckInModal v57.0] ✅ Check-in created successfully');
 
       if (sendNotifications) {
-        console.log('[CheckInModal v54.0] Sending notifications...');
+        console.log('[CheckInModal v57.0] Sending notifications...');
         
         let recipientIds: string[] = [];
 
@@ -277,9 +275,9 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
             .insert(notifications);
 
           if (notifError) {
-            console.error('[CheckInModal v54.0] Error sending notifications:', notifError);
+            console.error('[CheckInModal v57.0] Error sending notifications:', notifError);
           } else {
-            console.log('[CheckInModal v54.0] ✅ Notifications sent to', recipientIds.length, 'users');
+            console.log('[CheckInModal v57.0] ✅ Notifications sent to', recipientIds.length, 'users');
           }
         }
       }
@@ -293,7 +291,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
         }}]
       );
     } catch (error) {
-      console.error('[CheckInModal v54.0] Error creating check-in:', error);
+      console.error('[CheckInModal v57.0] Error creating check-in:', error);
       Alert.alert('Error', 'No se pudo realizar el check-in');
     } finally {
       setSubmitting(false);
@@ -304,21 +302,21 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
     return null;
   }
 
-  // ✅ CRITICAL FIX v56.0: Enhanced padding for Android full-screen
-  // Ensure proper spacing for status bar and system navigation buttons
+  // ✅ CRITICAL FIX v57.0: Reduced footer padding to position buttons just above navigation
+  // Buttons now sit comfortably above the phone's navigation buttons without excessive spacing
   const headerPaddingTop = Platform.OS === 'android' 
-    ? Math.max(insets.top + 20, 60) // Increased minimum for Android
+    ? Math.max(insets.top + 20, 60)
     : Math.max(insets.top + 10, 60);
   
   const footerPaddingBottom = Platform.OS === 'android' 
-    ? Math.max(insets.bottom + 32, 56) // Increased minimum for Android system buttons
+    ? Math.max(insets.bottom + 8, 16) // ✅ REDUCED: Minimal padding for Android
     : Math.max(insets.bottom + 20, 20);
   
   const scrollContentPaddingBottom = Platform.OS === 'android' 
-    ? 180 + Math.max(insets.bottom, 32) // Increased to prevent content being cut off
+    ? 160 + Math.max(insets.bottom, 8) // ✅ REDUCED: Less padding to bring buttons down
     : 140;
 
-  console.log('[CheckInModal v55.0] 📐 Layout calculations:', {
+  console.log('[CheckInModal v57.0] 📐 Layout calculations:', {
     platform: Platform.OS,
     insets,
     headerPaddingTop,
@@ -335,7 +333,6 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
       onRequestClose={onClose}
       statusBarTranslucent={Platform.OS === 'android'}
     >
-      {/* ✅ CRITICAL FIX v55.0: Full-screen container with proper background */}
       <View style={[styles.fullScreenContainer, Platform.OS === 'android' && { paddingTop: 0 }]}>
         <View style={styles.modalHeader}>
           <View style={[styles.headerContent, { paddingTop: headerPaddingTop }]}>
@@ -597,7 +594,7 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
           </View>
         </ScrollView>
 
-        {/* ✅ CRITICAL FIX v54.0: Footer with proper padding for Android system buttons */}
+        {/* ✅ CRITICAL FIX v57.0: Reduced padding to position buttons just above navigation */}
         <View style={[styles.modalFooter, { paddingBottom: footerPaddingBottom }]}>
           <TouchableOpacity
             style={styles.confirmButton}
@@ -629,13 +626,11 @@ export default function CheckInModal({ visible, localId, localName, onClose, onC
 }
 
 const styles = StyleSheet.create({
-  // ✅ CRITICAL FIX v55.0: Full-screen container with solid background
   fullScreenContainer: {
     flex: 1,
     backgroundColor: colors.background,
     ...Platform.select({
       android: {
-        // Ensure full coverage on Android
         minHeight: '100%',
         minWidth: '100%',
       },
@@ -647,7 +642,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     ...Platform.select({
       android: {
-        // Ensure header covers status bar area
         paddingTop: 0,
       },
     }),

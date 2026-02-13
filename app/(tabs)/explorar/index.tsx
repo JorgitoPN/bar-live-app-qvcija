@@ -76,20 +76,19 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v344.0 - ADVANCED FILTERS UX IMPROVEMENTS
+ * ✅ EXPLORAR SCREEN v345.0 - CRITICAL FILTER FIX
  * 
- * CRITICAL FIXES v344.0:
- * - ✅ VISUAL INDICATOR: Red dot on filter button when advanced filters are active
- * - ✅ QUICK CLEAR: Button to clear advanced filters without opening sheet
- * - ✅ NO "APLICANDO FILTROS" ON DEFAULT: Only show when filters actually change
- * - ✅ INSTANT RESPONSE: Filters apply immediately like the map
- * - ✅ FIXED LOOP: Resolved infinite loading when no results
- * - ✅ RESULT: Smooth, professional filter experience
+ * CRITICAL FIXES v345.0:
+ * - ✅ FIXED FILTER CHECK: Use hasActiveFilters from context (not hasAdvancedFilters)
+ * - ✅ PROPER CONTEXT USAGE: Use hasActiveFilters property from FilterContext
+ * - ✅ CONSISTENT NAMING: Aligned with FilterContext API
+ * - ✅ RESULT: Advanced filters now work correctly and show results
  * 
- * Previous features v343.0:
- * - ✅ Performance optimizations
- * - ✅ Helper functions for rendering
- * - ✅ Optimized filtering logic
+ * Previous features v344.0:
+ * - ✅ Visual indicator (red dot) when filters are active
+ * - ✅ Quick clear button for advanced filters
+ * - ✅ Instant filter application
+ * - ✅ Fixed infinite loading loop
  */
 
 export default function ExplorarScreen() {
@@ -98,7 +97,13 @@ export default function ExplorarScreen() {
   const { currentMode, setCurrentMode, activeProfileType, activeLocalData } = useMode();
   const { prefetchNextPage, loadDataOnDemand } = useGlobalData();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { filtros: globalFiltros, limpiarFiltros } = useFilters();
+  
+  // ✅ CRITICAL FIX v345.0: Use hasActiveFilters from context
+  const { 
+    filtros: globalFiltros, 
+    limpiarFiltros,
+    hasActiveFilters, // ✅ This is the correct property name from FilterContext
+  } = useFilters();
   
   const { isReady, deferOperation, deferDataLoading, deferWithPriority } = useScreenPerformance('Explorar');
   
@@ -108,7 +113,6 @@ export default function ExplorarScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   
-  // ✅ NEW v342.0: Separate loading state for filter application
   const [applyingFilters, setApplyingFilters] = useState(false);
   
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -148,7 +152,6 @@ export default function ExplorarScreen() {
   const savedScrollPosition = useRef<number>(0);
   const isReturningFromDetail = useRef<boolean>(false);
 
-  // ✅ NEW v342.0: Track last applied filters to avoid unnecessary re-filtering
   const lastAppliedFiltersRef = useRef<string>('');
 
   useFocusEffect(
@@ -633,12 +636,12 @@ export default function ExplorarScreen() {
     }
   }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada, deferWithPriority, isLoadingMore, locationReady]);
 
-  // ✅ CRITICAL OPTIMIZATION v342.0: Apply filters efficiently with loading state
+  // ✅ CRITICAL OPTIMIZATION: Apply filters efficiently with loading state
   const filteredLocales = useMemo(() => {
     const startTime = Date.now();
-    console.log('[Explorar v342.0] 🔍 Starting filter application...');
-    console.log('[Explorar v342.0] 📊 Input:', allLoadedLocales.length, 'locals');
-    console.log('[Explorar v342.0] 📋 Filters:', {
+    console.log('[Explorar v345.0] 🔍 Starting filter application...');
+    console.log('[Explorar v345.0] 📊 Input:', allLoadedLocales.length, 'locals');
+    console.log('[Explorar v345.0] 📋 Filters:', {
       search: debouncedQuery,
       category: selectedCategory,
       advanced: globalFiltros,
@@ -709,15 +712,15 @@ export default function ExplorarScreen() {
     const endTime = Date.now();
     const duration = endTime - startTime;
     
-    console.log('[Explorar v342.0] ✅ Filter application complete');
-    console.log('[Explorar v342.0] ⏱️ Duration:', duration, 'ms');
-    console.log('[Explorar v342.0] 📊 Result:', uniqueLocales.length, 'locals');
-    console.log('[Explorar v342.0] 🚀 Performance:', duration < 100 ? 'EXCELLENT' : duration < 300 ? 'GOOD' : 'NEEDS OPTIMIZATION');
+    console.log('[Explorar v345.0] ✅ Filter application complete');
+    console.log('[Explorar v345.0] ⏱️ Duration:', duration, 'ms');
+    console.log('[Explorar v345.0] 📊 Result:', uniqueLocales.length, 'locals');
+    console.log('[Explorar v345.0] 🚀 Performance:', duration < 100 ? 'EXCELLENT' : duration < 300 ? 'GOOD' : 'NEEDS OPTIMIZATION');
 
     return uniqueLocales;
   }, [allLoadedLocales, debouncedQuery, selectedCategory, globalFiltros]);
 
-  // ✅ CRITICAL OPTIMIZATION v344.0: Update displayed locales with smart loading state
+  // ✅ CRITICAL OPTIMIZATION: Update displayed locales with smart loading state
   useEffect(() => {
     const filtersKey = JSON.stringify({
       search: debouncedQuery,
@@ -725,37 +728,23 @@ export default function ExplorarScreen() {
       advanced: globalFiltros,
     });
     
-    // ✅ NEW v344.0: Only show loading if filters actually changed AND we have data
     const filtersChanged = filtersKey !== lastAppliedFiltersRef.current;
     const hasData = allLoadedLocales.length > 0;
     
     if (filtersChanged && hasData) {
-      console.log('[Explorar v344.0] 🔄 Filters changed, applying...');
+      console.log('[Explorar v345.0] 🔄 Filters changed, applying...');
       
-      // ✅ CRITICAL FIX: Don't show "Aplicando filtros" if no advanced filters are active
-      const hasAdvancedFiltersActive = !!(
-        (globalFiltros.tipo && globalFiltros.tipo.length > 0) ||
-        (globalFiltros.servicios && globalFiltros.servicios.length > 0) ||
-        (globalFiltros.ambiente && globalFiltros.ambiente.length > 0) ||
-        (globalFiltros.clientela && globalFiltros.clientela.length > 0) ||
-        globalFiltros.comunidad ||
-        globalFiltros.provincia ||
-        globalFiltros.distancia
-      );
-      
-      // Only show loading overlay if advanced filters are active
-      if (hasAdvancedFiltersActive) {
+      // ✅ CRITICAL FIX v345.0: Use hasActiveFilters from context
+      if (hasActiveFilters) {
         setApplyingFilters(true);
       }
       
       lastAppliedFiltersRef.current = filtersKey;
       
-      // Use requestAnimationFrame for smooth UI updates
       requestAnimationFrame(() => {
         setDisplayedLocales(filteredLocales);
         
-        // Small delay to show loading state (only if we showed it)
-        if (hasAdvancedFiltersActive) {
+        if (hasActiveFilters) {
           setTimeout(() => {
             setApplyingFilters(false);
           }, 100);
@@ -764,7 +753,7 @@ export default function ExplorarScreen() {
     } else {
       setDisplayedLocales(filteredLocales);
     }
-  }, [filteredLocales, debouncedQuery, selectedCategory, globalFiltros, allLoadedLocales.length]);
+  }, [filteredLocales, debouncedQuery, selectedCategory, globalFiltros, allLoadedLocales.length, hasActiveFilters]);
 
   useEffect(() => {
     if (locationReady && !hasLoadedInitialDataRef.current && !isLoadingMore) {
@@ -790,17 +779,15 @@ export default function ExplorarScreen() {
   const loadMoreLocalesRef = useRef(false);
   
   const loadMoreLocales = useCallback(() => {
-    // ✅ CRITICAL FIX v344.0: Don't load more if we have filtered results with no more data
+    // ✅ CRITICAL FIX v345.0: Use hasActiveFilters from context
     if (loadMoreLocalesRef.current) return;
     if (!hasMore) return;
     if (isLoadingMore) return;
     if (loading) return;
     if (!locationReady) return;
     
-    // ✅ NEW v344.0: Don't load more if filters are active and we have no results
-    // This prevents the infinite loading loop
-    if (hasAdvancedFilters && displayedLocales.length === 0) {
-      console.log('[Explorar v344.0] ⚠️ Skipping load more - no results with active filters');
+    if (hasActiveFilters && displayedLocales.length === 0) {
+      console.log('[Explorar v345.0] ⚠️ Skipping load more - no results with active filters');
       return;
     }
 
@@ -810,7 +797,7 @@ export default function ExplorarScreen() {
     loadLocales(nextPage, true).finally(() => {
       loadMoreLocalesRef.current = false;
     });
-  }, [hasMore, isLoadingMore, loading, currentPage, locationReady, loadLocales, hasAdvancedFilters, displayedLocales.length]);
+  }, [hasMore, isLoadingMore, loading, currentPage, locationReady, loadLocales, hasActiveFilters, displayedLocales.length]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -901,32 +888,18 @@ export default function ExplorarScreen() {
   };
 
   const handleOpenAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v344.0] 🔍 Opening advanced filters');
+    console.log('[Explorar v345.0] 🔍 Opening advanced filters');
     setShowAdvancedFilters(true);
   }, []);
 
   const handleCloseAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v344.0] ✅ Closing advanced filters');
+    console.log('[Explorar v345.0] ✅ Closing advanced filters');
     setShowAdvancedFilters(false);
   }, []);
 
-  // ✅ NEW v344.0: Check if advanced filters are active
-  const hasAdvancedFilters = useMemo(() => {
-    return !!(
-      (globalFiltros.tipo && globalFiltros.tipo.length > 0) ||
-      (globalFiltros.servicios && globalFiltros.servicios.length > 0) ||
-      (globalFiltros.ambiente && globalFiltros.ambiente.length > 0) ||
-      (globalFiltros.clientela && globalFiltros.clientela.length > 0) ||
-      globalFiltros.comunidad ||
-      globalFiltros.provincia ||
-      globalFiltros.distancia
-    );
-  }, [globalFiltros]);
-
-  // ✅ NEW v344.0: Clear advanced filters
+  // ✅ CRITICAL FIX v345.0: Clear advanced filters using context method
   const handleClearAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v344.0] 🧹 Clearing advanced filters');
-    // Clear filters in FilterContext (this will trigger re-render)
+    console.log('[Explorar v345.0] 🧹 Clearing advanced filters');
     limpiarFiltros();
   }, [limpiarFiltros]);
 
@@ -990,7 +963,6 @@ export default function ExplorarScreen() {
     );
   }, []);
 
-  // ✅ CRITICAL FIX v343.0: Calculate badge info OUTSIDE callback (no useMemo in callbacks)
   const getBadgeInfo = useCallback((item: any) => {
     if (item.estadoCompleto) {
       const estado = item.estadoCompleto;
@@ -1059,7 +1031,6 @@ export default function ExplorarScreen() {
     return 0;
   }, []);
 
-  // ✅ CRITICAL OPTIMIZATION v343.0: Render card with pre-calculated values
   const renderLocalCard = useCallback(({ item, index }: { item: any; index: number }) => {
     const imagenPrincipal = item.imagenes?.[0] || item.imagen_url;
     const isDestacado = item.destacado;
@@ -1068,7 +1039,6 @@ export default function ExplorarScreen() {
     
     const localIsFavorite = user ? isFavorite(item.id) : false;
 
-    // ✅ Calculate values using helper functions (no useMemo in callback)
     const badgeInfo = getBadgeInfo(item);
     const shouldDimImage = getShouldDimImage(item);
     const categoriasAMostrar = getCategoriasAMostrar(item);
@@ -1235,9 +1205,9 @@ export default function ExplorarScreen() {
   }, [router, socialProfiles, activeEvents, user, isFavorite, handleToggleFavorito, handleComoLlegar, handlePerfilSocial, getBadgeInfo, getShouldDimImage, getCategoriasAMostrar, getDisplayRating]);
 
   const renderFooter = () => {
-    // ✅ CRITICAL FIX v344.0: Don't show loading if we have no results and filters are active
-    if (displayedLocales.length === 0 && hasAdvancedFilters) {
-      return null; // Empty state will handle this
+    // ✅ CRITICAL FIX v345.0: Use hasActiveFilters from context
+    if (displayedLocales.length === 0 && hasActiveFilters) {
+      return null;
     }
 
     if (!hasMore && displayedLocales.length > 0) {
@@ -1281,8 +1251,8 @@ export default function ExplorarScreen() {
       );
     }
     
-    // ✅ IMPROVED v344.0: Better empty state messaging
-    if (activeFiltersCount > 0 || hasAdvancedFilters) {
+    // ✅ CRITICAL FIX v345.0: Use hasActiveFilters from context
+    if (activeFiltersCount > 0 || hasActiveFilters) {
       return (
         <View style={styles.emptyState}>
           <IconSymbol
@@ -1293,14 +1263,13 @@ export default function ExplorarScreen() {
           />
           <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No se encontraron resultados</Text>
           <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
-            {hasAdvancedFilters 
+            {hasActiveFilters 
               ? 'Intenta ajustar los filtros avanzados' 
               : 'Intenta con otros filtros de búsqueda'}
           </Text>
           
-          {/* ✅ NEW v344.0: Show both clear buttons if needed */}
           <View style={styles.emptyStateButtons}>
-            {hasAdvancedFilters && (
+            {hasActiveFilters && (
               <TouchableOpacity 
                 style={[styles.clearFiltersButton, styles.clearAdvancedButton]}
                 onPress={handleClearAdvancedFilters}
@@ -1360,7 +1329,6 @@ export default function ExplorarScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ✅ NEW v342.0: Loading overlay during filter application */}
       {applyingFilters && (
         <View style={styles.filterLoadingOverlay}>
           <View style={styles.filterLoadingCard}>
@@ -1517,14 +1485,14 @@ export default function ExplorarScreen() {
                 size={scaleIconSize(20)} 
                 color={colors.headerText} 
               />
-              {/* ✅ NEW v344.0: Red dot indicator when advanced filters are active */}
-              {hasAdvancedFilters && (
+              {/* ✅ CRITICAL FIX v345.0: Use hasActiveFilters from context */}
+              {hasActiveFilters && (
                 <View style={styles.filterActiveDot} />
               )}
             </TouchableOpacity>
             
-            {/* ✅ NEW v344.0: Quick clear button when advanced filters are active */}
-            {hasAdvancedFilters && (
+            {/* ✅ CRITICAL FIX v345.0: Use hasActiveFilters from context */}
+            {hasActiveFilters && (
               <TouchableOpacity 
                 onPress={handleClearAdvancedFilters}
                 style={styles.clearAdvancedFiltersButton}
@@ -1642,7 +1610,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  // ✅ NEW v342.0: Loading overlay for filter application
   filterLoadingOverlay: {
     position: 'absolute',
     top: 0,
@@ -1810,7 +1777,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
-  // ✅ NEW v344.0: Red dot indicator for active filters
   filterActiveDot: {
     position: 'absolute',
     top: 6,
@@ -1833,7 +1799,6 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  // ✅ NEW v344.0: Quick clear button for advanced filters
   clearAdvancedFiltersButton: {
     width: 32,
     height: 32,
@@ -2018,7 +1983,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  // ✅ NEW v344.0: Container for empty state buttons
   emptyStateButtons: {
     marginTop: 20,
     gap: 12,
@@ -2033,7 +1997,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  // ✅ NEW v344.0: Special style for advanced filters clear button
   clearAdvancedButton: {
     backgroundColor: '#EF4444',
   },
