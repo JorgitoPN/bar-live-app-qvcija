@@ -12,7 +12,6 @@
  * OBJETIVO: Respuesta al clic < 100ms, sin spinners de bloqueo
  */
 
-import React from 'react';
 import { supabase } from './supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -391,9 +390,7 @@ class OptimisticUIManager {
       
       for (const operation of operations) {
         // ✅ Procesar cada operación con rollback dummy
-        await this.processOperation(operation, () => {
-          console.log('[OptimisticUI] Rollback called for pending operation:', operation.id);
-        });
+        await this.processOperation(operation, () => {});
       }
     } finally {
       this.processingQueue = false;
@@ -488,3 +485,6 @@ export function useOptimisticFollow(
 
   return { following, toggleFollow, setFollowing };
 }
+
+// ✅ Necesario para React hooks
+import React from 'react';

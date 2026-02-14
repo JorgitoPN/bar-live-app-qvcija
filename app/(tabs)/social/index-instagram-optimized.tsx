@@ -1,26 +1,24 @@
 
 /**
- * ✅ SOCIAL INDEX - INSTAGRAM-OPTIMIZED v2.0 - FLASHLIST + AGGRESSIVE MEMOIZATION
+ * ✅ SOCIAL INDEX - INSTAGRAM-OPTIMIZED v1.0
  * 
- * Optimizaciones implementadas v2.0:
- * - ✅ FlashList: Reemplazo de FlatList para mejor rendimiento
- * - ✅ Aggressive Memoization: React.memo + useCallback + useMemo
- * - ✅ Controlled Prefetching: InteractionManager para prefetch
+ * Optimizaciones implementadas:
  * - ✅ Skeleton Screens: Placeholders mientras carga
  * - ✅ Optimistic UI: Interacciones instantáneas
  * - ✅ Advanced Caching: Contenido guardado al instante
- * - ✅ Intelligent Prefetching: Precarga de siguientes 5 elementos
+ * - ✅ Intelligent Prefetching: Precarga de siguientes 5 posts
  * - ✅ Lazy Loading: Carga bajo demanda
  * - ✅ Navigation Optimizer: Transiciones instantáneas
  * 
- * OBJETIVO: JS Thread > 55 FPS durante scroll e interacciones
+ * RESULTADO: Experiencia fluida tipo Instagram, sin lag, sin spinners
  */
 
-import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
@@ -29,9 +27,7 @@ import {
   Image,
   Dimensions,
   Animated,
-  InteractionManager,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
@@ -49,7 +45,7 @@ import PermissionGuard from '@/components/social/PermissionGuard';
 import { scaleFontSize } from '@/utils/androidScaling';
 import { navigationOptimizer } from '@/utils/performanceMonitor';
 import { postsCache } from '@/utils/advancedCache';
-import { intelligentPreloader } from '@/utils/intelligentPreloader';
+import { intelligentPreloader, useIntelligentPrefetch } from '@/utils/intelligentPreloader';
 import { SkeletonPostCard } from '@/components/common/SkeletonLoader';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -100,103 +96,6 @@ interface FriendLocation {
   }[];
 }
 
-// ✅ MEMOIZED: Friend Location Card Component
-const FriendLocationCard = memo(({ location, myCheckIn, router }: any) => {
-  const handlePress = useCallback(() => {
-    router.push(`/detalle/local?id=${location.local.id}`);
-  }, [location.local.id, router]);
-
-  const imagenPrincipal = location.local.imagen_url;
-  const isMyCheckIn = myCheckIn && myCheckIn.locales && myCheckIn.locales.id === location.local.id;
-
-  return (
-    <TouchableOpacity
-      style={styles.friendLocationCard}
-      onPress={handlePress}
-      activeOpacity={0.9}
-    >
-      <View style={styles.friendLocationImageContainer}>
-        {imagenPrincipal ? (
-          <Image 
-            source={{ uri: imagenPrincipal }} 
-            style={styles.friendLocationImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={[styles.friendLocationImage, styles.friendLocationImagePlaceholder]}>
-            <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="rgba(255, 255, 255, 0.6)" />
-          </View>
-        )}
-        <LinearGradient
-          colors={['transparent', 'rgba(0, 0, 0, 0.75)']}
-          style={styles.friendLocationGradient}
-        />
-        
-        {isMyCheckIn ? (
-          <View style={[styles.friendLocationBadge, { backgroundColor: '#10B981' }]}>
-            <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={11} color={colors.white} />
-            <Text style={[styles.friendLocationBadgeText, { fontSize: scaleFontSize(9) }]}>Tú estás aquí</Text>
-          </View>
-        ) : (
-          <>
-            <View style={styles.friendLocationAvatars}>
-              {location.users.slice(0, 3).map((locUser: any, userIndex: number) => (
-                <View 
-                  key={locUser.id} 
-                  style={[
-                    styles.friendLocationAvatar,
-                    { marginLeft: userIndex > 0 ? -8 : 0 }
-                  ]}
-                >
-                  {locUser.avatar ? (
-                    <Image 
-                      source={{ uri: locUser.avatar }} 
-                      style={styles.friendLocationAvatarImage}
-                    />
-                  ) : (
-                    <View style={styles.friendLocationAvatarPlaceholder}>
-                      <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={10} color={colors.white} />
-                    </View>
-                  )}
-                </View>
-              ))}
-              {location.users.length > 3 && (
-                <View style={[styles.friendLocationAvatar, styles.friendLocationAvatarMore, { marginLeft: -8 }]}>
-                  <Text style={[styles.friendLocationAvatarMoreText, { fontSize: scaleFontSize(9) }]}>+{location.users.length - 3}</Text>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.friendLocationBadge}>
-              <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={11} color={colors.white} />
-              <Text style={[styles.friendLocationBadgeText, { fontSize: scaleFontSize(9) }]}>
-                {location.users.length} {location.users.length === 1 ? 'amigo' : 'amigos'}
-              </Text>
-            </View>
-          </>
-        )}
-      </View>
-
-      <View style={styles.friendLocationInfo}>
-        <Text style={[styles.friendLocationName, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>
-          {location.local.nombre}
-        </Text>
-        <View style={styles.friendLocationMeta}>
-          <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={9} color={colors.textSecondary} />
-          <Text style={[styles.friendLocationAddress, { fontSize: scaleFontSize(10) }]} numberOfLines={1}>
-            {location.local.direccion}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-}, (prevProps, nextProps) => {
-  return prevProps.location.local.id === nextProps.location.local.id &&
-         prevProps.myCheckIn?.locales?.id === nextProps.myCheckIn?.locales?.id;
-});
-
-FriendLocationCard.displayName = 'FriendLocationCard';
-
 export default function SocialIndexInstagramOptimized() {
   const router = useRouter();
   const { userId, user, isImpersonating, adminUser } = useEffectiveUser();
@@ -210,7 +109,7 @@ export default function SocialIndexInstagramOptimized() {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   
-  const flashListRef = useRef<any>(null);
+  const flatListRef = useRef<FlatList>(null);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [friendsLocations, setFriendsLocations] = useState<FriendLocation[]>([]);
@@ -222,22 +121,9 @@ export default function SocialIndexInstagramOptimized() {
   
   const hasLoadedOnceRef = useRef(false);
   const isFocusedRef = useRef(false);
-  const isScrollingRef = useRef(false);
 
-  /**
-   * ✅ CONTROLLED PREFETCH: Solo cuando JS thread está inactivo
-   */
-  const prefetchNextPosts = useCallback((visibleIndex: number) => {
-    if (isScrollingRef.current) {
-      console.log('[SocialInstagram v2.0] ⏸️ Skipping prefetch - user is scrolling');
-      return;
-    }
-
-    InteractionManager.runAfterInteractions(() => {
-      console.log('[SocialInstagram v2.0] 🚀 Prefetching next posts - JS thread idle');
-      intelligentPreloader.prefetchNextItems(visibleIndex, posts, 'post');
-    });
-  }, [posts]);
+  // ✅ INTELLIGENT PREFETCH: Hook para prefetching automático
+  const { handleScroll: handlePrefetchScroll } = useIntelligentPrefetch(posts, 'post');
 
   /**
    * ✅ INSTANT LOAD: Cargar posts con caché
@@ -261,14 +147,14 @@ export default function SocialIndexInstagramOptimized() {
         const cachedPosts = await postsCache.get(cacheKey);
         
         if (cachedPosts) {
-          console.log('[SocialInstagram v2.0] ⚡ INSTANT load from cache');
+          console.log('[SocialInstagram] ⚡ INSTANT load from cache');
           setPosts(cachedPosts);
           setShowSkeletons(false);
           
           // ✅ Refrescar en segundo plano
-          InteractionManager.runAfterInteractions(() => {
+          navigationOptimizer.deferWithPriority(() => {
             cargarPosts(1, true);
-          });
+          }, 'LOW');
           
           return;
         }
@@ -359,17 +245,15 @@ export default function SocialIndexInstagramOptimized() {
 
         setHasMore(postsWithStatus.length === POSTS_PER_PAGE);
         
-        // ✅ CONTROLLED PREFETCH: Solo cuando JS thread está inactivo
+        // ✅ PREFETCH: Precargar imágenes de los primeros posts
         if (pageNum === 1) {
-          InteractionManager.runAfterInteractions(() => {
-            const firstPostImages = postsWithStatus
-              .slice(0, 3)
-              .flatMap(p => p.imagenes || []);
-            
-            if (firstPostImages.length > 0) {
-              intelligentPreloader.prefetchImages(firstPostImages, 'HIGH');
-            }
-          });
+          const firstPostImages = postsWithStatus
+            .slice(0, 3)
+            .flatMap(p => p.imagenes || []);
+          
+          if (firstPostImages.length > 0) {
+            intelligentPreloader.prefetchImages(firstPostImages, 'HIGH');
+          }
         }
       } else {
         if (isRefresh || pageNum === 1) {
@@ -378,7 +262,7 @@ export default function SocialIndexInstagramOptimized() {
         setHasMore(false);
       }
     } catch (error) {
-      console.error('[SocialInstagram v2.0] Error loading posts:', error);
+      console.error('[SocialInstagram] Error loading posts:', error);
     } finally {
       setShowSkeletons(false);
       setRefreshing(false);
@@ -392,7 +276,7 @@ export default function SocialIndexInstagramOptimized() {
   const loadFriendsLocations = useCallback(async () => {
     if (!userId || !isFocusedRef.current) return;
 
-    InteractionManager.runAfterInteractions(async () => {
+    navigationOptimizer.deferWithPriority(async () => {
       try {
         const { data: myCheckInData } = await supabase
           .from('check_ins')
@@ -460,9 +344,9 @@ export default function SocialIndexInstagramOptimized() {
         const locations = Array.from(locationsByLocal.values());
         setFriendsLocations(locations);
       } catch (error) {
-        console.error('[SocialInstagram v2.0] Error loading friends locations:', error);
+        console.error('[SocialInstagram] Error loading friends locations:', error);
       }
-    });
+    }, 'LOW');
   }, [userId]);
 
   /**
@@ -471,7 +355,7 @@ export default function SocialIndexInstagramOptimized() {
   const loadUnreadCounts = useCallback(async () => {
     if (!userId) return;
 
-    InteractionManager.runAfterInteractions(async () => {
+    navigationOptimizer.deferWithPriority(async () => {
       try {
         const { count: notifCount } = await supabase
           .from('notificaciones')
@@ -502,9 +386,9 @@ export default function SocialIndexInstagramOptimized() {
           setUnreadMessages(totalUnread);
         }
       } catch (error) {
-        console.error('[SocialInstagram v2.0] Error loading unread counts:', error);
+        console.error('[SocialInstagram] Error loading unread counts:', error);
       }
-    });
+    }, 'LOW');
   }, [userId]);
 
   useEffect(() => {
@@ -513,7 +397,7 @@ export default function SocialIndexInstagramOptimized() {
     loadUnreadCounts();
 
     const subscription = supabase
-      .channel('social-feed-updates-instagram-v2')
+      .channel('social-feed-updates-instagram')
       .on(
         'postgres_changes',
         {
@@ -555,9 +439,9 @@ export default function SocialIndexInstagramOptimized() {
         cargarPosts(1, false);
         
         // ✅ BACKGROUND: Cargar friends locations
-        InteractionManager.runAfterInteractions(() => {
+        navigationOptimizer.deferWithPriority(() => {
           loadFriendsLocations();
-        });
+        }, 'LOW');
       }
 
       return () => {
@@ -566,83 +450,54 @@ export default function SocialIndexInstagramOptimized() {
     }, [userId, cargarPosts, loadFriendsLocations])
   );
 
-  // ✅ MEMOIZED: Refresh handler
   const handleRefresh = useCallback(() => {
     cargarPosts(1, true);
     loadFriendsLocations();
   }, [cargarPosts, loadFriendsLocations]);
 
-  // ✅ MEMOIZED: Load more handler
   const handleLoadMore = useCallback(() => {
     if (hasMore && !loadingMore && !showSkeletons) {
       cargarPosts(page, false);
     }
   }, [hasMore, loadingMore, showSkeletons, page, cargarPosts]);
 
-  // ✅ MEMOIZED: Create post handler
-  const handleCreatePost = useCallback(() => {
+  const handleCreatePost = () => {
     router.push('/crear/publicacion');
-  }, [router]);
+  };
 
-  // ✅ MEMOIZED: Scroll handler with prefetch control
-  const handleScroll = useCallback((event: any) => {
-    const currentScrollY = event.nativeEvent.contentOffset.y;
-    const diff = currentScrollY - lastScrollY.current;
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event: any) => {
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+        const diff = currentScrollY - lastScrollY.current;
 
-    // ✅ Detectar si está scrolleando activamente
-    isScrollingRef.current = true;
-    intelligentPreloader.setScrolling(true);
+        // ✅ PREFETCH: Detectar scroll y precargar
+        const visibleIndex = Math.floor(currentScrollY / 600); // Altura aprox de post
+        handlePrefetchScroll(visibleIndex);
 
-    // ✅ PREFETCH: Calcular índice visible y precargar
-    const visibleIndex = Math.floor(currentScrollY / 600);
-    prefetchNextPosts(visibleIndex);
-
-    if (Math.abs(diff) > 5) {
-      if (diff > 0 && currentScrollY > 50) {
-        Animated.timing(headerTranslateY, {
-          toValue: -HEADER_HEIGHT - 10,
-          duration: 250,
-          useNativeDriver: true,
-        }).start();
-      } else if (diff < 0) {
-        Animated.timing(headerTranslateY, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }).start();
-      }
-      lastScrollY.current = currentScrollY;
+        if (Math.abs(diff) > 5) {
+          if (diff > 0 && currentScrollY > 50) {
+            Animated.timing(headerTranslateY, {
+              toValue: -HEADER_HEIGHT - 10,
+              duration: 250,
+              useNativeDriver: true,
+            }).start();
+          } else if (diff < 0) {
+            Animated.timing(headerTranslateY, {
+              toValue: 0,
+              duration: 250,
+              useNativeDriver: true,
+            }).start();
+          }
+          lastScrollY.current = currentScrollY;
+        }
+      },
     }
-  }, [headerTranslateY, prefetchNextPosts]);
+  );
 
-  // ✅ Detectar cuando termina el scroll
-  const handleScrollEndDrag = useCallback(() => {
-    setTimeout(() => {
-      isScrollingRef.current = false;
-      intelligentPreloader.setScrolling(false);
-    }, 300);
-  }, []);
-
-  const handleMomentumScrollEnd = useCallback(() => {
-    isScrollingRef.current = false;
-    intelligentPreloader.setScrolling(false);
-  }, []);
-
-  // ✅ MEMOIZED: Render post item
-  const renderPost = useCallback(({ item, index }: { item: Post; index: number }) => (
-    <PublicacionCardOptimized post={item} onUpdate={handleRefresh} index={index} />
-  ), [handleRefresh]);
-
-  // ✅ MEMOIZED: Key extractor
-  const keyExtractor = useCallback((item: Post) => item.id, []);
-
-  // ✅ MEMOIZED: Get item type (required by FlashList)
-  const getItemType = useCallback((item: Post) => {
-    return item.imagenes && item.imagenes.length > 0 ? 'post-with-image' : 'post-text-only';
-  }, []);
-
-  // ✅ MEMOIZED: Header component
-  const ListHeaderComponent = useMemo(() => (
+  const renderHeader = useCallback(() => (
     <React.Fragment>
       {isImpersonating && impersonationSession && (
         <View style={styles.impersonationBanner}>
@@ -681,29 +536,132 @@ export default function SocialIndexInstagramOptimized() {
             style={styles.friendsLocationsScrollView}
           >
             {myCheckIn && myCheckIn.locales && (
-              <FriendLocationCard 
-                location={{ local: myCheckIn.locales, users: [] }}
-                myCheckIn={myCheckIn}
-                router={router}
-              />
+              <TouchableOpacity
+                style={styles.friendLocationCard}
+                onPress={() => router.push(`/detalle/local?id=${myCheckIn.locales.id}`)}
+                activeOpacity={0.9}
+              >
+                <View style={styles.friendLocationImageContainer}>
+                  {myCheckIn.locales.imagen_url ? (
+                    <Image 
+                      source={{ uri: myCheckIn.locales.imagen_url }} 
+                      style={styles.friendLocationImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={[styles.friendLocationImage, styles.friendLocationImagePlaceholder]}>
+                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="rgba(255, 255, 255, 0.6)" />
+                    </View>
+                  )}
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0, 0, 0, 0.75)']}
+                    style={styles.friendLocationGradient}
+                  />
+                  
+                  <View style={[styles.friendLocationBadge, { backgroundColor: '#10B981' }]}>
+                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={11} color={colors.white} />
+                    <Text style={[styles.friendLocationBadgeText, { fontSize: scaleFontSize(9) }]}>Tú estás aquí</Text>
+                  </View>
+                </View>
+
+                <View style={styles.friendLocationInfo}>
+                  <Text style={[styles.friendLocationName, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>
+                    {myCheckIn.locales.nombre}
+                  </Text>
+                  <View style={styles.friendLocationMeta}>
+                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={9} color={colors.textSecondary} />
+                    <Text style={[styles.friendLocationAddress, { fontSize: scaleFontSize(10) }]} numberOfLines={1}>
+                      {myCheckIn.locales.direccion}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
             )}
 
             {friendsLocations.map((location) => (
-              <FriendLocationCard 
+              <TouchableOpacity
                 key={location.local.id}
-                location={location}
-                myCheckIn={myCheckIn}
-                router={router}
-              />
+                style={styles.friendLocationCard}
+                onPress={() => router.push(`/detalle/local?id=${location.local.id}`)}
+                activeOpacity={0.9}
+              >
+                <View style={styles.friendLocationImageContainer}>
+                  {location.local.imagen_url ? (
+                    <Image 
+                      source={{ uri: location.local.imagen_url }} 
+                      style={styles.friendLocationImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={[styles.friendLocationImage, styles.friendLocationImagePlaceholder]}>
+                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="rgba(255, 255, 255, 0.6)" />
+                    </View>
+                  )}
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0, 0, 0, 0.75)']}
+                    style={styles.friendLocationGradient}
+                  />
+                  
+                  <View style={styles.friendLocationAvatars}>
+                    {location.users.slice(0, 3).map((locUser, userIndex) => (
+                      <View 
+                        key={locUser.id} 
+                        style={[
+                          styles.friendLocationAvatar,
+                          { marginLeft: userIndex > 0 ? -8 : 0 }
+                        ]}
+                      >
+                        {locUser.avatar ? (
+                          <Image 
+                            source={{ uri: locUser.avatar }} 
+                            style={styles.friendLocationAvatarImage}
+                          />
+                        ) : (
+                          <View style={styles.friendLocationAvatarPlaceholder}>
+                            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={10} color={colors.white} />
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                    {location.users.length > 3 && (
+                      <View style={[styles.friendLocationAvatar, styles.friendLocationAvatarMore, { marginLeft: -8 }]}>
+                        <Text style={[styles.friendLocationAvatarMoreText, { fontSize: scaleFontSize(9) }]}>+{location.users.length - 3}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.friendLocationBadge}>
+                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={11} color={colors.white} />
+                    <Text style={[styles.friendLocationBadgeText, { fontSize: scaleFontSize(9) }]}>
+                      {location.users.length} {location.users.length === 1 ? 'amigo' : 'amigos'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.friendLocationInfo}>
+                  <Text style={[styles.friendLocationName, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>
+                    {location.local.nombre}
+                  </Text>
+                  <View style={styles.friendLocationMeta}>
+                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={9} color={colors.textSecondary} />
+                    <Text style={[styles.friendLocationAddress, { fontSize: scaleFontSize(10) }]} numberOfLines={1}>
+                      {location.local.direccion}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
       )}
     </React.Fragment>
-  ), [isImpersonating, impersonationSession, friendsLocations, myCheckIn, router]);
+  ), [isImpersonating, impersonationSession, friendsLocations, myCheckIn, router, handlePrefetchScroll]);
 
-  // ✅ MEMOIZED: Footer component
-  const ListFooterComponent = useMemo(() => {
+  const renderPost = useCallback(({ item, index }: { item: Post; index: number }) => (
+    <PublicacionCardOptimized post={item} onUpdate={handleRefresh} index={index} />
+  ), [handleRefresh]);
+
+  const renderFooter = useCallback(() => {
     if (!loadingMore) return null;
     return (
       <View style={styles.footerLoader}>
@@ -713,8 +671,7 @@ export default function SocialIndexInstagramOptimized() {
     );
   }, [loadingMore]);
 
-  // ✅ MEMOIZED: Empty component
-  const ListEmptyComponent = useMemo(() => {
+  const renderEmpty = useCallback(() => {
     if (showSkeletons) {
       return (
         <View style={styles.skeletonsContainer}>
@@ -783,15 +740,14 @@ export default function SocialIndexInstagramOptimized() {
         />
       </Animated.View>
 
-      <FlashList
-        ref={flashListRef}
+      <FlatList
+        ref={flatListRef}
         data={posts}
         renderItem={renderPost}
-        keyExtractor={keyExtractor}
-        getItemType={getItemType}
-        ListHeaderComponent={ListHeaderComponent}
-        ListFooterComponent={ListFooterComponent}
-        ListEmptyComponent={ListEmptyComponent}
+        keyExtractor={item => item.id}
+        ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderFooter}
+        ListEmptyComponent={renderEmpty}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -804,11 +760,12 @@ export default function SocialIndexInstagramOptimized() {
         onEndReachedThreshold={0.5}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        estimatedItemSize={600}
-        drawDistance={1000}
+        removeClippedSubviews={Platform.OS === 'android'}
+        initialNumToRender={Platform.OS === 'android' ? 3 : 5}
+        maxToRenderPerBatch={Platform.OS === 'android' ? 3 : 5}
+        updateCellsBatchingPeriod={Platform.OS === 'android' ? 100 : 50}
+        windowSize={Platform.OS === 'android' ? 5 : 10}
         onScroll={handleScroll}
-        onScrollEndDrag={handleScrollEndDrag}
-        onMomentumScrollEnd={handleMomentumScrollEnd}
         scrollEventThrottle={16}
       />
     </View>

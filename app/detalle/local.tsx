@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -384,16 +384,16 @@ export default function DetalleLocalScreen() {
 
   useEffect(() => {
     // Rotation animation
-    const rotationAnimation = Animated.loop(
+    Animated.loop(
       Animated.timing(rotateAnim, {
         toValue: 1,
         duration: 8000,
         useNativeDriver: true,
       })
-    );
+    ).start();
 
     // Float animation
-    const floatAnimation = Animated.loop(
+    Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, {
           toValue: 1,
@@ -406,10 +406,10 @@ export default function DetalleLocalScreen() {
           useNativeDriver: true,
         }),
       ])
-    );
+    ).start();
 
     // Glow pulse animation
-    const glowAnimation = Animated.loop(
+    Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, {
           toValue: 1,
@@ -422,18 +422,8 @@ export default function DetalleLocalScreen() {
           useNativeDriver: true,
         }),
       ])
-    );
-
-    rotationAnimation.start();
-    floatAnimation.start();
-    glowAnimation.start();
-
-    return () => {
-      rotationAnimation.stop();
-      floatAnimation.stop();
-      glowAnimation.stop();
-    };
-  }, [rotateAnim, floatAnim, glowAnim]);
+    ).start();
+  }, []);
 
   const rotateInterpolate = rotateAnim.interpolate({
     inputRange: [0, 1],
