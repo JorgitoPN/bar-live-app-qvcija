@@ -695,6 +695,7 @@ export default function ExplorarScreen() {
     console.log('[Explorar v350.0] 📊 Has active filters:', hasActiveFilters);
     console.log('[Explorar v350.0] 📊 Selected category:', selectedCategory);
     console.log('[Explorar v350.0] 📊 Search query:', debouncedQuery);
+    console.log('[Explorar v350.0] 📊 Global filters:', JSON.stringify(globalFiltros, null, 2));
     
     const query = debouncedQuery.toLowerCase().trim();
     
@@ -1312,7 +1313,7 @@ export default function ExplorarScreen() {
           <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No se encontraron resultados</Text>
           <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
             {hasActiveFilters 
-              ? 'Intenta ajustar los filtros avanzados' 
+              ? 'Tienes filtros avanzados activos que están limitando los resultados' 
               : 'Intenta con otros filtros de búsqueda'}
           </Text>
           
@@ -1479,6 +1480,26 @@ export default function ExplorarScreen() {
               <Text style={[styles.locationWarningText, { fontSize: scaleFontSize(12) }]} numberOfLines={2}>
                 {locationError}
               </Text>
+            </View>
+          )}
+
+          {hasActiveFilters && (
+            <View style={styles.activeFiltersBanner}>
+              <View style={styles.activeFiltersBannerLeft}>
+                <IconSymbol ios_icon_name="slider.horizontal.3" android_material_icon_name="tune" size={scaleIconSize(16)} color="#3B82F6" />
+                <Text style={[styles.activeFiltersBannerText, { fontSize: scaleFontSize(12) }]} numberOfLines={2}>
+                  Filtros avanzados activos
+                </Text>
+              </View>
+              <TouchableOpacity 
+                onPress={handleClearAdvancedFilters}
+                style={styles.activeFiltersBannerButton}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.activeFiltersBannerButtonText, { fontSize: scaleFontSize(12) }]}>
+                  Limpiar
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
         
@@ -1778,6 +1799,39 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.headerText,
     fontWeight: '500',
+  },
+  activeFiltersBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  activeFiltersBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  activeFiltersBannerText: {
+    flex: 1,
+    color: colors.headerText,
+    fontWeight: '600',
+  },
+  activeFiltersBannerButton: {
+    backgroundColor: 'rgba(59, 130, 246, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  activeFiltersBannerButtonText: {
+    color: colors.headerText,
+    fontWeight: '700',
   },
   compactSearchRow: {
     flexDirection: 'row',
