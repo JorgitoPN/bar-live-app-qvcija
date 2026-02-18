@@ -76,25 +76,20 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v360.0 - STABLE PAGINATION FIX
+ * ✅ EXPLORAR SCREEN v361.0 - SCROLL JUMP FIX
  * 
- * 🔥 ROOT CAUSE IDENTIFIED (v360.0):
- * The flickering and instability was caused by:
- * 1. FlatList re-rendering too aggressively during pagination
- * 2. removeClippedSubviews causing items to disappear/reappear
- * 3. onEndReachedThreshold too low (0.3) causing premature triggers
- * 4. No getItemLayout causing FlatList to recalculate positions
- * 5. Synchronous state updates causing race conditions
+ * 🔥 ROOT CAUSE IDENTIFIED (v361.0):
+ * The scroll jump bug when loading next batch was caused by:
+ * 1. Using intermediate `displayedLocales` state that triggered re-renders
+ * 2. useEffect updating displayedLocales after filteredLocales changed
+ * 3. FlatList re-rendering with new data reference, losing scroll position
  * 
- * ✅ SOLUTION v360.0:
- * - Added setTimeout(50ms) before loadLocales to stabilize state
- * - Increased onEndReachedThreshold from 0.3 to 0.5 for better stability
- * - Disabled removeClippedSubviews to prevent item disappearance
- * - Added getItemLayout for consistent item positioning
- * - Increased initialNumToRender and maxToRenderPerBatch for smoother loading
- * - Increased windowSize from 5 to 10 for better buffering
- * - Reduced updateCellsBatchingPeriod from 100ms to 50ms for faster updates
- * - Keep all v359.0 fixes (immediate ref lock, Set-based deduplication)
+ * ✅ SOLUTION v361.0:
+ * - Removed `displayedLocales` state completely
+ * - FlatList now uses `filteredLocales` directly (memoized)
+ * - No intermediate state updates = no scroll position loss
+ * - FlatList maintains scroll position during pagination
+ * - Keep all v360.0 fixes (setTimeout, getItemLayout, etc.)
  * 
  * 📊 FLOW:
  * 1. User scrolls to end → loadMoreLocales called
@@ -106,20 +101,20 @@ const CATEGORIAS = [
  * 7. Transform locales
  * 8. Deduplicate against existing IDs using Set
  * 9. If newUniqueLocales.length > 0:
- *    - Update allLoadedLocales
+ *    - Update allLoadedLocales (triggers filteredLocales memo)
  *    - Increment currentPage
  *    - Set hasMore based on whether we got a full page
  * 10. If newUniqueLocales.length === 0:
  *     - Set hasMore = false
  *     - DO NOT increment currentPage
  * 11. Reset loadMoreLocalesInProgressRef.current = false in finally block
+ * 12. FlatList automatically updates with new filteredLocales WITHOUT losing scroll
  * 
  * 🎯 KEY IMPROVEMENTS:
- * - FlatList now maintains stable scroll position with getItemLayout
- * - No more flickering from removeClippedSubviews
- * - Better buffering with larger windowSize
- * - Smoother pagination with higher threshold
- * - More stable state updates with setTimeout delay
+ * - Direct data binding: FlatList → filteredLocales (memoized) → allLoadedLocales
+ * - No intermediate state = no scroll jumps
+ * - Scroll position preserved during pagination
+ * - Smoother user experience
  */
 
 export default function ExplorarScreen() {
@@ -138,7 +133,6 @@ export default function ExplorarScreen() {
   const { isReady, deferOperation, deferDataLoading, deferWithPriority } = useScreenPerformance('Explorar');
   
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [displayedLocales, setDisplayedLocales] = useState<any[]>([]);
   const [allLoadedLocales, setAllLoadedLocales] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -482,7 +476,6 @@ export default function ExplorarScreen() {
         lastFiltersRef.current = filtersKey;
         setCurrentPage(1);
         setAllLoadedLocales([]);
-        setDisplayedLocales([]);
         setHasMore(true);
         setIsLoadingMore(false);
         loadMoreLocalesInProgressRef.current = false;
@@ -764,15 +757,15 @@ export default function ExplorarScreen() {
 
   const filteredLocales = useMemo(() => {
     const startTime = Date.now();
-    console.log('[Explorar v358.0] 🔍 Starting filter application...');
-    console.log('[Explorar v358.0] 📊 Input:', allLoadedLocales.length, 'locals');
+    console.log('[Explorar v361.0] 🔍 Starting filter application...');
+    console.log('[Explorar v361.0] 📊 Input:', allLoadedLocales.length, 'locals');
     
     const query = debouncedQuery.toLowerCase().trim();
     
     let filtered = allLoadedLocales;
     
     if (selectedCategory && selectedCategory !== 'todas') {
-      console.log('[Explorar v358.0] 🏷️ Applying category filter:', selectedCategory);
+      console.log('[Explorar v361.0] 🏷️ Applying category filter:', selectedCategory);
       const beforeCategoryFilter = filtered.length;
       
       filtered = filtered.filter(local => {
@@ -805,7 +798,7 @@ export default function ExplorarScreen() {
         return false;
       });
       
-      console.log('[Explorar v358.0] 🏷️ Category filter removed:', beforeCategoryFilter - filtered.length, 'locals');
+      console.log('[Explorar v361.0] 🏷️ Category filter removed:', beforeCategoryFilter - filtered.length, 'locals');
     }
     
     if (query) {
@@ -826,7 +819,7 @@ export default function ExplorarScreen() {
 
     const beforeAdvancedFilters = filtered.length;
     filtered = applyAdvancedFilters(filtered, globalFiltros);
-    console.log('[Explorar v358.0] 🔧 Advanced filters removed:', beforeAdvancedFilters - filtered.length, 'locals');
+    console.log('[Explorar v361.0] 🔧 Advanced filters removed:', beforeAdvancedFilters - filtered.length, 'locals');
 
     const uniqueLocales = filtered.filter((item, index, self) =>
       index === self.findIndex((t) => t.id === item.id)
@@ -835,17 +828,12 @@ export default function ExplorarScreen() {
     const endTime = Date.now();
     const duration = endTime - startTime;
     
-    console.log('[Explorar v358.0] ✅ Filter application complete');
-    console.log('[Explorar v358.0] ⏱️ Duration:', duration, 'ms');
-    console.log('[Explorar v358.0] 📊 Result:', uniqueLocales.length, 'locals');
+    console.log('[Explorar v361.0] ✅ Filter application complete');
+    console.log('[Explorar v361.0] ⏱️ Duration:', duration, 'ms');
+    console.log('[Explorar v361.0] 📊 Result:', uniqueLocales.length, 'locals');
 
     return uniqueLocales;
   }, [allLoadedLocales, debouncedQuery, selectedCategory, globalFiltros, hasActiveFilters]);
-
-  useEffect(() => {
-    console.log('[Explorar v358.0] 🔄 Updating displayed locales:', filteredLocales.length);
-    setDisplayedLocales(filteredLocales);
-  }, [filteredLocales]);
 
   useEffect(() => {
     if (locationReady && !hasLoadedInitialDataRef.current && !loadMoreLocalesInProgressRef.current) {
@@ -871,55 +859,55 @@ export default function ExplorarScreen() {
   }, [selectedCategory, provinciaSeleccionada, locationReady, loadLocales]);
 
   const loadMoreLocales = useCallback(() => {
-    console.log('[Explorar v360.0] 📊 loadMoreLocales called:', {
+    console.log('[Explorar v361.0] 📊 loadMoreLocales called:', {
       hasMore,
       isLoadingMore,
       loading,
       locationReady,
       currentPage,
       allLoadedLocalesLength: allLoadedLocales.length,
-      displayedLocalesLength: displayedLocales.length,
+      filteredLocalesLength: filteredLocales.length,
       loadMoreLocalesInProgressRef: loadMoreLocalesInProgressRef.current,
     });
     
     // 🔥 CRITICAL FIX v360.0: Check ref FIRST before any other checks
     if (loadMoreLocalesInProgressRef.current) {
-      console.log('[Explorar v360.0] ⚠️ Already loading more (ref guard) - ABORTING');
+      console.log('[Explorar v361.0] ⚠️ Already loading more (ref guard) - ABORTING');
       return;
     }
     
     if (!hasMore) {
-      console.log('[Explorar v360.0] ⚠️ No more data to load - ABORTING');
+      console.log('[Explorar v361.0] ⚠️ No more data to load - ABORTING');
       return;
     }
     
     if (isLoadingMore) {
-      console.log('[Explorar v360.0] ⚠️ Already loading more (state) - ABORTING');
+      console.log('[Explorar v361.0] ⚠️ Already loading more (state) - ABORTING');
       return;
     }
     
     if (loading) {
-      console.log('[Explorar v360.0] ⚠️ Already loading - ABORTING');
+      console.log('[Explorar v361.0] ⚠️ Already loading - ABORTING');
       return;
     }
     
     if (!locationReady) {
-      console.log('[Explorar v360.0] ⚠️ Location not ready - ABORTING');
+      console.log('[Explorar v361.0] ⚠️ Location not ready - ABORTING');
       return;
     }
 
     // 🔥 CRITICAL FIX v360.0: Set the ref IMMEDIATELY to prevent race conditions
     loadMoreLocalesInProgressRef.current = true;
-    console.log('[Explorar v360.0] 🔒 Set loadMoreLocalesInProgressRef to TRUE');
+    console.log('[Explorar v361.0] 🔒 Set loadMoreLocalesInProgressRef to TRUE');
 
     const nextPage = currentPage + 1;
-    console.log('[Explorar v360.0] ✅ Loading more locales, next page:', nextPage, '(current:', currentPage, ')');
+    console.log('[Explorar v361.0] ✅ Loading more locales, next page:', nextPage, '(current:', currentPage, ')');
     
     // 🔥 CRITICAL FIX v360.0: Use setTimeout to ensure state is stable before loading
     setTimeout(() => {
       loadLocales(nextPage, true);
     }, 50);
-  }, [hasMore, isLoadingMore, loading, currentPage, locationReady, loadLocales, allLoadedLocales.length, displayedLocales.length]);
+  }, [hasMore, isLoadingMore, loading, currentPage, locationReady, loadLocales, allLoadedLocales.length, filteredLocales.length]);
 
   const onRefresh = async () => {
     console.log('[Explorar v358.0] 🔄 Refresh triggered');
@@ -930,7 +918,6 @@ export default function ExplorarScreen() {
     setProvinciaSeleccionada('Todas');
     setCurrentPage(1);
     setAllLoadedLocales([]);
-    setDisplayedLocales([]);
     setHasMore(true);
     setIsLoadingMore(false);
     loadMoreLocalesInProgressRef.current = false;
@@ -1329,11 +1316,11 @@ export default function ExplorarScreen() {
   }, [router, socialProfiles, activeEvents, user, isFavorite, handleToggleFavorito, handleComoLlegar, handlePerfilSocial, getBadgeInfo, getShouldDimImage, getCategoriasAMostrar, getDisplayRating]);
 
   const renderFooter = () => {
-    if (displayedLocales.length === 0 && hasActiveFilters) {
+    if (filteredLocales.length === 0 && hasActiveFilters) {
       return null;
     }
 
-    if (!hasMore && displayedLocales.length > 0) {
+    if (!hasMore && filteredLocales.length > 0) {
       return (
         <View style={styles.footerContainer}>
           <Text style={[styles.footerText, { fontSize: scaleFontSize(14) }]}>
@@ -1343,7 +1330,7 @@ export default function ExplorarScreen() {
       );
     }
 
-    if (isLoadingMore && displayedLocales.length > 0) {
+    if (isLoadingMore && filteredLocales.length > 0) {
       return (
         <View style={styles.footerLoadingContainer}>
           <View style={styles.footerLoadingHeader}>
@@ -1700,7 +1687,7 @@ export default function ExplorarScreen() {
 
       <FlatList
         ref={flatListRef}
-        data={displayedLocales}
+        data={filteredLocales}
         renderItem={renderLocalCard}
         keyExtractor={(item: any) => item.id}
         contentContainerStyle={[
@@ -1718,7 +1705,7 @@ export default function ExplorarScreen() {
             tintColor={colors.primary}
           />
         }
-        onEndReached={displayedLocales.length > 0 ? loadMoreLocales : undefined}
+        onEndReached={filteredLocales.length > 0 ? loadMoreLocales : undefined}
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
