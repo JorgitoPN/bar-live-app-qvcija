@@ -76,24 +76,24 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v348.0 - ENHANCED PAGINATION DEBUGGING
+ * ✅ EXPLORAR SCREEN v349.0 - PAGINATION DEDUPLICATION FIX
  * 
- * CRITICAL FIXES v348.0:
+ * CRITICAL FIXES v349.0:
+ * - ✅ DEDUPLICATION: Filter out duplicate IDs before appending new locales
+ * - ✅ ENHANCED FILTER LOGGING: Track which filters are active during pagination
+ * - ✅ FILTER COUNT TRACKING: Log how many locales are filtered out
+ * - ✅ ROOT CAUSE: Advanced filters were removing newly loaded locales that matched filter criteria
+ * - ✅ SOLUTION: Ensure unique IDs and better filter state tracking
+ * 
+ * Previous fixes v348.0:
  * - ✅ ENHANCED LOGGING: Added detailed logging to track data flow through pagination
  * - ✅ ID TRACKING: Log first and last IDs to verify data is actually being appended
  * - ✅ STATE TRACKING: Log previous and new state values to identify where data is lost
- * - ✅ GOAL: Identify exactly where the pagination data disappears
  * 
  * Previous fixes v347.0:
  * - ✅ FIXED DISPLAY BUG: displayedLocales now updates when allLoadedLocales changes
  * - ✅ REMOVED FILTER DEPENDENCY: useEffect no longer requires filters to change to update display
  * - ✅ SIMPLIFIED LOGIC: Direct assignment of filteredLocales to displayedLocales
- * - ✅ RESULT: New locales from pagination now appear immediately in the list
- * 
- * Previous fixes v346.0:
- * - ✅ FIXED PAGINATION BUG: Removed filter check that was blocking loadMoreLocales
- * - ✅ ADDED DEBUG LOGGING: Comprehensive console logs to track pagination flow
- * - ✅ IMPROVED APPEND LOGIC: Better tracking of loaded vs displayed locales
  */
 
 export default function ExplorarScreen() {
@@ -631,11 +631,19 @@ export default function ExplorarScreen() {
 
         if (append) {
           console.log('[Explorar v348.0] ➕ Appending', transformedLocales.length, 'locales to existing', allLoadedLocales.length);
+          
+          // ✅ CRITICAL FIX v349.0: Deduplicate before appending to prevent duplicate IDs
+          const existingIds = new Set(allLoadedLocales.map(l => l.id));
+          const newUniqueLocales = transformedLocales.filter(l => !existingIds.has(l.id));
+          
+          console.log('[Explorar v349.0] 🔍 Filtered out', transformedLocales.length - newUniqueLocales.length, 'duplicates');
+          console.log('[Explorar v349.0] ➕ Adding', newUniqueLocales.length, 'new unique locales');
+          
           setAllLoadedLocales(prev => {
-            const newLocales = [...prev, ...transformedLocales];
-            console.log('[Explorar v348.0] 📊 Total locales after append:', newLocales.length);
-            console.log('[Explorar v348.0] 📊 First 3 IDs:', newLocales.slice(0, 3).map(l => l.id));
-            console.log('[Explorar v348.0] 📊 Last 3 IDs:', newLocales.slice(-3).map(l => l.id));
+            const newLocales = [...prev, ...newUniqueLocales];
+            console.log('[Explorar v349.0] 📊 Total locales after append:', newLocales.length);
+            console.log('[Explorar v349.0] 📊 First 3 IDs:', newLocales.slice(0, 3).map(l => l.id));
+            console.log('[Explorar v349.0] 📊 Last 3 IDs:', newLocales.slice(-3).map(l => l.id));
             return newLocales;
           });
         } else {
@@ -669,8 +677,11 @@ export default function ExplorarScreen() {
   // ✅ CRITICAL OPTIMIZATION: Apply filters efficiently
   const filteredLocales = useMemo(() => {
     const startTime = Date.now();
-    console.log('[Explorar v348.0] 🔍 Starting filter application...');
-    console.log('[Explorar v348.0] 📊 Input:', allLoadedLocales.length, 'locals');
+    console.log('[Explorar v349.0] 🔍 Starting filter application...');
+    console.log('[Explorar v349.0] 📊 Input:', allLoadedLocales.length, 'locals');
+    console.log('[Explorar v349.0] 📊 Has active filters:', hasActiveFilters);
+    console.log('[Explorar v349.0] 📊 Selected category:', selectedCategory);
+    console.log('[Explorar v349.0] 📊 Search query:', debouncedQuery);
     
     const query = debouncedQuery.toLowerCase().trim();
     
@@ -678,6 +689,9 @@ export default function ExplorarScreen() {
     
     // Apply category filter
     if (selectedCategory && selectedCategory !== 'todas') {
+      console.log('[Explorar v349.0] 🏷️ Applying category filter:', selectedCategory);
+      const beforeCategoryFilter = filtered.length;
+      
       filtered = filtered.filter(local => {
         const barliveTypes = local.barlive_types || [];
         const barliveType = local.barlive_type || '';
@@ -707,6 +721,8 @@ export default function ExplorarScreen() {
         
         return false;
       });
+      
+      console.log('[Explorar v349.0] 🏷️ Category filter removed:', beforeCategoryFilter - filtered.length, 'locals');
     }
     
     // Apply search query filter
@@ -727,7 +743,9 @@ export default function ExplorarScreen() {
     }
 
     // Apply advanced filters
+    const beforeAdvancedFilters = filtered.length;
     filtered = applyAdvancedFilters(filtered, globalFiltros);
+    console.log('[Explorar v349.0] 🔧 Advanced filters removed:', beforeAdvancedFilters - filtered.length, 'locals');
 
     // Remove duplicates
     const uniqueLocales = filtered.filter((item, index, self) =>
@@ -737,12 +755,13 @@ export default function ExplorarScreen() {
     const endTime = Date.now();
     const duration = endTime - startTime;
     
-    console.log('[Explorar v348.0] ✅ Filter application complete');
-    console.log('[Explorar v348.0] ⏱️ Duration:', duration, 'ms');
-    console.log('[Explorar v348.0] 📊 Result:', uniqueLocales.length, 'locals');
+    console.log('[Explorar v349.0] ✅ Filter application complete');
+    console.log('[Explorar v349.0] ⏱️ Duration:', duration, 'ms');
+    console.log('[Explorar v349.0] 📊 Result:', uniqueLocales.length, 'locals');
+    console.log('[Explorar v349.0] 📊 Filtered out:', allLoadedLocales.length - uniqueLocales.length, 'locals');
 
     return uniqueLocales;
-  }, [allLoadedLocales, debouncedQuery, selectedCategory, globalFiltros]);
+  }, [allLoadedLocales, debouncedQuery, selectedCategory, globalFiltros, hasActiveFilters]);
 
   // ✅ CRITICAL FIX v348.0: Update displayedLocales whenever filteredLocales changes
   // This ensures new locales from pagination appear immediately
