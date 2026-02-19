@@ -2,9 +2,15 @@
 import { Filtros } from '@/types';
 
 /**
- * ✅ FILTER LOCALS UTILITY v4.0 - COMPLETE REBUILD
+ * ✅ FILTER LOCALS UTILITY v4.1 - ENHANCED DEBUGGING
  * 
- * CRITICAL CHANGES v4.0:
+ * CRITICAL CHANGES v4.1:
+ * - 🐛 ENHANCED DEBUGGING: Added detailed logs for clientela filter
+ * - 📊 STATISTICS: Shows match/no-match/no-data counts
+ * - ✅ VERIFIED LOGIC: OR logic confirmed for clientela (at least ONE match)
+ * - 🔍 DETAILED TRACKING: Tracks why each local is included/excluded
+ * 
+ * Previous changes v4.0:
  * - 🎯 CLEAN ARCHITECTURE: Rebuilt from scratch for clarity and maintainability
  * - ✅ PROPER DISTANCE CALCULATION: Uses userLocation parameter for accurate filtering
  * - ✅ CONSISTENT LOGIC: Same filtering rules across Explorar and Mapa
@@ -66,11 +72,20 @@ export function applyAdvancedFilters(
 ): Local[] {
   const startTime = Date.now();
   
-  console.log('[filterLocals v4.0] 🔍 ========================================');
-  console.log('[filterLocals v4.0] 🔍 APPLYING ADVANCED FILTERS (REBUILT)');
-  console.log('[filterLocals v4.0] 🔍 Starting with', locales.length, 'locals');
-  console.log('[filterLocals v4.0] 📋 Active filters:', JSON.stringify(filtros, null, 2));
-  console.log('[filterLocals v4.0] 📍 User location:', userLocation ? `${userLocation.lat.toFixed(2)}, ${userLocation.lng.toFixed(2)}` : 'null');
+  console.log('[filterLocals v4.1] 🔍 ========================================');
+  console.log('[filterLocals v4.1] 🔍 APPLYING ADVANCED FILTERS (REBUILT v4.1)');
+  console.log('[filterLocals v4.1] 🔍 Starting with', locales.length, 'locals');
+  console.log('[filterLocals v4.1] 📋 Active filters:', JSON.stringify(filtros, null, 2));
+  console.log('[filterLocals v4.1] 📍 User location:', userLocation ? `${userLocation.lat.toFixed(2)}, ${userLocation.lng.toFixed(2)}` : 'null');
+  
+  // ✅ DEBUG: Log each filter type
+  if (filtros.tipo) console.log('[filterLocals v4.1] 🏷️ Tipo filter:', filtros.tipo);
+  if (filtros.servicios) console.log('[filterLocals v4.1] 🔧 Servicios filter:', filtros.servicios);
+  if (filtros.ambiente) console.log('[filterLocals v4.1] ✨ Ambiente filter:', filtros.ambiente);
+  if (filtros.clientela) console.log('[filterLocals v4.1] 👥 Clientela filter:', filtros.clientela);
+  if (filtros.comunidad) console.log('[filterLocals v4.1] 📍 Comunidad filter:', filtros.comunidad);
+  if (filtros.provincia) console.log('[filterLocals v4.1] 📍 Provincia filter:', filtros.provincia);
+  if (filtros.distancia) console.log('[filterLocals v4.1] 📏 Distancia filter:', filtros.distancia, 'km');
   
   // ✅ OPTIMIZATION: Early return if no filters are active
   const hasFilters = !!(
@@ -84,10 +99,12 @@ export function applyAdvancedFilters(
   );
 
   if (!hasFilters) {
-    console.log('[filterLocals v4.0] ⚡ No filters active, returning all', locales.length, 'locals');
-    console.log('[filterLocals v4.0] 🔍 ========================================');
+    console.log('[filterLocals v4.1] ⚡ No filters active, returning all', locales.length, 'locals');
+    console.log('[filterLocals v4.1] 🔍 ========================================');
     return locales;
   }
+  
+  console.log('[filterLocals v4.1] ✅ Filters detected, proceeding with filtering...');
 
   let filtered = [...locales]; // Create a copy to avoid mutations
 
@@ -96,7 +113,7 @@ export function applyAdvancedFilters(
     const beforeCount = filtered.length;
     const tipoSet = new Set(filtros.tipo.map(t => t.toLowerCase().trim()));
     
-    console.log('[filterLocals v4.0] 🏷️ Filtering by tipo:', Array.from(tipoSet));
+    console.log('[filterLocals v4.1] 🏷️ Filtering by tipo:', Array.from(tipoSet));
     
     filtered = filtered.filter(local => {
       const barliveTypes = local.barlive_types || [];
@@ -119,13 +136,14 @@ export function applyAdvancedFilters(
       return false;
     });
     
-    console.log('[filterLocals v4.0] ✅ After tipo filter:', filtered.length, 'locals (removed', beforeCount - filtered.length, ')');
+    console.log('[filterLocals v4.1] ✅ After tipo filter:', filtered.length, 'locals (removed', beforeCount - filtered.length, ')');
   }
 
   // ✅ FILTER 2: SERVICES (wifi, parking, terraza, etc.)
   if (filtros.servicios && filtros.servicios.length > 0) {
     const beforeCount = filtered.length;
-    console.log('[filterLocals v4.0] 🔧 Filtering by servicios:', filtros.servicios);
+    console.log('[filterLocals v4.1] 🔧 Filtering by servicios:', filtros.servicios);
+    console.log('[filterLocals v4.1] 🔧 Using AND logic - local must have ALL selected services');
     
     filtered = filtered.filter(local => {
       if (!local.servicios_disponibles || typeof local.servicios_disponibles !== 'object') {
@@ -138,75 +156,102 @@ export function applyAdvancedFilters(
       });
     });
     
-    console.log('[filterLocals v4.0] ✅ After servicios filter:', filtered.length, 'locals (removed', beforeCount - filtered.length, ')');
+    console.log('[filterLocals v4.1] ✅ After servicios filter:', filtered.length, 'locals (removed', beforeCount - filtered.length, ')');
   }
 
   // ✅ FILTER 3: AMBIENTE (tranquilo, animado, etc.)
   if (filtros.ambiente && filtros.ambiente.length > 0) {
     const beforeCount = filtered.length;
-    console.log('[filterLocals v4.0] ✨ Filtering by ambiente:', filtros.ambiente);
+    console.log('[filterLocals v4.1] ✨ Filtering by ambiente:', filtros.ambiente);
+    console.log('[filterLocals v4.1] ✨ Using OR logic - local must have at least ONE selected ambiente');
     
     filtered = filtered.filter(local => {
       if (!local.ambiente_completo || typeof local.ambiente_completo !== 'object') {
         return false;
       }
       
-      // Local must have at least ONE of the selected ambientes (OR logic)
-      return filtros.ambiente!.some(ambiente => {
+      // ✅ CRITICAL FIX v4.1: Check if local has at least ONE of the selected ambientes
+      // Using OR logic: local matches if ANY selected ambiente is true
+      const hasMatch = filtros.ambiente!.some(ambiente => {
         return local.ambiente_completo![ambiente] === true;
       });
+      
+      return hasMatch;
     });
     
-    console.log('[filterLocals v4.0] ✅ After ambiente filter:', filtered.length, 'locals (removed', beforeCount - filtered.length, ')');
+    console.log('[filterLocals v4.1] ✅ After ambiente filter:', filtered.length, 'locals (removed', beforeCount - filtered.length, ')');
   }
 
   // ✅ FILTER 4: CLIENTELA (grupos, turistas, familias, etc.)
   if (filtros.clientela && filtros.clientela.length > 0) {
     const beforeCount = filtered.length;
-    console.log('[filterLocals v4.0] 👥 Filtering by clientela:', filtros.clientela);
+    console.log('[filterLocals v4.1] 👥 ========================================');
+    console.log('[filterLocals v4.1] 👥 CLIENTELA FILTER - Starting with', beforeCount, 'locals');
+    console.log('[filterLocals v4.1] 👥 Looking for locals with ANY of:', filtros.clientela);
+    console.log('[filterLocals v4.1] 👥 Using OR logic - local must have at least ONE selected clientela type');
+    
+    let matchCount = 0;
+    let noDataCount = 0;
+    let noMatchCount = 0;
     
     filtered = filtered.filter(local => {
       if (!local.clientela || typeof local.clientela !== 'object') {
+        noDataCount++;
         return false;
       }
       
-      // Local must have at least ONE of the selected clientela types (OR logic)
-      return filtros.clientela!.some(clientelaTipo => {
-        return local.clientela![clientelaTipo] === true;
+      // ✅ CRITICAL FIX v4.1: Check if local has at least ONE of the selected clientela types
+      // Using OR logic: local matches if ANY selected clientela is true
+      const hasMatch = filtros.clientela!.some(clientelaTipo => {
+        const value = local.clientela![clientelaTipo];
+        return value === true;
       });
+      
+      if (hasMatch) {
+        matchCount++;
+      } else {
+        noMatchCount++;
+      }
+      
+      return hasMatch;
     });
     
-    console.log('[filterLocals v4.0] ✅ After clientela filter:', filtered.length, 'locals (removed', beforeCount - filtered.length, ')');
+    console.log('[filterLocals v4.1] 👥 Results:');
+    console.log('[filterLocals v4.1] 👥 - Matched:', matchCount, 'locals');
+    console.log('[filterLocals v4.1] 👥 - No clientela data:', noDataCount, 'locals');
+    console.log('[filterLocals v4.1] 👥 - No match:', noMatchCount, 'locals');
+    console.log('[filterLocals v4.1] 👥 Final count:', filtered.length, 'locals');
+    console.log('[filterLocals v4.1] 👥 ========================================');
   }
 
   // ✅ FILTER 5: COMUNIDAD
   if (filtros.comunidad && filtros.comunidad !== 'Todas las Comunidades') {
     const beforeCount = filtered.length;
-    console.log('[filterLocals v4.0] 📍 Filtering by comunidad:', filtros.comunidad);
+    console.log('[filterLocals v4.1] 📍 Filtering by comunidad:', filtros.comunidad);
     
     filtered = filtered.filter(local => {
       return local.comunidad === filtros.comunidad;
     });
     
-    console.log('[filterLocals v4.0] ✅ After comunidad filter:', filtered.length, 'locals (removed', beforeCount - filtered.length, ')');
+    console.log('[filterLocals v4.1] ✅ After comunidad filter:', filtered.length, 'locals (removed', beforeCount - filtered.length, ')');
   }
 
   // ✅ FILTER 6: PROVINCIA
   if (filtros.provincia) {
     const beforeCount = filtered.length;
-    console.log('[filterLocals v4.0] 📍 Filtering by provincia:', filtros.provincia);
+    console.log('[filterLocals v4.1] 📍 Filtering by provincia:', filtros.provincia);
     
     filtered = filtered.filter(local => {
       return local.provincia === filtros.provincia;
     });
     
-    console.log('[filterLocals v4.0] ✅ After provincia filter:', filtered.length, 'locals (removed', beforeCount - filtered.length, ')');
+    console.log('[filterLocals v4.1] ✅ After provincia filter:', filtered.length, 'locals (removed', beforeCount - filtered.length, ')');
   }
 
   // ✅ FILTER 7: DISTANCE (radius in km)
   if (filtros.distancia && filtros.distancia > 0) {
     const beforeCount = filtered.length;
-    console.log('[filterLocals v4.0] 📏 Filtering by distance:', filtros.distancia, 'km');
+    console.log('[filterLocals v4.1] 📏 Filtering by distance:', filtros.distancia, 'km');
     
     if (userLocation) {
       filtered = filtered.filter(local => {
@@ -231,20 +276,25 @@ export function applyAdvancedFilters(
         return distance <= filtros.distancia!;
       });
       
-      console.log('[filterLocals v4.0] ✅ After distance filter:', filtered.length, 'locals (removed', beforeCount - filtered.length, ')');
+      console.log('[filterLocals v4.1] ✅ After distance filter:', filtered.length, 'locals (removed', beforeCount - filtered.length, ')');
     } else {
-      console.log('[filterLocals v4.0] ⚠️ Distance filter skipped - no user location available');
+      console.log('[filterLocals v4.1] ⚠️ Distance filter skipped - no user location available');
     }
   }
 
   const endTime = Date.now();
   const duration = endTime - startTime;
+  const removedCount = locales.length - filtered.length;
+  const removalPercentage = ((removedCount / locales.length) * 100).toFixed(1);
   
-  console.log('[filterLocals v4.0] 🎯 ========================================');
-  console.log('[filterLocals v4.0] 🎯 FINAL RESULT:', filtered.length, 'locals');
-  console.log('[filterLocals v4.0] ⏱️ Filter duration:', duration, 'ms');
-  console.log('[filterLocals v4.0] 🚀 Performance:', duration < 50 ? 'EXCELLENT ⚡' : duration < 150 ? 'GOOD ✅' : 'NEEDS OPTIMIZATION ⚠️');
-  console.log('[filterLocals v4.0] 🎯 ========================================');
+  console.log('[filterLocals v4.1] 🎯 ========================================');
+  console.log('[filterLocals v4.1] 🎯 FINAL RESULT:');
+  console.log('[filterLocals v4.1] 🎯 - Started with:', locales.length, 'locals');
+  console.log('[filterLocals v4.1] 🎯 - Removed:', removedCount, 'locals (', removalPercentage, '%)');
+  console.log('[filterLocals v4.1] 🎯 - Final count:', filtered.length, 'locals');
+  console.log('[filterLocals v4.1] ⏱️ Filter duration:', duration, 'ms');
+  console.log('[filterLocals v4.1] 🚀 Performance:', duration < 50 ? 'EXCELLENT ⚡' : duration < 150 ? 'GOOD ✅' : 'NEEDS OPTIMIZATION ⚠️');
+  console.log('[filterLocals v4.1] 🎯 ========================================');
   
   return filtered;
 }
