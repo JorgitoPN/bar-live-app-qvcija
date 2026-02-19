@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   ActivityIndicator,
   Platform,
   Pressable,
@@ -18,9 +17,19 @@ import { colors } from '@/styles/commonStyles';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import { useFilters } from '@/contexts/FilterContext';
 import { Filtros } from '@/types';
+import Slider from '@react-native-community/slider';
 
 /**
- * ✅ ADVANCED FILTERS PAGE v1.0 - PROFESSIONAL & SCALABLE
+ * ✅ ADVANCED FILTERS PAGE v2.0 - ENHANCED UX & FUNCTIONALITY
+ * 
+ * NEW FEATURES v2.0:
+ * - ✅ Visual indicator badge on filter button (active filter count)
+ * - ✅ Slider for search radius (smooth, intuitive distance selection)
+ * - ✅ Dropdown for Comunidad Autónoma (clear, organized selection)
+ * - ✅ Single-selection for venue categories (synchronized with Explorar)
+ * - ✅ Improved responsive design (compact, optimized selectors)
+ * - ✅ Dynamic result updates (real-time filtering in Explorar & Mapa)
+ * - ✅ Clear all filters button (visible and accessible)
  * 
  * ARCHITECTURE:
  * - ✅ Full-page modal presentation (not bottom sheet)
@@ -31,16 +40,6 @@ import { Filtros } from '@/types';
  * - ✅ Optimized performance with memoization
  * - ✅ Accessible from both Map and Explore
  * - ✅ Consistent behavior across all entry points
- * 
- * FEATURES:
- * - Location filters (Comunidad, Provincia, Distance)
- * - Category filters (Tipo de local)
- * - Service filters (WiFi, Terraza, etc.)
- * - Atmosphere filters (Ambiente)
- * - Clientele filters (Clientela típica)
- * - Real-time filter count
- * - Clear all filters
- * - Apply filters with immediate effect
  */
 
 const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
@@ -84,6 +83,7 @@ export default function FiltrosAvanzadosScreen() {
     servicios: false,
     ambiente: false,
     clientela: false,
+    comunidadDropdown: false,
   });
   const [searchComunidad, setSearchComunidad] = useState('');
   const [searchProvincia, setSearchProvincia] = useState('');
@@ -107,11 +107,12 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleTipoToggle = useCallback((tipoId: string) => {
+    console.log('[FiltrosAvanzados v2.0] 🎯 Seleccionando categoría (única):', tipoId);
     setFiltrosTemp(prev => ({
       ...prev,
-      tipo: tipoId === 'todos' ? undefined : toggleArrayItem(prev.tipo, tipoId),
+      tipo: tipoId === 'todos' ? undefined : [tipoId], // ✅ Single selection only
     }));
-  }, [toggleArrayItem]);
+  }, []);
 
   const handleServicioToggle = useCallback((servicioId: string) => {
     setFiltrosTemp(prev => ({
@@ -163,10 +164,11 @@ export default function FiltrosAvanzadosScreen() {
     }));
   }, []);
 
-  const handleDistanciaChange = useCallback((text: string) => {
+  const handleDistanciaChange = useCallback((value: number) => {
+    console.log('[FiltrosAvanzados v2.0] 📏 Ajustando radio de búsqueda:', value, 'km');
     setFiltrosTemp(prev => ({
       ...prev,
-      distancia: text ? parseFloat(text) : undefined,
+      distancia: value,
     }));
   }, []);
 
@@ -402,38 +404,69 @@ export default function FiltrosAvanzadosScreen() {
 
           {expandedSections.ubicacion && (
             <View style={styles.sectionContent}>
-              {/* Comunidad Selector */}
+              {/* Comunidad Dropdown */}
               <View style={styles.selectorContainer}>
                 <Text style={[styles.selectorLabel, { fontSize: scaleFontSize(12) }]}>Comunidad Autónoma</Text>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.chipScrollContainer}
+                <TouchableOpacity
+                  style={styles.dropdown}
+                  onPress={() => toggleSection('comunidadDropdown')}
+                  activeOpacity={0.7}
                 >
-                  {allComunidades.map((comunidad) => {
-                    const isSelected = filtrosTemp.comunidad === comunidad || 
-                      (comunidad === 'Todas las Comunidades' && !filtrosTemp.comunidad);
-                    
-                    return (
-                      <TouchableOpacity
-                        key={comunidad}
-                        style={[
-                          styles.chip,
-                          isSelected && styles.chipActive,
-                        ]}
-                        onPress={() => handleComunidadSelect(comunidad)}
-                      >
-                        <Text style={[
-                          styles.chipText,
-                          { fontSize: scaleFontSize(12) },
-                          isSelected && styles.chipTextActive
-                        ]}>
-                          {comunidad}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
+                  <Text style={[styles.dropdownText, { fontSize: scaleFontSize(14) }]} numberOfLines={1}>
+                    {filtrosTemp.comunidad || 'Todas las Comunidades'}
+                  </Text>
+                  <IconSymbol 
+                    ios_icon_name={expandedSections.comunidadDropdown ? "chevron.up" : "chevron.down"} 
+                    android_material_icon_name={expandedSections.comunidadDropdown ? "expand_less" : "expand_more"} 
+                    size={scaleIconSize(20)} 
+                    color={colors.textSecondary} 
+                  />
+                </TouchableOpacity>
+                
+                {expandedSections.comunidadDropdown && (
+                  <View style={styles.dropdownList}>
+                    <ScrollView 
+                      style={styles.dropdownScroll}
+                      nestedScrollEnabled={true}
+                      showsVerticalScrollIndicator={true}
+                    >
+                      {allComunidades.map((comunidad) => {
+                        const isSelected = filtrosTemp.comunidad === comunidad || 
+                          (comunidad === 'Todas las Comunidades' && !filtrosTemp.comunidad);
+                        
+                        return (
+                          <TouchableOpacity
+                            key={comunidad}
+                            style={[
+                              styles.dropdownItem,
+                              isSelected && styles.dropdownItemActive,
+                            ]}
+                            onPress={() => {
+                              handleComunidadSelect(comunidad);
+                              toggleSection('comunidadDropdown');
+                            }}
+                          >
+                            <Text style={[
+                              styles.dropdownItemText,
+                              { fontSize: scaleFontSize(14) },
+                              isSelected && styles.dropdownItemTextActive
+                            ]}>
+                              {comunidad}
+                            </Text>
+                            {isSelected && (
+                              <IconSymbol 
+                                ios_icon_name="checkmark" 
+                                android_material_icon_name="check" 
+                                size={scaleIconSize(18)} 
+                                color={colors.primary} 
+                              />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                )}
               </View>
 
               {/* Provincia Selector */}
@@ -471,23 +504,35 @@ export default function FiltrosAvanzadosScreen() {
                 </View>
               )}
 
-              {/* Distance Input */}
+              {/* Distance Slider */}
               <View style={styles.distanceContainer}>
-                <IconSymbol 
-                  ios_icon_name="location.circle" 
-                  android_material_icon_name="location_on" 
-                  size={scaleIconSize(16)} 
-                  color={colors.primary} 
+                <View style={styles.distanceHeader}>
+                  <IconSymbol 
+                    ios_icon_name="location.circle" 
+                    android_material_icon_name="location_on" 
+                    size={scaleIconSize(16)} 
+                    color={colors.primary} 
+                  />
+                  <Text style={[styles.distanceLabel, { fontSize: scaleFontSize(14) }]}>Radio de búsqueda</Text>
+                  <Text style={[styles.distanceValue, { fontSize: scaleFontSize(16) }]}>
+                    {filtrosTemp.distancia ? `${filtrosTemp.distancia.toFixed(0)} km` : '5 km'}
+                  </Text>
+                </View>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={1}
+                  maximumValue={50}
+                  step={1}
+                  value={filtrosTemp.distancia || 5}
+                  onValueChange={handleDistanciaChange}
+                  minimumTrackTintColor={colors.primary}
+                  maximumTrackTintColor={colors.cardBorder}
+                  thumbTintColor={colors.primary}
                 />
-                <Text style={[styles.distanceLabel, { fontSize: scaleFontSize(14) }]}>Radio de búsqueda</Text>
-                <TextInput
-                  style={[styles.distanceInput, { fontSize: scaleFontSize(14) }]}
-                  placeholder="km"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="numeric"
-                  value={filtrosTemp.distancia?.toString() || ''}
-                  onChangeText={handleDistanciaChange}
-                />
+                <View style={styles.sliderLabels}>
+                  <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>1 km</Text>
+                  <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>50 km</Text>
+                </View>
               </View>
             </View>
           )}
@@ -533,7 +578,7 @@ export default function FiltrosAvanzadosScreen() {
                       <TouchableOpacity
                         key={tipo.id}
                         style={[
-                          styles.chip,
+                          styles.chipSingle,
                           isSelected && styles.chipActive,
                         ]}
                         onPress={() => handleTipoToggle(tipo.id)}
@@ -546,6 +591,14 @@ export default function FiltrosAvanzadosScreen() {
                         ]}>
                           {tipo.label}
                         </Text>
+                        {isSelected && tipo.id !== 'todos' && (
+                          <IconSymbol 
+                            ios_icon_name="checkmark.circle.fill" 
+                            android_material_icon_name="check_circle" 
+                            size={scaleIconSize(16)} 
+                            color={colors.headerText} 
+                          />
+                        )}
                       </TouchableOpacity>
                     );
                   })}
@@ -928,9 +981,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   distanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -938,22 +988,95 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
+  distanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
   distanceLabel: {
     flex: 1,
     fontWeight: '600',
     color: colors.text,
   },
-  distanceInput: {
-    width: 60,
-    backgroundColor: colors.cardBackground,
+  distanceValue: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: -8,
+  },
+  sliderLabelText: {
+    fontWeight: '500',
+    color: colors.textSecondary,
+  },
+  dropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    minHeight: 48,
+  },
+  dropdownText: {
+    flex: 1,
     fontWeight: '600',
     color: colors.text,
-    textAlign: 'center',
+  },
+  dropdownList: {
+    marginTop: 8,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 10,
+    maxHeight: 200,
+    overflow: 'hidden',
+  },
+  dropdownScroll: {
+    maxHeight: 200,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  dropdownItemActive: {
+    backgroundColor: colors.primary + '10',
+  },
+  dropdownItemText: {
+    flex: 1,
+    fontWeight: '500',
+    color: colors.text,
+  },
+  dropdownItemTextActive: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  chipSingle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.background,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
+    minWidth: 100,
   },
   footer: {
     padding: 16,

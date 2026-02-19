@@ -91,6 +91,7 @@ export default function ExplorarScreen() {
   const { currentMode, setCurrentMode, activeProfileType, activeLocalData } = useMode();
   const { prefetchNextPage } = useGlobalData();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { filtros: globalFiltros, hasActiveFilters, setFiltros: setGlobalFiltros } = useFilters();
   
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [displayedLocales, setDisplayedLocales] = useState<any[]>([]);
@@ -709,12 +710,18 @@ export default function ExplorarScreen() {
 
   const filteredLocales = useMemo(() => {
     console.log('[Explorar v323.0] 🔍 Filtering locales - total loaded:', allLoadedLocales.length);
+    console.log('[Explorar v323.0] 🎯 Global filters:', globalFiltros);
     
     const query = debouncedQuery.toLowerCase().trim();
     
     let filtered = allLoadedLocales;
     
-    if (selectedCategory && selectedCategory !== 'todas') {
+    // ✅ Apply category filter (from tabs OR from advanced filters)
+    const categoryToFilter = globalFiltros.tipo && globalFiltros.tipo.length > 0 
+      ? globalFiltros.tipo[0] 
+      : selectedCategory;
+    
+    if (categoryToFilter && categoryToFilter !== 'todas') {
       filtered = filtered.filter(local => {
         const barliveTypes = local.barlive_types || [];
         const barliveType = local.barlive_type || '';
@@ -728,7 +735,7 @@ export default function ExplorarScreen() {
           'discoteca': ['discoteca', 'nightclub', 'club', 'disco']
         };
         
-        const targetCategories = categoryMap[selectedCategory] || [selectedCategory];
+        const targetCategories = categoryMap[categoryToFilter] || [categoryToFilter];
         
         const allCategories = [...barliveTypes, barliveType]
           .filter(c => c && c.trim())
@@ -746,6 +753,53 @@ export default function ExplorarScreen() {
       });
     }
     
+    // ✅ Apply location filters (comunidad, provincia, distancia)
+    if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades') {
+      filtered = filtered.filter(local => local.comunidad === globalFiltros.comunidad);
+      console.log('[Explorar v323.0] 📍 Filtered by comunidad:', globalFiltros.comunidad, '→', filtered.length, 'locales');
+    }
+    
+    if (globalFiltros.provincia) {
+      filtered = filtered.filter(local => local.provincia === globalFiltros.provincia);
+      console.log('[Explorar v323.0] 📍 Filtered by provincia:', globalFiltros.provincia, '→', filtered.length, 'locales');
+    }
+    
+    if (globalFiltros.distancia && userLocation) {
+      filtered = filtered.filter(local => {
+        if (!local.distancia) return false;
+        return local.distancia <= (globalFiltros.distancia || 5);
+      });
+      console.log('[Explorar v323.0] 📏 Filtered by distance:', globalFiltros.distancia, 'km →', filtered.length, 'locales');
+    }
+    
+    // ✅ Apply service filters
+    if (globalFiltros.servicios && globalFiltros.servicios.length > 0) {
+      filtered = filtered.filter(local => {
+        const serviciosLocal = local.servicios_disponibles || {};
+        return globalFiltros.servicios!.every(servicio => serviciosLocal[servicio] === true);
+      });
+      console.log('[Explorar v323.0] 🔧 Filtered by services:', globalFiltros.servicios, '→', filtered.length, 'locales');
+    }
+    
+    // ✅ Apply ambiente filters
+    if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0) {
+      filtered = filtered.filter(local => {
+        const ambienteLocal = local.ambiente_completo || {};
+        return globalFiltros.ambiente!.some(ambiente => ambienteLocal[ambiente] === true);
+      });
+      console.log('[Explorar v323.0] ✨ Filtered by ambiente:', globalFiltros.ambiente, '→', filtered.length, 'locales');
+    }
+    
+    // ✅ Apply clientela filters
+    if (globalFiltros.clientela && globalFiltros.clientela.length > 0) {
+      filtered = filtered.filter(local => {
+        const clientelaLocal = local.clientela || {};
+        return globalFiltros.clientela!.some(tipo => clientelaLocal[tipo] === true);
+      });
+      console.log('[Explorar v323.0] 👥 Filtered by clientela:', globalFiltros.clientela, '→', filtered.length, 'locales');
+    }
+    
+    // ✅ Apply search query
     if (query) {
       filtered = filtered.filter(local => {
         const nombre = local.nombre?.toLowerCase() || '';
@@ -769,7 +823,7 @@ export default function ExplorarScreen() {
     console.log('[Explorar v323.0] ✅ Filtered:', filtered.length, '→ Unique:', uniqueLocales.length, '(removed', filtered.length - uniqueLocales.length, 'duplicates)');
 
     return uniqueLocales;
-  }, [allLoadedLocales, debouncedQuery, selectedCategory]);
+  }, [allLoadedLocales, debouncedQuery, selectedCategory, globalFiltros, userLocation]);
 
   useEffect(() => {
     console.log('[Explorar v323.0] 🎯 Updating displayed locales - count:', filteredLocales.length);
@@ -793,6 +847,37 @@ export default function ExplorarScreen() {
       loadLocales(1, false);
     }
   }, [selectedCategory, provinciaSeleccionada]);
+  
+  // ✅ Sync category selection with FilterContext
+  useEffect(() => {
+    if (selectedCategory && selectedCategory !== 'todas') {
+      console.log('[Explorar v323.0] 🔄 Syncing category to FilterContext:', selectedCategory);
+      setGlobalFiltros(prev => ({
+        ...prev,
+        tipo: [selectedCategory],
+      }));
+    } else if (selectedCategory === 'todas') {
+      console.log('[Explorar v323.0] 🔄 Clearing category filter in FilterContext');
+      setGlobalFiltros(prev => ({
+        ...prev,
+        tipo: undefined,
+      }));
+    }
+  }, [selectedCategory, setGlobalFiltros]);
+  
+  // ✅ Sync FilterContext category back to local state
+  useEffect(() => {
+    if (globalFiltros.tipo && globalFiltros.tipo.length > 0) {
+      const filterCategory = globalFiltros.tipo[0];
+      if (filterCategory !== selectedCategory) {
+        console.log('[Explorar v323.0] 🔄 Syncing FilterContext category to local state:', filterCategory);
+        setSelectedCategory(filterCategory);
+      }
+    } else if (!globalFiltros.tipo && selectedCategory !== 'todas') {
+      console.log('[Explorar v323.0] 🔄 Clearing local category selection');
+      setSelectedCategory('todas');
+    }
+  }, [globalFiltros.tipo]);
 
   const loadMoreLocalesRef = useRef(false);
   
@@ -1474,6 +1559,11 @@ export default function ExplorarScreen() {
               size={scaleIconSize(20)} 
               color={colors.headerText} 
             />
+            {hasActiveFilters && (
+              <View style={styles.filterBadge}>
+                <View style={styles.filterBadgeDot} />
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -1823,6 +1913,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.headerText,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  filterBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
   },
   categoriesScroll: {
     marginBottom: Platform.OS === 'android' ? 8 : 10,

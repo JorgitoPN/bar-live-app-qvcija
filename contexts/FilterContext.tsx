@@ -61,7 +61,16 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const aplicarFiltros = useCallback((nuevosFiltros: Filtros) => {
-    console.log('[FilterContext] ✅ Applying filters:', nuevosFiltros);
+    console.log('[FilterContext v2.0] ✅ Applying filters:', nuevosFiltros);
+    console.log('[FilterContext v2.0] 📊 Active filters:', {
+      tipo: nuevosFiltros.tipo?.length || 0,
+      servicios: nuevosFiltros.servicios?.length || 0,
+      ambiente: nuevosFiltros.ambiente?.length || 0,
+      clientela: nuevosFiltros.clientela?.length || 0,
+      comunidad: nuevosFiltros.comunidad ? 1 : 0,
+      provincia: nuevosFiltros.provincia ? 1 : 0,
+      distancia: nuevosFiltros.distancia ? 1 : 0,
+    });
     setFiltrosState(nuevosFiltros);
   }, []);
 
