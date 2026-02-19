@@ -709,7 +709,10 @@ export default function ExplorarScreen() {
 
   // ✅ APLICAR FILTROS CLIENT-SIDE Y ORDENAMIENTO DE 5 NIVELES
   const filteredLocales = useMemo(() => {
-    console.log('[Explorar v408.2] 🔍 Applying client-side filters to', allLocales.length, 'locales');
+    console.log('[Explorar v408.3] 🔍 ========================================');
+    console.log('[Explorar v408.3] 🔍 APPLYING CLIENT-SIDE FILTERS');
+    console.log('[Explorar v408.3] 🔍 Starting with', allLocales.length, 'locales');
+    console.log('[Explorar v408.3] 🔍 Active filters:', JSON.stringify(globalFiltros, null, 2));
     
     const query = debouncedQuery.toLowerCase().trim();
     let filtered = allLocales;
@@ -732,20 +735,30 @@ export default function ExplorarScreen() {
                barliveTypes.includes(query);
       });
       
-      console.log('[Explorar v408.2] 🔍 Search filter removed:', beforeFilter - filtered.length);
+      console.log('[Explorar v408.3] 🔍 Search filter removed:', beforeFilter - filtered.length);
+      console.log('[Explorar v408.3] 🔍 After search:', filtered.length, 'locales');
     }
 
-    // ✅ FILTROS AVANZADOS (Client-side)
+    // ✅ FILTROS AVANZADOS (Client-side) - CRITICAL FIX
     const beforeAdvanced = filtered.length;
-    filtered = applyAdvancedFilters(filtered, globalFiltros);
-    console.log('[Explorar v408.2] 🔧 Advanced filters removed:', beforeAdvanced - filtered.length);
+    console.log('[Explorar v408.3] 🔧 Applying advanced filters...');
+    console.log('[Explorar v408.3] 🔧 Has active filters:', hasActiveFilters);
+    
+    if (hasActiveFilters) {
+      filtered = applyAdvancedFilters(filtered, globalFiltros);
+      console.log('[Explorar v408.3] 🔧 Advanced filters removed:', beforeAdvanced - filtered.length);
+      console.log('[Explorar v408.3] 🔧 After advanced filters:', filtered.length, 'locales');
+    } else {
+      console.log('[Explorar v408.3] 🔧 No advanced filters active, skipping');
+    }
 
     // ✅ APLICAR ORDENAMIENTO DE 5 NIVELES
     const sorted = applySorting(filtered);
-    console.log('[Explorar v408.2] ✅ Filtered and sorted result:', sorted.length, 'locales');
+    console.log('[Explorar v408.3] ✅ Final result after sorting:', sorted.length, 'locales');
+    console.log('[Explorar v408.3] ✅ ========================================');
     
     return sorted;
-  }, [allLocales, debouncedQuery, globalFiltros, applySorting]);
+  }, [allLocales, debouncedQuery, globalFiltros, hasActiveFilters, applySorting]);
 
   // ✅ CARGA AUTOMÁTICA CUANDO LA LISTA FILTRADA ES PEQUEÑA
   useEffect(() => {
@@ -815,6 +828,7 @@ export default function ExplorarScreen() {
 
   // ✅ LIMPIAR FILTROS
   const clearFilters = useCallback(() => {
+    console.log('[Explorar v408.3] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setSelectedCategory('todas'); // This will sync with context
@@ -826,6 +840,12 @@ export default function ExplorarScreen() {
       savedScrollPosition.current = 0;
     }, 100);
   }, [setSelectedCategory, limpiarFiltros]);
+
+  // ✅ LIMPIAR SOLO FILTROS AVANZADOS (INSTANT)
+  const clearAdvancedFilters = useCallback(() => {
+    console.log('[Explorar v408.3] 🧹 Clearing ONLY advanced filters - INSTANT');
+    limpiarFiltros();
+  }, [limpiarFiltros]);
 
   // ✅ CONTADOR DE FILTROS ACTIVOS
   const activeFiltersCount = useMemo(() => {
@@ -880,19 +900,14 @@ export default function ExplorarScreen() {
   };
 
   const handleOpenAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v408.2] 🔍 Opening advanced filters');
+    console.log('[Explorar v408.3] 🔍 Opening advanced filters');
     setShowAdvancedFilters(true);
   }, []);
 
   const handleCloseAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v408.2] ✅ Closing advanced filters');
+    console.log('[Explorar v408.3] ✅ Closing advanced filters');
     setShowAdvancedFilters(false);
   }, []);
-
-  const handleClearAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v408.2] 🧹 Clearing advanced filters');
-    limpiarFiltros();
-  }, [limpiarFiltros]);
 
   const getModeLabel = () => {
     if (currentMode === 'admin') return 'Admin';
@@ -1264,7 +1279,7 @@ export default function ExplorarScreen() {
             {hasActiveFilters && (
               <TouchableOpacity 
                 style={[styles.clearFiltersButton, styles.clearAdvancedButton]}
-                onPress={handleClearAdvancedFilters}
+                onPress={clearAdvancedFilters}
                 activeOpacity={0.7}
               >
                 <IconSymbol 
@@ -1467,7 +1482,7 @@ export default function ExplorarScreen() {
             
             {hasActiveFilters && (
               <TouchableOpacity 
-                onPress={handleClearAdvancedFilters}
+                onPress={clearAdvancedFilters}
                 style={styles.clearAdvancedFiltersButton}
                 activeOpacity={0.7}
               >
