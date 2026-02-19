@@ -871,18 +871,7 @@ export default function ExplorarScreen() {
     }, 100);
   }, [setSelectedCategory, limpiarFiltros]);
 
-  // ✅ LIMPIAR SOLO FILTROS AVANZADOS (INSTANT) - FIXED v408.4
-  const clearAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v408.4] 🧹 Clearing ONLY advanced filters - INSTANT');
-    // Clear immediately without any delay
-    limpiarFiltros();
-    
-    // Force scroll to top
-    setTimeout(() => {
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-      savedScrollPosition.current = 0;
-    }, 50);
-  }, [limpiarFiltros]);
+  // ✅ REMOVED: clearAdvancedFilters - Only "Clear All Filters" button remains
 
   // ✅ CONTADOR DE FILTROS ACTIVOS
   const activeFiltersCount = useMemo(() => {
@@ -1313,25 +1302,8 @@ export default function ExplorarScreen() {
           </Text>
           
           <View style={styles.emptyStateButtons}>
-            {hasActiveFilters && (
-              <TouchableOpacity 
-                style={[styles.clearFiltersButton, styles.clearAdvancedButton]}
-                onPress={clearAdvancedFilters}
-                activeOpacity={0.7}
-              >
-                <IconSymbol 
-                  ios_icon_name="slider.horizontal.3" 
-                  android_material_icon_name="tune" 
-                  size={scaleIconSize(16)} 
-                  color={colors.headerText} 
-                />
-                <Text style={[styles.clearFiltersButtonText, { fontSize: scaleFontSize(14) }]}>
-                  Limpiar filtros avanzados
-                </Text>
-              </TouchableOpacity>
-            )}
-            
-            {activeFiltersCount > 0 && (
+            {/* ✅ ONLY ONE BUTTON: "Clear All Filters" */}
+            {(activeFiltersCount > 0 || hasActiveFilters) && (
               <TouchableOpacity 
                 style={styles.clearFiltersButton}
                 onPress={clearFilters}
@@ -1517,20 +1489,7 @@ export default function ExplorarScreen() {
               )}
             </TouchableOpacity>
             
-            {hasActiveFilters && (
-              <TouchableOpacity 
-                onPress={clearAdvancedFilters}
-                style={styles.clearAdvancedFiltersButton}
-                activeOpacity={0.7}
-              >
-                <IconSymbol 
-                  ios_icon_name="xmark.circle.fill" 
-                  android_material_icon_name="cancel" 
-                  size={scaleIconSize(18)} 
-                  color={colors.headerText} 
-                />
-              </TouchableOpacity>
-            )}
+            {/* ✅ REMOVED: Clear Advanced Filters button - Only "X" icon in header remains */}
           </View>
         </View>
 
@@ -1787,25 +1746,7 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  clearAdvancedFiltersButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#EF4444',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
+
   categoriesScroll: {
     marginBottom: Platform.OS === 'android' ? 8 : 10,
     marginRight: -16,
@@ -1905,9 +1846,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  clearAdvancedButton: {
-    backgroundColor: '#EF4444',
   },
   clearFiltersButtonText: {
     fontWeight: '600',
