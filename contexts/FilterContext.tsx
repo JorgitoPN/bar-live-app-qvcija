@@ -32,20 +32,28 @@ interface FilterContextType {
   // ✅ NEW v3.4: Context methods for applying/clearing filters
   contextAplicarFiltros: (filtros: Filtros) => void;
   contextLimpiarFiltrosAvanzados: () => void;
+  
+  // ✅ NEW v3.5: Category synchronization
+  selectedCategory: string;
+  setSelectedCategory: (category: string) => void;
 }
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
 /**
- * ✅ FILTER CONTEXT v3.4 - ADDED BACKWARD COMPATIBILITY ALIASES
+ * ✅ FILTER CONTEXT v3.5 - CATEGORY SYNCHRONIZATION
  * 
- * NEW FEATURES v3.4:
+ * NEW FEATURES v3.5:
+ * - 🔄 BIDIRECTIONAL SYNC: Category and tipo filter stay in sync
+ * - ✅ selectedCategory: Tracks current category selection
+ * - ✅ setSelectedCategory: Updates both category and tipo filter
+ * - ✅ Auto-sync on filter changes: tipo filter updates category
+ * - ✅ RESULT: Filters and categories always show the same state
+ * 
+ * Previous features v3.4:
  * - ✅ hasActiveAdvancedFilters: Alias for hasActiveFilters (backward compatibility)
  * - ✅ contextAplicarFiltros: Alias for aplicarFiltros (backward compatibility)
  * - ✅ contextLimpiarFiltrosAvanzados: Alias for limpiarFiltros (backward compatibility)
- * - ✅ RESULT: Works with both old and new naming conventions
- * 
- * Previous features v3.3:
  * - ✅ Dynamic filter options based on actual data
  * - ✅ Auto-cleanup of invalid filter options
  * - ✅ Real-time updates when locals change
@@ -54,6 +62,7 @@ const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
 export function FilterProvider({ children }: { children: ReactNode }) {
   const [filtros, setFiltrosState] = useState<Filtros>({});
+  const [selectedCategory, setSelectedCategoryState] = useState<string>('todas');
   const [dynamicOptions, setDynamicOptions] = useState<DynamicFilterOptions>({
     tipos: [],
     servicios: [],
@@ -65,18 +74,60 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
 
   const setFiltros = useCallback((nuevosFiltros: Filtros) => {
-    console.log('[FilterContext v3.4] 🔄 Setting filters:', nuevosFiltros);
+    console.log('[FilterContext v3.5] 🔄 Setting filters:', nuevosFiltros);
     setFiltrosState(nuevosFiltros);
+    
+    // ✅ SYNC: Update category if tipo filter changes
+    if (nuevosFiltros.tipo && nuevosFiltros.tipo.length === 1) {
+      const tipoValue = nuevosFiltros.tipo[0];
+      setSelectedCategoryState(tipoValue);
+      console.log('[FilterContext v3.5] 🔄 Synced category to:', tipoValue);
+    } else if (!nuevosFiltros.tipo || nuevosFiltros.tipo.length === 0) {
+      setSelectedCategoryState('todas');
+      console.log('[FilterContext v3.5] 🔄 Synced category to: todas');
+    }
   }, []);
 
   const aplicarFiltros = useCallback((nuevosFiltros: Filtros) => {
-    console.log('[FilterContext v3.4] ✅ Applying filters:', nuevosFiltros);
+    console.log('[FilterContext v3.5] ✅ Applying filters:', nuevosFiltros);
     setFiltrosState(nuevosFiltros);
+    
+    // ✅ SYNC: Update category if tipo filter changes
+    if (nuevosFiltros.tipo && nuevosFiltros.tipo.length === 1) {
+      const tipoValue = nuevosFiltros.tipo[0];
+      setSelectedCategoryState(tipoValue);
+      console.log('[FilterContext v3.5] 🔄 Synced category to:', tipoValue);
+    } else if (!nuevosFiltros.tipo || nuevosFiltros.tipo.length === 0) {
+      setSelectedCategoryState('todas');
+      console.log('[FilterContext v3.5] 🔄 Synced category to: todas');
+    }
   }, []);
 
   const limpiarFiltros = useCallback(() => {
-    console.log('[FilterContext v3.4] 🧹 Clearing all filters');
+    console.log('[FilterContext v3.5] 🧹 Clearing all filters');
     setFiltrosState({});
+    setSelectedCategoryState('todas');
+    console.log('[FilterContext v3.5] 🔄 Reset category to: todas');
+  }, []);
+  
+  const setSelectedCategory = useCallback((category: string) => {
+    console.log('[FilterContext v3.5] 🏷️ Setting category:', category);
+    setSelectedCategoryState(category);
+    
+    // ✅ SYNC: Update tipo filter when category changes
+    if (category === 'todas') {
+      setFiltrosState(prev => {
+        const { tipo, ...rest } = prev;
+        return rest;
+      });
+      console.log('[FilterContext v3.5] 🔄 Cleared tipo filter');
+    } else {
+      setFiltrosState(prev => ({
+        ...prev,
+        tipo: [category],
+      }));
+      console.log('[FilterContext v3.5] 🔄 Set tipo filter to:', [category]);
+    }
   }, []);
 
   // ✅ OPTIMIZED: Check if any filters are active (memoized)
@@ -274,6 +325,9 @@ export function FilterProvider({ children }: { children: ReactNode }) {
       hasActiveAdvancedFilters: hasActiveFilters,
       contextAplicarFiltros: aplicarFiltros,
       contextLimpiarFiltrosAvanzados: limpiarFiltros,
+      // ✅ NEW v3.5: Category synchronization
+      selectedCategory,
+      setSelectedCategory,
     }}>
       {children}
     </FilterContext.Provider>

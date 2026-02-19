@@ -49,18 +49,21 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ADVANCED FILTERS SHEET v30.0 - DYNAMIC FILTERS + INSTANT CLEAR + SLIDER
+ * ✅ ADVANCED FILTERS SHEET v30.1 - CATEGORY SYNC + DYNAMIC + INSTANT
  * 
- * NEW FEATURES v30.0:
+ * NEW FEATURES v30.1:
+ * - 🔄 CATEGORY SYNC: Filters sync with category selection
+ * - ✅ Bidirectional sync: Category ↔ Tipo filter
+ * - ✅ Opens with current category pre-selected
+ * - ✅ Applying filters updates category in Explorar
+ * 
+ * Previous features v30.0:
  * - 🎯 DYNAMIC FILTERS: Only show characteristics with active locales
  * - ⚡ INSTANT CLEAR: Synchronous UI update, background fetch
  * - 🎚️ SLIDER: Replaced text input with slider (1-100km range)
  * - ✅ Real-time value display on slider
  * - ✅ Smooth UX with no lag on clear
- * 
- * Previous fixes v29.0:
  * - ✅ Fixed all Material Icons (no more question marks)
- * - ✅ Proper icon names for Android
  */
 
 export default function FiltrosAvanzadosSheet({
@@ -76,6 +79,7 @@ export default function FiltrosAvanzadosSheet({
     dynamicOptions,
     refreshDynamicOptions,
     isLoadingOptions,
+    selectedCategory,
   } = useFilters();
   
   const initialFiltros = propFiltros || contextFiltros;
@@ -95,11 +99,20 @@ export default function FiltrosAvanzadosSheet({
 
   useEffect(() => {
     if (visible) {
-      console.log('[FiltrosAvanzados v30.0] 🔄 Modal opened, resetting temp filters');
-      setFiltrosTemp(initialFiltros);
+      console.log('[FiltrosAvanzados v30.1] 🔄 Modal opened, resetting temp filters');
+      console.log('[FiltrosAvanzados v30.1] 🏷️ Current category:', selectedCategory);
+      
+      // ✅ SYNC v30.1: Initialize with current category
+      const syncedFiltros = { ...initialFiltros };
+      if (selectedCategory && selectedCategory !== 'todas') {
+        syncedFiltros.tipo = [selectedCategory];
+        console.log('[FiltrosAvanzados v30.1] 🔄 Synced tipo filter with category:', selectedCategory);
+      }
+      
+      setFiltrosTemp(syncedFiltros);
       refreshDynamicOptions();
     }
-  }, [visible, initialFiltros, refreshDynamicOptions]);
+  }, [visible, initialFiltros, refreshDynamicOptions, selectedCategory]);
 
   const toggleArrayItem = useCallback((array: string[] | undefined, item: string): string[] => {
     const arr = array || [];
