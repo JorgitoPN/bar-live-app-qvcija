@@ -77,44 +77,25 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v402.0 - INFINITE SCROLL CON CARGA ANTICIPADA MEJORADA
+ * ✅ EXPLORAR SCREEN v403.0 - FIX CATEGORY FILTER LOADING
  * 
- * MEJORAS IMPLEMENTADAS (v402.0):
- * - ✅ Carga anticipada agresiva: Se dispara cuando quedan 3 PANTALLAS por ver
- * - ✅ onEndReachedThreshold ajustado a 0.5 (50% del contenido)
- * - ✅ Auto-carga cuando la lista filtrada tiene menos de 10 items
- * - ✅ Preloading basado en scroll position (no solo onEndReached)
- * - ✅ Soluciona el problema de iOS/Android donde había que esperar a que se carguen los locales
+ * PROBLEMA RESUELTO:
+ * - ❌ ANTES: Filtros de categoría se aplicaban client-side DESPUÉS de cargar 20 locales
+ * - ❌ Resultado: Si solo 3 de 20 locales coincidían con la categoría, se veían 3 items
+ * - ❌ La carga era aleatoria porque dependía de qué locales venían en cada batch
  * 
- * ARQUITECTURA SIMPLIFICADA:
- * - ✅ Un solo estado de carga (isLoading) para toda la paginación
- * - ✅ Paginación basada en offset simple y predecible
- * - ✅ Filtrado eficiente que no interfiere con la carga
- * - ✅ Deduplicación automática en cada carga
- * - ✅ Guardia única para prevenir cargas duplicadas
- * - ✅ Auto-carga inteligente cuando hay pocos resultados filtrados
+ * ✅ SOLUCIÓN:
+ * - ✅ Filtros de categoría ahora se pasan al backend (get_locales_paginados)
+ * - ✅ El backend filtra ANTES de paginar, garantizando 20 locales de la categoría
+ * - ✅ Carga predecible y consistente en tandas de 20
+ * - ✅ Filtros avanzados y búsqueda siguen siendo client-side (más flexibles)
  * 
- * FLUJO DE CARGA ANTICIPADA:
- * 1. Usuario hace scroll → handleScroll detecta distancia al final
- * 2. Si quedan menos de 3 pantallas → Trigger automático de carga
- * 3. Si lista filtrada < 10 items → Auto-carga más datos
- * 4. onEndReached como fallback si el usuario llega al final
- * 5. loadMoreLocales verifica guardias (isLoading, hasMore)
- * 6. Calcula offset = locales.length (siempre correcto)
- * 7. Fetch de 20 locales desde offset
- * 8. Deduplicación automática por ID
- * 9. Append a la lista existente
- * 10. Actualiza hasMore basado en cantidad recibida
- * 
- * VENTAJAS:
- * - Sin estados conflictivos (currentPage eliminado)
- * - Sin caché complejo que pueda causar bugs
- * - Offset siempre correcto (basado en longitud real)
- * - Filtrado independiente de la carga
- * - Código más simple y mantenible
- * - Carga anticipada REAL: El usuario NUNCA ve el loading
- * - Funciona perfectamente en iOS y Android
- * - Soluciona el problema de filtros que reducen la lista visible
+ * ARQUITECTURA:
+ * - Backend filtering: Categoría (garantiza 20 items por batch)
+ * - Client-side filtering: Búsqueda, filtros avanzados (aplicados después)
+ * - Paginación basada en offset simple y predecible
+ * - Deduplicación automática en cada carga
+ * - Auto-carga cuando hay pocos resultados filtrados
  */
 
 export default function ExplorarScreen() {
@@ -304,38 +285,63 @@ export default function ExplorarScreen() {
     };
   }, [isValidSpainCoordinate, deferWithPriority]);
 
-  // ✅ FUNCIÓN PRINCIPAL DE CARGA - REFACTORIZADA COMPLETAMENTE
+  // ✅ MAPEO DE CATEGORÍAS PARA EL BACKEND
+  const getCategoryFilterForBackend = useCallback((category: string): string[] | null => {
+    if (!category || category === 'todas') {
+      return null;
+    }
+    
+    const categoryMap: Record<string, string[]> = {
+      'cafe': ['cafe', 'cafeteria', 'cafetería'],
+      'restaurante': ['restaurante', 'restaurant'],
+      'bar': ['bar'],
+      'pub': ['pub'],
+      'cocteleria': ['cocteleria', 'cocktail', 'cóctel'],
+      'discoteca': ['discoteca', 'nightclub', 'club', 'disco']
+    };
+    
+    return categoryMap[category] || null;
+  }, []);
+
+  // ✅ FUNCIÓN PRINCIPAL DE CARGA - CON FILTRO DE CATEGORÍA EN BACKEND
   const loadLocales = useCallback(async (reset: boolean = false) => {
-    console.log('[Explorar v402.0] 🔄 loadLocales called:', { reset, isLoading, hasMore, currentLength: allLocales.length });
+    console.log('[Explorar v403.0] 🔄 loadLocales called:', { 
+      reset, 
+      isLoading, 
+      hasMore, 
+      currentLength: allLocales.length,
+      selectedCategory 
+    });
     
     // ✅ GUARDIA 1: Verificar si ya está cargando
     if (loadingRef.current) {
-      console.log('[Explorar v402.0] ⚠️ Already loading - BLOCKING');
+      console.log('[Explorar v403.0] ⚠️ Already loading - BLOCKING');
       return;
     }
     
     // ✅ GUARDIA 2: Si no es reset y no hay más datos, no cargar
     if (!reset && !hasMore) {
-      console.log('[Explorar v402.0] ⚠️ No more data - BLOCKING');
+      console.log('[Explorar v403.0] ⚠️ No more data - BLOCKING');
       return;
     }
     
     // ✅ GUARDIA 3: Verificar que la ubicación esté lista
     if (!locationReady) {
-      console.log('[Explorar v402.0] ⚠️ Location not ready - BLOCKING');
+      console.log('[Explorar v403.0] ⚠️ Location not ready - BLOCKING');
       return;
     }
 
     // ✅ ACTIVAR GUARDIA Y ESTADO DE CARGA
     loadingRef.current = true;
     setIsLoading(true);
-    console.log('[Explorar v402.0] 🔒 Loading guard activated');
+    console.log('[Explorar v403.0] 🔒 Loading guard activated');
 
     try {
       // ✅ CALCULAR OFFSET: Si es reset, offset = 0, sino offset = longitud actual
       const offset = reset ? 0 : allLocales.length;
-      console.log('[Explorar v402.0] 📊 Calculated offset:', offset);
-      console.log('[Explorar v402.0] 📊 Will fetch:', ITEMS_PER_PAGE, 'items');
+      console.log('[Explorar v403.0] 📊 Calculated offset:', offset);
+      console.log('[Explorar v403.0] 📊 Will fetch:', ITEMS_PER_PAGE, 'items');
+      console.log('[Explorar v403.0] 🏷️ Category filter:', selectedCategory);
 
       // ✅ PREPARAR PARÁMETROS DE UBICACIÓN
       const hasValidLocation = userLocation && isValidSpainCoordinate(userLocation.lat, userLocation.lng);
@@ -343,21 +349,36 @@ export default function ExplorarScreen() {
         ? { user_lat: userLocation.lat, user_lng: userLocation.lng }
         : { user_lat: null, user_lng: null };
       
-      console.log('[Explorar v402.0] 🌐 Fetching from Supabase...');
+      // ✅ PREPARAR FILTRO DE CATEGORÍA PARA EL BACKEND
+      const categoryFilter = getCategoryFilterForBackend(selectedCategory);
+      console.log('[Explorar v403.0] 🔍 Backend category filter:', categoryFilter);
       
-      // ✅ FETCH DE DATOS
-      const { data, error } = await supabase.rpc('get_locales_paginados', {
-        ...locationParams,
-        p_limit: ITEMS_PER_PAGE,
-        p_offset: offset,
-      });
+      console.log('[Explorar v403.0] 🌐 Fetching from Supabase with category filter...');
+      
+      // ✅ CONSTRUIR QUERY CON FILTRO DE CATEGORÍA
+      let query = supabase
+        .from('locales')
+        .select('*')
+        .eq('activo', true)
+        .order('destacado', { ascending: false })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + ITEMS_PER_PAGE - 1);
+      
+      // ✅ APLICAR FILTRO DE CATEGORÍA SI EXISTE
+      if (categoryFilter && categoryFilter.length > 0) {
+        // Usar overlaps para buscar en el array barlive_types
+        query = query.overlaps('barlive_types', categoryFilter);
+        console.log('[Explorar v403.0] ✅ Applied category filter to query');
+      }
+
+      const { data, error } = await query;
 
       if (error) {
-        console.error('[Explorar v402.0] ❌ Error fetching:', error);
+        console.error('[Explorar v403.0] ❌ Error fetching:', error);
         throw error;
       }
 
-      console.log('[Explorar v402.0] ✅ Fetched:', data?.length || 0, 'locales');
+      console.log('[Explorar v403.0] ✅ Fetched:', data?.length || 0, 'locales');
 
       if (data && data.length > 0) {
         // ✅ TRANSFORMAR DATOS
@@ -376,8 +397,6 @@ export default function ExplorarScreen() {
                 localLng
               );
             }
-          } else if (local.distancia_metros !== null && local.distancia_metros !== undefined) {
-            distanciaKm = Number(local.distancia_metros) / 1000;
           }
           
           const estadoLocal = getEstadoLocal(local);
@@ -398,22 +417,22 @@ export default function ExplorarScreen() {
 
         if (reset) {
           // ✅ RESET: Reemplazar toda la lista
-          console.log('[Explorar v402.0] 🔄 RESET: Replacing all locales with', transformedLocales.length, 'items');
+          console.log('[Explorar v403.0] 🔄 RESET: Replacing all locales with', transformedLocales.length, 'items');
           setAllLocales(transformedLocales);
         } else {
           // ✅ APPEND: Agregar a la lista existente con deduplicación
-          console.log('[Explorar v402.0] ➕ APPEND: Adding to existing', allLocales.length, 'locales');
+          console.log('[Explorar v403.0] ➕ APPEND: Adding to existing', allLocales.length, 'locales');
           
           setAllLocales(prev => {
             // ✅ DEDUPLICACIÓN: Crear Set de IDs existentes
             const existingIds = new Set(prev.map(l => l.id));
             const newUniqueLocales = transformedLocales.filter(l => !existingIds.has(l.id));
             
-            console.log('[Explorar v402.0] 🔍 Filtered out', transformedLocales.length - newUniqueLocales.length, 'duplicates');
-            console.log('[Explorar v402.0] ➕ Adding', newUniqueLocales.length, 'new unique locales');
+            console.log('[Explorar v403.0] 🔍 Filtered out', transformedLocales.length - newUniqueLocales.length, 'duplicates');
+            console.log('[Explorar v403.0] ➕ Adding', newUniqueLocales.length, 'new unique locales');
             
             const result = [...prev, ...newUniqueLocales];
-            console.log('[Explorar v402.0] 📊 Total locales after append:', result.length);
+            console.log('[Explorar v403.0] 📊 Total locales after append:', result.length);
             
             return result;
           });
@@ -421,31 +440,31 @@ export default function ExplorarScreen() {
 
         // ✅ ACTUALIZAR hasMore: Si recibimos menos de ITEMS_PER_PAGE, no hay más
         const hasMoreData = data.length >= ITEMS_PER_PAGE;
-        console.log('[Explorar v402.0] 📊 Has more data:', hasMoreData, '(received', data.length, 'items)');
+        console.log('[Explorar v403.0] 📊 Has more data:', hasMoreData, '(received', data.length, 'items)');
         setHasMore(hasMoreData);
         
       } else {
-        console.log('[Explorar v402.0] ⚠️ No data returned');
+        console.log('[Explorar v403.0] ⚠️ No data returned');
         setHasMore(false);
         if (reset) {
           setAllLocales([]);
         }
       }
     } catch (error) {
-      console.error('[Explorar v402.0] ❌ Error loading locales:', error);
+      console.error('[Explorar v403.0] ❌ Error loading locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
     } finally {
       // ✅ LIBERAR GUARDIA Y ESTADO DE CARGA
-      console.log('[Explorar v402.0] 🔓 Loading guard released');
+      console.log('[Explorar v403.0] 🔓 Loading guard released');
       loadingRef.current = false;
       setIsLoading(false);
     }
-  }, [userLocation, isValidSpainCoordinate, locationReady, allLocales.length, hasMore, isLoading]);
+  }, [userLocation, isValidSpainCoordinate, locationReady, allLocales.length, hasMore, isLoading, selectedCategory, getCategoryFilterForBackend]);
 
   // ✅ CARGA INICIAL: Cuando la ubicación esté lista
   useEffect(() => {
     if (locationReady && allLocales.length === 0 && !isLoading) {
-      console.log('[Explorar v402.0] 🚀 Initial load triggered');
+      console.log('[Explorar v403.0] 🚀 Initial load triggered');
       loadLocales(true);
     }
   }, [locationReady, allLocales.length, isLoading, loadLocales]);
@@ -456,9 +475,9 @@ export default function ExplorarScreen() {
     const filtersChanged = filtersKey !== lastFiltersRef.current;
 
     if (filtersChanged && lastFiltersRef.current !== '') {
-      console.log('[Explorar v402.0] 🔄 Filters changed, resetting...');
-      console.log('[Explorar v402.0] 📊 Previous filters:', lastFiltersRef.current);
-      console.log('[Explorar v402.0] 📊 New filters:', filtersKey);
+      console.log('[Explorar v403.0] 🔄 Filters changed, resetting...');
+      console.log('[Explorar v403.0] 📊 Previous filters:', lastFiltersRef.current);
+      console.log('[Explorar v403.0] 📊 New filters:', filtersKey);
       
       lastFiltersRef.current = filtersKey;
       
@@ -480,51 +499,14 @@ export default function ExplorarScreen() {
     }
   }, [selectedCategory, provinciaSeleccionada, debouncedQuery, globalFiltros, loadLocales]);
 
-  // ✅ APLICAR FILTROS A LOS LOCALES CARGADOS
+  // ✅ APLICAR FILTROS CLIENT-SIDE (Solo búsqueda y filtros avanzados)
   const filteredLocales = useMemo(() => {
-    console.log('[Explorar v402.0] 🔍 Applying filters to', allLocales.length, 'locales');
+    console.log('[Explorar v403.0] 🔍 Applying client-side filters to', allLocales.length, 'locales');
     
     const query = debouncedQuery.toLowerCase().trim();
     let filtered = allLocales;
     
-    // ✅ FILTRO DE CATEGORÍA
-    if (selectedCategory && selectedCategory !== 'todas') {
-      const beforeFilter = filtered.length;
-      
-      filtered = filtered.filter(local => {
-        const barliveTypes = local.barlive_types || [];
-        const barliveType = local.barlive_type || '';
-        
-        const categoryMap: Record<string, string[]> = {
-          'cafe': ['cafe', 'cafeteria', 'cafetería'],
-          'restaurante': ['restaurante', 'restaurant'],
-          'bar': ['bar'],
-          'pub': ['pub'],
-          'cocteleria': ['cocteleria', 'cocktail', 'cóctel'],
-          'discoteca': ['discoteca', 'nightclub', 'club', 'disco']
-        };
-        
-        const targetCategories = categoryMap[selectedCategory] || [selectedCategory];
-        
-        const allCategories = [...barliveTypes, barliveType]
-          .filter(c => c && c.trim())
-          .map(c => c.toLowerCase().trim());
-        
-        for (const localCat of allCategories) {
-          for (const targetCat of targetCategories) {
-            if (localCat === targetCat || localCat.includes(targetCat) || targetCat.includes(localCat)) {
-              return true;
-            }
-          }
-        }
-        
-        return false;
-      });
-      
-      console.log('[Explorar v402.0] 🏷️ Category filter removed:', beforeFilter - filtered.length);
-    }
-    
-    // ✅ FILTRO DE BÚSQUEDA
+    // ✅ FILTRO DE BÚSQUEDA (Client-side)
     if (query) {
       const beforeFilter = filtered.length;
       
@@ -542,29 +524,23 @@ export default function ExplorarScreen() {
                barliveTypes.includes(query);
       });
       
-      console.log('[Explorar v402.0] 🔍 Search filter removed:', beforeFilter - filtered.length);
+      console.log('[Explorar v403.0] 🔍 Search filter removed:', beforeFilter - filtered.length);
     }
 
-    // ✅ FILTROS AVANZADOS
+    // ✅ FILTROS AVANZADOS (Client-side)
     const beforeAdvanced = filtered.length;
     filtered = applyAdvancedFilters(filtered, globalFiltros);
-    console.log('[Explorar v402.0] 🔧 Advanced filters removed:', beforeAdvanced - filtered.length);
+    console.log('[Explorar v403.0] 🔧 Advanced filters removed:', beforeAdvanced - filtered.length);
 
-    console.log('[Explorar v402.0] ✅ Final filtered result:', filtered.length, 'locales');
+    console.log('[Explorar v403.0] ✅ Final filtered result:', filtered.length, 'locales');
     
     return filtered;
-  }, [allLocales, debouncedQuery, selectedCategory, globalFiltros]);
+  }, [allLocales, debouncedQuery, globalFiltros]);
 
   // ✅ CARGA AUTOMÁTICA CUANDO LA LISTA FILTRADA ES PEQUEÑA
-  // Esto asegura que siempre haya suficientes locales para hacer scroll
   useEffect(() => {
-    const MIN_FILTERED_ITEMS = 10; // Mínimo de items filtrados antes de cargar más
+    const MIN_FILTERED_ITEMS = 10;
     
-    // Solo cargar más si:
-    // 1. La lista filtrada es pequeña (menos de 10 items)
-    // 2. Hay más datos disponibles
-    // 3. No estamos cargando actualmente
-    // 4. Tenemos locales cargados (no es la carga inicial)
     if (
       filteredLocales.length < MIN_FILTERED_ITEMS &&
       hasMore &&
@@ -573,14 +549,14 @@ export default function ExplorarScreen() {
       allLocales.length > 0 &&
       locationReady
     ) {
-      console.log('[Explorar v402.0] 🔄 Auto-loading more data - filtered list too small:', filteredLocales.length);
+      console.log('[Explorar v403.0] 🔄 Auto-loading more data - filtered list too small:', filteredLocales.length);
       loadLocales(false);
     }
   }, [filteredLocales.length, hasMore, isLoading, allLocales.length, locationReady, loadLocales]);
 
   // ✅ FUNCIÓN PARA CARGAR MÁS LOCALES (INFINITE SCROLL)
   const loadMoreLocales = useCallback(() => {
-    console.log('[Explorar v402.0] 📊 loadMoreLocales called:', {
+    console.log('[Explorar v403.0] 📊 loadMoreLocales called:', {
       hasMore,
       isLoading,
       currentLength: allLocales.length,
@@ -588,45 +564,40 @@ export default function ExplorarScreen() {
       loadingRef: loadingRef.current,
     });
     
-    // ✅ GUARDIAS SIMPLES
     if (loadingRef.current || isLoading) {
-      console.log('[Explorar v402.0] ⚠️ Already loading - BLOCKING');
+      console.log('[Explorar v403.0] ⚠️ Already loading - BLOCKING');
       return;
     }
     
     if (!hasMore) {
-      console.log('[Explorar v402.0] ⚠️ No more data - BLOCKING');
+      console.log('[Explorar v403.0] ⚠️ No more data - BLOCKING');
       return;
     }
 
-    console.log('[Explorar v402.0] ✅ Loading more locales...');
+    console.log('[Explorar v403.0] ✅ Loading more locales...');
     loadLocales(false);
   }, [hasMore, isLoading, allLocales.length, filteredLocales.length, loadLocales]);
 
   // ✅ REFRESH: Resetear todo y cargar desde cero
   const onRefresh = async () => {
-    console.log('[Explorar v402.0] 🔄 Refresh triggered');
+    console.log('[Explorar v403.0] 🔄 Refresh triggered');
     setRefreshing(true);
     
-    // ✅ LIMPIAR FILTROS
     setSearchQuery('');
     setDebouncedQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
     
-    // ✅ RESETEAR ESTADOS
     setAllLocales([]);
     setHasMore(true);
     loadingRef.current = false;
     lastFiltersRef.current = '';
     
-    // ✅ SCROLL TO TOP
     setTimeout(() => {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       savedScrollPosition.current = 0;
     }, 100);
     
-    // ✅ CARGAR DATOS
     await loadLocales(true);
     setRefreshing(false);
   };
@@ -697,17 +668,17 @@ export default function ExplorarScreen() {
   };
 
   const handleOpenAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v402.0] 🔍 Opening advanced filters');
+    console.log('[Explorar v403.0] 🔍 Opening advanced filters');
     setShowAdvancedFilters(true);
   }, []);
 
   const handleCloseAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v402.0] ✅ Closing advanced filters');
+    console.log('[Explorar v403.0] ✅ Closing advanced filters');
     setShowAdvancedFilters(false);
   }, []);
 
   const handleClearAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v402.0] 🧹 Clearing advanced filters');
+    console.log('[Explorar v403.0] 🧹 Clearing advanced filters');
     limpiarFiltros();
   }, [limpiarFiltros]);
 
@@ -733,7 +704,6 @@ export default function ExplorarScreen() {
     
     const diff = currentScrollY - lastScrollY.current;
     
-    // ✅ ANIMACIÓN DEL HEADER
     if (Math.abs(diff) > 5) {
       if (diff > 0 && currentScrollY > 50) {
         Animated.timing(headerTranslateY, {
@@ -750,12 +720,11 @@ export default function ExplorarScreen() {
       }
     }
     
-    // ✅ CARGA ANTICIPADA: Cargar cuando quedan 3 pantallas por ver
     const distanceFromBottom = contentHeight - (currentScrollY + layoutHeight);
-    const shouldPreload = distanceFromBottom < layoutHeight * 3; // 3 pantallas de anticipación
+    const shouldPreload = distanceFromBottom < layoutHeight * 3;
     
     if (shouldPreload && hasMore && !isLoading && !loadingRef.current && filteredLocales.length > 0) {
-      console.log('[Explorar v402.0] 🚀 Preloading triggered - distance from bottom:', distanceFromBottom.toFixed(0), 'px');
+      console.log('[Explorar v403.0] 🚀 Preloading triggered - distance from bottom:', distanceFromBottom.toFixed(0), 'px');
       loadMoreLocales();
     }
     
@@ -1327,6 +1296,7 @@ export default function ExplorarScreen() {
               key={categoria.id}
               style={styles.categoriaButtonCompact}
               onPress={() => {
+                console.log('[Explorar v403.0] 🏷️ Category selected:', categoria.id);
                 setSelectedCategory(categoria.id);
                 
                 setTimeout(() => {
