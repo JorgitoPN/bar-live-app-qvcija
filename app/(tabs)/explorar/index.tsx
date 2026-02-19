@@ -77,7 +77,12 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v400.0 - INFINITE SCROLL REFACTORIZADO
+ * ✅ EXPLORAR SCREEN v401.0 - INFINITE SCROLL CON CARGA ANTICIPADA
+ * 
+ * MEJORA IMPLEMENTADA:
+ * - ✅ Carga anticipada: Se dispara cuando quedan 5 locales por ver (25% del threshold)
+ * - ✅ onEndReachedThreshold ajustado a 0.25 (antes 0.5)
+ * - ✅ Esto significa que cuando el usuario esté a 5 locales del final, se carga la siguiente tanda
  * 
  * ARQUITECTURA SIMPLIFICADA:
  * - ✅ Un solo estado de carga (isLoading) para toda la paginación
@@ -87,7 +92,7 @@ const CATEGORIAS = [
  * - ✅ Guardia única para prevenir cargas duplicadas
  * 
  * FLUJO DE CARGA:
- * 1. Usuario hace scroll → onEndReached se dispara
+ * 1. Usuario hace scroll → onEndReached se dispara cuando quedan 5 locales
  * 2. loadMoreLocales verifica guardias (isLoading, hasMore)
  * 3. Calcula offset = locales.length (siempre correcto)
  * 4. Fetch de 20 locales desde offset
@@ -101,6 +106,7 @@ const CATEGORIAS = [
  * - Offset siempre correcto (basado en longitud real)
  * - Filtrado independiente de la carga
  * - Código más simple y mantenible
+ * - Carga anticipada para mejor UX (usuario no ve el loading)
  */
 
 export default function ExplorarScreen() {
@@ -292,36 +298,36 @@ export default function ExplorarScreen() {
 
   // ✅ FUNCIÓN PRINCIPAL DE CARGA - REFACTORIZADA COMPLETAMENTE
   const loadLocales = useCallback(async (reset: boolean = false) => {
-    console.log('[Explorar v400.0] 🔄 loadLocales called:', { reset, isLoading, hasMore, currentLength: allLocales.length });
+    console.log('[Explorar v401.0] 🔄 loadLocales called:', { reset, isLoading, hasMore, currentLength: allLocales.length });
     
     // ✅ GUARDIA 1: Verificar si ya está cargando
     if (loadingRef.current) {
-      console.log('[Explorar v400.0] ⚠️ Already loading - BLOCKING');
+      console.log('[Explorar v401.0] ⚠️ Already loading - BLOCKING');
       return;
     }
     
     // ✅ GUARDIA 2: Si no es reset y no hay más datos, no cargar
     if (!reset && !hasMore) {
-      console.log('[Explorar v400.0] ⚠️ No more data - BLOCKING');
+      console.log('[Explorar v401.0] ⚠️ No more data - BLOCKING');
       return;
     }
     
     // ✅ GUARDIA 3: Verificar que la ubicación esté lista
     if (!locationReady) {
-      console.log('[Explorar v400.0] ⚠️ Location not ready - BLOCKING');
+      console.log('[Explorar v401.0] ⚠️ Location not ready - BLOCKING');
       return;
     }
 
     // ✅ ACTIVAR GUARDIA Y ESTADO DE CARGA
     loadingRef.current = true;
     setIsLoading(true);
-    console.log('[Explorar v400.0] 🔒 Loading guard activated');
+    console.log('[Explorar v401.0] 🔒 Loading guard activated');
 
     try {
       // ✅ CALCULAR OFFSET: Si es reset, offset = 0, sino offset = longitud actual
       const offset = reset ? 0 : allLocales.length;
-      console.log('[Explorar v400.0] 📊 Calculated offset:', offset);
-      console.log('[Explorar v400.0] 📊 Will fetch:', ITEMS_PER_PAGE, 'items');
+      console.log('[Explorar v401.0] 📊 Calculated offset:', offset);
+      console.log('[Explorar v401.0] 📊 Will fetch:', ITEMS_PER_PAGE, 'items');
 
       // ✅ PREPARAR PARÁMETROS DE UBICACIÓN
       const hasValidLocation = userLocation && isValidSpainCoordinate(userLocation.lat, userLocation.lng);
@@ -329,7 +335,7 @@ export default function ExplorarScreen() {
         ? { user_lat: userLocation.lat, user_lng: userLocation.lng }
         : { user_lat: null, user_lng: null };
       
-      console.log('[Explorar v400.0] 🌐 Fetching from Supabase...');
+      console.log('[Explorar v401.0] 🌐 Fetching from Supabase...');
       
       // ✅ FETCH DE DATOS
       const { data, error } = await supabase.rpc('get_locales_paginados', {
@@ -339,11 +345,11 @@ export default function ExplorarScreen() {
       });
 
       if (error) {
-        console.error('[Explorar v400.0] ❌ Error fetching:', error);
+        console.error('[Explorar v401.0] ❌ Error fetching:', error);
         throw error;
       }
 
-      console.log('[Explorar v400.0] ✅ Fetched:', data?.length || 0, 'locales');
+      console.log('[Explorar v401.0] ✅ Fetched:', data?.length || 0, 'locales');
 
       if (data && data.length > 0) {
         // ✅ TRANSFORMAR DATOS
@@ -384,22 +390,22 @@ export default function ExplorarScreen() {
 
         if (reset) {
           // ✅ RESET: Reemplazar toda la lista
-          console.log('[Explorar v400.0] 🔄 RESET: Replacing all locales with', transformedLocales.length, 'items');
+          console.log('[Explorar v401.0] 🔄 RESET: Replacing all locales with', transformedLocales.length, 'items');
           setAllLocales(transformedLocales);
         } else {
           // ✅ APPEND: Agregar a la lista existente con deduplicación
-          console.log('[Explorar v400.0] ➕ APPEND: Adding to existing', allLocales.length, 'locales');
+          console.log('[Explorar v401.0] ➕ APPEND: Adding to existing', allLocales.length, 'locales');
           
           setAllLocales(prev => {
             // ✅ DEDUPLICACIÓN: Crear Set de IDs existentes
             const existingIds = new Set(prev.map(l => l.id));
             const newUniqueLocales = transformedLocales.filter(l => !existingIds.has(l.id));
             
-            console.log('[Explorar v400.0] 🔍 Filtered out', transformedLocales.length - newUniqueLocales.length, 'duplicates');
-            console.log('[Explorar v400.0] ➕ Adding', newUniqueLocales.length, 'new unique locales');
+            console.log('[Explorar v401.0] 🔍 Filtered out', transformedLocales.length - newUniqueLocales.length, 'duplicates');
+            console.log('[Explorar v401.0] ➕ Adding', newUniqueLocales.length, 'new unique locales');
             
             const result = [...prev, ...newUniqueLocales];
-            console.log('[Explorar v400.0] 📊 Total locales after append:', result.length);
+            console.log('[Explorar v401.0] 📊 Total locales after append:', result.length);
             
             return result;
           });
@@ -407,22 +413,22 @@ export default function ExplorarScreen() {
 
         // ✅ ACTUALIZAR hasMore: Si recibimos menos de ITEMS_PER_PAGE, no hay más
         const hasMoreData = data.length >= ITEMS_PER_PAGE;
-        console.log('[Explorar v400.0] 📊 Has more data:', hasMoreData, '(received', data.length, 'items)');
+        console.log('[Explorar v401.0] 📊 Has more data:', hasMoreData, '(received', data.length, 'items)');
         setHasMore(hasMoreData);
         
       } else {
-        console.log('[Explorar v400.0] ⚠️ No data returned');
+        console.log('[Explorar v401.0] ⚠️ No data returned');
         setHasMore(false);
         if (reset) {
           setAllLocales([]);
         }
       }
     } catch (error) {
-      console.error('[Explorar v400.0] ❌ Error loading locales:', error);
+      console.error('[Explorar v401.0] ❌ Error loading locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
     } finally {
       // ✅ LIBERAR GUARDIA Y ESTADO DE CARGA
-      console.log('[Explorar v400.0] 🔓 Loading guard released');
+      console.log('[Explorar v401.0] 🔓 Loading guard released');
       loadingRef.current = false;
       setIsLoading(false);
     }
@@ -431,7 +437,7 @@ export default function ExplorarScreen() {
   // ✅ CARGA INICIAL: Cuando la ubicación esté lista
   useEffect(() => {
     if (locationReady && allLocales.length === 0 && !isLoading) {
-      console.log('[Explorar v400.0] 🚀 Initial load triggered');
+      console.log('[Explorar v401.0] 🚀 Initial load triggered');
       loadLocales(true);
     }
   }, [locationReady, allLocales.length, isLoading, loadLocales]);
@@ -442,9 +448,9 @@ export default function ExplorarScreen() {
     const filtersChanged = filtersKey !== lastFiltersRef.current;
 
     if (filtersChanged && lastFiltersRef.current !== '') {
-      console.log('[Explorar v400.0] 🔄 Filters changed, resetting...');
-      console.log('[Explorar v400.0] 📊 Previous filters:', lastFiltersRef.current);
-      console.log('[Explorar v400.0] 📊 New filters:', filtersKey);
+      console.log('[Explorar v401.0] 🔄 Filters changed, resetting...');
+      console.log('[Explorar v401.0] 📊 Previous filters:', lastFiltersRef.current);
+      console.log('[Explorar v401.0] 📊 New filters:', filtersKey);
       
       lastFiltersRef.current = filtersKey;
       
@@ -468,7 +474,7 @@ export default function ExplorarScreen() {
 
   // ✅ APLICAR FILTROS A LOS LOCALES CARGADOS
   const filteredLocales = useMemo(() => {
-    console.log('[Explorar v400.0] 🔍 Applying filters to', allLocales.length, 'locales');
+    console.log('[Explorar v401.0] 🔍 Applying filters to', allLocales.length, 'locales');
     
     const query = debouncedQuery.toLowerCase().trim();
     let filtered = allLocales;
@@ -507,7 +513,7 @@ export default function ExplorarScreen() {
         return false;
       });
       
-      console.log('[Explorar v400.0] 🏷️ Category filter removed:', beforeFilter - filtered.length);
+      console.log('[Explorar v401.0] 🏷️ Category filter removed:', beforeFilter - filtered.length);
     }
     
     // ✅ FILTRO DE BÚSQUEDA
@@ -528,22 +534,22 @@ export default function ExplorarScreen() {
                barliveTypes.includes(query);
       });
       
-      console.log('[Explorar v400.0] 🔍 Search filter removed:', beforeFilter - filtered.length);
+      console.log('[Explorar v401.0] 🔍 Search filter removed:', beforeFilter - filtered.length);
     }
 
     // ✅ FILTROS AVANZADOS
     const beforeAdvanced = filtered.length;
     filtered = applyAdvancedFilters(filtered, globalFiltros);
-    console.log('[Explorar v400.0] 🔧 Advanced filters removed:', beforeAdvanced - filtered.length);
+    console.log('[Explorar v401.0] 🔧 Advanced filters removed:', beforeAdvanced - filtered.length);
 
-    console.log('[Explorar v400.0] ✅ Final filtered result:', filtered.length, 'locales');
+    console.log('[Explorar v401.0] ✅ Final filtered result:', filtered.length, 'locales');
     
     return filtered;
   }, [allLocales, debouncedQuery, selectedCategory, globalFiltros]);
 
   // ✅ FUNCIÓN PARA CARGAR MÁS LOCALES (INFINITE SCROLL)
   const loadMoreLocales = useCallback(() => {
-    console.log('[Explorar v400.0] 📊 loadMoreLocales called:', {
+    console.log('[Explorar v401.0] 📊 loadMoreLocales called:', {
       hasMore,
       isLoading,
       currentLength: allLocales.length,
@@ -552,22 +558,22 @@ export default function ExplorarScreen() {
     
     // ✅ GUARDIAS SIMPLES
     if (loadingRef.current || isLoading) {
-      console.log('[Explorar v400.0] ⚠️ Already loading - BLOCKING');
+      console.log('[Explorar v401.0] ⚠️ Already loading - BLOCKING');
       return;
     }
     
     if (!hasMore) {
-      console.log('[Explorar v400.0] ⚠️ No more data - BLOCKING');
+      console.log('[Explorar v401.0] ⚠️ No more data - BLOCKING');
       return;
     }
 
-    console.log('[Explorar v400.0] ✅ Loading more locales...');
+    console.log('[Explorar v401.0] ✅ Loading more locales...');
     loadLocales(false);
   }, [hasMore, isLoading, allLocales.length, loadLocales]);
 
   // ✅ REFRESH: Resetear todo y cargar desde cero
   const onRefresh = async () => {
-    console.log('[Explorar v400.0] 🔄 Refresh triggered');
+    console.log('[Explorar v401.0] 🔄 Refresh triggered');
     setRefreshing(true);
     
     // ✅ LIMPIAR FILTROS
@@ -659,17 +665,17 @@ export default function ExplorarScreen() {
   };
 
   const handleOpenAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v400.0] 🔍 Opening advanced filters');
+    console.log('[Explorar v401.0] 🔍 Opening advanced filters');
     setShowAdvancedFilters(true);
   }, []);
 
   const handleCloseAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v400.0] ✅ Closing advanced filters');
+    console.log('[Explorar v401.0] ✅ Closing advanced filters');
     setShowAdvancedFilters(false);
   }, []);
 
   const handleClearAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v400.0] 🧹 Clearing advanced filters');
+    console.log('[Explorar v401.0] 🧹 Clearing advanced filters');
     limpiarFiltros();
   }, [limpiarFiltros]);
 
@@ -1334,7 +1340,7 @@ export default function ExplorarScreen() {
           />
         }
         onEndReached={filteredLocales.length > 0 ? loadMoreLocales : undefined}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={0.25}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
         initialNumToRender={10}
