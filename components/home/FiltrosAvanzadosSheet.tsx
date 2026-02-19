@@ -49,20 +49,18 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ADVANCED FILTERS SHEET v30.1 - CATEGORY SYNC + DYNAMIC + INSTANT
+ * ✅ ADVANCED FILTERS SHEET v31.0 - COMPLETE FIX
  * 
- * NEW FEATURES v30.1:
- * - 🔄 CATEGORY SYNC: Filters sync with category selection
- * - ✅ Bidirectional sync: Category ↔ Tipo filter
- * - ✅ Opens with current category pre-selected
- * - ✅ Applying filters updates category in Explorar
+ * CRITICAL FIXES v31.0:
+ * - 🎯 SINGLE CATEGORY SELECTION: Only one category can be selected at a time
+ * - ✅ FILTERS WORK WITHOUT CATEGORY: All filters are independent
+ * - ⚡ INSTANT CLEAR: Zero lag on "Limpiar filtros avanzados" button
+ * - 🔄 PERFECT SYNC: "X" icon and "Limpiar" button have identical behavior
+ * - ✅ All filters (servicios, ambiente, clientela, etc.) work independently
  * 
- * Previous features v30.0:
+ * Previous features:
+ * - 🎚️ SLIDER: 1-100km range with real-time display
  * - 🎯 DYNAMIC FILTERS: Only show characteristics with active locales
- * - ⚡ INSTANT CLEAR: Synchronous UI update, background fetch
- * - 🎚️ SLIDER: Replaced text input with slider (1-100km range)
- * - ✅ Real-time value display on slider
- * - ✅ Smooth UX with no lag on clear
  * - ✅ Fixed all Material Icons (no more question marks)
  */
 
@@ -99,14 +97,14 @@ export default function FiltrosAvanzadosSheet({
 
   useEffect(() => {
     if (visible) {
-      console.log('[FiltrosAvanzados v30.1] 🔄 Modal opened, resetting temp filters');
-      console.log('[FiltrosAvanzados v30.1] 🏷️ Current category:', selectedCategory);
+      console.log('[FiltrosAvanzados v31.0] 🔄 Modal opened, resetting temp filters');
+      console.log('[FiltrosAvanzados v31.0] 🏷️ Current category:', selectedCategory);
       
-      // ✅ SYNC v30.1: Initialize with current category
+      // ✅ SYNC: Initialize with current category (single selection)
       const syncedFiltros = { ...initialFiltros };
       if (selectedCategory && selectedCategory !== 'todas') {
-        syncedFiltros.tipo = [selectedCategory];
-        console.log('[FiltrosAvanzados v30.1] 🔄 Synced tipo filter with category:', selectedCategory);
+        syncedFiltros.tipo = [selectedCategory]; // Single category as array
+        console.log('[FiltrosAvanzados v31.0] 🔄 Synced tipo filter with category:', selectedCategory);
       }
       
       setFiltrosTemp(syncedFiltros);
@@ -122,12 +120,36 @@ export default function FiltrosAvanzadosSheet({
     return [...arr, item];
   }, []);
 
+  // ✅ CRITICAL FIX v31.0: Single category selection only
   const handleTipoToggle = useCallback((tipoId: string) => {
-    setFiltrosTemp(prev => ({
-      ...prev,
-      tipo: tipoId === 'todos' ? undefined : toggleArrayItem(prev.tipo, tipoId),
-    }));
-  }, [toggleArrayItem]);
+    console.log('[FiltrosAvanzados v31.0] 🏷️ Category toggle:', tipoId);
+    
+    setFiltrosTemp(prev => {
+      if (tipoId === 'todos') {
+        // Clear category selection
+        const { tipo, ...rest } = prev;
+        console.log('[FiltrosAvanzados v31.0] ✅ Cleared category selection');
+        return rest;
+      }
+      
+      // ✅ SINGLE SELECTION: Replace existing category with new one
+      const currentCategory = prev.tipo && prev.tipo.length > 0 ? prev.tipo[0] : null;
+      
+      if (currentCategory === tipoId) {
+        // Deselect if clicking the same category
+        const { tipo, ...rest } = prev;
+        console.log('[FiltrosAvanzados v31.0] ✅ Deselected category:', tipoId);
+        return rest;
+      }
+      
+      // Select new category (single selection)
+      console.log('[FiltrosAvanzados v31.0] ✅ Selected single category:', tipoId);
+      return {
+        ...prev,
+        tipo: [tipoId], // Single category in array
+      };
+    });
+  }, []);
 
   const handleServicioToggle = useCallback((servicioId: string) => {
     setFiltrosTemp(prev => ({
@@ -151,7 +173,7 @@ export default function FiltrosAvanzadosSheet({
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v30.0] ✅ Applying filters:', filtrosTemp);
+    console.log('[FiltrosAvanzados v31.0] ✅ Applying filters:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     if (propOnAplicarFiltros) {
       propOnAplicarFiltros(filtrosTemp);
@@ -159,20 +181,25 @@ export default function FiltrosAvanzadosSheet({
     onClose();
   }, [filtrosTemp, contextAplicarFiltros, propOnAplicarFiltros, onClose]);
 
+  // ✅ CRITICAL FIX v31.0: Instant clear with perfect sync
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v30.1] 🧹 Clearing all filters - INSTANT UI UPDATE');
+    console.log('[FiltrosAvanzados v31.0] 🧹 INSTANT CLEAR - Clearing all filters');
     
-    // ✅ PASO 1: Actualizar UI INMEDIATAMENTE (síncrono)
+    // ✅ STEP 1: Clear UI immediately (synchronous)
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     
-    // ✅ PASO 2: Actualizar contexto INMEDIATAMENTE (síncrono)
-    // This ensures the filters are cleared immediately
+    // ✅ STEP 2: Clear context immediately (synchronous)
     contextLimpiarFiltros();
-  }, [contextLimpiarFiltros]);
+    
+    // ✅ STEP 3: Close modal immediately
+    onClose();
+    
+    console.log('[FiltrosAvanzados v31.0] ✅ Filters cleared instantly');
+  }, [contextLimpiarFiltros, onClose]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v30.0] 📍 Selected comunidad:', selectedComunidad);
+    console.log('[FiltrosAvanzados v31.0] 📍 Selected comunidad:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -196,7 +223,7 @@ export default function FiltrosAvanzadosSheet({
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v30.0] 📍 Selected provincia:', provincia);
+    console.log('[FiltrosAvanzados v31.0] 📍 Selected provincia:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -206,7 +233,7 @@ export default function FiltrosAvanzadosSheet({
   }, []);
 
   const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados v30.0] 📏 Radius changed to:', value, 'km');
+    console.log('[FiltrosAvanzados v31.0] 📏 Radius changed to:', value, 'km');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: value,
@@ -268,7 +295,7 @@ export default function FiltrosAvanzadosSheet({
       else if (tipo === 'bar') icon = '🍷';
       else if (tipo === 'restaurante') icon = '🍽️';
       else if (tipo === 'pub') icon = '🍺';
-      else if (tipo === 'cocteleria') icon = '🍹'; // ✅ CHANGED: Tropical drink icon (more distinct from wine glass)
+      else if (tipo === 'cocteleria') icon = '🍹';
       else if (tipo === 'discoteca') icon = '🎵';
       else if (tipo === 'terraza') icon = '☀️';
       else if (tipo === 'rooftop') icon = '🏢';
@@ -411,7 +438,6 @@ export default function FiltrosAvanzadosSheet({
               >
                 <View style={styles.sectionHeaderLeft}>
                   <View style={styles.sectionIconContainer}>
-                    {/* ✅ CRITICAL FIX v29.0: Changed "mappin.circle.fill" to "location_on" */}
                     <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={16} color={colors.primary} />
                   </View>
                   <Text style={styles.sectionTitle}>Ubicación</Text>
@@ -430,7 +456,7 @@ export default function FiltrosAvanzadosSheet({
                     <TouchableOpacity
                       style={styles.locationButton}
                       onPress={() => {
-                        console.log('[FiltrosAvanzados v29.0] 🔍 Opening comunidad modal');
+                        console.log('[FiltrosAvanzados v31.0] 🔍 Opening comunidad modal');
                         setShowComunidadModal(true);
                       }}
                     >
@@ -448,7 +474,7 @@ export default function FiltrosAvanzadosSheet({
                       ]}
                       onPress={() => {
                         if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
-                          console.log('[FiltrosAvanzados v29.0] 🔍 Opening provincia modal');
+                          console.log('[FiltrosAvanzados v31.0] 🔍 Opening provincia modal');
                           setShowProvinciaModal(true);
                         }
                       }}
@@ -496,7 +522,7 @@ export default function FiltrosAvanzadosSheet({
               )}
             </View>
 
-            {/* TIPO DE LOCAL SECTION */}
+            {/* TIPO DE LOCAL SECTION - SINGLE SELECTION */}
             {tiposLocales.length > 1 && (
               <View style={styles.section}>
                 <TouchableOpacity 
@@ -510,6 +536,9 @@ export default function FiltrosAvanzadosSheet({
                     </View>
                     <Text style={styles.sectionTitle}>Tipo de Local</Text>
                     <Text style={styles.sectionCount}>({tiposLocales.length - 1})</Text>
+                    <View style={styles.singleSelectionBadge}>
+                      <Text style={styles.singleSelectionText}>Solo 1</Text>
+                    </View>
                   </View>
                   <IconSymbol 
                     ios_icon_name={expandedSections.tipo ? "chevron.up" : "chevron.down"} 
@@ -523,6 +552,7 @@ export default function FiltrosAvanzadosSheet({
                   <View style={styles.sectionContent}>
                     <View style={styles.chipContainer}>
                       {tiposLocales.map((tipo) => {
+                        // ✅ SINGLE SELECTION: Check if this is the selected category
                         const isSelected = tipo.id === 'todos' 
                           ? !filtrosTemp.tipo || filtrosTemp.tipo.length === 0
                           : filtrosTemp.tipo?.includes(tipo.id);
@@ -663,7 +693,6 @@ export default function FiltrosAvanzadosSheet({
                 >
                   <View style={styles.sectionHeaderLeft}>
                     <View style={styles.sectionIconContainer}>
-                      {/* ✅ CRITICAL FIX v29.0: Changed "person.3.fill" to "people" */}
                       <IconSymbol ios_icon_name="person.3.fill" android_material_icon_name="people" size={16} color={colors.primary} />
                     </View>
                     <Text style={styles.sectionTitle}>Clientela Típica</Text>
@@ -1017,6 +1046,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: colors.textSecondary,
+  },
+  singleSelectionBadge: {
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginLeft: 6,
+  },
+  singleSelectionText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   sectionContent: {
     paddingHorizontal: 14,
