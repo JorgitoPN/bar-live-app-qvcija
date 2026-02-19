@@ -30,7 +30,7 @@ export function Skeleton({ width = '100%', height = 20, borderRadius = 8, style 
   const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.loop(
+    const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(shimmerAnim, {
           toValue: 1,
@@ -43,8 +43,10 @@ export function Skeleton({ width = '100%', height = 20, borderRadius = 8, style 
           useNativeDriver: true,
         }),
       ])
-    ).start();
-  }, []);
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [shimmerAnim]);
 
   const shimmerOpacity = shimmerAnim.interpolate({
     inputRange: [0, 1],

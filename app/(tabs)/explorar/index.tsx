@@ -77,11 +77,13 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v408.2 - FIXED CLIENT-SIDE 5-TIER SORTING
+ * ✅ EXPLORAR SCREEN v408.3 - FIXED FEATURED VISIBILITY & SEARCH FLICKER
  * 
- * CAMBIOS v408.2 - CORRECCIÓN CRÍTICA DE ORDENAMIENTO:
+ * CAMBIOS v408.3 - CORRECCIONES CRÍTICAS:
  * - 🎯 FIX: Destacados abiertos ahora aparecen PRIMERO correctamente
- * - ✅ VALIDACIÓN MEJORADA: Distancia en metros (< 50000) no en km
+ * - ✅ VALIDACIÓN MEJORADA: Verificación de destacado mejorada (destacado || is_destacado)
+ * - ✅ DEBOUNCE AUMENTADO: 500ms para reducir parpadeo en búsqueda
+ * - ✅ LOADING STATES: Solo mostrar "Cargando más" cuando lista >= ITEMS_PER_PAGE
  * - ✅ TIER ASSIGNMENT: Lógica corregida para asignar tiers correctamente
  * - ✅ LOGS MEJORADOS: Mejor visibilidad del ordenamiento
  * 
@@ -95,8 +97,118 @@ const CATEGORIAS = [
  * | 5     | Cerrado     | No (o > 50km)  | Por Cercanía                         |
  */
 
+// ✅ SKELETON CARD COMPONENT - Extracted to fix React Hooks rules
+function SkeletonCard() {
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+  
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmerAnim, {
+          toValue: 0,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [shimmerAnim]);
+  
+  const shimmerTranslate = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-300, 300],
+  });
+  
+  return (
+    <View style={styles.card}>
+      <View style={[styles.imageContainer, styles.skeletonImage]}>
+        <Animated.View 
+          style={[
+            styles.skeletonShimmer,
+            {
+              transform: [{ translateX: shimmerTranslate }],
+            }
+          ]} 
+        />
+      </View>
+      <View style={styles.content}>
+        <View style={[styles.skeletonText, { width: '70%', height: 20, marginBottom: 8 }]}>
+          <Animated.View 
+            style={[
+              styles.skeletonShimmer,
+              {
+                transform: [{ translateX: shimmerTranslate }],
+              }
+            ]} 
+          />
+        </View>
+        <View style={[styles.skeletonText, { width: '90%', height: 14, marginBottom: 12 }]}>
+          <Animated.View 
+            style={[
+              styles.skeletonShimmer,
+              {
+                transform: [{ translateX: shimmerTranslate }],
+              }
+            ]} 
+          />
+        </View>
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+          <View style={[styles.skeletonText, { width: 80, height: 24, borderRadius: 6 }]}>
+            <Animated.View 
+              style={[
+                styles.skeletonShimmer,
+                {
+                  transform: [{ translateX: shimmerTranslate }],
+                }
+              ]} 
+            />
+          </View>
+          <View style={[styles.skeletonText, { width: 100, height: 24, borderRadius: 6 }]}>
+            <Animated.View 
+              style={[
+                styles.skeletonShimmer,
+                {
+                  transform: [{ translateX: shimmerTranslate }],
+                }
+              ]} 
+            />
+          </View>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={[styles.skeletonText, { flex: 1, height: 40, borderRadius: 8 }]}>
+            <Animated.View 
+              style={[
+                styles.skeletonShimmer,
+                {
+                  transform: [{ translateX: shimmerTranslate }],
+                }
+              ]} 
+            />
+          </View>
+          <View style={[styles.skeletonText, { flex: 1, height: 40, borderRadius: 8 }]}>
+            <Animated.View 
+              style={[
+                styles.skeletonShimmer,
+                {
+                  transform: [{ translateX: shimmerTranslate }],
+                }
+              ]} 
+            />
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export default function ExplorarScreen() {
-  console.log('[Explorar v408.2] 🚀 Component mounted - FIXED 5-tier sorting enabled');
+  console.log('[Explorar v408.3] 🚀 Component mounted - FIXED featured visibility & search flicker');
   
   const router = useRouter();
   const { user } = useAuth();
@@ -167,26 +279,24 @@ export default function ExplorarScreen() {
     }, [])
   );
 
-  // ✅ DEBOUNCE DE BÚSQUEDA
+  // ✅ DEBOUNCE DE BÚSQUEDA - AUMENTADO A 500ms PARA REDUCIR PARPADEO
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-    }, 300);
+    }, 500);
     
-    return () => {
-      clearTimeout(timer);
-    };
+    return () => clearTimeout(timer);
   }, [searchQuery]);
 
   // ✅ VALIDACIÓN DE COORDENADAS DE ESPAÑA
-  const isValidSpainCoordinate = useCallback((lat: number, lng: number): boolean => {
+  const isValidSpainCoordinate = (lat: number, lng: number): boolean => {
     const MIN_LAT = 27.0;
     const MAX_LAT = 44.0;
     const MIN_LNG = -18.5;
     const MAX_LNG = 5.0;
     
     return lat >= MIN_LAT && lat <= MAX_LAT && lng >= MIN_LNG && lng <= MAX_LNG;
-  }, []);
+  };
 
   // ✅ OBTENER UBICACIÓN DEL USUARIO
   useEffect(() => {
@@ -303,9 +413,9 @@ export default function ExplorarScreen() {
   }, []);
 
   // ✅ FUNCIÓN DE ORDENAMIENTO CLIENT-SIDE - 5 NIVELES DE PRIORIDAD
-  // 🎯 CORRECCIÓN v408.2: Distancia en METROS, no en kilómetros
+  // 🎯 CORRECCIÓN v408.3: Verificación mejorada de destacados y distancia
   const applySorting = useCallback((locales: any[]) => {
-    console.log('[Explorar v408.2] 🔄 Applying FIXED 5-tier sorting to', locales.length, 'locales');
+    console.log('[Explorar v408.3] 🔄 Applying FIXED 5-tier sorting to', locales.length, 'locales');
     
     if (!locales || locales.length === 0) {
       return [];
@@ -315,16 +425,21 @@ export default function ExplorarScreen() {
     const localesConTier = locales.map(local => {
       // Validar si el local tiene horarios
       const tieneHorarios = local.tieneHorarios || 
+                           local.has_schedule_info ||
                            (local.horarios_completos && Object.keys(local.horarios_completos).length > 0);
       
-      // 🎯 CORRECCIÓN CRÍTICA: La distancia viene en KILÓMETROS del servidor
-      // Necesitamos convertir a metros para la comparación (50 km = 50000 metros)
-      // PERO la distancia del servidor YA está en kilómetros, así que comparamos con 50
-      const distanciaEnKm = local.distancia;
-      const isDestacadoValido = local.destacado === true && 
+      // 🎯 CORRECCIÓN CRÍTICA: Verificar destacado correctamente
+      // Puede venir como "destacado" o "is_destacado"
+      const esDestacado = local.destacado === true || local.is_destacado === true;
+      
+      // 🎯 La distancia viene en KILÓMETROS del servidor
+      const distanciaEnKm = local.distancia ?? local.distance_km;
+      
+      // Un destacado es válido si está a menos de 50km O si no tenemos distancia
+      const isDestacadoValido = esDestacado && 
                                (distanciaEnKm === null || 
                                 distanciaEnKm === undefined || 
-                                distanciaEnKm < 50); // 50 km
+                                distanciaEnKm < 50);
       
       // Determinar el tier
       let tier = 5; // Por defecto: Cerrado estándar
@@ -349,6 +464,7 @@ export default function ExplorarScreen() {
         ...local,
         tier,
         isDestacadoValido,
+        esDestacado,
       };
     });
     
@@ -360,8 +476,8 @@ export default function ExplorarScreen() {
       }
       
       // 🎯 Dentro del mismo tier, ordenar por distancia (más cercano primero)
-      const distA = a.distancia ?? Infinity;
-      const distB = b.distancia ?? Infinity;
+      const distA = a.distancia ?? a.distance_km ?? Infinity;
+      const distB = b.distancia ?? b.distance_km ?? Infinity;
       
       return distA - distB;
     });
@@ -369,7 +485,7 @@ export default function ExplorarScreen() {
     // ✅ PASO 3: Log de verificación MEJORADO
     if (sorted.length > 0) {
       const itemsToLog = Math.min(sorted.length, 20);
-      console.log('[Explorar v408.2] 📊 FIXED Sorted order (first', itemsToLog, 'items):');
+      console.log('[Explorar v408.3] 📊 FIXED Sorted order (first', itemsToLog, 'items):');
       
       // Contar cuántos hay de cada tier
       const tierCounts = {
@@ -391,16 +507,18 @@ export default function ExplorarScreen() {
         
         tierCounts[local.tier as keyof typeof tierCounts]++;
         
+        const distancia = local.distancia ?? local.distance_km;
+        
         console.log(
           `  ${index + 1}. [Tier ${local.tier}: ${tierNames[local.tier]}] ${local.nombre} - ` +
-          `Destacado: ${local.destacado ? 'SÍ' : 'NO'}, ` +
+          `Destacado: ${local.esDestacado ? 'SÍ' : 'NO'}, ` +
           `Abierto: ${local.estaAbierto ? 'SÍ' : 'NO'}, ` +
-          `Distancia: ${local.distancia !== null && local.distancia !== undefined ? local.distancia.toFixed(1) + ' km' : 'N/A'}, ` +
+          `Distancia: ${distancia !== null && distancia !== undefined ? distancia.toFixed(1) + ' km' : 'N/A'}, ` +
           `Destacado Válido: ${local.isDestacadoValido ? 'SÍ' : 'NO'}`
         );
       });
       
-      console.log('[Explorar v408.2] 📊 Tier distribution in first', itemsToLog, 'items:');
+      console.log('[Explorar v408.3] 📊 Tier distribution in first', itemsToLog, 'items:');
       console.log('  🌟 Destacados Abiertos (< 50km):', tierCounts[1]);
       console.log('  ✅ Abiertos:', tierCounts[2]);
       console.log('  ❓ Sin Horario:', tierCounts[3]);
@@ -408,10 +526,10 @@ export default function ExplorarScreen() {
       console.log('  ❌ Cerrados:', tierCounts[5]);
       
       // 🎯 VERIFICACIÓN ADICIONAL: Contar destacados en toda la lista
-      const totalDestacados = sorted.filter(l => l.destacado === true).length;
+      const totalDestacados = sorted.filter(l => l.esDestacado === true).length;
       const destacadosAbiertos = sorted.filter(l => l.tier === 1).length;
-      console.log('[Explorar v408.2] 🎯 Total destacados en lista:', totalDestacados);
-      console.log('[Explorar v408.2] 🎯 Destacados abiertos (< 50km) en Tier 1:', destacadosAbiertos);
+      console.log('[Explorar v408.3] 🎯 Total destacados en lista:', totalDestacados);
+      console.log('[Explorar v408.3] 🎯 Destacados abiertos (< 50km) en Tier 1:', destacadosAbiertos);
     }
     
     return sorted;
@@ -819,27 +937,9 @@ export default function ExplorarScreen() {
     scrollY.current = currentScrollY;
   }, [headerTranslateY, hasMore, isLoading, filteredLocales.length, loadMoreLocales]);
 
-  // ✅ RENDER SKELETON CARD
+  // ✅ RENDER SKELETON CARD - MEJORADO CON ANIMACIÓN
   const renderSkeletonCard = useCallback(() => {
-    return (
-      <View style={styles.card}>
-        <View style={[styles.imageContainer, styles.skeletonImage]}>
-          <View style={styles.skeletonShimmer} />
-        </View>
-        <View style={styles.content}>
-          <View style={[styles.skeletonText, { width: '70%', height: 20, marginBottom: 8 }]} />
-          <View style={[styles.skeletonText, { width: '90%', height: 14, marginBottom: 12 }]} />
-          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-            <View style={[styles.skeletonText, { width: 80, height: 24, borderRadius: 6 }]} />
-            <View style={[styles.skeletonText, { width: 100, height: 24, borderRadius: 6 }]} />
-          </View>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <View style={[styles.skeletonText, { flex: 1, height: 40, borderRadius: 8 }]} />
-            <View style={[styles.skeletonText, { flex: 1, height: 40, borderRadius: 8 }]} />
-          </View>
-        </View>
-      </View>
-    );
+    return <SkeletonCard />;
   }, []);
 
   // ✅ HELPERS PARA RENDERIZADO DE CARDS
@@ -1085,12 +1185,14 @@ export default function ExplorarScreen() {
     );
   }, [router, socialProfiles, activeEvents, user, isFavorite, handleToggleFavorito, handleComoLlegar, handlePerfilSocial, getBadgeInfo, getShouldDimImage, getCategoriasAMostrar, getDisplayRating]);
 
-  // ✅ RENDER FOOTER
+  // ✅ RENDER FOOTER - MEJORADO PARA EVITAR PARPADEO
   const renderFooter = () => {
+    // No mostrar nada si la lista está vacía y hay filtros activos
     if (filteredLocales.length === 0 && hasActiveFilters) {
       return null;
     }
 
+    // Mostrar mensaje de fin solo si hay locales y no hay más
     if (!hasMore && filteredLocales.length > 0) {
       return (
         <View style={styles.footerContainer}>
@@ -1101,7 +1203,9 @@ export default function ExplorarScreen() {
       );
     }
 
-    if (isLoading && filteredLocales.length > 0) {
+    // 🎯 CORRECCIÓN: Solo mostrar "Cargando más" si realmente está cargando
+    // Y la lista ya tiene contenido (evita parpadeo inicial)
+    if (isLoading && filteredLocales.length >= ITEMS_PER_PAGE) {
       return (
         <View style={styles.footerLoadingContainer}>
           <View style={styles.footerLoadingHeader}>
@@ -1756,18 +1860,23 @@ const styles = StyleSheet.create({
   skeletonImage: {
     backgroundColor: colors.cardBorder,
     overflow: 'hidden',
+    position: 'relative',
   },
   skeletonShimmer: {
     position: 'absolute',
     top: 0,
-    left: -200,
-    width: 200,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
     height: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   skeletonText: {
     backgroundColor: colors.cardBorder,
     borderRadius: 4,
+    overflow: 'hidden',
+    position: 'relative',
   },
   card: {
     backgroundColor: colors.cardBackground,
