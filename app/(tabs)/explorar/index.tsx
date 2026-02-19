@@ -43,6 +43,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import { useFilters } from '@/contexts/FilterContext';
 
 const ITEMS_PER_PAGE = 20;
 
