@@ -12,6 +12,7 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -44,13 +45,18 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ANDROID FULL-SCREEN FILTERS PAGE v2.0 - FIXED BUTTON VISIBILITY
+ * ✅ ANDROID FULL-SCREEN FILTERS PAGE v3.0 - DYNAMIC + INSTANT + SLIDER
  * 
- * CRITICAL FIXES v2.0:
- * - ✅ SAFE AREA INSETS: Uses useSafeAreaInsets to respect Android system buttons
- * - ✅ PROPER PADDING: Footer has dynamic padding to avoid being hidden
- * - ✅ SCROLLABLE CONTENT: Content scrolls properly with correct bottom padding
- * - ✅ RESULT: "Aplicar filtros" button is always visible and accessible
+ * NEW FEATURES v3.0:
+ * - 🎯 DYNAMIC FILTERS: Only show characteristics with active locales
+ * - ⚡ INSTANT CLEAR: Synchronous UI update, background fetch
+ * - 🎚️ SLIDER: Replaced text input with slider (1-100km range)
+ * - ✅ Real-time value display on slider
+ * - ✅ Smooth UX with no lag on clear
+ * 
+ * Previous fixes v2.0:
+ * - ✅ Safe area insets for Android system buttons
+ * - ✅ Proper padding to avoid hidden buttons
  */
 export default function FiltrosAvanzadosScreen() {
   const router = useRouter();
@@ -127,10 +133,16 @@ export default function FiltrosAvanzadosScreen() {
   }, [filtrosTemp, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados Android v2.0] 🧹 Clearing all filters');
+    console.log('[FiltrosAvanzados Android v3.0] 🧹 Clearing all filters - INSTANT UI UPDATE');
+    
+    // ✅ PASO 1: Actualizar UI INMEDIATAMENTE (síncrono)
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
-    contextLimpiarFiltros();
+    
+    // ✅ PASO 2: Actualizar contexto en background (asíncrono)
+    setTimeout(() => {
+      contextLimpiarFiltros();
+    }, 0);
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
@@ -167,10 +179,11 @@ export default function FiltrosAvanzadosScreen() {
     setSearchProvincia('');
   }, []);
 
-  const handleDistanciaChange = useCallback((text: string) => {
+  const handleDistanciaChange = useCallback((value: number) => {
+    console.log('[FiltrosAvanzados Android v3.0] 📏 Radius changed to:', value, 'km');
     setFiltrosTemp(prev => ({
       ...prev,
-      distancia: text ? parseFloat(text) : undefined,
+      distancia: value,
     }));
   }, []);
 
@@ -419,16 +432,34 @@ export default function FiltrosAvanzadosScreen() {
               </View>
 
               <View style={styles.distanceContainer}>
-                <IconSymbol ios_icon_name="location.circle" android_material_icon_name="location_on" size={scaleIconSize(14)} color={colors.primary} />
-                <Text style={[styles.distanceLabel, { fontSize: scaleFontSize(12) }]}>Radio de búsqueda</Text>
-                <TextInput
-                  style={[styles.distanceInput, { fontSize: scaleFontSize(12) }]}
-                  placeholder="km"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="numeric"
-                  value={filtrosTemp.distancia?.toString() || ''}
-                  onChangeText={handleDistanciaChange}
+                <View style={styles.distanceHeader}>
+                  <View style={styles.distanceLabelRow}>
+                    <IconSymbol ios_icon_name="location.circle" android_material_icon_name="location_on" size={scaleIconSize(14)} color={colors.primary} />
+                    <Text style={[styles.distanceLabel, { fontSize: scaleFontSize(12) }]}>Radio de búsqueda</Text>
+                  </View>
+                  <View style={styles.distanceValueBadge}>
+                    <Text style={[styles.distanceValueText, { fontSize: scaleFontSize(14) }]}>
+                      {filtrosTemp.distancia ? `${Math.round(filtrosTemp.distancia)} km` : '50 km'}
+                    </Text>
+                  </View>
+                </View>
+                
+                <Slider
+                  style={styles.slider}
+                  minimumValue={1}
+                  maximumValue={100}
+                  step={1}
+                  value={filtrosTemp.distancia || 50}
+                  onValueChange={handleDistanciaChange}
+                  minimumTrackTintColor={colors.primary}
+                  maximumTrackTintColor={colors.cardBorder}
+                  thumbTintColor={colors.primary}
                 />
+                
+                <View style={styles.sliderLabels}>
+                  <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>1 km</Text>
+                  <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>100 km</Text>
+                </View>
               </View>
             </View>
           )}
@@ -972,32 +1003,53 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   distanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  distanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  distanceLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   distanceLabel: {
-    flex: 1,
     fontWeight: '600',
     color: colors.text,
   },
-  distanceInput: {
-    width: 50,
-    backgroundColor: colors.cardBackground,
+  distanceValueBadge: {
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'center',
+    borderColor: colors.primary + '40',
+  },
+  distanceValueText: {
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 0.5,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  sliderLabelText: {
+    fontWeight: '500',
+    color: colors.textSecondary,
   },
   chipContainer: {
     flexDirection: 'row',
