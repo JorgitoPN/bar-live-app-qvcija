@@ -1,5 +1,6 @@
 
-// ✅ LINT FIX: Move all imports to top of file
+console.log('⚠️ CHAT ACTIVADO - VERSIÓN 2.0'); // DIAGNOSTIC LOG
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -18,18 +19,16 @@ import {
   Keyboard,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getEstadoLocal } from '@/utils/timeUtils';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import LoginPrompt from '@/components/common/LoginPrompt';
 import { scaleFontSize, scaleIconSize, getActionButtonPaddingVertical } from '@/utils/androidScaling';
-
-console.log('⚠️ CHAT ACTIVADO - VERSIÓN 2.0'); // DIAGNOSTIC LOG
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

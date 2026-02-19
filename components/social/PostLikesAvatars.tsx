@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { supabase } from '@/utils/supabase';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -23,18 +23,17 @@ interface LikeUser {
 }
 
 /**
- * ✅ POST LIKES AVATARS v317.0 - ANDROID PERFORMANCE FIX
+ * ✅ POST LIKES AVATARS v316.0 - FULL-SCREEN NAVIGATION
  * 
- * CRITICAL FIXES v317.0:
- * - ✅ DISABLED REALTIME SUBSCRIPTIONS ON ANDROID: Eliminates CHANNEL_ERROR spam
- * - ✅ OPTIMISTIC UI ONLY: Instant feedback without WebSocket overhead on Android
- * - ✅ PERFORMANCE: Fixes severe slowdown when logged in on Android
- * - ✅ iOS UNAFFECTED: Real-time subscriptions still work on iOS (no performance issues)
- * 
- * Previous changes v316.0:
+ * NEW CHANGES v316.0:
  * - ✅ Removed modal - now navigates to full-screen /social/likes page
  * - ✅ Cleaner component with less state management
  * - ✅ Better UX with dedicated full-screen page for likes list
+ * 
+ * Previous fixes maintained (v101.0):
+ * - ✅ Fixed infinite loop issues
+ * - ✅ Proper memoization with stable dependencies
+ * - ✅ All text uses scaleFontSize() for Android consistency
  */
 
 export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }: PostLikesAvatarsProps) {
@@ -157,20 +156,19 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId, localLikes, user]); // ✅ FIXED: Include user, tempProfiles intentionally excluded to prevent loop
 
-  // ✅ CRITICAL FIX v317.0: DISABLED REALTIME SUBSCRIPTIONS ON ANDROID
-  // Real-time subscriptions cause CHANNEL_ERROR spam and severe performance degradation
-  // on Android when users are logged in. Using optimistic UI updates instead.
+  // ✅ CRITICAL FIX v101.0: Real-time subscription with stable dependencies
   useEffect(() => {
     if (!user) return;
 
-    // ✅ v317.0: Real-time subscriptions DISABLED on Android for performance
-    // Optimistic UI updates provide instant feedback without WebSocket overhead
-    if (Platform.OS === 'android') {
+    console.log('[PostLikesAvatars v101.0] 🔄 Setting up real-time subscription for post:', postId);
+
+    if (channelRef.current?.state === 'subscribed') {
+      console.log('[PostLikesAvatars v101.0] ⚠️ Already subscribed, skipping');
       return;
     }
 
-    // iOS can still use real-time subscriptions (no performance issues)
     const channel = supabase.channel(`post-likes-avatars:${postId}:${user.id}`);
+
     channelRef.current = channel;
 
     channel
@@ -183,11 +181,16 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
           filter: `post_id=eq.${postId}`,
         },
         async (payload) => {
+          console.log('[PostLikesAvatars v101.0] 🔄 Real-time like change detected:', payload.eventType, 'by user:', payload.new?.usuario_id || payload.old?.usuario_id);
+          
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
           if (changedByUserId === user.id) {
+            console.log('[PostLikesAvatars v101.0] ⏭️ Change made by current user, skipping (already handled optimistically)');
             return;
           }
+          
+          console.log('[PostLikesAvatars v101.0] 🔄 Change made by another user, reloading...');
           
           const { count, error: countError } = await supabase
             .from('likes')
@@ -195,6 +198,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
             .eq('post_id', postId);
           
           if (!countError && count !== null) {
+            console.log('[PostLikesAvatars v101.0] ✅ Updated likes count via real-time:', count);
             setCurrentTotalLikes(count);
           }
           
@@ -210,15 +214,18 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[PostLikesAvatars v101.0] 📡 Subscription status:', status);
+      });
 
     return () => {
+      console.log('[PostLikesAvatars v101.0] 🔄 Cleaning up subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, [postId, user]);
+  }, [postId, user]); // ✅ FIXED: Include user to satisfy exhaustive-deps
 
   // ✅ CRITICAL FIX v101.0: Update from prop when localLikes is empty
   useEffect(() => {

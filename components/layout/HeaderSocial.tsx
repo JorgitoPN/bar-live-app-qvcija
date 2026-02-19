@@ -128,7 +128,7 @@ export default function HeaderSocial({
 const styles = StyleSheet.create({
   header: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
-    paddingBottom: Platform.OS === 'android' ? 8 : 12,
+    paddingBottom: Platform.OS === 'android' ? 12 : 16,
     paddingHorizontal: 20,
     justifyContent: 'flex-end',
     alignItems: 'flex-end',

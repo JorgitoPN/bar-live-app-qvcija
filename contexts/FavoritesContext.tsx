@@ -83,7 +83,6 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     return favorites.has(localId);
   }, [favorites, user, loadFavorites]);
 
-  // ✅ LINT FIX: Added loadFavorites to dependencies
   const toggleFavorite = useCallback(async (localId: string): Promise<boolean> => {
     if (!user?.id) {
       console.log('[FavoritesContext v289.0] ⚠️ No user logged in');
@@ -234,7 +233,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return false;
     }
-  }, [user?.id, favorites, ensureValidSession, loadFavorites]);
+  }, [user?.id, favorites, ensureValidSession]);
 
   const refreshFavorites = useCallback(async () => {
     hasLoadedRef.current = false; // Reset to force reload

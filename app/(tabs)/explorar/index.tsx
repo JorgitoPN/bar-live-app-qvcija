@@ -42,15 +42,11 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
-import { navigationOptimizer, useScreenPerformance } from '@/utils/performanceMonitor';
 import { useFavorites } from '@/contexts/FavoritesContext';
-import FiltrosAvanzadosSheet from '@/components/home/FiltrosAvanzadosSheet';
-import { useFilters } from '@/contexts/FilterContext';
-import { applyAdvancedFilters } from '@/utils/filterLocals';
 
-// ✅ CONSTANTE CRÍTICA: Tamaño de página para carga incremental
 const ITEMS_PER_PAGE = 20;
 
+// ✅ v323.0: ANDROID PERFORMANCE FIX - Batch loading events and social profiles
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 240;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT;
@@ -63,7 +59,7 @@ const PROVINCIAS = [
   'Huesca', 'Islas Baleares', 'Jaén', 'La Coruña', 'La Rioja', 'Las Palmas', 'León',
   'Lleida', 'Lugo', 'Madrid', 'Málaga', 'Murcia', 'Navarra', 'Ourense', 'Palencia',
   'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife', 'Segovia', 'Sevilla', 'Soria',
-  'Tarragoza', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
+  'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
 const CATEGORIAS = [
@@ -77,295 +73,127 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v411.0 - COMPLETE ADVANCED FILTERS REBUILD
+ * ✅ EXPLORAR SCREEN v323.0 - ANDROID PERFORMANCE FIX
  * 
- * CAMBIOS v411.0 - RECONSTRUCCIÓN COMPLETA DE FILTROS AVANZADOS:
- * - 🎯 REBUILT FROM SCRATCH: Funcionalidad de filtros completamente reconstruida
- * - ✅ CLEAN ARCHITECTURE: Lógica clara y mantenible
- * - ✅ PROPER INTEGRATION: Filtros sincronizados entre Explorar y Mapa
- * - ✅ CORRECT FILTERING: Los filtros ahora funcionan correctamente
- * - ✅ REAL-TIME UPDATES: Resultados se actualizan en tiempo real
- * - ✅ STATE SYNC: Estado de filtros sincronizado con UI
- * - ✅ NO INCONSISTENCIES: Sin inconsistencias entre botones y resultados
- * - ✅ SCALABLE: Arquitectura escalable y estable
+ * CRITICAL FIXES v323.0:
+ * - ✅ FIXED: Batch loading of events and social profiles (2 queries instead of 40+)
+ * - ✅ FIXED: Events and social profiles now passed as props to TarjetaLocal
+ * - ✅ PERFORMANCE: Eliminated 20+ individual useLocalEvent hook calls
+ * - ✅ RESULT: Massive performance improvement on Android when logged in
  * 
- * ARQUITECTURA:
- * 1. Backend RPC: Carga inicial de datos (solo categoría básica)
- * 2. Client-side filtering: Filtros avanzados aplicados después de cargar
- * 3. FilterContext: Estado global de filtros sincronizado
- * 4. Real-time updates: Cambios de filtros actualizan resultados inmediatamente
- * 
- * FLUJO DE DATOS:
- * Backend (RPC) → Client-side filters → Sorting → Display
+ * Previous changes v322.0:
+ * - ✅ Header scroll hiding improvements
  */
 
-// ✅ SKELETON CARD COMPONENT - Extracted to fix React Hooks rules
-function SkeletonCard() {
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
-  
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmerAnim, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shimmerAnim, {
-          toValue: 0,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [shimmerAnim]);
-  
-  const shimmerTranslate = shimmerAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-300, 300],
-  });
-  
-  return (
-    <View style={styles.card}>
-      <View style={[styles.imageContainer, styles.skeletonImage]}>
-        <Animated.View 
-          style={[
-            styles.skeletonShimmer,
-            {
-              transform: [{ translateX: shimmerTranslate }],
-            }
-          ]} 
-        />
-      </View>
-      <View style={styles.content}>
-        <View style={[styles.skeletonText, { width: '70%', height: 20, marginBottom: 8 }]}>
-          <Animated.View 
-            style={[
-              styles.skeletonShimmer,
-              {
-                transform: [{ translateX: shimmerTranslate }],
-              }
-            ]} 
-          />
-        </View>
-        <View style={[styles.skeletonText, { width: '90%', height: 14, marginBottom: 12 }]}>
-          <Animated.View 
-            style={[
-              styles.skeletonShimmer,
-              {
-                transform: [{ translateX: shimmerTranslate }],
-              }
-            ]} 
-          />
-        </View>
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-          <View style={[styles.skeletonText, { width: 80, height: 24, borderRadius: 6 }]}>
-            <Animated.View 
-              style={[
-                styles.skeletonShimmer,
-                {
-                  transform: [{ translateX: shimmerTranslate }],
-                }
-              ]} 
-            />
-          </View>
-          <View style={[styles.skeletonText, { width: 100, height: 24, borderRadius: 6 }]}>
-            <Animated.View 
-              style={[
-                styles.skeletonShimmer,
-                {
-                  transform: [{ translateX: shimmerTranslate }],
-                }
-              ]} 
-            />
-          </View>
-        </View>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <View style={[styles.skeletonText, { flex: 1, height: 40, borderRadius: 8 }]}>
-            <Animated.View 
-              style={[
-                styles.skeletonShimmer,
-                {
-                  transform: [{ translateX: shimmerTranslate }],
-                }
-              ]} 
-            />
-          </View>
-          <View style={[styles.skeletonText, { flex: 1, height: 40, borderRadius: 8 }]}>
-            <Animated.View 
-              style={[
-                styles.skeletonShimmer,
-                {
-                  transform: [{ translateX: shimmerTranslate }],
-                }
-              ]} 
-            />
-          </View>
-        </View>
-      </View>
-    </View>
-  );
-}
-
 export default function ExplorarScreen() {
-  console.log('[Explorar v411.0] 🚀 Component mounted - COMPLETE REBUILD: Advanced filters reconstructed from scratch');
-  
   const router = useRouter();
   const { user } = useAuth();
   const { currentMode, setCurrentMode, activeProfileType, activeLocalData } = useMode();
-  const { prefetchNextPage, loadDataOnDemand } = useGlobalData();
+  const { prefetchNextPage } = useGlobalData();
   const { isFavorite, toggleFavorite } = useFavorites();
   
-  const { 
-    filtros: globalFiltros, 
-    limpiarFiltros,
-    hasActiveFilters,
-    selectedCategory: contextSelectedCategory,
-    setSelectedCategory: contextSetSelectedCategory,
-  } = useFilters();
-  
-  const { isReady, deferOperation, deferDataLoading, deferWithPriority } = useScreenPerformance('Explorar');
-  
-  // ✅ ESTADOS SIMPLIFICADOS - Solo lo esencial
-  const [allLocales, setAllLocales] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [displayedLocales, setDisplayedLocales] = useState<any[]>([]);
+  const [allLoadedLocales, setAllLoadedLocales] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locationReady, setLocationReady] = useState(false);
-  
   const [socialProfiles, setSocialProfiles] = useState<Map<string, boolean>>(new Map());
   const [activeEvents, setActiveEvents] = useState<Map<string, any>>(new Map());
+  const [showModeSelectorModal, setShowModeSelectorModal] = useState(false);
   
-  // ✅ SYNC v3.5: Use category from context
-  const selectedCategory = contextSelectedCategory;
-  const setSelectedCategory = contextSetSelectedCategory;
-  
+  const [selectedCategory, setSelectedCategory] = useState<string>('todas');
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
 
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const categoryCache = useRef<Map<string, {
+    locales: any[];
+    hasMore: boolean;
+    timestamp: number;
+  }>>(new Map());
+  const preloadInProgress = useRef(false);
+  const preloadedCategories = useRef<Set<string>>(new Set());
 
-  // ✅ REFS PARA CONTROL DE SCROLL Y NAVEGACIÓN
   const scrollY = useRef(0);
   const lastScrollY = useRef(0);
   const headerTranslateY = useRef(new Animated.Value(0)).current;
+  const lastFiltersRef = useRef<string>('');
+  const hasLoadedInitialDataRef = useRef(false);
+  
   const flatListRef = useRef<FlatList>(null);
+  
   const savedScrollPosition = useRef<number>(0);
   const isReturningFromDetail = useRef<boolean>(false);
-  
-  // ✅ REF CRÍTICO: Previene cargas duplicadas
-  const loadingRef = useRef(false);
-  
-  // ✅ REF PARA TRACKING DE FILTROS
-  const lastFiltersRef = useRef<string>('');
 
-  // ✅ FOCUS EFFECT: Restaurar posición de scroll
   useFocusEffect(
     useCallback(() => {
-      if (isReturningFromDetail.current) {
-        setTimeout(() => {
-          flatListRef.current?.scrollToOffset({ 
-            offset: savedScrollPosition.current, 
-            animated: false 
-          });
-        }, 150);
-        isReturningFromDetail.current = false;
-      } else {
+      console.log('[Explorar v323.0] 🎯 Screen focused via tab button');
+      if (!isReturningFromDetail.current) {
+        console.log('[Explorar v323.0] 📜 Resetting scroll to top (tab button clicked)');
         setTimeout(() => {
           flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
           savedScrollPosition.current = 0;
         }, 100);
+      } else {
+        console.log('[Explorar v323.0] 🔄 Returning from detail - keeping scroll position:', savedScrollPosition.current);
       }
+      isReturningFromDetail.current = false;
     }, [])
   );
 
-  // ✅ DEBOUNCE DE BÚSQUEDA - AUMENTADO A 500ms PARA REDUCIR PARPADEO
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-    }, 500);
+    }, 300);
     
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [searchQuery]);
 
-  // ✅ VALIDACIÓN DE COORDENADAS DE ESPAÑA
-  const isValidSpainCoordinate = (lat: number, lng: number): boolean => {
+  const isValidSpainCoordinate = useCallback((lat: number, lng: number): boolean => {
     const MIN_LAT = 27.0;
     const MAX_LAT = 44.0;
     const MIN_LNG = -18.5;
     const MAX_LNG = 5.0;
     
-    return lat >= MIN_LAT && lat <= MAX_LAT && lng >= MIN_LNG && lng <= MAX_LNG;
-  };
+    const isValid = lat >= MIN_LAT && lat <= MAX_LAT && lng >= MIN_LNG && lng <= MAX_LNG;
+    
+    if (!isValid) {
+      console.warn('[Explorar v323.0] ⚠️ Invalid coordinates detected:', { lat, lng });
+    }
+    
+    return isValid;
+  }, []);
 
-  // ✅ OBTENER UBICACIÓN DEL USUARIO
   useEffect(() => {
     let isMounted = true;
-    
-    if (Platform.OS === 'android') {
-      setLocationReady(true);
-      
-      deferWithPriority(async () => {
-        try {
-          const { status } = await Location.requestForegroundPermissionsAsync();
-          
-          if (!isMounted) return;
-          
-          if (status !== 'granted') {
-            setLocationError('Permiso de ubicación denegado. Las distancias no estarán disponibles.');
-            return;
-          }
-
-          const location = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          });
-          
-          if (!isMounted) return;
-          
-          const lat = location.coords.latitude;
-          const lng = location.coords.longitude;
-          
-          if (!isValidSpainCoordinate(lat, lng)) {
-            setLocationError('Ubicación fuera de España. Mostrando todos los locales.');
-            setUserLocation(null);
-            return;
-          }
-          
-          setUserLocation({ lat, lng });
-          setLocationError(null);
-          
-        } catch (error: any) {
-          if (!isMounted) return;
-          setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
-          setUserLocation(null);
-        }
-      }, 'LOW');
-      
-      return () => {
-        isMounted = false;
-      };
-    }
     
     const timer = setTimeout(() => {
       (async () => {
         try {
+          console.log('[Explorar v323.0] 📍 Step 1: Requesting location permission...');
           const { status } = await Location.requestForegroundPermissionsAsync();
           
           if (!isMounted) return;
           
           if (status !== 'granted') {
+            console.log('[Explorar v323.0] ⚠️ Location permission denied - proceeding without location');
             setLocationError('Permiso de ubicación denegado. Las distancias no estarán disponibles.');
             setLocationReady(true);
             return;
           }
 
+          console.log('[Explorar v323.0] 📍 Step 2: Getting current position...');
           const location = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Balanced,
           });
@@ -375,7 +203,10 @@ export default function ExplorarScreen() {
           const lat = location.coords.latitude;
           const lng = location.coords.longitude;
           
+          console.log('[Explorar v323.0] 📍 Step 3: Location obtained:', { lat, lng });
+          
           if (!isValidSpainCoordinate(lat, lng)) {
+            console.error('[Explorar v323.0] ❌ Location outside Spain bounds!');
             setLocationError('Ubicación fuera de España. Mostrando todos los locales.');
             setUserLocation(null);
             setLocationReady(true);
@@ -384,10 +215,13 @@ export default function ExplorarScreen() {
           
           setUserLocation({ lat, lng });
           setLocationError(null);
+          console.log('[Explorar v323.0] ✅ Step 4: Valid location set:', { lat, lng });
+          console.log('[Explorar v323.0] 🎯 Step 5: Marking location as READY - intelligent preload will start');
           setLocationReady(true);
           
         } catch (error: any) {
           if (!isMounted) return;
+          console.error('[Explorar v323.0] ❌ Error getting location:', error);
           setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
           setUserLocation(null);
           setLocationReady(true);
@@ -399,157 +233,54 @@ export default function ExplorarScreen() {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [isValidSpainCoordinate, deferWithPriority]);
+  }, [isValidSpainCoordinate]);
 
-  // ✅ MAPEO DE CATEGORÍAS PARA EL BACKEND
-  const getCategoryFilterForBackend = useCallback((category: string): string[] | null => {
-    if (!category || category === 'todas') {
-      return null;
-    }
-    
-    const categoryMap: Record<string, string[]> = {
-      'cafe': ['cafe', 'cafeteria', 'cafetería'],
-      'restaurante': ['restaurante', 'restaurant'],
-      'bar': ['bar'],
-      'pub': ['pub'],
-      'cocteleria': ['cocteleria', 'cocktail', 'cóctel'],
-      'discoteca': ['discoteca', 'nightclub', 'club', 'disco']
-    };
-    
-    return categoryMap[category] || null;
-  }, []);
-
-  // ✅ FUNCIÓN DE ORDENAMIENTO CLIENT-SIDE - 5 NIVELES DE PRIORIDAD
-  const applySorting = useCallback((locales: any[]) => {
-    console.log('[Explorar v410.0] 🔄 Applying 5-tier sorting to', locales.length, 'locales');
-    
-    if (!locales || locales.length === 0) {
-      return [];
-    }
-    
-    // ✅ PASO 1: Clasificar cada local en su tier correspondiente
-    const localesConTier = locales.map(local => {
-      const tieneHorarios = local.tieneHorarios || 
-                           local.has_schedule_info ||
-                           (local.horarios_completos && Object.keys(local.horarios_completos).length > 0);
-      
-      const esDestacado = local.destacado === true || local.is_destacado === true;
-      const distanciaEnKm = local.distancia ?? local.distance_km;
-      
-      const isDestacadoValido = esDestacado && 
-                               (distanciaEnKm === null || 
-                                distanciaEnKm === undefined || 
-                                distanciaEnKm < 50);
-      
-      let tier = 5;
-      
-      if (local.estaAbierto === true) {
-        if (isDestacadoValido) {
-          tier = 1;
-        } else {
-          tier = 2;
-        }
-      } else if (!tieneHorarios) {
-        tier = 3;
-      } else if (local.estaAbierto === false) {
-        if (isDestacadoValido) {
-          tier = 4;
-        } else {
-          tier = 5;
-        }
-      }
-      
-      return {
-        ...local,
-        tier,
-        isDestacadoValido,
-        esDestacado,
-      };
-    });
-    
-    // ✅ PASO 2: Ordenar por tier y luego por distancia
-    const sorted = localesConTier.sort((a, b) => {
-      if (a.tier !== b.tier) {
-        return a.tier - b.tier;
-      }
-      
-      const distA = a.distancia ?? a.distance_km ?? Infinity;
-      const distB = b.distancia ?? b.distance_km ?? Infinity;
-      
-      return distA - distB;
-    });
-    
-    return sorted;
-  }, []);
-
-  // ✅ FUNCIÓN PRINCIPAL DE CARGA - REBUILT v411.0
-  const loadLocales = useCallback(async (reset: boolean = false) => {
-    console.log('[Explorar v411.0] 🔄 ========================================');
-    console.log('[Explorar v411.0] 🔄 loadLocales called:', { 
-      reset, 
-      isLoading, 
-      hasMore, 
-      currentLength: allLocales.length,
-      selectedCategory,
-      userLocation: userLocation ? `${userLocation.lat.toFixed(2)}, ${userLocation.lng.toFixed(2)}` : 'null'
-    });
-    console.log('[Explorar v411.0] 📋 Advanced filters (will be applied client-side):', JSON.stringify(globalFiltros, null, 2));
-    
-    // ✅ GUARDIA 1: Verificar si ya está cargando
-    if (loadingRef.current) {
-      console.log('[Explorar v411.0] ⚠️ Already loading - BLOCKING');
+  const preloadCategoryData = useCallback(async (category: string) => {
+    const cached = categoryCache.current.get(category);
+    if (cached && Date.now() - cached.timestamp < 10 * 60 * 1000) {
       return;
     }
-    
-    // ✅ GUARDIA 2: Si no es reset y no hay más datos, no cargar
-    if (!reset && !hasMore) {
-      console.log('[Explorar v411.0] ⚠️ No more data - BLOCKING');
-      return;
-    }
-    
-    // ✅ GUARDIA 3: Verificar que la ubicación esté lista
-    if (!locationReady) {
-      console.log('[Explorar v411.0] ⚠️ Location not ready - BLOCKING');
-      return;
-    }
-
-    // ✅ ACTIVAR GUARDIA Y ESTADO DE CARGA
-    loadingRef.current = true;
-    setIsLoading(true);
-    console.log('[Explorar v411.0] 🔒 Loading guard activated');
 
     try {
-      const offset = reset ? 0 : allLocales.length;
-      console.log('[Explorar v411.0] 📊 Calculated offset:', offset);
-      console.log('[Explorar v411.0] 📊 Will fetch:', ITEMS_PER_PAGE, 'items');
-      console.log('[Explorar v411.0] 🏷️ Category filter:', selectedCategory);
-
-      // ✅ PREPARAR FILTRO DE CATEGORÍA PARA EL BACKEND
-      const categoryFilter = getCategoryFilterForBackend(selectedCategory);
-      console.log('[Explorar v411.0] 🔍 Backend category filter:', categoryFilter);
+      console.log('[Explorar v323.0] 📥 Preloading category:', category);
       
-      console.log('[Explorar v411.0] 🌐 Calling RPC function (basic filters only)...');
+      const hasValidLocation = userLocation && isValidSpainCoordinate(userLocation.lat, userLocation.lng);
       
-      // ✅ BACKEND CALL: Solo filtros básicos (categoría)
-      // Los filtros avanzados se aplican client-side después
-      const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity', {
-        p_user_lat: userLocation?.lat || null,
-        p_user_lng: userLocation?.lng || null,
-        p_category_filter: categoryFilter,
+      const locationParams = hasValidLocation 
+        ? { user_lat: userLocation.lat, user_lng: userLocation.lng }
+        : { user_lat: null, user_lng: null };
+      
+      const { data, error } = await supabase.rpc('get_locales_paginados', {
+        ...locationParams,
         p_limit: ITEMS_PER_PAGE,
-        p_offset: offset
+        p_offset: 0,
       });
 
       if (error) {
-        console.error('[Explorar v411.0] ❌ Error fetching:', error);
-        throw error;
+        console.error('[Explorar v323.0] ❌ Error preloading category', category, ':', error);
+        return;
       }
 
-      console.log('[Explorar v411.0] ✅ Fetched:', data?.length || 0, 'locales from server');
-
       if (data && data.length > 0) {
-        // ✅ TRANSFORMAR DATOS
         const transformedLocales = data.map((local: any) => {
+          let distanciaKm = null;
+          
+          if (hasValidLocation && local.latitud && local.longitud) {
+            const localLat = parseFloat(local.latitud);
+            const localLng = parseFloat(local.longitud);
+            
+            if (!isNaN(localLat) && !isNaN(localLng)) {
+              distanciaKm = calcularDistancia(
+                userLocation.lat,
+                userLocation.lng,
+                localLat,
+                localLng
+              );
+            }
+          } else if (local.distancia_metros !== null && local.distancia_metros !== undefined) {
+            distanciaKm = Number(local.distancia_metros) / 1000;
+          }
+          
           const estadoLocal = getEstadoLocal(local);
           
           return {
@@ -562,100 +293,460 @@ export default function ExplorarScreen() {
             estadoCompleto: estadoLocal,
             estaAbierto: estadoLocal.estaAbierto,
             tieneHorarios: local.has_schedule_info,
-            distancia: local.distancia,
+            distancia: distanciaKm,
           };
         });
 
-        if (reset) {
-          console.log('[Explorar v411.0] 🔄 RESET: Replacing with', transformedLocales.length, 'items');
-          setAllLocales(transformedLocales);
-        } else {
-          console.log('[Explorar v411.0] ➕ APPEND: Adding to existing', allLocales.length, 'locales');
-          
-          setAllLocales(prev => {
-            const existingIds = new Set(prev.map(l => l.id));
-            const newUniqueLocales = transformedLocales.filter(l => !existingIds.has(l.id));
+        let filteredLocales = transformedLocales;
+        if (category !== 'todas') {
+          filteredLocales = transformedLocales.filter(local => {
+            const barliveTypes = local.barlive_types || [];
+            const barliveType = local.barlive_type || '';
             
-            console.log('[Explorar v411.0] 🔍 Filtered out', transformedLocales.length - newUniqueLocales.length, 'duplicates');
-            console.log('[Explorar v411.0] ➕ Adding', newUniqueLocales.length, 'new unique locales');
+            const categoryMap: Record<string, string[]> = {
+              'cafe': ['cafe', 'cafeteria', 'cafetería'],
+              'restaurante': ['restaurante', 'restaurant'],
+              'bar': ['bar'],
+              'pub': ['pub'],
+              'cocteleria': ['cocteleria', 'cocktail', 'cóctel'],
+              'discoteca': ['discoteca', 'nightclub', 'club', 'disco']
+            };
             
-            const combined = [...prev, ...newUniqueLocales];
-            console.log('[Explorar v411.0] 📊 Total locales:', combined.length);
+            const targetCategories = categoryMap[category] || [category];
             
-            return combined;
+            const allCategories = [...barliveTypes, barliveType]
+              .filter(c => c && c.trim())
+              .map(c => c.toLowerCase().trim());
+            
+            for (const localCat of allCategories) {
+              for (const targetCat of targetCategories) {
+                if (localCat === targetCat || localCat.includes(targetCat) || targetCat.includes(localCat)) {
+                  return true;
+                }
+              }
+            }
+            
+            return false;
           });
         }
 
-        const hasMoreData = data.length >= ITEMS_PER_PAGE;
-        console.log('[Explorar v411.0] 📊 Has more data:', hasMoreData, '(received', data.length, 'items)');
-        setHasMore(hasMoreData);
-        
-      } else {
-        console.log('[Explorar v411.0] ⚠️ No data returned from server');
-        setHasMore(false);
-        if (reset) {
-          setAllLocales([]);
-        }
+        categoryCache.current.set(category, {
+          locales: filteredLocales,
+          hasMore: data.length >= ITEMS_PER_PAGE,
+          timestamp: Date.now(),
+        });
+
+        preloadedCategories.current.add(category);
+        console.log('[Explorar v323.0] ✅ Preloaded', filteredLocales.length, 'locales for category:', category);
       }
     } catch (error) {
-      console.error('[Explorar v411.0] ❌ Error loading locales:', error);
-      Alert.alert('Error', 'No se pudieron cargar los locales');
+      console.error('[Explorar v323.0] ❌ Error preloading category', category, ':', error);
+    }
+  }, [userLocation, isValidSpainCoordinate]);
+
+  const preloadAllCategories = useCallback(async () => {
+    if (preloadInProgress.current) {
+      return;
+    }
+
+    preloadInProgress.current = true;
+    console.log('[Explorar v323.0] 🚀 Starting background preload of ALL categories...');
+
+    try {
+      console.log('[Explorar v323.0] 🎯 PRIORITY: Loading "Todas" category first...');
+      await preloadCategoryData('todas');
+      console.log('[Explorar v323.0] ✅ "Todas" category loaded - user can now see content instantly');
+
+      setTimeout(() => {
+        console.log('[Explorar v323.0] 📦 Background: Preloading other categories in parallel...');
+        const otherCategories = CATEGORIAS
+          .filter(cat => cat.id !== 'todas')
+          .map(cat => cat.id);
+
+        Promise.all(
+          otherCategories.map(category => preloadCategoryData(category))
+        ).then(() => {
+          console.log('[Explorar v323.0] ✅ All categories preloaded successfully!');
+        });
+      }, 500);
+
+    } catch (error) {
+      console.error('[Explorar v323.0] ❌ Error during category preload:', error);
     } finally {
-      console.log('[Explorar v411.0] 🔓 Loading guard released');
-      console.log('[Explorar v411.0] 🔄 ========================================');
-      loadingRef.current = false;
-      setIsLoading(false);
+      preloadInProgress.current = false;
     }
-  }, [userLocation, isValidSpainCoordinate, locationReady, allLocales.length, hasMore, isLoading, selectedCategory, getCategoryFilterForBackend, globalFiltros]);
+  }, [preloadCategoryData]);
 
-  // ✅ CARGA INICIAL: Cuando la ubicación esté lista
-  useEffect(() => {
-    if (locationReady && allLocales.length === 0 && !isLoading) {
-      console.log('[Explorar v411.0] 🚀 Initial load triggered');
-      loadLocales(true);
+  const loadLocales = useCallback(async (page: number = 1, append: boolean = false) => {
+    console.log('[Explorar v323.0] 🚀 loadLocales called - page:', page, 'append:', append, 'locationReady:', locationReady);
+    
+    if (!locationReady && !hasLoadedInitialDataRef.current) {
+      console.log('[Explorar v323.0] ⏸️ Location not ready yet, waiting...');
+      return;
     }
-  }, [locationReady, allLocales.length, isLoading, loadLocales]);
+    
+    if (isLoadingMore && append) {
+      console.log('[Explorar v323.0] ⏸️ Already loading more, skipping...');
+      return;
+    }
 
-  // ✅ DETECTAR CAMBIOS EN FILTROS Y RESETEAR
-  useEffect(() => {
-    const filtersKey = `${selectedCategory}-${provinciaSeleccionada}-${debouncedQuery}-${JSON.stringify(globalFiltros)}`;
+    const filtersKey = `${selectedCategory}-${provinciaSeleccionada}`;
     const filtersChanged = filtersKey !== lastFiltersRef.current;
 
-    if (filtersChanged && lastFiltersRef.current !== '') {
-      console.log('[Explorar v411.0] 🔄 Filters changed, resetting...');
-      console.log('[Explorar v411.0] 📊 Previous filters:', lastFiltersRef.current);
-      console.log('[Explorar v411.0] 📊 New filters:', filtersKey);
-      
+    if (filtersChanged) {
+      console.log('[Explorar v323.0] 🔄 Filters changed, resetting...');
       lastFiltersRef.current = filtersKey;
-      
-      setAllLocales([]);
+      setCurrentPage(1);
+      setAllLoadedLocales([]);
       setHasMore(true);
-      loadingRef.current = false;
+      setIsLoadingMore(false);
+      page = 1;
+      append = false;
       
+      console.log('[Explorar v323.0] 📜 Resetting scroll to top (category changed)');
       setTimeout(() => {
         flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
         savedScrollPosition.current = 0;
       }, 100);
-      
-      loadLocales(true);
-    } else if (lastFiltersRef.current === '') {
-      lastFiltersRef.current = filtersKey;
     }
-  }, [selectedCategory, provinciaSeleccionada, debouncedQuery, globalFiltros, loadLocales]);
 
-  // ✅ APLICAR BÚSQUEDA, FILTROS AVANZADOS Y ORDENAMIENTO CLIENT-SIDE
+    if (page === 1 && !append && provinciaSeleccionada === 'Todas') {
+      const cached = categoryCache.current.get(selectedCategory);
+      if (cached && Date.now() - cached.timestamp < 10 * 60 * 1000) {
+        console.log('[Explorar v323.0] ⚡⚡⚡ INSTANT LOAD from cache for category:', selectedCategory);
+        
+        setAllLoadedLocales(cached.locales);
+        setHasMore(cached.hasMore);
+        setIsInitialLoad(false);
+        hasLoadedInitialDataRef.current = true;
+        
+        if (savedScrollPosition.current > 0 && isReturningFromDetail.current) {
+          console.log('[Explorar v323.0] 📜 Restoring scroll position:', savedScrollPosition.current);
+          setTimeout(() => {
+            flatListRef.current?.scrollToOffset({ 
+              offset: savedScrollPosition.current, 
+              animated: false 
+            });
+          }, 150);
+        }
+        
+        // ✅ FIX v323.0: Batch load events and social profiles
+        const localIdsToCheck = cached.locales.slice(0, 30).map((l: any) => l.id);
+        if (localIdsToCheck.length > 0) {
+          console.log('[Explorar v323.0] 🚀 BATCH loading events and social profiles for', localIdsToCheck.length, 'venues');
+          setTimeout(() => {
+            Promise.all([
+              supabase
+                .from('posts')
+                .select('local_id')
+                .eq('tipo', 'local')
+                .in('local_id', localIdsToCheck),
+              supabase
+                .from('eventos')
+                .select('id, titulo, fecha, fecha_fin, hora, hora_fin, imagen_url, precio, local_id')
+                .eq('activo', true)
+                .in('local_id', localIdsToCheck)
+                .order('fecha', { ascending: true })
+                .order('hora', { ascending: true })
+            ]).then(([postsResult, eventsResult]) => {
+              if (!postsResult.error && postsResult.data) {
+                const newSocialProfiles = new Map();
+                const localsWithPosts = new Set(postsResult.data.map(p => p.local_id));
+                
+                localIdsToCheck.forEach((localId: string) => {
+                  newSocialProfiles.set(localId, localsWithPosts.has(localId));
+                });
+                
+                setSocialProfiles(prev => new Map([...prev, ...newSocialProfiles]));
+                console.log('[Explorar v323.0] ✅ Loaded social profiles for', newSocialProfiles.size, 'venues');
+              }
+
+              if (!eventsResult.error && eventsResult.data) {
+                const now = new Date();
+                const newActiveEvents = new Map();
+
+                const eventsByLocal = new Map<string, any[]>();
+                eventsResult.data.forEach(event => {
+                  if (!eventsByLocal.has(event.local_id)) {
+                    eventsByLocal.set(event.local_id, []);
+                  }
+                  eventsByLocal.get(event.local_id)!.push(event);
+                });
+
+                eventsByLocal.forEach((events, localId) => {
+                  let liveEvent = null;
+                  let upcomingEvent = null;
+
+                  for (const event of events) {
+                    const eventStartDate = new Date(`${event.fecha}T${event.hora}`);
+                    
+                    let eventEndDate: Date;
+                    if (event.fecha_fin && event.hora_fin) {
+                      eventEndDate = new Date(`${event.fecha_fin}T${event.hora_fin}`);
+                    } else {
+                      eventEndDate = new Date(eventStartDate.getTime() + 4 * 60 * 60 * 1000);
+                    }
+
+                    if (now >= eventStartDate && now <= eventEndDate) {
+                      liveEvent = event;
+                      break;
+                    }
+
+                    if (!upcomingEvent && now < eventStartDate) {
+                      upcomingEvent = event;
+                    }
+                  }
+
+                  if (liveEvent || upcomingEvent) {
+                    newActiveEvents.set(localId, liveEvent || upcomingEvent);
+                  }
+                });
+
+                setActiveEvents(prev => new Map([...prev, ...newActiveEvents]));
+                console.log('[Explorar v323.0] ✅ Loaded', newActiveEvents.size, 'active events in bulk');
+              }
+            }).catch(error => {
+              console.error('[Explorar v323.0] ❌ Error loading social profiles and events:', error);
+            });
+          }, 200);
+        }
+        
+        return;
+      }
+    }
+
+    if (append) {
+      console.log('[Explorar v323.0] 📥 Setting isLoadingMore = true and updating currentPage to', page);
+      setIsLoadingMore(true);
+      setCurrentPage(page);
+    } else {
+      if (!hasLoadedInitialDataRef.current) {
+        console.log('[Explorar v323.0] ⚡ First load - showing skeleton UI');
+        setIsInitialLoad(true);
+      }
+      setCurrentPage(page);
+    }
+
+    try {
+      console.log('[Explorar v323.0] 📡 Loading page', page, 'from server...');
+      
+      const hasValidLocation = userLocation && isValidSpainCoordinate(userLocation.lat, userLocation.lng);
+      
+      const locationParams = hasValidLocation 
+        ? { user_lat: userLocation.lat, user_lng: userLocation.lng }
+        : { user_lat: null, user_lng: null };
+      
+      console.log('[Explorar v323.0] 📍 Using location params:', locationParams);
+      console.log('[Explorar v323.0] 🎯 hasValidLocation:', hasValidLocation);
+      
+      const offset = (page - 1) * ITEMS_PER_PAGE;
+      console.log('[Explorar v323.0] 📊 Requesting offset:', offset, 'limit:', ITEMS_PER_PAGE);
+      
+      const { data, error } = await supabase.rpc('get_locales_paginados', {
+        ...locationParams,
+        p_limit: ITEMS_PER_PAGE,
+        p_offset: offset,
+      });
+
+      if (error) {
+        console.error('[Explorar v323.0] ❌ Error loading locales:', error);
+        throw error;
+      }
+
+      console.log('[Explorar v323.0] ✅ Loaded', data?.length || 0, 'locales from server');
+
+      if (data && data.length > 0) {
+        const transformedLocales = data.map((local: any) => {
+          let distanciaKm = null;
+          
+          if (hasValidLocation && local.latitud && local.longitud) {
+            const localLat = parseFloat(local.latitud);
+            const localLng = parseFloat(local.longitud);
+            
+            if (!isNaN(localLat) && !isNaN(localLng)) {
+              distanciaKm = calcularDistancia(
+                userLocation.lat,
+                userLocation.lng,
+                localLat,
+                localLng
+              );
+            }
+          } else if (local.distancia_metros !== null && local.distancia_metros !== undefined) {
+            distanciaKm = Number(local.distancia_metros) / 1000;
+          }
+          
+          const estadoLocal = getEstadoLocal(local);
+          
+          return {
+            ...local,
+            coordenadas: {
+              lat: parseFloat(local.latitud),
+              lng: parseFloat(local.longitud),
+            },
+            imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
+            estadoCompleto: estadoLocal,
+            estaAbierto: estadoLocal.estaAbierto,
+            tieneHorarios: local.has_schedule_info,
+            distancia: distanciaKm,
+          };
+        });
+
+        if (append) {
+          console.log('[Explorar v323.0] ➕ Appending', transformedLocales.length, 'locales WITHOUT animation');
+          setAllLoadedLocales(prev => {
+            const newLocales = [...prev, ...transformedLocales];
+            console.log('[Explorar v323.0] ➕ Total now:', newLocales.length);
+            return newLocales;
+          });
+        } else {
+          console.log('[Explorar v323.0] 🔄 Replacing with', transformedLocales.length, 'locales (instant update)');
+          setAllLoadedLocales(transformedLocales);
+        }
+
+        const gotLessThanRequested = data.length < ITEMS_PER_PAGE;
+        console.log('[Explorar v323.0] 📊 Got', data.length, 'locales, expected', ITEMS_PER_PAGE, '- hasMore:', !gotLessThanRequested);
+        setHasMore(!gotLessThanRequested);
+
+        // ✅ FIX v323.0: Batch load events and social profiles
+        const localIdsToCheck = transformedLocales.slice(0, 30).map((l: any) => l.id);
+        if (localIdsToCheck.length > 0) {
+          console.log('[Explorar v323.0] 🚀 BATCH loading events and social profiles for', localIdsToCheck.length, 'venues');
+          setTimeout(() => {
+            Promise.all([
+              supabase
+                .from('posts')
+                .select('local_id')
+                .eq('tipo', 'local')
+                .in('local_id', localIdsToCheck),
+              supabase
+                .from('eventos')
+                .select('id, titulo, fecha, fecha_fin, hora, hora_fin, imagen_url, precio, local_id')
+                .eq('activo', true)
+                .in('local_id', localIdsToCheck)
+                .order('fecha', { ascending: true })
+                .order('hora', { ascending: true })
+            ]).then(([postsResult, eventsResult]) => {
+              if (!postsResult.error && postsResult.data) {
+                const newSocialProfiles = new Map();
+                const localsWithPosts = new Set(postsResult.data.map(p => p.local_id));
+                
+                localIdsToCheck.forEach((localId: string) => {
+                  newSocialProfiles.set(localId, localsWithPosts.has(localId));
+                });
+                
+                setSocialProfiles(prev => new Map([...prev, ...newSocialProfiles]));
+                console.log('[Explorar v323.0] ✅ Loaded social profiles for', newSocialProfiles.size, 'venues');
+              }
+
+              if (!eventsResult.error && eventsResult.data) {
+                const now = new Date();
+                const newActiveEvents = new Map();
+
+                const eventsByLocal = new Map<string, any[]>();
+                eventsResult.data.forEach(event => {
+                  if (!eventsByLocal.has(event.local_id)) {
+                    eventsByLocal.set(event.local_id, []);
+                  }
+                  eventsByLocal.get(event.local_id)!.push(event);
+                });
+
+                eventsByLocal.forEach((events, localId) => {
+                  let liveEvent = null;
+                  let upcomingEvent = null;
+
+                  for (const event of events) {
+                    const eventStartDate = new Date(`${event.fecha}T${event.hora}`);
+                    
+                    let eventEndDate: Date;
+                    if (event.fecha_fin && event.hora_fin) {
+                      eventEndDate = new Date(`${event.fecha_fin}T${event.hora_fin}`);
+                    } else {
+                      eventEndDate = new Date(eventStartDate.getTime() + 4 * 60 * 60 * 1000);
+                    }
+
+                    if (now >= eventStartDate && now <= eventEndDate) {
+                      liveEvent = event;
+                      break;
+                    }
+
+                    if (!upcomingEvent && now < eventStartDate) {
+                      upcomingEvent = event;
+                    }
+                  }
+
+                  if (liveEvent || upcomingEvent) {
+                    newActiveEvents.set(localId, liveEvent || upcomingEvent);
+                  }
+                });
+
+                setActiveEvents(prev => new Map([...prev, ...newActiveEvents]));
+                console.log('[Explorar v323.0] ✅ Loaded', newActiveEvents.size, 'active events in bulk');
+              }
+            }).catch(error => {
+              console.error('[Explorar v323.0] ❌ Error checking social profiles and events:', error);
+            });
+          }, 200);
+        }
+        
+        hasLoadedInitialDataRef.current = true;
+      } else {
+        console.log('[Explorar v323.0] ⚠️ No more data available');
+        setHasMore(false);
+        if (!append) {
+          setAllLoadedLocales([]);
+        }
+      }
+    } catch (error) {
+      console.error('[Explorar v323.0] ❌ Error loading locales:', error);
+      Alert.alert('Error', 'No se pudieron cargar los locales');
+    } finally {
+      setLoading(false);
+      setIsInitialLoad(false);
+      console.log('[Explorar v323.0] 📥 Setting isLoadingMore = false');
+      setIsLoadingMore(false);
+    }
+  }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada, isLoadingMore, locationReady]);
+
   const filteredLocales = useMemo(() => {
-    console.log('[Explorar v411.0] 🔍 ========================================');
-    console.log('[Explorar v411.0] 🔍 APPLYING CLIENT-SIDE FILTERS (REBUILT)');
-    console.log('[Explorar v411.0] 🔍 Starting with', allLocales.length, 'locales from server');
+    console.log('[Explorar v323.0] 🔍 Filtering locales - total loaded:', allLoadedLocales.length);
     
     const query = debouncedQuery.toLowerCase().trim();
-    let filtered = allLocales;
     
-    // ✅ FILTRO DE BÚSQUEDA (Client-side)
+    let filtered = allLoadedLocales;
+    
+    if (selectedCategory && selectedCategory !== 'todas') {
+      filtered = filtered.filter(local => {
+        const barliveTypes = local.barlive_types || [];
+        const barliveType = local.barlive_type || '';
+        
+        const categoryMap: Record<string, string[]> = {
+          'cafe': ['cafe', 'cafeteria', 'cafetería'],
+          'restaurante': ['restaurante', 'restaurant'],
+          'bar': ['bar'],
+          'pub': ['pub'],
+          'cocteleria': ['cocteleria', 'cocktail', 'cóctel'],
+          'discoteca': ['discoteca', 'nightclub', 'club', 'disco']
+        };
+        
+        const targetCategories = categoryMap[selectedCategory] || [selectedCategory];
+        
+        const allCategories = [...barliveTypes, barliveType]
+          .filter(c => c && c.trim())
+          .map(c => c.toLowerCase().trim());
+        
+        for (const localCat of allCategories) {
+          for (const targetCat of targetCategories) {
+            if (localCat === targetCat || localCat.includes(targetCat) || targetCat.includes(localCat)) {
+              return true;
+            }
+          }
+        }
+        
+        return false;
+      });
+    }
+    
     if (query) {
-      const beforeFilter = filtered.length;
-      
       filtered = filtered.filter(local => {
         const nombre = local.nombre?.toLowerCase() || '';
         const direccion = local.direccion?.toLowerCase() || '';
@@ -669,109 +760,116 @@ export default function ExplorarScreen() {
                tipo.includes(query) ||
                barliveTypes.includes(query);
       });
-      
-      console.log('[Explorar v411.0] 🔍 Search filter removed:', beforeFilter - filtered.length);
-      console.log('[Explorar v411.0] 🔍 After search:', filtered.length, 'locales');
     }
 
-    // ✅ APLICAR FILTROS AVANZADOS CLIENT-SIDE (REBUILT v4.0)
-    if (hasActiveFilters) {
-      const beforeAdvancedFilter = filtered.length;
-      filtered = applyAdvancedFilters(filtered, globalFiltros, userLocation);
-      console.log('[Explorar v411.0] 🔍 Advanced filters removed:', beforeAdvancedFilter - filtered.length);
-      console.log('[Explorar v411.0] 🔍 After advanced filters:', filtered.length, 'locales');
-    }
+    const uniqueLocales = filtered.filter((item, index, self) =>
+      index === self.findIndex((t) => t.id === item.id)
+    );
 
-    // ✅ APLICAR ORDENAMIENTO DE 5 NIVELES
-    const sorted = applySorting(filtered);
-    console.log('[Explorar v411.0] ✅ Final result after sorting:', sorted.length, 'locales');
-    console.log('[Explorar v411.0] ✅ ========================================');
-    
-    return sorted;
-  }, [allLocales, debouncedQuery, hasActiveFilters, globalFiltros, userLocation, applySorting]);
+    console.log('[Explorar v323.0] ✅ Filtered:', filtered.length, '→ Unique:', uniqueLocales.length, '(removed', filtered.length - uniqueLocales.length, 'duplicates)');
 
-  // ✅ CARGA AUTOMÁTICA CUANDO LA LISTA FILTRADA ES PEQUEÑA
+    return uniqueLocales;
+  }, [allLoadedLocales, debouncedQuery, selectedCategory]);
+
   useEffect(() => {
-    const MIN_FILTERED_ITEMS = 10;
-    
-    if (
-      filteredLocales.length < MIN_FILTERED_ITEMS &&
-      hasMore &&
-      !isLoading &&
-      !loadingRef.current &&
-      allLocales.length > 0 &&
-      locationReady
-    ) {
-      console.log('[Explorar v411.0] 🔄 Auto-loading more data - filtered list too small:', filteredLocales.length);
-      loadLocales(false);
-    }
-  }, [filteredLocales.length, hasMore, isLoading, allLocales.length, locationReady, loadLocales]);
+    console.log('[Explorar v323.0] 🎯 Updating displayed locales - count:', filteredLocales.length);
+    setDisplayedLocales(filteredLocales);
+    console.log('[Explorar v323.0] ✅ Display updated with', filteredLocales.length, 'venues');
+  }, [filteredLocales]);
 
-  // ✅ FUNCIÓN PARA CARGAR MÁS LOCALES (INFINITE SCROLL)
+  useEffect(() => {
+    if (locationReady && !hasLoadedInitialDataRef.current) {
+      console.log('[Explorar v323.0] 🚀 Location is ready - starting intelligent preload...');
+      
+      preloadAllCategories();
+      
+      loadLocales(1, false);
+    }
+  }, [locationReady, preloadAllCategories, loadLocales]);
+
+  useEffect(() => {
+    if (locationReady && hasLoadedInitialDataRef.current && !isLoadingMore) {
+      console.log('[Explorar v323.0] 🔄 Category or province changed - checking cache for instant transition...');
+      loadLocales(1, false);
+    }
+  }, [selectedCategory, provinciaSeleccionada]);
+
+  const loadMoreLocalesRef = useRef(false);
+  
   const loadMoreLocales = useCallback(() => {
-    console.log('[Explorar v411.0] 📊 loadMoreLocales called:', {
-      hasMore,
-      isLoading,
-      currentLength: allLocales.length,
-      filteredLength: filteredLocales.length,
-      loadingRef: loadingRef.current,
-    });
+    console.log('[Explorar v323.0] 🔄 loadMoreLocales called - hasMore:', hasMore, 'isLoadingMore:', isLoadingMore, 'loading:', loading, 'currentPage:', currentPage);
     
-    if (loadingRef.current || isLoading) {
-      console.log('[Explorar v411.0] ⚠️ Already loading - BLOCKING');
+    if (loadMoreLocalesRef.current) {
+      console.log('[Explorar v323.0] ⏸️ Already processing loadMore request');
       return;
     }
     
     if (!hasMore) {
-      console.log('[Explorar v411.0] ⚠️ No more data - BLOCKING');
+      console.log('[Explorar v323.0] ⏸️ No more data available');
+      return;
+    }
+    
+    if (isLoadingMore) {
+      console.log('[Explorar v323.0] ⏸️ Already loading more');
+      return;
+    }
+    
+    if (loading) {
+      console.log('[Explorar v323.0] ⏸️ Initial loading in progress');
       return;
     }
 
-    console.log('[Explorar v411.0] ✅ Loading more locales...');
-    loadLocales(false);
-  }, [hasMore, isLoading, allLocales.length, filteredLocales.length, loadLocales]);
-
-  // ✅ REFRESH: Resetear todo y cargar desde cero
-  const onRefresh = async () => {
-    console.log('[Explorar v411.0] 🔄 Refresh triggered');
-    setRefreshing(true);
+    loadMoreLocalesRef.current = true;
     
+    const nextPage = currentPage + 1;
+    console.log('[Explorar v323.0] 📥 Loading next page:', nextPage);
+    loadLocales(nextPage, true).finally(() => {
+      loadMoreLocalesRef.current = false;
+    });
+  }, [hasMore, isLoadingMore, loading, currentPage, loadLocales]);
+
+  const onRefresh = async () => {
+    console.log('[Explorar v323.0] 🔄 Manual refresh triggered');
+    setRefreshing(true);
     setSearchQuery('');
     setDebouncedQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
-    limpiarFiltros();
-    
-    setAllLocales([]);
+    setCurrentPage(1);
+    setAllLoadedLocales([]);
+    setDisplayedLocales([]);
     setHasMore(true);
-    loadingRef.current = false;
-    lastFiltersRef.current = '';
+    setIsLoadingMore(false);
     
+    categoryCache.current.clear();
+    preloadedCategories.current.clear();
+    preloadInProgress.current = false;
+    
+    console.log('[Explorar v323.0] 📜 Resetting scroll to top (manual refresh)');
     setTimeout(() => {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       savedScrollPosition.current = 0;
     }, 100);
     
-    await loadLocales(true);
+    await preloadAllCategories();
+    await loadLocales(1, false);
     setRefreshing(false);
   };
 
-  // ✅ LIMPIAR FILTROS
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v411.0] 🧹 Clearing all filters');
+    console.log('[Explorar v323.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
-    limpiarFiltros();
     
+    console.log('[Explorar v323.0] 📜 Resetting scroll to top (filters cleared)');
     setTimeout(() => {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       savedScrollPosition.current = 0;
     }, 100);
-  }, [setSelectedCategory, limpiarFiltros]);
+  }, []);
 
-  // ✅ CONTADOR DE FILTROS ACTIVOS
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (debouncedQuery.trim()) count++;
@@ -780,7 +878,6 @@ export default function ExplorarScreen() {
     return count;
   }, [debouncedQuery, selectedCategory, provinciaSeleccionada]);
 
-  // ✅ HANDLERS DE ACCIONES
   const handleToggleFavorito = useCallback(async (localId: string, e?: any) => {
     if (e) {
       e.stopPropagation();
@@ -794,8 +891,12 @@ export default function ExplorarScreen() {
     if (!localId) {
       return;
     }
+
+    console.log('[Explorar v323.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
     
     await toggleFavorite(localId);
+    
+    console.log('[Explorar v323.0] ✅ Favorite toggle completed (optimistic UI + background sync)');
   }, [user, router, toggleFavorite]);
 
   const handleComoLlegar = useCallback((local: any, e: any) => {
@@ -820,18 +921,8 @@ export default function ExplorarScreen() {
       return;
     }
     
-    router.push('/solicitudes/solicitar-propiedad-v2');
+    router.push('/solicitudes/solicitar-propiedad-ultra-simple');
   };
-
-  const handleOpenAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v411.0] 🔍 Opening advanced filters');
-    setShowAdvancedFilters(true);
-  }, []);
-
-  const handleCloseAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v411.0] ✅ Closing advanced filters');
-    setShowAdvancedFilters(false);
-  }, []);
 
   const getModeLabel = () => {
     if (currentMode === 'admin') return 'Admin';
@@ -845,12 +936,18 @@ export default function ExplorarScreen() {
     return { ios: 'person.fill', android: 'person' };
   };
 
-  // ✅ HANDLER DE SCROLL CON CARGA ANTICIPADA
+  const handleModeChange = async (newMode: 'cliente' | 'propietario' | 'admin') => {
+    try {
+      await setCurrentMode(newMode);
+      setShowModeSelectorModal(false);
+    } catch (error) {
+      console.error('[Explorar v323.0] Error changing mode:', error);
+      Alert.alert('Error', 'No se pudo cambiar el modo');
+    }
+  };
+
   const handleScroll = useCallback((event: any) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
-    const contentHeight = event.nativeEvent.contentSize.height;
-    const layoutHeight = event.nativeEvent.layoutMeasurement.height;
-    
     savedScrollPosition.current = currentScrollY;
     
     const diff = currentScrollY - lastScrollY.current;
@@ -871,94 +968,34 @@ export default function ExplorarScreen() {
       }
     }
     
-    const distanceFromBottom = contentHeight - (currentScrollY + layoutHeight);
-    const shouldPreload = distanceFromBottom < layoutHeight * 3;
-    
-    if (shouldPreload && hasMore && !isLoading && !loadingRef.current && filteredLocales.length > 0) {
-      console.log('[Explorar v411.0] 🚀 Preloading triggered - distance from bottom:', distanceFromBottom.toFixed(0), 'px');
-      loadMoreLocales();
-    }
-    
     lastScrollY.current = currentScrollY;
     scrollY.current = currentScrollY;
-  }, [headerTranslateY, hasMore, isLoading, filteredLocales.length, loadMoreLocales]);
+  }, [headerTranslateY]);
 
-  // ✅ RENDER SKELETON CARD
   const renderSkeletonCard = useCallback(() => {
-    return <SkeletonCard />;
-  }, []);
-
-  // ✅ HELPERS PARA RENDERIZADO DE CARDS
-  const getBadgeInfo = useCallback((item: any) => {
-    if (item.estadoCompleto) {
-      const estado = item.estadoCompleto;
-      
-      const colorMap: Record<string, string> = {
-        'bg-green-500': '#22C55E',
-        'bg-orange-500': '#F97316',
-        'bg-yellow-500': '#EAB308',
-        'bg-red-500': '#EF4444',
-        'bg-gray-400': '#9CA3AF',
-      };
-      
-      const badgeColor = colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF';
-      
-      return {
-        text: estado.badge,
-        color: badgeColor,
-      };
-    }
-    
-    if (item.estaAbierto === true) {
-      return {
-        text: 'Abierto ahora',
-        color: '#22C55E',
-      };
-    } else if (item.estaAbierto === false) {
-      return {
-        text: 'Cerrado ahora',
-        color: '#EF4444',
-      };
-    } else {
-      return {
-        text: 'Sin info de horario',
-        color: '#9CA3AF',
-      };
-    }
-  }, []);
-
-  const getShouldDimImage = useCallback((item: any) => {
-    if (item.estadoCompleto) {
-      return item.estadoCompleto.estaAbierto === false && 
-             !item.estadoCompleto.badge.includes('pronto');
-    }
-    return item.estaAbierto === false;
-  }, []);
-
-  const getCategoriasAMostrar = useCallback((item: any) => {
-    const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
-    let categories = item.barlive_types || [];
-    if (categories.length === 0 && item.barlive_type) {
-      categories = [item.barlive_type];
-    }
-    
-    return categories.filter((cat: string) => 
-      !CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
+    return (
+      <View style={styles.card}>
+        <View style={[styles.imageContainer, styles.skeletonImage]}>
+          <View style={styles.skeletonShimmer} />
+        </View>
+        <View style={styles.content}>
+          <View style={[styles.skeletonText, { width: '70%', height: 20, marginBottom: 8 }]} />
+          <View style={[styles.skeletonText, { width: '90%', height: 14, marginBottom: 12 }]} />
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+            <View style={[styles.skeletonText, { width: 80, height: 24, borderRadius: 6 }]} />
+            <View style={[styles.skeletonText, { width: 100, height: 24, borderRadius: 6 }]} />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={[styles.skeletonText, { flex: 1, height: 40, borderRadius: 8 }]} />
+            <View style={[styles.skeletonText, { flex: 1, height: 40, borderRadius: 8 }]} />
+          </View>
+        </View>
+      </View>
     );
   }, []);
 
-  const getDisplayRating = useCallback((item: any) => {
-    if (item.rating && item.rating > 0) {
-      return item.rating;
-    }
-    if (item.google_rating && item.google_rating > 0) {
-      return item.google_rating;
-    }
-    return 0;
-  }, []);
-
-  // ✅ RENDER LOCAL CARD
-  const renderLocalCard = useCallback(({ item, index }: { item: any; index: number }) => {
+  // ✅ FIX v323.0: Pass activeEvent and hasSocialProfile as props
+  const renderLocalCard = useCallback(({ item }: { item: any }) => {
     const imagenPrincipal = item.imagenes?.[0] || item.imagen_url;
     const isDestacado = item.destacado;
     const hasSocialProfile = socialProfiles.get(item.id) || false;
@@ -966,26 +1003,94 @@ export default function ExplorarScreen() {
     
     const localIsFavorite = user ? isFavorite(item.id) : false;
 
-    const badgeInfo = getBadgeInfo(item);
-    const shouldDimImage = getShouldDimImage(item);
-    const categoriasAMostrar = getCategoriasAMostrar(item);
-    const displayRating = getDisplayRating(item);
+    const getBadgeInfo = () => {
+      if (item.estadoCompleto) {
+        const estado = item.estadoCompleto;
+        
+        const colorMap: Record<string, string> = {
+          'bg-green-500': '#22C55E',
+          'bg-orange-500': '#F97316',
+          'bg-yellow-500': '#EAB308',
+          'bg-red-500': '#EF4444',
+          'bg-gray-400': '#9CA3AF',
+        };
+        
+        const badgeColor = colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF';
+        
+        return {
+          text: estado.badge,
+          color: badgeColor,
+        };
+      }
+      
+      if (item.estaAbierto === true) {
+        return {
+          text: 'Abierto ahora',
+          color: '#22C55E',
+        };
+      } else if (item.estaAbierto === false) {
+        return {
+          text: 'Cerrado ahora',
+          color: '#EF4444',
+        };
+      } else {
+        return {
+          text: 'Sin info de horario',
+          color: '#9CA3AF',
+        };
+      }
+    };
+
+    const badgeInfo = getBadgeInfo();
+
+    const shouldDimImage = () => {
+      if (item.estadoCompleto) {
+        return item.estadoCompleto.estaAbierto === false && 
+               !item.estadoCompleto.badge.includes('pronto');
+      }
+      return item.estaAbierto === false;
+    };
+
+    const formatCategories = () => {
+      const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
+      let categories = item.barlive_types || [];
+      if (categories.length === 0 && item.barlive_type) {
+        categories = [item.barlive_type];
+      }
+      
+      return categories.filter((cat: string) => 
+        !CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
+      );
+    };
+
+    const categoriasAMostrar = formatCategories();
+
+    const getRating = () => {
+      if (item.rating && item.rating > 0) {
+        return item.rating;
+      }
+      if (item.google_rating && item.google_rating > 0) {
+        return item.google_rating;
+      }
+      return 0;
+    };
+
+    const displayRating = getRating();
 
     const iconSize = Platform.OS === 'android' ? scaleIconSize(14) : 14;
     const starIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
     const heartIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
     const actionIconSize = Platform.OS === 'android' ? scaleIconSize(16) : 16;
 
-    const cardStyle = [
-      styles.card,
-      isDestacado && styles.cardDestacado,
-      Platform.OS === 'android' && index === 0 && { marginTop: 8 }
-    ];
-
     return (
       <TouchableOpacity 
-        style={cardStyle} 
+        style={[
+          styles.card,
+          isDestacado && styles.cardDestacado
+        ]} 
         onPress={() => {
+          console.log('[Explorar v323.0] 👆 User tapped venue card - navigating to detail');
+          console.log('[Explorar v323.0] 💾 Saving current scroll position:', savedScrollPosition.current);
           isReturningFromDetail.current = true;
           router.push(`/detalle/local?id=${item.id}`);
         }}
@@ -1004,7 +1109,7 @@ export default function ExplorarScreen() {
             </View>
           )}
 
-          {shouldDimImage && (
+          {shouldDimImage() && (
             <View style={styles.dimmedOverlay} />
           )}
 
@@ -1042,6 +1147,7 @@ export default function ExplorarScreen() {
             </View>
           )}
 
+          {/* ✅ FIX v323.0: Display event badge using batch-loaded data */}
           {activeEvent && (
             <View style={styles.badgeEventoContainer}>
               <View style={styles.badgeEvento}>
@@ -1055,7 +1161,10 @@ export default function ExplorarScreen() {
 
           <TouchableOpacity
             style={styles.favoritoButton}
-            onPress={(e) => handleToggleFavorito(item.id, e)}
+            onPress={(e) => {
+              console.log('[Explorar v323.0] 👆 User tapped favorite button for local:', item.id);
+              handleToggleFavorito(item.id, e);
+            }}
           >
             <IconSymbol
               ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
@@ -1082,8 +1191,8 @@ export default function ExplorarScreen() {
 
           {categoriasAMostrar.length > 0 && (
             <View style={styles.categoriasContainer}>
-              {categoriasAMostrar.map((categoria: string, catIndex: number) => (
-                <View key={catIndex} style={styles.categoriaBadge}>
+              {categoriasAMostrar.map((categoria: string, index: number) => (
+                <View key={index} style={styles.categoriaBadge}>
                   <Text style={[styles.categoriaIcon, { fontSize: scaleFontSize(12) }]}>{getCategoryIcon(categoria)}</Text>
                   <Text style={[styles.categoriaText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>{categoria}</Text>
                 </View>
@@ -1092,6 +1201,7 @@ export default function ExplorarScreen() {
           )}
 
           <View style={styles.actionButtonsContainer}>
+            {/* ✅ FIX v323.0: Use batch-loaded social profile status */}
             {hasSocialProfile && (
               <TouchableOpacity 
                 style={styles.perfilSocialButton} 
@@ -1129,15 +1239,10 @@ export default function ExplorarScreen() {
         </View>
       </TouchableOpacity>
     );
-  }, [router, socialProfiles, activeEvents, user, isFavorite, handleToggleFavorito, handleComoLlegar, handlePerfilSocial, getBadgeInfo, getShouldDimImage, getCategoriasAMostrar, getDisplayRating]);
+  }, [router, socialProfiles, activeEvents, user, isFavorite, handleToggleFavorito, handleComoLlegar, handlePerfilSocial]);
 
-  // ✅ RENDER FOOTER
   const renderFooter = () => {
-    if (filteredLocales.length === 0 && hasActiveFilters) {
-      return null;
-    }
-
-    if (!hasMore && filteredLocales.length > 0) {
+    if (!hasMore && displayedLocales.length > 0) {
       return (
         <View style={styles.footerContainer}>
           <Text style={[styles.footerText, { fontSize: scaleFontSize(14) }]}>
@@ -1147,7 +1252,7 @@ export default function ExplorarScreen() {
       );
     }
 
-    if (isLoading && filteredLocales.length >= ITEMS_PER_PAGE) {
+    if (isLoadingMore) {
       return (
         <View style={styles.footerLoadingContainer}>
           <View style={styles.footerLoadingHeader}>
@@ -1165,9 +1270,8 @@ export default function ExplorarScreen() {
     return null;
   };
 
-  // ✅ RENDER EMPTY
   const renderEmpty = () => {
-    if (isLoading && allLocales.length === 0) {
+    if (isInitialLoad) {
       return (
         <View style={styles.skeletonContainer}>
           {[1, 2, 3, 4, 5].map((_, index) => (
@@ -1179,7 +1283,7 @@ export default function ExplorarScreen() {
       );
     }
     
-    if (activeFiltersCount > 0 || hasActiveFilters) {
+    if (activeFiltersCount > 0 && displayedLocales.length === 0) {
       return (
         <View style={styles.emptyState}>
           <IconSymbol
@@ -1190,24 +1294,15 @@ export default function ExplorarScreen() {
           />
           <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No se encontraron resultados</Text>
           <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
-            {hasActiveFilters 
-              ? 'Intenta ajustar los filtros avanzados' 
-              : 'Intenta con otros filtros de búsqueda'}
+            Intenta con otros filtros de búsqueda
           </Text>
-          
-          <View style={styles.emptyStateButtons}>
-            {(activeFiltersCount > 0 || hasActiveFilters) && (
-              <TouchableOpacity 
-                style={styles.clearFiltersButton}
-                onPress={clearFilters}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.clearFiltersButtonText, { fontSize: scaleFontSize(14) }]}>
-                  Limpiar todos los filtros
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          <TouchableOpacity 
+            style={styles.clearFiltersButton}
+            onPress={clearFilters}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.clearFiltersButtonText, { fontSize: scaleFontSize(14) }]}>Limpiar filtros</Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -1228,7 +1323,13 @@ export default function ExplorarScreen() {
     );
   };
 
+  const searchBoxHeight = getSearchBoxHeight();
+  const categoryIconSize = getCategoryIconSize();
+  const categoryIconInnerSize = getCategoryIconInnerSize();
   const modeIcon = getModeIcon();
+
+  const headerTitleSize = Platform.OS === 'android' ? scaleFontSize(32) : 32;
+  const headerIconSize = Platform.OS === 'android' ? scaleIconSize(28) : 28;
 
   return (
     <View style={styles.container}>
@@ -1265,13 +1366,7 @@ export default function ExplorarScreen() {
               {user && (
                 <TouchableOpacity 
                   style={styles.modeSelectorButton}
-                  onPress={() => {
-                    if (Platform.OS === 'android') {
-                      router.push('/explorar/selector-modo');
-                    } else {
-                      router.push('/explorar/selector-modo');
-                    }
-                  }}
+                  onPress={() => setShowModeSelectorModal(true)}
                   activeOpacity={0.7}
                 >
                   <IconSymbol 
@@ -1300,7 +1395,7 @@ export default function ExplorarScreen() {
                 <IconSymbol 
                   ios_icon_name="map.fill" 
                   android_material_icon_name="map" 
-                  size={scaleIconSize(28)} 
+                  size={headerIconSize} 
                   color={colors.headerText} 
                 />
               </TouchableOpacity>
@@ -1365,23 +1460,21 @@ export default function ExplorarScreen() {
             )}
           </View>
           
-          <View style={styles.filterButtonContainer}>
-            <TouchableOpacity 
-              onPress={handleOpenAdvancedFilters}
-              style={styles.filterIconButtonCompact}
-              activeOpacity={0.7}
-            >
-              <IconSymbol 
-                ios_icon_name="slider.horizontal.3" 
-                android_material_icon_name="tune" 
-                size={scaleIconSize(20)} 
-                color={colors.headerText} 
-              />
-              {hasActiveFilters && (
-                <View style={styles.filterActiveDot} />
-              )}
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity 
+            onPress={() => {
+              console.log('[Explorar v323.0] 👆 Usuario abrió filtros - navegando a página completa');
+              router.push('/(tabs)/explorar/filtros-simples');
+            }}
+            style={styles.filterIconButtonCompact}
+            activeOpacity={0.7}
+          >
+            <IconSymbol 
+              ios_icon_name="slider.horizontal.3" 
+              android_material_icon_name="tune" 
+              size={scaleIconSize(20)} 
+              color={colors.headerText} 
+            />
+          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -1396,9 +1489,11 @@ export default function ExplorarScreen() {
               key={categoria.id}
               style={styles.categoriaButtonCompact}
               onPress={() => {
-                console.log('[Explorar v410.0] 🏷️ Category selected:', categoria.id);
+                console.log('[Explorar v323.0] 👆 Usuario seleccionó categoría:', categoria.id);
+                console.log('[Explorar v323.0] ⚡ Checking preloaded cache for instant display...');
                 setSelectedCategory(categoria.id);
                 
+                console.log('[Explorar v323.0] 📜 Resetting scroll to top (category selected)');
                 setTimeout(() => {
                   flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
                   savedScrollPosition.current = 0;
@@ -1436,14 +1531,14 @@ export default function ExplorarScreen() {
 
       <FlatList
         ref={flatListRef}
-        data={filteredLocales}
+        data={displayedLocales}
         renderItem={renderLocalCard}
         keyExtractor={(item: any) => item.id}
         contentContainerStyle={[
           styles.listContent,
           { 
-            marginTop: HEADER_MAX_HEIGHT,
-            paddingTop: 0,
+            marginTop: HEADER_MAX_HEIGHT + 10,
+            paddingTop: 24,
             paddingBottom: getContentBottomPadding(100)
           },
         ]}
@@ -1454,14 +1549,14 @@ export default function ExplorarScreen() {
             tintColor={colors.primary}
           />
         }
-        onEndReached={filteredLocales.length > 0 ? loadMoreLocales : undefined}
+        onEndReached={loadMoreLocales}
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
-        removeClippedSubviews={Platform.OS === 'android'}
+        removeClippedSubviews={true}
         updateCellsBatchingPeriod={100}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -1473,10 +1568,125 @@ export default function ExplorarScreen() {
         }}
       />
 
-      <FiltrosAvanzadosSheet
-        visible={showAdvancedFilters}
-        onClose={handleCloseAdvancedFilters}
-      />
+      <Modal
+        visible={showModeSelectorModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowModeSelectorModal(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowModeSelectorModal(false)}
+        >
+          <Pressable style={styles.modeSelectorModal} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Seleccionar Rol</Text>
+              <TouchableOpacity onPress={() => setShowModeSelectorModal(false)}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={scaleIconSize(24)} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modeOptionsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.modeOption,
+                  currentMode === 'cliente' && styles.modeOptionActive
+                ]}
+                onPress={() => handleModeChange('cliente')}
+                activeOpacity={0.7}
+              >
+                <IconSymbol 
+                  ios_icon_name="person.fill" 
+                  android_material_icon_name="person" 
+                  size={scaleIconSize(32)} 
+                  color={currentMode === 'cliente' ? colors.primary : colors.text} 
+                />
+                <Text style={[
+                  styles.modeOptionText,
+                  { fontSize: scaleFontSize(16) },
+                  currentMode === 'cliente' && styles.modeOptionTextActive
+                ]}>
+                  Cliente
+                </Text>
+                {currentMode === 'cliente' && (
+                  <IconSymbol 
+                    ios_icon_name="checkmark.circle.fill" 
+                    android_material_icon_name="check_circle" 
+                    size={scaleIconSize(24)} 
+                    color={colors.primary} 
+                  />
+                )}
+              </TouchableOpacity>
+
+              {(user?.rol_app === 'propietario' || user?.rol_app === 'admin') && (
+                <TouchableOpacity
+                  style={[
+                    styles.modeOption,
+                    currentMode === 'propietario' && styles.modeOptionActive
+                  ]}
+                  onPress={() => handleModeChange('propietario')}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol 
+                    ios_icon_name="building.2.fill" 
+                    android_material_icon_name="store" 
+                    size={scaleIconSize(32)} 
+                    color={currentMode === 'propietario' ? colors.primary : colors.text} 
+                  />
+                  <Text style={[
+                    styles.modeOptionText,
+                    { fontSize: scaleFontSize(16) },
+                    currentMode === 'propietario' && styles.modeOptionTextActive
+                  ]}>
+                    Propietario
+                  </Text>
+                  {currentMode === 'propietario' && (
+                    <IconSymbol 
+                      ios_icon_name="checkmark.circle.fill" 
+                      android_material_icon_name="check_circle" 
+                      size={scaleIconSize(24)} 
+                      color={colors.primary} 
+                    />
+                  )}
+                </TouchableOpacity>
+              )}
+
+              {user?.rol_app === 'admin' && (
+                <TouchableOpacity
+                  style={[
+                    styles.modeOption,
+                    currentMode === 'admin' && styles.modeOptionActive
+                  ]}
+                  onPress={() => handleModeChange('admin')}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol 
+                    ios_icon_name="shield.fill" 
+                    android_material_icon_name="admin_panel_settings" 
+                    size={scaleIconSize(32)} 
+                    color={currentMode === 'admin' ? colors.primary : colors.text} 
+                  />
+                  <Text style={[
+                    styles.modeOptionText,
+                    { fontSize: scaleFontSize(16) },
+                    currentMode === 'admin' && styles.modeOptionTextActive
+                  ]}>
+                    Admin
+                  </Text>
+                  {currentMode === 'admin' && (
+                    <IconSymbol 
+                      ios_icon_name="checkmark.circle.fill" 
+                      android_material_icon_name="check_circle" 
+                      size={scaleIconSize(24)} 
+                      color={colors.primary} 
+                    />
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -1601,10 +1811,10 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 4,
   },
-  filterButtonContainer: {
-    flexDirection: 'row',
+  filterIconButton: {
+    padding: 4,
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
   },
   filterIconButtonCompact: {
     width: 40,
@@ -1613,31 +1823,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
   },
-  filterActiveDot: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#EF4444',
-    borderWidth: 1.5,
-    borderColor: colors.headerText,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#EF4444',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.6,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-
   categoriesScroll: {
     marginBottom: Platform.OS === 'android' ? 8 : 10,
     marginRight: -16,
@@ -1647,10 +1833,22 @@ const styles = StyleSheet.create({
     paddingRight: 16,
     gap: 16,
   },
+  categoriaButton: {
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 70,
+  },
   categoriaButtonCompact: {
     alignItems: 'center',
     gap: 4,
     minWidth: 60,
+  },
+  categoriaIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   categoriaIconContainerCompact: {
     width: Platform.OS === 'android' ? 36 : 40,
@@ -1671,6 +1869,11 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
     backgroundColor: colors.white,
   },
+  categoriaLabel: {
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+  },
   categoriaLabelCompact: {
     fontSize: Platform.OS === 'android' ? scaleFontSize(11) : 12,
     fontWeight: '600',
@@ -1681,8 +1884,70 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '700',
   },
+  claimBanner: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+    marginBottom: Platform.OS === 'android' ? 8 : 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  claimBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 12,
+  },
+  claimBannerTextContainer: {
+    flex: 1,
+  },
+  claimBannerTitle: {
+    fontWeight: '700',
+    color: colors.headerText,
+    marginBottom: 2,
+  },
+  claimBannerSubtitle: {
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  claimBannerCompact: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 10,
+    marginBottom: Platform.OS === 'android' ? 6 : 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  claimBannerContentCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    gap: 8,
+  },
+  claimBannerTitleCompact: {
+    fontWeight: '600',
+    color: colors.headerText,
+    flex: 1,
+  },
   listContent: {
     padding: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    marginTop: 16,
+    color: colors.textSecondary,
+  },
+  locationErrorText: {
+    marginTop: 8,
+    color: '#F97316',
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
   footerContainer: {
     paddingVertical: 20,
@@ -1724,19 +1989,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  emptyStateButtons: {
-    marginTop: 20,
-    gap: 12,
-    alignItems: 'center',
-  },
   clearFiltersButton: {
+    marginTop: 20,
     backgroundColor: colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   clearFiltersButtonText: {
     fontWeight: '600',
@@ -1748,23 +2006,18 @@ const styles = StyleSheet.create({
   skeletonImage: {
     backgroundColor: colors.cardBorder,
     overflow: 'hidden',
-    position: 'relative',
   },
   skeletonShimmer: {
     position: 'absolute',
     top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
+    left: -200,
+    width: 200,
     height: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   skeletonText: {
     backgroundColor: colors.cardBorder,
     borderRadius: 4,
-    overflow: 'hidden',
-    position: 'relative',
   },
   card: {
     backgroundColor: colors.cardBackground,
@@ -1802,7 +2055,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: '100%',
-    height: 140,
+    height: 200,
     position: 'relative',
   },
   image: {
@@ -2093,5 +2346,56 @@ const styles = StyleSheet.create({
   distanciaInButtonText: {
     fontWeight: '600',
     color: colors.headerText,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modeSelectorModal: {
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '60%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  modalTitle: {
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  modeOptionsContainer: {
+    padding: 20,
+    gap: 12,
+  },
+  modeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  modeOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '10',
+  },
+  modeOptionText: {
+    flex: 1,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  modeOptionTextActive: {
+    color: colors.primary,
+    fontWeight: '700',
   },
 });

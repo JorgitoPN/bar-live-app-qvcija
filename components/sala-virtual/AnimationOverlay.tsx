@@ -40,7 +40,6 @@ export function AnimationOverlay({
     }))
   ).current;
 
-  // ✅ LINT FIX: Added all animation dependencies
   useEffect(() => {
     if (visible) {
       // Main animation
@@ -79,29 +78,29 @@ export function AnimationOverlay({
         const angle = (index / sparkles.length) * Math.PI * 2;
         const distance = 150;
         const targetX = Math.cos(angle) * distance;
-        const targetY = Math.sin(angle) * distance - 50;
+        const targetY = Math.sin(angle) * distance;
 
         Animated.parallel([
           Animated.timing(sparkle.x, {
             toValue: targetX,
-            duration: 1500 + Math.random() * 500,
+            duration: 1000,
             useNativeDriver: true,
           }),
           Animated.timing(sparkle.y, {
             toValue: targetY,
-            duration: 1500 + Math.random() * 500,
+            duration: 1000,
             useNativeDriver: true,
           }),
           Animated.sequence([
             Animated.timing(sparkle.opacity, {
-              toValue: 0.8,
+              toValue: 1,
               duration: 200,
               useNativeDriver: true,
             }),
-            Animated.delay(800),
+            Animated.delay(600),
             Animated.timing(sparkle.opacity, {
               toValue: 0,
-              duration: 500,
+              duration: 200,
               useNativeDriver: true,
             }),
           ]),
@@ -113,14 +112,14 @@ export function AnimationOverlay({
             }),
             Animated.timing(sparkle.scale, {
               toValue: 0,
-              duration: 1300,
+              duration: 800,
               useNativeDriver: true,
             }),
           ]),
         ]).start();
       });
     }
-  }, [visible, onComplete, scaleAnim, opacityAnim, sparkles]);
+  }, [visible]);
 
   if (!visible) return null;
 

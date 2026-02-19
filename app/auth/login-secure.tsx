@@ -1,14 +1,6 @@
 
 /**
- * 🔐 SECURE LOGIN SCREEN v4.0 - INTELLIGENT REDIRECT FLOW COMPLETELY FIXED
- * 
- * CRITICAL FIXES v4.0:
- * - ✅ FIXED: Redirect now uses router.replace with proper pathname/params parsing
- * - ✅ FIXED: Handles complex URLs with query parameters correctly
- * - ✅ FIXED: Decodes redirect path properly with decodeURIComponent
- * - ✅ IMPROVED: Better error handling for malformed redirect paths
- * - ✅ ENHANCED: More robust navigation after successful login
- * - ✅ LOGGING: Comprehensive logging for debugging redirect flow
+ * 🔐 SECURE LOGIN SCREEN v1.0 - ANTI-HACKING PROTECTION
  * 
  * SECURITY FEATURES:
  * - ✅ Rate limiting (3 attempts before CAPTCHA)
@@ -24,7 +16,6 @@
  * 3. Verify credentials with Supabase (bcrypt hashing)
  * 4. If failed: increment attempts, show CAPTCHA if needed
  * 5. If success: reset attempts, create secure session
- * 6. ✅ NEW v4.0: Properly decode and redirect to intended destination
  */
 
 import React, { useState, useEffect } from 'react';
@@ -41,7 +32,7 @@ import {
   Alert,
   Modal,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -63,7 +54,6 @@ import {
 
 export default function SecureLoginScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
   const { setSessionManually } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -74,35 +64,16 @@ export default function SecureLoginScreen() {
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [showCookieConsent, setShowCookieConsent] = useState(false);
 
-  // ✅ v4.0: CRITICAL FIX - Properly decode redirect parameter
-  const redirectPath = params.redirect as string | undefined;
-  const decodedRedirectPath = redirectPath ? decodeURIComponent(redirectPath) : undefined;
-  
-  console.log('[SecureLogin v4.0] 🔄 Raw redirect param:', redirectPath);
-  console.log('[SecureLogin v4.0] 🔄 Decoded redirect path:', decodedRedirectPath);
-
   useEffect(() => {
     checkCookieConsent();
   }, []);
-
-  // ✅ LINT FIX: Wrap checkLoginAttempts in useCallback to stabilize dependency
-  const checkLoginAttempts = useCallback(async () => {
-    try {
-      const attempts = await getLoginAttempts(email.trim().toLowerCase());
-      setLoginAttempts(attempts.attempts);
-      
-      console.log('[SecureLogin] Login attempts for', email, ':', attempts.attempts);
-    } catch (error) {
-      console.error('[SecureLogin] Error checking login attempts:', error);
-    }
-  }, [email]);
 
   useEffect(() => {
     // Check login attempts when email changes
     if (email) {
       checkLoginAttempts();
     }
-  }, [email, checkLoginAttempts]);
+  }, [email]);
 
   const checkCookieConsent = async () => {
     try {
@@ -139,7 +110,16 @@ export default function SecureLoginScreen() {
     }
   };
 
-
+  const checkLoginAttempts = async () => {
+    try {
+      const attempts = await getLoginAttempts(email.trim().toLowerCase());
+      setLoginAttempts(attempts.attempts);
+      
+      console.log('[SecureLogin] Login attempts for', email, ':', attempts.attempts);
+    } catch (error) {
+      console.error('[SecureLogin] Error checking login attempts:', error);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -193,7 +173,7 @@ export default function SecureLoginScreen() {
     setLoading(true);
 
     try {
-      console.log('[SecureLogin v4.0] 🔐 Attempting secure login:', normalizedEmail);
+      console.log('[SecureLogin] 🔐 Attempting secure login:', normalizedEmail);
 
       // Sign in with Supabase Auth (bcrypt hashing handled automatically)
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -202,7 +182,7 @@ export default function SecureLoginScreen() {
       });
 
       if (authError) {
-        console.error('[SecureLogin v4.0] ❌ Login failed:', authError.message);
+        console.error('[SecureLogin] ❌ Login failed:', authError.message);
         
         // Record failed attempt
         const attemptResult = await recordFailedAttempt(normalizedEmail);
@@ -255,13 +235,13 @@ export default function SecureLoginScreen() {
       }
 
       if (!authData.user || !authData.session) {
-        console.error('[SecureLogin v4.0] ❌ No user or session returned');
+        console.error('[SecureLogin] ❌ No user or session returned');
         Alert.alert('Error', 'No se pudo iniciar sesión. Por favor, intenta de nuevo.');
         setLoading(false);
         return;
       }
 
-      console.log('[SecureLogin v4.0] ✅ Login successful:', authData.user.id);
+      console.log('[SecureLogin] ✅ Login successful:', authData.user.id);
 
       // Reset login attempts on successful login
       await resetLoginAttempts(normalizedEmail);
@@ -279,60 +259,19 @@ export default function SecureLoginScreen() {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       
       if (!currentSession) {
-        console.error('[SecureLogin v4.0] ❌ Session verification failed');
+        console.error('[SecureLogin] ❌ Session verification failed');
         Alert.alert('Error', 'Error al establecer la sesión. Por favor, intenta de nuevo.');
         setLoading(false);
         return;
       }
 
-      console.log('[SecureLogin v4.0] ✅ Session verified, redirecting...');
+      console.log('[SecureLogin] ✅ Session verified, redirecting...');
       
-      // ✅ v4.0: CRITICAL FIX - Properly handle decoded redirect path
-      if (decodedRedirectPath) {
-        console.log('[SecureLogin v4.0] 🎯 Redirecting to saved path:', decodedRedirectPath);
-        
-        try {
-          // Parse the redirect path to extract pathname and params
-          const [pathname, queryString] = decodedRedirectPath.split('?');
-          
-          console.log('[SecureLogin v4.0] 🎯 Pathname:', pathname);
-          console.log('[SecureLogin v4.0] 🎯 Query string:', queryString);
-          
-          if (queryString) {
-            // Parse query parameters
-            const params: Record<string, string> = {};
-            queryString.split('&').forEach(param => {
-              const [key, value] = param.split('=');
-              if (key && value) {
-                params[key] = decodeURIComponent(value);
-              }
-            });
-            
-            console.log('[SecureLogin v4.0] 🎯 Parsed params:', params);
-            
-            // ✅ CRITICAL FIX v4.0: Use replace to avoid back button issues
-            router.replace({
-              pathname: pathname as any,
-              params: params,
-            });
-          } else {
-            console.log('[SecureLogin v4.0] 🎯 Navigating to simple path:', pathname);
-            router.replace(pathname as any);
-          }
-          
-          console.log('[SecureLogin v4.0] ✅ Redirect navigation executed successfully');
-        } catch (error) {
-          console.error('[SecureLogin v4.0] ❌ Error parsing redirect path:', error);
-          console.log('[SecureLogin v4.0] 🏠 Falling back to explorar');
-          router.replace('/(tabs)/explorar');
-        }
-      } else {
-        console.log('[SecureLogin v4.0] 🏠 No redirect path, going to explorar');
-        router.replace('/(tabs)/explorar');
-      }
+      // Redirect to explorar
+      router.replace('/(tabs)/explorar');
       
     } catch (error: any) {
-      console.error('[SecureLogin v4.0] ❌ Unexpected error:', error);
+      console.error('[SecureLogin] ❌ Unexpected error:', error);
       
       await logSecurityEvent('login_failed', normalizedEmail, {
         error: error.message,
@@ -569,18 +508,7 @@ export default function SecureLoginScreen() {
 
               <TouchableOpacity
                 style={styles.registerButton}
-                onPress={() => {
-                  // ✅ v4.0: Pass properly encoded redirect parameter to register screen
-                  if (redirectPath) {
-                    console.log('[SecureLogin v4.0] 🎯 Passing redirect to register:', redirectPath);
-                    router.replace({
-                      pathname: '/auth/registro-seguro',
-                      params: { redirect: redirectPath },
-                    });
-                  } else {
-                    router.replace('/auth/registro-seguro');
-                  }
-                }}
+                onPress={() => router.replace('/auth/registro-email')}
               >
                 <Text style={styles.registerButtonText}>
                   ¿No tienes cuenta? <Text style={styles.registerButtonTextBold}>Regístrate</Text>

@@ -757,7 +757,6 @@ export default function GestionarLocalesScreen() {
     <LocalCard local={item} />
   ), [LocalCard]);
 
-  // ✅ LINT FIX: Removed unnecessary 'debouncedQuery' dependency from useMemo
   const renderHeader = useMemo(() => (
     <React.Fragment>
       <View style={styles.statsSection}>
@@ -877,7 +876,7 @@ export default function GestionarLocalesScreen() {
         </Text>
       </View>
     </React.Fragment>
-  ), [contadores, hayFiltrosActivos, modoSeleccion, localesSeleccionados, locales.length, totalLocales, seleccionarTodos, eliminarSeleccionados, limpiarFiltros, searchQuery]);
+  ), [contadores, hayFiltrosActivos, modoSeleccion, localesSeleccionados, locales.length, totalLocales, seleccionarTodos, eliminarSeleccionados, limpiarFiltros, searchQuery, debouncedQuery]);
 
   const renderFooter = useCallback(() => {
     if (!loadingMore) return null;

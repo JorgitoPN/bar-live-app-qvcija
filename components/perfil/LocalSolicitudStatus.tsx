@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -26,17 +26,15 @@ interface Props {
 }
 
 /**
- * ✅ LOCAL SOLICITUD STATUS v1.2 - LINT FIXES
+ * ✅ LOCAL SOLICITUD STATUS v1.1 - FIXED NAVIGATION
  * 
- * FIXES v1.2:
- * - ✅ LINT FIX: Wrapped loadSolicitud in useCallback for stable reference
- * - ✅ LINT FIX: Added loadSolicitud to useEffect dependencies
- * - ✅ COMPLIANT: All hooks now follow exhaustive-deps rules
- * 
- * Previous fixes v1.1:
+ * FIXES v1.1:
  * - ✅ Fixed "Ver Detalles" navigation (now goes to /admin/solicitud-detalle, not /perfil/notificaciones)
  * - ✅ Proper route parameters passing
  * - ✅ Console logs for debugging
+ * 
+ * Displays ownership request status on local profile pages
+ * Shows current status and allows viewing details
  */
 
 export default function LocalSolicitudStatus({ localId }: Props) {
@@ -44,32 +42,6 @@ export default function LocalSolicitudStatus({ localId }: Props) {
   const [solicitud, setSolicitud] = useState<SolicitudStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ LINT FIX: Wrap loadSolicitud in useCallback to stabilize dependency
-  const loadSolicitud = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('solicitudes_propietario')
-        .select('id, tipo_solicitud, estado, created_at, motivo_denegacion, notas_admin')
-        .eq('local_id', localId)
-        .in('estado', ['pendiente', 'en_revision', 'informacion_adicional'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('[LocalSolicitudStatus] Error loading request:', error);
-        return;
-      }
-
-      setSolicitud(data);
-    } catch (error) {
-      console.error('[LocalSolicitudStatus] Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [localId]);
-
-  // ✅ LINT FIX: Added loadSolicitud to dependencies
   useEffect(() => {
     loadSolicitud();
 
@@ -94,7 +66,31 @@ export default function LocalSolicitudStatus({ localId }: Props) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [localId, loadSolicitud]);
+  }, [localId]);
+
+  const loadSolicitud = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('solicitudes_propietario')
+        .select('id, tipo_solicitud, estado, created_at, motivo_denegacion, notas_admin')
+        .eq('local_id', localId)
+        .in('estado', ['pendiente', 'en_revision', 'informacion_adicional'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[LocalSolicitudStatus] Error loading request:', error);
+        return;
+      }
+
+      setSolicitud(data);
+    } catch (error) {
+      console.error('[LocalSolicitudStatus] Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getEstadoInfo = (estado: string) => {
     switch (estado) {
@@ -165,8 +161,8 @@ export default function LocalSolicitudStatus({ localId }: Props) {
         <TouchableOpacity
           style={styles.viewDetailsButton}
           onPress={() => {
-            console.log('[LocalSolicitudStatus v1.2] ✅ FIXED: Navigating to solicitud-detalle:', solicitud.id);
-            console.log('[LocalSolicitudStatus v1.2] Route: /admin/solicitud-detalle');
+            console.log('[LocalSolicitudStatus v1.1] ✅ FIXED: Navigating to solicitud-detalle:', solicitud.id);
+            console.log('[LocalSolicitudStatus v1.1] Route: /admin/solicitud-detalle');
             
             // ✅ FIX v1.1: Navigate to solicitud-detalle instead of notificaciones
             router.push({

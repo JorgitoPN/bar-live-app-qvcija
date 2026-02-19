@@ -24,15 +24,15 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { WebView } from 'react-native-webview';
 import NewDocumentUploader from '@/components/propiedad/NewDocumentUploader';
-import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 /**
- * ✅ SISTEMA COMPLETAMENTE NUEVO v4.2 - SOLICITAR PROPIEDAD
+ * ✅ SISTEMA COMPLETAMENTE NUEVO v3.0 - SOLICITAR PROPIEDAD
  * 
- * NEW CHANGES v4.2:
- * - ✅ FIXED: "Siguiente" button now part of scroll flow (not fixed)
- * - ✅ FIXED: Button no longer hidden by Android system navigation
- * - ✅ RESULT: Button scrolls with content, always accessible
+ * Sistema reconstruido desde cero con nuevos componentes:
+ * - Usa NewDocumentUploader (sistema completamente nuevo)
+ * - Sin dependencias del código anterior
+ * - Subida y visualización garantizada
+ * - Código limpio y simple
  */
 
 interface LocalSearchResult {
@@ -85,11 +85,8 @@ export default function SolicitarPropiedadScreenV2() {
   const { user } = useAuth();
   const webViewRef = useRef<WebView>(null);
 
-  const requestTypeParam = params.type as 'reclamar_local' | 'nuevo_local' | undefined;
+  const requestType = (params.type as 'reclamar_local' | 'nuevo_local') || 'reclamar_local';
   const preselectedLocalId = params.localId as string | undefined;
-
-  const [showSelectionScreen, setShowSelectionScreen] = useState(!requestTypeParam);
-  const [requestType, setRequestType] = useState<'reclamar_local' | 'nuevo_local' | null>(requestTypeParam || null);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -98,12 +95,14 @@ export default function SolicitarPropiedadScreenV2() {
   const [searchingLocales, setSearchingLocales] = useState(false);
   const [selectedLocal, setSelectedLocal] = useState<LocalSearchResult | null>(null);
 
+  // Form data for reclamar_local
   const [telefonoContacto, setTelefonoContacto] = useState('');
   const [emailContacto, setEmailContacto] = useState(user?.email || '');
   const [mensaje, setMensaje] = useState('');
   const [documentoUrl, setDocumentoUrl] = useState<string>('');
   const [documentoTipo, setDocumentoTipo] = useState<string>('factura_luz');
 
+  // Form data for nuevo_local
   const [nombreLocal, setNombreLocal] = useState('');
   const [tiposLocalMultiple, setTiposLocalMultiple] = useState<string[]>([]);
   const [descripcionLocal, setDescripcionLocal] = useState('');
@@ -121,10 +120,9 @@ export default function SolicitarPropiedadScreenV2() {
 
   const [showDocumentTypeModal, setShowDocumentTypeModal] = useState(false);
 
-  console.log('[SolicitarPropiedadV2 v4.2] 🎬 Pantalla inicializada');
-  console.log('[SolicitarPropiedadV2 v4.2] 📋 Show selection screen:', showSelectionScreen);
-  console.log('[SolicitarPropiedadV2 v4.2] 📋 Request type:', requestType);
-  console.log('[SolicitarPropiedadV2 v4.2] 👤 Usuario:', user?.nombre);
+  console.log('[SolicitarPropiedadV2] 🎬 Pantalla inicializada con NUEVO sistema');
+  console.log('[SolicitarPropiedadV2] 📋 Tipo de solicitud:', requestType);
+  console.log('[SolicitarPropiedadV2] 👤 Usuario:', user?.nombre);
 
   useEffect(() => {
     const defaultHorarios: Record<string, { abierto: boolean; apertura: string; cierre: string }> = {};
@@ -140,9 +138,16 @@ export default function SolicitarPropiedadScreenV2() {
     }
   }, [user]);
 
+  // ✅ LINT FIX v225.0: Added loadPreselectedLocal to dependencies
+  useEffect(() => {
+    if (preselectedLocalId && requestType === 'reclamar_local') {
+      loadPreselectedLocal(preselectedLocalId);
+    }
+  }, [preselectedLocalId, requestType, loadPreselectedLocal]);
+
   const loadPreselectedLocal = useCallback(async (localId: string) => {
     try {
-      console.log('[SolicitarPropiedadV2 v4.2] 🔍 Cargando local preseleccionado:', localId);
+      console.log('[SolicitarPropiedadV2] 🔍 Cargando local preseleccionado:', localId);
       
       const { data, error } = await supabase
         .from('locales')
@@ -153,7 +158,7 @@ export default function SolicitarPropiedadScreenV2() {
       if (error) throw error;
 
       if (data.propietario_id) {
-        console.log('[SolicitarPropiedadV2 v4.2] ⚠️ Local ya tiene propietario');
+        console.log('[SolicitarPropiedadV2] ⚠️ Local ya tiene propietario');
         Alert.alert(
           'Local No Disponible',
           'Este local ya tiene un propietario asignado.',
@@ -162,20 +167,14 @@ export default function SolicitarPropiedadScreenV2() {
         return;
       }
 
-      console.log('[SolicitarPropiedadV2 v4.2] ✅ Local cargado:', data.nombre);
+      console.log('[SolicitarPropiedadV2] ✅ Local cargado:', data.nombre);
       setSelectedLocal(data);
       setCurrentStep(2);
     } catch (error) {
-      console.error('[SolicitarPropiedadV2 v4.2] ❌ Error cargando local:', error);
+      console.error('[SolicitarPropiedadV2] ❌ Error cargando local:', error);
       Alert.alert('Error', 'No se pudo cargar el local');
     }
   }, [router]);
-
-  useEffect(() => {
-    if (preselectedLocalId && requestType === 'reclamar_local') {
-      loadPreselectedLocal(preselectedLocalId);
-    }
-  }, [preselectedLocalId, requestType, loadPreselectedLocal]);
 
   const searchLocales = useCallback(async (query: string) => {
     if (!query.trim() || query.length < 3) {
@@ -185,7 +184,7 @@ export default function SolicitarPropiedadScreenV2() {
 
     try {
       setSearchingLocales(true);
-      console.log('[SolicitarPropiedadV2 v4.2] 🔍 Buscando locales:', query);
+      console.log('[SolicitarPropiedadV2] 🔍 Buscando locales:', query);
 
       const { data, error } = await supabase
         .from('locales')
@@ -197,10 +196,10 @@ export default function SolicitarPropiedadScreenV2() {
 
       if (error) throw error;
 
-      console.log('[SolicitarPropiedadV2 v4.2] ✅ Locales encontrados:', data?.length || 0);
+      console.log('[SolicitarPropiedadV2] ✅ Locales encontrados:', data?.length || 0);
       setSearchResults(data || []);
     } catch (error) {
-      console.error('[SolicitarPropiedadV2 v4.2] ❌ Error buscando:', error);
+      console.error('[SolicitarPropiedadV2] ❌ Error buscando:', error);
     } finally {
       setSearchingLocales(false);
     }
@@ -217,7 +216,7 @@ export default function SolicitarPropiedadScreenV2() {
   }, [searchQuery, requestType, searchLocales]);
 
   const handleSelectLocal = async (local: LocalSearchResult) => {
-    console.log('[SolicitarPropiedadV2 v4.2] ✅ Local seleccionado:', local.nombre);
+    console.log('[SolicitarPropiedadV2] ✅ Local seleccionado:', local.nombre);
 
     const { data: existingRequest } = await supabase
       .from('solicitudes_propietario')
@@ -238,7 +237,7 @@ export default function SolicitarPropiedadScreenV2() {
   const handleGetCurrentLocation = async () => {
     setLoading(true);
     try {
-      console.log('[SolicitarPropiedadV2 v4.2] 📍 Obteniendo ubicación actual...');
+      console.log('[SolicitarPropiedadV2] 📍 Obteniendo ubicación actual...');
       
       const { status } = await Location.requestForegroundPermissionsAsync();
       
@@ -254,7 +253,7 @@ export default function SolicitarPropiedadScreenV2() {
         longitude: location.coords.longitude,
       });
 
-      console.log('[SolicitarPropiedadV2 v4.2] ✅ Ubicación obtenida:', location.coords);
+      console.log('[SolicitarPropiedadV2] ✅ Ubicación obtenida:', location.coords);
 
       if (geocode.length > 0) {
         const place = geocode[0];
@@ -266,10 +265,10 @@ export default function SolicitarPropiedadScreenV2() {
         if (place.region) setProvinciaLocal(place.region);
         if (place.postalCode) setCodigoPostalLocal(place.postalCode);
         
-        console.log('[SolicitarPropiedadV2 v4.2] ✅ Dirección obtenida:', place.street);
+        console.log('[SolicitarPropiedadV2] ✅ Dirección obtenida:', place.street);
       }
     } catch (error) {
-      console.error('[SolicitarPropiedadV2 v4.2] ❌ Error obteniendo ubicación:', error);
+      console.error('[SolicitarPropiedadV2] ❌ Error obteniendo ubicación:', error);
       Alert.alert('Error', 'No se pudo obtener tu ubicación');
     } finally {
       setLoading(false);
@@ -280,12 +279,12 @@ export default function SolicitarPropiedadScreenV2() {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'location_selected') {
-        console.log('[SolicitarPropiedadV2 v4.2] 📍 Ubicación seleccionada en mapa:', data.lat, data.lng);
+        console.log('[SolicitarPropiedadV2] 📍 Ubicación seleccionada en mapa:', data.lat, data.lng);
         setLatitudLocal(data.lat);
         setLongitudLocal(data.lng);
       }
     } catch (error) {
-      console.error('[SolicitarPropiedadV2 v4.2] ❌ Error procesando mensaje del mapa:', error);
+      console.error('[SolicitarPropiedadV2] ❌ Error procesando mensaje del mapa:', error);
     }
   };
 
@@ -465,7 +464,7 @@ export default function SolicitarPropiedadScreenV2() {
 
     setLoading(true);
     try {
-      console.log('[SolicitarPropiedadV2 v4.2] 📤 Enviando solicitud...');
+      console.log('[SolicitarPropiedadV2] 📤 Enviando solicitud con NUEVO sistema...');
 
       if (requestType === 'reclamar_local') {
         if (!selectedLocal) {
@@ -474,8 +473,8 @@ export default function SolicitarPropiedadScreenV2() {
           return;
         }
 
-        console.log('[SolicitarPropiedadV2 v4.2] 💾 Guardando solicitud de reclamar local');
-        console.log('[SolicitarPropiedadV2 v4.2] 📄 URL del documento:', documentoUrl);
+        console.log('[SolicitarPropiedadV2] 💾 Guardando solicitud de reclamar local');
+        console.log('[SolicitarPropiedadV2] 📄 URL del documento:', documentoUrl);
         
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
@@ -497,7 +496,7 @@ export default function SolicitarPropiedadScreenV2() {
 
         if (insertError) throw insertError;
 
-        console.log('[SolicitarPropiedadV2 v4.2] ✅ Solicitud creada exitosamente');
+        console.log('[SolicitarPropiedadV2] ✅ Solicitud creada exitosamente');
 
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
@@ -512,14 +511,15 @@ export default function SolicitarPropiedadScreenV2() {
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else {
+        // nuevo_local
         if (!nombreLocal.trim() || tiposLocalMultiple.length === 0) {
           Alert.alert('Campos requeridos', 'Completa todos los campos obligatorios');
           setLoading(false);
           return;
         }
 
-        console.log('[SolicitarPropiedadV2 v4.2] 💾 Guardando solicitud de nuevo local');
-        console.log('[SolicitarPropiedadV2 v4.2] 📄 URL del documento:', documentoUrl);
+        console.log('[SolicitarPropiedadV2] 💾 Guardando solicitud de nuevo local');
+        console.log('[SolicitarPropiedadV2] 📄 URL del documento:', documentoUrl);
         
         const { error: insertError } = await supabase
           .from('solicitudes_propietario')
@@ -551,7 +551,7 @@ export default function SolicitarPropiedadScreenV2() {
 
         if (insertError) throw insertError;
 
-        console.log('[SolicitarPropiedadV2 v4.2] ✅ Solicitud de nuevo local creada exitosamente');
+        console.log('[SolicitarPropiedadV2] ✅ Solicitud de nuevo local creada exitosamente');
 
         await supabase.from('notificaciones').insert({
           usuario_id: user.id,
@@ -567,129 +567,12 @@ export default function SolicitarPropiedadScreenV2() {
         );
       }
     } catch (error) {
-      console.error('[SolicitarPropiedadV2 v4.2] ❌ Error enviando solicitud:', error);
+      console.error('[SolicitarPropiedadV2] ❌ Error enviando solicitud:', error);
       Alert.alert('Error', 'No se pudo enviar la solicitud. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
   };
-
-  const handleSelectRequestType = (type: 'reclamar_local' | 'nuevo_local') => {
-    console.log('[SolicitarPropiedadV2 v4.2] ✅ User selected request type:', type);
-    setRequestType(type);
-    setShowSelectionScreen(false);
-    setCurrentStep(1);
-  };
-
-  const renderSelectionScreen = () => (
-    <View style={styles.selectionContainer}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.selectionHeader}
-      >
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol 
-            ios_icon_name="chevron.left" 
-            android_material_icon_name="arrow_back" 
-            size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
-            color={colors.headerText} 
-          />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={[styles.selectionHeaderTitle, { fontSize: scaleFontSize(20) }]}>¿Tienes un local?</Text>
-          <Text style={[styles.selectionHeaderSubtitle, { fontSize: scaleFontSize(13) }]}>Elige una opción</Text>
-        </View>
-        <View style={{ width: 40 }} />
-      </LinearGradient>
-
-      <ScrollView style={styles.selectionContent} contentContainerStyle={styles.selectionContentContainer}>
-        <Text style={[styles.selectionTitle, { fontSize: scaleFontSize(28) }]}>¿Qué deseas hacer?</Text>
-        <Text style={[styles.selectionDescription, { fontSize: scaleFontSize(16) }]}>
-          Selecciona si quieres reclamar un local existente en nuestra plataforma o crear uno nuevo
-        </Text>
-
-        <TouchableOpacity
-          style={styles.selectionOption}
-          onPress={() => handleSelectRequestType('reclamar_local')}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={['#2DD4BF', '#06B6D4']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.selectionOptionGradient}
-          >
-            <View style={styles.selectionOptionIconContainer}>
-              <IconSymbol 
-                ios_icon_name="building.2.fill" 
-                android_material_icon_name="store" 
-                size={Platform.OS === 'android' ? scaleIconSize(48) : 48} 
-                color={colors.headerText} 
-              />
-            </View>
-            <View style={styles.selectionOptionContent}>
-              <Text style={[styles.selectionOptionTitle, { fontSize: scaleFontSize(18) }]}>Reclamar Local Existente</Text>
-              <Text style={[styles.selectionOptionDescription, { fontSize: scaleFontSize(14) }]}>
-                Tu local ya está en BarLive. Reclámalo para gestionarlo.
-              </Text>
-            </View>
-            <IconSymbol 
-              ios_icon_name="chevron.right" 
-              android_material_icon_name="chevron_right" 
-              size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
-              color={colors.headerText} 
-            />
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.selectionOption}
-          onPress={() => handleSelectRequestType('nuevo_local')}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={['#8B5CF6', '#6366F1']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.selectionOptionGradient}
-          >
-            <View style={styles.selectionOptionIconContainer}>
-              <IconSymbol 
-                ios_icon_name="plus.circle.fill" 
-                android_material_icon_name="add_circle" 
-                size={Platform.OS === 'android' ? scaleIconSize(48) : 48} 
-                color={colors.headerText} 
-              />
-            </View>
-            <View style={styles.selectionOptionContent}>
-              <Text style={[styles.selectionOptionTitle, { fontSize: scaleFontSize(18) }]}>Crear Nuevo Local</Text>
-              <Text style={[styles.selectionOptionDescription, { fontSize: scaleFontSize(14) }]}>
-                Tu local no está en BarLive. Créalo desde cero.
-              </Text>
-            </View>
-            <IconSymbol 
-              ios_icon_name="chevron.right" 
-              android_material_icon_name="chevron_right" 
-              size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
-              color={colors.headerText} 
-            />
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <View style={styles.selectionInfoBox}>
-          <IconSymbol 
-            ios_icon_name="info.circle.fill" 
-            android_material_icon_name="info" 
-            size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
-            color={colors.primary} 
-          />
-          <Text style={[styles.selectionInfoText, { fontSize: scaleFontSize(14) }]}>
-            Ambas opciones requieren verificación. Recibirás una notificación cuando tu solicitud sea revisada.
-          </Text>
-        </View>
-      </ScrollView>
-    </View>
-  );
 
   const renderStepIndicator = () => {
     const maxSteps = requestType === 'reclamar_local' ? 2 : 5;
@@ -701,7 +584,7 @@ export default function SolicitarPropiedadScreenV2() {
           <React.Fragment key={step}>
             <View style={styles.stepItem}>
               <View style={[styles.stepCircle, currentStep >= step && styles.stepCircleActive]}>
-                <Text style={[styles.stepNumber, { fontSize: scaleFontSize(16) }, currentStep >= step && styles.stepNumberActive]}>
+                <Text style={[styles.stepNumber, currentStep >= step && styles.stepNumberActive]}>
                   {step}
                 </Text>
               </View>
@@ -715,20 +598,15 @@ export default function SolicitarPropiedadScreenV2() {
 
   const renderReclamarStep1 = () => (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(24) }]}>Buscar Local</Text>
-      <Text style={[styles.stepDescription, { fontSize: scaleFontSize(14) }]}>
+      <Text style={styles.stepTitle}>Buscar Local</Text>
+      <Text style={styles.stepDescription}>
         Busca y selecciona el local que deseas reclamar
       </Text>
 
       <View style={styles.searchContainer}>
-        <IconSymbol 
-          ios_icon_name="magnifyingglass" 
-          android_material_icon_name="search" 
-          size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
-          color={colors.textSecondary} 
-        />
+        <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
         <TextInput
-          style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
+          style={styles.searchInput}
           placeholder="Buscar por nombre, dirección o ciudad..."
           placeholderTextColor={colors.textSecondary}
           value={searchQuery}
@@ -738,12 +616,7 @@ export default function SolicitarPropiedadScreenV2() {
         />
         {searchQuery !== '' && (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <IconSymbol 
-              ios_icon_name="xmark.circle.fill" 
-              android_material_icon_name="cancel" 
-              size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
-              color={colors.textSecondary} 
-            />
+            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
@@ -751,7 +624,7 @@ export default function SolicitarPropiedadScreenV2() {
       {searchingLocales && (
         <View style={styles.searchingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={[styles.searchingText, { fontSize: scaleFontSize(14) }]}>Buscando locales...</Text>
+          <Text style={styles.searchingText}>Buscando locales...</Text>
         </View>
       )}
 
@@ -767,35 +640,25 @@ export default function SolicitarPropiedadScreenV2() {
                 <Image source={{ uri: local.imagen_url }} style={styles.localImage} />
               )}
               <View style={styles.localInfo}>
-                <Text style={[styles.localName, { fontSize: scaleFontSize(16) }]}>{local.nombre}</Text>
+                <Text style={styles.localName}>{local.nombre}</Text>
                 {local.tipo && (
                   <View style={styles.localTypeChip}>
-                    <Text style={[styles.localTypeText, { fontSize: scaleFontSize(11) }]}>{local.tipo}</Text>
+                    <Text style={styles.localTypeText}>{local.tipo}</Text>
                   </View>
                 )}
                 {local.direccion && (
                   <View style={styles.localAddressRow}>
-                    <IconSymbol 
-                      ios_icon_name="mappin" 
-                      android_material_icon_name="location_on" 
-                      size={Platform.OS === 'android' ? scaleIconSize(14) : 14} 
-                      color={colors.textSecondary} 
-                    />
-                    <Text style={[styles.localAddress, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>{local.direccion}</Text>
+                    <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={14} color={colors.textSecondary} />
+                    <Text style={styles.localAddress} numberOfLines={1}>{local.direccion}</Text>
                   </View>
                 )}
                 {local.ciudad && (
-                  <Text style={[styles.localCity, { fontSize: scaleFontSize(12) }]}>{local.ciudad}, {local.provincia}</Text>
+                  <Text style={styles.localCity}>{local.ciudad}, {local.provincia}</Text>
                 )}
               </View>
               {selectedLocal?.id === local.id && (
                 <View style={styles.selectedBadge}>
-                  <IconSymbol 
-                    ios_icon_name="checkmark.circle.fill" 
-                    android_material_icon_name="check_circle" 
-                    size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
-                    color={colors.primary} 
-                  />
+                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
                 </View>
               )}
             </TouchableOpacity>
@@ -805,21 +668,21 @@ export default function SolicitarPropiedadScreenV2() {
 
       {searchQuery.length >= 3 && !searchingLocales && searchResults.length === 0 && (
         <View style={styles.noResultsContainer}>
-          <IconSymbol 
-            ios_icon_name="magnifyingglass" 
-            android_material_icon_name="search" 
-            size={Platform.OS === 'android' ? scaleIconSize(48) : 48} 
-            color={colors.textSecondary} 
-          />
-          <Text style={[styles.noResultsText, { fontSize: scaleFontSize(16) }]}>No se encontraron locales</Text>
-          <Text style={[styles.noResultsSubtext, { fontSize: scaleFontSize(14) }]}>
+          <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={48} color={colors.textSecondary} />
+          <Text style={styles.noResultsText}>No se encontraron locales</Text>
+          <Text style={styles.noResultsSubtext}>
             Si tu local no aparece, puedes crear uno nuevo
           </Text>
           <TouchableOpacity
             style={styles.createNewButton}
-            onPress={() => handleSelectRequestType('nuevo_local')}
+            onPress={() => {
+              router.replace({
+                pathname: '/solicitudes/solicitar-propiedad-v2',
+                params: { type: 'nuevo_local' },
+              });
+            }}
           >
-            <Text style={[styles.createNewButtonText, { fontSize: scaleFontSize(14) }]}>Crear Nuevo Local</Text>
+            <Text style={styles.createNewButtonText}>Crear Nuevo Local</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -828,25 +691,25 @@ export default function SolicitarPropiedadScreenV2() {
 
   const renderReclamarStep2 = () => (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(24) }]}>Información de Contacto</Text>
-      <Text style={[styles.stepDescription, { fontSize: scaleFontSize(14) }]}>
+      <Text style={styles.stepTitle}>Información de Contacto</Text>
+      <Text style={styles.stepDescription}>
         Proporciona tus datos y documentación
       </Text>
 
       {selectedLocal && (
         <View style={styles.selectedLocalCard}>
-          <Text style={[styles.selectedLocalLabel, { fontSize: scaleFontSize(12) }]}>Local seleccionado:</Text>
-          <Text style={[styles.selectedLocalName, { fontSize: scaleFontSize(18) }]}>{selectedLocal.nombre}</Text>
+          <Text style={styles.selectedLocalLabel}>Local seleccionado:</Text>
+          <Text style={styles.selectedLocalName}>{selectedLocal.nombre}</Text>
           {selectedLocal.direccion && (
-            <Text style={[styles.selectedLocalAddress, { fontSize: scaleFontSize(14) }]}>{selectedLocal.direccion}</Text>
+            <Text style={styles.selectedLocalAddress}>{selectedLocal.direccion}</Text>
           )}
         </View>
       )}
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Email de Contacto *</Text>
+        <Text style={styles.label}>Email de Contacto *</Text>
         <TextInput
-          style={[styles.input, { fontSize: scaleFontSize(16) }]}
+          style={styles.input}
           placeholder="tu@email.com"
           placeholderTextColor={colors.textSecondary}
           value={emailContacto}
@@ -857,9 +720,9 @@ export default function SolicitarPropiedadScreenV2() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Teléfono de Contacto *</Text>
+        <Text style={styles.label}>Teléfono de Contacto *</Text>
         <TextInput
-          style={[styles.input, { fontSize: scaleFontSize(16) }]}
+          style={styles.input}
           placeholder="+34 600 000 000"
           placeholderTextColor={colors.textSecondary}
           value={telefonoContacto}
@@ -868,9 +731,10 @@ export default function SolicitarPropiedadScreenV2() {
         />
       </View>
 
+      {/* 🆕 NUEVO: Componente completamente nuevo de subida */}
       <NewDocumentUploader
         onUploadComplete={(url) => {
-          console.log('[SolicitarPropiedadV2 v4.2] ✅ Documento recibido:', url);
+          console.log('[SolicitarPropiedadV2] ✅ Documento recibido del NUEVO uploader:', url);
           setDocumentoUrl(url);
         }}
         currentUrl={documentoUrl}
@@ -880,27 +744,27 @@ export default function SolicitarPropiedadScreenV2() {
       />
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Tipo de Documento</Text>
+        <Text style={styles.label}>Tipo de Documento</Text>
         <TouchableOpacity
           style={styles.documentTypeSelector}
           onPress={() => setShowDocumentTypeModal(true)}
         >
-          <Text style={[styles.documentTypeSelectorText, { fontSize: scaleFontSize(16) }]}>
+          <Text style={styles.documentTypeSelectorText}>
             {TIPOS_DOCUMENTO.find(t => t.value === documentoTipo)?.label || 'Seleccionar'}
           </Text>
           <IconSymbol 
             ios_icon_name="chevron.down" 
             android_material_icon_name="arrow_drop_down" 
-            size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+            size={20} 
             color={colors.textSecondary} 
           />
         </TouchableOpacity>
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Mensaje Explicativo *</Text>
+        <Text style={styles.label}>Mensaje Explicativo *</Text>
         <TextInput
-          style={[styles.input, styles.textArea, { fontSize: scaleFontSize(16) }]}
+          style={[styles.input, styles.textArea]}
           placeholder="Explica por qué eres el propietario..."
           placeholderTextColor={colors.textSecondary}
           value={mensaje}
@@ -924,15 +788,15 @@ export default function SolicitarPropiedadScreenV2() {
 
   const renderNuevoStep1 = () => (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(24) }]}>Información Básica</Text>
-      <Text style={[styles.stepDescription, { fontSize: scaleFontSize(14) }]}>
+      <Text style={styles.stepTitle}>Información Básica</Text>
+      <Text style={styles.stepDescription}>
         Datos esenciales de tu local
       </Text>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Nombre del Local *</Text>
+        <Text style={styles.label}>Nombre del Local *</Text>
         <TextInput
-          style={[styles.input, { fontSize: scaleFontSize(16) }]}
+          style={styles.input}
           placeholder="Ej: Bar Central"
           placeholderTextColor={colors.textSecondary}
           value={nombreLocal}
@@ -941,7 +805,7 @@ export default function SolicitarPropiedadScreenV2() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Tipo de Local * (Selecciona al menos uno)</Text>
+        <Text style={styles.label}>Tipo de Local * (Selecciona al menos uno)</Text>
         <View style={styles.tipoGrid}>
           {TIPOS_LOCAL.map((tipo) => (
             <TouchableOpacity
@@ -949,17 +813,12 @@ export default function SolicitarPropiedadScreenV2() {
               style={[styles.tipoButton, tiposLocalMultiple.includes(tipo.value) && styles.tipoButtonActive]}
               onPress={() => toggleTipoLocal(tipo.value)}
             >
-              <Text style={[styles.tipoButtonText, { fontSize: scaleFontSize(14) }, tiposLocalMultiple.includes(tipo.value) && styles.tipoButtonTextActive]}>
+              <Text style={[styles.tipoButtonText, tiposLocalMultiple.includes(tipo.value) && styles.tipoButtonTextActive]}>
                 {tipo.label}
               </Text>
               {tiposLocalMultiple.includes(tipo.value) && (
                 <View style={styles.tipoCheckmark}>
-                  <IconSymbol 
-                    ios_icon_name="checkmark" 
-                    android_material_icon_name="check" 
-                    size={Platform.OS === 'android' ? scaleIconSize(14) : 14} 
-                    color={colors.headerText} 
-                  />
+                  <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={14} color={colors.headerText} />
                 </View>
               )}
             </TouchableOpacity>
@@ -968,9 +827,9 @@ export default function SolicitarPropiedadScreenV2() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Descripción (Opcional)</Text>
+        <Text style={styles.label}>Descripción (Opcional)</Text>
         <TextInput
-          style={[styles.input, styles.textArea, { fontSize: scaleFontSize(16) }]}
+          style={[styles.input, styles.textArea]}
           placeholder="Describe tu local..."
           placeholderTextColor={colors.textSecondary}
           value={descripcionLocal}
@@ -984,15 +843,15 @@ export default function SolicitarPropiedadScreenV2() {
 
   const renderNuevoStep2 = () => (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(24) }]}>Ubicación</Text>
-      <Text style={[styles.stepDescription, { fontSize: scaleFontSize(14) }]}>
+      <Text style={styles.stepTitle}>Ubicación</Text>
+      <Text style={styles.stepDescription}>
         Dirección y ubicación en el mapa
       </Text>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Dirección *</Text>
+        <Text style={styles.label}>Dirección *</Text>
         <TextInput
-          style={[styles.input, { fontSize: scaleFontSize(16) }]}
+          style={styles.input}
           placeholder="Calle, número"
           placeholderTextColor={colors.textSecondary}
           value={direccionLocal}
@@ -1002,9 +861,9 @@ export default function SolicitarPropiedadScreenV2() {
 
       <View style={styles.row}>
         <View style={[styles.inputContainer, styles.flex1]}>
-          <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Ciudad *</Text>
+          <Text style={styles.label}>Ciudad *</Text>
           <TextInput
-            style={[styles.input, { fontSize: scaleFontSize(16) }]}
+            style={styles.input}
             placeholder="Ciudad"
             placeholderTextColor={colors.textSecondary}
             value={ciudadLocal}
@@ -1013,9 +872,9 @@ export default function SolicitarPropiedadScreenV2() {
         </View>
 
         <View style={[styles.inputContainer, styles.flex1]}>
-          <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Código Postal</Text>
+          <Text style={styles.label}>Código Postal</Text>
           <TextInput
-            style={[styles.input, { fontSize: scaleFontSize(16) }]}
+            style={styles.input}
             placeholder="28001"
             placeholderTextColor={colors.textSecondary}
             value={codigoPostalLocal}
@@ -1026,9 +885,9 @@ export default function SolicitarPropiedadScreenV2() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Provincia *</Text>
+        <Text style={styles.label}>Provincia *</Text>
         <TextInput
-          style={[styles.input, { fontSize: scaleFontSize(16) }]}
+          style={styles.input}
           placeholder="Provincia"
           placeholderTextColor={colors.textSecondary}
           value={provinciaLocal}
@@ -1037,18 +896,13 @@ export default function SolicitarPropiedadScreenV2() {
       </View>
 
       <TouchableOpacity style={styles.locationButton} onPress={handleGetCurrentLocation} disabled={loading}>
-        <IconSymbol 
-          ios_icon_name="location.fill" 
-          android_material_icon_name="my_location" 
-          size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
-          color={colors.primary} 
-        />
-        <Text style={[styles.locationButtonText, { fontSize: scaleFontSize(14) }]}>Usar mi ubicación actual</Text>
+        <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={20} color={colors.primary} />
+        <Text style={styles.locationButtonText}>Usar mi ubicación actual</Text>
       </TouchableOpacity>
 
       <View style={styles.mapContainer}>
-        <Text style={[styles.mapLabel, { fontSize: scaleFontSize(14) }]}>Ubicación en el Mapa *</Text>
-        <Text style={[styles.mapHelperText, { fontSize: scaleFontSize(12) }]}>
+        <Text style={styles.mapLabel}>Ubicación en el Mapa *</Text>
+        <Text style={styles.mapHelperText}>
           Arrastra el marcador o toca en el mapa
         </Text>
         <View style={styles.mapViewer}>
@@ -1069,7 +923,7 @@ export default function SolicitarPropiedadScreenV2() {
         </View>
         {latitudLocal && longitudLocal && (
           <View style={styles.coordinatesDisplay}>
-            <Text style={[styles.coordinatesText, { fontSize: scaleFontSize(12) }]}>
+            <Text style={styles.coordinatesText}>
               📍 {latitudLocal.toFixed(6)}, {longitudLocal.toFixed(6)}
             </Text>
           </View>
@@ -1080,15 +934,15 @@ export default function SolicitarPropiedadScreenV2() {
 
   const renderNuevoStep3 = () => (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(24) }]}>Contacto</Text>
-      <Text style={[styles.stepDescription, { fontSize: scaleFontSize(14) }]}>
+      <Text style={styles.stepTitle}>Contacto</Text>
+      <Text style={styles.stepDescription}>
         Información de contacto
       </Text>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Email de Contacto *</Text>
+        <Text style={styles.label}>Email de Contacto *</Text>
         <TextInput
-          style={[styles.input, { fontSize: scaleFontSize(16) }]}
+          style={styles.input}
           placeholder="tu@email.com"
           placeholderTextColor={colors.textSecondary}
           value={emailContacto}
@@ -1099,9 +953,9 @@ export default function SolicitarPropiedadScreenV2() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Teléfono del Local (Opcional)</Text>
+        <Text style={styles.label}>Teléfono del Local (Opcional)</Text>
         <TextInput
-          style={[styles.input, { fontSize: scaleFontSize(16) }]}
+          style={styles.input}
           placeholder="+34 600 000 000"
           placeholderTextColor={colors.textSecondary}
           value={telefonoLocal}
@@ -1111,9 +965,9 @@ export default function SolicitarPropiedadScreenV2() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Tu Teléfono (Opcional)</Text>
+        <Text style={styles.label}>Tu Teléfono (Opcional)</Text>
         <TextInput
-          style={[styles.input, { fontSize: scaleFontSize(16) }]}
+          style={styles.input}
           placeholder="+34 600 000 000"
           placeholderTextColor={colors.textSecondary}
           value={telefonoContacto}
@@ -1126,17 +980,17 @@ export default function SolicitarPropiedadScreenV2() {
 
   const renderNuevoStep4 = () => (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(24) }]}>Horarios y Servicios</Text>
-      <Text style={[styles.stepDescription, { fontSize: scaleFontSize(14) }]}>
+      <Text style={styles.stepTitle}>Horarios y Servicios</Text>
+      <Text style={styles.stepDescription}>
         Configura horarios y servicios
       </Text>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Horarios</Text>
+        <Text style={styles.label}>Horarios</Text>
         {DIAS_SEMANA.map((dia) => (
           <View key={dia} style={styles.horarioItem}>
             <View style={styles.horarioHeader}>
-              <Text style={[styles.horarioDia, { fontSize: scaleFontSize(16) }]}>{dia}</Text>
+              <Text style={styles.horarioDia}>{dia}</Text>
               <TouchableOpacity
                 style={styles.horarioToggle}
                 onPress={() => updateHorario(dia, 'abierto', !horariosLocal[dia]?.abierto)}
@@ -1144,7 +998,7 @@ export default function SolicitarPropiedadScreenV2() {
                 <View style={[styles.toggleCircle, horariosLocal[dia]?.abierto && styles.toggleCircleActive]}>
                   <View style={[styles.toggleDot, horariosLocal[dia]?.abierto && styles.toggleDotActive]} />
                 </View>
-                <Text style={[styles.toggleText, { fontSize: scaleFontSize(14) }]}>
+                <Text style={styles.toggleText}>
                   {horariosLocal[dia]?.abierto ? 'Abierto' : 'Cerrado'}
                 </Text>
               </TouchableOpacity>
@@ -1153,20 +1007,20 @@ export default function SolicitarPropiedadScreenV2() {
             {horariosLocal[dia]?.abierto && (
               <View style={styles.horarioInputs}>
                 <View style={styles.horarioInputGroup}>
-                  <Text style={[styles.horarioLabel, { fontSize: scaleFontSize(12) }]}>Apertura</Text>
+                  <Text style={styles.horarioLabel}>Apertura</Text>
                   <TextInput
-                    style={[styles.horarioInput, { fontSize: scaleFontSize(14) }]}
+                    style={styles.horarioInput}
                     placeholder="09:00"
                     placeholderTextColor={colors.textSecondary}
                     value={horariosLocal[dia]?.apertura || ''}
                     onChangeText={(text) => updateHorario(dia, 'apertura', text)}
                   />
                 </View>
-                <Text style={[styles.horarioSeparator, { fontSize: scaleFontSize(18) }]}>-</Text>
+                <Text style={styles.horarioSeparator}>-</Text>
                 <View style={styles.horarioInputGroup}>
-                  <Text style={[styles.horarioLabel, { fontSize: scaleFontSize(12) }]}>Cierre</Text>
+                  <Text style={styles.horarioLabel}>Cierre</Text>
                   <TextInput
-                    style={[styles.horarioInput, { fontSize: scaleFontSize(14) }]}
+                    style={styles.horarioInput}
                     placeholder="22:00"
                     placeholderTextColor={colors.textSecondary}
                     value={horariosLocal[dia]?.cierre || ''}
@@ -1180,7 +1034,7 @@ export default function SolicitarPropiedadScreenV2() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Servicios (Opcional)</Text>
+        <Text style={styles.label}>Servicios (Opcional)</Text>
         <View style={styles.serviciosGrid}>
           {SERVICIOS_DISPONIBLES.map((servicio) => (
             <TouchableOpacity
@@ -1188,7 +1042,7 @@ export default function SolicitarPropiedadScreenV2() {
               style={[styles.servicioChip, serviciosLocal.includes(servicio) && styles.servicioChipActive]}
               onPress={() => toggleServicio(servicio)}
             >
-              <Text style={[styles.servicioChipText, { fontSize: scaleFontSize(14) }, serviciosLocal.includes(servicio) && styles.servicioChipTextActive]}>
+              <Text style={[styles.servicioChipText, serviciosLocal.includes(servicio) && styles.servicioChipTextActive]}>
                 {servicio}
               </Text>
             </TouchableOpacity>
@@ -1200,14 +1054,15 @@ export default function SolicitarPropiedadScreenV2() {
 
   const renderNuevoStep5 = () => (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, { fontSize: scaleFontSize(24) }]}>Imágenes y Documentación</Text>
-      <Text style={[styles.stepDescription, { fontSize: scaleFontSize(14) }]}>
+      <Text style={styles.stepTitle}>Imágenes y Documentación</Text>
+      <Text style={styles.stepDescription}>
         Añade fotos y documentación
       </Text>
 
+      {/* 🆕 NUEVO: Componente completamente nuevo de subida para documento */}
       <NewDocumentUploader
         onUploadComplete={(url) => {
-          console.log('[SolicitarPropiedadV2 v4.2] ✅ Documento recibido:', url);
+          console.log('[SolicitarPropiedadV2] ✅ Documento recibido:', url);
           setDocumentoUrl(url);
         }}
         currentUrl={documentoUrl}
@@ -1217,27 +1072,27 @@ export default function SolicitarPropiedadScreenV2() {
       />
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Tipo de Documento</Text>
+        <Text style={styles.label}>Tipo de Documento</Text>
         <TouchableOpacity
           style={styles.documentTypeSelector}
           onPress={() => setShowDocumentTypeModal(true)}
         >
-          <Text style={[styles.documentTypeSelectorText, { fontSize: scaleFontSize(16) }]}>
+          <Text style={styles.documentTypeSelectorText}>
             {TIPOS_DOCUMENTO.find(t => t.value === documentoTipo)?.label || 'Seleccionar'}
           </Text>
           <IconSymbol 
             ios_icon_name="chevron.down" 
             android_material_icon_name="arrow_drop_down" 
-            size={Platform.OS === 'android' ? scaleIconSize(20) : 20} 
+            size={20} 
             color={colors.textSecondary} 
           />
         </TouchableOpacity>
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontSize: scaleFontSize(14) }]}>Mensaje Adicional (Opcional)</Text>
+        <Text style={styles.label}>Mensaje Adicional (Opcional)</Text>
         <TextInput
-          style={[styles.input, styles.textArea, { fontSize: scaleFontSize(16) }]}
+          style={[styles.input, styles.textArea]}
           placeholder="Información adicional..."
           placeholderTextColor={colors.textSecondary}
           value={mensaje}
@@ -1249,10 +1104,6 @@ export default function SolicitarPropiedadScreenV2() {
     </View>
   );
 
-  if (showSelectionScreen) {
-    return renderSelectionScreen();
-  }
-
   return (
     <KeyboardAvoidingView 
       style={styles.container}
@@ -1262,26 +1113,14 @@ export default function SolicitarPropiedadScreenV2() {
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
       >
-        <TouchableOpacity style={styles.backButton} onPress={() => {
-          if (currentStep === 1) {
-            setShowSelectionScreen(true);
-            setRequestType(null);
-          } else {
-            router.back();
-          }
-        }}>
-          <IconSymbol 
-            ios_icon_name="chevron.left" 
-            android_material_icon_name="arrow_back" 
-            size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
-            color={colors.headerText} 
-          />
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(20) }]}>
+          <Text style={styles.headerTitle}>
             {requestType === 'reclamar_local' ? 'Reclamar Local' : 'Crear Nuevo Local'}
           </Text>
-          <Text style={[styles.headerSubtitle, { fontSize: scaleFontSize(13) }]}>Solicitud de propiedad</Text>
+          <Text style={styles.headerSubtitle}>Solicitud de propiedad</Text>
         </View>
         <View style={{ width: 40 }} />
       </LinearGradient>
@@ -1303,42 +1142,43 @@ export default function SolicitarPropiedadScreenV2() {
             {currentStep === 5 && renderNuevoStep5()}
           </>
         )}
-
-        <View style={styles.footerInScroll}>
-          {currentStep > 1 && (
-            <TouchableOpacity style={styles.secondaryButton} onPress={handlePrevious}>
-              <Text style={[styles.secondaryButtonText, { fontSize: scaleFontSize(16) }]}>Anterior</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity 
-            style={styles.primaryButton} 
-            onPress={() => {
-              const maxSteps = requestType === 'reclamar_local' ? 2 : 5;
-              if (currentStep === maxSteps) {
-                handleSubmit();
-              } else {
-                handleNext();
-              }
-            }}
-            disabled={loading}
-          >
-            <LinearGradient
-              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-              style={styles.primaryGradient}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color={colors.headerText} />
-              ) : (
-                <Text style={[styles.primaryButtonText, { fontSize: scaleFontSize(16) }]}>
-                  {currentStep === (requestType === 'reclamar_local' ? 2 : 5) ? 'Enviar Solicitud' : 'Siguiente'}
-                </Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
 
+      <View style={styles.footer}>
+        {currentStep > 1 && (
+          <TouchableOpacity style={styles.secondaryButton} onPress={handlePrevious}>
+            <Text style={styles.secondaryButtonText}>Anterior</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity 
+          style={styles.primaryButton} 
+          onPress={() => {
+            const maxSteps = requestType === 'reclamar_local' ? 2 : 5;
+            if (currentStep === maxSteps) {
+              handleSubmit();
+            } else {
+              handleNext();
+            }
+          }}
+          disabled={loading}
+        >
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.primaryGradient}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color={colors.headerText} />
+            ) : (
+              <Text style={styles.primaryButtonText}>
+                {currentStep === (requestType === 'reclamar_local' ? 2 : 5) ? 'Enviar Solicitud' : 'Siguiente'}
+              </Text>
+            )}
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+
+      {/* Modal de tipo de documento */}
       <Modal
         visible={showDocumentTypeModal}
         transparent
@@ -1347,7 +1187,7 @@ export default function SolicitarPropiedadScreenV2() {
       >
         <Pressable style={styles.modalOverlay} onPress={() => setShowDocumentTypeModal(false)}>
           <View style={styles.modalContent}>
-            <Text style={[styles.modalTitle, { fontSize: scaleFontSize(20) }]}>Tipo de Documento</Text>
+            <Text style={styles.modalTitle}>Tipo de Documento</Text>
             
             <ScrollView style={styles.documentTypesList}>
               {TIPOS_DOCUMENTO.map((tipo) => (
@@ -1359,16 +1199,11 @@ export default function SolicitarPropiedadScreenV2() {
                     setShowDocumentTypeModal(false);
                   }}
                 >
-                  <Text style={[styles.documentTypeOptionText, { fontSize: scaleFontSize(15) }, documentoTipo === tipo.value && styles.documentTypeOptionTextActive]}>
+                  <Text style={[styles.documentTypeOptionText, documentoTipo === tipo.value && styles.documentTypeOptionTextActive]}>
                     {tipo.label}
                   </Text>
                   {documentoTipo === tipo.value && (
-                    <IconSymbol 
-                      ios_icon_name="checkmark.circle.fill" 
-                      android_material_icon_name="check_circle" 
-                      size={Platform.OS === 'android' ? scaleIconSize(24) : 24} 
-                      color={colors.primary} 
-                    />
+                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -1378,7 +1213,7 @@ export default function SolicitarPropiedadScreenV2() {
               style={styles.modalCloseButton}
               onPress={() => setShowDocumentTypeModal(false)}
             >
-              <Text style={[styles.modalCloseButtonText, { fontSize: scaleFontSize(16) }]}>Cerrar</Text>
+              <Text style={styles.modalCloseButtonText}>Cerrar</Text>
             </TouchableOpacity>
           </View>
         </Pressable>
@@ -1391,95 +1226,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  selectionContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  selectionHeader: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  selectionHeaderTitle: {
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  selectionHeaderSubtitle: {
-    color: colors.headerText,
-    opacity: 0.9,
-    marginTop: 2,
-  },
-  selectionContent: {
-    flex: 1,
-  },
-  selectionContentContainer: {
-    padding: 20,
-  },
-  selectionTitle: {
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  selectionDescription: {
-    color: colors.textSecondary,
-    lineHeight: 24,
-    marginBottom: 32,
-  },
-  selectionOption: {
-    marginBottom: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  selectionOptionGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    gap: 16,
-  },
-  selectionOptionIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectionOptionContent: {
-    flex: 1,
-  },
-  selectionOptionTitle: {
-    fontWeight: 'bold',
-    color: colors.headerText,
-    marginBottom: 6,
-  },
-  selectionOptionDescription: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    lineHeight: 20,
-  },
-  selectionInfoBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    backgroundColor: colors.primary + '15',
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 24,
-    borderWidth: 1,
-    borderColor: colors.primary + '30',
-  },
-  selectionInfoText: {
-    flex: 1,
-    color: colors.text,
-    lineHeight: 20,
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 60 : 50,
@@ -1497,10 +1243,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
   },
   headerSubtitle: {
+    fontSize: 13,
     color: colors.headerText,
     opacity: 0.9,
     marginTop: 2,
@@ -1531,6 +1279,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   stepNumber: {
+    fontSize: 16,
     fontWeight: '700',
     color: colors.textSecondary,
   },
@@ -1550,17 +1299,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   stepContent: {
     padding: 20,
   },
   stepTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 8,
   },
   stepDescription: {
+    fontSize: 14,
     color: colors.textSecondary,
     marginBottom: 24,
   },
@@ -1578,6 +1329,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    fontSize: 16,
     color: colors.text,
   },
   searchingContainer: {
@@ -1588,6 +1340,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   searchingText: {
+    fontSize: 14,
     color: colors.textSecondary,
     fontWeight: '600',
   },
@@ -1621,6 +1374,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   localName: {
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
   },
@@ -1632,6 +1386,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   localTypeText: {
+    fontSize: 11,
     fontWeight: '700',
     color: colors.primary,
   },
@@ -1642,9 +1397,11 @@ const styles = StyleSheet.create({
   },
   localAddress: {
     flex: 1,
+    fontSize: 13,
     color: colors.textSecondary,
   },
   localCity: {
+    fontSize: 12,
     color: colors.textSecondary,
     fontWeight: '600',
   },
@@ -1658,11 +1415,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   noResultsText: {
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
   },
   noResultsSubtext: {
+    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
   },
@@ -1674,6 +1433,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   createNewButtonText: {
+    fontSize: 14,
     fontWeight: '700',
     color: colors.headerText,
   },
@@ -1686,22 +1446,26 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   selectedLocalLabel: {
+    fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
     marginBottom: 4,
   },
   selectedLocalName: {
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 4,
   },
   selectedLocalAddress: {
+    fontSize: 14,
     color: colors.textSecondary,
   },
   inputContainer: {
     marginBottom: 20,
   },
   label: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
@@ -1713,6 +1477,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
+    fontSize: 16,
     color: colors.text,
   },
   textArea: {
@@ -1731,6 +1496,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   documentTypeSelectorText: {
+    fontSize: 16,
     color: colors.text,
     fontWeight: '500',
   },
@@ -1756,6 +1522,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   tipoButtonText: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1792,6 +1559,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   locationButtonText: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
   },
@@ -1799,11 +1567,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   mapLabel: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 4,
   },
   mapHelperText: {
+    fontSize: 12,
     color: colors.textSecondary,
     marginBottom: 12,
   },
@@ -1836,6 +1606,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   coordinatesText: {
+    fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
     textAlign: 'center',
@@ -1855,6 +1626,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   horarioDia: {
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1884,6 +1656,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   toggleText: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
@@ -1896,6 +1669,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   horarioLabel: {
+    fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
     marginBottom: 4,
@@ -1907,9 +1681,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
+    fontSize: 14,
     color: colors.text,
   },
   horarioSeparator: {
+    fontSize: 18,
     fontWeight: '600',
     color: colors.textSecondary,
     marginTop: 20,
@@ -1932,17 +1708,25 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   servicioChipText: {
+    fontSize: 14,
     fontWeight: '500',
     color: colors.text,
   },
   servicioChipTextActive: {
     color: colors.headerText,
   },
-  footerInScroll: {
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     gap: 12,
     padding: 16,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 24,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+    backgroundColor: colors.cardBackground,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
   },
   secondaryButton: {
     flex: 1,
@@ -1955,6 +1739,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: colors.primary,
+    fontSize: 16,
     fontWeight: '600',
   },
   primaryButton: {
@@ -1968,6 +1753,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: colors.headerText,
+    fontSize: 16,
     fontWeight: '600',
   },
   modalOverlay: {
@@ -1983,6 +1769,7 @@ const styles = StyleSheet.create({
     maxHeight: '70%',
   },
   modalTitle: {
+    fontSize: 20,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 20,
@@ -2006,6 +1793,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary + '10',
   },
   documentTypeOptionText: {
+    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
   },
@@ -2020,6 +1808,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   modalCloseButtonText: {
+    fontSize: 16,
     fontWeight: '600',
     color: colors.headerText,
   },

@@ -65,7 +65,6 @@ export function InteractionBubbleCarousel({
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
-  // ✅ LINT FIX: Added all animation dependencies
   useEffect(() => {
     console.log('[InteractionBubbleCarousel] Visibility changed:', visible, 'Recipient:', recipientName);
     if (visible) {
@@ -92,7 +91,7 @@ export function InteractionBubbleCarousel({
       scaleAnim.setValue(0);
       rotateAnim.setValue(0);
     }
-  }, [visible, recipientName, themeColors, mode, scaleAnim, rotateAnim]);
+  }, [visible]);
 
   const handleSelectMessage = (message: string) => {
     console.log('[InteractionBubbleCarousel] Message selected:', message);

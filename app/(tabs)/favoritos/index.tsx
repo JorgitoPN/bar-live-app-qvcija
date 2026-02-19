@@ -21,7 +21,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
@@ -39,11 +39,11 @@ import {
   getContentBottomPadding,
 } from '@/utils/androidScaling';
 import { useFavorites } from '@/contexts/FavoritesContext';
-import { navigationOptimizer } from '@/utils/performanceMonitor';
 
 const ITEMS_PER_PAGE = 20;
 
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 170 : 210;
+// ✅ FIX v302.0: ULTRA COMPACT HEADER - EXACTLY matching Eventos page structure
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 140 : 180;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -71,15 +71,18 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ FAVORITOS SCREEN v342.0 - INSTANT LOADING & NAVIGATION
+ * ✅ FAVORITOS SCREEN v302.0 - HEADER MARGIN FIX & FIRST CARD VISIBILITY FIX
  * 
- * NEW CHANGES v342.0 (MAXIMUM PERFORMANCE):
- * - ✅ INSTANT: Screen renders immediately, no loading state
- * - ✅ ZERO-DELAY: All heavy operations deferred with requestAnimationFrame
- * - ✅ BACKGROUND: Data loads in background after UI is visible
- * - ✅ OPTIMIZED: Reduced initial render batch
- * - ✅ SMART: Only load data when tab is focused
- * - ✅ RESULT: Instant screen load, identical to guest mode
+ * NEW CHANGES v302.0:
+ * - ✅ FIXED: Removed ALL top margin from header (EXACTLY matches Eventos page)
+ * - ✅ FIXED: Header structure IDENTICAL to Eventos (same paddingTop: 36/50, paddingBottom: 6/12)
+ * - ✅ FIXED: First card no longer hidden - proper paddingTop increased to 32px
+ * - ✅ FIXED: Cards now start BELOW category filter and counter (not covered)
+ * - ✅ VERIFIED: Header gradient padding matches Eventos page exactly
+ * 
+ * Previous fixes v301.0:
+ * - ✅ FIXED: Schedule badge now correctly uses getEstadoLocal() for accurate status
+ * - ✅ FIXED: Badge shows "Abierto ahora" when local is open (e.g., Bar a Coviña)
  */
 
 export default function FavoritosScreen() {
@@ -89,7 +92,7 @@ export default function FavoritosScreen() {
   
   const [allSavedLocales, setAllSavedLocales] = useState<any[]>([]);
   const [displayedLocales, setDisplayedLocales] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false); // ✅ v342.0: Start with false for instant render
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   
@@ -110,12 +113,12 @@ export default function FavoritosScreen() {
   const scrollY = useRef(0);
   const lastScrollY = useRef(0);
   const headerTranslateY = useRef(new Animated.Value(0)).current;
-  
-  const hasLoadedOnceRef = useRef(false);
-  const isFocusedRef = useRef(false);
 
   useEffect(() => {
+    console.log('[Favoritos v302.0] 📝 Search query changed:', searchQuery);
+    
     const timer = setTimeout(() => {
+      console.log('[Favoritos v302.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
@@ -124,9 +127,8 @@ export default function FavoritosScreen() {
     };
   }, [searchQuery]);
 
-  // ✅ v342.0: INSTANT location load (background)
   useEffect(() => {
-    navigationOptimizer.deferWithPriority(async () => {
+    (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
@@ -135,39 +137,37 @@ export default function FavoritosScreen() {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           });
+          console.log('[Favoritos v302.0] User location obtained:', location.coords);
         }
       } catch (error) {
-        // Silent error
+        console.error('[Favoritos v302.0] Error getting location:', error);
       }
-    }, 'LOW');
+    })();
   }, []);
 
   const checkSocialProfilesForLocales = useCallback(async (localIds: string[]) => {
     if (localIds.length === 0) return;
 
-    // ✅ v342.0: Defer to background (LOW priority)
-    navigationOptimizer.deferWithPriority(async () => {
-      try {
-        const { data: posts, error: postsError } = await supabase
-          .from('posts')
-          .select('local_id')
-          .eq('tipo', 'local')
-          .in('local_id', localIds);
+    try {
+      const { data: posts, error: postsError } = await supabase
+        .from('posts')
+        .select('local_id')
+        .eq('tipo', 'local')
+        .in('local_id', localIds);
 
-        if (postsError) throw postsError;
+      if (postsError) throw postsError;
 
-        const newSocialProfiles = new Map();
-        const localsWithPosts = new Set(posts?.map(p => p.local_id) || []);
-        
-        localIds.forEach(localId => {
-          newSocialProfiles.set(localId, localsWithPosts.has(localId));
-        });
-        
-        setSocialProfiles(newSocialProfiles);
-      } catch (error) {
-        // Silent error
-      }
-    }, 'LOW');
+      const newSocialProfiles = new Map();
+      const localsWithPosts = new Set(posts?.map(p => p.local_id) || []);
+      
+      localIds.forEach(localId => {
+        newSocialProfiles.set(localId, localsWithPosts.has(localId));
+      });
+      
+      setSocialProfiles(newSocialProfiles);
+    } catch (error) {
+      console.error('[Favoritos v302.0] Error checking social profiles:', error);
+    }
   }, []);
 
   const loadSavedLocales = useCallback(async () => {
@@ -177,6 +177,7 @@ export default function FavoritosScreen() {
     }
 
     try {
+      console.log('[Favoritos v302.0] Cargando locales guardados...');
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -236,42 +237,23 @@ export default function FavoritosScreen() {
         
         setAllSavedLocales(formattedLocales);
         
+        console.log('[Favoritos v302.0] Locales guardados cargados:', formattedLocales.length);
+        
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
-      // Silent error
+      console.error('[Favoritos v302.0] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
-  }, [user, userLocation, checkSocialProfilesForLocales]);
-
-  // ✅ v342.0: INSTANT load on focus
-  useFocusEffect(
-    useCallback(() => {
-      isFocusedRef.current = true;
-      
-      if (!hasLoadedOnceRef.current && user) {
-        hasLoadedOnceRef.current = true;
-        
-        // ✅ v342.0: Defer data load to background (CRITICAL priority)
-        navigationOptimizer.deferWithPriority(() => {
-          loadSavedLocales();
-        }, 'CRITICAL');
-      }
-
-      return () => {
-        isFocusedRef.current = false;
-      };
-    }, [user, loadSavedLocales])
-  );
+  }, [user, checkSocialProfilesForLocales]);
 
   useEffect(() => {
-    if (!user) return;
+    if (user) {
+      loadSavedLocales();
 
-    // ✅ v342.0: Defer subscription to background
-    navigationOptimizer.deferWithPriority(() => {
       const savedLocalesChannel = supabase
-        .channel('user-saved-locales-changes-v342')
+        .channel('user-saved-locales-changes-v302')
         .on(
           'postgres_changes',
           {
@@ -281,9 +263,8 @@ export default function FavoritosScreen() {
             filter: `usuario_id=eq.${user.id}`,
           },
           () => {
-            if (isFocusedRef.current) {
-              loadSavedLocales();
-            }
+            console.log('[Favoritos v302.0] Saved locales changed, reloading...');
+            loadSavedLocales();
           }
         )
         .subscribe();
@@ -291,11 +272,12 @@ export default function FavoritosScreen() {
       return () => {
         supabase.removeChannel(savedLocalesChannel);
       };
-    }, 'LOW');
-  }, [user, loadSavedLocales]);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
+      console.log('[Favoritos v302.0] Recalculating distances with new user location');
       const updatedLocales = allSavedLocales.map(local => {
         const distancia = calcularDistancia(
           userLocation.lat,
@@ -310,10 +292,11 @@ export default function FavoritosScreen() {
       });
       setAllSavedLocales(updatedLocales);
     }
-  }, [userLocation, allSavedLocales]);
+  }, [userLocation]);
 
   const filteredLocales = useMemo(() => {
     const query = debouncedQuery.toLowerCase().trim();
+    console.log('[Favoritos v302.0] 🔍 Filtering locales client-side, search:', query);
     let filtered = [...allSavedLocales];
 
     if (query) {
@@ -346,6 +329,7 @@ export default function FavoritosScreen() {
       filtered = filtered.filter(local => local.provincia === provinciaSeleccionada);
     }
 
+    console.log('[Favoritos v302.0] ✅ Filtered', filtered.length, 'locales from', allSavedLocales.length);
     return filtered;
   }, [debouncedQuery, selectedCategory, provinciaSeleccionada, allSavedLocales]);
 
@@ -353,6 +337,8 @@ export default function FavoritosScreen() {
     const firstPage = filteredLocales.slice(0, currentPage * ITEMS_PER_PAGE);
     setDisplayedLocales(firstPage);
     setHasMore(filteredLocales.length > firstPage.length);
+    
+    console.log('[Favoritos v302.0] Displaying', firstPage.length, 'of', filteredLocales.length, 'locales');
   }, [filteredLocales, currentPage]);
 
   const loadMoreLocales = useCallback(() => {
@@ -364,10 +350,13 @@ export default function FavoritosScreen() {
       const nextPage = currentPage + 1;
       setCurrentPage(nextPage);
       setLoadingMore(false);
+      
+      console.log('[Favoritos v302.0] Cargando más locales, página:', nextPage);
     }, 300);
   }, [currentPage, loadingMore, hasMore]);
 
   const onRefresh = async () => {
+    console.log('[Favoritos v302.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     setDebouncedQuery('');
@@ -380,6 +369,7 @@ export default function FavoritosScreen() {
   };
 
   const clearFilters = useCallback(() => {
+    console.log('[Favoritos v302.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setSelectedCategory('todas');
@@ -401,17 +391,22 @@ export default function FavoritosScreen() {
     }
     
     if (!user) {
+      console.log('[Favoritos v302.0] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
     if (!localId) {
+      console.log('[Favoritos v302.0] No local ID');
       return;
     }
+
+    console.log('[Favoritos v302.0] ⚡ User tapped favorite button - toggling with OPTIMISTIC UI');
     
     const success = await toggleFavorite(localId);
     
     if (success) {
+      console.log('[Favoritos v302.0] ✅ Favorite toggle completed - reloading list');
       await loadSavedLocales();
     }
   }, [user, toggleFavorite, loadSavedLocales]);
@@ -596,6 +591,7 @@ export default function FavoritosScreen() {
           <TouchableOpacity
             style={styles.favoritoButton}
             onPress={(e) => {
+              console.log('[Favoritos v302.0] 👆 User tapped favorite button for local:', item.id);
               handleToggleFavorito(item.id, e);
             }}
           >
@@ -730,6 +726,7 @@ export default function FavoritosScreen() {
   if (!user) {
     return (
       <View style={styles.container}>
+        {/* ✅ FIX v302.0: Header WITHOUT title - EXACTLY matching Eventos page */}
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.headerWithoutTitle}
@@ -741,6 +738,23 @@ export default function FavoritosScreen() {
           icon="heart.circle"
           androidIcon="favorite"
         />
+      </View>
+    );
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        {/* ✅ FIX v302.0: Header WITHOUT title - EXACTLY matching Eventos page */}
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.headerWithoutTitle}
+        />
+
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando favoritos...</Text>
+        </View>
       </View>
     );
   }
@@ -765,6 +779,7 @@ export default function FavoritosScreen() {
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.headerGradient}
         >
+          {/* ✅ FIX v302.0: Header top WITHOUT title - EXACTLY matching Eventos page structure */}
           {activeFiltersCount > 0 && (
             <View style={styles.headerTop}>
               <TouchableOpacity 
@@ -778,6 +793,7 @@ export default function FavoritosScreen() {
             </View>
           )}
           
+          {/* ✅ FIX v302.0: Search row - EXACTLY matching Eventos page */}
           <View style={styles.compactSearchRow}>
             <View style={styles.searchContainer}>
               <IconSymbol 
@@ -801,6 +817,7 @@ export default function FavoritosScreen() {
               {searchQuery.length > 0 && (
                 <TouchableOpacity 
                   onPress={() => {
+                    console.log('[Favoritos v302.0] 🧹 Clearing search');
                     setSearchQuery('');
                     setDebouncedQuery('');
                   }}
@@ -896,8 +913,10 @@ export default function FavoritosScreen() {
         contentContainerStyle={[
           styles.listContent,
           { 
-            marginTop: HEADER_MAX_HEIGHT,
-            paddingTop: 0,
+            // ✅ FIX v302.0: CRITICAL - Increased paddingTop to prevent first card from being hidden
+            // Previous: HEADER_MAX_HEIGHT + 24 (cards were still being covered)
+            // New: HEADER_MAX_HEIGHT + 32 (proper spacing to show first card completely below counter)
+            paddingTop: HEADER_MAX_HEIGHT + 32,
             paddingBottom: getContentBottomPadding(100),
           },
         ]}
@@ -912,9 +931,9 @@ export default function FavoritosScreen() {
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
-        initialNumToRender={Platform.OS === 'android' ? 3 : 5}
-        maxToRenderPerBatch={Platform.OS === 'android' ? 3 : 5}
-        windowSize={Platform.OS === 'android' ? 5 : 10}
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={10}
         removeClippedSubviews={true}
         updateCellsBatchingPeriod={100}
         onScroll={handleScroll}
@@ -1055,21 +1074,24 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     backgroundColor: colors.background,
   },
+  // ✅ FIX v302.0: EXACTLY MATCHES EVENTOS PAGE - Same paddingTop (36/50), same paddingBottom (6/12)
   headerGradient: {
-    paddingTop: Platform.OS === 'android' ? 36 : 50,
-    paddingBottom: Platform.OS === 'android' ? 6 : 12,
+    paddingTop: Platform.OS === 'android' ? 36 : 50, // ✅ SAME as Eventos
+    paddingBottom: Platform.OS === 'android' ? 6 : 12, // ✅ SAME as Eventos
     paddingHorizontal: 16,
   },
+  // ✅ FIX v302.0: Header without title (for login screen) - EXACTLY SAME as Eventos
   headerWithoutTitle: {
-    paddingTop: Platform.OS === 'android' ? 36 : 50,
-    paddingBottom: Platform.OS === 'android' ? 6 : 12,
+    paddingTop: Platform.OS === 'android' ? 36 : 50, // ✅ SAME as Eventos
+    paddingBottom: Platform.OS === 'android' ? 6 : 12, // ✅ SAME as Eventos
     paddingHorizontal: 16,
   },
+  // ✅ FIX v302.0: Header top - only shows when filters are active (minimal height)
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'android' ? 6 : 8,
+    marginBottom: Platform.OS === 'android' ? 6 : 8, // ✅ SAME as Eventos
     minHeight: 28,
   },
   clearFiltersHeaderButton: {
@@ -1085,11 +1107,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
+  // ✅ FIX v302.0: Search row - EXACTLY matching Eventos page
   compactSearchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: Platform.OS === 'android' ? 6 : 8,
+    marginBottom: Platform.OS === 'android' ? 6 : 8, // ✅ SAME as Eventos
   },
   searchContainer: {
     flex: 1,
@@ -1119,7 +1142,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoriesScroll: {
-    marginBottom: Platform.OS === 'android' ? 6 : 8,
+    marginBottom: Platform.OS === 'android' ? 6 : 8, // ✅ SAME as Eventos
     marginRight: -16,
   },
   categoriesContent: {

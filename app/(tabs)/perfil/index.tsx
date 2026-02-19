@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,26 +14,24 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
-  FlatList,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useEffectiveUser } from '@/hooks/useEffectiveUser';
 import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import MomentoUpload from '@/components/momento/MomentoUpload';
 import MomentoViewer from '@/components/momento/MomentoViewer';
+import PostViewerModal from '@/components/social/PostViewerModal';
 import ShoppingCart from '@/components/payment/ShoppingCart';
 import { profileCache } from '@/utils/profileCache';
 import UnifiedMomentoAvatar from '@/components/common/UnifiedMomentoAvatar';
 import { scaleFontSize } from '@/utils/androidScaling';
 import SolicitudPropiedadStatus from '@/components/perfil/SolicitudPropiedadStatus';
 import { formatFollowersCount } from '@/utils/formatters';
-import PublicacionCard from '@/components/social/PublicacionCard';
-import { navigationOptimizer } from '@/utils/performanceMonitor';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -56,10 +54,6 @@ interface Post {
   liked?: boolean;
   saved?: boolean;
   comentarios?: number;
-  likes_count?: number;
-  comentarios_count?: number;
-  user_has_liked?: boolean;
-  user_has_saved?: boolean;
 }
 
 interface PerfilProfesional {
@@ -79,14 +73,17 @@ interface CheckInInfo {
 }
 
 /**
- * ✅ PROFILE SCREEN v342.0 - INSTANT LOADING & NAVIGATION
+ * ✅ PROFILE SCREEN v320.0 - COMPACT TAB MENU LAYOUT FIX
  * 
- * NEW CHANGES v342.0 (MAXIMUM PERFORMANCE):
- * - ✅ INSTANT: Screen renders immediately with cached data
- * - ✅ ZERO-DELAY: All heavy operations deferred with requestAnimationFrame
- * - ✅ BACKGROUND: Data loads in background after UI is visible
- * - ✅ SMART: Only load data when tab is focused
- * - ✅ RESULT: Instant screen load, identical to guest mode
+ * NEW CHANGES v320.0:
+ * - ✅ FIXED: Reduced spacing between profile section and tabs (paddingBottom: 8)
+ * - ✅ FIXED: Tabs now directly follow profile section with minimal gap
+ * - ✅ IMPROVED: More compact and visually coherent design
+ * 
+ * Previous changes v114.0:
+ * - ✅ FIXED: Removed excessive top margin between profile section and tab menu (marginTop: 0)
+ * - ✅ IMPROVED: Counter sizes increased (number: 18px, label: 13px) for better readability
+ * - ✅ IMPROVED: Avatar/momento size increased from 88px to 96px for better visibility
  */
 
 export default function PerfilScreen() {
@@ -121,113 +118,107 @@ export default function PerfilScreen() {
   const [perfilProfesional, setPerfilProfesional] = useState<PerfilProfesional | null>(null);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
 
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [selectedPostIndex, setSelectedPostIndex] = useState(0);
+  const [showPostViewer, setShowPostViewer] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [allPostIds, setAllPostIds] = useState<string[]>([]);
 
   const [currentLocal, setCurrentLocal] = useState<any>(null);
   const [checkInInfo, setCheckInInfo] = useState<CheckInInfo | null>(null);
-  
-  const hasLoadedOnceRef = useRef(false);
-  const isFocusedRef = useRef(false);
 
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
 
-  // ✅ v342.0: INSTANT unread counts load (background)
   const loadUnreadCounts = useCallback(async () => {
     if (!userId) return;
 
-    navigationOptimizer.deferWithPriority(async () => {
-      try {
-        const { count: notifCount } = await supabase
-          .from('notificaciones')
-          .select('*', { count: 'exact', head: true })
-          .eq('usuario_id', userId)
-          .eq('leida', false);
+    try {
+      const { count: notifCount } = await supabase
+        .from('notificaciones')
+        .select('*', { count: 'exact', head: true })
+        .eq('usuario_id', userId)
+        .eq('leida', false);
 
-        setUnreadNotifications(notifCount || 0);
+      setUnreadNotifications(notifCount || 0);
 
-        const { data: chatsData } = await supabase
-          .from('chats')
-          .select('id')
-          .or(`usuario1_id.eq.${userId},usuario2_id.eq.${userId}`);
+      const { data: chatsData } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`usuario1_id.eq.${userId},usuario2_id.eq.${userId}`);
 
-        if (chatsData) {
-          let totalUnread = 0;
-          for (const chat of chatsData) {
-            const { count } = await supabase
-              .from('mensajes')
-              .select('*', { count: 'exact', head: true })
-              .eq('chat_id', chat.id)
-              .eq('leido', false)
-              .is('leido_at', null)
-              .neq('remitente_id', userId);
-            
-            totalUnread += count || 0;
-          }
-          setUnreadMessages(totalUnread);
+      if (chatsData) {
+        let totalUnread = 0;
+        for (const chat of chatsData) {
+          const { count } = await supabase
+            .from('mensajes')
+            .select('*', { count: 'exact', head: true })
+            .eq('chat_id', chat.id)
+            .eq('leido', false)
+            .is('leido_at', null)
+            .neq('remitente_id', userId);
+          
+          totalUnread += count || 0;
         }
-      } catch (error) {
-        // Silent error
+        setUnreadMessages(totalUnread);
       }
-    }, 'LOW');
+    } catch (error) {
+      console.error('[Perfil v320.0] Error loading unread counts:', error);
+    }
   }, [userId]);
 
-  // ✅ v342.0: INSTANT cart load (background)
   const loadCartItemsCount = useCallback(async () => {
     if (!userId || !isPropietario) return;
 
-    navigationOptimizer.deferWithPriority(async () => {
-      try {
-        const { count, error } = await supabase
-          .from('shopping_cart')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId);
+    try {
+      const { count, error } = await supabase
+        .from('shopping_cart')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
 
-        if (!error) {
-          setCartItemsCount(count || 0);
-        }
-      } catch (error) {
-        // Silent error
+      if (error) {
+        console.error('[Perfil v320.0] ❌ Error loading cart count:', error);
+        return;
       }
-    }, 'LOW');
+
+      console.log('[Perfil v320.0] 🛒 Cart items count:', count);
+      setCartItemsCount(count || 0);
+    } catch (error) {
+      console.error('[Perfil v320.0] ❌ Error loading cart count:', error);
+    }
   }, [userId, isPropietario]);
 
-  // ✅ v342.0: INSTANT current local load (background)
   const loadCurrentLocal = useCallback(async () => {
     if (!userId) return;
 
-    navigationOptimizer.deferWithPriority(async () => {
-      try {
-        const { data: checkIn, error } = await supabase
-          .from('check_ins')
-          .select(`
-            local_id,
-            visibility,
-            specific_user_ids,
-            locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion)
-          `)
-          .eq('usuario_id', userId)
-          .single();
+    try {
+      const { data: checkIn, error } = await supabase
+        .from('check_ins')
+        .select(`
+          local_id,
+          visibility,
+          specific_user_ids,
+          locales!check_ins_local_id_fkey(id, nombre, imagen_url, tipo, direccion)
+        `)
+        .eq('usuario_id', userId)
+        .single();
 
-        if (error && error.code !== 'PGRST116') {
-          return;
-        }
-
-        if (checkIn && checkIn.locales) {
-          setCurrentLocal(checkIn.locales);
-          setCheckInInfo({
-            visibility: checkIn.visibility,
-            specific_user_ids: checkIn.specific_user_ids,
-          });
-        } else {
-          setCurrentLocal(null);
-          setCheckInInfo(null);
-        }
-      } catch (error) {
-        // Silent error
+      if (error && error.code !== 'PGRST116') {
+        console.error('[Perfil v320.0] Error loading current local:', error);
+        return;
       }
-    }, 'LOW');
+
+      if (checkIn && checkIn.locales) {
+        setCurrentLocal(checkIn.locales);
+        setCheckInInfo({
+          visibility: checkIn.visibility,
+          specific_user_ids: checkIn.specific_user_ids,
+        });
+      } else {
+        setCurrentLocal(null);
+        setCheckInInfo(null);
+      }
+    } catch (error) {
+      console.error('[Perfil v320.0] Error loading current local:', error);
+    }
   }, [userId]);
 
   const cargarPosts = useCallback(async () => {
@@ -274,10 +265,8 @@ export default function PerfilScreen() {
 
         const postsWithStatus = (data || []).map(post => ({
           ...post,
-          user_has_liked: likedPostIds.has(post.id),
-          user_has_saved: false,
-          likes_count: post.likes || 0,
-          comentarios_count: commentCounts[post.id] || 0,
+          liked: likedPostIds.has(post.id),
+          comentarios: commentCounts[post.id] || 0,
         }));
 
         setPosts(postsWithStatus);
@@ -287,6 +276,7 @@ export default function PerfilScreen() {
         return [];
       }
     } catch (error) {
+      console.error('[Perfil v320.0] Error cargando posts:', error);
       return [];
     }
   }, [userId]);
@@ -339,10 +329,9 @@ export default function PerfilScreen() {
 
         const postsWithStatus = savedPostsData.map(post => ({
           ...post,
-          user_has_liked: likedPostIds.has(post.id),
-          user_has_saved: true,
-          likes_count: post.likes || 0,
-          comentarios_count: commentCounts[post.id] || 0,
+          liked: likedPostIds.has(post.id),
+          saved: true,
+          comentarios: commentCounts[post.id] || 0,
         }));
 
         setSavedPosts(postsWithStatus);
@@ -350,7 +339,7 @@ export default function PerfilScreen() {
         setSavedPosts([]);
       }
     } catch (error) {
-      // Silent error
+      console.error('[Perfil v320.0] Error cargando favoritos:', error);
     }
   }, [userId]);
 
@@ -422,14 +411,14 @@ export default function PerfilScreen() {
 
       const postsWithStatus = postsData.map(post => ({
         ...post,
-        user_has_liked: likedPostIds.has(post.id),
-        user_has_saved: savedPostIds.has(post.id),
-        likes_count: post.likes || 0,
-        comentarios_count: commentCounts[post.id] || 0,
+        liked: likedPostIds.has(post.id),
+        saved: savedPostIds.has(post.id),
+        comentarios: commentCounts[post.id] || 0,
       }));
 
       setTaggedPosts(postsWithStatus);
     } catch (error) {
+      console.error('[Perfil v320.0] Error cargando etiquetados:', error);
       setTaggedPosts([]);
     }
   }, [userId]);
@@ -446,7 +435,7 @@ export default function PerfilScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        // Silent error
+        console.error('[Perfil v320.0] Error loading professional profile:', error);
       }
 
       if (data) {
@@ -455,7 +444,7 @@ export default function PerfilScreen() {
         setPerfilProfesional(null);
       }
     } catch (error) {
-      // Silent error
+      console.error('[Perfil v320.0] Error loading professional profile:', error);
     } finally {
       setLoadingEmpleo(false);
     }
@@ -465,6 +454,10 @@ export default function PerfilScreen() {
     if (!userId) return;
 
     try {
+      if (!isBackgroundRefresh) {
+        console.log('[Perfil v320.0] 🔄 Loading profile data...');
+      }
+
       await loadUnreadCounts();
       await loadCartItemsCount();
       await loadCurrentLocal();
@@ -480,7 +473,7 @@ export default function PerfilScreen() {
       const seguidosCount = userFollowsCount || 0;
 
       if (seguidoresError) {
-        // Silent error
+        console.error('[Perfil v320.0] Error loading seguidores count:', seguidoresError);
       }
 
       const seguidoresCount = seguidoresData || 0;
@@ -508,155 +501,129 @@ export default function PerfilScreen() {
           },
         });
       }
+
+      if (!isBackgroundRefresh) {
+        console.log('[Perfil v320.0] ✅ Profile data loaded and cached');
+      }
     } catch (error) {
-      // Silent error
+      console.error('[Perfil v320.0] Error cargando datos:', error);
     } finally {
       setRefreshing(false);
     }
   }, [userId, user, loadUnreadCounts, loadCartItemsCount, loadCurrentLocal, cargarPosts]);
 
-  // ✅ v342.0: INSTANT load on focus with cache
-  useFocusEffect(
-    useCallback(() => {
-      isFocusedRef.current = true;
+  useEffect(() => {
+    if (!userId) return;
+
+    const loadCachedData = async () => {
+      console.log('[Perfil v320.0] ⚡ Loading from cache...');
+      const cached = await profileCache.get(userId, 'user');
       
-      if (!userId) return;
-
-      if (!hasLoadedOnceRef.current) {
-        hasLoadedOnceRef.current = true;
+      if (cached) {
+        console.log('[Perfil v320.0] ⚡⚡⚡ INSTANT LOAD from cache');
+        setSeguidores(cached.stats.seguidores);
+        setSeguidos(cached.stats.seguidos);
+        setPublicaciones(cached.stats.posts);
+        setPosts(cached.posts);
         
-        // ✅ v342.0: Try cache first (INSTANT)
-        const loadCachedData = async () => {
-          const cached = await profileCache.get(userId, 'user');
-          
-          if (cached) {
-            // ✅ INSTANT: Load from cache
-            setSeguidores(cached.stats.seguidores);
-            setSeguidos(cached.stats.seguidos);
-            setPublicaciones(cached.stats.posts);
-            setPosts(cached.posts);
-            
-            // ✅ BACKGROUND: Refresh in background
-            navigationOptimizer.deferWithPriority(() => {
-              cargarDatosPerfil(true);
-            }, 'LOW');
-          } else {
-            // ✅ BACKGROUND: Load from database
-            navigationOptimizer.deferWithPriority(() => {
-              cargarDatosPerfil(false);
-            }, 'CRITICAL');
-          }
-        };
-
-        loadCachedData();
+        setTimeout(() => {
+          console.log('[Perfil v320.0] 🔄 Background refresh...');
+          cargarDatosPerfil(true);
+        }, 100);
+      } else {
+        console.log('[Perfil v320.0] 📡 No cache, loading from database...');
+        cargarDatosPerfil(false);
       }
+    };
 
-      return () => {
-        isFocusedRef.current = false;
-      };
-    }, [userId, cargarDatosPerfil])
-  );
+    loadCachedData();
+  }, [userId, cargarDatosPerfil]);
 
   useEffect(() => {
-    if (userId && activeTab !== 'posts') {
+    if (userId) {
       setLoadingPosts(true);
-      
-      // ✅ v342.0: Defer tab data load to background
-      navigationOptimizer.deferWithPriority(() => {
-        if (activeTab === 'favoritos') {
-          cargarFavoritos().finally(() => setLoadingPosts(false));
-        } else if (activeTab === 'etiquetados') {
-          cargarEtiquetados().finally(() => setLoadingPosts(false));
-        } else if (activeTab === 'empleo') {
-          cargarPerfilProfesional().finally(() => setLoadingPosts(false));
-        }
-      }, 'HIGH');
+      if (activeTab === 'posts') {
+        cargarPosts().finally(() => setLoadingPosts(false));
+      } else if (activeTab === 'favoritos') {
+        cargarFavoritos().finally(() => setLoadingPosts(false));
+      } else if (activeTab === 'etiquetados') {
+        cargarEtiquetados().finally(() => setLoadingPosts(false));
+      } else if (activeTab === 'empleo') {
+        cargarPerfilProfesional().finally(() => setLoadingPosts(false));
+      }
     }
-  }, [activeTab, userId, cargarFavoritos, cargarEtiquetados, cargarPerfilProfesional]);
+  }, [activeTab, userId, cargarPosts, cargarFavoritos, cargarEtiquetados, cargarPerfilProfesional]);
 
   useEffect(() => {
     if (!userId) return;
 
-    // ✅ v342.0: Defer subscriptions to background
-    navigationOptimizer.deferWithPriority(() => {
-      const subscription = supabase
-        .channel('profile-updates-v342')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'check_ins',
-            filter: `usuario_id=eq.${userId}`,
-          },
-          () => {
-            if (isFocusedRef.current) {
-              loadCurrentLocal();
-            }
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'notificaciones',
-            filter: `usuario_id=eq.${userId}`,
-          },
-          () => {
-            if (isFocusedRef.current) {
-              loadUnreadCounts();
-            }
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'mensajes',
-          },
-          () => {
-            if (isFocusedRef.current) {
-              loadUnreadCounts();
-            }
-          }
-        )
-        .subscribe();
+    const subscription = supabase
+      .channel('profile-updates-v320')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'check_ins',
+          filter: `usuario_id=eq.${userId}`,
+        },
+        () => {
+          loadCurrentLocal();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notificaciones',
+          filter: `usuario_id=eq.${userId}`,
+        },
+        () => {
+          loadUnreadCounts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'mensajes',
+        },
+        () => {
+          loadUnreadCounts();
+        }
+      )
+      .subscribe();
 
-      return () => {
-        supabase.removeChannel(subscription);
-      };
-    }, 'LOW');
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, [userId, loadCurrentLocal, loadUnreadCounts]);
 
   useEffect(() => {
     if (!userId || !isPropietario) return;
 
-    // ✅ v342.0: Defer cart subscription to background
-    navigationOptimizer.deferWithPriority(() => {
-      const subscription = supabase
-        .channel('cart-updates-v342')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'shopping_cart',
-            filter: `user_id=eq.${userId}`,
-          },
-          () => {
-            if (isFocusedRef.current) {
-              loadCartItemsCount();
-            }
-          }
-        )
-        .subscribe();
+    const subscription = supabase
+      .channel('cart-updates-v320')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'shopping_cart',
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          console.log('[Perfil v320.0] 🛒 Cart updated, reloading count...');
+          loadCartItemsCount();
+        }
+      )
+      .subscribe();
 
-      return () => {
-        supabase.removeChannel(subscription);
-      };
-    }, 'LOW');
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, [userId, isPropietario, loadCartItemsCount]);
 
   const displayName = user?.nombre || 'Usuario';
@@ -719,16 +686,17 @@ export default function PerfilScreen() {
     router.push('/crear/publicacion');
   };
 
-  const handlePostClick = (postId: string, index: number) => {
-    setSelectedPostIndex(index);
-    setViewMode('list');
-  };
-
-  const handleBackToGrid = () => {
-    setViewMode('grid');
+  const handlePostClick = (postId: string) => {
+    const currentPosts = activeTab === 'posts' ? posts : activeTab === 'favoritos' ? savedPosts : taggedPosts;
+    const postIds = currentPosts.map(p => p.id);
+    
+    setSelectedPostId(postId);
+    setAllPostIds(postIds);
+    setShowPostViewer(true);
   };
 
   const handleCartCheckout = async (items: any[], total: number) => {
+    console.log('[Perfil v320.0] 💳 Checkout requested:', { items: items.length, total });
     Alert.alert(
       'Pago en Desarrollo',
       `Total a pagar: €${total.toFixed(2)}\n\nLa integración con Stripe está en desarrollo.`,
@@ -761,6 +729,7 @@ export default function PerfilScreen() {
               setCheckInInfo(null);
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
             } catch (error) {
+              console.error('[Perfil v320.0] Error exiting local:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -792,13 +761,11 @@ export default function PerfilScreen() {
       ? post.imagenes[0] 
       : post.imagen;
 
-    const postIndex = currentPosts.indexOf(post);
-
     return (
       <View key={post.id} style={styles.gridItemWrapper}>
         <TouchableOpacity
           style={styles.gridItem}
-          onPress={() => handlePostClick(post.id, postIndex)}
+          onPress={() => handlePostClick(post.id)}
           activeOpacity={0.8}
         >
           {firstImage ? (
@@ -989,22 +956,12 @@ export default function PerfilScreen() {
         )}
 
         <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            style={[
-              styles.actionButton,
-              Platform.OS === 'android' && styles.actionButtonAndroid
-            ]} 
-            onPress={handleEditProfile}
-          >
+          <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
             <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.headerText} />
             <Text style={[styles.actionButtonText, { fontSize: scaleFontSize(15) }]}>Editar Perfil</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[
-              styles.actionButton, 
-              styles.createButton,
-              Platform.OS === 'android' && styles.actionButtonAndroid
-            ]} 
+            style={[styles.actionButton, styles.createButton]} 
             onPress={handleCrearPublicacion}
           >
             <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={18} color={colors.white} />
@@ -1066,69 +1023,6 @@ export default function PerfilScreen() {
   const currentPosts = activeTab === 'posts' ? posts : activeTab === 'favoritos' ? savedPosts : taggedPosts;
 
   const iconSize = Platform.OS === 'android' ? 20 : 24;
-  const tabIconSize = Platform.OS === 'android' ? 20 : 24;
-
-  const renderPostInList = ({ item }: { item: Post }) => (
-    <PublicacionCard 
-      post={item} 
-      onUpdate={() => {
-        if (activeTab === 'posts') {
-          cargarPosts();
-        } else if (activeTab === 'favoritos') {
-          cargarFavoritos();
-        } else if (activeTab === 'etiquetados') {
-          cargarEtiquetados();
-        }
-      }}
-    />
-  );
-
-  if (viewMode === 'list' && activeTab !== 'empleo') {
-    return (
-      <View style={commonStyles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.listViewHeader}
-        >
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={handleBackToGrid}
-          >
-            <IconSymbol 
-              ios_icon_name="chevron.left" 
-              android_material_icon_name="arrow_back" 
-              size={24} 
-              color={colors.headerText} 
-            />
-          </TouchableOpacity>
-          <Text style={[styles.listViewHeaderTitle, { fontSize: scaleFontSize(18) }]}>Publicaciones</Text>
-          <View style={{ width: 40 }} />
-        </LinearGradient>
-
-        <FlatList
-          data={currentPosts}
-          renderItem={renderPostInList}
-          keyExtractor={(item) => item.id}
-          initialScrollIndex={selectedPostIndex}
-          getItemLayout={(data, index) => ({
-            length: 600,
-            offset: 600 * index,
-            index,
-          })}
-          onScrollToIndexFailed={(info) => {
-            // Silent fail
-          }}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listViewContent}
-          removeClippedSubviews={false}
-          maxToRenderPerBatch={3}
-          windowSize={5}
-        />
-      </View>
-    );
-  }
 
   return (
     <View style={commonStyles.container}>
@@ -1207,60 +1101,61 @@ export default function PerfilScreen() {
           style={styles.profileHeaderGradient}
         >
           {renderProfileHeader()}
-
-          {userId && (
-            <View style={{ paddingTop: 16 }}>
-              <SolicitudPropiedadStatus userId={userId} />
-            </View>
-          )}
-
-          <View style={styles.tabsContainer}>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
-              onPress={() => setActiveTab('posts')}
-            >
-              <IconSymbol 
-                ios_icon_name="square.grid.3x3" 
-                android_material_icon_name="grid_on"
-                size={tabIconSize} 
-                color={activeTab === 'posts' ? colors.white : 'rgba(255, 255, 255, 0.6)'} 
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'favoritos' && styles.tabActive]}
-              onPress={() => setActiveTab('favoritos')}
-            >
-              <IconSymbol 
-                ios_icon_name="bookmark" 
-                android_material_icon_name="bookmark_border"
-                size={tabIconSize} 
-                color={activeTab === 'favoritos' ? colors.white : 'rgba(255, 255, 255, 0.6)'} 
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'etiquetados' && styles.tabActive]}
-              onPress={() => setActiveTab('etiquetados')}
-            >
-              <IconSymbol 
-                ios_icon_name="person.crop.square" 
-                android_material_icon_name="person_outline"
-                size={tabIconSize} 
-                color={activeTab === 'etiquetados' ? colors.white : 'rgba(255, 255, 255, 0.6)'} 
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
-              onPress={() => setActiveTab('empleo')}
-            >
-              <IconSymbol 
-                ios_icon_name="briefcase.fill" 
-                android_material_icon_name="work"
-                size={tabIconSize} 
-                color={activeTab === 'empleo' ? colors.white : 'rgba(255, 255, 255, 0.6)'} 
-              />
-            </TouchableOpacity>
-          </View>
         </LinearGradient>
+
+        {userId && (
+          <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
+            <SolicitudPropiedadStatus userId={userId} />
+          </View>
+        )}
+
+        {/* ✅ FIX v320.0: Reduced spacing between profile section and tabs */}
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
+            onPress={() => setActiveTab('posts')}
+          >
+            <IconSymbol 
+              ios_icon_name="square.grid.3x3" 
+              android_material_icon_name="grid_on"
+              size={24} 
+              color={activeTab === 'posts' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'favoritos' && styles.tabActive]}
+            onPress={() => setActiveTab('favoritos')}
+          >
+            <IconSymbol 
+              ios_icon_name="bookmark" 
+              android_material_icon_name="bookmark_border"
+              size={24} 
+              color={activeTab === 'favoritos' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'etiquetados' && styles.tabActive]}
+            onPress={() => setActiveTab('etiquetados')}
+          >
+            <IconSymbol 
+              ios_icon_name="person.crop.square" 
+              android_material_icon_name="person_outline"
+              size={24} 
+              color={activeTab === 'etiquetados' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
+            onPress={() => setActiveTab('empleo')}
+          >
+            <IconSymbol 
+              ios_icon_name="briefcase.fill" 
+              android_material_icon_name="work"
+              size={24} 
+              color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.content}>
           {activeTab === 'empleo' ? (
@@ -1423,6 +1318,29 @@ export default function PerfilScreen() {
         onClose={() => setShowMomentoViewer(false)}
       />
 
+      {selectedPostId && allPostIds.length > 0 && (
+        <PostViewerModal
+          visible={showPostViewer}
+          initialPostId={selectedPostId}
+          allPostIds={allPostIds}
+          hideTagIcon={true}
+          onClose={() => {
+            setShowPostViewer(false);
+            setSelectedPostId(null);
+            setAllPostIds([]);
+          }}
+          onUpdate={() => {
+            if (activeTab === 'posts') {
+              cargarPosts();
+            } else if (activeTab === 'favoritos') {
+              cargarFavoritos();
+            } else if (activeTab === 'etiquetados') {
+              cargarEtiquetados();
+            }
+          }}
+        />
+      )}
+
       <ProfileSwitcher
         visible={showProfileSwitcher}
         onClose={() => setShowProfileSwitcher(false)}
@@ -1440,19 +1358,19 @@ const styles = StyleSheet.create({
   },
   scrollableHeader: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
-    paddingBottom: Platform.OS === 'android' ? 6 : 8,
+    paddingBottom: Platform.OS === 'android' ? 8 : 12,
     paddingHorizontal: 20,
     justifyContent: 'flex-end',
     alignItems: 'flex-end',
   },
   headerWithoutTitle: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
-    paddingBottom: Platform.OS === 'android' ? 6 : 8,
+    paddingBottom: Platform.OS === 'android' ? 8 : 12,
     paddingHorizontal: 20,
   },
   profileHeaderGradient: {
-    paddingTop: 8,
-    paddingBottom: 0,
+    paddingTop: 12,
+    paddingBottom: 8,
     paddingHorizontal: 20,
   },
   headerActions: {
@@ -1601,7 +1519,8 @@ const styles = StyleSheet.create({
   },
   statLabelCompact: {
     color: 'rgba(255, 255, 255, 0.85)',
-    fontWeight: '500',},
+    fontWeight: '500',
+  },
   switchProfileButton: {
     padding: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
@@ -1787,7 +1706,6 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 7,
   },
   actionButton: {
     flex: 1,
@@ -1799,9 +1717,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 6,
   },
-  actionButtonAndroid: {
-    paddingVertical: 6,
-  },
   createButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
@@ -1812,8 +1727,9 @@ const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
-    marginTop: 4,
+    borderBottomColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+    marginTop: 0,
   },
   tab: {
     flex: 1,
@@ -1823,7 +1739,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabActive: {
-    borderBottomColor: colors.white,
+    borderBottomColor: colors.primary,
   },
   postsGrid: {
     flexDirection: 'row',
@@ -1992,28 +1908,5 @@ const styles = StyleSheet.create({
   },
   perfilProfesionalButtonTextSecondary: {
     color: colors.primary,
-  },
-  listViewHeader: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 48,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  listViewHeaderTitle: {
-    fontWeight: '700',
-    color: colors.headerText,
-    flex: 1,
-    textAlign: 'center',
-  },
-  listViewContent: {
-    paddingBottom: 100,
   },
 });

@@ -4,7 +4,6 @@ import { supabase } from '@/app/integrations/supabase/client';
 import { AuthUser, getCurrentUser } from '@/utils/auth';
 import { registerForPushNotifications, savePushToken } from '@/utils/notifications';
 import { Session } from '@supabase/supabase-js';
-import { Platform } from 'react-native';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -18,27 +17,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// ✅ CRITICAL: Disable console logs on Android for performance
-const log = Platform.OS === 'android' ? () => {} : console.log;
-const warn = Platform.OS === 'android' ? () => {} : console.warn;
-const error = Platform.OS === 'android' ? () => {} : console.error;
-
 /**
- * ✅ AUTH CONTEXT v337.0 - ULTRA-FAST GUEST MODE REPLICATION
+ * ✅ AUTH CONTEXT v289.0 - ANDROID PERFORMANCE OPTIMIZATION
  * 
- * CRITICAL FIXES v337.0 (FINAL PERFORMANCE PARITY):
- * - ✅ INSTANT SESSION LOAD: No waiting for session validation on Android
- * - ✅ ZERO BLOCKING OPERATIONS: All auth operations are non-blocking
- * - ✅ DISABLED PUSH NOTIFICATIONS: Completely disabled on Android
- * - ✅ MINIMAL SESSION CHECKS: Only when absolutely necessary
- * - ✅ BACKGROUND USER FETCH: User data loads in background, doesn't block UI
- * - ✅ 100% GUEST MODE PARITY: Identical instant experience
+ * CRITICAL FIXES v289.0:
+ * - ✅ LAZY PUSH NOTIFICATIONS: Moved push token registration to background (non-blocking)
+ * - ✅ DELAYED REGISTRATION: Push notifications register 3 seconds after login
+ * - ✅ NO UI BLOCKING: User can interact immediately while notifications register
+ * - ✅ REDUCED LOGGING: Minimized console logs to prevent performance overhead
+ * - ✅ OPTIMIZED REFRESH: Increased refresh interval from 15 to 30 minutes
+ * - ✅ ANDROID OPTIMIZATION: Eliminated startup blocking operations
  * 
- * PREVIOUS FIXES v295.0:
- * - ✅ INSTANT LOGIN: User sees UI immediately, no waiting
- * - ✅ DISABLED PUSH NOTIFICATIONS: Completely disabled on Android
- * - ✅ ZERO BACKGROUND OPERATIONS: No automatic operations on Android
- * - ✅ 100% IDENTICAL TO GUEST MODE: Same instant, responsive experience
+ * Previous fixes maintained (v35.0):
+ * - ✅ Immediate session updates
+ * - ✅ Proper session refresh handling
+ * - ✅ Error recovery mechanisms
  */
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -54,7 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (newSession) {
       getCurrentUser().then(({ user: userData, error: userError }) => {
-        if (!userError && userData) {
+        if (userError) {
+          console.error('[AuthContext v289.0] ❌ Error cargando perfil:', userError);
+        } else if (userData) {
           setUser(userData);
         }
       });
@@ -75,8 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const now = Date.now();
       const timeUntilExpiry = expiresAt - now;
 
-      // ✅ v293.0: Only refresh if < 2 minutes to expiry (was 3)
-      if (timeUntilExpiry < 2 * 60 * 1000) {
+      if (timeUntilExpiry < 5 * 60 * 1000) {
         const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
         
         if (refreshError) {
@@ -101,7 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(currentSession);
       setSessionReady(true);
       return currentSession;
-    } catch (err) {
+    } catch (error) {
+      console.error('[AuthContext v289.0] ❌ Error en ensureValidSession:', error);
       return null;
     }
   };
@@ -109,38 +104,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // ✅ v337.0: CRITICAL ANDROID PERFORMANCE FIX
-        // On Android, we load session instantly without validation
-        // This replicates guest mode's instant startup
-        if (Platform.OS === 'android') {
-          // ✅ INSTANT: Get session without waiting for validation
-          const { data: { session: currentSession } } = await supabase.auth.getSession();
-          
-          if (currentSession) {
-            // ✅ INSTANT: Set session immediately (no validation delay)
-            setSession(currentSession);
-            setSessionReady(true);
-            
-            // ✅ BACKGROUND: Load user data in background (doesn't block UI)
-            setTimeout(() => {
-              getCurrentUser().then(({ user: userData, error: userError }) => {
-                if (!userError && userData) {
-                  setUser(userData);
-                }
-              });
-            }, 100); // Minimal delay to ensure UI renders first
-          }
-          
-          // ✅ INSTANT: Mark as ready immediately
-          setInitializing(false);
-          setLoading(false);
-          return;
-        }
-        
-        // iOS: Keep original behavior (more robust validation)
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
+          console.error('[AuthContext v289.0] ❌ Error obteniendo sesión:', sessionError);
           setInitializing(false);
           setLoading(false);
           return;
@@ -152,23 +119,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           const { user: userData, error: userError } = await getCurrentUser();
           
-          if (!userError && userData) {
+          if (userError) {
+            console.error('[AuthContext v289.0] ❌ Error cargando perfil:', userError);
+          } else if (userData) {
             setUser(userData);
             
-            // iOS can handle push notifications
+            // ✅ CRITICAL FIX v289.0: LAZY PUSH NOTIFICATIONS
+            // Register push notifications in background after 3 seconds
+            // This prevents blocking the UI thread on Android startup
             setTimeout(() => {
+              console.log('[AuthContext v289.0] 📱 Starting background push notification registration...');
               registerForPushNotifications()
                 .then(pushToken => {
                   if (pushToken) {
-                    savePushToken(userData.id, pushToken).catch(() => {});
+                    savePushToken(userData.id, pushToken)
+                      .then(() => {
+                        console.log('[AuthContext v289.0] ✅ Push token saved in background');
+                      })
+                      .catch((error) => {
+                        console.error('[AuthContext v289.0] ⚠️ Error saving push token (non-critical):', error);
+                      });
                   }
                 })
-                .catch(() => {});
-            }, 10000);
+                .catch((error) => {
+                  console.error('[AuthContext v289.0] ⚠️ Error registering push notifications (non-critical):', error);
+                });
+            }, 3000); // ✅ Delay 3 seconds to allow UI to load first
           }
         }
-      } catch (err) {
-        // Silent error
+      } catch (error) {
+        console.error('[AuthContext v289.0] ❌ Error inicializando:', error);
       } finally {
         setInitializing(false);
         setLoading(false);
@@ -195,25 +175,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       if (event === 'SIGNED_IN' && currentSession) {
-        // ✅ v337.0: INSTANT LOGIN on Android (guest mode parity)
-        if (Platform.OS === 'android') {
-          // ✅ INSTANT: Set session immediately, no validation delay
-          setSession(currentSession);
-          setSessionReady(true);
-          
-          // ✅ BACKGROUND: Load user data in background
-          setTimeout(() => {
-            getCurrentUser().then(({ user: userData, error: userError }) => {
-              if (!userError && userData) {
-                setUser(userData);
-              }
-            });
-          }, 100);
-          
-          return; // Skip iOS validation flow
-        }
-        
-        // iOS: Keep original validation flow
         setLoading(true);
         
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -221,16 +182,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { session: verifiedSession } } = await supabase.auth.getSession();
         
         if (!verifiedSession) {
+          console.error('[AuthContext v289.0] ❌ Session lost after wait');
           setLoading(false);
           return;
         }
         
         const { user: userData, error: userError } = await getCurrentUser();
         
-        if (!userError && userData) {
+        if (userError) {
+          console.error('[AuthContext v289.0] ❌ Error cargando perfil después de login:', userError);
+        } else if (userData) {
           setUser(userData);
           
+          // ✅ CRITICAL FIX v289.0: LAZY PUSH NOTIFICATIONS on login
           setTimeout(() => {
+            console.log('[AuthContext v289.0] 📱 Starting background push notification registration after login...');
             registerForPushNotifications()
               .then(pushToken => {
                 if (pushToken) {
@@ -238,7 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
               })
               .catch(() => {});
-          }, 10000);
+          }, 3000);
         }
         
         setLoading(false);
@@ -258,33 +224,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     subscription = data.subscription;
 
-    // ✅ v337.0: DISABLED on Android (guest mode doesn't refresh sessions)
-    // Guest mode = no background session checks = instant performance
-    if (Platform.OS !== 'android') {
-      refreshInterval = setInterval(async () => {
-        try {
-          const { data: { session: currentSession } } = await supabase.auth.getSession();
+    // ✅ FIX v289.0: Increased refresh interval to 30 minutes (from 15)
+    refreshInterval = setInterval(async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        if (currentSession) {
+          const expiresAt = currentSession.expires_at! * 1000;
+          const now = Date.now();
+          const timeUntilExpiry = expiresAt - now;
           
-          if (currentSession) {
-            const expiresAt = currentSession.expires_at! * 1000;
-            const now = Date.now();
-            const timeUntilExpiry = expiresAt - now;
+          if (timeUntilExpiry < 10 * 60 * 1000) {
+            const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
             
-            // Only refresh if < 2 minutes until expiry
-            if (timeUntilExpiry < 2 * 60 * 1000) {
-              const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
-              
-              if (!error && refreshedSession) {
-                setSession(refreshedSession);
-                setSessionReady(true);
-              }
+            if (!error && refreshedSession) {
+              setSession(refreshedSession);
+              setSessionReady(true);
             }
           }
-        } catch (err) {
-          // Silent fail
         }
-      }, 3 * 60 * 60 * 1000);
-    }
+      } catch (error) {
+        // Silent fail - non-critical background operation
+      }
+    }, 30 * 60 * 1000); // ✅ Check every 30 minutes (from 15)
 
     return () => {
       if (subscription) {
@@ -298,12 +260,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleSignOut = async () => {
     try {
+      // ✅ FIX v325.0: IMMEDIATE UI UPDATE - User sees logout instantly
+      console.log('[AuthContext v325.0] 🚪 Logging out - immediate UI update');
       setUser(null);
       setSession(null);
       setSessionReady(false);
       
-      supabase.auth.signOut().then(() => {}).catch(() => {});
-    } catch (err) {
+      // ✅ Backend logout continues in background (non-blocking)
+      supabase.auth.signOut().then(({ error }) => {
+        if (error) {
+          console.error('[AuthContext v325.0] ⚠️ Error cerrando sesión en backend (non-critical):', error);
+        } else {
+          console.log('[AuthContext v325.0] ✅ Backend logout completed');
+        }
+      }).catch((error) => {
+        console.error('[AuthContext v325.0] ⚠️ Error en signOut backend (non-critical):', error);
+      });
+      
+      // User is already logged out from UI perspective
+      console.log('[AuthContext v325.0] ✅ User logged out from UI immediately');
+    } catch (error) {
+      console.error('[AuthContext v325.0] ❌ Error en signOut:', error);
+      // Even if there's an error, ensure user is logged out from UI
       setUser(null);
       setSession(null);
       setSessionReady(false);
@@ -319,8 +297,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userData) {
         setUser(userData);
       }
-    } catch (err) {
-      // Silent error
+    } catch (error) {
+      console.error('[AuthContext v289.0] ❌ Error refrescando usuario:', error);
     } finally {
       setLoading(false);
     }

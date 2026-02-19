@@ -12,7 +12,6 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-import Slider from '@react-native-community/slider';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,7 +19,6 @@ import { Filtros } from '@/types';
 import { useFilters } from '@/contexts/FilterContext';
 import { useRouter } from 'expo-router';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
   'Andalucía': ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
@@ -45,26 +43,13 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ANDROID FULL-SCREEN FILTERS PAGE v3.1 - CATEGORY SYNC + DYNAMIC + INSTANT
+ * ✅ ANDROID FULL-SCREEN FILTERS PAGE
  * 
- * NEW FEATURES v3.1:
- * - 🔄 CATEGORY SYNC: Filters sync with category selection
- * - ✅ Bidirectional sync: Category ↔ Tipo filter
- * - ✅ Opens with current category pre-selected
- * - ✅ Applying filters updates category in Explorar
- * 
- * Previous features v3.0:
- * - 🎯 DYNAMIC FILTERS: Only show characteristics with active locales
- * - ⚡ INSTANT CLEAR: Synchronous UI update, background fetch
- * - 🎚️ SLIDER: Replaced text input with slider (1-100km range)
- * - ✅ Real-time value display on slider
- * - ✅ Smooth UX with no lag on clear
- * - ✅ Safe area insets for Android system buttons
+ * This is a full-screen page for Android that replaces the modal approach.
+ * Provides proper scaling and full-height display on Android.
  */
 export default function FiltrosAvanzadosScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  
   const { 
     filtros: contextFiltros, 
     aplicarFiltros: contextAplicarFiltros, 
@@ -72,7 +57,6 @@ export default function FiltrosAvanzadosScreen() {
     dynamicOptions,
     refreshDynamicOptions,
     isLoadingOptions,
-    selectedCategory,
   } = useFilters();
   
   const [filtrosTemp, setFiltrosTemp] = useState<Filtros>(contextFiltros);
@@ -89,19 +73,10 @@ export default function FiltrosAvanzadosScreen() {
   });
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados Android v3.1] 🔄 Page opened, loading filters');
-    console.log('[FiltrosAvanzados Android v3.1] 🏷️ Current category:', selectedCategory);
-    
-    // ✅ SYNC v3.1: Initialize with current category
-    const syncedFiltros = { ...contextFiltros };
-    if (selectedCategory && selectedCategory !== 'todas') {
-      syncedFiltros.tipo = [selectedCategory];
-      console.log('[FiltrosAvanzados Android v3.1] 🔄 Synced tipo filter with category:', selectedCategory);
-    }
-    
-    setFiltrosTemp(syncedFiltros);
+    console.log('[FiltrosAvanzados Android] 🔄 Page opened, loading filters');
+    setFiltrosTemp(contextFiltros);
     refreshDynamicOptions();
-  }, [contextFiltros, refreshDynamicOptions, selectedCategory]);
+  }, [contextFiltros, refreshDynamicOptions]);
 
   const toggleArrayItem = useCallback((array: string[] | undefined, item: string): string[] => {
     const arr = array || [];
@@ -140,25 +115,20 @@ export default function FiltrosAvanzadosScreen() {
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados Android v2.0] ✅ Applying filters:', filtrosTemp);
+    console.log('[FiltrosAvanzados Android] ✅ Applying filters:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     router.back();
   }, [filtrosTemp, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados Android v3.1] 🧹 Clearing all filters - INSTANT UI UPDATE');
-    
-    // ✅ PASO 1: Actualizar UI INMEDIATAMENTE (síncrono)
+    console.log('[FiltrosAvanzados Android] 🧹 Clearing all filters');
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
-    
-    // ✅ PASO 2: Actualizar contexto INMEDIATAMENTE (síncrono)
-    // This ensures the filters are cleared immediately
     contextLimpiarFiltros();
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados Android v2.0] 📍 Selected comunidad:', selectedComunidad);
+    console.log('[FiltrosAvanzados Android] 📍 Selected comunidad:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -182,7 +152,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados Android v2.0] 📍 Selected provincia:', provincia);
+    console.log('[FiltrosAvanzados Android] 📍 Selected provincia:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -191,11 +161,10 @@ export default function FiltrosAvanzadosScreen() {
     setSearchProvincia('');
   }, []);
 
-  const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados Android v3.0] 📏 Radius changed to:', value, 'km');
+  const handleDistanciaChange = useCallback((text: string) => {
     setFiltrosTemp(prev => ({
       ...prev,
-      distancia: value,
+      distancia: text ? parseFloat(text) : undefined,
     }));
   }, []);
 
@@ -339,10 +308,6 @@ export default function FiltrosAvanzadosScreen() {
     return count;
   }, [filtrosTemp]);
 
-  // ✅ CRITICAL FIX v2.0: Calculate proper bottom padding for Android system buttons
-  const footerPaddingBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 20) : 20;
-  const scrollContentPaddingBottom = Platform.OS === 'android' ? 120 + insets.bottom : 120;
-
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -370,7 +335,7 @@ export default function FiltrosAvanzadosScreen() {
       <ScrollView 
         style={styles.content} 
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.contentContainer, { paddingBottom: scrollContentPaddingBottom }]}
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: getContentBottomPadding(100) }]}
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}
         updateCellsBatchingPeriod={50}
@@ -411,7 +376,7 @@ export default function FiltrosAvanzadosScreen() {
                 <TouchableOpacity
                   style={styles.locationButton}
                   onPress={() => {
-                    console.log('[FiltrosAvanzados Android v2.0] 🔍 Opening comunidad modal');
+                    console.log('[FiltrosAvanzados Android] 🔍 Opening comunidad modal');
                     setShowComunidadModal(true);
                   }}
                 >
@@ -429,7 +394,7 @@ export default function FiltrosAvanzadosScreen() {
                   ]}
                   onPress={() => {
                     if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
-                      console.log('[FiltrosAvanzados Android v2.0] 🔍 Opening provincia modal');
+                      console.log('[FiltrosAvanzados Android] 🔍 Opening provincia modal');
                       setShowProvinciaModal(true);
                     }
                   }}
@@ -444,34 +409,16 @@ export default function FiltrosAvanzadosScreen() {
               </View>
 
               <View style={styles.distanceContainer}>
-                <View style={styles.distanceHeader}>
-                  <View style={styles.distanceLabelRow}>
-                    <IconSymbol ios_icon_name="location.circle" android_material_icon_name="location_on" size={scaleIconSize(14)} color={colors.primary} />
-                    <Text style={[styles.distanceLabel, { fontSize: scaleFontSize(12) }]}>Radio de búsqueda</Text>
-                  </View>
-                  <View style={styles.distanceValueBadge}>
-                    <Text style={[styles.distanceValueText, { fontSize: scaleFontSize(14) }]}>
-                      {filtrosTemp.distancia ? `${Math.round(filtrosTemp.distancia)} km` : '50 km'}
-                    </Text>
-                  </View>
-                </View>
-                
-                <Slider
-                  style={styles.slider}
-                  minimumValue={1}
-                  maximumValue={100}
-                  step={1}
-                  value={filtrosTemp.distancia || 50}
-                  onValueChange={handleDistanciaChange}
-                  minimumTrackTintColor={colors.primary}
-                  maximumTrackTintColor={colors.cardBorder}
-                  thumbTintColor={colors.primary}
+                <IconSymbol ios_icon_name="location.circle" android_material_icon_name="location_on" size={scaleIconSize(14)} color={colors.primary} />
+                <Text style={[styles.distanceLabel, { fontSize: scaleFontSize(12) }]}>Radio de búsqueda</Text>
+                <TextInput
+                  style={[styles.distanceInput, { fontSize: scaleFontSize(12) }]}
+                  placeholder="km"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="numeric"
+                  value={filtrosTemp.distancia?.toString() || ''}
+                  onChangeText={handleDistanciaChange}
                 />
-                
-                <View style={styles.sliderLabels}>
-                  <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>1 km</Text>
-                  <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>100 km</Text>
-                </View>
               </View>
             </View>
           )}
@@ -708,8 +655,7 @@ export default function FiltrosAvanzadosScreen() {
         )}
       </ScrollView>
 
-      {/* ✅ CRITICAL FIX v2.0: Footer with proper padding for Android system buttons */}
-      <View style={[styles.footer, { paddingBottom: footerPaddingBottom }]}>
+      <View style={styles.footer}>
         <TouchableOpacity style={styles.aplicarButton} onPress={handleAplicar}>
           <LinearGradient
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -1015,53 +961,32 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  distanceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  distanceLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   distanceLabel: {
+    flex: 1,
     fontWeight: '600',
     color: colors.text,
   },
-  distanceValueBadge: {
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+  distanceInput: {
+    width: 50,
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: colors.primary + '40',
-  },
-  distanceValueText: {
-    fontWeight: '700',
-    color: colors.primary,
-    letterSpacing: 0.5,
-  },
-  slider: {
-    width: '100%',
-    height: 40,
-  },
-  sliderLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  sliderLabelText: {
-    fontWeight: '500',
-    color: colors.textSecondary,
+    borderColor: colors.cardBorder,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
   },
   chipContainer: {
     flexDirection: 'row',

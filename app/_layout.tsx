@@ -15,17 +15,6 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { colors } from '@/styles/commonStyles';
 import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Platform } from 'react-native';
-
-/**
- * ✅ ROOT LAYOUT v11.0 - SALA VIRTUAL FULL SCREEN FIX (iOS)
- * 
- * CHANGES v11.0:
- * - ✅ FIXED: Sala virtual ahora usa presentation: 'card' explícitamente (NO modal)
- * - ✅ FIXED: Configuración específica para iOS para evitar comportamiento de modal
- * - ✅ FIXED: headerShown = false para pantalla completa
- * - ✅ RESULTADO: Experiencia consistente en iOS y Android - pantalla completa
- */
 
 export default function RootLayout() {
   return (
@@ -55,13 +44,7 @@ export default function RootLayout() {
                                 <Stack.Screen name="detalle" options={{ headerShown: false }} />
                                 <Stack.Screen name="crear" options={{ headerShown: false }} />
                                 <Stack.Screen name="editar" options={{ headerShown: false }} />
-                                <Stack.Screen 
-                                  name="perfil" 
-                                  options={{ 
-                                    headerShown: false,
-                                    presentation: 'card',
-                                  }} 
-                                />
+                                <Stack.Screen name="perfil" options={{ headerShown: false }} />
                                 <Stack.Screen name="chat" options={{ headerShown: false }} />
                                 <Stack.Screen name="social" options={{ headerShown: false }} />
                                 <Stack.Screen name="explorar" options={{ headerShown: false }} />
@@ -72,43 +55,50 @@ export default function RootLayout() {
                                 <Stack.Screen name="soporte" options={{ headerShown: false }} />
                                 <Stack.Screen name="legal" options={{ headerShown: false }} />
                                 
-                                {/* Modal presentations */}
-                                <Stack.Group screenOptions={{ presentation: 'modal' }}>
-                                  <Stack.Screen name="modal" options={{ title: 'Modal' }} />
-                                  <Stack.Screen name="formsheet" options={{ presentation: 'formSheet' }} />
-                                  <Stack.Screen name="transparent-modal" options={{ presentation: 'transparentModal' }} />
-                                </Stack.Group>
+                {/* Modal presentations */}
+                <Stack.Group screenOptions={{ presentation: 'modal' }}>
+                  <Stack.Screen name="modal" options={{ title: 'Modal' }} />
+                  <Stack.Screen name="formsheet" options={{ presentation: 'formSheet' }} />
+                  <Stack.Screen name="transparent-modal" options={{ presentation: 'transparentModal' }} />
+                </Stack.Group>
 
-                                {/* Full screen modals for social features */}
-                                <Stack.Group screenOptions={{ presentation: 'fullScreenModal' }}>
-                                  <Stack.Screen 
-                                    name="social/editar-descripcion" 
-                                    options={{ 
-                                      title: 'Editar Descripción',
-                                      headerShown: true,
-                                    }} 
-                                  />
-                                  <Stack.Screen 
-                                    name="social/gestionar-etiquetas" 
-                                    options={{ 
-                                      title: 'Gestionar Etiquetas',
-                                      headerShown: true,
-                                    }} 
-                                  />
-                                </Stack.Group>
-                              </Stack>
-                            </SelectedLocalProvider>
-                          </WidgetProvider>
-                        </UIScalingProvider>
-                      </AvatarProvider>
-                    </PostsProvider>
-                  </FilterProvider>
-                </GlobalDataProvider>
-              </FavoritesProvider>
-            </ModeProvider>
-          </ImpersonationProvider>
-        </AuthProvider>
-      </ErrorBoundary>
+                {/* Full screen modals for social features */}
+                <Stack.Group screenOptions={{ presentation: 'fullScreenModal' }}>
+                  <Stack.Screen 
+                    name="social/editar-descripcion" 
+                    options={{ 
+                      title: 'Editar Descripción',
+                      headerShown: true,
+                    }} 
+                  />
+                  <Stack.Screen 
+                    name="social/gestionar-etiquetas" 
+                    options={{ 
+                      title: 'Gestionar Etiquetas',
+                      headerShown: true,
+                    }} 
+                  />
+                  <Stack.Screen 
+                    name="detalle/sala-virtual-enhanced" 
+                    options={{ 
+                      title: 'Sala Virtual',
+                      headerShown: true,
+                    }} 
+                  />
+                </Stack.Group>
+              </Stack>
+            </SelectedLocalProvider>
+          </WidgetProvider>
+        </UIScalingProvider>
+      </AvatarProvider>
+    </PostsProvider>
+  </FilterProvider>
+</GlobalDataProvider>
+</FavoritesProvider>
+</ModeProvider>
+</ImpersonationProvider>
+</AuthProvider>
+</ErrorBoundary>
     </GestureHandlerRootView>
   );
 }

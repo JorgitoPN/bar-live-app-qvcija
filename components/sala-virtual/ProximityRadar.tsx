@@ -23,7 +23,6 @@ export function ProximityRadar({ nearbyCount, themeColors, mode }: ProximityRada
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
-  // ✅ LINT FIX: Added animation dependencies (already present, no change needed)
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -47,7 +46,7 @@ export function ProximityRadar({ nearbyCount, themeColors, mode }: ProximityRada
         useNativeDriver: true,
       })
     ).start();
-  }, [pulseAnim, rotateAnim]);
+  }, []);
 
   const rotate = rotateAnim.interpolate({
     inputRange: [0, 1],

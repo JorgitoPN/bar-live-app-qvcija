@@ -1,36 +1,5 @@
 
 import { LocalCategory } from '@/types';
-import { Platform } from 'react-native';
-
-/**
- * ✅ CATEGORY UTILS v293.0 - ANDROID CRITICAL PERFORMANCE FIX
- * 
- * CRITICAL FIXES v293.0:
- * - ✅ MEMOIZATION CACHE: Results cached to prevent recalculation
- * - ✅ DISABLED CONSOLE LOGS: Removed ALL console.log on Android
- * - ✅ SILENT MODE: All operations run silently
- * - ✅ CACHE KEY: Uses JSON.stringify for stable cache keys
- * - ✅ ANDROID OPTIMIZATION: Zero console output + caching = massive performance gain
- * 
- * The excessive category checking (200+ calls per render) was blocking the Android UI thread.
- * This fix eliminates redundant calculations and console spam.
- */
-
-// ✅ CRITICAL FIX v293.0: Memoization cache to prevent recalculation
-const categoryCache = new Map<string, boolean>();
-const discoCache = new Map<string, boolean>();
-const iconCache = new Map<string, string>();
-
-// Clear cache every 5 minutes to prevent memory bloat
-if (Platform.OS === 'android') {
-  setInterval(() => {
-    if (categoryCache.size > 1000) {
-      categoryCache.clear();
-      discoCache.clear();
-      iconCache.clear();
-    }
-  }, 5 * 60 * 1000);
-}
 
 /**
  * Automatically categorize a venue based on its opening hours
@@ -77,7 +46,7 @@ export function autoCategorizeLocal(
     } else if (latestClose >= 1620 || latestClose <= 300) { // After 3:00 AM (27:00) or before 5:00 AM
       // Late closing (3:00-5:00 AM) → Pub, Coctelería
       categories.push('pub', 'cocteleria', 'bar');
-    } else if (latestClose > 1590 || latestClose <= 150) { // After 2:30 AM (26:00) or before 2:30 AM
+    } else if (latestClose > 1560 || latestClose <= 150) { // After 2:30 AM (26:00) or before 2:30 AM
       // Moderate late closing (2:30-3:00 AM) → Pub, Bar
       categories.push('pub', 'bar', 'lounge');
     } else {
@@ -199,10 +168,7 @@ function parseTimeRange(rango: string): { apertura: number; cierre: number } | n
 
     return { apertura, cierre };
   } catch (error) {
-    // ✅ v293.0: Silent error on Android
-    if (Platform.OS !== 'android') {
-      console.error('Error parsing time range:', rango, error);
-    }
+    console.error('Error parsing time range:', rango, error);
     return null;
   }
 }
@@ -290,8 +256,7 @@ export function getCategoryLabel(category: LocalCategory): string {
 }
 
 /**
- * ✅ CRITICAL FIX v293.0: Check if a venue should have the PUB category
- * NOW WITH MEMOIZATION CACHE to prevent excessive recalculation
+ * ✅ FIXED: Check if a venue should have the PUB category based on Spanish regulations
  * 
  * Spanish Hospitality Closing Time Regulations:
  * - Bares y cafeterías: Close between 1:30 AM and 2:30 AM
@@ -305,17 +270,9 @@ export function shouldHavePubCategory(horarios_completos: Record<string, string[
     return false;
   }
 
-  // ✅ CRITICAL FIX v293.0: Check cache first to avoid recalculation
-  const cacheKey = JSON.stringify(horarios_completos);
-  const cached = categoryCache.get(cacheKey);
-  if (cached !== undefined) {
-    return cached;
-  }
-
   const { latestClose } = analyzeSchedule(horarios_completos);
   
   if (latestClose === null) {
-    categoryCache.set(cacheKey, false);
     return false;
   }
 
@@ -324,43 +281,26 @@ export function shouldHavePubCategory(horarios_completos: Record<string, string[
   // If closing time is after midnight (e.g., 03:00 = 180 minutes), it will be > 1440 (e.g., 1620 for 03:00)
   // If closing time is before 6 AM (e.g., 03:00 = 180 minutes), it will be < 360
   
-  let result = false;
-  
   // Case 1: Closes after 2:30 AM same day (26:30 = 1590 minutes)
   // Example: 16:00–03:00 → latestClose = 1620 (03:00 next day)
   if (latestClose > 1590) {
-    // ✅ v293.0: Silent on Android
-    if (Platform.OS !== 'android') {
-      console.log(`[shouldHavePubCategory] ✅ Venue closes after 2:30 AM (${latestClose} minutes)`);
-    }
-    result = true;
+    console.log(`[shouldHavePubCategory] ✅ Venue closes after 2:30 AM (${latestClose} minutes)`);
+    return true;
   }
+  
   // Case 2: Closes before 6:00 AM next day (but after midnight)
   // Example: 03:00 = 180 minutes (before 6 AM)
-  else if (latestClose <= 360 && latestClose > 150) {
-    // ✅ v293.0: Silent on Android
-    if (Platform.OS !== 'android') {
-      console.log(`[shouldHavePubCategory] ✅ Venue closes between 2:30 AM and 6:00 AM (${latestClose} minutes)`);
-    }
-    result = true;
-  } else {
-    // ✅ v293.0: Silent on Android
-    if (Platform.OS !== 'android') {
-      console.log(`[shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at ${latestClose} minutes)`);
-    }
-    result = false;
+  if (latestClose <= 360 && latestClose > 150) {
+    console.log(`[shouldHavePubCategory] ✅ Venue closes between 2:30 AM and 6:00 AM (${latestClose} minutes)`);
+    return true;
   }
   
-  // ✅ CRITICAL FIX v293.0: Cache the result
-  categoryCache.set(cacheKey, result);
-  
-  return result;
+  console.log(`[shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at ${latestClose} minutes)`);
+  return false;
 }
 
 /**
- * ✅ CRITICAL FIX v293.0: Check if a venue should have the DISCOTECA category
- * NOW WITH MEMOIZATION CACHE to prevent excessive recalculation
- * 
+ * ✅ NEW: Check if a venue should have the DISCOTECA category based on closing time
  * Returns true if the venue closes after 5:00 AM (29:00 = 1740 minutes)
  */
 export function shouldHaveDiscoCategory(horarios_completos: Record<string, string[]> | null): boolean {
@@ -368,47 +308,24 @@ export function shouldHaveDiscoCategory(horarios_completos: Record<string, strin
     return false;
   }
 
-  // ✅ CRITICAL FIX v293.0: Check cache first to avoid recalculation
-  const cacheKey = JSON.stringify(horarios_completos);
-  const cached = discoCache.get(cacheKey);
-  if (cached !== undefined) {
-    return cached;
-  }
-
   const { latestClose } = analyzeSchedule(horarios_completos);
   
   if (latestClose === null) {
-    discoCache.set(cacheKey, false);
     return false;
   }
 
-  let result = false;
-  
   // Check if closes after 5:00 AM (29:00 = 1740 minutes)
   if (latestClose >= 1740 || (latestClose <= 360 && latestClose > 300)) {
-    // ✅ v293.0: Silent on Android
-    if (Platform.OS !== 'android') {
-      console.log(`[shouldHaveDiscoCategory] ✅ Venue closes after 5:00 AM (${latestClose} minutes) - qualifies as DISCOTECA`);
-    }
-    result = true;
-  } else {
-    // ✅ v293.0: Silent on Android
-    if (Platform.OS !== 'android') {
-      console.log(`[shouldHaveDiscoCategory] ❌ Venue does NOT qualify as discoteca (closes at ${latestClose} minutes)`);
-    }
-    result = false;
+    console.log(`[shouldHaveDiscoCategory] ✅ Venue closes after 5:00 AM (${latestClose} minutes) - qualifies as DISCOTECA`);
+    return true;
   }
   
-  // ✅ CRITICAL FIX v293.0: Cache the result
-  discoCache.set(cacheKey, result);
-  
-  return result;
+  console.log(`[shouldHaveDiscoCategory] ❌ Venue does NOT qualify as discoteca (closes at ${latestClose} minutes)`);
+  return false;
 }
 
 /**
- * ✅ CRITICAL FIX v293.0: Add PUB category to existing categories if venue closes after 2:30 AM
- * NOW WITH MEMOIZATION to prevent excessive recalculation
- * 
+ * Add PUB category to existing categories if venue closes after 2:30 AM
  * This ensures venues can have multiple categories like "Bar y Pub" or "Discoteca y Pub"
  */
 export function addPubCategoryIfNeeded(
@@ -420,13 +337,9 @@ export function addPubCategoryIfNeeded(
     return currentCategories;
   }
 
-  // ✅ CRITICAL FIX v293.0: Use memoized function to check
-  // This prevents recalculating the same schedule hundreds of times
+  // Check if should have pub category based on closing time
   if (shouldHavePubCategory(horarios_completos)) {
-    // ✅ v293.0: Silent on Android
-    if (Platform.OS !== 'android') {
-      console.log(`[addPubCategoryIfNeeded] ✅ Adding PUB category to:`, currentCategories);
-    }
+    console.log(`[addPubCategoryIfNeeded] ✅ Adding PUB category to:`, currentCategories);
     // Add pub to the beginning of the array (higher priority)
     return ['pub', ...currentCategories].slice(0, 3) as LocalCategory[];
   }
@@ -435,52 +348,36 @@ export function addPubCategoryIfNeeded(
 }
 
 /**
- * ✅ CRITICAL FIX v293.0: Get the primary icon for a venue based on closing time
- * NOW WITH MEMOIZATION CACHE to prevent excessive recalculation
- * 
+ * ✅ NEW: Get the primary icon for a venue based on closing time
  * Returns disco icon (🎵) for venues closing after 5:00 AM, pub icon (🍺) for venues closing after 2:30 AM
  */
 export function getPrimaryIconForVenue(
   categories: LocalCategory[],
   horarios_completos: Record<string, string[]> | null
 ): string {
-  // ✅ CRITICAL FIX v293.0: Check cache first
-  const cacheKey = JSON.stringify({ categories, horarios: horarios_completos });
-  const cached = iconCache.get(cacheKey);
-  if (cached !== undefined) {
-    return cached;
-  }
-  
-  let result: string;
-  
   // Check if venue closes after 5:00 AM → Show disco icon
   if (shouldHaveDiscoCategory(horarios_completos)) {
-    result = '🎵'; // Disco icon
+    return '🎵'; // Disco icon
   }
+  
   // Check if venue closes after 2:30 AM → Show pub icon
-  else if (shouldHavePubCategory(horarios_completos)) {
-    result = '🍺'; // Pub icon
+  if (shouldHavePubCategory(horarios_completos)) {
+    return '🍺'; // Pub icon
   }
+  
   // Otherwise, use the first category's icon
-  else {
-    const iconMap: Record<string, string> = {
-      cafe: '☕',
-      restaurante: '🍽️',
-      bar: '🍷',
-      pub: '🍺',
-      cocteleria: '🍸',
-      discoteca: '🎵',
-      sala_conciertos: '🎵',
-      terraza: '☀️',
-      rooftop: '🏢',
-      lounge: '🛋️',
-    };
-    
-    result = iconMap[categories[0]] || '📍';
-  }
+  const iconMap: Record<string, string> = {
+    cafe: '☕',
+    restaurante: '🍽️',
+    bar: '🍷',
+    pub: '🍺',
+    cocteleria: '🍸',
+    discoteca: '🎵',
+    sala_conciertos: '🎵',
+    terraza: '☀️',
+    rooftop: '🏢',
+    lounge: '🛋️',
+  };
   
-  // ✅ CRITICAL FIX v293.0: Cache the result
-  iconCache.set(cacheKey, result);
-  
-  return result;
+  return iconMap[categories[0]] || '📍';
 }

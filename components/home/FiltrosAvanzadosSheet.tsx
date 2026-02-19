@@ -12,7 +12,6 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import Slider from '@react-native-community/slider';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -49,26 +48,15 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ADVANCED FILTERS SHEET v50.0 - COMPLETE REBUILD FROM SCRATCH
+ * ✅ ADVANCED FILTERS SHEET v29.0 - ANDROID ICON FIX COMPLETE
  * 
- * RECONSTRUCCIÓN COMPLETA - SIN PARCHES:
- * - 🎯 ARQUITECTURA LIMPIA: Código completamente nuevo y estructurado
- * - ✅ FILTROS FUNCIONAN: Los filtros se aplican correctamente a la lista
- * - ✅ SINCRONIZACIÓN PERFECTA: Estado sincronizado entre filtros y resultados
- * - ✅ LÓGICA CLARA: Cada filtro tiene su propia función bien definida
- * - ✅ SIN BUGS: Eliminados todos los problemas de la versión anterior
- * - ✅ PERFORMANCE: Optimizado para respuesta rápida
- * - ✅ UX MEJORADA: Feedback visual inmediato al usuario
- * 
- * CARACTERÍSTICAS:
- * - Filtro por tipo de local (café, bar, restaurante, etc.)
- * - Filtro por servicios (wifi, terraza, parking, etc.)
- * - Filtro por ambiente (tranquilo, animado, etc.)
- * - Filtro por clientela (grupos, familias, etc.)
- * - Filtro por ubicación (comunidad y provincia)
- * - Filtro por distancia (radio de búsqueda)
- * - Contador de filtros activos
- * - Botón de limpiar filtros
+ * CRITICAL FIXES v29.0:
+ * - ✅ Fixed "tune" icon → "filter_list" (filtros avanzados)
+ * - ✅ Fixed "groups" icon → "people" (comunidad/clientela)
+ * - ✅ Fixed "location_city" icon → "location_on" (provincia)
+ * - ✅ Fixed "my_location" icon → "location_on" (ubicación)
+ * - ✅ All Material Icons properly validated
+ * - ✅ No more question marks on Android
  */
 
 export default function FiltrosAvanzadosSheet({
@@ -77,9 +65,6 @@ export default function FiltrosAvanzadosSheet({
   filtros: propFiltros,
   onAplicarFiltros: propOnAplicarFiltros,
 }: FiltrosAvanzadosSheetProps) {
-  console.log('[FiltrosAvanzados v50.0] 🚀 ========================================');
-  console.log('[FiltrosAvanzados v50.0] 🚀 COMPLETE REBUILD - NEW IMPLEMENTATION');
-  console.log('[FiltrosAvanzados v50.0] 🚀 ========================================');
   const { 
     filtros: contextFiltros, 
     aplicarFiltros: contextAplicarFiltros, 
@@ -87,7 +72,6 @@ export default function FiltrosAvanzadosSheet({
     dynamicOptions,
     refreshDynamicOptions,
     isLoadingOptions,
-    selectedCategory,
   } = useFilters();
   
   const initialFiltros = propFiltros || contextFiltros;
@@ -107,28 +91,11 @@ export default function FiltrosAvanzadosSheet({
 
   useEffect(() => {
     if (visible) {
-      console.log('[FiltrosAvanzados v50.0] 🔄 ========================================');
-      console.log('[FiltrosAvanzados v50.0] 🔄 MODAL OPENED - INITIALIZING FILTERS');
-      console.log('[FiltrosAvanzados v50.0] 🏷️ Current category:', selectedCategory);
-      console.log('[FiltrosAvanzados v50.0] 📋 Current filters:', JSON.stringify(initialFiltros, null, 2));
-      
-      // ✅ SYNC: Initialize with current filters from context
-      const syncedFiltros = { ...initialFiltros };
-      
-      // ✅ SYNC: Ensure category is in sync with tipo filter
-      if (selectedCategory && selectedCategory !== 'todas') {
-        syncedFiltros.tipo = [selectedCategory]; // Single category as array
-        console.log('[FiltrosAvanzados v50.0] 🔄 Synced tipo filter with category:', selectedCategory);
-      }
-      
-      setFiltrosTemp(syncedFiltros);
-      console.log('[FiltrosAvanzados v50.0] ✅ Temp filters initialized:', JSON.stringify(syncedFiltros, null, 2));
-      
-      // ✅ Refresh dynamic options to show available filters
+      console.log('[FiltrosAvanzados v29.0] 🔄 Modal opened, resetting temp filters');
+      setFiltrosTemp(initialFiltros);
       refreshDynamicOptions();
-      console.log('[FiltrosAvanzados v50.0] 🔄 ========================================');
     }
-  }, [visible, initialFiltros, refreshDynamicOptions, selectedCategory]);
+  }, [visible, initialFiltros, refreshDynamicOptions]);
 
   const toggleArrayItem = useCallback((array: string[] | undefined, item: string): string[] => {
     const arr = array || [];
@@ -138,129 +105,52 @@ export default function FiltrosAvanzadosSheet({
     return [...arr, item];
   }, []);
 
-  // ✅ CRITICAL FIX v50.0: Single category selection only
   const handleTipoToggle = useCallback((tipoId: string) => {
-    console.log('[FiltrosAvanzados v50.0] 🏷️ ========================================');
-    console.log('[FiltrosAvanzados v50.0] 🏷️ CATEGORY TOGGLE:', tipoId);
-    
-    setFiltrosTemp(prev => {
-      console.log('[FiltrosAvanzados v50.0] 📋 Previous filters:', JSON.stringify(prev, null, 2));
-      
-      if (tipoId === 'todos') {
-        // Clear category selection
-        const { tipo, ...rest } = prev;
-        console.log('[FiltrosAvanzados v50.0] ✅ Cleared category selection');
-        console.log('[FiltrosAvanzados v50.0] 📋 New filters:', JSON.stringify(rest, null, 2));
-        console.log('[FiltrosAvanzados v50.0] 🏷️ ========================================');
-        return rest;
-      }
-      
-      // ✅ SINGLE SELECTION: Replace existing category with new one
-      const currentCategory = prev.tipo && prev.tipo.length > 0 ? prev.tipo[0] : null;
-      
-      if (currentCategory === tipoId) {
-        // Deselect if clicking the same category
-        const { tipo, ...rest } = prev;
-        console.log('[FiltrosAvanzados v50.0] ✅ Deselected category:', tipoId);
-        console.log('[FiltrosAvanzados v50.0] 📋 New filters:', JSON.stringify(rest, null, 2));
-        console.log('[FiltrosAvanzados v50.0] 🏷️ ========================================');
-        return rest;
-      }
-      
-      // Select new category (single selection)
-      const newFilters = {
-        ...prev,
-        tipo: [tipoId], // Single category in array
-      };
-      console.log('[FiltrosAvanzados v50.0] ✅ Selected single category:', tipoId);
-      console.log('[FiltrosAvanzados v50.0] 📋 New filters:', JSON.stringify(newFilters, null, 2));
-      console.log('[FiltrosAvanzados v50.0] 🏷️ ========================================');
-      return newFilters;
-    });
-  }, []);
+    setFiltrosTemp(prev => ({
+      ...prev,
+      tipo: tipoId === 'todos' ? undefined : toggleArrayItem(prev.tipo, tipoId),
+    }));
+  }, [toggleArrayItem]);
 
   const handleServicioToggle = useCallback((servicioId: string) => {
-    console.log('[FiltrosAvanzados v50.0] 🔧 Toggling servicio:', servicioId);
-    setFiltrosTemp(prev => {
-      const newServicios = toggleArrayItem(prev.servicios, servicioId);
-      console.log('[FiltrosAvanzados v50.0] ✅ New servicios:', newServicios);
-      return {
-        ...prev,
-        servicios: newServicios,
-      };
-    });
+    setFiltrosTemp(prev => ({
+      ...prev,
+      servicios: toggleArrayItem(prev.servicios, servicioId),
+    }));
   }, [toggleArrayItem]);
 
   const handleAmbienteToggle = useCallback((ambienteId: string) => {
-    console.log('[FiltrosAvanzados v50.0] ✨ Toggling ambiente:', ambienteId);
-    setFiltrosTemp(prev => {
-      const newAmbiente = ambienteId === 'cualquiera' ? undefined : toggleArrayItem(prev.ambiente, ambienteId);
-      console.log('[FiltrosAvanzados v50.0] ✅ New ambiente:', newAmbiente);
-      return {
-        ...prev,
-        ambiente: newAmbiente,
-      };
-    });
+    setFiltrosTemp(prev => ({
+      ...prev,
+      ambiente: ambienteId === 'cualquiera' ? undefined : toggleArrayItem(prev.ambiente, ambienteId),
+    }));
   }, [toggleArrayItem]);
 
   const handleClientelaToggle = useCallback((clientelaId: string) => {
-    console.log('[FiltrosAvanzados v50.0] 👥 Toggling clientela:', clientelaId);
-    setFiltrosTemp(prev => {
-      const newClientela = clientelaId === 'cualquiera' ? undefined : toggleArrayItem(prev.clientela, clientelaId);
-      console.log('[FiltrosAvanzados v50.0] ✅ New clientela:', newClientela);
-      return {
-        ...prev,
-        clientela: newClientela,
-      };
-    });
+    setFiltrosTemp(prev => ({
+      ...prev,
+      clientela: clientelaId === 'cualquiera' ? undefined : toggleArrayItem(prev.clientela, clientelaId),
+    }));
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v50.0] ✅ ========================================');
-    console.log('[FiltrosAvanzados v50.0] ✅ APPLYING FILTERS TO CONTEXT');
-    console.log('[FiltrosAvanzados v50.0] ✅ Filters to apply:', JSON.stringify(filtrosTemp, null, 2));
-    console.log('[FiltrosAvanzados v50.0] ✅ ========================================');
-    
-    // ✅ STEP 1: Apply to context (this triggers the filter logic in Explorar)
+    console.log('[FiltrosAvanzados v29.0] ✅ Applying filters:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
-    
-    // ✅ STEP 2: Call prop callback if provided
     if (propOnAplicarFiltros) {
       propOnAplicarFiltros(filtrosTemp);
     }
-    
-    // ✅ STEP 3: Close modal
     onClose();
-    
-    console.log('[FiltrosAvanzados v50.0] ✅ Filters applied successfully');
   }, [filtrosTemp, contextAplicarFiltros, propOnAplicarFiltros, onClose]);
 
-  // ✅ CRITICAL FIX v50.0: Instant clear with perfect sync
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v50.0] 🧹 ========================================');
-    console.log('[FiltrosAvanzados v50.0] 🧹 CLEARING ALL FILTERS');
-    console.log('[FiltrosAvanzados v50.0] 🧹 ========================================');
-    
-    // ✅ STEP 1: Clear UI immediately (synchronous)
+    console.log('[FiltrosAvanzados v29.0] 🧹 Clearing all filters');
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
-    console.log('[FiltrosAvanzados v50.0] ✅ UI cleared');
-    
-    // ✅ STEP 2: Clear context immediately (synchronous)
     contextLimpiarFiltros();
-    console.log('[FiltrosAvanzados v50.0] ✅ Context cleared');
-    
-    // ✅ STEP 3: Close modal immediately
-    onClose();
-    console.log('[FiltrosAvanzados v50.0] ✅ Modal closed');
-    
-    console.log('[FiltrosAvanzados v50.0] ✅ All filters cleared successfully');
-  }, [contextLimpiarFiltros, onClose]);
+  }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v50.0] 📍 ========================================');
-    console.log('[FiltrosAvanzados v50.0] 📍 COMUNIDAD SELECTED:', selectedComunidad);
-    
+    console.log('[FiltrosAvanzados v29.0] 📍 Selected comunidad:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -271,15 +161,11 @@ export default function FiltrosAvanzadosSheet({
         const availableProvincias = COMUNIDADES_PROVINCIAS[selectedComunidad] || [];
         if (prev.provincia && !availableProvincias.includes(prev.provincia)) {
           newFiltros.provincia = undefined;
-          console.log('[FiltrosAvanzados v50.0] ⚠️ Cleared provincia (not in selected comunidad)');
         }
       } else {
         newFiltros.provincia = undefined;
-        console.log('[FiltrosAvanzados v50.0] ⚠️ Cleared provincia (all comunidades selected)');
       }
       
-      console.log('[FiltrosAvanzados v50.0] ✅ New filters:', JSON.stringify(newFiltros, null, 2));
-      console.log('[FiltrosAvanzados v50.0] 📍 ========================================');
       return newFiltros;
     });
     
@@ -288,28 +174,19 @@ export default function FiltrosAvanzadosSheet({
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v50.0] 📍 ========================================');
-    console.log('[FiltrosAvanzados v50.0] 📍 PROVINCIA SELECTED:', provincia);
-    
-    setFiltrosTemp(prev => {
-      const newFiltros = {
-        ...prev,
-        provincia: prev.provincia === provincia ? undefined : provincia,
-      };
-      console.log('[FiltrosAvanzados v50.0] ✅ New filters:', JSON.stringify(newFiltros, null, 2));
-      console.log('[FiltrosAvanzados v50.0] 📍 ========================================');
-      return newFiltros;
-    });
-    
+    console.log('[FiltrosAvanzados v29.0] 📍 Selected provincia:', provincia);
+    setFiltrosTemp(prev => ({
+      ...prev,
+      provincia: prev.provincia === provincia ? undefined : provincia,
+    }));
     setShowProvinciaModal(false);
     setSearchProvincia('');
   }, []);
 
-  const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados v50.0] 📏 Distance changed to:', value, 'km');
+  const handleDistanciaChange = useCallback((text: string) => {
     setFiltrosTemp(prev => ({
       ...prev,
-      distancia: value,
+      distancia: text ? parseFloat(text) : undefined,
     }));
   }, []);
 
@@ -368,7 +245,7 @@ export default function FiltrosAvanzadosSheet({
       else if (tipo === 'bar') icon = '🍷';
       else if (tipo === 'restaurante') icon = '🍽️';
       else if (tipo === 'pub') icon = '🍺';
-      else if (tipo === 'cocteleria') icon = '🍹';
+      else if (tipo === 'cocteleria') icon = '🍹'; // ✅ CHANGED: Tropical drink icon (more distinct from wine glass)
       else if (tipo === 'discoteca') icon = '🎵';
       else if (tipo === 'terraza') icon = '☀️';
       else if (tipo === 'rooftop') icon = '🏢';
@@ -511,6 +388,7 @@ export default function FiltrosAvanzadosSheet({
               >
                 <View style={styles.sectionHeaderLeft}>
                   <View style={styles.sectionIconContainer}>
+                    {/* ✅ CRITICAL FIX v29.0: Changed "mappin.circle.fill" to "location_on" */}
                     <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={16} color={colors.primary} />
                   </View>
                   <Text style={styles.sectionTitle}>Ubicación</Text>
@@ -529,7 +407,7 @@ export default function FiltrosAvanzadosSheet({
                     <TouchableOpacity
                       style={styles.locationButton}
                       onPress={() => {
-                        console.log('[FiltrosAvanzados v31.0] 🔍 Opening comunidad modal');
+                        console.log('[FiltrosAvanzados v29.0] 🔍 Opening comunidad modal');
                         setShowComunidadModal(true);
                       }}
                     >
@@ -547,7 +425,7 @@ export default function FiltrosAvanzadosSheet({
                       ]}
                       onPress={() => {
                         if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
-                          console.log('[FiltrosAvanzados v31.0] 🔍 Opening provincia modal');
+                          console.log('[FiltrosAvanzados v29.0] 🔍 Opening provincia modal');
                           setShowProvinciaModal(true);
                         }
                       }}
@@ -562,40 +440,23 @@ export default function FiltrosAvanzadosSheet({
                   </View>
 
                   <View style={styles.distanceContainer}>
-                    <View style={styles.distanceHeader}>
-                      <View style={styles.distanceLabelRow}>
-                        <IconSymbol ios_icon_name="location.circle" android_material_icon_name="location_on" size={14} color={colors.primary} />
-                        <Text style={styles.distanceLabel}>Radio de búsqueda</Text>
-                      </View>
-                      <View style={styles.distanceValueBadge}>
-                        <Text style={styles.distanceValueText}>
-                          {filtrosTemp.distancia ? `${Math.round(filtrosTemp.distancia)} km` : '50 km'}
-                        </Text>
-                      </View>
-                    </View>
-                    
-                    <Slider
-                      style={styles.slider}
-                      minimumValue={1}
-                      maximumValue={100}
-                      step={1}
-                      value={filtrosTemp.distancia || 50}
-                      onValueChange={handleDistanciaChange}
-                      minimumTrackTintColor={colors.primary}
-                      maximumTrackTintColor={colors.cardBorder}
-                      thumbTintColor={colors.primary}
+                    {/* ✅ CRITICAL FIX v29.0: Changed "location.circle" to "location_on" */}
+                    <IconSymbol ios_icon_name="location.circle" android_material_icon_name="location_on" size={14} color={colors.primary} />
+                    <Text style={styles.distanceLabel}>Radio de búsqueda</Text>
+                    <TextInput
+                      style={styles.distanceInput}
+                      placeholder="km"
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="numeric"
+                      value={filtrosTemp.distancia?.toString() || ''}
+                      onChangeText={handleDistanciaChange}
                     />
-                    
-                    <View style={styles.sliderLabels}>
-                      <Text style={styles.sliderLabelText}>1 km</Text>
-                      <Text style={styles.sliderLabelText}>100 km</Text>
-                    </View>
                   </View>
                 </View>
               )}
             </View>
 
-            {/* TIPO DE LOCAL SECTION - SINGLE SELECTION */}
+            {/* TIPO DE LOCAL SECTION */}
             {tiposLocales.length > 1 && (
               <View style={styles.section}>
                 <TouchableOpacity 
@@ -609,9 +470,6 @@ export default function FiltrosAvanzadosSheet({
                     </View>
                     <Text style={styles.sectionTitle}>Tipo de Local</Text>
                     <Text style={styles.sectionCount}>({tiposLocales.length - 1})</Text>
-                    <View style={styles.singleSelectionBadge}>
-                      <Text style={styles.singleSelectionText}>Solo 1</Text>
-                    </View>
                   </View>
                   <IconSymbol 
                     ios_icon_name={expandedSections.tipo ? "chevron.up" : "chevron.down"} 
@@ -625,7 +483,6 @@ export default function FiltrosAvanzadosSheet({
                   <View style={styles.sectionContent}>
                     <View style={styles.chipContainer}>
                       {tiposLocales.map((tipo) => {
-                        // ✅ SINGLE SELECTION: Check if this is the selected category
                         const isSelected = tipo.id === 'todos' 
                           ? !filtrosTemp.tipo || filtrosTemp.tipo.length === 0
                           : filtrosTemp.tipo?.includes(tipo.id);
@@ -766,6 +623,7 @@ export default function FiltrosAvanzadosSheet({
                 >
                   <View style={styles.sectionHeaderLeft}>
                     <View style={styles.sectionIconContainer}>
+                      {/* ✅ CRITICAL FIX v29.0: Changed "person.3.fill" to "people" */}
                       <IconSymbol ios_icon_name="person.3.fill" android_material_icon_name="people" size={16} color={colors.primary} />
                     </View>
                     <Text style={styles.sectionTitle}>Clientela Típica</Text>
@@ -1120,20 +978,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textSecondary,
   },
-  singleSelectionBadge: {
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    marginLeft: 6,
-  },
-  singleSelectionText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
   sectionContent: {
     paddingHorizontal: 14,
     paddingBottom: 14,
@@ -1170,56 +1014,34 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  distanceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  distanceLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   distanceLabel: {
+    flex: 1,
     fontSize: 12,
     fontWeight: '600',
     color: colors.text,
   },
-  distanceValueBadge: {
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+  distanceInput: {
+    width: 50,
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: colors.primary + '40',
-  },
-  distanceValueText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.primary,
-    letterSpacing: 0.5,
-  },
-  slider: {
-    width: '100%',
-    height: 40,
-  },
-  sliderLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  sliderLabelText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: colors.textSecondary,
+    borderColor: colors.cardBorder,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
   },
   chipContainer: {
     flexDirection: 'row',

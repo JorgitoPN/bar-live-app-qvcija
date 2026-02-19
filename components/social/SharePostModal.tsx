@@ -12,8 +12,6 @@ import {
   Alert,
   Platform,
   Image,
-  Dimensions,
-  StatusBar,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -22,10 +20,6 @@ import { supabase } from '@/utils/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 import { useRouter } from 'expo-router';
-import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface User {
   id: string;
@@ -52,21 +46,13 @@ interface SharePostModalProps {
 }
 
 /**
- * ✅ SHARE POST MODAL v7.0 - ANDROID FULL SCREEN FIX (FINAL)
+ * ✅ SHARE POST MODAL v4.0 - FIXED IMAGE URL HANDLING
  * 
- * CRITICAL FIXES v7.0:
- * - ✅ FIXED: Modal covers 100% of screen height on Android
- * - ✅ FIXED: Header paddingTop uses SafeAreaInsets for proper status bar coverage
- * - ✅ FIXED: StatusBar configured with translucent={true} for full coverage
- * - ✅ FIXED: Container uses full screen height
- * - ✅ RESULTADO: Vista utiliza el 100% del alto de la pantalla en Android
- * - ✅ RESULTADO: No hay espacios visibles en la parte superior e inferior
- * 
- * Previous changes v6.0:
- * - ✅ FIXED: Modal covers entire screen on Android (top and bottom)
- * - ✅ FIXED: Header paddingTop uses SafeAreaInsets for proper status bar coverage
- * - ✅ FIXED: StatusBar configured for proper display
- * - ✅ FIXED: Content scaling consistent with other Android pages
+ * CRITICAL FIXES:
+ * - ✅ FIXED: Use original post image URL directly (no screenshot corruption)
+ * - ✅ FIXED: Changed 'post_id' to 'post_compartido_id' to match MessageBubble
+ * - ✅ OPTIMIZED: Removed ViewShot dependency (causing corruption)
+ * - ✅ CLEAN: Direct URL passing for instant image display
  */
 
 export default function SharePostModal({
@@ -80,7 +66,6 @@ export default function SharePostModal({
 }: SharePostModalProps) {
   const { user } = useAuth();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [allLocals, setAllLocals] = useState<Local[]>([]);
@@ -98,7 +83,7 @@ export default function SharePostModal({
 
     try {
       setLoading(true);
-      console.log('[SharePostModal v7.0] 📥 Loading recipients for user:', user.id);
+      console.log('[SharePostModal] 📥 Loading recipients for user:', user.id);
 
       const [followersResult, followingResult] = await Promise.all([
         supabase
@@ -147,12 +132,12 @@ export default function SharePostModal({
       
       setFilteredResults([...uniqueUsers, ...activeLocals] as (User | Local)[]);
       
-      console.log('[SharePostModal v7.0] ✅ Loaded recipients:', {
+      console.log('[SharePostModal] ✅ Loaded recipients:', {
         users: uniqueUsers.length,
         locals: activeLocals.length,
       });
     } catch (error) {
-      console.error('[SharePostModal v7.0] ❌ Error loading recipients:', error);
+      console.error('[SharePostModal] ❌ Error loading recipients:', error);
       Alert.alert('Error', 'No se pudieron cargar los destinatarios');
     } finally {
       setLoading(false);
@@ -195,8 +180,8 @@ export default function SharePostModal({
     setSending(true);
 
     try {
-      console.log('[SharePostModal v7.0] 📤 Starting share process for post:', postId);
-      console.log('[SharePostModal v7.0] 🖼️ Post image URL:', postImage);
+      console.log('[SharePostModal] 📤 Starting share process for post:', postId);
+      console.log('[SharePostModal] 🖼️ Post image URL:', postImage);
 
       const shareMessage = `📤 Publicación compartida`;
       let successCount = 0;
@@ -232,7 +217,7 @@ export default function SharePostModal({
               .single();
 
             if (error) {
-              console.error('[SharePostModal v7.0] Error creating local chat:', error);
+              console.error('[SharePostModal] Error creating local chat:', error);
               failCount++;
               continue;
             }
@@ -266,7 +251,7 @@ export default function SharePostModal({
               .single();
 
             if (error) {
-              console.error('[SharePostModal v7.0] Error creating user chat:', error);
+              console.error('[SharePostModal] Error creating user chat:', error);
               failCount++;
               continue;
             }
@@ -274,25 +259,27 @@ export default function SharePostModal({
           }
         }
 
+        // ✅ CRITICAL FIX: Use 'post_compartido_id' and direct image URL
         const messageData: any = {
           chat_id: chatId,
           remitente_id: user.id,
           contenido: shareMessage,
-          post_compartido_id: postId,
+          post_compartido_id: postId, // ✅ FIXED: Changed from post_id
           tipo_mensaje: 'post_compartido',
         };
 
+        // ✅ CRITICAL FIX: Use original post image URL directly (no corruption)
         if (postImage) {
           messageData.post_imagen = postImage;
-          console.log('[SharePostModal v7.0] ✅ Using original post image URL:', postImage);
+          console.log('[SharePostModal] ✅ Using original post image URL:', postImage);
         }
 
-        console.log('[SharePostModal v7.0] 📤 Sending message with data:', messageData);
+        console.log('[SharePostModal] 📤 Sending message with data:', messageData);
 
         const { error: messageError } = await supabase.from('mensajes').insert(messageData);
 
         if (messageError) {
-          console.error('[SharePostModal v7.0] ❌ Error sending message:', messageError);
+          console.error('[SharePostModal] ❌ Error sending message:', messageError);
           failCount++;
           continue;
         }
@@ -322,7 +309,7 @@ export default function SharePostModal({
         Alert.alert('Error', 'No se pudo compartir la publicación con ningún destinatario');
       }
     } catch (error) {
-      console.error('[SharePostModal v7.0] ❌ Error sharing post:', error);
+      console.error('[SharePostModal] ❌ Error sharing post:', error);
       Alert.alert('Error', 'No se pudo compartir la publicación');
     } finally {
       setSending(false);
@@ -341,14 +328,6 @@ export default function SharePostModal({
     });
   };
 
-  // ✅ ANDROID SCALING v7.0
-  const headerIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
-  const searchIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
-  const checkIconSize = Platform.OS === 'android' ? scaleIconSize(16) : 16;
-  const emptyIconSize = Platform.OS === 'android' ? scaleIconSize(64) : 64;
-  const avatarSize = Platform.OS === 'android' ? scaleIconSize(48) : 48;
-  const localBadgeIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
-
   const renderItem = ({ item }: { item: User | Local }) => {
     const isUser = 'username' in item;
     const isSelected = selectedRecipients.has(item.id);
@@ -361,19 +340,19 @@ export default function SharePostModal({
       >
         <MiniFoodPlateAvatar
           imageUrl={isUser ? (item as User).avatar : (item as Local).imagen_url}
-          size={avatarSize}
+          size={48}
           nombre={item.nombre}
           userId={item.id}
         />
         <View style={styles.recipientInfo}>
-          <Text style={[styles.recipientName, { fontSize: scaleFontSize(16) }]}>{item.nombre}</Text>
+          <Text style={styles.recipientName}>{item.nombre}</Text>
           {isUser && (item as User).username && (
-            <Text style={[styles.recipientUsername, { fontSize: scaleFontSize(14) }]}>@{(item as User).username}</Text>
+            <Text style={styles.recipientUsername}>@{(item as User).username}</Text>
           )}
           {!isUser && (
             <View style={styles.localBadge}>
-              <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="business" size={localBadgeIconSize} color="#F59E0B" />
-              <Text style={[styles.localBadgeText, { fontSize: scaleFontSize(12) }]}>Local</Text>
+              <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="business" size={12} color="#F59E0B" />
+              <Text style={styles.localBadgeText}>Local</Text>
             </View>
           )}
         </View>
@@ -382,7 +361,7 @@ export default function SharePostModal({
             <IconSymbol
               ios_icon_name="checkmark"
               android_material_icon_name="check"
-              size={checkIconSize}
+              size={16}
               color={colors.headerText}
             />
           )}
@@ -390,10 +369,6 @@ export default function SharePostModal({
       </TouchableOpacity>
     );
   };
-
-  // ✅ CRITICAL FIX v7.0: Calculate proper header padding for Android to cover status bar
-  // Use translucent StatusBar and add extra padding to ensure full coverage
-  const headerPaddingTop = Platform.OS === 'ios' ? 60 : Math.max(insets.top + 20, 60);
 
   return (
     <Modal
@@ -403,20 +378,12 @@ export default function SharePostModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      {/* ✅ FIX v7.0: Configure StatusBar with translucent for full screen coverage */}
-      <StatusBar 
-        barStyle="light-content" 
-        backgroundColor="transparent"
-        translucent={true}
-      />
-      
-      {/* ✅ FIX v7.0: Container uses full screen height */}
-      <View style={[styles.container, { height: SCREEN_HEIGHT }]}>
+      <View style={styles.container}>
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={[styles.header, { paddingTop: headerPaddingTop }]}
+          style={styles.header}
         >
           <TouchableOpacity
             style={styles.closeButton}
@@ -426,11 +393,11 @@ export default function SharePostModal({
             <IconSymbol
               ios_icon_name="xmark"
               android_material_icon_name="close"
-              size={headerIconSize}
+              size={24}
               color={colors.headerText}
             />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(20) }]}>Compartir publicación</Text>
+          <Text style={styles.headerTitle}>Compartir publicación</Text>
           <TouchableOpacity
             style={[styles.sendButton, selectedRecipients.size === 0 && styles.sendButtonDisabled]}
             onPress={handleShare}
@@ -440,7 +407,7 @@ export default function SharePostModal({
             {sending ? (
               <ActivityIndicator size="small" color={colors.headerText} />
             ) : (
-              <Text style={[styles.sendButtonText, { fontSize: scaleFontSize(16) }, selectedRecipients.size === 0 && styles.sendButtonTextDisabled]}>
+              <Text style={[styles.sendButtonText, selectedRecipients.size === 0 && styles.sendButtonTextDisabled]}>
                 Enviar
               </Text>
             )}
@@ -451,11 +418,11 @@ export default function SharePostModal({
           <IconSymbol
             ios_icon_name="magnifyingglass"
             android_material_icon_name="search"
-            size={searchIconSize}
+            size={20}
             color={colors.textSecondary}
           />
           <TextInput
-            style={[styles.searchInput, { fontSize: scaleFontSize(16) }]}
+            style={styles.searchInput}
             placeholder="Buscar usuarios o locales..."
             placeholderTextColor={colors.textSecondary}
             value={searchQuery}
@@ -468,7 +435,7 @@ export default function SharePostModal({
               <IconSymbol
                 ios_icon_name="xmark.circle.fill"
                 android_material_icon_name="cancel"
-                size={searchIconSize}
+                size={20}
                 color={colors.textSecondary}
               />
             </TouchableOpacity>
@@ -486,10 +453,10 @@ export default function SharePostModal({
               <IconSymbol
                 ios_icon_name="checkmark.circle.fill"
                 android_material_icon_name="check_circle"
-                size={searchIconSize}
+                size={20}
                 color={colors.primary}
               />
-              <Text style={[styles.selectedCountText, { fontSize: scaleFontSize(14) }]}>
+              <Text style={styles.selectedCountText}>
                 {selectedRecipients.size} {selectedRecipients.size === 1 ? 'destinatario seleccionado' : 'destinatarios seleccionados'}
               </Text>
             </LinearGradient>
@@ -499,32 +466,29 @@ export default function SharePostModal({
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando contactos...</Text>
+            <Text style={styles.loadingText}>Cargando contactos...</Text>
           </View>
         ) : (
           <FlatList
             data={filteredResults}
             renderItem={renderItem}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={[
-              styles.listContent,
-              { paddingBottom: Math.max(insets.bottom + 20, 40) }
-            ]}
+            contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <IconSymbol
                   ios_icon_name="person.2.slash"
                   android_material_icon_name="people_outline"
-                  size={emptyIconSize}
+                  size={64}
                   color={colors.textSecondary}
                 />
-                <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>
+                <Text style={styles.emptyText}>
                   {searchQuery.trim() 
                     ? 'No se encontraron resultados' 
                     : 'No hay destinatarios disponibles'}
                 </Text>
-                <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
+                <Text style={styles.emptySubtext}>
                   {searchQuery.trim()
                     ? 'Intenta con otro término de búsqueda'
                     : 'Sigue a usuarios o locales para compartir publicaciones'}
@@ -548,12 +512,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 60 : 48,
     paddingBottom: 16,
   },
   closeButton: {
     padding: 8,
   },
   headerTitle: {
+    fontSize: 20,
     fontWeight: '800',
     color: colors.headerText,
     flex: 1,
@@ -569,6 +535,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   sendButtonText: {
+    fontSize: 16,
     fontWeight: '700',
     color: colors.headerText,
   },
@@ -590,6 +557,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    fontSize: 16,
     color: colors.text,
   },
   selectedCountContainer: {
@@ -606,6 +574,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   selectedCountText: {
+    fontSize: 14,
     fontWeight: '700',
     color: colors.primary,
   },
@@ -616,6 +585,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
+    fontSize: 16,
     color: colors.textSecondary,
   },
   listContent: {
@@ -639,10 +609,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   recipientName: {
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
   },
   recipientUsername: {
+    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 2,
   },
@@ -658,6 +630,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   localBadgeText: {
+    fontSize: 12,
     fontWeight: '600',
     color: '#F59E0B',
   },
@@ -683,12 +656,14 @@ const styles = StyleSheet.create({
     paddingTop: 100,
   },
   emptyText: {
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
     marginTop: 16,
     textAlign: 'center',
   },
   emptySubtext: {
+    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
