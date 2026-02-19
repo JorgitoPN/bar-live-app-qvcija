@@ -9,7 +9,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { useFilters } from '@/contexts/FilterContext';
-import FiltrosAvanzadosSheet from '@/components/home/FiltrosAvanzadosSheet';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
@@ -172,7 +172,6 @@ export default function MapaScreen() {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todas');
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'no_cerrados'>('no_cerrados');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
   
   // 🚀 CALLBACKS MEMOIZADOS - Evitar recreación en cada render
@@ -186,13 +185,7 @@ export default function MapaScreen() {
     setFiltroEstado(estado);
   }, []);
   
-  const handleToggleFiltros = useCallback(() => {
-    setMostrarFiltros(prev => !prev);
-  }, []);
-  
-  const handleCloseFiltros = useCallback(() => {
-    setMostrarFiltros(false);
-  }, []);
+
 
   // ✅ NEW v281.0: Get refined scaling values
   const popupWidth = getMapPopupWidth();
@@ -1584,7 +1577,10 @@ console.log('🗺️ [MAPA v293.0] ═══════════════
             height: controlButtonSize,
             borderRadius: controlButtonSize / 2,
           }]}
-          onPress={handleToggleFiltros}
+          onPress={() => {
+            console.log('🗺️ [MAPA v293.0] 👆 Usuario abrió filtros - navegando a página de filtros avanzados');
+            router.push('/explorar/filtros-avanzados');
+          }}
         >
           <IconSymbol 
             ios_icon_name="line.3.horizontal.decrease.circle.fill" 
@@ -1638,10 +1634,7 @@ console.log('🗺️ [MAPA v293.0] ═══════════════
         />
       </TouchableOpacity>
 
-      <FiltrosAvanzadosSheet
-        visible={mostrarFiltros}
-        onClose={handleCloseFiltros}
-      />
+
     </View>
   );
 }

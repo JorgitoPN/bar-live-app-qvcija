@@ -1462,8 +1462,8 @@ export default function ExplorarScreen() {
           
           <TouchableOpacity 
             onPress={() => {
-              console.log('[Explorar v323.0] 👆 Usuario abrió filtros - navegando a página completa');
-              router.push('/(tabs)/explorar/filtros-simples');
+              console.log('[Explorar v323.0] 👆 Usuario abrió filtros - navegando a filtros avanzados');
+              router.push('/explorar/filtros-avanzados');
             }}
             style={styles.filterIconButtonCompact}
             activeOpacity={0.7}
