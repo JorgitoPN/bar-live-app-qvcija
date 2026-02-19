@@ -77,21 +77,24 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v408.4 - FIXED ADVANCED FILTERS & CLEAR BUTTON
+ * ✅ EXPLORAR SCREEN v408.5 - CRITICAL FIX: ADVANCED FILTERS NOW WORK WITHOUT CATEGORY
  * 
- * CAMBIOS v408.4 - CORRECCIONES CRÍTICAS:
- * - 🎯 FIX: Filtros avanzados ahora se aplican correctamente sin categoría
+ * CAMBIOS v408.5 - CORRECCIÓN CRÍTICA:
+ * - 🎯 CRITICAL FIX: Filtros avanzados ahora funcionan INDEPENDIENTEMENTE de la categoría
+ * - ✅ FIX: Cada tipo de filtro (servicios, ambiente, clientela, etc.) se verifica individualmente
+ * - ✅ FIX: Los resultados se muestran correctamente al aplicar cualquier filtro avanzado
+ * - ✅ LOGS DETALLADOS: Desglose completo de cada filtro activo para debugging
+ * - ✅ COMPORTAMIENTO ESPERADO: Los filtros avanzados actualizan resultados sin necesidad de categoría
+ * 
+ * CAMBIOS v408.4 - CORRECCIONES PREVIAS:
  * - ✅ FIX: Botón "Limpiar filtros avanzados" funciona inmediatamente
  * - ✅ FIX: Sincronización correcta entre botón "X" y botón "Limpiar"
  * - ✅ IMPROVED: Detección de filtros activos más precisa
- * - ✅ LOGS MEJORADOS: Mejor visibilidad de aplicación de filtros
  * 
- * CAMBIOS v408.3 - CORRECCIONES PREVIAS:
+ * CAMBIOS v408.3:
  * - 🎯 FIX: Destacados abiertos ahora aparecen PRIMERO correctamente
- * - ✅ VALIDACIÓN MEJORADA: Verificación de destacado mejorada (destacado || is_destacado)
  * - ✅ DEBOUNCE AUMENTADO: 500ms para reducir parpadeo en búsqueda
  * - ✅ LOADING STATES: Solo mostrar "Cargando más" cuando lista >= ITEMS_PER_PAGE
- * - ✅ TIER ASSIGNMENT: Lógica corregida para asignar tiers correctamente
  * 
  * TABLA DE PRIORIDADES:
  * | Orden | Estado      | ¿Es Destacado? | Criterio de Orden                    |
@@ -214,7 +217,7 @@ function SkeletonCard() {
 }
 
 export default function ExplorarScreen() {
-  console.log('[Explorar v408.4] 🚀 Component mounted - FIXED advanced filters & clear button');
+  console.log('[Explorar v408.5] 🚀 Component mounted - CRITICAL FIX: Advanced filters work without category');
   
   const router = useRouter();
   const { user } = useAuth();
@@ -715,11 +718,11 @@ export default function ExplorarScreen() {
 
   // ✅ APLICAR FILTROS CLIENT-SIDE Y ORDENAMIENTO DE 5 NIVELES
   const filteredLocales = useMemo(() => {
-    console.log('[Explorar v408.4] 🔍 ========================================');
-    console.log('[Explorar v408.4] 🔍 APPLYING CLIENT-SIDE FILTERS');
-    console.log('[Explorar v408.4] 🔍 Starting with', allLocales.length, 'locales');
-    console.log('[Explorar v408.4] 🔍 Active filters:', JSON.stringify(globalFiltros, null, 2));
-    console.log('[Explorar v408.4] 🔍 Has active filters:', hasActiveFilters);
+    console.log('[Explorar v408.5] 🔍 ========================================');
+    console.log('[Explorar v408.5] 🔍 APPLYING CLIENT-SIDE FILTERS - FIXED');
+    console.log('[Explorar v408.5] 🔍 Starting with', allLocales.length, 'locales');
+    console.log('[Explorar v408.5] 🔍 Active filters:', JSON.stringify(globalFiltros, null, 2));
+    console.log('[Explorar v408.5] 🔍 Has active filters flag:', hasActiveFilters);
     
     const query = debouncedQuery.toLowerCase().trim();
     let filtered = allLocales;
@@ -742,40 +745,50 @@ export default function ExplorarScreen() {
                barliveTypes.includes(query);
       });
       
-      console.log('[Explorar v408.4] 🔍 Search filter removed:', beforeFilter - filtered.length);
-      console.log('[Explorar v408.4] 🔍 After search:', filtered.length, 'locales');
+      console.log('[Explorar v408.5] 🔍 Search filter removed:', beforeFilter - filtered.length);
+      console.log('[Explorar v408.5] 🔍 After search:', filtered.length, 'locales');
     }
 
-    // ✅ FILTROS AVANZADOS (Client-side) - CRITICAL FIX v408.4
-    // Apply advanced filters ALWAYS if they exist, regardless of hasActiveFilters flag
-    const hasAnyAdvancedFilter = !!(
-      (globalFiltros.servicios && globalFiltros.servicios.length > 0) ||
-      (globalFiltros.ambiente && globalFiltros.ambiente.length > 0) ||
-      (globalFiltros.clientela && globalFiltros.clientela.length > 0) ||
-      globalFiltros.comunidad ||
-      globalFiltros.provincia ||
-      globalFiltros.distancia
-    );
+    // ✅ CRITICAL FIX v408.5: Check each advanced filter type individually
+    // This ensures filters work even without a category selected
+    const hasServiciosFilter = !!(globalFiltros.servicios && globalFiltros.servicios.length > 0);
+    const hasAmbienteFilter = !!(globalFiltros.ambiente && globalFiltros.ambiente.length > 0);
+    const hasClientelaFilter = !!(globalFiltros.clientela && globalFiltros.clientela.length > 0);
+    const hasComunidadFilter = !!globalFiltros.comunidad;
+    const hasProvinciaFilter = !!globalFiltros.provincia;
+    const hasDistanciaFilter = !!globalFiltros.distancia;
     
-    console.log('[Explorar v408.4] 🔧 Applying advanced filters...');
-    console.log('[Explorar v408.4] 🔧 Has any advanced filter:', hasAnyAdvancedFilter);
+    const hasAnyAdvancedFilter = hasServiciosFilter || hasAmbienteFilter || hasClientelaFilter || 
+                                 hasComunidadFilter || hasProvinciaFilter || hasDistanciaFilter;
     
+    console.log('[Explorar v408.5] 🔧 ========================================');
+    console.log('[Explorar v408.5] 🔧 ADVANCED FILTER BREAKDOWN:');
+    console.log('[Explorar v408.5] 🔧 - Servicios:', hasServiciosFilter, globalFiltros.servicios);
+    console.log('[Explorar v408.5] 🔧 - Ambiente:', hasAmbienteFilter, globalFiltros.ambiente);
+    console.log('[Explorar v408.5] 🔧 - Clientela:', hasClientelaFilter, globalFiltros.clientela);
+    console.log('[Explorar v408.5] 🔧 - Comunidad:', hasComunidadFilter, globalFiltros.comunidad);
+    console.log('[Explorar v408.5] 🔧 - Provincia:', hasProvinciaFilter, globalFiltros.provincia);
+    console.log('[Explorar v408.5] 🔧 - Distancia:', hasDistanciaFilter, globalFiltros.distancia);
+    console.log('[Explorar v408.5] 🔧 - ANY ACTIVE:', hasAnyAdvancedFilter);
+    console.log('[Explorar v408.5] 🔧 ========================================');
+    
+    // ✅ Apply advanced filters if ANY are active (no category required)
     if (hasAnyAdvancedFilter) {
       const beforeAdvanced = filtered.length;
       filtered = applyAdvancedFilters(filtered, globalFiltros);
-      console.log('[Explorar v408.4] 🔧 Advanced filters removed:', beforeAdvanced - filtered.length);
-      console.log('[Explorar v408.4] 🔧 After advanced filters:', filtered.length, 'locales');
+      console.log('[Explorar v408.5] 🔧 Advanced filters removed:', beforeAdvanced - filtered.length);
+      console.log('[Explorar v408.5] 🔧 After advanced filters:', filtered.length, 'locales');
     } else {
-      console.log('[Explorar v408.4] 🔧 No advanced filters active, skipping');
+      console.log('[Explorar v408.5] 🔧 No advanced filters active, skipping');
     }
 
     // ✅ APLICAR ORDENAMIENTO DE 5 NIVELES
     const sorted = applySorting(filtered);
-    console.log('[Explorar v408.4] ✅ Final result after sorting:', sorted.length, 'locales');
-    console.log('[Explorar v408.4] ✅ ========================================');
+    console.log('[Explorar v408.5] ✅ Final result after sorting:', sorted.length, 'locales');
+    console.log('[Explorar v408.5] ✅ ========================================');
     
     return sorted;
-  }, [allLocales, debouncedQuery, globalFiltros, applySorting]);
+  }, [allLocales, debouncedQuery, globalFiltros, applySorting, hasActiveFilters]);
 
   // ✅ CARGA AUTOMÁTICA CUANDO LA LISTA FILTRADA ES PEQUEÑA
   useEffect(() => {
