@@ -77,15 +77,21 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v408.3 - FIXED FEATURED VISIBILITY & SEARCH FLICKER
+ * ✅ EXPLORAR SCREEN v408.4 - FIXED ADVANCED FILTERS & CLEAR BUTTON
  * 
- * CAMBIOS v408.3 - CORRECCIONES CRÍTICAS:
+ * CAMBIOS v408.4 - CORRECCIONES CRÍTICAS:
+ * - 🎯 FIX: Filtros avanzados ahora se aplican correctamente sin categoría
+ * - ✅ FIX: Botón "Limpiar filtros avanzados" funciona inmediatamente
+ * - ✅ FIX: Sincronización correcta entre botón "X" y botón "Limpiar"
+ * - ✅ IMPROVED: Detección de filtros activos más precisa
+ * - ✅ LOGS MEJORADOS: Mejor visibilidad de aplicación de filtros
+ * 
+ * CAMBIOS v408.3 - CORRECCIONES PREVIAS:
  * - 🎯 FIX: Destacados abiertos ahora aparecen PRIMERO correctamente
  * - ✅ VALIDACIÓN MEJORADA: Verificación de destacado mejorada (destacado || is_destacado)
  * - ✅ DEBOUNCE AUMENTADO: 500ms para reducir parpadeo en búsqueda
  * - ✅ LOADING STATES: Solo mostrar "Cargando más" cuando lista >= ITEMS_PER_PAGE
  * - ✅ TIER ASSIGNMENT: Lógica corregida para asignar tiers correctamente
- * - ✅ LOGS MEJORADOS: Mejor visibilidad del ordenamiento
  * 
  * TABLA DE PRIORIDADES:
  * | Orden | Estado      | ¿Es Destacado? | Criterio de Orden                    |
@@ -208,7 +214,7 @@ function SkeletonCard() {
 }
 
 export default function ExplorarScreen() {
-  console.log('[Explorar v408.3] 🚀 Component mounted - FIXED featured visibility & search flicker');
+  console.log('[Explorar v408.4] 🚀 Component mounted - FIXED advanced filters & clear button');
   
   const router = useRouter();
   const { user } = useAuth();
@@ -709,10 +715,11 @@ export default function ExplorarScreen() {
 
   // ✅ APLICAR FILTROS CLIENT-SIDE Y ORDENAMIENTO DE 5 NIVELES
   const filteredLocales = useMemo(() => {
-    console.log('[Explorar v408.3] 🔍 ========================================');
-    console.log('[Explorar v408.3] 🔍 APPLYING CLIENT-SIDE FILTERS');
-    console.log('[Explorar v408.3] 🔍 Starting with', allLocales.length, 'locales');
-    console.log('[Explorar v408.3] 🔍 Active filters:', JSON.stringify(globalFiltros, null, 2));
+    console.log('[Explorar v408.4] 🔍 ========================================');
+    console.log('[Explorar v408.4] 🔍 APPLYING CLIENT-SIDE FILTERS');
+    console.log('[Explorar v408.4] 🔍 Starting with', allLocales.length, 'locales');
+    console.log('[Explorar v408.4] 🔍 Active filters:', JSON.stringify(globalFiltros, null, 2));
+    console.log('[Explorar v408.4] 🔍 Has active filters:', hasActiveFilters);
     
     const query = debouncedQuery.toLowerCase().trim();
     let filtered = allLocales;
@@ -735,30 +742,40 @@ export default function ExplorarScreen() {
                barliveTypes.includes(query);
       });
       
-      console.log('[Explorar v408.3] 🔍 Search filter removed:', beforeFilter - filtered.length);
-      console.log('[Explorar v408.3] 🔍 After search:', filtered.length, 'locales');
+      console.log('[Explorar v408.4] 🔍 Search filter removed:', beforeFilter - filtered.length);
+      console.log('[Explorar v408.4] 🔍 After search:', filtered.length, 'locales');
     }
 
-    // ✅ FILTROS AVANZADOS (Client-side) - CRITICAL FIX
-    const beforeAdvanced = filtered.length;
-    console.log('[Explorar v408.3] 🔧 Applying advanced filters...');
-    console.log('[Explorar v408.3] 🔧 Has active filters:', hasActiveFilters);
+    // ✅ FILTROS AVANZADOS (Client-side) - CRITICAL FIX v408.4
+    // Apply advanced filters ALWAYS if they exist, regardless of hasActiveFilters flag
+    const hasAnyAdvancedFilter = !!(
+      (globalFiltros.servicios && globalFiltros.servicios.length > 0) ||
+      (globalFiltros.ambiente && globalFiltros.ambiente.length > 0) ||
+      (globalFiltros.clientela && globalFiltros.clientela.length > 0) ||
+      globalFiltros.comunidad ||
+      globalFiltros.provincia ||
+      globalFiltros.distancia
+    );
     
-    if (hasActiveFilters) {
+    console.log('[Explorar v408.4] 🔧 Applying advanced filters...');
+    console.log('[Explorar v408.4] 🔧 Has any advanced filter:', hasAnyAdvancedFilter);
+    
+    if (hasAnyAdvancedFilter) {
+      const beforeAdvanced = filtered.length;
       filtered = applyAdvancedFilters(filtered, globalFiltros);
-      console.log('[Explorar v408.3] 🔧 Advanced filters removed:', beforeAdvanced - filtered.length);
-      console.log('[Explorar v408.3] 🔧 After advanced filters:', filtered.length, 'locales');
+      console.log('[Explorar v408.4] 🔧 Advanced filters removed:', beforeAdvanced - filtered.length);
+      console.log('[Explorar v408.4] 🔧 After advanced filters:', filtered.length, 'locales');
     } else {
-      console.log('[Explorar v408.3] 🔧 No advanced filters active, skipping');
+      console.log('[Explorar v408.4] 🔧 No advanced filters active, skipping');
     }
 
     // ✅ APLICAR ORDENAMIENTO DE 5 NIVELES
     const sorted = applySorting(filtered);
-    console.log('[Explorar v408.3] ✅ Final result after sorting:', sorted.length, 'locales');
-    console.log('[Explorar v408.3] ✅ ========================================');
+    console.log('[Explorar v408.4] ✅ Final result after sorting:', sorted.length, 'locales');
+    console.log('[Explorar v408.4] ✅ ========================================');
     
     return sorted;
-  }, [allLocales, debouncedQuery, globalFiltros, hasActiveFilters, applySorting]);
+  }, [allLocales, debouncedQuery, globalFiltros, applySorting]);
 
   // ✅ CARGA AUTOMÁTICA CUANDO LA LISTA FILTRADA ES PEQUEÑA
   useEffect(() => {
@@ -841,10 +858,17 @@ export default function ExplorarScreen() {
     }, 100);
   }, [setSelectedCategory, limpiarFiltros]);
 
-  // ✅ LIMPIAR SOLO FILTROS AVANZADOS (INSTANT)
+  // ✅ LIMPIAR SOLO FILTROS AVANZADOS (INSTANT) - FIXED v408.4
   const clearAdvancedFilters = useCallback(() => {
-    console.log('[Explorar v408.3] 🧹 Clearing ONLY advanced filters - INSTANT');
+    console.log('[Explorar v408.4] 🧹 Clearing ONLY advanced filters - INSTANT');
+    // Clear immediately without any delay
     limpiarFiltros();
+    
+    // Force scroll to top
+    setTimeout(() => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      savedScrollPosition.current = 0;
+    }, 50);
   }, [limpiarFiltros]);
 
   // ✅ CONTADOR DE FILTROS ACTIVOS

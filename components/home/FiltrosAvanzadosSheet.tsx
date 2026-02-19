@@ -160,17 +160,15 @@ export default function FiltrosAvanzadosSheet({
   }, [filtrosTemp, contextAplicarFiltros, propOnAplicarFiltros, onClose]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v30.0] 🧹 Clearing all filters - INSTANT UI UPDATE');
+    console.log('[FiltrosAvanzados v30.1] 🧹 Clearing all filters - INSTANT UI UPDATE');
     
     // ✅ PASO 1: Actualizar UI INMEDIATAMENTE (síncrono)
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     
-    // ✅ PASO 2: Actualizar contexto en background (asíncrono)
-    // Esto dispara el fetch de datos pero la UI ya está limpia
-    setTimeout(() => {
-      contextLimpiarFiltros();
-    }, 0);
+    // ✅ PASO 2: Actualizar contexto INMEDIATAMENTE (síncrono)
+    // This ensures the filters are cleared immediately
+    contextLimpiarFiltros();
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
