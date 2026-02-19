@@ -110,9 +110,9 @@ export default function ExplorarScreen() {
   const { locales: globalLocales } = useGlobalData();
 
   // ============================================
-  // ESTADO PRINCIPAL - SIMPLIFICADO
+  // ESTADO PRINCIPAL - INICIALIZADO CORRECTAMENTE
   // ============================================
-  const [displayedLocales, setDisplayedLocales] = useState<Local[]>([]);
+  const [displayedLocales, setDisplayedLocales] = useState<Local[]>([]); // ✅ Inicializado como array vacío
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -184,7 +184,7 @@ export default function ExplorarScreen() {
   }, []);
 
   // ============================================
-  // FUNCIÓN PRINCIPAL DE CARGA - MEJORADA
+  // FUNCIÓN PRINCIPAL DE CARGA - MEJORADA CON PROTECCIONES
   // ============================================
   const loadLocales = useCallback(
     async (page: number, isRefresh: boolean = false) => {
@@ -245,9 +245,11 @@ export default function ExplorarScreen() {
 
         console.log(`✅ Cargados ${data?.length || 0} locales para página ${page}`);
 
+        // ✅ PROTECCIÓN: Asegurar que data es un array
+        let processedLocales = (data || []) as Local[];
+        
         // Calcular distancias si hay ubicación
-        let processedLocales = data || [];
-        if (userLocation && processedLocales?.length > 0) {
+        if (userLocation && processedLocales.length > 0) {
           processedLocales = processedLocales.map((local) => {
             if (local.latitud && local.longitud) {
               const distancia = calcularDistancia(
@@ -262,8 +264,8 @@ export default function ExplorarScreen() {
           });
         }
 
-        // Aplicar filtros avanzados
-        const filteredData = applyAdvancedFilters(processedLocales, globalFiltros) || [];
+        // ✅ PROTECCIÓN: Aplicar filtros avanzados con valor por defecto
+        const filteredData = (applyAdvancedFilters(processedLocales, globalFiltros) || []) as Local[];
 
         // Actualizar estado según el tipo de carga
         if (isRefresh || page === 1) {
@@ -271,29 +273,29 @@ export default function ExplorarScreen() {
           console.log('🔄 Reemplazando lista completa');
           setDisplayedLocales(filteredData);
           setCurrentPage(1);
-          setHasMore(filteredData?.length >= ITEMS_PER_PAGE);
+          setHasMore((filteredData?.length || 0) >= ITEMS_PER_PAGE);
         } else {
           // Carga incremental: añadir al final
           console.log('➕ Añadiendo locales al final de la lista');
           setDisplayedLocales((prev) => {
-            // Protección: asegurar que prev es un array
-            const prevArray = prev || [];
+            // ✅ PROTECCIÓN: Asegurar que prev es un array
+            const prevArray = (prev || []) as Local[];
             
             // Deduplicar por ID
             const existingIds = new Set(prevArray.map((l) => l.id));
-            const newLocales = filteredData?.filter((l) => !existingIds.has(l.id)) || [];
+            const newLocales = (filteredData || []).filter((l) => !existingIds.has(l.id));
             
-            if (newLocales?.length === 0) {
+            if (newLocales.length === 0) {
               console.log('⚠️ No hay locales nuevos únicos');
               setHasMore(false);
               return prevArray;
             }
 
-            console.log(`✨ Añadiendo ${newLocales?.length || 0} locales nuevos`);
+            console.log(`✨ Añadiendo ${newLocales.length} locales nuevos`);
             return [...prevArray, ...newLocales];
           });
           setCurrentPage(page);
-          setHasMore(filteredData?.length >= ITEMS_PER_PAGE);
+          setHasMore((filteredData?.length || 0) >= ITEMS_PER_PAGE);
         }
       } catch (error) {
         console.error('❌ Error en loadLocales:', error);
@@ -331,7 +333,7 @@ export default function ExplorarScreen() {
       
       // Cargar primera página
       loadLocales(1, false);
-    } else if (displayedLocales.length === 0 && !loading && !isLoadingRef.current) {
+    } else if ((displayedLocales?.length || 0) === 0 && !loading && !isLoadingRef.current) {
       console.log('🆕 Carga inicial');
       loadLocales(1, false);
     }
@@ -511,6 +513,18 @@ export default function ExplorarScreen() {
   }, [loading]);
 
   // ============================================
+  // ✅ VALIDACIÓN PREVIA AL RENDER
+  // ============================================
+  if (!displayedLocales && loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Cargando...</Text>
+      </View>
+    );
+  }
+
+  // ============================================
   // RENDER PRINCIPAL
   // ============================================
   return (
@@ -609,9 +623,9 @@ export default function ExplorarScreen() {
         </View>
       </View>
 
-      {/* Lista de locales */}
+      {/* Lista de locales - ✅ PROTEGIDA CON VALOR POR DEFECTO */}
       <FlatList
-        data={displayedLocales}
+        data={displayedLocales || []}
         renderItem={renderLocalCard}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
@@ -696,6 +710,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: scaleFontSize(16),
+    color: colors.textSecondary,
   },
   header: {
     backgroundColor: colors.card,
