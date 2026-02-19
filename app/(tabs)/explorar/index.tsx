@@ -247,7 +247,7 @@ export default function ExplorarScreen() {
 
         // Calcular distancias si hay ubicación
         let processedLocales = data || [];
-        if (userLocation && processedLocales.length > 0) {
+        if (userLocation && processedLocales?.length > 0) {
           processedLocales = processedLocales.map((local) => {
             if (local.latitud && local.longitud) {
               const distancia = calcularDistancia(
@@ -263,7 +263,7 @@ export default function ExplorarScreen() {
         }
 
         // Aplicar filtros avanzados
-        const filteredData = applyAdvancedFilters(processedLocales, globalFiltros);
+        const filteredData = applyAdvancedFilters(processedLocales, globalFiltros) || [];
 
         // Actualizar estado según el tipo de carga
         if (isRefresh || page === 1) {
@@ -271,26 +271,29 @@ export default function ExplorarScreen() {
           console.log('🔄 Reemplazando lista completa');
           setDisplayedLocales(filteredData);
           setCurrentPage(1);
-          setHasMore(filteredData.length >= ITEMS_PER_PAGE);
+          setHasMore(filteredData?.length >= ITEMS_PER_PAGE);
         } else {
           // Carga incremental: añadir al final
           console.log('➕ Añadiendo locales al final de la lista');
           setDisplayedLocales((prev) => {
-            // Deduplicar por ID
-            const existingIds = new Set(prev.map((l) => l.id));
-            const newLocales = filteredData.filter((l) => !existingIds.has(l.id));
+            // Protección: asegurar que prev es un array
+            const prevArray = prev || [];
             
-            if (newLocales.length === 0) {
+            // Deduplicar por ID
+            const existingIds = new Set(prevArray.map((l) => l.id));
+            const newLocales = filteredData?.filter((l) => !existingIds.has(l.id)) || [];
+            
+            if (newLocales?.length === 0) {
               console.log('⚠️ No hay locales nuevos únicos');
               setHasMore(false);
-              return prev;
+              return prevArray;
             }
 
-            console.log(`✨ Añadiendo ${newLocales.length} locales nuevos`);
-            return [...prev, ...newLocales];
+            console.log(`✨ Añadiendo ${newLocales?.length || 0} locales nuevos`);
+            return [...prevArray, ...newLocales];
           });
           setCurrentPage(page);
-          setHasMore(filteredData.length >= ITEMS_PER_PAGE);
+          setHasMore(filteredData?.length >= ITEMS_PER_PAGE);
         }
       } catch (error) {
         console.error('❌ Error en loadLocales:', error);
