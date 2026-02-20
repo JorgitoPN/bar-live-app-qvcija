@@ -383,6 +383,14 @@ export default function AdminIndexScreen() {
       route: '/admin/seguridad-funciones',
       description: 'Audita y corrige funciones SECURITY DEFINER (50/115 corregidas)',
     },
+    {
+      title: 'Gestionar Salas Virtuales',
+      icon: 'bubble.left.and.bubble.right.fill' as const,
+      androidIcon: 'chat' as const,
+      color: '#06B6D4',
+      route: '/admin/gestionar-salas-virtuales',
+      description: 'Sistema de limpieza automática de salas virtuales',
+    },
   ];
 
   // Show loading while checking permissions

@@ -35,7 +35,7 @@ import VirtualRoomLoginModal from '@/components/common/VirtualRoomLoginModal';
 import { scaleFontSize, scaleIconSize, getActionButtonPaddingVertical } from '@/utils/androidScaling';
 import { calcularDistancia } from '@/utils/locationUtils';
 
-console.log("✅ SALA VIRTUAL v6.7 - REMOVED X ICON FROM HEADER + AVATAR ALIGNMENT FIX");
+console.log("✅ SALA VIRTUAL v6.8 - EPHEMERAL CHAT FIX + NO OLD MESSAGES ON RE-ENTRY");
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -682,105 +682,24 @@ export default function SalaVirtualEnhancedScreen() {
     }
     
     try {
-      console.log('[SalaVirtual v6.7] 🔥 LOADING INITIAL MESSAGES');
+      console.log('[SalaVirtual v6.7] 🔥 EPHEMERAL CHAT - NOT LOADING OLD MESSAGES');
+      console.log('[SalaVirtual v6.7] ✅ Starting with empty message list (session-only messages)');
       
-      const { data, error } = await supabase
-        .from('sala_virtual_interacciones')
-        .select(`
-          id,
-          usuario_id,
-          local_id,
-          tipo,
-          contenido,
-          created_at,
-          recipient_id,
-          leido,
-          usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(
-            id,
-            nombre,
-            username,
-            avatar
-          )
-        `)
-        .eq('local_id', localId)
-        .is('recipient_id', null)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      // ✅ CRITICAL FIX: Do NOT load old messages from database
+      // Messages are ephemeral and only visible during the current session
+      // When user re-enters the room, they should see NO old messages
       
-      if (error) {
-        console.error('[SalaVirtual v6.7] ❌ Error loading initial messages:', error);
-        if (isMounted.current) {
-          setLoading(false);
-        }
-        return;
-      }
-
-      if (!data) {
-        console.log('[SalaVirtual v6.7] ⚠️ Data is null, setting empty array');
-        if (isMounted.current) {
-          setMessages([]);
-          setLoading(false);
-        }
-        return;
-      }
-
-      if (data.length === 0) {
-        console.log('[SalaVirtual v6.7] ⚠️ No messages found');
-        if (isMounted.current) {
-          setMessages([]);
-          setLoading(false);
-        }
-        return;
-      }
-
-      const formattedMessages: Message[] = data
-        .filter(msg => {
-          if (!msg.usuario) {
-            console.warn('[SalaVirtual v6.7] ⚠️ Message without user data:', msg.id);
-            return false;
-          }
-          return true;
-        })
-        .map(msg => ({
-          id: msg.id,
-          usuario_id: msg.usuario_id,
-          local_id: msg.local_id,
-          tipo: msg.tipo as 'mensaje' | 'emoticon' | 'predefinido' | 'privado' | 'publico',
-          contenido: msg.contenido,
-          created_at: msg.created_at,
-          is_private: false,
-          leido: msg.leido,
-          usuario: {
-            id: msg.usuario.id,
-            nombre: msg.usuario.nombre,
-            username: msg.usuario.username,
-            avatar: msg.usuario.avatar,
-          },
-        }))
-        .reverse();
-
-      console.log('[SalaVirtual v6.7] ✅ Formatted', formattedMessages.length, 'public messages');
-
       messageIdsRef.current.clear();
-      formattedMessages.forEach(msg => {
-        messageIdsRef.current.add(msg.id);
-      });
-
+      
       if (!isMounted.current) return;
       
-      setMessages(formattedMessages);
-      
-      if (formattedMessages.length > 0) {
-        lastPublicMessageTimestampRef.current = formattedMessages[formattedMessages.length - 1].created_at;
-      }
-      
+      setMessages([]);
+      lastPublicMessageTimestampRef.current = new Date().toISOString();
       setLoading(false);
       
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
-      }, 300);
+      console.log('[SalaVirtual v6.7] ✅ Room initialized with empty chat (ephemeral mode)');
     } catch (error) {
-      console.error('[SalaVirtual v6.7] ❌ Error loading messages:', error);
+      console.error('[SalaVirtual v6.7] ❌ Error initializing messages:', error);
       if (isMounted.current) {
         setLoading(false);
       }
@@ -2071,6 +1990,7 @@ export default function SalaVirtualEnhancedScreen() {
         : chat.nombre;
       
       console.log('[SalaVirtual v6.7] 💬 Opening private chat with:', displayName);
+      console.log('[SalaVirtual v6.7] 🔥 EPHEMERAL PRIVATE CHAT - NOT LOADING OLD MESSAGES');
       
       if (isMounted.current) {
         setSelectedPrivateChat(chat);
@@ -2078,59 +1998,17 @@ export default function SalaVirtualEnhancedScreen() {
       
       await markPrivateMessagesAsRead(chat.userId);
       
-      const { data, error } = await supabase
-        .from('sala_virtual_interacciones')
-        .select(`
-          id,
-          usuario_id,
-          recipient_id,
-          contenido,
-          tipo,
-          created_at,
-          leido,
-          usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(
-            id,
-            nombre,
-            username,
-            avatar
-          )
-        `)
-        .eq('local_id', localId)
-        .eq('tipo', 'privado')
-        .or(`and(usuario_id.eq.${user.id},recipient_id.eq.${chat.userId}),and(usuario_id.eq.${chat.userId},recipient_id.eq.${user.id})`)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('[SalaVirtual v6.7] ❌ Error loading private messages:', error);
-        return;
-      }
-
-      const formattedMessages: Message[] = (data || []).map(msg => ({
-        id: msg.id,
-        usuario_id: msg.usuario_id,
-        local_id: localId,
-        tipo: msg.tipo as 'mensaje' | 'emoticon' | 'predefinido' | 'privado' | 'publico',
-        contenido: msg.contenido,
-        created_at: msg.created_at,
-        is_private: true,
-        recipient_id: msg.recipient_id,
-        leido: msg.leido,
-        usuario: msg.usuario,
-      }));
-
+      // ✅ CRITICAL FIX: Do NOT load old private messages from database
+      // Private messages are ephemeral and only visible during the current session
+      // When user opens a private chat, they should see NO old messages
+      
       if (isMounted.current) {
-        setPrivateChatMessages(formattedMessages);
+        setPrivateChatMessages([]);
       }
       
-      if (formattedMessages.length > 0) {
-        lastPrivateMessageTimestampRef.current = formattedMessages[formattedMessages.length - 1].created_at;
-      }
+      lastPrivateMessageTimestampRef.current = new Date().toISOString();
       
-      setTimeout(() => {
-        if (formattedMessages.length > 0) {
-          privateChatListRef.current?.scrollToEnd({ animated: true });
-        }
-      }, 300);
+      console.log('[SalaVirtual v6.7] ✅ Private chat initialized with empty history (ephemeral mode)');
     } catch (error) {
       console.error('[SalaVirtual v6.7] ❌ Error opening private chat:', error);
     }
