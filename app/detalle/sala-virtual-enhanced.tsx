@@ -35,7 +35,7 @@ import VirtualRoomLoginModal from '@/components/common/VirtualRoomLoginModal';
 import { scaleFontSize, scaleIconSize, getActionButtonPaddingVertical } from '@/utils/androidScaling';
 import { calcularDistancia } from '@/utils/locationUtils';
 
-console.log("✅ SALA VIRTUAL v6.8 - EPHEMERAL CHAT FIX + NO OLD MESSAGES ON RE-ENTRY");
+console.log("✅ SALA VIRTUAL v6.9 - iOS KEYBOARD FIX + PRIVATE MESSAGE PERSISTENCE");
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -1989,8 +1989,8 @@ export default function SalaVirtualEnhancedScreen() {
         ? chat.username.replace('@', '')
         : chat.nombre;
       
-      console.log('[SalaVirtual v6.7] 💬 Opening private chat with:', displayName);
-      console.log('[SalaVirtual v6.7] 🔥 EPHEMERAL PRIVATE CHAT - NOT LOADING OLD MESSAGES');
+      console.log('[SalaVirtual v6.8] 💬 Opening private chat with:', displayName);
+      console.log('[SalaVirtual v6.8] 📥 LOADING PRIVATE MESSAGES - Messages persist during session');
       
       if (isMounted.current) {
         setSelectedPrivateChat(chat);
@@ -1998,19 +1998,73 @@ export default function SalaVirtualEnhancedScreen() {
       
       await markPrivateMessagesAsRead(chat.userId);
       
-      // ✅ CRITICAL FIX: Do NOT load old private messages from database
-      // Private messages are ephemeral and only visible during the current session
-      // When user opens a private chat, they should see NO old messages
+      // ✅ FIXED: Load private messages from database
+      // Private messages should persist during the session (while local is open)
+      // They will be deleted when the local closes
       
-      if (isMounted.current) {
-        setPrivateChatMessages([]);
+      const { data: privateMessages, error } = await supabase
+        .from('sala_virtual_interacciones')
+        .select(`
+          id,
+          usuario_id,
+          local_id,
+          tipo,
+          contenido,
+          created_at,
+          recipient_id,
+          leido,
+          usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(
+            id,
+            nombre,
+            username,
+            avatar
+          )
+        `)
+        .eq('local_id', localId)
+        .eq('tipo', 'privado')
+        .or(`and(usuario_id.eq.${user.id},recipient_id.eq.${chat.userId}),and(usuario_id.eq.${chat.userId},recipient_id.eq.${user.id})`)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('[SalaVirtual v6.8] ❌ Error loading private messages:', error);
+        if (isMounted.current) {
+          setPrivateChatMessages([]);
+        }
+      } else {
+        const messages: Message[] = (privateMessages || [])
+          .filter(msg => msg.usuario)
+          .map(msg => ({
+            id: msg.id,
+            usuario_id: msg.usuario_id,
+            local_id: msg.local_id,
+            tipo: msg.tipo as 'mensaje' | 'emoticon' | 'predefinido' | 'privado' | 'publico',
+            contenido: msg.contenido,
+            created_at: msg.created_at,
+            is_private: true,
+            recipient_id: msg.recipient_id,
+            leido: msg.leido,
+            usuario: {
+              id: msg.usuario.id,
+              nombre: msg.usuario.nombre,
+              username: msg.usuario.username,
+              avatar: msg.usuario.avatar,
+            },
+          }));
+
+        if (isMounted.current) {
+          setPrivateChatMessages(messages);
+        }
+        
+        if (messages.length > 0) {
+          lastPrivateMessageTimestampRef.current = messages[messages.length - 1].created_at;
+        } else {
+          lastPrivateMessageTimestampRef.current = new Date().toISOString();
+        }
+        
+        console.log('[SalaVirtual v6.8] ✅ Loaded', messages.length, 'private messages');
       }
-      
-      lastPrivateMessageTimestampRef.current = new Date().toISOString();
-      
-      console.log('[SalaVirtual v6.7] ✅ Private chat initialized with empty history (ephemeral mode)');
     } catch (error) {
-      console.error('[SalaVirtual v6.7] ❌ Error opening private chat:', error);
+      console.error('[SalaVirtual v6.8] ❌ Error opening private chat:', error);
     }
   }, [user, localId, markPrivateMessagesAsRead]);
 
@@ -3134,8 +3188,8 @@ export default function SalaVirtualEnhancedScreen() {
         {activeTab === 'chat' && (
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
           >
             <FlatList
               ref={flatListRef}
@@ -3275,8 +3329,8 @@ export default function SalaVirtualEnhancedScreen() {
         {activeTab === 'private' && selectedPrivateChat && (
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
           >
             <TouchableOpacity
               style={[styles.privateChatHeader, { backgroundColor: themeColors.cardBg, borderBottomColor: themeColors.cardBorder }]}
