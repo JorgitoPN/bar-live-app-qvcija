@@ -146,15 +146,16 @@ export default function FiltrosAvanzadosScreen() {
   }, [filtrosTemp, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados Android v3.1] 🧹 Clearing all filters - INSTANT UI UPDATE');
+    console.log('[FiltrosAvanzados Android v3.0] 🧹 Clearing all filters - INSTANT UI UPDATE');
     
     // ✅ PASO 1: Actualizar UI INMEDIATAMENTE (síncrono)
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     
-    // ✅ PASO 2: Actualizar contexto INMEDIATAMENTE (síncrono)
-    // This ensures the filters are cleared immediately
-    contextLimpiarFiltros();
+    // ✅ PASO 2: Actualizar contexto en background (asíncrono)
+    setTimeout(() => {
+      contextLimpiarFiltros();
+    }, 0);
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
