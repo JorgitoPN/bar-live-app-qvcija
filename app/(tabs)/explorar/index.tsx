@@ -43,7 +43,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
-import { useFilters } from '@/contexts/FilterContext';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -92,7 +91,6 @@ export default function ExplorarScreen() {
   const { currentMode, setCurrentMode, activeProfileType, activeLocalData } = useMode();
   const { prefetchNextPage } = useGlobalData();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { filtros: globalFiltros, hasActiveFilters, setFiltros: setGlobalFiltros } = useFilters();
   
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [displayedLocales, setDisplayedLocales] = useState<any[]>([]);
@@ -710,27 +708,13 @@ export default function ExplorarScreen() {
   }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada, isLoadingMore, locationReady]);
 
   const filteredLocales = useMemo(() => {
-    console.log('[Explorar v323.1] 🔍 ========================================');
-    console.log('[Explorar v323.1] 🔍 STARTING FILTER PROCESS');
-    console.log('[Explorar v323.1] 🔍 Total loaded locales:', allLoadedLocales.length);
-    console.log('[Explorar v323.1] 🔍 Global filters:', JSON.stringify(globalFiltros, null, 2));
-    console.log('[Explorar v323.1] 🔍 Selected category (tab):', selectedCategory);
-    console.log('[Explorar v323.1] 🔍 User location:', userLocation);
+    console.log('[Explorar v323.0] 🔍 Filtering locales - total loaded:', allLoadedLocales.length);
     
     const query = debouncedQuery.toLowerCase().trim();
     
     let filtered = allLoadedLocales;
-    console.log('[Explorar v323.1] 📊 Step 0: Starting with', filtered.length, 'locales');
     
-    // ✅ STEP 1: Apply category filter (from tabs OR from advanced filters)
-    const categoryToFilter = globalFiltros.tipo && globalFiltros.tipo.length > 0 
-      ? globalFiltros.tipo[0] 
-      : selectedCategory;
-    
-    console.log('[Explorar v323.1] 🎯 Step 1: Category filter -', categoryToFilter);
-    
-    if (categoryToFilter && categoryToFilter !== 'todas') {
-      const beforeFilter = filtered.length;
+    if (selectedCategory && selectedCategory !== 'todas') {
       filtered = filtered.filter(local => {
         const barliveTypes = local.barlive_types || [];
         const barliveType = local.barlive_type || '';
@@ -744,7 +728,7 @@ export default function ExplorarScreen() {
           'discoteca': ['discoteca', 'nightclub', 'club', 'disco']
         };
         
-        const targetCategories = categoryMap[categoryToFilter] || [categoryToFilter];
+        const targetCategories = categoryMap[selectedCategory] || [selectedCategory];
         
         const allCategories = [...barliveTypes, barliveType]
           .filter(c => c && c.trim())
@@ -760,116 +744,9 @@ export default function ExplorarScreen() {
         
         return false;
       });
-      console.log('[Explorar v323.1] ✅ Step 1 complete:', beforeFilter, '→', filtered.length, 'locales');
-    } else {
-      console.log('[Explorar v323.1] ⏭️ Step 1 skipped: No category filter');
     }
     
-    // ✅ STEP 2: Apply location filters (comunidad, provincia, distancia)
-    if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades') {
-      const beforeFilter = filtered.length;
-      console.log('[Explorar v323.1] 📍 Step 2a: Filtering by comunidad:', globalFiltros.comunidad);
-      filtered = filtered.filter(local => {
-        const matches = local.comunidad === globalFiltros.comunidad;
-        if (!matches) {
-          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- comunidad:', local.comunidad);
-        }
-        return matches;
-      });
-      console.log('[Explorar v323.1] ✅ Step 2a complete:', beforeFilter, '→', filtered.length, 'locales');
-    } else {
-      console.log('[Explorar v323.1] ⏭️ Step 2a skipped: No comunidad filter');
-    }
-    
-    if (globalFiltros.provincia) {
-      const beforeFilter = filtered.length;
-      console.log('[Explorar v323.1] 📍 Step 2b: Filtering by provincia:', globalFiltros.provincia);
-      filtered = filtered.filter(local => {
-        const matches = local.provincia === globalFiltros.provincia;
-        if (!matches) {
-          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- provincia:', local.provincia);
-        }
-        return matches;
-      });
-      console.log('[Explorar v323.1] ✅ Step 2b complete:', beforeFilter, '→', filtered.length, 'locales');
-    } else {
-      console.log('[Explorar v323.1] ⏭️ Step 2b skipped: No provincia filter');
-    }
-    
-    if (globalFiltros.distancia && userLocation) {
-      const beforeFilter = filtered.length;
-      console.log('[Explorar v323.1] 📏 Step 2c: Filtering by distance:', globalFiltros.distancia, 'km');
-      filtered = filtered.filter(local => {
-        if (!local.distancia) {
-          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- no distance data');
-          return false;
-        }
-        const matches = local.distancia <= (globalFiltros.distancia || 5);
-        if (!matches) {
-          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- distance:', local.distancia, 'km');
-        }
-        return matches;
-      });
-      console.log('[Explorar v323.1] ✅ Step 2c complete:', beforeFilter, '→', filtered.length, 'locales');
-    } else {
-      console.log('[Explorar v323.1] ⏭️ Step 2c skipped: No distance filter or no user location');
-    }
-    
-    // ✅ STEP 3: Apply service filters (AND logic - must have ALL selected services)
-    if (globalFiltros.servicios && globalFiltros.servicios.length > 0) {
-      const beforeFilter = filtered.length;
-      console.log('[Explorar v323.1] 🔧 Step 3: Filtering by services (AND logic):', globalFiltros.servicios);
-      filtered = filtered.filter(local => {
-        const serviciosLocal = local.servicios_disponibles || {};
-        const hasAllServices = globalFiltros.servicios!.every(servicio => serviciosLocal[servicio] === true);
-        if (!hasAllServices) {
-          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- services:', Object.keys(serviciosLocal).filter(k => serviciosLocal[k]));
-        }
-        return hasAllServices;
-      });
-      console.log('[Explorar v323.1] ✅ Step 3 complete:', beforeFilter, '→', filtered.length, 'locales');
-    } else {
-      console.log('[Explorar v323.1] ⏭️ Step 3 skipped: No service filters');
-    }
-    
-    // ✅ STEP 4: Apply ambiente filters (OR logic - must have AT LEAST ONE selected ambiente)
-    if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0) {
-      const beforeFilter = filtered.length;
-      console.log('[Explorar v323.1] ✨ Step 4: Filtering by ambiente (OR logic):', globalFiltros.ambiente);
-      filtered = filtered.filter(local => {
-        const ambienteLocal = local.ambiente_completo || {};
-        const hasAnyAmbiente = globalFiltros.ambiente!.some(ambiente => ambienteLocal[ambiente] === true);
-        if (!hasAnyAmbiente) {
-          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- ambiente:', Object.keys(ambienteLocal).filter(k => ambienteLocal[k]));
-        }
-        return hasAnyAmbiente;
-      });
-      console.log('[Explorar v323.1] ✅ Step 4 complete:', beforeFilter, '→', filtered.length, 'locales');
-    } else {
-      console.log('[Explorar v323.1] ⏭️ Step 4 skipped: No ambiente filters');
-    }
-    
-    // ✅ STEP 5: Apply clientela filters (OR logic - must have AT LEAST ONE selected clientela)
-    if (globalFiltros.clientela && globalFiltros.clientela.length > 0) {
-      const beforeFilter = filtered.length;
-      console.log('[Explorar v323.1] 👥 Step 5: Filtering by clientela (OR logic):', globalFiltros.clientela);
-      filtered = filtered.filter(local => {
-        const clientelaLocal = local.clientela || {};
-        const hasAnyClientela = globalFiltros.clientela!.some(tipo => clientelaLocal[tipo] === true);
-        if (!hasAnyClientela) {
-          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- clientela:', Object.keys(clientelaLocal).filter(k => clientelaLocal[k]));
-        }
-        return hasAnyClientela;
-      });
-      console.log('[Explorar v323.1] ✅ Step 5 complete:', beforeFilter, '→', filtered.length, 'locales');
-    } else {
-      console.log('[Explorar v323.1] ⏭️ Step 5 skipped: No clientela filters');
-    }
-    
-    // ✅ STEP 6: Apply search query
     if (query) {
-      const beforeFilter = filtered.length;
-      console.log('[Explorar v323.1] 🔍 Step 6: Filtering by search query:', query);
       filtered = filtered.filter(local => {
         const nombre = local.nombre?.toLowerCase() || '';
         const direccion = local.direccion?.toLowerCase() || '';
@@ -877,36 +754,22 @@ export default function ExplorarScreen() {
         const tipo = local.tipo?.toLowerCase() || '';
         const barliveTypes = (local.barlive_types || []).join(' ').toLowerCase();
         
-        const matches = nombre.includes(query) || 
+        return nombre.includes(query) || 
                direccion.includes(query) || 
                provincia.includes(query) ||
                tipo.includes(query) ||
                barliveTypes.includes(query);
-        
-        if (!matches) {
-          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- does not match query');
-        }
-        
-        return matches;
       });
-      console.log('[Explorar v323.1] ✅ Step 6 complete:', beforeFilter, '→', filtered.length, 'locales');
-    } else {
-      console.log('[Explorar v323.1] ⏭️ Step 6 skipped: No search query');
     }
 
-    // ✅ STEP 7: Remove duplicates
     const uniqueLocales = filtered.filter((item, index, self) =>
       index === self.findIndex((t) => t.id === item.id)
     );
 
-    console.log('[Explorar v323.1] ✅ Step 7 complete: Removed', filtered.length - uniqueLocales.length, 'duplicates');
-    console.log('[Explorar v323.1] 🎉 ========================================');
-    console.log('[Explorar v323.1] 🎉 FILTER PROCESS COMPLETE');
-    console.log('[Explorar v323.1] 🎉 Final result:', uniqueLocales.length, 'locales');
-    console.log('[Explorar v323.1] 🎉 ========================================');
+    console.log('[Explorar v323.0] ✅ Filtered:', filtered.length, '→ Unique:', uniqueLocales.length, '(removed', filtered.length - uniqueLocales.length, 'duplicates)');
 
     return uniqueLocales;
-  }, [allLoadedLocales, debouncedQuery, selectedCategory, globalFiltros, userLocation]);
+  }, [allLoadedLocales, debouncedQuery, selectedCategory]);
 
   useEffect(() => {
     console.log('[Explorar v323.0] 🎯 Updating displayed locales - count:', filteredLocales.length);
@@ -930,37 +793,6 @@ export default function ExplorarScreen() {
       loadLocales(1, false);
     }
   }, [selectedCategory, provinciaSeleccionada]);
-  
-  // ✅ Sync category selection with FilterContext
-  useEffect(() => {
-    if (selectedCategory && selectedCategory !== 'todas') {
-      console.log('[Explorar v323.0] 🔄 Syncing category to FilterContext:', selectedCategory);
-      setGlobalFiltros(prev => ({
-        ...prev,
-        tipo: [selectedCategory],
-      }));
-    } else if (selectedCategory === 'todas') {
-      console.log('[Explorar v323.0] 🔄 Clearing category filter in FilterContext');
-      setGlobalFiltros(prev => ({
-        ...prev,
-        tipo: undefined,
-      }));
-    }
-  }, [selectedCategory, setGlobalFiltros]);
-  
-  // ✅ Sync FilterContext category back to local state
-  useEffect(() => {
-    if (globalFiltros.tipo && globalFiltros.tipo.length > 0) {
-      const filterCategory = globalFiltros.tipo[0];
-      if (filterCategory !== selectedCategory) {
-        console.log('[Explorar v323.0] 🔄 Syncing FilterContext category to local state:', filterCategory);
-        setSelectedCategory(filterCategory);
-      }
-    } else if (!globalFiltros.tipo && selectedCategory !== 'todas') {
-      console.log('[Explorar v323.0] 🔄 Clearing local category selection');
-      setSelectedCategory('todas');
-    }
-  }, [globalFiltros.tipo]);
 
   const loadMoreLocalesRef = useRef(false);
   
@@ -1031,15 +863,12 @@ export default function ExplorarScreen() {
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
     
-    // ✅ Clear global filters from FilterContext
-    setGlobalFiltros({});
-    
     console.log('[Explorar v323.0] 📜 Resetting scroll to top (filters cleared)');
     setTimeout(() => {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       savedScrollPosition.current = 0;
     }, 100);
-  }, [setGlobalFiltros]);
+  }, []);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
@@ -1631,47 +1460,21 @@ export default function ExplorarScreen() {
             )}
           </View>
           
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity 
-              onPress={() => {
-                console.log('[Explorar v323.0] 👆 Usuario abrió filtros - navegando a filtros avanzados');
-                router.push('/explorar/filtros-avanzados');
-              }}
-              style={styles.filterIconButtonCompact}
-              activeOpacity={0.7}
-            >
-              <IconSymbol 
-                ios_icon_name="slider.horizontal.3" 
-                android_material_icon_name="tune" 
-                size={scaleIconSize(20)} 
-                color={colors.headerText} 
-              />
-              {hasActiveFilters && (
-                <View style={styles.filterBadge}>
-                  <View style={styles.filterBadgeDot} />
-                </View>
-              )}
-            </TouchableOpacity>
-            
-            {/* ✅ NEW: Quick clear filters button */}
-            {hasActiveFilters && (
-              <TouchableOpacity 
-                onPress={() => {
-                  console.log('[Explorar v323.0] 🧹 Usuario limpió filtros rápidamente');
-                  clearFilters();
-                }}
-                style={styles.quickClearButton}
-                activeOpacity={0.7}
-              >
-                <IconSymbol 
-                  ios_icon_name="xmark.circle.fill" 
-                  android_material_icon_name="cancel" 
-                  size={scaleIconSize(20)} 
-                  color={colors.headerText} 
-                />
-              </TouchableOpacity>
-            )}
-          </View>
+          <TouchableOpacity 
+            onPress={() => {
+              console.log('[Explorar v323.0] 👆 Usuario abrió filtros - navegando a página completa');
+              router.push('/(tabs)/explorar/filtros-simples');
+            }}
+            style={styles.filterIconButtonCompact}
+            activeOpacity={0.7}
+          >
+            <IconSymbol 
+              ios_icon_name="slider.horizontal.3" 
+              android_material_icon_name="tune" 
+              size={scaleIconSize(20)} 
+              color={colors.headerText} 
+            />
+          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -1734,8 +1537,8 @@ export default function ExplorarScreen() {
         contentContainerStyle={[
           styles.listContent,
           { 
-            marginTop: HEADER_MAX_HEIGHT,
-            paddingTop: 0,
+            marginTop: HEADER_MAX_HEIGHT + 10,
+            paddingTop: 24,
             paddingBottom: getContentBottomPadding(100)
           },
         ]}
@@ -2020,34 +1823,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-  },
-  quickClearButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.headerText,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  filterBadgeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#EF4444',
   },
   categoriesScroll: {
     marginBottom: Platform.OS === 'android' ? 8 : 10,

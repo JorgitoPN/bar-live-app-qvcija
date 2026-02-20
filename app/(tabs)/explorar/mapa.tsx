@@ -9,7 +9,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { useFilters } from '@/contexts/FilterContext';
-
+import FiltrosAvanzadosSheet from '@/components/home/FiltrosAvanzadosSheet';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
@@ -166,12 +166,13 @@ const EstadoSelector = React.memo(({
 
 export default function MapaScreen() {
   const router = useRouter();
-  const { filtros: globalFiltros, limpiarFiltros: contextLimpiarFiltros } = useFilters();
+  const { filtros: globalFiltros } = useFilters();
   
   const webViewRef = useRef<WebView>(null);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todas');
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'no_cerrados'>('no_cerrados');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
   
   // 🚀 CALLBACKS MEMOIZADOS - Evitar recreación en cada render
@@ -185,7 +186,13 @@ export default function MapaScreen() {
     setFiltroEstado(estado);
   }, []);
   
-
+  const handleToggleFiltros = useCallback(() => {
+    setMostrarFiltros(prev => !prev);
+  }, []);
+  
+  const handleCloseFiltros = useCallback(() => {
+    setMostrarFiltros(false);
+  }, []);
 
   // ✅ NEW v281.0: Get refined scaling values
   const popupWidth = getMapPopupWidth();
@@ -1402,24 +1409,17 @@ console.log('🗺️ [MAPA v293.0] ═══════════════
       return;
     }
     
-    // ✅ Apply category filter (from tabs OR from advanced filters)
-    const categoryToApply = globalFiltros.tipo && globalFiltros.tipo.length > 0 
-      ? globalFiltros.tipo[0] 
-      : categoriaSeleccionada;
-    
-    console.log('🗺️ [MAPA v293.0] 🎯 Applying category filter:', categoryToApply);
-    
     requestAnimationFrame(() => {
       webViewRef.current?.injectJavaScript(`
         (function() {
           if (typeof window.filtrarCategoria !== 'undefined') {
-            window.filtrarCategoria('${categoryToApply}');
+            window.filtrarCategoria('${categoriaSeleccionada}');
           }
         })();
         true;
       `);
     });
-  }, [categoriaSeleccionada, globalFiltros.tipo, isMapReady]);
+  }, [categoriaSeleccionada, isMapReady]);
 
   useEffect(() => {
     if (!webViewRef.current || !userLocation || !isMapReady) {
@@ -1584,10 +1584,7 @@ console.log('🗺️ [MAPA v293.0] ═══════════════
             height: controlButtonSize,
             borderRadius: controlButtonSize / 2,
           }]}
-          onPress={() => {
-            console.log('🗺️ [MAPA v293.0] 👆 Usuario abrió filtros - navegando a página de filtros avanzados');
-            router.push('/explorar/filtros-avanzados');
-          }}
+          onPress={handleToggleFiltros}
         >
           <IconSymbol 
             ios_icon_name="line.3.horizontal.decrease.circle.fill" 
@@ -1596,30 +1593,6 @@ console.log('🗺️ [MAPA v293.0] ═══════════════
             color={colors.primary} 
           />
         </TouchableOpacity>
-
-        {/* ✅ NEW: Quick clear filters button (only visible when filters are active) */}
-        {(globalFiltros.tipo || globalFiltros.servicios || globalFiltros.ambiente || globalFiltros.clientela || globalFiltros.comunidad || globalFiltros.provincia || globalFiltros.distancia) && (
-          <TouchableOpacity 
-            style={[styles.controlButton, {
-              width: controlButtonSize,
-              height: controlButtonSize,
-              borderRadius: controlButtonSize / 2,
-            }]}
-            onPress={() => {
-              console.log('🗺️ [MAPA v293.0] 🧹 Usuario limpió filtros rápidamente');
-              contextLimpiarFiltros();
-              setCategoriaSeleccionada('todas');
-              setFiltroEstado('no_cerrados');
-            }}
-          >
-            <IconSymbol 
-              ios_icon_name="xmark.circle.fill" 
-              android_material_icon_name="cancel" 
-              size={controlIconSize} 
-              color="#EF4444" 
-            />
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* ✅ FIX v281.0: Controls with NO ELEVATION on Android (clean appearance) */}
@@ -1665,7 +1638,10 @@ console.log('🗺️ [MAPA v293.0] ═══════════════
         />
       </TouchableOpacity>
 
-
+      <FiltrosAvanzadosSheet
+        visible={mostrarFiltros}
+        onClose={handleCloseFiltros}
+      />
     </View>
   );
 }
@@ -1711,7 +1687,7 @@ const styles = StyleSheet.create({
   // ✅ FIX v274.0: REDUCED padding for minimal margin
   header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingBottom: 0,
+    paddingBottom: 8,
   },
   categoriasContainer: {
     flexGrow: 0,

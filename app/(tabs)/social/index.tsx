@@ -794,7 +794,6 @@ const styles = StyleSheet.create({
   listContent: {
     paddingTop: HEADER_HEIGHT,
     paddingBottom: 100,
-    marginTop: 0,
   },
   impersonationBanner: {
     marginHorizontal: 16,
