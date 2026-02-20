@@ -24,25 +24,6 @@ interface ImageGalleryModalProps {
   onClose: () => void;
 }
 
-/**
- * ✅ IMAGE GALLERY MODAL v34.0 - ANDROID FULLSCREEN FIX COMPLETE
- * 
- * NEW CHANGES v34.0:
- * - ✅ FIXED ANDROID MODAL: presentationStyle='overFullScreen' for true edge-to-edge
- * - ✅ StatusBar hidden on Android for immersive fullscreen experience
- * - ✅ Header paddingTop=20 on Android (minimal padding without status bar)
- * - ✅ Image height adjusted: height - 100 on Android for better fit
- * - ✅ El visor de imágenes se abre en pantalla completa en Android
- * - ✅ No hay espacios vacíos en la parte superior e inferior
- * - ✅ Experiencia optimizada para Android
- * 
- * PREVIOUS FIXES v33.0:
- * - ✅ Removed SafeAreaView padding that was causing empty spaces
- * - ✅ Properly displays all images from galeria_urls
- * - ✅ Fixed icon mappings for Android
- * - ✅ Smooth navigation between images
- * - ✅ Works identically on iOS and Android
- */
 export default function ImageGalleryModal({
   visible,
   images,
@@ -52,7 +33,6 @@ export default function ImageGalleryModal({
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Reset to initial index when modal opens
   React.useEffect(() => {
     if (visible) {
       setCurrentIndex(initialIndex);
@@ -84,13 +64,6 @@ export default function ImageGalleryModal({
     }
   };
 
-  console.log('[ImageGalleryModal] 📸 Displaying gallery:', {
-    visible,
-    totalImages: images.length,
-    currentIndex,
-    initialIndex,
-  });
-
   return (
     <Modal
       visible={visible}
@@ -101,7 +74,6 @@ export default function ImageGalleryModal({
     >
       {Platform.OS === 'android' && <StatusBar hidden={true} />}
       <View style={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
@@ -112,7 +84,6 @@ export default function ImageGalleryModal({
           <View style={styles.placeholder} />
         </View>
 
-        {/* Image Carousel */}
         <ScrollView
           ref={scrollViewRef}
           horizontal
@@ -132,7 +103,6 @@ export default function ImageGalleryModal({
           ))}
         </ScrollView>
 
-        {/* Navigation Arrows */}
         {currentIndex > 0 && (
           <TouchableOpacity style={styles.leftArrow} onPress={goToPrevious}>
             <View style={styles.arrowBackground}>
@@ -149,7 +119,6 @@ export default function ImageGalleryModal({
           </TouchableOpacity>
         )}
 
-        {/* Dots Indicator */}
         <View style={styles.dotsContainer}>
           {images.map((_, index) => (
             <View
