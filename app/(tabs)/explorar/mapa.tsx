@@ -33,15 +33,17 @@ const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 /**
- * 🗺️ MAPA SCREEN v345.0 - CRITICAL FILTER FIX
+ * 🗺️ MAPA SCREEN v350.0 - CATEGORY SYNC + ADVANCED FILTERS FIX
  * 
- * CRITICAL FIXES v345.0:
- * - ✅ FIXED FILTER CHECK: Use hasActiveFilters from context (not hasAdvancedFilters)
- * - ✅ PROPER CONTEXT USAGE: Use hasActiveFilters property from FilterContext
- * - ✅ CONSISTENT NAMING: Aligned with FilterContext API
- * - ✅ RESULT: Advanced filters now work correctly on map
+ * CRITICAL FIXES v350.0:
+ * - 🔥 CATEGORY SYNC: Category selection now syncs with FilterContext
+ * - 🔥 BIDIRECTIONAL: Changes in map update Explorar and vice versa
+ * - 🔥 SINGLE SELECTION: Only one category at a time
+ * - ✅ Advanced filters work correctly
+ * - ✅ Map markers update with all filters
+ * - ✅ No desynchronization between views
  * 
- * Previous features v344.0:
+ * Previous features v345.0:
  * - ✅ Visual indicator (red dot) when filters are active
  * - ✅ Quick clear button for advanced filters
  * - ✅ Instant filter application
@@ -149,44 +151,66 @@ const EstadoSelector = React.memo(({
 export default function MapaScreen() {
   const router = useRouter();
   
-  // ✅ CRITICAL FIX v345.0: Use hasActiveFilters from context
+  // ✅ CRITICAL FIX v350.0: Use FilterContext for category sync
   const { 
     filtros: globalFiltros, 
+    setFiltros,
     limpiarFiltros,
-    hasActiveFilters, // ✅ This is the correct property name from FilterContext
+    hasActiveFilters,
   } = useFilters();
   
   const webViewRef = useRef<WebView>(null);
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todas');
+  
+  // ✅ CRITICAL FIX v350.0: Derive category from FilterContext
+  const categoriaSeleccionada = useMemo(() => {
+    if (globalFiltros.tipo && globalFiltros.tipo.length > 0) {
+      return globalFiltros.tipo[0];
+    }
+    return 'todas';
+  }, [globalFiltros.tipo]);
+  
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'no_cerrados'>('no_cerrados');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
 
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   
+  // ✅ CRITICAL FIX v350.0: Update FilterContext when category changes
   const handleCategoriaChange = useCallback((categoriaId: string) => {
-    console.log('🗺️ [MAPA v345.0] Cambiando categoría a:', categoriaId);
-    setCategoriaSeleccionada(categoriaId);
-  }, []);
+    console.log('🗺️ [MAPA v350.0] Cambiando categoría a:', categoriaId);
+    
+    if (categoriaId === 'todas') {
+      // Clear tipo filter
+      setFiltros({
+        ...globalFiltros,
+        tipo: undefined,
+      });
+    } else {
+      // Set single tipo filter
+      setFiltros({
+        ...globalFiltros,
+        tipo: [categoriaId],
+      });
+    }
+  }, [globalFiltros, setFiltros]);
   
   const handleEstadoChange = useCallback((estado: 'todos' | 'no_cerrados') => {
-    console.log('🗺️ [MAPA v345.0] Cambiando estado a:', estado);
+    console.log('🗺️ [MAPA v350.0] Cambiando estado a:', estado);
     setFiltroEstado(estado);
   }, []);
   
   const handleToggleFiltros = useCallback(() => {
-    console.log('🗺️ [MAPA v345.0] 🔍 Opening advanced filters');
+    console.log('🗺️ [MAPA v350.0] 🔍 Opening advanced filters');
     setMostrarFiltros(prev => !prev);
   }, []);
   
   const handleCloseFiltros = useCallback(() => {
-    console.log('🗺️ [MAPA v345.0] ✅ Closing advanced filters');
+    console.log('🗺️ [MAPA v350.0] ✅ Closing advanced filters');
     setMostrarFiltros(false);
   }, []);
 
-  // ✅ CRITICAL FIX v345.0: Clear advanced filters using context method
   const handleClearAdvancedFilters = useCallback(() => {
-    console.log('🗺️ [MAPA v345.0] 🧹 Clearing advanced filters');
+    console.log('🗺️ [MAPA v350.0] 🧹 Clearing advanced filters');
     limpiarFiltros();
   }, [limpiarFiltros]);
 
@@ -233,7 +257,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 <body>
 <div id="map"></div>
 <script>
-console.log('🗺️ [MAPA v345.0] Inicializando MapLibre GL JS - Advanced Filters Integration');
+console.log('🗺️ [MAPA v350.0] Inicializando MapLibre GL JS - Category Sync + Advanced Filters');
 
 var map = new maplibregl.Map({
   container: 'map',
@@ -307,7 +331,7 @@ function loadCategoryIcons() {
     });
   });
   
-  console.log('🗺️ [MAPA v345.0] Iconos de categorías cargados');
+  console.log('🗺️ [MAPA v350.0] Iconos de categorías cargados');
 }
 
 window.getEstadoLocalRealTime = function(local) {
@@ -392,11 +416,11 @@ window.getEstadoLocalRealTime = function(local) {
 };
 
 map.on('load', function() {
-  console.log('🗺️ [MAPA v345.0] Mapa cargado, añadiendo source GeoJSON');
+  console.log('🗺️ [MAPA v350.0] Mapa cargado, añadiendo source GeoJSON');
   
   setTimeout(function() {
     map.resize();
-    console.log('🗺️ [MAPA v345.0] ✅ map.resize() ejecutado');
+    console.log('🗺️ [MAPA v350.0] ✅ map.resize() ejecutado');
   }, 100);
   
   loadCategoryIcons();
@@ -438,7 +462,7 @@ map.on('load', function() {
     }
   });
   
-  console.log('🗺️ [MAPA v345.0] ✅ Adding cluster-count layer with MAXIMUM visibility');
+  console.log('🗺️ [MAPA v350.0] ✅ Adding cluster-count layer with MAXIMUM visibility');
   map.addLayer({
     id: 'cluster-count',
     type: 'symbol',
@@ -467,7 +491,7 @@ map.on('load', function() {
       'text-opacity': 1
     }
   });
-  console.log('🗺️ [MAPA v345.0] ✅ Cluster count layer added');
+  console.log('🗺️ [MAPA v350.0] ✅ Cluster count layer added');
   
   map.addLayer({
     id: 'locales-layer',
@@ -558,12 +582,12 @@ map.on('load', function() {
     }
   });
   
-  console.log('🗺️ [MAPA v345.0] ✅ All layers added');
+  console.log('🗺️ [MAPA v350.0] ✅ All layers added');
   
   window.loadLocales();
   
   if (window.pendingAdvancedFilters) {
-    console.log('🗺️ [MAPA v345.0] Applying pending advanced filters');
+    console.log('🗺️ [MAPA v350.0] Applying pending advanced filters');
     window.applyAdvancedFilters(window.pendingAdvancedFilters);
     window.pendingAdvancedFilters = null;
   }
@@ -587,7 +611,7 @@ window.pendingAdvancedFilters = null;
 
 window.loadLocales = async function() {
   try {
-    console.log('🗺️ [MAPA v345.0] Cargando locales desde Supabase...');
+    console.log('🗺️ [MAPA v350.0] Cargando locales desde Supabase...');
     
     const response = await fetch('https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/locales?select=id,nombre,direccion,latitud,longitud,imagen_url,rating,google_rating,barlive_types,horarios_completos,estado_actual,google_business_status,google_user_ratings_total,servicios_disponibles,ambiente_completo,clientela,comunidad,provincia&activo=eq.true&latitud=not.is.null&longitud=not.is.null', {
       headers: {
@@ -599,17 +623,17 @@ window.loadLocales = async function() {
     if (!response.ok) throw new Error('Error cargando locales: ' + response.status);
     
     const locales = await response.json();
-    console.log('🗺️ [MAPA v345.0] Locales cargados:', locales.length);
+    console.log('🗺️ [MAPA v350.0] Locales cargados:', locales.length);
     
     window.allLocales = locales;
     window.applyFilters();
   } catch (error) {
-    console.error('🗺️ [MAPA v345.0] Error cargando locales:', error);
+    console.error('🗺️ [MAPA v350.0] Error cargando locales:', error);
   }
 };
 
 window.applyAdvancedFilters = function(filterCriteria) {
-  console.log('🗺️ [MAPA v345.0] 🔍 Setting advanced filters:', filterCriteria);
+  console.log('🗺️ [MAPA v350.0] 🔍 Setting advanced filters:', filterCriteria);
   window.advancedFilters = filterCriteria;
   window.applyFilters();
 };
@@ -617,8 +641,8 @@ window.applyAdvancedFilters = function(filterCriteria) {
 window.applyFilters = function() {
   if (!window.allLocales || window.allLocales.length === 0) return;
   
-  console.log('🗺️ [MAPA v345.0] Aplicando filtros:', window.filtros);
-  console.log('🗺️ [MAPA v345.0] Advanced filters:', window.advancedFilters);
+  console.log('🗺️ [MAPA v350.0] Aplicando filtros:', window.filtros);
+  console.log('🗺️ [MAPA v350.0] Advanced filters:', window.advancedFilters);
   
   var filteredLocales = window.allLocales.filter(function(local) {
     // ✅ STEP 1: Estado filter (abierto/cerrado)
@@ -733,7 +757,7 @@ window.applyFilters = function() {
     return true;
   });
   
-  console.log('🗺️ [MAPA v345.0] Locales filtrados:', filteredLocales.length);
+  console.log('🗺️ [MAPA v350.0] Locales filtrados:', filteredLocales.length);
   
   var geojson = {
     type: 'FeatureCollection',
@@ -764,7 +788,7 @@ window.applyFilters = function() {
   var source = map.getSource('locales-source');
   if (source) {
     source.setData(geojson);
-    console.log('🗺️ [MAPA v345.0] ✅ GeoJSON actualizado con', geojson.features.length, 'marcadores');
+    console.log('🗺️ [MAPA v350.0] ✅ GeoJSON actualizado con', geojson.features.length, 'marcadores');
   }
 };
 
@@ -781,7 +805,7 @@ window.filtrarCategoria = function(idCategoria) {
 window.setCategoryFilter = window.filtrarCategoria;
 
 window.updateUserLocation = function(lat, lng) {
-  console.log('🗺️ [MAPA v345.0] 📍 Actualizando ubicación del usuario:', lat, lng);
+  console.log('🗺️ [MAPA v350.0] 📍 Actualizando ubicación del usuario:', lat, lng);
   
   if (!map) return;
   
@@ -809,10 +833,10 @@ window.updateUserLocation = function(lat, lng) {
       .setLngLat([lng, lat])
       .addTo(map);
     
-    console.log('🗺️ [MAPA v345.0] ✅ Marcador de usuario creado');
+    console.log('🗺️ [MAPA v350.0] ✅ Marcador de usuario creado');
   } else {
     window.userMarker.setLngLat([lng, lat]);
-    console.log('🗺️ [MAPA v345.0] ✅ Marcador de usuario actualizado');
+    console.log('🗺️ [MAPA v350.0] ✅ Marcador de usuario actualizado');
   }
 };
 
@@ -826,7 +850,7 @@ function showPopupForFeature(feature, coordinates) {
   var properties = feature.properties;
   if (!properties.id) return;
   
-  console.log('🗺️ [MAPA v345.0] ✅ Mostrando popup para local:', properties.name);
+  console.log('🗺️ [MAPA v350.0] ✅ Mostrando popup para local:', properties.name);
   
   var localCompleto = window.allLocales.find(function(l) { return l.id === properties.id; });
   
@@ -890,11 +914,11 @@ function showPopupForFeature(feature, coordinates) {
 }
 
 map.on('click', function(e) {
-  console.log('🗺️ [MAPA v345.0] 🎯 Click detectado');
+  console.log('🗺️ [MAPA v350.0] 🎯 Click detectado');
   
   var clusterFeatures = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
   if (clusterFeatures.length > 0) {
-    console.log('🗺️ [MAPA v345.0] 🔵 CLUSTER detectado - ejecutando zoom-in');
+    console.log('🗺️ [MAPA v350.0] 🔵 CLUSTER detectado - ejecutando zoom-in');
     
     var clusterId = clusterFeatures[0].properties.cluster_id;
     var source = map.getSource('locales-source');
@@ -955,7 +979,7 @@ map.on('click', function(e) {
   });
   
   if (detectado) {
-    console.log('🗺️ [MAPA v345.0] 🎉 Local encontrado:', detectado.nombre);
+    console.log('🗺️ [MAPA v350.0] 🎉 Local encontrado:', detectado.nombre);
     
     var coords = [parseFloat(detectado.longitud), parseFloat(detectado.latitud)];
     var estadoCalculado = window.getEstadoLocalRealTime(detectado);
@@ -1039,7 +1063,7 @@ window.addEventListener('resize', function() {
   map.resize();
 });
 
-console.log('🗺️ [MAPA v345.0] ✅ Map initialization complete with advanced filters support');
+console.log('🗺️ [MAPA v350.0] ✅ Map initialization complete with category sync + advanced filters');
 </script>
 </body>
 </html>`;
@@ -1050,35 +1074,35 @@ console.log('🗺️ [MAPA v345.0] ✅ Map initialization complete with advanced
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('🗺️ [MAPA v345.0] Permisos de ubicación denegados');
+          console.log('🗺️ [MAPA v350.0] Permisos de ubicación denegados');
           setUserLocation({ lat: 40.4168, lng: -3.7038 });
           return;
         }
 
-        console.log('🗺️ [MAPA v345.0] Obteniendo ubicación del usuario...');
+        console.log('🗺️ [MAPA v350.0] Obteniendo ubicación del usuario...');
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
         
-        console.log('🗺️ [MAPA v345.0] Ubicación obtenida:', location.coords.latitude, location.coords.longitude);
+        console.log('🗺️ [MAPA v350.0] Ubicación obtenida:', location.coords.latitude, location.coords.longitude);
         setUserLocation({
           lat: location.coords.latitude,
           lng: location.coords.longitude,
         });
       } catch (error) {
-        console.error('🗺️ [MAPA v345.0] Error obteniendo ubicación:', error);
+        console.error('🗺️ [MAPA v350.0] Error obteniendo ubicación:', error);
         setUserLocation({ lat: 40.4168, lng: -3.7038 });
       }
     })();
   }, []);
 
-  // ✅ CRITICAL FIX: Apply advanced filters to map
+  // ✅ CRITICAL FIX v350.0: Apply advanced filters to map
   useEffect(() => {
     if (!webViewRef.current || !isMapReady) {
       return;
     }
     
-    console.log('🗺️ [MAPA v345.0] 🔍 Applying advanced filters to map:', globalFiltros);
+    console.log('🗺️ [MAPA v350.0] 🔍 Applying advanced filters to map:', globalFiltros);
     
     const filterCriteria = {
       tipo: globalFiltros.tipo || [],
@@ -1093,7 +1117,7 @@ console.log('🗺️ [MAPA v345.0] ✅ Map initialization complete with advanced
     requestAnimationFrame(() => {
       webViewRef.current?.injectJavaScript(`
         (function() {
-          console.log('🗺️ [MAPA v345.0] Applying advanced filters in WebView:', ${JSON.stringify(filterCriteria)});
+          console.log('🗺️ [MAPA v350.0] Applying advanced filters in WebView:', ${JSON.stringify(filterCriteria)});
           
           if (typeof window.applyAdvancedFilters !== 'undefined') {
             window.applyAdvancedFilters(${JSON.stringify(filterCriteria)});
@@ -1145,7 +1169,7 @@ console.log('🗺️ [MAPA v345.0] ✅ Map initialization complete with advanced
       return;
     }
     
-    console.log('🗺️ [MAPA v345.0] 📍 Inyectando ubicación del usuario');
+    console.log('🗺️ [MAPA v350.0] 📍 Inyectando ubicación del usuario');
     
     const injectUserLocation = () => {
       webViewRef.current?.injectJavaScript(`
@@ -1161,7 +1185,7 @@ console.log('🗺️ [MAPA v345.0] ✅ Map initialization complete with advanced
               }, 100);
             }
           } catch (error) {
-            console.error('🗺️ [MAPA v345.0] ❌ Error actualizando ubicación:', error);
+            console.error('🗺️ [MAPA v350.0] ❌ Error actualizando ubicación:', error);
           }
         })();
         true;
@@ -1177,7 +1201,7 @@ console.log('🗺️ [MAPA v345.0] ✅ Map initialization complete with advanced
 
   const centerOnUser = useCallback(() => {
     if (userLocation && webViewRef.current && isMapReady) {
-      console.log('🗺️ [MAPA v345.0] Centrando en ubicación del usuario');
+      console.log('🗺️ [MAPA v350.0] Centrando en ubicación del usuario');
       webViewRef.current.injectJavaScript(`
         if (typeof window.flyToLocation !== 'undefined') {
           window.flyToLocation(${userLocation.lat}, ${userLocation.lng}, 16);
@@ -1192,14 +1216,14 @@ console.log('🗺️ [MAPA v345.0] ✅ Map initialization complete with advanced
       const data = JSON.parse(event.nativeEvent.data);
       
       if (data.type === 'navigate' && data.id) {
-        console.log('🗺️ [MAPA v345.0] Navegando a local:', data.id);
+        console.log('🗺️ [MAPA v350.0] Navegando a local:', data.id);
         router.push(`/detalle/local?id=${data.id}`);
       } else if (data.type === 'map_ready') {
-        console.log('🗺️ [MAPA v345.0] Mapa listo');
+        console.log('🗺️ [MAPA v350.0] Mapa listo');
         setIsMapReady(true);
       }
     } catch (error) {
-      console.error('🗺️ [MAPA v345.0] Error procesando mensaje:', error);
+      console.error('🗺️ [MAPA v350.0] Error procesando mensaje:', error);
     }
   }, [router]);
 
@@ -1302,14 +1326,12 @@ console.log('🗺️ [MAPA v345.0] ✅ Map initialization complete with advanced
               size={controlIconSize} 
               color={colors.primary} 
             />
-            {/* ✅ CRITICAL FIX v345.0: Use hasActiveFilters from context */}
             {hasActiveFilters && (
               <View style={styles.filterActiveDotMap} />
             )}
           </TouchableOpacity>
         </View>
 
-        {/* ✅ CRITICAL FIX v345.0: Use hasActiveFilters from context */}
         {hasActiveFilters && (
           <TouchableOpacity 
             style={[styles.controlButton, styles.clearAdvancedFiltersButtonMap, {

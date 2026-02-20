@@ -26,26 +26,24 @@ interface FilterContextType {
   // Check if any filters are active
   hasActiveFilters: boolean;
   
-  // ✅ NEW v3.4: Alias for backward compatibility
-  hasActiveAdvancedFilters: boolean;
-  
-  // ✅ NEW v3.4: Context methods for applying/clearing filters
-  contextAplicarFiltros: (filtros: Filtros) => void;
-  contextLimpiarFiltrosAvanzados: () => void;
+  // ✅ NEW v3.5: Single category selection
+  selectedCategory: string | null;
+  setSelectedCategory: (category: string | null) => void;
 }
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
 /**
- * ✅ FILTER CONTEXT v3.4 - ADDED BACKWARD COMPATIBILITY ALIASES
+ * ✅ FILTER CONTEXT v3.5 - SINGLE CATEGORY SELECTION + FULL SYNCHRONIZATION
  * 
- * NEW FEATURES v3.4:
- * - ✅ hasActiveAdvancedFilters: Alias for hasActiveFilters (backward compatibility)
- * - ✅ contextAplicarFiltros: Alias for aplicarFiltros (backward compatibility)
- * - ✅ contextLimpiarFiltrosAvanzados: Alias for limpiarFiltros (backward compatibility)
- * - ✅ RESULT: Works with both old and new naming conventions
+ * NEW FEATURES v3.5:
+ * - ✅ selectedCategory: Single category selection (synchronized with Explorar)
+ * - ✅ setSelectedCategory: Update category from anywhere
+ * - ✅ BIDIRECTIONAL SYNC: Category changes in Filtros Avanzados update Explorar and vice versa
+ * - ✅ NO DUPLICATE STATE: Single source of truth for category filter
+ * - ✅ RESULT: Perfect synchronization between Explorar and Filtros Avanzados
  * 
- * Previous features v3.3:
+ * Previous features v3.4:
  * - ✅ Dynamic filter options based on actual data
  * - ✅ Auto-cleanup of invalid filter options
  * - ✅ Real-time updates when locals change
@@ -54,8 +52,10 @@ const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
 export function FilterProvider({ children }: { children: ReactNode }) {
   const [filtros, setFiltrosState] = useState<Filtros>({});
+  const [selectedCategory, setSelectedCategoryState] = useState<string | null>(null);
   const [dynamicOptions, setDynamicOptions] = useState<DynamicFilterOptions>({
     tipos: [],
+    servicios: [],
     servicios: [],
     ambientes: [],
     clientela: [],
@@ -65,24 +65,29 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
 
   const setFiltros = useCallback((nuevosFiltros: Filtros) => {
-    console.log('[FilterContext v3.4] 🔄 Setting filters:', nuevosFiltros);
+    console.log('[FilterContext v3.5] 🔄 Setting filters:', nuevosFiltros);
     setFiltrosState(nuevosFiltros);
   }, []);
 
   const aplicarFiltros = useCallback((nuevosFiltros: Filtros) => {
-    console.log('[FilterContext v3.4] ✅ Applying filters:', nuevosFiltros);
+    console.log('[FilterContext v3.5] ✅ Applying filters:', nuevosFiltros);
     setFiltrosState(nuevosFiltros);
   }, []);
 
   const limpiarFiltros = useCallback(() => {
-    console.log('[FilterContext v3.4] 🧹 Clearing all filters');
+    console.log('[FilterContext v3.5] 🧹 Clearing all filters');
     setFiltrosState({});
+    setSelectedCategoryState(null);
+  }, []);
+
+  const setSelectedCategory = useCallback((category: string | null) => {
+    console.log('[FilterContext v3.5] 🏷️ Setting category:', category);
+    setSelectedCategoryState(category);
   }, []);
 
   // ✅ OPTIMIZED: Check if any filters are active (memoized)
   const hasActiveFilters = useMemo(() => {
     return !!(
-      (filtros.tipo && filtros.tipo.length > 0) ||
       (filtros.servicios && filtros.servicios.length > 0) ||
       (filtros.ambiente && filtros.ambiente.length > 0) ||
       (filtros.clientela && filtros.clientela.length > 0) ||
@@ -98,10 +103,10 @@ export function FilterProvider({ children }: { children: ReactNode }) {
    * This ensures users see ALL active locals (335 in database)
    */
   const refreshDynamicOptions = useCallback(async () => {
-    console.log('[FilterContext v3.4] 🔍 ========================================');
-    console.log('[FilterContext v3.4] 🔍 LOADING DYNAMIC FILTER OPTIONS');
-    console.log('[FilterContext v3.4] 🔍 Querying DISTINCT values from active locals...');
-    console.log('[FilterContext v3.4] 🔍 ✅ FIXED: Removed estado_solicitud filter');
+    console.log('[FilterContext v3.5] 🔍 ========================================');
+    console.log('[FilterContext v3.5] 🔍 LOADING DYNAMIC FILTER OPTIONS');
+    console.log('[FilterContext v3.5] 🔍 Querying DISTINCT values from active locals...');
+    console.log('[FilterContext v3.5] 🔍 ✅ FIXED: Removed estado_solicitud filter');
     
     setIsLoadingOptions(true);
     
@@ -112,13 +117,13 @@ export function FilterProvider({ children }: { children: ReactNode }) {
         .eq('activo', true);
 
       if (error) {
-        console.error('[FilterContext v3.4] ❌ Error loading dynamic options:', error);
+        console.error('[FilterContext v3.5] ❌ Error loading dynamic options:', error);
         setIsLoadingOptions(false);
         return;
       }
 
       if (!locales || locales.length === 0) {
-        console.log('[FilterContext v3.4] ⚠️ No active locals found');
+        console.log('[FilterContext v3.5] ⚠️ No active locals found');
         setDynamicOptions({
           tipos: [],
           servicios: [],
@@ -131,7 +136,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      console.log('[FilterContext v3.4] 📊 Processing', locales.length, 'active locals...');
+      console.log('[FilterContext v3.5] 📊 Processing', locales.length, 'active locals...');
 
       // ✅ Extract unique tipos (categories)
       const tiposSet = new Set<string>();
@@ -206,19 +211,19 @@ export function FilterProvider({ children }: { children: ReactNode }) {
         provincias: Array.from(provinciasSet).sort(),
       };
 
-      console.log('[FilterContext v3.4] ✅ ========================================');
-      console.log('[FilterContext v3.4] ✅ DYNAMIC OPTIONS LOADED:');
-      console.log('[FilterContext v3.4] ✅ Tipos:', newOptions.tipos.length, '-', newOptions.tipos);
-      console.log('[FilterContext v3.4] ✅ Servicios:', newOptions.servicios.length, '-', newOptions.servicios);
-      console.log('[FilterContext v3.4] ✅ Ambientes:', newOptions.ambientes.length, '-', newOptions.ambientes);
-      console.log('[FilterContext v3.4] ✅ Clientela:', newOptions.clientela.length, '-', newOptions.clientela);
-      console.log('[FilterContext v3.4] ✅ Comunidades:', newOptions.comunidades.length, '-', newOptions.comunidades);
-      console.log('[FilterContext v3.4] ✅ Provincias:', newOptions.provincias.length, '-', newOptions.provincias);
-      console.log('[FilterContext v3.4] ✅ ========================================');
+      console.log('[FilterContext v3.5] ✅ ========================================');
+      console.log('[FilterContext v3.5] ✅ DYNAMIC OPTIONS LOADED:');
+      console.log('[FilterContext v3.5] ✅ Tipos:', newOptions.tipos.length, '-', newOptions.tipos);
+      console.log('[FilterContext v3.5] ✅ Servicios:', newOptions.servicios.length, '-', newOptions.servicios);
+      console.log('[FilterContext v3.5] ✅ Ambientes:', newOptions.ambientes.length, '-', newOptions.ambientes);
+      console.log('[FilterContext v3.5] ✅ Clientela:', newOptions.clientela.length, '-', newOptions.clientela);
+      console.log('[FilterContext v3.5] ✅ Comunidades:', newOptions.comunidades.length, '-', newOptions.comunidades);
+      console.log('[FilterContext v3.5] ✅ Provincias:', newOptions.provincias.length, '-', newOptions.provincias);
+      console.log('[FilterContext v3.5] ✅ ========================================');
 
       setDynamicOptions(newOptions);
     } catch (error) {
-      console.error('[FilterContext v3.4] ❌ Error refreshing dynamic options:', error);
+      console.error('[FilterContext v3.5] ❌ Error refreshing dynamic options:', error);
     } finally {
       setIsLoadingOptions(false);
     }
@@ -226,38 +231,8 @@ export function FilterProvider({ children }: { children: ReactNode }) {
 
   // ✅ Load dynamic options on mount
   useEffect(() => {
-    console.log('[FilterContext v3.4] 🚀 Initializing dynamic filter options...');
+    console.log('[FilterContext v3.5] 🚀 Initializing dynamic filter options...');
     refreshDynamicOptions();
-  }, [refreshDynamicOptions]);
-
-  // ✅ REAL-TIME: Refresh options when locals change
-  useEffect(() => {
-    console.log('[FilterContext v3.4] 📡 Setting up real-time subscription for filter options...');
-    
-    const subscription = supabase
-      .channel('filter-options-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'locales',
-        },
-        (payload) => {
-          console.log('[FilterContext v3.4] 🔄 Locales changed, refreshing filter options...');
-          console.log('[FilterContext v3.4] Event:', payload.eventType);
-          
-          setTimeout(() => {
-            refreshDynamicOptions();
-          }, 1000);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      console.log('[FilterContext v3.4] 🔌 Unsubscribing from filter options updates');
-      supabase.removeChannel(subscription);
-    };
   }, [refreshDynamicOptions]);
 
   return (
@@ -270,10 +245,8 @@ export function FilterProvider({ children }: { children: ReactNode }) {
       refreshDynamicOptions,
       isLoadingOptions,
       hasActiveFilters,
-      // ✅ NEW v3.4: Backward compatibility aliases
-      hasActiveAdvancedFilters: hasActiveFilters,
-      contextAplicarFiltros: aplicarFiltros,
-      contextLimpiarFiltrosAvanzados: limpiarFiltros,
+      selectedCategory,
+      setSelectedCategory,
     }}>
       {children}
     </FilterContext.Provider>

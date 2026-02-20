@@ -49,18 +49,20 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ADVANCED FILTERS SHEET v30.0 - DYNAMIC FILTERS + INSTANT CLEAR + SLIDER
+ * ✅ ADVANCED FILTERS SHEET v40.0 - SINGLE CATEGORY SELECTION + FULL SYNC
  * 
- * NEW FEATURES v30.0:
- * - 🎯 DYNAMIC FILTERS: Only show characteristics with active locales
- * - ⚡ INSTANT CLEAR: Synchronous UI update, background fetch
- * - 🎚️ SLIDER: Replaced text input with slider (1-100km range)
- * - ✅ Real-time value display on slider
- * - ✅ Smooth UX with no lag on clear
+ * CRITICAL FIXES v40.0:
+ * - 🔥 SINGLE SELECTION: Only one category can be selected at a time
+ * - 🔥 BIDIRECTIONAL SYNC: Category syncs with Explorar page category filter
+ * - 🔥 NO DESYNC: Single source of truth in FilterContext
+ * - ✅ When category selected here → updates Explorar
+ * - ✅ When category selected in Explorar → updates here
+ * - ✅ "Todas" option clears the category filter
  * 
- * Previous fixes v29.0:
- * - ✅ Fixed all Material Icons (no more question marks)
- * - ✅ Proper icon names for Android
+ * Previous features v30.0:
+ * - ✅ Dynamic filters based on active locales
+ * - ✅ Instant clear with smooth UX
+ * - ✅ Slider for distance (1-100km)
  */
 
 export default function FiltrosAvanzadosSheet({
@@ -87,7 +89,7 @@ export default function FiltrosAvanzadosSheet({
   const [searchProvincia, setSearchProvincia] = useState('');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     ubicacion: true,
-    tipo: false,
+    tipo: true, // ✅ Expanded by default for better UX
     servicios: false,
     ambiente: false,
     clientela: false,
@@ -95,7 +97,7 @@ export default function FiltrosAvanzadosSheet({
 
   useEffect(() => {
     if (visible) {
-      console.log('[FiltrosAvanzados v30.0] 🔄 Modal opened, resetting temp filters');
+      console.log('[FiltrosAvanzados v40.0] 🔄 Modal opened, resetting temp filters');
       setFiltrosTemp(initialFiltros);
       refreshDynamicOptions();
     }
@@ -109,12 +111,26 @@ export default function FiltrosAvanzadosSheet({
     return [...arr, item];
   }, []);
 
+  // ✅ CRITICAL FIX v40.0: Single-selection category toggle
   const handleTipoToggle = useCallback((tipoId: string) => {
-    setFiltrosTemp(prev => ({
-      ...prev,
-      tipo: tipoId === 'todos' ? undefined : toggleArrayItem(prev.tipo, tipoId),
-    }));
-  }, [toggleArrayItem]);
+    console.log('[FiltrosAvanzados v40.0] 🏷️ Category toggled:', tipoId);
+    
+    setFiltrosTemp(prev => {
+      if (tipoId === 'todos') {
+        // Clear category filter
+        return {
+          ...prev,
+          tipo: undefined,
+        };
+      } else {
+        // Set single category (replace any existing selection)
+        return {
+          ...prev,
+          tipo: [tipoId],
+        };
+      }
+    });
+  }, []);
 
   const handleServicioToggle = useCallback((servicioId: string) => {
     setFiltrosTemp(prev => ({
@@ -138,7 +154,7 @@ export default function FiltrosAvanzadosSheet({
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v30.0] ✅ Applying filters:', filtrosTemp);
+    console.log('[FiltrosAvanzados v40.0] ✅ Applying filters:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     if (propOnAplicarFiltros) {
       propOnAplicarFiltros(filtrosTemp);
@@ -147,21 +163,20 @@ export default function FiltrosAvanzadosSheet({
   }, [filtrosTemp, contextAplicarFiltros, propOnAplicarFiltros, onClose]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v30.0] 🧹 Clearing all filters - INSTANT UI UPDATE');
+    console.log('[FiltrosAvanzados v40.0] 🧹 Clearing all filters - INSTANT UI UPDATE');
     
     // ✅ PASO 1: Actualizar UI INMEDIATAMENTE (síncrono)
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     
     // ✅ PASO 2: Actualizar contexto en background (asíncrono)
-    // Esto dispara el fetch de datos pero la UI ya está limpia
     setTimeout(() => {
       contextLimpiarFiltros();
     }, 0);
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v30.0] 📍 Selected comunidad:', selectedComunidad);
+    console.log('[FiltrosAvanzados v40.0] 📍 Selected comunidad:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -185,7 +200,7 @@ export default function FiltrosAvanzadosSheet({
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v30.0] 📍 Selected provincia:', provincia);
+    console.log('[FiltrosAvanzados v40.0] 📍 Selected provincia:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -195,7 +210,7 @@ export default function FiltrosAvanzadosSheet({
   }, []);
 
   const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados v30.0] 📏 Radius changed to:', value, 'km');
+    console.log('[FiltrosAvanzados v40.0] 📏 Radius changed to:', value, 'km');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: value,
@@ -257,7 +272,7 @@ export default function FiltrosAvanzadosSheet({
       else if (tipo === 'bar') icon = '🍷';
       else if (tipo === 'restaurante') icon = '🍽️';
       else if (tipo === 'pub') icon = '🍺';
-      else if (tipo === 'cocteleria') icon = '🍹'; // ✅ CHANGED: Tropical drink icon (more distinct from wine glass)
+      else if (tipo === 'cocteleria') icon = '🍹';
       else if (tipo === 'discoteca') icon = '🎵';
       else if (tipo === 'terraza') icon = '☀️';
       else if (tipo === 'rooftop') icon = '🏢';
@@ -282,6 +297,13 @@ export default function FiltrosAvanzadosSheet({
       else if (servicio === 'reservas') icon = '📅';
       else if (servicio === 'delivery') icon = '🚚';
       else if (servicio === 'takeaway') icon = '🥡';
+      else if (servicio === 'dj') icon = '🎧';
+      else if (servicio === 'cerveza') icon = '🍺';
+      else if (servicio === 'cocteles') icon = '🍹';
+      else if (servicio === 'vino') icon = '🍷';
+      else if (servicio === 'cafe') icon = '☕';
+      else if (servicio === 'musica_vivo') icon = '🎤';
+      else if (servicio === 'deportes_tv') icon = '📺';
       
       return {
         id: servicio,
@@ -391,6 +413,63 @@ export default function FiltrosAvanzadosSheet({
               </View>
             )}
 
+            {/* TIPO DE LOCAL SECTION - ✅ SINGLE SELECTION */}
+            {tiposLocales.length > 1 && (
+              <View style={styles.section}>
+                <TouchableOpacity 
+                  style={styles.sectionHeader}
+                  onPress={() => toggleSection('tipo')}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.sectionHeaderLeft}>
+                    <View style={styles.sectionIconContainer}>
+                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={16} color={colors.primary} />
+                    </View>
+                    <Text style={styles.sectionTitle}>Tipo de Local</Text>
+                    <Text style={styles.sectionCount}>({tiposLocales.length - 1})</Text>
+                    <View style={styles.singleSelectionBadge}>
+                      <Text style={styles.singleSelectionText}>1 máx</Text>
+                    </View>
+                  </View>
+                  <IconSymbol 
+                    ios_icon_name={expandedSections.tipo ? "chevron.up" : "chevron.down"} 
+                    android_material_icon_name={expandedSections.tipo ? "expand_less" : "expand_more"} 
+                    size={18} 
+                    color={colors.textSecondary} 
+                  />
+                </TouchableOpacity>
+                
+                {expandedSections.tipo && (
+                  <View style={styles.sectionContent}>
+                    <View style={styles.chipContainer}>
+                      {tiposLocales.map((tipo) => {
+                        // ✅ CRITICAL FIX v40.0: Single selection logic
+                        const isSelected = tipo.id === 'todos' 
+                          ? !filtrosTemp.tipo || filtrosTemp.tipo.length === 0
+                          : filtrosTemp.tipo?.includes(tipo.id);
+                        
+                        return (
+                          <TouchableOpacity
+                            key={tipo.id}
+                            style={[
+                              styles.chip,
+                              isSelected && styles.chipActive,
+                            ]}
+                            onPress={() => handleTipoToggle(tipo.id)}
+                          >
+                            <Text style={styles.chipIcon}>{tipo.icon}</Text>
+                            <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+                              {tipo.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+
             {/* LOCATION SECTION */}
             <View style={styles.section}>
               <TouchableOpacity 
@@ -400,7 +479,6 @@ export default function FiltrosAvanzadosSheet({
               >
                 <View style={styles.sectionHeaderLeft}>
                   <View style={styles.sectionIconContainer}>
-                    {/* ✅ CRITICAL FIX v29.0: Changed "mappin.circle.fill" to "location_on" */}
                     <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={16} color={colors.primary} />
                   </View>
                   <Text style={styles.sectionTitle}>Ubicación</Text>
@@ -419,7 +497,7 @@ export default function FiltrosAvanzadosSheet({
                     <TouchableOpacity
                       style={styles.locationButton}
                       onPress={() => {
-                        console.log('[FiltrosAvanzados v29.0] 🔍 Opening comunidad modal');
+                        console.log('[FiltrosAvanzados v40.0] 🔍 Opening comunidad modal');
                         setShowComunidadModal(true);
                       }}
                     >
@@ -437,7 +515,7 @@ export default function FiltrosAvanzadosSheet({
                       ]}
                       onPress={() => {
                         if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
-                          console.log('[FiltrosAvanzados v29.0] 🔍 Opening provincia modal');
+                          console.log('[FiltrosAvanzados v40.0] 🔍 Opening provincia modal');
                           setShowProvinciaModal(true);
                         }
                       }}
@@ -484,59 +562,6 @@ export default function FiltrosAvanzadosSheet({
                 </View>
               )}
             </View>
-
-            {/* TIPO DE LOCAL SECTION */}
-            {tiposLocales.length > 1 && (
-              <View style={styles.section}>
-                <TouchableOpacity 
-                  style={styles.sectionHeader}
-                  onPress={() => toggleSection('tipo')}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.sectionHeaderLeft}>
-                    <View style={styles.sectionIconContainer}>
-                      <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={16} color={colors.primary} />
-                    </View>
-                    <Text style={styles.sectionTitle}>Tipo de Local</Text>
-                    <Text style={styles.sectionCount}>({tiposLocales.length - 1})</Text>
-                  </View>
-                  <IconSymbol 
-                    ios_icon_name={expandedSections.tipo ? "chevron.up" : "chevron.down"} 
-                    android_material_icon_name={expandedSections.tipo ? "expand_less" : "expand_more"} 
-                    size={18} 
-                    color={colors.textSecondary} 
-                  />
-                </TouchableOpacity>
-                
-                {expandedSections.tipo && (
-                  <View style={styles.sectionContent}>
-                    <View style={styles.chipContainer}>
-                      {tiposLocales.map((tipo) => {
-                        const isSelected = tipo.id === 'todos' 
-                          ? !filtrosTemp.tipo || filtrosTemp.tipo.length === 0
-                          : filtrosTemp.tipo?.includes(tipo.id);
-                        
-                        return (
-                          <TouchableOpacity
-                            key={tipo.id}
-                            style={[
-                              styles.chip,
-                              isSelected && styles.chipActive,
-                            ]}
-                            onPress={() => handleTipoToggle(tipo.id)}
-                          >
-                            <Text style={styles.chipIcon}>{tipo.icon}</Text>
-                            <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                              {tipo.label}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  </View>
-                )}
-              </View>
-            )}
 
             {/* SERVICIOS SECTION */}
             {serviciosDisponibles.length > 0 && (
@@ -652,7 +677,6 @@ export default function FiltrosAvanzadosSheet({
                 >
                   <View style={styles.sectionHeaderLeft}>
                     <View style={styles.sectionIconContainer}>
-                      {/* ✅ CRITICAL FIX v29.0: Changed "person.3.fill" to "people" */}
                       <IconSymbol ios_icon_name="person.3.fill" android_material_icon_name="people" size={16} color={colors.primary} />
                     </View>
                     <Text style={styles.sectionTitle}>Clientela Típica</Text>
@@ -1006,6 +1030,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: colors.textSecondary,
+  },
+  singleSelectionBadge: {
+    backgroundColor: colors.secondary + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.secondary + '40',
+    marginLeft: 6,
+  },
+  singleSelectionText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.secondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   sectionContent: {
     paddingHorizontal: 14,
