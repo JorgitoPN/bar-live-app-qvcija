@@ -10,6 +10,7 @@ import {
   Dimensions,
   ScrollView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -24,14 +25,15 @@ interface ImageGalleryModalProps {
 }
 
 /**
- * ✅ IMAGE GALLERY MODAL v29.0 - ANDROID FULLSCREEN FIX
+ * ✅ IMAGE GALLERY MODAL v30.0 - ANDROID FULLSCREEN FIX COMPLETE
  * 
- * NEW CHANGES v29.0:
- * - ✅ FIXED ANDROID MODAL: presentationStyle='overFullScreen' en Android
+ * NEW CHANGES v30.0:
+ * - ✅ FIXED ANDROID MODAL: presentationStyle='fullScreen' + StatusBar hidden
  * - ✅ El visor de imágenes se abre en pantalla completa en Android
- * - ✅ No parece un modal, ocupa toda la pantalla como en iOS
+ * - ✅ No hay espacios vacíos en la parte superior e inferior
+ * - ✅ Experiencia idéntica a iOS
  * 
- * PREVIOUS FIXES v28.0:
+ * PREVIOUS FIXES v29.0:
  * - ✅ Properly displays all images from galeria_urls
  * - ✅ Fixed icon mappings for Android
  * - ✅ Smooth navigation between images
@@ -90,9 +92,10 @@ export default function ImageGalleryModal({
       visible={visible}
       transparent={false}
       animationType="fade"
-      presentationStyle={Platform.OS === 'android' ? 'overFullScreen' : 'fullScreen'}
+      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
+      <StatusBar hidden={true} />
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -168,7 +171,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
     paddingHorizontal: 20,
     paddingBottom: 15,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',

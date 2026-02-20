@@ -1,15 +1,16 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v339.0 - ANDROID FULLSCREEN FIX
+ * 🚨 POST VIEWER MODAL v340.0 - ANDROID FULLSCREEN FIX COMPLETE
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v339.0:
- * - ✅ FIXED ANDROID MODAL: presentationStyle='overFullScreen' en Android
+ * NEW CHANGES v340.0:
+ * - ✅ FIXED ANDROID MODAL: presentationStyle='fullScreen' + StatusBar hidden
  * - ✅ El visor de publicaciones se abre en pantalla completa en Android
- * - ✅ No parece un modal, ocupa toda la pantalla como en iOS
+ * - ✅ No hay espacios vacíos en la parte superior e inferior
+ * - ✅ Experiencia idéntica a iOS
  * 
- * PREVIOUS CHANGES v338.0:
+ * PREVIOUS CHANGES v339.0:
  * - ✅ FIXED PROBLEM 1: Comments open immediately without closing modal
  * - ✅ FIXED PROBLEM 2: State preserved when returning from comments (scroll + post)
  * - ✅ FIXED PROBLEM 3: Correct initial scroll position from profile grid (ENHANCED)
@@ -23,7 +24,7 @@
  * - router.back() from comments reveals modal instantly with exact scroll position
  * - No AsyncStorage needed - natural state preservation through mounting
  * - Enhanced initial scroll with multiple retry strategies and better timing
- * - Android: overFullScreen presentation for true fullscreen experience
+ * - Android: fullScreen presentation with hidden StatusBar for true fullscreen
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -1584,12 +1585,8 @@ export default function PostViewerModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
+      <StatusBar hidden={true} />
       <View style={styles.container}>
-        <StatusBar 
-          barStyle="light-content" 
-          backgroundColor={colors.headerGradientStart}
-          hidden={Platform.OS === 'android'}
-        />
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -1679,7 +1676,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',

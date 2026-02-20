@@ -3059,12 +3059,12 @@ export default function SalaVirtualEnhancedScreen() {
   const modeIcon = mode === 'day' ? 'wb_sunny' : 'nightlight';
   const modeIconIOS = mode === 'day' ? 'sun.max.fill' : 'moon.fill';
 
-  // ✅ iOS: Ajuste dinámico del padding inferior basado en el teclado
-  // ✅ Android: Padding adicional para evitar que los botones táctiles cubran el input
+  // ✅ FIXED: iOS keyboard positioning - input field just above keyboard
+  // ✅ FIXED: Android keyboard positioning - input field moves with keyboard
   const inputContainerBottomPadding =
     Platform.OS === 'ios'
-      ? isKeyboardVisible ? Math.max(keyboardHeight - 90, 8) : Math.max(insets.bottom, 8)
-      : Math.max(insets.bottom + 32, 40); // ✅ Increased padding for Android to avoid touch buttons
+      ? isKeyboardVisible ? 8 : Math.max(insets.bottom, 8) // ✅ Minimal padding when keyboard is open
+      : Math.max(insets.bottom + 16, 24); // ✅ Reduced padding for Android - just enough to avoid touch buttons
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background[0] }]}>
@@ -3230,7 +3230,7 @@ export default function SalaVirtualEnhancedScreen() {
         {activeTab === 'chat' && (
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
           >
             <FlatList
@@ -3378,7 +3378,7 @@ export default function SalaVirtualEnhancedScreen() {
         {activeTab === 'private' && selectedPrivateChat && (
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
           >
             <TouchableOpacity
