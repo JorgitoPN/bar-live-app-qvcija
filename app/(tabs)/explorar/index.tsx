@@ -76,7 +76,12 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v422.2 - VENUE SORTING COMPLETELY FIXED
+ * ✅ EXPLORAR SCREEN v422.3 - FLICKERING COMPLETELY FIXED
+ * 
+ * CRITICAL FIX v422.3 (2026-02-20):
+ * - 🔥 FIXED FLICKERING: Resolved ambiguous "distancia" column reference in RPC
+ * - 🔥 FIXED DATABASE ERROR: Changed column name from "distancia" to "distance_km"
+ * - 🔥 FIXED INFINITE LOOP: Page now loads correctly without continuous re-renders
  * 
  * CRITICAL FIX v422.2 (2026-02-20):
  * - 🔥 FIXED VENUE SORTING: Open venues now correctly appear BEFORE closed venues
@@ -84,11 +89,13 @@ const CATEGORIAS = [
  * - 🔥 FIXED NULL HANDLING: Closed venues no longer show as "no info" (tier 3)
  * 
  * TECHNICAL FIXES APPLIED:
- * 1. Updated regex to match both hyphen (-) and en dash (–) characters
- * 2. Normalized en dash to hyphen before splitting schedule strings
- * 3. Used COALESCE to convert NULL to FALSE for closed venues
+ * 1. Renamed "distancia" to "distance_km" in RPC to avoid SQL ambiguity
+ * 2. Moved distance filter calculation inline to prevent column reference conflicts
+ * 3. Updated regex to match both hyphen (-) and en dash (–) characters
+ * 4. Normalized en dash to hyphen before splitting schedule strings
+ * 5. Used COALESCE to convert NULL to FALSE for closed venues
  * 
- * BACKEND RPC: get_sorted_locales_by_proximity v422.2
+ * BACKEND RPC: get_sorted_locales_by_proximity v422.3
  * - ✅ 5-tier sorting system working correctly:
  *   1. Destacados Abiertos (< 50km) - Por cercanía
  *   2. Locales Abiertos (estándar) - Por cercanía
@@ -110,6 +117,7 @@ const CATEGORIAS = [
  * - ✅ Overnight venues detected correctly
  * - ✅ Featured venues within 50km get priority in their tier
  * - ✅ Featured venues beyond 50km lose priority
+ * - ✅ NO FLICKERING - Page loads smoothly
  */
 
 // ✅ SKELETON CARD COMPONENT - Extracted to fix React Hooks rules
@@ -227,7 +235,7 @@ export default function ExplorarScreen() {
   
   useEffect(() => {
     if (!mountedRef.current) {
-      console.log('[Explorar v421.0] 🚀 Component mounted - VENUE SORTING FIXED');
+      console.log('[Explorar v422.3] 🚀 Component mounted - FLICKERING FIXED');
       mountedRef.current = true;
     }
   }, []);
@@ -445,7 +453,7 @@ export default function ExplorarScreen() {
 
   // ✅ CRITICAL FIX v420.0: Función para sincronizar categoría con FilterContext
   const handleCategoryChange = useCallback((categoryId: string) => {
-    console.log('[Explorar v421.0] 🔄 Category changed to:', categoryId);
+    console.log('[Explorar v422.3] 🔄 Category changed to:', categoryId);
     
     // Update FilterContext to sync with Filtros Avanzados
     if (categoryId === 'todas') {
@@ -537,7 +545,7 @@ export default function ExplorarScreen() {
           tier: l.sorting_tier,
           destacado: l.destacado,
           esta_abierto: l.esta_abierto,
-          distancia: l.distancia ? `${l.distancia.toFixed(1)}km` : 'N/A',
+          distancia: l.distance_km ? `${l.distance_km.toFixed(1)}km` : 'N/A',
         })));
         
         const transformedLocales = data.map((local: any) => {
@@ -553,7 +561,7 @@ export default function ExplorarScreen() {
             estadoCompleto: estadoLocal,
             estaAbierto: local.esta_abierto,
             tieneHorarios: local.has_schedule_info,
-            distancia: local.distancia,
+            distancia: local.distance_km,  // ✅ FIXED: Use distance_km from RPC
             sortingTier: local.sorting_tier,
           };
         });
