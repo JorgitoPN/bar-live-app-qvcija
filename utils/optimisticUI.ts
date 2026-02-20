@@ -15,6 +15,9 @@
 import { supabase } from './supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// ✅ Necesario para React hooks
+import React from 'react';
+
 interface OptimisticOperation {
   id: string;
   type: 'like' | 'follow' | 'comment' | 'save' | 'checkin' | 'profile_update';
@@ -485,6 +488,3 @@ export function useOptimisticFollow(
 
   return { following, toggleFollow, setFollowing };
 }
-
-// ✅ Necesario para React hooks
-import React from 'react';

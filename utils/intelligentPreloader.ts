@@ -16,6 +16,9 @@ import { Image, Platform } from 'react-native';
 import { supabase } from './supabase';
 import { localesCache, postsCache, profilesCache } from './advancedCache';
 
+// ✅ Necesario para React hooks
+import React from 'react';
+
 interface PreloadTask {
   id: string;
   type: 'image' | 'data' | 'profile';
@@ -298,6 +301,3 @@ export function useIntelligentPrefetch(
 
   return { handleScroll };
 }
-
-// ✅ Necesario para React hooks
-import React from 'react';

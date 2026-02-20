@@ -33,6 +33,9 @@ import { optimisticUI } from '@/utils/optimisticUI';
 import { intelligentPreloader } from '@/utils/intelligentPreloader';
 import { Skeleton } from '@/components/common/SkeletonLoader';
 
+// ✅ Necesario para Linking
+import { Linking } from 'react-native';
+
 interface LocalCardOptimizedProps {
   local: any;
   index: number;
@@ -358,9 +361,6 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
 LocalCardOptimized.displayName = 'LocalCardOptimized';
 
 export default LocalCardOptimized;
-
-// ✅ Necesario para Linking
-import { Linking } from 'react-native';
 
 const styles = StyleSheet.create({
   card: {

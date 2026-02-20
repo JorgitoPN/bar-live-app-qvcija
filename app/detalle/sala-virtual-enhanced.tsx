@@ -3061,15 +3061,10 @@ export default function SalaVirtualEnhancedScreen() {
 
   // ✅ iOS: Ajuste dinámico del padding inferior basado en el teclado
   // ✅ Android: Padding adicional para evitar que los botones táctiles cubran el input
-  const inputContainerBottomPadding = useMemo(() => {
-    if (Platform.OS === 'ios') {
-      // iOS: Usar la altura del teclado directamente
-      return isKeyboardVisible ? Math.max(keyboardHeight - 90, 8) : Math.max(insets.bottom, 8);
-    } else {
-      // Android: Padding adicional para evitar botones táctiles
-      return Math.max(insets.bottom + 24, 32);
-    }
-  }, [isKeyboardVisible, keyboardHeight, insets.bottom]);
+  const inputContainerBottomPadding =
+    Platform.OS === 'ios'
+      ? isKeyboardVisible ? Math.max(keyboardHeight - 90, 8) : Math.max(insets.bottom, 8)
+      : Math.max(insets.bottom + 24, 32);
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background[0] }]}>
