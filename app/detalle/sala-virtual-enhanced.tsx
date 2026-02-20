@@ -3064,7 +3064,7 @@ export default function SalaVirtualEnhancedScreen() {
   const inputContainerBottomPadding =
     Platform.OS === 'ios'
       ? isKeyboardVisible ? Math.max(keyboardHeight - 90, 8) : Math.max(insets.bottom, 8)
-      : Math.max(insets.bottom + 24, 32);
+      : Math.max(insets.bottom + 32, 40); // ✅ Increased padding for Android to avoid touch buttons
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background[0] }]}>
