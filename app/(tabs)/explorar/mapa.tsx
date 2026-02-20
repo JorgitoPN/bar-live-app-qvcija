@@ -166,7 +166,7 @@ const EstadoSelector = React.memo(({
 
 export default function MapaScreen() {
   const router = useRouter();
-  const { filtros: globalFiltros } = useFilters();
+  const { filtros: globalFiltros, limpiarFiltros: contextLimpiarFiltros } = useFilters();
   
   const webViewRef = useRef<WebView>(null);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todas');
@@ -1596,6 +1596,30 @@ console.log('🗺️ [MAPA v293.0] ═══════════════
             color={colors.primary} 
           />
         </TouchableOpacity>
+
+        {/* ✅ NEW: Quick clear filters button (only visible when filters are active) */}
+        {(globalFiltros.tipo || globalFiltros.servicios || globalFiltros.ambiente || globalFiltros.clientela || globalFiltros.comunidad || globalFiltros.provincia || globalFiltros.distancia) && (
+          <TouchableOpacity 
+            style={[styles.controlButton, {
+              width: controlButtonSize,
+              height: controlButtonSize,
+              borderRadius: controlButtonSize / 2,
+            }]}
+            onPress={() => {
+              console.log('🗺️ [MAPA v293.0] 🧹 Usuario limpió filtros rápidamente');
+              contextLimpiarFiltros();
+              setCategoriaSeleccionada('todas');
+              setFiltroEstado('no_cerrados');
+            }}
+          >
+            <IconSymbol 
+              ios_icon_name="xmark.circle.fill" 
+              android_material_icon_name="cancel" 
+              size={controlIconSize} 
+              color="#EF4444" 
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* ✅ FIX v281.0: Controls with NO ELEVATION on Android (clean appearance) */}

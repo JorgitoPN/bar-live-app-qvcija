@@ -961,12 +961,15 @@ export default function ExplorarScreen() {
     setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
     
+    // ✅ Clear global filters from FilterContext
+    setGlobalFiltros({});
+    
     console.log('[Explorar v323.0] 📜 Resetting scroll to top (filters cleared)');
     setTimeout(() => {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       savedScrollPosition.current = 0;
     }, 100);
-  }, []);
+  }, [setGlobalFiltros]);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;

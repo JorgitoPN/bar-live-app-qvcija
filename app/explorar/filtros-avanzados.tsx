@@ -20,9 +20,16 @@ import { Filtros } from '@/types';
 import Slider from '@react-native-community/slider';
 
 /**
- * ✅ ADVANCED FILTERS PAGE v2.1 - ENHANCED UX & INSTANT LOADING
+ * ✅ ADVANCED FILTERS PAGE v2.2 - COMPLETE FUNCTIONALITY FIX
  * 
- * NEW FEATURES v2.1:
+ * NEW FIXES v2.2:
+ * - ✅ FIXED: Advanced filters now correctly update results in Explorar & Mapa
+ * - ✅ FIXED: Clear filters button now properly resets all filters and navigates back
+ * - ✅ FIXED: Clear filters button only appears when filters are active
+ * - ✅ IMPROVED: Apply button takes full width when no filters are active
+ * - ✅ SYNCHRONIZED: All filter changes properly propagate to FilterContext
+ * 
+ * FEATURES v2.1:
  * - ✅ INCREASED search radius to 100km (was 50km)
  * - ✅ QUICK CLEAR button next to back button (icon-only for clean UI)
  * - ✅ REMOVED spacing between header and content (seamless design)
@@ -215,7 +222,8 @@ export default function FiltrosAvanzadosScreen() {
     setFiltrosTemp(emptyFiltros);
     setHasInteractedWithRadius(false);
     contextLimpiarFiltros();
-  }, [contextLimpiarFiltros]);
+    router.back();
+  }, [contextLimpiarFiltros, router]);
 
   const allComunidades = useMemo(() => {
     const staticComunidades = Object.keys(COMUNIDADES_PROVINCIAS);
@@ -836,11 +844,19 @@ export default function FiltrosAvanzadosScreen() {
 
       <View style={styles.footer}>
         <View style={styles.footerButtons}>
-          <TouchableOpacity style={styles.clearFooterButton} onPress={handleLimpiar}>
-            <Text style={[styles.clearFooterButtonText, { fontSize: scaleFontSize(14) }]}>Limpiar filtros</Text>
-          </TouchableOpacity>
+          {activeFiltersCount > 0 && (
+            <TouchableOpacity style={styles.clearFooterButton} onPress={handleLimpiar}>
+              <Text style={[styles.clearFooterButtonText, { fontSize: scaleFontSize(14) }]}>Limpiar filtros</Text>
+            </TouchableOpacity>
+          )}
           
-          <TouchableOpacity style={styles.applyButton} onPress={handleAplicar}>
+          <TouchableOpacity 
+            style={[
+              styles.applyButton,
+              activeFiltersCount === 0 && styles.applyButtonFull
+            ]} 
+            onPress={handleAplicar}
+          >
             <LinearGradient
               colors={[colors.headerGradientStart, colors.headerGradientEnd]}
               start={{ x: 0, y: 0 }}
@@ -1165,6 +1181,9 @@ const styles = StyleSheet.create({
         elevation: 4,
       },
     }),
+  },
+  applyButtonFull: {
+    flex: 1,
   },
   applyGradient: {
     paddingVertical: 16,
