@@ -25,16 +25,17 @@ interface ImageGalleryModalProps {
 }
 
 /**
- * ✅ IMAGE GALLERY MODAL v31.0 - ANDROID FULLSCREEN FIX COMPLETE
+ * ✅ IMAGE GALLERY MODAL v32.0 - ANDROID FULLSCREEN FIX COMPLETE
  * 
- * NEW CHANGES v31.0:
+ * NEW CHANGES v32.0:
  * - ✅ FIXED ANDROID MODAL: presentationStyle='fullScreen' + StatusBar hidden
  * - ✅ El visor de imágenes se abre en pantalla completa en Android
  * - ✅ No hay espacios vacíos en la parte superior e inferior
  * - ✅ Experiencia idéntica a iOS
- * - ✅ Removed SafeAreaView padding that was causing empty spaces
+ * - ✅ Reduced header paddingTop to 10px on Android for true fullscreen
  * 
- * PREVIOUS FIXES v30.0:
+ * PREVIOUS FIXES v31.0:
+ * - ✅ Removed SafeAreaView padding that was causing empty spaces
  * - ✅ Properly displays all images from galeria_urls
  * - ✅ Fixed icon mappings for Android
  * - ✅ Smooth navigation between images
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingTop: Platform.OS === 'ios' ? 50 : 10,
     paddingHorizontal: 20,
     paddingBottom: 15,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',

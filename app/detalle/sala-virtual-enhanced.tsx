@@ -3059,12 +3059,12 @@ export default function SalaVirtualEnhancedScreen() {
   const modeIcon = mode === 'day' ? 'wb_sunny' : 'nightlight';
   const modeIconIOS = mode === 'day' ? 'sun.max.fill' : 'moon.fill';
 
-  // ✅ FIXED v7.2: iOS keyboard positioning - input field sits just above keyboard
-  // ✅ FIXED v7.2: Android keyboard positioning - input field moves up with keyboard
+  // ✅ FIXED v7.3: iOS keyboard positioning - input field sits directly on keyboard
+  // ✅ FIXED v7.3: Android keyboard positioning - input field visible above keyboard
   const inputContainerBottomPadding =
     Platform.OS === 'ios'
-      ? isKeyboardVisible ? 0 : Math.max(insets.bottom, 8) // ✅ iOS: No padding when keyboard open (sits on keyboard)
-      : isKeyboardVisible ? 8 : Math.max(insets.bottom + 8, 16); // ✅ Android: Minimal padding when keyboard open
+      ? isKeyboardVisible ? 0 : Math.max(insets.bottom, 8) // ✅ iOS: No padding when keyboard open (sits directly on keyboard)
+      : isKeyboardVisible ? 0 : Math.max(insets.bottom + 8, 16); // ✅ Android: No padding when keyboard open (moves up automatically)
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background[0] }]}>
@@ -3230,7 +3230,7 @@ export default function SalaVirtualEnhancedScreen() {
         {activeTab === 'chat' && (
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
           >
             <FlatList
@@ -3378,7 +3378,7 @@ export default function SalaVirtualEnhancedScreen() {
         {activeTab === 'private' && selectedPrivateChat && (
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
           >
             <TouchableOpacity
