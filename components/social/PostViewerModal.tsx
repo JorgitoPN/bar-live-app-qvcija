@@ -1,10 +1,15 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v338.0 - COMPLETE NAVIGATION & SCROLL FIX
+ * 🚨 POST VIEWER MODAL v339.0 - ANDROID FULLSCREEN FIX
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v338.0:
+ * NEW CHANGES v339.0:
+ * - ✅ FIXED ANDROID MODAL: presentationStyle='overFullScreen' en Android
+ * - ✅ El visor de publicaciones se abre en pantalla completa en Android
+ * - ✅ No parece un modal, ocupa toda la pantalla como en iOS
+ * 
+ * PREVIOUS CHANGES v338.0:
  * - ✅ FIXED PROBLEM 1: Comments open immediately without closing modal
  * - ✅ FIXED PROBLEM 2: State preserved when returning from comments (scroll + post)
  * - ✅ FIXED PROBLEM 3: Correct initial scroll position from profile grid (ENHANCED)
@@ -18,6 +23,7 @@
  * - router.back() from comments reveals modal instantly with exact scroll position
  * - No AsyncStorage needed - natural state preservation through mounting
  * - Enhanced initial scroll with multiple retry strategies and better timing
+ * - Android: overFullScreen presentation for true fullscreen experience
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */

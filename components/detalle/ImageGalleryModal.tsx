@@ -24,9 +24,14 @@ interface ImageGalleryModalProps {
 }
 
 /**
- * ✅ IMAGE GALLERY MODAL v28.0 - PRODUCTION READY
+ * ✅ IMAGE GALLERY MODAL v29.0 - ANDROID FULLSCREEN FIX
  * 
- * CRITICAL FIXES:
+ * NEW CHANGES v29.0:
+ * - ✅ FIXED ANDROID MODAL: presentationStyle='overFullScreen' en Android
+ * - ✅ El visor de imágenes se abre en pantalla completa en Android
+ * - ✅ No parece un modal, ocupa toda la pantalla como en iOS
+ * 
+ * PREVIOUS FIXES v28.0:
  * - ✅ Properly displays all images from galeria_urls
  * - ✅ Fixed icon mappings for Android
  * - ✅ Smooth navigation between images
@@ -85,7 +90,7 @@ export default function ImageGalleryModal({
       visible={visible}
       transparent={false}
       animationType="fade"
-      presentationStyle="fullScreen"
+      presentationStyle={Platform.OS === 'android' ? 'overFullScreen' : 'fullScreen'}
       onRequestClose={onClose}
     >
       <View style={styles.container}>
