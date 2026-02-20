@@ -1,18 +1,18 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v343.0 - ANDROID FULLSCREEN FIX COMPLETE
+ * 🚨 POST VIEWER MODAL v344.0 - ANDROID FULLSCREEN FIX COMPLETE
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v343.0:
+ * NEW CHANGES v344.0:
  * - ✅ FIXED ANDROID MODAL: presentationStyle='overFullScreen' for true edge-to-edge
  * - ✅ StatusBar hidden on Android for immersive fullscreen experience
- * - ✅ Header paddingTop set to 0 on Android (no status bar space needed)
+ * - ✅ Header paddingTop=20 on Android (minimal padding without status bar)
  * - ✅ El visor de publicaciones se abre en pantalla completa en Android
  * - ✅ No hay espacios vacíos en la parte superior e inferior
- * - ✅ Experiencia idéntica a iOS
+ * - ✅ Experiencia optimizada para Android
  * 
- * PREVIOUS CHANGES v342.0:
+ * PREVIOUS CHANGES v343.0:
  * - ✅ Removed SafeAreaView padding that was causing empty spaces
  * - ✅ FIXED PROBLEM 1: Comments open immediately without closing modal
  * - ✅ FIXED PROBLEM 2: State preserved when returning from comments (scroll + post)
@@ -1679,7 +1679,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 0,
+    paddingTop: Platform.OS === 'ios' ? 60 : 20,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',

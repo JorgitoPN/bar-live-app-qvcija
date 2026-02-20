@@ -25,17 +25,18 @@ interface ImageGalleryModalProps {
 }
 
 /**
- * ✅ IMAGE GALLERY MODAL v33.0 - ANDROID FULLSCREEN FIX COMPLETE
+ * ✅ IMAGE GALLERY MODAL v34.0 - ANDROID FULLSCREEN FIX COMPLETE
  * 
- * NEW CHANGES v33.0:
+ * NEW CHANGES v34.0:
  * - ✅ FIXED ANDROID MODAL: presentationStyle='overFullScreen' for true edge-to-edge
  * - ✅ StatusBar hidden on Android for immersive fullscreen experience
- * - ✅ Header paddingTop set to 0 on Android (no status bar space needed)
+ * - ✅ Header paddingTop=20 on Android (minimal padding without status bar)
+ * - ✅ Image height adjusted: height - 100 on Android for better fit
  * - ✅ El visor de imágenes se abre en pantalla completa en Android
  * - ✅ No hay espacios vacíos en la parte superior e inferior
- * - ✅ Experiencia idéntica a iOS
+ * - ✅ Experiencia optimizada para Android
  * 
- * PREVIOUS FIXES v32.0:
+ * PREVIOUS FIXES v33.0:
  * - ✅ Removed SafeAreaView padding that was causing empty spaces
  * - ✅ Properly displays all images from galeria_urls
  * - ✅ Fixed icon mappings for Android
@@ -174,7 +175,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 50 : 0,
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
     paddingHorizontal: 20,
     paddingBottom: 15,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -197,13 +198,13 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: width,
-    height: height - 150,
+    height: Platform.OS === 'android' ? height - 100 : height - 150,
     justifyContent: 'center',
     alignItems: 'center',
   },
   image: {
     width: width,
-    height: height - 150,
+    height: Platform.OS === 'android' ? height - 100 : height - 150,
   },
   leftArrow: {
     position: 'absolute',

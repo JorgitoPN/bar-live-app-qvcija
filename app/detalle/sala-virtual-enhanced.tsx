@@ -37,40 +37,49 @@ import { calcularDistancia } from '@/utils/locationUtils';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 SALA VIRTUAL v7.0 - COMPLETE KEYBOARD & MODAL FIX
+ * 🚨 SALA VIRTUAL v7.5 - COMPLETE KEYBOARD & MODAL FIX
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * ✅ PROBLEMA 1 RESUELTO - iOS Keyboard Coverage:
- * - KeyboardAvoidingView behavior='padding' (no 'height')
- * - keyboardVerticalOffset reducido de 100 a 90
- * - Padding inferior dinámico basado en keyboardHeight
+ * - KeyboardAvoidingView behavior='padding'
+ * - keyboardVerticalOffset=90 para posicionamiento preciso
+ * - Padding inferior dinámico: 0 cuando teclado abierto (se sienta directamente encima)
+ * - ScrollView forzado al final cuando teclado se abre
  * - El campo de texto queda completamente visible al escribir
  * 
  * ✅ PROBLEMA 2 RESUELTO - Android Keyboard & Touch Buttons:
- * - KeyboardAvoidingView behavior=undefined (Android maneja automáticamente)
- * - Padding inferior adicional de 20px para evitar botones táctiles
- * - El campo de texto es completamente accesible y clickeable
+ * - KeyboardAvoidingView behavior='height' (empuja contenido hacia arriba)
+ * - Padding inferior dinámico: 8px cuando teclado abierto, 16px cuando cerrado
+ * - ScrollView forzado al final cuando teclado se abre
+ * - El campo de texto es completamente visible y accesible
  * 
  * ✅ PROBLEMA 3 RESUELTO - Android Post Viewer Modal:
  * - presentationStyle='overFullScreen' en Android
+ * - StatusBar hidden para experiencia inmersiva
+ * - Header paddingTop=20 en Android (sin status bar)
  * - El visor de publicaciones se abre en pantalla completa
- * - No parece un modal, ocupa toda la pantalla
+ * - No hay espacios vacíos en la parte superior e inferior
  * 
  * ✅ PROBLEMA 4 RESUELTO - Android Image Gallery Modal:
  * - presentationStyle='overFullScreen' en Android
+ * - StatusBar hidden para experiencia inmersiva
+ * - Header paddingTop=20 en Android (sin status bar)
+ * - Altura de imagen ajustada: height - 100 en Android
  * - El visor de imágenes se abre en pantalla completa
- * - Experiencia consistente con iOS
+ * - No hay espacios vacíos en la parte superior e inferior
  * 
  * ARQUITECTURA:
  * - Listeners de teclado para detectar apertura/cierre
- * - Cálculo dinámico de padding basado en plataforma
- * - iOS: Usa keyboardHeight directamente
- * - Android: Padding fijo adicional para botones táctiles
+ * - Cálculo dinámico de padding basado en plataforma y estado del teclado
+ * - iOS: behavior='padding' + padding=0 cuando teclado abierto
+ * - Android: behavior='height' + padding=8 cuando teclado abierto
+ * - ScrollView auto-scroll al final cuando teclado se abre
+ * - Modales fullscreen con StatusBar hidden en Android
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-console.log("✅ SALA VIRTUAL v7.0 - COMPLETE KEYBOARD FIX iOS/Android + FULLSCREEN MODALS");
+console.log("✅ SALA VIRTUAL v7.5 - COMPLETE KEYBOARD FIX iOS/Android + FULLSCREEN MODALS");
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -3059,12 +3068,12 @@ export default function SalaVirtualEnhancedScreen() {
   const modeIcon = mode === 'day' ? 'wb_sunny' : 'nightlight';
   const modeIconIOS = mode === 'day' ? 'sun.max.fill' : 'moon.fill';
 
-  // ✅ FIXED v7.4: iOS keyboard positioning - input field sits directly on keyboard
-  // ✅ FIXED v7.4: Android keyboard positioning - input field visible above keyboard with proper spacing
+  // ✅ FIXED v7.5: iOS keyboard positioning - input field sits directly on keyboard
+  // ✅ FIXED v7.5: Android keyboard positioning - input field visible above keyboard with proper spacing
   const inputContainerBottomPadding =
     Platform.OS === 'ios'
       ? isKeyboardVisible ? 0 : Math.max(insets.bottom, 8) // ✅ iOS: No padding when keyboard open (sits directly on keyboard)
-      : Math.max(insets.bottom + 8, 16); // ✅ Android: Always maintain bottom padding for navigation buttons
+      : isKeyboardVisible ? 8 : Math.max(insets.bottom + 8, 16); // ✅ Android: Reduced padding when keyboard open
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background[0] }]}>
@@ -3230,7 +3239,7 @@ export default function SalaVirtualEnhancedScreen() {
         {activeTab === 'chat' && (
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
           >
             <FlatList
@@ -3246,7 +3255,15 @@ export default function SalaVirtualEnhancedScreen() {
               onContentSizeChange={() => {
                 setTimeout(() => {
                   flatListRef.current?.scrollToEnd({ animated: true });
-                }, 100);
+                }, 50);
+              }}
+              onLayout={() => {
+                // Force scroll to end when keyboard opens
+                if (isKeyboardVisible && messages.length > 0) {
+                  setTimeout(() => {
+                    flatListRef.current?.scrollToEnd({ animated: true });
+                  }, 100);
+                }
               }}
               ListEmptyComponent={
                 <View style={styles.emptyMessages}>
@@ -3378,7 +3395,7 @@ export default function SalaVirtualEnhancedScreen() {
         {activeTab === 'private' && selectedPrivateChat && (
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
           >
             <TouchableOpacity
@@ -3433,7 +3450,15 @@ export default function SalaVirtualEnhancedScreen() {
               onContentSizeChange={() => {
                 setTimeout(() => {
                   privateChatListRef.current?.scrollToEnd({ animated: true });
-                }, 100);
+                }, 50);
+              }}
+              onLayout={() => {
+                // Force scroll to end when keyboard opens
+                if (isKeyboardVisible && privateChatMessages.length > 0) {
+                  setTimeout(() => {
+                    privateChatListRef.current?.scrollToEnd({ animated: true });
+                  }, 100);
+                }
               }}
               ListEmptyComponent={
                 <View style={styles.emptyMessages}>
