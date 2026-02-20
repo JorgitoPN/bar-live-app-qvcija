@@ -25,16 +25,17 @@ interface ImageGalleryModalProps {
 }
 
 /**
- * ✅ IMAGE GALLERY MODAL v32.0 - ANDROID FULLSCREEN FIX COMPLETE
+ * ✅ IMAGE GALLERY MODAL v33.0 - ANDROID FULLSCREEN FIX COMPLETE
  * 
- * NEW CHANGES v32.0:
- * - ✅ FIXED ANDROID MODAL: presentationStyle='fullScreen' + StatusBar hidden
+ * NEW CHANGES v33.0:
+ * - ✅ FIXED ANDROID MODAL: presentationStyle='overFullScreen' for true edge-to-edge
+ * - ✅ StatusBar hidden on Android for immersive fullscreen experience
+ * - ✅ Header paddingTop set to 0 on Android (no status bar space needed)
  * - ✅ El visor de imágenes se abre en pantalla completa en Android
  * - ✅ No hay espacios vacíos en la parte superior e inferior
  * - ✅ Experiencia idéntica a iOS
- * - ✅ Reduced header paddingTop to 10px on Android for true fullscreen
  * 
- * PREVIOUS FIXES v31.0:
+ * PREVIOUS FIXES v32.0:
  * - ✅ Removed SafeAreaView padding that was causing empty spaces
  * - ✅ Properly displays all images from galeria_urls
  * - ✅ Fixed icon mappings for Android
@@ -94,7 +95,7 @@ export default function ImageGalleryModal({
       visible={visible}
       transparent={false}
       animationType="fade"
-      presentationStyle="fullScreen"
+      presentationStyle={Platform.OS === 'android' ? 'overFullScreen' : 'fullScreen'}
       onRequestClose={onClose}
     >
       {Platform.OS === 'android' && <StatusBar hidden={true} />}
@@ -173,7 +174,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 50 : 10,
+    paddingTop: Platform.OS === 'ios' ? 50 : 0,
     paddingHorizontal: 20,
     paddingBottom: 15,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',

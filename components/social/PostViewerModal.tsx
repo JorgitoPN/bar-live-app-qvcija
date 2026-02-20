@@ -1,17 +1,18 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v342.0 - ANDROID FULLSCREEN FIX COMPLETE
+ * 🚨 POST VIEWER MODAL v343.0 - ANDROID FULLSCREEN FIX COMPLETE
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v342.0:
- * - ✅ FIXED ANDROID MODAL: presentationStyle='fullScreen' + StatusBar hidden
+ * NEW CHANGES v343.0:
+ * - ✅ FIXED ANDROID MODAL: presentationStyle='overFullScreen' for true edge-to-edge
+ * - ✅ StatusBar hidden on Android for immersive fullscreen experience
+ * - ✅ Header paddingTop set to 0 on Android (no status bar space needed)
  * - ✅ El visor de publicaciones se abre en pantalla completa en Android
  * - ✅ No hay espacios vacíos en la parte superior e inferior
  * - ✅ Experiencia idéntica a iOS
- * - ✅ Reduced header paddingTop to 10px on Android for true fullscreen
  * 
- * PREVIOUS CHANGES v341.0:
+ * PREVIOUS CHANGES v342.0:
  * - ✅ Removed SafeAreaView padding that was causing empty spaces
  * - ✅ FIXED PROBLEM 1: Comments open immediately without closing modal
  * - ✅ FIXED PROBLEM 2: State preserved when returning from comments (scroll + post)
@@ -26,7 +27,7 @@
  * - router.back() from comments reveals modal instantly with exact scroll position
  * - No AsyncStorage needed - natural state preservation through mounting
  * - Enhanced initial scroll with multiple retry strategies and better timing
- * - Android: fullScreen presentation with hidden StatusBar for true fullscreen
+ * - Android: overFullScreen presentation with hidden StatusBar for true fullscreen
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -1584,7 +1585,7 @@ export default function PostViewerModal({
       visible={visible}
       transparent={false}
       animationType="slide"
-      presentationStyle="fullScreen"
+      presentationStyle={Platform.OS === 'android' ? 'overFullScreen' : 'fullScreen'}
       onRequestClose={onClose}
     >
       {Platform.OS === 'android' && <StatusBar hidden={true} />}
@@ -1678,7 +1679,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 10,
+    paddingTop: Platform.OS === 'ios' ? 60 : 0,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',

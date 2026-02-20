@@ -3059,12 +3059,12 @@ export default function SalaVirtualEnhancedScreen() {
   const modeIcon = mode === 'day' ? 'wb_sunny' : 'nightlight';
   const modeIconIOS = mode === 'day' ? 'sun.max.fill' : 'moon.fill';
 
-  // ✅ FIXED v7.3: iOS keyboard positioning - input field sits directly on keyboard
-  // ✅ FIXED v7.3: Android keyboard positioning - input field visible above keyboard
+  // ✅ FIXED v7.4: iOS keyboard positioning - input field sits directly on keyboard
+  // ✅ FIXED v7.4: Android keyboard positioning - input field visible above keyboard with proper spacing
   const inputContainerBottomPadding =
     Platform.OS === 'ios'
       ? isKeyboardVisible ? 0 : Math.max(insets.bottom, 8) // ✅ iOS: No padding when keyboard open (sits directly on keyboard)
-      : isKeyboardVisible ? 0 : Math.max(insets.bottom + 8, 16); // ✅ Android: No padding when keyboard open (moves up automatically)
+      : Math.max(insets.bottom + 8, 16); // ✅ Android: Always maintain bottom padding for navigation buttons
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background[0] }]}>
@@ -3230,7 +3230,7 @@ export default function SalaVirtualEnhancedScreen() {
         {activeTab === 'chat' && (
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
           >
             <FlatList
@@ -3378,7 +3378,7 @@ export default function SalaVirtualEnhancedScreen() {
         {activeTab === 'private' && selectedPrivateChat && (
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
           >
             <TouchableOpacity
