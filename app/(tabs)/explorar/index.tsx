@@ -272,6 +272,10 @@ export default function ExplorarScreen() {
   
   // ✅ REF PARA TRACKING DE FILTROS
   const lastFiltersRef = useRef<string>('');
+  
+  // ✅ REF PARA PREVENIR ERRORES EN BUCLE
+  const errorCountRef = useRef(0);
+  const lastErrorTimeRef = useRef(0);
 
   // ✅ FOCUS EFFECT: Restaurar posición de scroll
   useFocusEffect(
@@ -669,7 +673,35 @@ export default function ExplorarScreen() {
       }
     } catch (error) {
       console.error('[Explorar v408.2] ❌ Error loading locales:', error);
-      Alert.alert('Error', 'No se pudieron cargar los locales');
+      
+      // ✅ CRITICAL FIX: Set hasMore to false to prevent infinite retry loop
+      setHasMore(false);
+      
+      // ✅ CRITICAL FIX: Prevent error alert loop
+      const now = Date.now();
+      const timeSinceLastError = now - lastErrorTimeRef.current;
+      
+      // Only show error if it's been more than 5 seconds since last error
+      if (timeSinceLastError > 5000) {
+        errorCountRef.current = 0;
+      }
+      
+      errorCountRef.current++;
+      lastErrorTimeRef.current = now;
+      
+      // Only show alert on first error or after cooldown period
+      if (errorCountRef.current === 1 && reset && allLocales.length === 0) {
+        // Only show error on initial load, not on pagination
+        setTimeout(() => {
+          Alert.alert(
+            'Error de conexión', 
+            'No se pudieron cargar los locales. Por favor, verifica tu conexión a internet e intenta de nuevo.',
+            [{ text: 'OK' }]
+          );
+        }, 100);
+      }
+      
+      console.log('[Explorar v408.2] 🚫 Error count:', errorCountRef.current, 'Time since last:', timeSinceLastError, 'ms');
     } finally {
       // ✅ LIBERAR GUARDIA Y ESTADO DE CARGA
       console.log('[Explorar v408.2] 🔓 Loading guard released');
@@ -680,8 +712,13 @@ export default function ExplorarScreen() {
 
   // ✅ CARGA INICIAL: Cuando la ubicación esté lista
   useEffect(() => {
-    if (locationReady && allLocales.length === 0 && !isLoading) {
+    if (locationReady && allLocales.length === 0 && !isLoading && !loadingRef.current) {
       console.log('[Explorar v408.2] 🚀 Initial load triggered');
+      
+      // ✅ CRITICAL FIX: Reset error count on new attempt
+      errorCountRef.current = 0;
+      lastErrorTimeRef.current = 0;
+      
       loadLocales(true);
     }
   }, [locationReady, allLocales.length, isLoading, loadLocales]);
@@ -846,6 +883,10 @@ export default function ExplorarScreen() {
     setHasMore(true);
     loadingRef.current = false;
     lastFiltersRef.current = '';
+    
+    // ✅ CRITICAL FIX: Reset error state on refresh
+    errorCountRef.current = 0;
+    lastErrorTimeRef.current = 0;
     
     setTimeout(() => {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
