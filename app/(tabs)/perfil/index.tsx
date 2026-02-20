@@ -1355,6 +1355,7 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     paddingBottom: 100,
+    marginTop: 0,
   },
   scrollableHeader: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
