@@ -45,21 +45,18 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ANDROID FULL-SCREEN FILTERS PAGE v3.1 - CATEGORY SYNC + DYNAMIC + INSTANT
+ * ✅ ANDROID FULL-SCREEN FILTERS PAGE v3.0 - DYNAMIC + INSTANT + SLIDER
  * 
- * NEW FEATURES v3.1:
- * - 🔄 CATEGORY SYNC: Filters sync with category selection
- * - ✅ Bidirectional sync: Category ↔ Tipo filter
- * - ✅ Opens with current category pre-selected
- * - ✅ Applying filters updates category in Explorar
- * 
- * Previous features v3.0:
+ * NEW FEATURES v3.0:
  * - 🎯 DYNAMIC FILTERS: Only show characteristics with active locales
  * - ⚡ INSTANT CLEAR: Synchronous UI update, background fetch
  * - 🎚️ SLIDER: Replaced text input with slider (1-100km range)
  * - ✅ Real-time value display on slider
  * - ✅ Smooth UX with no lag on clear
+ * 
+ * Previous fixes v2.0:
  * - ✅ Safe area insets for Android system buttons
+ * - ✅ Proper padding to avoid hidden buttons
  */
 export default function FiltrosAvanzadosScreen() {
   const router = useRouter();
@@ -72,7 +69,6 @@ export default function FiltrosAvanzadosScreen() {
     dynamicOptions,
     refreshDynamicOptions,
     isLoadingOptions,
-    selectedCategory,
   } = useFilters();
   
   const [filtrosTemp, setFiltrosTemp] = useState<Filtros>(contextFiltros);
@@ -89,19 +85,10 @@ export default function FiltrosAvanzadosScreen() {
   });
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados Android v3.1] 🔄 Page opened, loading filters');
-    console.log('[FiltrosAvanzados Android v3.1] 🏷️ Current category:', selectedCategory);
-    
-    // ✅ SYNC v3.1: Initialize with current category
-    const syncedFiltros = { ...contextFiltros };
-    if (selectedCategory && selectedCategory !== 'todas') {
-      syncedFiltros.tipo = [selectedCategory];
-      console.log('[FiltrosAvanzados Android v3.1] 🔄 Synced tipo filter with category:', selectedCategory);
-    }
-    
-    setFiltrosTemp(syncedFiltros);
+    console.log('[FiltrosAvanzados Android v2.0] 🔄 Page opened, loading filters');
+    setFiltrosTemp(contextFiltros);
     refreshDynamicOptions();
-  }, [contextFiltros, refreshDynamicOptions, selectedCategory]);
+  }, [contextFiltros, refreshDynamicOptions]);
 
   const toggleArrayItem = useCallback((array: string[] | undefined, item: string): string[] => {
     const arr = array || [];

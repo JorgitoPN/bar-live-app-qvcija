@@ -220,8 +220,6 @@ export default function ExplorarScreen() {
     filtros: globalFiltros, 
     limpiarFiltros,
     hasActiveFilters,
-    selectedCategory: contextSelectedCategory,
-    setSelectedCategory: contextSetSelectedCategory,
   } = useFilters();
   
   const { isReady, deferOperation, deferDataLoading, deferWithPriority } = useScreenPerformance('Explorar');
@@ -242,10 +240,7 @@ export default function ExplorarScreen() {
   const [socialProfiles, setSocialProfiles] = useState<Map<string, boolean>>(new Map());
   const [activeEvents, setActiveEvents] = useState<Map<string, any>>(new Map());
   
-  // ✅ SYNC v3.5: Use category from context
-  const selectedCategory = contextSelectedCategory;
-  const setSelectedCategory = contextSetSelectedCategory;
-  
+  const [selectedCategory, setSelectedCategory] = useState<string>('todas');
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -795,9 +790,8 @@ export default function ExplorarScreen() {
     
     setSearchQuery('');
     setDebouncedQuery('');
-    setSelectedCategory('todas'); // This will sync with context
+    setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
-    limpiarFiltros(); // Also clear advanced filters
     
     setAllLocales([]);
     setHasMore(true);
@@ -817,15 +811,14 @@ export default function ExplorarScreen() {
   const clearFilters = useCallback(() => {
     setSearchQuery('');
     setDebouncedQuery('');
-    setSelectedCategory('todas'); // This will sync with context
+    setSelectedCategory('todas');
     setProvinciaSeleccionada('Todas');
-    limpiarFiltros(); // Also clear advanced filters
     
     setTimeout(() => {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       savedScrollPosition.current = 0;
     }, 100);
-  }, [setSelectedCategory, limpiarFiltros]);
+  }, []);
 
   // ✅ CONTADOR DE FILTROS ACTIVOS
   const activeFiltersCount = useMemo(() => {
