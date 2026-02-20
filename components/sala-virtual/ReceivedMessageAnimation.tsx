@@ -38,6 +38,7 @@ export function ReceivedMessageAnimation({
     }))
   ).current;
 
+  // ✅ LINT FIX: Added all animation dependencies
   useEffect(() => {
     if (visible) {
       // Main emoji animation
@@ -118,7 +119,7 @@ export function ReceivedMessageAnimation({
         ]).start();
       });
     }
-  }, [visible]);
+  }, [visible, onComplete, scaleAnim, opacityAnim, bubbles]);
 
   if (!visible) return null;
 

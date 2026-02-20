@@ -1,4 +1,26 @@
 
+/**
+ * ✅ IMPERSONATION CONTEXT v2.0 - ADMIN PERMISSIONS PRESERVED
+ * 
+ * CRITICAL FIXES v2.0:
+ * - ✅ ADMIN ROLE PRESERVED: Admin user data is stored and preserved during impersonation
+ * - ✅ FULL PERMISSIONS: Admin retains all admin permissions while impersonating
+ * - ✅ ROLE SELECTOR FIX: Admin can see and switch to admin role even while impersonating
+ * - ✅ DUAL CONTEXT: Maintains both admin user (for permissions) and impersonated user (for data)
+ * - ✅ SEAMLESS EXPERIENCE: Admin can manage impersonated user with full admin capabilities
+ * 
+ * HOW IT WORKS:
+ * - adminUser: The original admin user (preserved during impersonation)
+ * - impersonatedUser: The user being impersonated (used for data queries)
+ * - effectiveUser: The user to display in UI (impersonated user or auth user)
+ * - effectiveUserId: The user ID to use for data queries (impersonated user ID or auth user ID)
+ * 
+ * USAGE:
+ * - For data queries: Use effectiveUserId (shows impersonated user's data)
+ * - For permissions: Use adminUser when isImpersonating is true (admin permissions)
+ * - For UI display: Use effectiveUser (shows impersonated user's profile)
+ */
+
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/utils/supabase';
@@ -32,6 +54,7 @@ interface ImpersonationContextType {
   impersonatedUser: ImpersonatedUser | null;
   effectiveUserId: string | null; // The user ID to use for all queries
   effectiveUser: ImpersonatedUser | null; // The user object to use for all UI
+  adminUser: ImpersonatedUser | null; // The original admin user (preserved during impersonation)
   startImpersonation: (userId: string) => Promise<void>;
   endImpersonation: () => Promise<void>;
   loading: boolean;
@@ -42,16 +65,25 @@ const ImpersonationContext = createContext<ImpersonationContextType | undefined>
 const IMPERSONATION_KEY = '@barlive_impersonation_session';
 
 export function ImpersonationProvider({ children }: { children: ReactNode }) {
-  const { user: adminUser } = useAuth();
+  const { user: authUser } = useAuth();
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [impersonationSession, setImpersonationSession] = useState<ImpersonationSession | null>(null);
   const [impersonatedUser, setImpersonatedUser] = useState<ImpersonatedUser | null>(null);
+  const [adminUser, setAdminUser] = useState<ImpersonatedUser | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Store admin user when auth user changes
+  useEffect(() => {
+    if (authUser && !isImpersonating) {
+      console.log('[Impersonation] 👑 Storing admin user:', authUser.nombre);
+      setAdminUser(authUser as ImpersonatedUser);
+    }
+  }, [authUser, isImpersonating]);
 
   // Load active impersonation session on mount
   useEffect(() => {
     loadActiveImpersonation();
-  }, [adminUser]);
+  }, [authUser]);
 
   const loadActiveImpersonation = async () => {
     try {
@@ -110,11 +142,15 @@ export function ImpersonationProvider({ children }: { children: ReactNode }) {
   };
 
   const startImpersonation = async (userId: string) => {
-    if (!adminUser) {
+    if (!authUser) {
       throw new Error('No admin user found');
     }
 
     try {
+      // Store admin user before impersonation
+      console.log('[Impersonation] 👑 Preserving admin user:', authUser.nombre);
+      setAdminUser(authUser as ImpersonatedUser);
+
       // Load user to impersonate
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
@@ -128,9 +164,9 @@ export function ImpersonationProvider({ children }: { children: ReactNode }) {
       const { data: sessionData, error: sessionError } = await supabase
         .from('admin_impersonation_sessions')
         .insert({
-          admin_id: adminUser.id,
+          admin_id: authUser.id,
           impersonated_user_id: userId,
-          admin_email: adminUser.email || '',
+          admin_email: authUser.email || '',
           impersonated_user_email: userData.email,
           impersonated_user_name: userData.nombre,
           is_active: true,
@@ -149,6 +185,7 @@ export function ImpersonationProvider({ children }: { children: ReactNode }) {
       setIsImpersonating(true);
 
       console.log('[Impersonation] ✅ Started impersonating:', userData.nombre);
+      console.log('[Impersonation] 👑 Admin user preserved:', authUser.nombre);
     } catch (error) {
       console.error('[Impersonation] Error starting impersonation:', error);
       throw error;
@@ -176,22 +213,24 @@ export function ImpersonationProvider({ children }: { children: ReactNode }) {
       setImpersonationSession(null);
       setImpersonatedUser(null);
       setIsImpersonating(false);
+      // Keep adminUser preserved
 
       console.log('[Impersonation] ✅ Ended impersonation');
+      console.log('[Impersonation] 👑 Admin user restored:', adminUser?.nombre);
     } catch (error) {
       console.error('[Impersonation] Error ending impersonation:', error);
       throw error;
     }
   };
 
-  // Compute effective user ID (impersonated user if active, otherwise admin user)
+  // Compute effective user ID (impersonated user if active, otherwise auth user)
   const effectiveUserId = isImpersonating && impersonatedUser 
     ? impersonatedUser.id 
-    : adminUser?.id || null;
+    : authUser?.id || null;
 
   const effectiveUser = isImpersonating && impersonatedUser 
     ? impersonatedUser 
-    : adminUser;
+    : authUser;
 
   const value = {
     isImpersonating,
@@ -199,6 +238,7 @@ export function ImpersonationProvider({ children }: { children: ReactNode }) {
     impersonatedUser,
     effectiveUserId,
     effectiveUser,
+    adminUser: isImpersonating ? adminUser : null, // Only expose adminUser during impersonation
     startImpersonation,
     endImpersonation,
     loading,

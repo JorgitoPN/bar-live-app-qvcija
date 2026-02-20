@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -48,15 +49,21 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ADVANCED FILTERS SHEET v29.0 - ANDROID ICON FIX COMPLETE
+ * ✅ ADVANCED FILTERS SHEET v30.1 - CATEGORY SYNC + DYNAMIC + INSTANT
  * 
- * CRITICAL FIXES v29.0:
- * - ✅ Fixed "tune" icon → "filter_list" (filtros avanzados)
- * - ✅ Fixed "groups" icon → "people" (comunidad/clientela)
- * - ✅ Fixed "location_city" icon → "location_on" (provincia)
- * - ✅ Fixed "my_location" icon → "location_on" (ubicación)
- * - ✅ All Material Icons properly validated
- * - ✅ No more question marks on Android
+ * NEW FEATURES v30.1:
+ * - 🔄 CATEGORY SYNC: Filters sync with category selection
+ * - ✅ Bidirectional sync: Category ↔ Tipo filter
+ * - ✅ Opens with current category pre-selected
+ * - ✅ Applying filters updates category in Explorar
+ * 
+ * Previous features v30.0:
+ * - 🎯 DYNAMIC FILTERS: Only show characteristics with active locales
+ * - ⚡ INSTANT CLEAR: Synchronous UI update, background fetch
+ * - 🎚️ SLIDER: Replaced text input with slider (1-100km range)
+ * - ✅ Real-time value display on slider
+ * - ✅ Smooth UX with no lag on clear
+ * - ✅ Fixed all Material Icons (no more question marks)
  */
 
 export default function FiltrosAvanzadosSheet({
@@ -72,6 +79,7 @@ export default function FiltrosAvanzadosSheet({
     dynamicOptions,
     refreshDynamicOptions,
     isLoadingOptions,
+    selectedCategory,
   } = useFilters();
   
   const initialFiltros = propFiltros || contextFiltros;
@@ -91,11 +99,20 @@ export default function FiltrosAvanzadosSheet({
 
   useEffect(() => {
     if (visible) {
-      console.log('[FiltrosAvanzados v29.0] 🔄 Modal opened, resetting temp filters');
-      setFiltrosTemp(initialFiltros);
+      console.log('[FiltrosAvanzados v30.1] 🔄 Modal opened, resetting temp filters');
+      console.log('[FiltrosAvanzados v30.1] 🏷️ Current category:', selectedCategory);
+      
+      // ✅ SYNC v30.1: Initialize with current category
+      const syncedFiltros = { ...initialFiltros };
+      if (selectedCategory && selectedCategory !== 'todas') {
+        syncedFiltros.tipo = [selectedCategory];
+        console.log('[FiltrosAvanzados v30.1] 🔄 Synced tipo filter with category:', selectedCategory);
+      }
+      
+      setFiltrosTemp(syncedFiltros);
       refreshDynamicOptions();
     }
-  }, [visible, initialFiltros, refreshDynamicOptions]);
+  }, [visible, initialFiltros, refreshDynamicOptions, selectedCategory]);
 
   const toggleArrayItem = useCallback((array: string[] | undefined, item: string): string[] => {
     const arr = array || [];
@@ -134,7 +151,7 @@ export default function FiltrosAvanzadosSheet({
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v29.0] ✅ Applying filters:', filtrosTemp);
+    console.log('[FiltrosAvanzados v30.0] ✅ Applying filters:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     if (propOnAplicarFiltros) {
       propOnAplicarFiltros(filtrosTemp);
@@ -143,14 +160,19 @@ export default function FiltrosAvanzadosSheet({
   }, [filtrosTemp, contextAplicarFiltros, propOnAplicarFiltros, onClose]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v29.0] 🧹 Clearing all filters');
+    console.log('[FiltrosAvanzados v30.1] 🧹 Clearing all filters - INSTANT UI UPDATE');
+    
+    // ✅ PASO 1: Actualizar UI INMEDIATAMENTE (síncrono)
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
+    
+    // ✅ PASO 2: Actualizar contexto INMEDIATAMENTE (síncrono)
+    // This ensures the filters are cleared immediately
     contextLimpiarFiltros();
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v29.0] 📍 Selected comunidad:', selectedComunidad);
+    console.log('[FiltrosAvanzados v30.0] 📍 Selected comunidad:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -174,7 +196,7 @@ export default function FiltrosAvanzadosSheet({
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v29.0] 📍 Selected provincia:', provincia);
+    console.log('[FiltrosAvanzados v30.0] 📍 Selected provincia:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -183,10 +205,11 @@ export default function FiltrosAvanzadosSheet({
     setSearchProvincia('');
   }, []);
 
-  const handleDistanciaChange = useCallback((text: string) => {
+  const handleDistanciaChange = useCallback((value: number) => {
+    console.log('[FiltrosAvanzados v30.0] 📏 Radius changed to:', value, 'km');
     setFiltrosTemp(prev => ({
       ...prev,
-      distancia: text ? parseFloat(text) : undefined,
+      distancia: value,
     }));
   }, []);
 
@@ -440,17 +463,34 @@ export default function FiltrosAvanzadosSheet({
                   </View>
 
                   <View style={styles.distanceContainer}>
-                    {/* ✅ CRITICAL FIX v29.0: Changed "location.circle" to "location_on" */}
-                    <IconSymbol ios_icon_name="location.circle" android_material_icon_name="location_on" size={14} color={colors.primary} />
-                    <Text style={styles.distanceLabel}>Radio de búsqueda</Text>
-                    <TextInput
-                      style={styles.distanceInput}
-                      placeholder="km"
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="numeric"
-                      value={filtrosTemp.distancia?.toString() || ''}
-                      onChangeText={handleDistanciaChange}
+                    <View style={styles.distanceHeader}>
+                      <View style={styles.distanceLabelRow}>
+                        <IconSymbol ios_icon_name="location.circle" android_material_icon_name="location_on" size={14} color={colors.primary} />
+                        <Text style={styles.distanceLabel}>Radio de búsqueda</Text>
+                      </View>
+                      <View style={styles.distanceValueBadge}>
+                        <Text style={styles.distanceValueText}>
+                          {filtrosTemp.distancia ? `${Math.round(filtrosTemp.distancia)} km` : '50 km'}
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    <Slider
+                      style={styles.slider}
+                      minimumValue={1}
+                      maximumValue={100}
+                      step={1}
+                      value={filtrosTemp.distancia || 50}
+                      onValueChange={handleDistanciaChange}
+                      minimumTrackTintColor={colors.primary}
+                      maximumTrackTintColor={colors.cardBorder}
+                      thumbTintColor={colors.primary}
                     />
+                    
+                    <View style={styles.sliderLabels}>
+                      <Text style={styles.sliderLabelText}>1 km</Text>
+                      <Text style={styles.sliderLabelText}>100 km</Text>
+                    </View>
                   </View>
                 </View>
               )}
@@ -1014,34 +1054,56 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   distanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  distanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  distanceLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   distanceLabel: {
-    flex: 1,
     fontSize: 12,
     fontWeight: '600',
     color: colors.text,
   },
-  distanceInput: {
-    width: 50,
-    backgroundColor: colors.cardBackground,
+  distanceValueBadge: {
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'center',
+    borderColor: colors.primary + '40',
+  },
+  distanceValueText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 0.5,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  sliderLabelText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: colors.textSecondary,
   },
   chipContainer: {
     flexDirection: 'row',

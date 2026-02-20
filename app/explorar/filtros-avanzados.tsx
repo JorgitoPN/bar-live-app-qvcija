@@ -4,44 +4,23 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
+  ScrollView,
   TextInput,
   ActivityIndicator,
   Platform,
+  Modal,
   Pressable,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import Slider from '@react-native-community/slider';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
-import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
-import { useFilters } from '@/contexts/FilterContext';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Filtros } from '@/types';
-
-/**
- * ✅ ADVANCED FILTERS PAGE v1.0 - PROFESSIONAL & SCALABLE
- * 
- * ARCHITECTURE:
- * - ✅ Full-page modal presentation (not bottom sheet)
- * - ✅ Synchronized with FilterContext for global state
- * - ✅ Dynamic filter options based on actual data
- * - ✅ Instant feedback with visual indicators
- * - ✅ Clear hierarchy and organization
- * - ✅ Optimized performance with memoization
- * - ✅ Accessible from both Map and Explore
- * - ✅ Consistent behavior across all entry points
- * 
- * FEATURES:
- * - Location filters (Comunidad, Provincia, Distance)
- * - Category filters (Tipo de local)
- * - Service filters (WiFi, Terraza, etc.)
- * - Atmosphere filters (Ambiente)
- * - Clientele filters (Clientela típica)
- * - Real-time filter count
- * - Clear all filters
- * - Apply filters with immediate effect
- */
+import { useFilters } from '@/contexts/FilterContext';
+import { useRouter } from 'expo-router';
+import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
   'Andalucía': ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
@@ -65,19 +44,42 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
   'Melilla': ['Melilla'],
 };
 
+/**
+ * ✅ ANDROID FULL-SCREEN FILTERS PAGE v3.1 - CATEGORY SYNC + DYNAMIC + INSTANT
+ * 
+ * NEW FEATURES v3.1:
+ * - 🔄 CATEGORY SYNC: Filters sync with category selection
+ * - ✅ Bidirectional sync: Category ↔ Tipo filter
+ * - ✅ Opens with current category pre-selected
+ * - ✅ Applying filters updates category in Explorar
+ * 
+ * Previous features v3.0:
+ * - 🎯 DYNAMIC FILTERS: Only show characteristics with active locales
+ * - ⚡ INSTANT CLEAR: Synchronous UI update, background fetch
+ * - 🎚️ SLIDER: Replaced text input with slider (1-100km range)
+ * - ✅ Real-time value display on slider
+ * - ✅ Smooth UX with no lag on clear
+ * - ✅ Safe area insets for Android system buttons
+ */
 export default function FiltrosAvanzadosScreen() {
   const router = useRouter();
-  const {
-    filtros: contextFiltros,
-    aplicarFiltros: contextAplicarFiltros,
+  const insets = useSafeAreaInsets();
+  
+  const { 
+    filtros: contextFiltros, 
+    aplicarFiltros: contextAplicarFiltros, 
     limpiarFiltros: contextLimpiarFiltros,
     dynamicOptions,
     refreshDynamicOptions,
     isLoadingOptions,
-    hasActiveFilters,
+    selectedCategory,
   } = useFilters();
-
+  
   const [filtrosTemp, setFiltrosTemp] = useState<Filtros>(contextFiltros);
+  const [showComunidadModal, setShowComunidadModal] = useState(false);
+  const [showProvinciaModal, setShowProvinciaModal] = useState(false);
+  const [searchComunidad, setSearchComunidad] = useState('');
+  const [searchProvincia, setSearchProvincia] = useState('');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     ubicacion: true,
     tipo: false,
@@ -85,18 +87,21 @@ export default function FiltrosAvanzadosScreen() {
     ambiente: false,
     clientela: false,
   });
-  const [searchComunidad, setSearchComunidad] = useState('');
-  const [searchProvincia, setSearchProvincia] = useState('');
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados v1.0] 🚀 Screen mounted, loading dynamic options');
+    console.log('[FiltrosAvanzados Android v3.1] 🔄 Page opened, loading filters');
+    console.log('[FiltrosAvanzados Android v3.1] 🏷️ Current category:', selectedCategory);
+    
+    // ✅ SYNC v3.1: Initialize with current category
+    const syncedFiltros = { ...contextFiltros };
+    if (selectedCategory && selectedCategory !== 'todas') {
+      syncedFiltros.tipo = [selectedCategory];
+      console.log('[FiltrosAvanzados Android v3.1] 🔄 Synced tipo filter with category:', selectedCategory);
+    }
+    
+    setFiltrosTemp(syncedFiltros);
     refreshDynamicOptions();
-  }, [refreshDynamicOptions]);
-
-  useEffect(() => {
-    console.log('[FiltrosAvanzados v1.0] 🔄 Context filters changed, updating temp filters');
-    setFiltrosTemp(contextFiltros);
-  }, [contextFiltros]);
+  }, [contextFiltros, refreshDynamicOptions, selectedCategory]);
 
   const toggleArrayItem = useCallback((array: string[] | undefined, item: string): string[] => {
     const arr = array || [];
@@ -134,8 +139,26 @@ export default function FiltrosAvanzadosScreen() {
     }));
   }, [toggleArrayItem]);
 
+  const handleAplicar = useCallback(() => {
+    console.log('[FiltrosAvanzados Android v2.0] ✅ Applying filters:', filtrosTemp);
+    contextAplicarFiltros(filtrosTemp);
+    router.back();
+  }, [filtrosTemp, contextAplicarFiltros, router]);
+
+  const handleLimpiar = useCallback(() => {
+    console.log('[FiltrosAvanzados Android v3.1] 🧹 Clearing all filters - INSTANT UI UPDATE');
+    
+    // ✅ PASO 1: Actualizar UI INMEDIATAMENTE (síncrono)
+    const emptyFiltros = {};
+    setFiltrosTemp(emptyFiltros);
+    
+    // ✅ PASO 2: Actualizar contexto INMEDIATAMENTE (síncrono)
+    // This ensures the filters are cleared immediately
+    contextLimpiarFiltros();
+  }, [contextLimpiarFiltros]);
+
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v1.0] 📍 Selected comunidad:', selectedComunidad);
+    console.log('[FiltrosAvanzados Android v2.0] 📍 Selected comunidad:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -153,20 +176,26 @@ export default function FiltrosAvanzadosScreen() {
       
       return newFiltros;
     });
+    
+    setShowComunidadModal(false);
+    setSearchComunidad('');
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v1.0] 📍 Selected provincia:', provincia);
+    console.log('[FiltrosAvanzados Android v2.0] 📍 Selected provincia:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
     }));
+    setShowProvinciaModal(false);
+    setSearchProvincia('');
   }, []);
 
-  const handleDistanciaChange = useCallback((text: string) => {
+  const handleDistanciaChange = useCallback((value: number) => {
+    console.log('[FiltrosAvanzados Android v3.0] 📏 Radius changed to:', value, 'km');
     setFiltrosTemp(prev => ({
       ...prev,
-      distancia: text ? parseFloat(text) : undefined,
+      distancia: value,
     }));
   }, []);
 
@@ -176,19 +205,6 @@ export default function FiltrosAvanzadosScreen() {
       [section]: !prev[section],
     }));
   }, []);
-
-  const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v1.0] ✅ Applying filters:', filtrosTemp);
-    contextAplicarFiltros(filtrosTemp);
-    router.back();
-  }, [filtrosTemp, contextAplicarFiltros, router]);
-
-  const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v1.0] 🧹 Clearing all filters');
-    const emptyFiltros = {};
-    setFiltrosTemp(emptyFiltros);
-    contextLimpiarFiltros();
-  }, [contextLimpiarFiltros]);
 
   const allComunidades = useMemo(() => {
     const staticComunidades = Object.keys(COMUNIDADES_PROVINCIAS);
@@ -214,7 +230,7 @@ export default function FiltrosAvanzadosScreen() {
     }
     return COMUNIDADES_PROVINCIAS[filtrosTemp.comunidad] || [];
   }, [filtrosTemp.comunidad, dynamicOptions.provincias]);
-
+    
   const filteredProvincias = useMemo(() => {
     if (!searchProvincia.trim()) {
       return availableProvincias;
@@ -323,58 +339,52 @@ export default function FiltrosAvanzadosScreen() {
     return count;
   }, [filtrosTemp]);
 
+  // ✅ CRITICAL FIX v2.0: Calculate proper bottom padding for Android system buttons
+  const footerPaddingBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 20) : 20;
+  const scrollContentPaddingBottom = Platform.OS === 'android' ? 120 + insets.bottom : 120;
+
   return (
     <View style={styles.container}>
-      <Stack.Screen
-        options={{
-          headerShown: false,
-        }}
-      />
-
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.header}
       >
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol 
-              ios_icon_name="chevron.left" 
-              android_material_icon_name="arrow_back" 
-              size={scaleIconSize(24)} 
-              color={colors.headerText} 
-            />
-          </TouchableOpacity>
-
-          <View style={styles.headerTitleContainer}>
-            <Text style={[styles.headerTitle, { fontSize: scaleFontSize(20) }]}>Filtros Avanzados</Text>
-            {activeFiltersCount > 0 && (
-              <View style={styles.filterCountBadge}>
-                <Text style={[styles.filterCountText, { fontSize: scaleFontSize(12) }]}>{activeFiltersCount}</Text>
-              </View>
-            )}
-          </View>
-
-          <TouchableOpacity onPress={handleLimpiar} style={styles.clearButton}>
-            <Text style={[styles.clearButtonText, { fontSize: scaleFontSize(14) }]}>Limpiar</Text>
-          </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={scaleIconSize(24)} color={colors.headerText} />
+        </TouchableOpacity>
+        <View style={styles.headerTitleContainer}>
+          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(20) }]}>Filtros Avanzados</Text>
+          {activeFiltersCount > 0 && (
+            <View style={styles.filterCountBadge}>
+              <Text style={[styles.filterCountText, { fontSize: scaleFontSize(11) }]}>{activeFiltersCount}</Text>
+            </View>
+          )}
         </View>
+        <TouchableOpacity onPress={handleLimpiar} style={styles.clearButton}>
+          <Text style={[styles.limpiarText, { fontSize: scaleFontSize(13) }]}>Limpiar</Text>
+        </TouchableOpacity>
       </LinearGradient>
 
       <ScrollView 
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        style={styles.content} 
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: scrollContentPaddingBottom }]}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        initialNumToRender={10}
+        windowSize={10}
       >
         {isLoadingOptions && (
           <View style={styles.loadingBanner}>
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.loadingText, { fontSize: scaleFontSize(13) }]}>Cargando opciones...</Text>
+            <Text style={[styles.loadingBannerText, { fontSize: scaleFontSize(13) }]}>Cargando opciones...</Text>
           </View>
         )}
 
-        {/* UBICACIÓN SECTION */}
+        {/* LOCATION SECTION */}
         <View style={styles.section}>
           <TouchableOpacity 
             style={styles.sectionHeader}
@@ -383,111 +393,85 @@ export default function FiltrosAvanzadosScreen() {
           >
             <View style={styles.sectionHeaderLeft}>
               <View style={styles.sectionIconContainer}>
-                <IconSymbol 
-                  ios_icon_name="mappin.circle.fill" 
-                  android_material_icon_name="location_on" 
-                  size={scaleIconSize(18)} 
-                  color={colors.primary} 
-                />
+                <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={scaleIconSize(16)} color={colors.primary} />
               </View>
-              <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(16) }]}>Ubicación</Text>
+              <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Ubicación</Text>
             </View>
             <IconSymbol 
               ios_icon_name={expandedSections.ubicacion ? "chevron.up" : "chevron.down"} 
               android_material_icon_name={expandedSections.ubicacion ? "expand_less" : "expand_more"} 
-              size={scaleIconSize(20)} 
+              size={scaleIconSize(18)} 
               color={colors.textSecondary} 
             />
           </TouchableOpacity>
-
+          
           {expandedSections.ubicacion && (
             <View style={styles.sectionContent}>
-              {/* Comunidad Selector */}
-              <View style={styles.selectorContainer}>
-                <Text style={[styles.selectorLabel, { fontSize: scaleFontSize(12) }]}>Comunidad Autónoma</Text>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.chipScrollContainer}
+              <View style={styles.locationGrid}>
+                <TouchableOpacity
+                  style={styles.locationButton}
+                  onPress={() => {
+                    console.log('[FiltrosAvanzados Android v2.0] 🔍 Opening comunidad modal');
+                    setShowComunidadModal(true);
+                  }}
                 >
-                  {allComunidades.map((comunidad) => {
-                    const isSelected = filtrosTemp.comunidad === comunidad || 
-                      (comunidad === 'Todas las Comunidades' && !filtrosTemp.comunidad);
-                    
-                    return (
-                      <TouchableOpacity
-                        key={comunidad}
-                        style={[
-                          styles.chip,
-                          isSelected && styles.chipActive,
-                        ]}
-                        onPress={() => handleComunidadSelect(comunidad)}
-                      >
-                        <Text style={[
-                          styles.chipText,
-                          { fontSize: scaleFontSize(12) },
-                          isSelected && styles.chipTextActive
-                        ]}>
-                          {comunidad}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
+                  <Text style={[styles.locationLabel, { fontSize: scaleFontSize(9) }]}>Comunidad</Text>
+                  <Text style={[styles.locationValue, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>
+                    {filtrosTemp.comunidad || 'Todas'}
+                  </Text>
+                  <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={scaleIconSize(12)} color={colors.textSecondary} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.locationButton,
+                    (!filtrosTemp.comunidad || filtrosTemp.comunidad === 'Todas las Comunidades') && styles.locationButtonDisabled
+                  ]}
+                  onPress={() => {
+                    if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
+                      console.log('[FiltrosAvanzados Android v2.0] 🔍 Opening provincia modal');
+                      setShowProvinciaModal(true);
+                    }
+                  }}
+                  disabled={!filtrosTemp.comunidad || filtrosTemp.comunidad === 'Todas las Comunidades'}
+                >
+                  <Text style={[styles.locationLabel, { fontSize: scaleFontSize(9) }]}>Provincia</Text>
+                  <Text style={[styles.locationValue, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>
+                    {filtrosTemp.provincia || (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades' ? 'Todas' : 'Selecciona')}
+                  </Text>
+                  <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={scaleIconSize(12)} color={colors.textSecondary} />
+                </TouchableOpacity>
               </View>
 
-              {/* Provincia Selector */}
-              {filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades' && (
-                <View style={styles.selectorContainer}>
-                  <Text style={[styles.selectorLabel, { fontSize: scaleFontSize(12) }]}>Provincia</Text>
-                  <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.chipScrollContainer}
-                  >
-                    {availableProvincias.map((provincia) => {
-                      const isSelected = filtrosTemp.provincia === provincia;
-                      
-                      return (
-                        <TouchableOpacity
-                          key={provincia}
-                          style={[
-                            styles.chip,
-                            isSelected && styles.chipActive,
-                          ]}
-                          onPress={() => handleProvinciaSelect(provincia)}
-                        >
-                          <Text style={[
-                            styles.chipText,
-                            { fontSize: scaleFontSize(12) },
-                            isSelected && styles.chipTextActive
-                          ]}>
-                            {provincia}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-              )}
-
-              {/* Distance Input */}
               <View style={styles.distanceContainer}>
-                <IconSymbol 
-                  ios_icon_name="location.circle" 
-                  android_material_icon_name="location_on" 
-                  size={scaleIconSize(16)} 
-                  color={colors.primary} 
+                <View style={styles.distanceHeader}>
+                  <View style={styles.distanceLabelRow}>
+                    <IconSymbol ios_icon_name="location.circle" android_material_icon_name="location_on" size={scaleIconSize(14)} color={colors.primary} />
+                    <Text style={[styles.distanceLabel, { fontSize: scaleFontSize(12) }]}>Radio de búsqueda</Text>
+                  </View>
+                  <View style={styles.distanceValueBadge}>
+                    <Text style={[styles.distanceValueText, { fontSize: scaleFontSize(14) }]}>
+                      {filtrosTemp.distancia ? `${Math.round(filtrosTemp.distancia)} km` : '50 km'}
+                    </Text>
+                  </View>
+                </View>
+                
+                <Slider
+                  style={styles.slider}
+                  minimumValue={1}
+                  maximumValue={100}
+                  step={1}
+                  value={filtrosTemp.distancia || 50}
+                  onValueChange={handleDistanciaChange}
+                  minimumTrackTintColor={colors.primary}
+                  maximumTrackTintColor={colors.cardBorder}
+                  thumbTintColor={colors.primary}
                 />
-                <Text style={[styles.distanceLabel, { fontSize: scaleFontSize(14) }]}>Radio de búsqueda</Text>
-                <TextInput
-                  style={[styles.distanceInput, { fontSize: scaleFontSize(14) }]}
-                  placeholder="km"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="numeric"
-                  value={filtrosTemp.distancia?.toString() || ''}
-                  onChangeText={handleDistanciaChange}
-                />
+                
+                <View style={styles.sliderLabels}>
+                  <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>1 km</Text>
+                  <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>100 km</Text>
+                </View>
               </View>
             </View>
           )}
@@ -503,24 +487,19 @@ export default function FiltrosAvanzadosScreen() {
             >
               <View style={styles.sectionHeaderLeft}>
                 <View style={styles.sectionIconContainer}>
-                  <IconSymbol 
-                    ios_icon_name="building.2.fill" 
-                    android_material_icon_name="store" 
-                    size={scaleIconSize(18)} 
-                    color={colors.primary} 
-                  />
+                  <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={scaleIconSize(16)} color={colors.primary} />
                 </View>
-                <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(16) }]}>Tipo de Local</Text>
-                <Text style={[styles.sectionCount, { fontSize: scaleFontSize(12) }]}>({tiposLocales.length - 1})</Text>
+                <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Tipo de Local</Text>
+                <Text style={[styles.sectionCount, { fontSize: scaleFontSize(11) }]}>({tiposLocales.length - 1})</Text>
               </View>
               <IconSymbol 
                 ios_icon_name={expandedSections.tipo ? "chevron.up" : "chevron.down"} 
                 android_material_icon_name={expandedSections.tipo ? "expand_less" : "expand_more"} 
-                size={scaleIconSize(20)} 
+                size={scaleIconSize(18)} 
                 color={colors.textSecondary} 
               />
             </TouchableOpacity>
-
+            
             {expandedSections.tipo && (
               <View style={styles.sectionContent}>
                 <View style={styles.chipContainer}>
@@ -538,12 +517,8 @@ export default function FiltrosAvanzadosScreen() {
                         ]}
                         onPress={() => handleTipoToggle(tipo.id)}
                       >
-                        <Text style={styles.chipIcon}>{tipo.icon}</Text>
-                        <Text style={[
-                          styles.chipText,
-                          { fontSize: scaleFontSize(12) },
-                          isSelected && styles.chipTextActive
-                        ]}>
+                        <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>{tipo.icon}</Text>
+                        <Text style={[styles.chipText, { fontSize: scaleFontSize(11) }, isSelected && styles.chipTextActive]}>
                           {tipo.label}
                         </Text>
                       </TouchableOpacity>
@@ -565,24 +540,19 @@ export default function FiltrosAvanzadosScreen() {
             >
               <View style={styles.sectionHeaderLeft}>
                 <View style={styles.sectionIconContainer}>
-                  <IconSymbol 
-                    ios_icon_name="checkmark.seal.fill" 
-                    android_material_icon_name="verified" 
-                    size={scaleIconSize(18)} 
-                    color={colors.primary} 
-                  />
+                  <IconSymbol ios_icon_name="checkmark.seal.fill" android_material_icon_name="verified" size={scaleIconSize(16)} color={colors.primary} />
                 </View>
-                <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(16) }]}>Servicios</Text>
-                <Text style={[styles.sectionCount, { fontSize: scaleFontSize(12) }]}>({serviciosDisponibles.length})</Text>
+                <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Servicios</Text>
+                <Text style={[styles.sectionCount, { fontSize: scaleFontSize(11) }]}>({serviciosDisponibles.length})</Text>
               </View>
               <IconSymbol 
                 ios_icon_name={expandedSections.servicios ? "chevron.up" : "chevron.down"} 
                 android_material_icon_name={expandedSections.servicios ? "expand_less" : "expand_more"} 
-                size={scaleIconSize(20)} 
+                size={scaleIconSize(18)} 
                 color={colors.textSecondary} 
               />
             </TouchableOpacity>
-
+            
             {expandedSections.servicios && (
               <View style={styles.sectionContent}>
                 <View style={styles.chipContainer}>
@@ -598,12 +568,8 @@ export default function FiltrosAvanzadosScreen() {
                         ]}
                         onPress={() => handleServicioToggle(servicio.id)}
                       >
-                        <Text style={styles.chipIcon}>{servicio.icon}</Text>
-                        <Text style={[
-                          styles.chipText,
-                          { fontSize: scaleFontSize(12) },
-                          isSelected && styles.chipTextActive
-                        ]}>
+                        <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>{servicio.icon}</Text>
+                        <Text style={[styles.chipText, { fontSize: scaleFontSize(11) }, isSelected && styles.chipTextActive]}>
                           {servicio.label}
                         </Text>
                       </TouchableOpacity>
@@ -625,24 +591,19 @@ export default function FiltrosAvanzadosScreen() {
             >
               <View style={styles.sectionHeaderLeft}>
                 <View style={styles.sectionIconContainer}>
-                  <IconSymbol 
-                    ios_icon_name="sparkles" 
-                    android_material_icon_name="auto_awesome" 
-                    size={scaleIconSize(18)} 
-                    color={colors.primary} 
-                  />
+                  <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={scaleIconSize(16)} color={colors.primary} />
                 </View>
-                <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(16) }]}>Ambiente</Text>
-                <Text style={[styles.sectionCount, { fontSize: scaleFontSize(12) }]}>({ambientesDisponibles.length - 1})</Text>
+                <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Ambiente</Text>
+                <Text style={[styles.sectionCount, { fontSize: scaleFontSize(11) }]}>({ambientesDisponibles.length - 1})</Text>
               </View>
               <IconSymbol 
                 ios_icon_name={expandedSections.ambiente ? "chevron.up" : "chevron.down"} 
                 android_material_icon_name={expandedSections.ambiente ? "expand_less" : "expand_more"} 
-                size={scaleIconSize(20)} 
+                size={scaleIconSize(18)} 
                 color={colors.textSecondary} 
               />
             </TouchableOpacity>
-
+            
             {expandedSections.ambiente && (
               <View style={styles.sectionContent}>
                 <View style={styles.chipContainer}>
@@ -660,12 +621,8 @@ export default function FiltrosAvanzadosScreen() {
                         ]}
                         onPress={() => handleAmbienteToggle(ambiente.id)}
                       >
-                        <Text style={styles.chipIcon}>{ambiente.icon}</Text>
-                        <Text style={[
-                          styles.chipText,
-                          { fontSize: scaleFontSize(12) },
-                          isSelected && styles.chipTextActive
-                        ]}>
+                        <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>{ambiente.icon}</Text>
+                        <Text style={[styles.chipText, { fontSize: scaleFontSize(11) }, isSelected && styles.chipTextActive]}>
                           {ambiente.label}
                         </Text>
                       </TouchableOpacity>
@@ -687,24 +644,19 @@ export default function FiltrosAvanzadosScreen() {
             >
               <View style={styles.sectionHeaderLeft}>
                 <View style={styles.sectionIconContainer}>
-                  <IconSymbol 
-                    ios_icon_name="person.3.fill" 
-                    android_material_icon_name="people" 
-                    size={scaleIconSize(18)} 
-                    color={colors.primary} 
-                  />
+                  <IconSymbol ios_icon_name="person.3.fill" android_material_icon_name="people" size={scaleIconSize(16)} color={colors.primary} />
                 </View>
-                <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(16) }]}>Clientela Típica</Text>
-                <Text style={[styles.sectionCount, { fontSize: scaleFontSize(12) }]}>({clientelaDisponible.length - 1})</Text>
+                <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Clientela Típica</Text>
+                <Text style={[styles.sectionCount, { fontSize: scaleFontSize(11) }]}>({clientelaDisponible.length - 1})</Text>
               </View>
               <IconSymbol 
                 ios_icon_name={expandedSections.clientela ? "chevron.up" : "chevron.down"} 
                 android_material_icon_name={expandedSections.clientela ? "expand_less" : "expand_more"} 
-                size={scaleIconSize(20)} 
+                size={scaleIconSize(18)} 
                 color={colors.textSecondary} 
               />
             </TouchableOpacity>
-
+            
             {expandedSections.clientela && (
               <View style={styles.sectionContent}>
                 <View style={styles.chipContainer}>
@@ -722,12 +674,8 @@ export default function FiltrosAvanzadosScreen() {
                         ]}
                         onPress={() => handleClientelaToggle(clientela.id)}
                       >
-                        <Text style={styles.chipIcon}>{clientela.icon}</Text>
-                        <Text style={[
-                          styles.chipText,
-                          { fontSize: scaleFontSize(12) },
-                          isSelected && styles.chipTextActive
-                        ]}>
+                        <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>{clientela.icon}</Text>
+                        <Text style={[styles.chipText, { fontSize: scaleFontSize(11) }, isSelected && styles.chipTextActive]}>
                           {clientela.label}
                         </Text>
                       </TouchableOpacity>
@@ -739,27 +687,185 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         )}
 
-        <View style={{ height: 100 }} />
+        {(tiposLocales.length === 1 && serviciosDisponibles.length === 0 && ambientesDisponibles.length === 1 && clientelaDisponible.length === 1) && !isLoadingOptions && (
+          <View style={styles.emptyState}>
+            <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="warning" size={scaleIconSize(48)} color={colors.textSecondary} />
+            <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(14) }]}>
+              No hay opciones de filtro disponibles
+            </Text>
+            <Text style={[styles.emptyStateSubtext, { fontSize: scaleFontSize(12) }]}>
+              Los filtros se generan automáticamente basados en los locales activos
+            </Text>
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={refreshDynamicOptions}
+              activeOpacity={0.7}
+            >
+              <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={scaleIconSize(16)} color={colors.white} />
+              <Text style={[styles.refreshButtonText, { fontSize: scaleFontSize(13) }]}>Recargar opciones</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.applyButton} onPress={handleAplicar}>
+      {/* ✅ CRITICAL FIX v2.0: Footer with proper padding for Android system buttons */}
+      <View style={[styles.footer, { paddingBottom: footerPaddingBottom }]}>
+        <TouchableOpacity style={styles.aplicarButton} onPress={handleAplicar}>
           <LinearGradient
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.applyGradient}
+            style={styles.aplicarGradient}
           >
-            <IconSymbol 
-              ios_icon_name="checkmark.circle.fill" 
-              android_material_icon_name="check_circle" 
-              size={scaleIconSize(22)} 
-              color={colors.headerText} 
-            />
-            <Text style={[styles.applyText, { fontSize: scaleFontSize(16) }]}>Aplicar Filtros</Text>
+            <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={scaleIconSize(20)} color={colors.headerText} />
+            <Text style={[styles.aplicarText, { fontSize: scaleFontSize(15) }]}>Aplicar filtros</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
+
+      {/* COMUNIDAD MODAL */}
+      <Modal
+        visible={showComunidadModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowComunidadModal(false)}
+      >
+        <Pressable
+          style={styles.selectorModalOverlay}
+          onPress={() => setShowComunidadModal(false)}
+        >
+          <Pressable style={styles.selectorModalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.selectorModalHeader}>
+              <Text style={[styles.selectorModalTitle, { fontSize: scaleFontSize(16) }]}>Comunidad Autónoma</Text>
+              <TouchableOpacity onPress={() => setShowComunidadModal(false)}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={scaleIconSize(22)} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.searchContainer}>
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={scaleIconSize(18)} color={colors.textSecondary} />
+              <TextInput
+                style={[styles.searchInput, { fontSize: scaleFontSize(14) }]}
+                placeholder="Buscar comunidad..."
+                placeholderTextColor={colors.textSecondary}
+                value={searchComunidad}
+                onChangeText={setSearchComunidad}
+              />
+              {searchComunidad.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchComunidad('')}>
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(18)} color={colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView style={styles.selectorModalBody}>
+              {filteredComunidades.length > 0 ? (
+                filteredComunidades.map((comunidad) => (
+                  <TouchableOpacity
+                    key={comunidad}
+                    style={[
+                      styles.selectorModalOption,
+                      filtrosTemp.comunidad === comunidad && styles.selectorModalOptionActive,
+                    ]}
+                    onPress={() => handleComunidadSelect(comunidad)}
+                  >
+                    <Text
+                      style={[
+                        styles.selectorModalOptionText,
+                        { fontSize: scaleFontSize(14) },
+                        filtrosTemp.comunidad === comunidad && styles.selectorModalOptionTextActive,
+                      ]}
+                    >
+                      {comunidad}
+                    </Text>
+                    {filtrosTemp.comunidad === comunidad && (
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={scaleIconSize(22)} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.emptyModalState}>
+                  <Text style={[styles.emptyModalText, { fontSize: scaleFontSize(14) }]}>No se encontraron comunidades</Text>
+                </View>
+              )}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* PROVINCIA MODAL */}
+      <Modal
+        visible={showProvinciaModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowProvinciaModal(false)}
+      >
+        <Pressable
+          style={styles.selectorModalOverlay}
+          onPress={() => setShowProvinciaModal(false)}
+        >
+          <Pressable style={styles.selectorModalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.selectorModalHeader}>
+              <Text style={[styles.selectorModalTitle, { fontSize: scaleFontSize(16) }]}>
+                Provincia {filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades' ? `de ${filtrosTemp.comunidad}` : ''}
+              </Text>
+              <TouchableOpacity onPress={() => setShowProvinciaModal(false)}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={scaleIconSize(22)} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.searchContainer}>
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={scaleIconSize(18)} color={colors.textSecondary} />
+              <TextInput
+                style={[styles.searchInput, { fontSize: scaleFontSize(14) }]}
+                placeholder="Buscar provincia..."
+                placeholderTextColor={colors.textSecondary}
+                value={searchProvincia}
+                onChangeText={setSearchProvincia}
+              />
+              {searchProvincia.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchProvincia('')}>
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(18)} color={colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView style={styles.selectorModalBody}>
+              {filteredProvincias.length > 0 ? (
+                filteredProvincias.map((provincia) => (
+                  <TouchableOpacity
+                    key={provincia}
+                    style={[
+                      styles.selectorModalOption,
+                      filtrosTemp.provincia === provincia && styles.selectorModalOptionActive,
+                    ]}
+                    onPress={() => handleProvinciaSelect(provincia)}
+                  >
+                    <Text
+                      style={[
+                        styles.selectorModalOptionText,
+                        { fontSize: scaleFontSize(14) },
+                        filtrosTemp.provincia === provincia && styles.selectorModalOptionTextActive,
+                      ]}
+                    >
+                      {provincia}
+                    </Text>
+                    {filtrosTemp.provincia === provincia && (
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={scaleIconSize(22)} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.emptyModalState}>
+                  <Text style={[styles.emptyModalText, { fontSize: scaleFontSize(14) }]}>
+                    {filtrosTemp.comunidad ? 'No hay provincias disponibles' : 'Selecciona primero una comunidad'}
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -770,20 +876,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 48,
+    paddingBottom: 14,
   },
-  backButton: {
-    width: 40,
-    height: 40,
+  closeButton: {
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  clearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   headerTitleContainer: {
     flexDirection: 'row',
@@ -796,24 +906,18 @@ const styles = StyleSheet.create({
   },
   filterCountBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
   },
   filterCountText: {
     fontWeight: '800',
     color: colors.headerText,
   },
-  clearButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  clearButtonText: {
+  limpiarText: {
     fontWeight: '600',
     color: colors.headerText,
   },
@@ -822,28 +926,28 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 12,
   },
   loadingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: colors.primary + '10',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.primary + '20',
   },
-  loadingText: {
+  loadingBannerText: {
     fontWeight: '600',
     color: colors.primary,
   },
   section: {
-    marginBottom: 12,
+    marginBottom: 10,
     backgroundColor: colors.cardBackground,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     overflow: 'hidden',
@@ -852,19 +956,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   sectionHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     flex: 1,
   },
   sectionIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
@@ -878,38 +982,101 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   sectionContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 14,
+    paddingBottom: 14,
   },
-  selectorContainer: {
-    marginBottom: 16,
+  locationGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
   },
-  selectorLabel: {
+  locationButton: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  locationButtonDisabled: {
+    opacity: 0.5,
+  },
+  locationLabel: {
     fontWeight: '600',
     color: colors.textSecondary,
-    marginBottom: 10,
+    marginBottom: 3,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  chipScrollContainer: {
+  locationValue: {
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  distanceContainer: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  distanceHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  distanceLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    paddingVertical: 4,
+  },
+  distanceLabel: {
+    fontWeight: '600',
+    color: colors.text,
+  },
+  distanceValueBadge: {
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary + '40',
+  },
+  distanceValueText: {
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 0.5,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  sliderLabelText: {
+    fontWeight: '500',
+    color: colors.textSecondary,
   },
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
     backgroundColor: colors.background,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   chipActive: {
@@ -917,7 +1084,6 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   chipIcon: {
-    fontSize: 16,
   },
   chipText: {
     fontWeight: '600',
@@ -927,64 +1093,137 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     fontWeight: '700',
   },
-  distanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  distanceLabel: {
-    flex: 1,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  distanceInput: {
-    width: 60,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'center',
-  },
   footer: {
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
     backgroundColor: colors.cardBackground,
   },
-  applyButton: {
-    borderRadius: 14,
+  aplicarButton: {
+    borderRadius: 12,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  applyGradient: {
-    paddingVertical: 16,
+  aplicarGradient: {
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
   },
-  applyText: {
+  aplicarText: {
     fontWeight: '700',
     color: colors.headerText,
+  },
+  selectorModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  selectorModalContent: {
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  selectorModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  selectorModalTitle: {
+    fontWeight: '700',
+    color: colors.text,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginHorizontal: 18,
+    marginTop: 14,
+    marginBottom: 10,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.text,
+  },
+  selectorModalBody: {
+    maxHeight: 400,
+  },
+  selectorModalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  selectorModalOptionActive: {
+    backgroundColor: colors.primary + '10',
+  },
+  selectorModalOptionText: {
+    color: colors.text,
+    fontWeight: '500',
+  },
+  selectorModalOptionTextActive: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  emptyState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+    marginTop: 14,
+  },
+  emptyStateSubtext: {
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  emptyModalState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyModalText: {
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 14,
+  },
+  refreshButtonText: {
+    fontWeight: '700',
+    color: colors.white,
   },
 });

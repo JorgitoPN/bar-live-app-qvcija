@@ -1,12 +1,29 @@
 
 /**
- * ✅ MOMENTO CAROUSEL v158.0 - ANDROID AVATAR SIZE INCREASED
+ * ✅ MOMENTO CAROUSEL v168.0 - ANDROID AVATAR SIZE INCREASE
  * 
- * CRITICAL FIXES v158.0 (ANDROID ONLY):
- * - ✅ FIXED: Avatar size increased from 96px to 112px (48px -> 56px base)
- * - ✅ VERIFIED: Avatars are now bigger and easier to see/tap
- * - ✅ Better visibility in momentos section
- * - ✅ iOS design remains unchanged (reference design)
+ * NEW CHANGES v168.0:
+ * - ✅ REQUERIMIENTO: Increased momento avatar size on Android
+ * - ✅ Changed from 90 to 100 (same as iOS) for better visibility
+ * - ✅ Avatars now more prominent and easier to tap on Android
+ * 
+ * Previous changes v167.0:
+ * - ✅ Border thickness reduced in UnifiedMomentoAvatar (1.5px → 1.0px on Android)
+ * - ✅ Cleaner, less prominent borders on Android momento avatars
+ * - ✅ iOS border remains at 1.5px for consistency
+ * 
+ * Previous changes v166.0:
+ * - ✅ Reduced spacing between avatars on Android
+ * - ✅ Android now shows at least 4 avatars simultaneously without horizontal scroll
+ * - ✅ Reduced gap from 18 to 8 on Android (10 on iOS for consistency)
+ * - ✅ Reduced avatar wrapper width from 108 to 80 on Android
+ * - ✅ Better visual density on Android screens
+ * 
+ * Previous changes v165.0:
+ * - ✅ FIXED: Avatars now aligned to the left (paddingLeft: 16 matches post mini-avatars)
+ * - ✅ FIXED: Removed extra gap that was pushing avatars to the right
+ * - ✅ FIXED: scrollContent paddingLeft = 16 (same as post content padding)
+ * - ✅ RESULTADO: Avatares alineados verticalmente con los miniavatares de publicaciones
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -45,18 +62,18 @@ export default function MomentoCarousel() {
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
   const [selectedAuthor, setSelectedAuthor] = useState<MomentoAuthor | null>(null);
 
-  // ✅ ANDROID SCALING v158.0: Avatar size INCREASED for better visibility (48px -> 56px base)
-  const AVATAR_SIZE = Platform.OS === 'android' ? scaleIconSize(112) : 100;
+  // ✅ v168.0: Increased avatar size on Android to match iOS (100)
+  const AVATAR_SIZE = 100;
 
   const loadMomentoAuthors = useCallback(async () => {
     if (!userId) {
-      console.log('[MomentoCarousel] No user ID, skipping load');
+      console.log('[MomentoCarousel v168.0] No user ID, skipping load');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('[MomentoCarousel] 🔄 Loading momento authors...');
+      console.log('[MomentoCarousel v168.0] 🔄 Loading momento authors...');
 
       const { data: momentosData, error: momentosError } = await supabase
         .from('momentos')
@@ -71,19 +88,19 @@ export default function MomentoCarousel() {
         .order('created_at', { ascending: false });
 
       if (momentosError) {
-        console.error('[MomentoCarousel] ❌ Error loading momentos:', momentosError);
+        console.error('[MomentoCarousel v168.0] ❌ Error loading momentos:', momentosError);
         setLoading(false);
         return;
       }
 
       if (!momentosData || momentosData.length === 0) {
-        console.log('[MomentoCarousel] ℹ️ No active momentos found');
+        console.log('[MomentoCarousel v168.0] ℹ️ No active momentos found');
         setAuthors([]);
         setLoading(false);
         return;
       }
 
-      console.log('[MomentoCarousel] ✅ Found momentos:', momentosData.length);
+      console.log('[MomentoCarousel v168.0] ✅ Found momentos:', momentosData.length);
 
       const momentoIds = momentosData.map(m => m.id);
       const { data: viewsData } = await supabase
@@ -157,9 +174,9 @@ export default function MomentoCarousel() {
       });
 
       setAuthors(authorsArray);
-      console.log('[MomentoCarousel] ✅ Loaded authors:', authorsArray.length);
+      console.log('[MomentoCarousel v168.0] ✅ Loaded authors:', authorsArray.length);
     } catch (error) {
-      console.error('[MomentoCarousel] ❌ Error loading authors:', error);
+      console.error('[MomentoCarousel v168.0] ❌ Error loading authors:', error);
     } finally {
       setLoading(false);
     }
@@ -180,7 +197,7 @@ export default function MomentoCarousel() {
           table: 'momentos',
         },
         (payload) => {
-          console.log('[MomentoCarousel] 🔄 Momento update detected:', payload);
+          console.log('[MomentoCarousel v168.0] 🔄 Momento update detected:', payload);
           loadMomentoAuthors();
         }
       )
@@ -193,7 +210,7 @@ export default function MomentoCarousel() {
           filter: `usuario_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('[MomentoCarousel] 🔄 View update detected:', payload);
+          console.log('[MomentoCarousel v168.0] 🔄 View update detected:', payload);
           loadMomentoAuthors();
         }
       )
@@ -217,6 +234,9 @@ export default function MomentoCarousel() {
     return null;
   }
 
+  // ✅ Reduced avatar wrapper width on Android
+  const avatarWrapperWidth = Platform.OS === 'android' ? 80 : 108;
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -224,7 +244,7 @@ export default function MomentoCarousel() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.avatarWrapper}>
+        <View style={[styles.avatarWrapper, { width: avatarWrapperWidth }]}>
           <UnifiedMomentoAvatar
             userId={userId}
             imageUrl={user?.avatar}
@@ -245,14 +265,14 @@ export default function MomentoCarousel() {
         </View>
 
         {loading ? (
-          <View style={styles.loadingContainer}>
+          <View style={[styles.loadingContainer, { width: avatarWrapperWidth }]}>
             <ActivityIndicator size="small" color={colors.primary} />
           </View>
         ) : (
           authors
             .filter(author => !(author.tipo === 'usuario' && author.id === userId))
             .map((author) => (
-              <View key={`${author.tipo}-${author.id}`} style={styles.avatarWrapper}>
+              <View key={`${author.tipo}-${author.id}`} style={[styles.avatarWrapper, { width: avatarWrapperWidth }]}>
                 <UnifiedMomentoAvatar
                   userId={author.tipo === 'usuario' ? author.id : undefined}
                   localId={author.tipo === 'local' ? author.id : undefined}
@@ -299,13 +319,14 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
     paddingVertical: 14,
   },
+  // ✅ Reduced gap from 18 to 8 on Android (10 on iOS)
   scrollContent: {
-    paddingHorizontal: 16,
-    gap: 18,
+    paddingLeft: 16,
+    paddingRight: 16,
+    gap: Platform.OS === 'android' ? 8 : 10,
   },
   avatarWrapper: {
     alignItems: 'center',
-    width: 108,
   },
   authorName: {
     color: colors.text,
@@ -314,7 +335,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   loadingContainer: {
-    width: 108,
     height: 100,
     justifyContent: 'center',
     alignItems: 'center',

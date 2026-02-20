@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -31,6 +31,7 @@ import ParsedText from '@/components/social/ParsedText';
 import ReportModal from '@/components/social/ReportModal';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -60,14 +61,18 @@ interface Comment {
 }
 
 /**
- * ✅ COMMENTS FULL SCREEN PAGE v316.0
+ * ✅ COMMENTS FULL SCREEN PAGE v327.0 - INCREASED KEYBOARD ELEVATION
  * 
- * NEW IMPLEMENTATION v316.0:
- * - ✅ Full-screen page instead of modal
- * - ✅ Uses Stack navigation with back button
- * - ✅ Proper header with gradient
- * - ✅ All functionality from CommentsModal preserved
- * - ✅ Better UX with full-screen real estate
+ * NEW CHANGES v327.0:
+ * - ✅ CRITICAL FIX: Increased keyboard elevation by adding 50px extra lift
+ *   - Keyboard OPEN: bottom = keyboardHeight + 50 (input rises ABOVE keyboard with clearance)
+ *   - Keyboard CLOSED: bottom = 0 (input sits at screen bottom)
+ * - ✅ Ensures text field is FULLY VISIBLE and not partially covered by keyboard
+ * - ✅ Provides comfortable typing space above keyboard
+ * 
+ * Previous changes v326.0:
+ * - Manual elevation using bottom = keyboardHeight (input was at keyboard edge)
+ * - Input could be partially obscured on some devices
  */
 
 export default function ComentariosScreen() {
@@ -75,10 +80,12 @@ export default function ComentariosScreen() {
   const router = useRouter();
   const postId = params.postId as string;
   const postAuthorId = params.postAuthorId as string;
+  const insets = useSafeAreaInsets();
 
   const { user, ensureValidSession } = useAuth();
   const { interactionUserId, interactionLocalId, isInteractingAsLocal } = useInteractionContext();
   const textInputRef = useRef<TextInput>(null);
+  const flatListRef = useRef<FlatList>(null);
   
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,32 +95,48 @@ export default function ComentariosScreen() {
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [editingComment, setEditingComment] = useState<Comment | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('[ComentariosScreen v327.0] 🎯 Comments page mounted as overlay');
+    console.log('[ComentariosScreen v327.0] 📱 Bottom inset (system buttons):', insets.bottom);
+    console.log('[ComentariosScreen v327.0] 🔧 Using MANUAL ELEVATION with +50px extra lift');
+    
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[ComentariosScreen v316.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
-        setKeyboardHeight(e.endCoordinates.height);
+        const height = e.endCoordinates.height;
+        console.log('[ComentariosScreen v327.0] ⌨️ Keyboard shown, height:', height);
+        console.log('[ComentariosScreen v327.0] ✅ Elevating input by', height + 50, 'pixels (keyboard + 50px clearance)');
+        setKeyboardHeight(height);
+        setIsKeyboardVisible(true);
+        
+        // ✅ Scroll to bottom when keyboard opens so user can see input
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
       }
     );
 
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[ComentariosScreen v316.0] ⌨️ Keyboard hidden');
+        console.log('[ComentariosScreen v327.0] ⌨️ Keyboard hidden');
+        console.log('[ComentariosScreen v327.0] ✅ Resetting input to bottom: 0, paddingBottom:', insets.bottom);
         setKeyboardHeight(0);
+        setIsKeyboardVisible(false);
       }
     );
 
     return () => {
+      console.log('[ComentariosScreen v327.0] 🔄 Comments page unmounting');
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
-  }, []);
+  }, [insets.bottom]);
 
   const loadComments = useCallback(async () => {
     try {
@@ -194,7 +217,7 @@ export default function ComentariosScreen() {
         setComments(commentsData || []);
       }
     } catch (error) {
-      console.error('[ComentariosScreen v316.0] Error loading comments:', error);
+      console.error('[ComentariosScreen v327.0] Error loading comments:', error);
       Alert.alert('Error', 'No se pudieron cargar los comentarios');
     } finally {
       setLoading(false);
@@ -221,7 +244,7 @@ export default function ComentariosScreen() {
           filter: `id=eq.${postId}`,
         },
         () => {
-          console.log('[ComentariosScreen v316.0] ⚠️ Post was deleted');
+          console.log('[ComentariosScreen v327.0] ⚠️ Post was deleted');
           Alert.alert(
             'Contenido Eliminado',
             'Esta publicación ha sido eliminada por su autor',
@@ -237,7 +260,7 @@ export default function ComentariosScreen() {
   }, [postId, router]);
 
   const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
-    console.log('[ComentariosScreen v316.0] ✅ Selected mention:', mention);
+    console.log('[ComentariosScreen v327.0] ✅ Selected mention:', mention);
     
     const textBeforeCursor = commentText.substring(0, cursorPosition);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
@@ -270,11 +293,11 @@ export default function ComentariosScreen() {
     setSending(true);
 
     try {
-      console.log('[ComentariosScreen v316.0] 🔄 Ensuring valid session before sending comment...');
+      console.log('[ComentariosScreen v327.0] 🔄 Ensuring valid session before sending comment...');
       const validSession = await ensureValidSession();
       
       if (!validSession || !validSession.user) {
-        console.error('[ComentariosScreen v316.0] ❌ No valid session available');
+        console.error('[ComentariosScreen v327.0] ❌ No valid session available');
         Alert.alert(
           'Error de autenticación',
           'Tu sesión ha expirado o no tienes permisos. Por favor inicia sesión de nuevo.',
@@ -290,7 +313,7 @@ export default function ComentariosScreen() {
         return;
       }
 
-      console.log('[ComentariosScreen v316.0] ✅ Valid session confirmed, user ID:', validSession.user.id);
+      console.log('[ComentariosScreen v327.0] ✅ Valid session confirmed, user ID:', validSession.user.id);
 
       if (editingComment) {
         const { error } = await supabase
@@ -317,7 +340,7 @@ export default function ComentariosScreen() {
           commentData.tipo = 'usuario';
         }
 
-        console.log('[ComentariosScreen v316.0] 📝 Inserting comment with data:', commentData);
+        console.log('[ComentariosScreen v327.0] 📝 Inserting comment with data:', commentData);
 
         const { data: newComment, error } = await supabase
           .from('comentarios')
@@ -335,19 +358,19 @@ export default function ComentariosScreen() {
           .single();
 
         if (error) {
-          console.error('[ComentariosScreen v316.0] ❌ Error inserting comment:', error);
+          console.error('[ComentariosScreen v327.0] ❌ Error inserting comment:', error);
           throw error;
         }
 
-        console.log('[ComentariosScreen v316.0] ✅ Comment inserted successfully:', newComment.id);
+        console.log('[ComentariosScreen v327.0] ✅ Comment inserted successfully:', newComment.id);
 
         if (newComment && text) {
-          console.log('[ComentariosScreen v316.0] 🏷️ Processing hashtags and mentions in comment...');
+          console.log('[ComentariosScreen v327.0] 🏷️ Processing hashtags and mentions in comment...');
           await Promise.all([
             processCommentHashtags(newComment.id, text),
             processCommentMentions(newComment.id, text, postId),
           ]);
-          console.log('[ComentariosScreen v316.0] ✅ Comment hashtags and mentions processed');
+          console.log('[ComentariosScreen v327.0] ✅ Comment hashtags and mentions processed');
         }
 
         if (replyingTo) {
@@ -358,7 +381,7 @@ export default function ComentariosScreen() {
         }
       }
     } catch (error: any) {
-      console.error('[ComentariosScreen v316.0] ❌ Error sending comment:', error);
+      console.error('[ComentariosScreen v327.0] ❌ Error sending comment:', error);
       
       let errorMessage = 'No se pudo enviar el comentario';
       
@@ -407,7 +430,7 @@ export default function ComentariosScreen() {
           .eq('usuario_id', user.id);
       }
     } catch (error) {
-      console.error('[ComentariosScreen v316.0] Error toggling like:', error);
+      console.error('[ComentariosScreen v327.0] Error toggling like:', error);
       setComments(prev => prev.map(c => 
         c.id === comment.id 
           ? { 
@@ -459,7 +482,7 @@ export default function ComentariosScreen() {
                 Alert.alert('Éxito', 'Comentario eliminado correctamente');
               }
             } catch (error) {
-              console.error('[ComentariosScreen v316.0] Error deleting comment:', error);
+              console.error('[ComentariosScreen v327.0] Error deleting comment:', error);
               Alert.alert('Error', 'No se pudo eliminar el comentario');
             }
           },
@@ -479,7 +502,7 @@ export default function ComentariosScreen() {
 
       await loadComments();
     } catch (error) {
-      console.error('[ComentariosScreen v316.0] Error pinning comment:', error);
+      console.error('[ComentariosScreen v327.0] Error pinning comment:', error);
       Alert.alert('Error', 'No se pudo fijar el comentario');
     }
   };
@@ -580,6 +603,27 @@ export default function ComentariosScreen() {
   const inputAvatarSize = Platform.OS === 'android' ? scaleIconSize(32) : 32;
   const inputAvatarRadius = inputAvatarSize / 2;
   const inputAvatarTextSize = Platform.OS === 'android' ? scaleFontSize(14) : 14;
+
+  // ✅ v327.0: INCREASED KEYBOARD ELEVATION
+  // Added 50px extra lift to ensure input is FULLY VISIBLE above keyboard
+  // Keyboard OPEN: bottom = keyboardHeight + 50 (input rises well above keyboard)
+  // Keyboard CLOSED: bottom = 0 (input sits at screen bottom)
+  const inputContainerBottom = useMemo(() => {
+    const bottomValue = isKeyboardVisible ? keyboardHeight + 50 : 0;
+    console.log('[ComentariosScreen v327.0] 📐 Input container bottom:', bottomValue, 
+      '(keyboard:', isKeyboardVisible ? 'OPEN' : 'CLOSED', ')');
+    return bottomValue;
+  }, [isKeyboardVisible, keyboardHeight]);
+
+  // ✅ v327.0: DYNAMIC PADDING FOR CONTENT INSIDE INPUT CONTAINER
+  // Keyboard OPEN: paddingBottom = 8 (minimal, input is already elevated)
+  // Keyboard CLOSED: paddingBottom = insets.bottom (aligns with system buttons)
+  const inputContainerPaddingBottom = useMemo(() => {
+    const paddingValue = isKeyboardVisible ? 8 : insets.bottom;
+    console.log('[ComentariosScreen v327.0] 📐 Input container paddingBottom:', paddingValue, 
+      '(keyboard:', isKeyboardVisible ? 'OPEN' : 'CLOSED', ')');
+    return paddingValue;
+  }, [isKeyboardVisible, insets.bottom]);
 
   const renderComment = ({ item }: { item: Comment }) => {
     const displayName = item.tipo === 'local' && item.local 
@@ -732,6 +776,16 @@ export default function ComentariosScreen() {
     </View>
   );
 
+  // ✅ Calculate proper padding for list to account for input container
+  // Ensure last comment is not hidden by input box when keyboard is closed
+  const listPaddingBottom = useMemo(() => {
+    if (Platform.OS === 'android') {
+      // Add enough padding so last comment is visible above input container
+      return isKeyboardVisible ? 100 : Math.max(insets.bottom, 0) + 140;
+    }
+    return isKeyboardVisible ? 80 : 120;
+  }, [isKeyboardVisible, insets.bottom]);
+
   return (
     <>
       <Stack.Screen 
@@ -743,7 +797,8 @@ export default function ComentariosScreen() {
       <KeyboardAvoidingView 
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
+        enabled={Platform.OS === 'ios'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
         
@@ -754,7 +809,14 @@ export default function ComentariosScreen() {
           style={styles.header}
         >
           <View style={styles.headerTop}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <TouchableOpacity 
+              onPress={() => {
+                console.log('[ComentariosScreen v327.0] ⬅️ Back button pressed');
+                console.log('[ComentariosScreen v327.0] ✅ Popping comments page - PostViewerModal will be revealed with preserved state');
+                router.back();
+              }} 
+              style={styles.backButton}
+            >
               <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={closeIconSize} color={colors.headerText} />
             </TouchableOpacity>
             <Text style={[styles.headerTitle, { fontSize: scaleFontSize(18) }]}>Comentarios</Text>
@@ -768,12 +830,13 @@ export default function ComentariosScreen() {
           </View>
         ) : (
           <FlatList
+            ref={flatListRef}
             data={comments}
             renderItem={renderComment}
             keyExtractor={(item) => item.id}
             contentContainerStyle={[
               styles.listContent,
-              { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : 120 }
+              { paddingBottom: listPaddingBottom }
             ]}
             ListEmptyComponent={renderEmpty}
             showsVerticalScrollIndicator={false}
@@ -793,7 +856,13 @@ export default function ComentariosScreen() {
             <BlurView 
               intensity={80} 
               tint="light" 
-              style={[styles.inputContainer, { bottom: keyboardHeight > 0 ? keyboardHeight : 0 }]}
+              style={[
+                styles.inputContainer, 
+                { 
+                  bottom: inputContainerBottom,
+                  paddingBottom: inputContainerPaddingBottom 
+                }
+              ]}
             >
               {(replyingTo || editingComment) && (
                 <View style={styles.replyingBanner}>
@@ -835,13 +904,19 @@ export default function ComentariosScreen() {
                   placeholderTextColor="rgba(0, 0, 0, 0.4)"
                   value={commentText}
                   onChangeText={(text) => {
-                    console.log('[ComentariosScreen v316.0] 📝 Text changed:', text);
+                    console.log('[ComentariosScreen v327.0] 📝 Text changed:', text);
                     setCommentText(text);
                   }}
                   onSelectionChange={(event) => {
                     const newPosition = event.nativeEvent.selection.start;
-                    console.log('[ComentariosScreen v316.0] 📍 Cursor position changed to:', newPosition);
+                    console.log('[ComentariosScreen v327.0] 📍 Cursor position changed to:', newPosition);
                     setCursorPosition(newPosition);
+                  }}
+                  onFocus={() => {
+                    console.log('[ComentariosScreen v327.0] 🎯 Input focused - scrolling to show input field');
+                    setTimeout(() => {
+                      flatListRef.current?.scrollToEnd({ animated: true });
+                    }, 300);
                   }}
                   multiline
                   maxLength={500}
@@ -1018,8 +1093,10 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     position: 'absolute',
+    bottom: 0,
     left: 0,
     right: 0,
+    marginBottom: 0,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderTopWidth: 1,
@@ -1043,7 +1120,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
     gap: 12,
     backgroundColor: '#fff',
   },

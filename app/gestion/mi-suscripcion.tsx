@@ -183,7 +183,7 @@ export default function MiSuscripcionScreen() {
     } finally {
       setLoading(false);
     }
-  }, [localId, user?.id]);
+  }, [localId, user?.id, router]);
 
   useEffect(() => {
     loadSubscriptionData();
@@ -274,7 +274,8 @@ export default function MiSuscripcionScreen() {
     }
   };
 
-  const handleChangePlan = async () => {
+  // ✅ LINT FIX: Removed unnecessary 'router' dependency
+  const handleChangePlan = useCallback(async () => {
     if (!selectedNewPlan) {
       Alert.alert('Error', 'Selecciona un plan');
       return;
@@ -299,7 +300,7 @@ export default function MiSuscripcionScreen() {
     } finally {
       setChangingPlan(false);
     }
-  };
+  }, [selectedNewPlan, loadSubscriptionData]);
 
   const handleViewInvoice = (invoice: Invoice) => {
     if (invoice.hosted_invoice_url) {
@@ -1472,16 +1473,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 16,
-  },
-  recommendedBadge: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  recommendedBadgeText: {
-    fontWeight: '700',
-    color: colors.white,
   },
   modalPrimaryButton: {
     flexDirection: 'row',

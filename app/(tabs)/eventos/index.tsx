@@ -20,7 +20,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
@@ -36,11 +36,11 @@ import {
   getHeaderHeight,
   getContentBottomPadding,
 } from '@/utils/androidScaling';
+import { navigationOptimizer } from '@/utils/performanceMonitor';
 
 const { width } = Dimensions.get('window');
 
-// ✅ FIX v296.0: REMOVED title from header - more compact design
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 260;
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 170 : 210;
 const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -89,19 +89,14 @@ interface Evento {
 }
 
 /**
- * ✅ EVENTOS SCREEN v296.0 - TITLE REMOVED FROM HEADER
+ * ✅ EVENTOS SCREEN v342.0 - INSTANT LOADING & NAVIGATION
  * 
- * NEW CHANGES v296.0:
- * - ✅ REMOVED: Page title "Eventos" from header
- * - ✅ COMPACT: Header height reduced (200px Android, 260px iOS)
- * - ✅ CLEAN: More screen space for content
- * - ✅ CONSISTENT: Matches user request to remove all page titles
- * 
- * Previous fixes v279.0:
- * - ✅ FIXED: Category button text sizes adjusted with scaleFontSize (11sp on Android)
- * - ✅ FIXED: Removed ALL white shadows/boxes on Android (elevation: 0)
- * - ✅ FIXED: Clean visual appearance without white overlays
- * - ✅ FIXED: Platform-specific shadow styling (iOS shadows, Android no elevation)
+ * NEW CHANGES v342.0 (MAXIMUM PERFORMANCE):
+ * - ✅ INSTANT: Screen renders immediately, no loading state
+ * - ✅ ZERO-DELAY: All heavy operations deferred with requestAnimationFrame
+ * - ✅ BACKGROUND: Data loads in background after UI is visible
+ * - ✅ SMART: Only load data when tab is focused
+ * - ✅ RESULT: Instant screen load, identical to guest mode
  */
 
 export default function EventosScreen() {
@@ -110,7 +105,6 @@ export default function EventosScreen() {
   const { currentMode } = useMode();
   const [tabActual, setTabActual] = useState<'hoy' | 'proximos'>('hoy');
   
-  // ✅ CRITICAL v242.0: Controlled input state (STABLE) - same as Explorar
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   
@@ -124,24 +118,21 @@ export default function EventosScreen() {
   const [showDatePickerFin, setShowDatePickerFin] = useState(false);
   
   const [eventos, setEventos] = useState<Evento[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // ✅ v342.0: Start with false for instant render
   const [refreshing, setRefreshing] = useState(false);
 
-  // ✅ NEW v272.0: Animated header like Favoritos (ENABLED)
   const scrollY = useRef(0);
   const lastScrollY = useRef(0);
   const headerTranslateY = useRef(new Animated.Value(0)).current;
+  
+  const hasLoadedOnceRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
-  // ✅ CRITICAL FIX v242.0: Debounce with cleanup (300ms) - same as Explorar
   useEffect(() => {
-    console.log('[Eventos v296.0] 📝 Search query changed:', searchQuery);
-    
     const timer = setTimeout(() => {
-      console.log('[Eventos v296.0] 🔍 Applying debounced search');
       setDebouncedQuery(searchQuery);
     }, 300);
     
-    // Cleanup function - CRITICAL for preventing focus loss
     return () => {
       clearTimeout(timer);
     };
@@ -164,9 +155,6 @@ export default function EventosScreen() {
 
   const cargarEventos = useCallback(async () => {
     try {
-      setLoading(true);
-      console.log('[Eventos v296.0] Cargando eventos...');
-
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayStr = today.toISOString().split('T')[0];
@@ -197,11 +185,8 @@ export default function EventosScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Eventos v296.0] Error cargando eventos:', error);
         return;
       }
-
-      console.log('[Eventos v296.0] Eventos cargados:', data?.length || 0);
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => {
         let localCategories: string[] = [];
@@ -236,24 +221,38 @@ export default function EventosScreen() {
 
       setEventos(eventosTransformados);
     } catch (error) {
-      console.error('[Eventos v296.0] Error:', error);
+      // Silent error
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
-  useEffect(() => {
-    cargarEventos();
-  }, [cargarEventos]);
+  // ✅ v342.0: INSTANT load on focus
+  useFocusEffect(
+    useCallback(() => {
+      isFocusedRef.current = true;
+      
+      if (!hasLoadedOnceRef.current) {
+        hasLoadedOnceRef.current = true;
+        
+        // ✅ v342.0: Defer data load to background (CRITICAL priority)
+        navigationOptimizer.deferWithPriority(() => {
+          cargarEventos();
+        }, 'CRITICAL');
+      }
+
+      return () => {
+        isFocusedRef.current = false;
+      };
+    }, [cargarEventos])
+  );
 
   const onRefresh = () => {
-    console.log('[Eventos v296.0] 🔄 Manual refresh triggered');
     setRefreshing(true);
     cargarEventos();
   };
 
-  // ✅ CRITICAL v242.0: Filter using debouncedQuery - same as Explorar
   const eventosFiltrados = eventos.filter((evento) => {
     const query = debouncedQuery.toLowerCase().trim();
     const matchBusqueda = evento.titulo.toLowerCase().includes(query);
@@ -295,7 +294,6 @@ export default function EventosScreen() {
   });
 
   const limpiarFiltros = () => {
-    console.log('[Eventos v296.0] 🧹 Clearing all filters');
     setSearchQuery('');
     setDebouncedQuery('');
     setProvinciaSeleccionada('Todas');
@@ -385,22 +383,18 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Eventos v296.0] Deleting event:', eventoId);
-              
               const { error } = await supabase
                 .from('eventos')
                 .update({ activo: false })
                 .eq('id', eventoId);
 
               if (error) {
-                console.error('[Eventos v296.0] Error deleting event:', error);
                 throw error;
               }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
             } catch (error: any) {
-              console.error('[Eventos v296.0] Error deleting event:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
@@ -409,21 +403,18 @@ export default function EventosScreen() {
     );
   }, [user, canDeleteEvent, cargarEventos]);
 
-  // ✅ NEW v272.0: Animated header scroll handler like Favoritos (ENABLED)
   const handleScroll = useCallback((event: any) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
     const diff = currentScrollY - lastScrollY.current;
     
     if (Math.abs(diff) > 5) {
       if (diff > 0 && currentScrollY > 50) {
-        // Scrolling down - hide header
         Animated.timing(headerTranslateY, {
           toValue: -HEADER_SCROLL_DISTANCE,
           duration: 250,
           useNativeDriver: true,
         }).start();
       } else if (diff < 0) {
-        // Scrolling up - show header
         Animated.timing(headerTranslateY, {
           toValue: 0,
           duration: 250,
@@ -440,7 +431,6 @@ export default function EventosScreen() {
   const categoryIconSize = getCategoryIconSize();
   const categoryIconInnerSize = getCategoryIconInnerSize();
 
-  // ✅ CRITICAL v268.0: NO COMPONENT FUNCTIONS - All JSX directly in return
   return (
     <View style={commonStyles.container}>
       <Animated.View
@@ -457,9 +447,6 @@ export default function EventosScreen() {
           end={{ x: 1, y: 0 }}
           style={styles.headerGradient}
         >
-          {/* ✅ NEW v296.0: Header WITHOUT title - just search and filters */}
-
-          {/* ✅ FIX v268.0: Search input and filter button with SAME HEIGHT (40px) */}
           <View style={styles.compactSearchRow}>
             <View style={styles.searchContainer}>
               <IconSymbol 
@@ -485,7 +472,6 @@ export default function EventosScreen() {
               {searchQuery.length > 0 && (
                 <TouchableOpacity 
                   onPress={() => {
-                    console.log('[Eventos v296.0] 🧹 Clearing search');
                     setSearchQuery('');
                     setDebouncedQuery('');
                   }}
@@ -547,7 +533,6 @@ export default function EventosScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* ✅ FIX v279.0: Category buttons with adjusted text sizes using scaleFontSize */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -590,51 +575,48 @@ export default function EventosScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando eventos...</Text>
-        </View>
-      ) : (
-        <ScrollView
-          contentContainerStyle={[
-            styles.eventosContainer,
-            { 
-              // ✅ FIX v296.0: Adjusted margin for new compact header height (no title)
-              marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT + 10 : HEADER_MAX_HEIGHT + 11,
-              paddingTop: 16,
-              paddingBottom: getContentBottomPadding(100),
-            },
-          ]}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-        >
-          {eventosFiltrados.length === 0 ? (
-            <View style={styles.emptyState}>
-              <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={64} color={colors.textSecondary} />
-              <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(16) }]}>
-                {tabActual === 'hoy' 
-                  ? 'No hay eventos para hoy' 
-                  : 'No hay eventos próximos'}
-              </Text>
-            </View>
-          ) : (
-            eventosFiltrados.map((evento) => (
-              <EventoCard
-                key={evento.id}
-                evento={evento}
-                showBanner={true}
-              />
-            ))
-          )}
-        </ScrollView>
-      )}
+      <ScrollView
+        contentContainerStyle={[
+          styles.eventosContainer,
+          { 
+            marginTop: HEADER_MAX_HEIGHT,
+            paddingTop: 0,
+            paddingBottom: getContentBottomPadding(100),
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>Cargando eventos...</Text>
+          </View>
+        ) : eventosFiltrados.length === 0 ? (
+          <View style={styles.emptyState}>
+            <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={64} color={colors.textSecondary} />
+            <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(16) }]}>
+              {tabActual === 'hoy' 
+                ? 'No hay eventos para hoy' 
+                : 'No hay eventos próximos'}
+            </Text>
+          </View>
+        ) : (
+          eventosFiltrados.map((evento) => (
+            <EventoCard
+              key={evento.id}
+              evento={evento}
+              showBanner={true}
+            />
+          ))
+        )}
+      </ScrollView>
 
       {canCreateEvents && (
         <TouchableOpacity
@@ -895,20 +877,17 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     backgroundColor: colors.background,
   },
-  // ✅ NEW v296.0: More compact header padding (no title)
   headerGradient: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
     paddingBottom: Platform.OS === 'android' ? 6 : 12,
     paddingHorizontal: 16,
   },
-  // ✅ FIX v268.0: Search row with proper alignment
   compactSearchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     marginBottom: Platform.OS === 'android' ? 6 : 8,
   },
-  // ✅ FIX v268.0: Search container with FIXED HEIGHT (40px)
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
@@ -917,7 +896,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 10,
     gap: 6,
-    height: 40, // ✅ FIXED HEIGHT
+    height: 40,
   },
   searchInput: {
     flex: 1,
@@ -928,10 +907,9 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 4,
   },
-  // ✅ FIX v268.0: Filter button with SAME HEIGHT as search (40px)
   filterIconButtonCompact: {
     width: 40,
-    height: 40, // ✅ SAME HEIGHT as search container
+    height: 40,
     borderRadius: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
@@ -998,7 +976,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
       },
       android: {
-        elevation: 6, // ✅ Minimal elevation for FAB
+        elevation: 6,
       },
     }),
   },
@@ -1161,7 +1139,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
       },
       android: {
-        elevation: 8, // ✅ Minimal elevation for modal
+        elevation: 8,
       },
     }),
   },
@@ -1202,13 +1180,11 @@ const styles = StyleSheet.create({
     paddingRight: 16,
     gap: 16,
   },
-  // ✅ FIX v271.0: Compact category button (same as Explorar)
   categoriaButtonCompact: {
     alignItems: 'center',
     gap: 4,
     minWidth: 60,
   },
-  // ✅ FIX v279.0: Compact category icon container with NO ELEVATION on Android (clean styling)
   categoriaIconContainerCompact: {
     width: Platform.OS === 'android' ? 36 : 40,
     height: Platform.OS === 'android' ? 36 : 40,
@@ -1220,7 +1196,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.3)',
     ...Platform.select({
       android: {
-        elevation: 0, // ✅ NO elevation to prevent white shadow
+        elevation: 0,
       },
     }),
   },
@@ -1228,7 +1204,6 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
     backgroundColor: colors.white,
   },
-  // ✅ FIX v279.0: Adjusted category label size with scaleFontSize for consistency
   categoriaLabelCompact: {
     fontSize: Platform.OS === 'android' ? scaleFontSize(11) : 12,
     fontWeight: '600',
