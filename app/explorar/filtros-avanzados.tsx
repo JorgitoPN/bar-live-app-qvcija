@@ -93,6 +93,7 @@ export default function FiltrosAvanzadosScreen() {
   });
   const [searchComunidad, setSearchComunidad] = useState('');
   const [searchProvincia, setSearchProvincia] = useState('');
+  const [hasInteractedWithRadius, setHasInteractedWithRadius] = useState(false);
 
   useEffect(() => {
     console.log('[FiltrosAvanzados v2.1] 🚀 Screen mounted, options loaded from cache');
@@ -172,10 +173,20 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados v2.0] 📏 Ajustando radio de búsqueda:', value, 'km');
+    console.log('[FiltrosAvanzados v2.1] 📏 Ajustando radio de búsqueda:', value, 'km');
+    setHasInteractedWithRadius(true);
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: value,
+    }));
+  }, []);
+
+  const handleSinRango = useCallback(() => {
+    console.log('[FiltrosAvanzados v2.1] 🚫 Usuario seleccionó "Sin rango"');
+    setHasInteractedWithRadius(false);
+    setFiltrosTemp(prev => ({
+      ...prev,
+      distancia: undefined,
     }));
   }, []);
 
@@ -187,15 +198,22 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v1.0] ✅ Applying filters:', filtrosTemp);
-    contextAplicarFiltros(filtrosTemp);
+    console.log('[FiltrosAvanzados v2.1] ✅ Applying filters:', filtrosTemp);
+    // ✅ FIX: Only apply distance filter if user has interacted with the slider
+    const filtrosToApply = { ...filtrosTemp };
+    if (!hasInteractedWithRadius) {
+      delete filtrosToApply.distancia;
+    }
+    console.log('[FiltrosAvanzados v2.1] 📊 Final filters to apply:', filtrosToApply);
+    contextAplicarFiltros(filtrosToApply);
     router.back();
-  }, [filtrosTemp, contextAplicarFiltros, router]);
+  }, [filtrosTemp, hasInteractedWithRadius, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v1.0] 🧹 Clearing all filters');
+    console.log('[FiltrosAvanzados v2.1] 🧹 Clearing all filters');
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
+    setHasInteractedWithRadius(false);
     contextLimpiarFiltros();
   }, [contextLimpiarFiltros]);
 
@@ -366,14 +384,7 @@ export default function FiltrosAvanzadosScreen() {
           </View>
 
           <View style={styles.headerActions}>
-            <TouchableOpacity onPress={handleLimpiar} style={styles.clearButton}>
-              <IconSymbol 
-                ios_icon_name="xmark.circle.fill" 
-                android_material_icon_name="cancel" 
-                size={scaleIconSize(20)} 
-                color={colors.headerText} 
-              />
-            </TouchableOpacity>
+            {/* ✅ REMOVED: Clear button from header - moved to footer */}
           </View>
         </View>
       </LinearGradient>
@@ -382,6 +393,7 @@ export default function FiltrosAvanzadosScreen() {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
 
         {/* UBICACIÓN SECTION */}
@@ -523,9 +535,28 @@ export default function FiltrosAvanzadosScreen() {
                   />
                   <Text style={[styles.distanceLabel, { fontSize: scaleFontSize(14) }]}>Radio de búsqueda</Text>
                   <Text style={[styles.distanceValue, { fontSize: scaleFontSize(16) }]}>
-                    {filtrosTemp.distancia ? `${filtrosTemp.distancia.toFixed(0)} km` : '5 km'}
+                    {hasInteractedWithRadius && filtrosTemp.distancia ? `${filtrosTemp.distancia.toFixed(0)} km` : 'Sin rango'}
                   </Text>
                 </View>
+                
+                {/* ✅ NEW: "Sin rango" button */}
+                <TouchableOpacity 
+                  style={[
+                    styles.sinRangoButton,
+                    !hasInteractedWithRadius && styles.sinRangoButtonActive
+                  ]}
+                  onPress={handleSinRango}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.sinRangoButtonText,
+                    { fontSize: scaleFontSize(13) },
+                    !hasInteractedWithRadius && styles.sinRangoButtonTextActive
+                  ]}>
+                    Sin rango
+                  </Text>
+                </TouchableOpacity>
+                
                 <Slider
                   style={styles.slider}
                   minimumValue={1}
@@ -804,22 +835,28 @@ export default function FiltrosAvanzadosScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.applyButton} onPress={handleAplicar}>
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.applyGradient}
-          >
-            <IconSymbol 
-              ios_icon_name="checkmark.circle.fill" 
-              android_material_icon_name="check_circle" 
-              size={scaleIconSize(22)} 
-              color={colors.headerText} 
-            />
-            <Text style={[styles.applyText, { fontSize: scaleFontSize(16) }]}>Aplicar Filtros</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+        <View style={styles.footerButtons}>
+          <TouchableOpacity style={styles.clearFooterButton} onPress={handleLimpiar}>
+            <Text style={[styles.clearFooterButtonText, { fontSize: scaleFontSize(14) }]}>Limpiar filtros</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.applyButton} onPress={handleAplicar}>
+            <LinearGradient
+              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.applyGradient}
+            >
+              <IconSymbol 
+                ios_icon_name="checkmark.circle.fill" 
+                android_material_icon_name="check_circle" 
+                size={scaleIconSize(22)} 
+                color={colors.headerText} 
+              />
+              <Text style={[styles.applyText, { fontSize: scaleFontSize(16) }]}>Aplicar Filtros</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -886,7 +923,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 16,
-    paddingTop: 0,
+    paddingTop: 16,
   },
   loadingBanner: {
     flexDirection: 'row',
@@ -1095,7 +1132,26 @@ const styles = StyleSheet.create({
     borderTopColor: colors.cardBorder,
     backgroundColor: colors.cardBackground,
   },
+  footerButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  clearFooterButton: {
+    flex: 1,
+    borderRadius: 14,
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearFooterButtonText: {
+    fontWeight: '700',
+    color: colors.text,
+  },
   applyButton: {
+    flex: 2,
     borderRadius: 14,
     overflow: 'hidden',
     ...Platform.select({
@@ -1120,5 +1176,27 @@ const styles = StyleSheet.create({
   applyText: {
     fontWeight: '700',
     color: colors.headerText,
+  },
+  sinRangoButton: {
+    backgroundColor: colors.background,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  sinRangoButtonActive: {
+    backgroundColor: colors.primary + '15',
+    borderColor: colors.primary,
+  },
+  sinRangoButtonText: {
+    fontWeight: '600',
+    color: colors.text,
+  },
+  sinRangoButtonTextActive: {
+    color: colors.primary,
+    fontWeight: '700',
   },
 });

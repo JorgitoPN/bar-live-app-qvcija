@@ -1402,17 +1402,24 @@ console.log('🗺️ [MAPA v293.0] ═══════════════
       return;
     }
     
+    // ✅ Apply category filter (from tabs OR from advanced filters)
+    const categoryToApply = globalFiltros.tipo && globalFiltros.tipo.length > 0 
+      ? globalFiltros.tipo[0] 
+      : categoriaSeleccionada;
+    
+    console.log('🗺️ [MAPA v293.0] 🎯 Applying category filter:', categoryToApply);
+    
     requestAnimationFrame(() => {
       webViewRef.current?.injectJavaScript(`
         (function() {
           if (typeof window.filtrarCategoria !== 'undefined') {
-            window.filtrarCategoria('${categoriaSeleccionada}');
+            window.filtrarCategoria('${categoryToApply}');
           }
         })();
         true;
       `);
     });
-  }, [categoriaSeleccionada, isMapReady]);
+  }, [categoriaSeleccionada, globalFiltros.tipo, isMapReady]);
 
   useEffect(() => {
     if (!webViewRef.current || !userLocation || !isMapReady) {

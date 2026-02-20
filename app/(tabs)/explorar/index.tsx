@@ -722,7 +722,10 @@ export default function ExplorarScreen() {
       ? globalFiltros.tipo[0] 
       : selectedCategory;
     
+    console.log('[Explorar v323.0] 🎯 Category to filter:', categoryToFilter);
+    
     if (categoryToFilter && categoryToFilter !== 'todas') {
+      const beforeFilter = filtered.length;
       filtered = filtered.filter(local => {
         const barliveTypes = local.barlive_types || [];
         const barliveType = local.barlive_type || '';
@@ -752,56 +755,64 @@ export default function ExplorarScreen() {
         
         return false;
       });
+      console.log('[Explorar v323.0] 🎯 Category filter applied:', beforeFilter, '→', filtered.length, 'locales');
     }
     
     // ✅ Apply location filters (comunidad, provincia, distancia)
     if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades') {
+      const beforeFilter = filtered.length;
       filtered = filtered.filter(local => local.comunidad === globalFiltros.comunidad);
-      console.log('[Explorar v323.0] 📍 Filtered by comunidad:', globalFiltros.comunidad, '→', filtered.length, 'locales');
+      console.log('[Explorar v323.0] 📍 Filtered by comunidad:', globalFiltros.comunidad, '→', beforeFilter, '→', filtered.length, 'locales');
     }
     
     if (globalFiltros.provincia) {
+      const beforeFilter = filtered.length;
       filtered = filtered.filter(local => local.provincia === globalFiltros.provincia);
-      console.log('[Explorar v323.0] 📍 Filtered by provincia:', globalFiltros.provincia, '→', filtered.length, 'locales');
+      console.log('[Explorar v323.0] 📍 Filtered by provincia:', globalFiltros.provincia, '→', beforeFilter, '→', filtered.length, 'locales');
     }
     
     if (globalFiltros.distancia && userLocation) {
+      const beforeFilter = filtered.length;
       filtered = filtered.filter(local => {
         if (!local.distancia) return false;
         return local.distancia <= (globalFiltros.distancia || 5);
       });
-      console.log('[Explorar v323.0] 📏 Filtered by distance:', globalFiltros.distancia, 'km →', filtered.length, 'locales');
+      console.log('[Explorar v323.0] 📏 Filtered by distance:', globalFiltros.distancia, 'km →', beforeFilter, '→', filtered.length, 'locales');
     }
     
     // ✅ Apply service filters
     if (globalFiltros.servicios && globalFiltros.servicios.length > 0) {
+      const beforeFilter = filtered.length;
       filtered = filtered.filter(local => {
         const serviciosLocal = local.servicios_disponibles || {};
         return globalFiltros.servicios!.every(servicio => serviciosLocal[servicio] === true);
       });
-      console.log('[Explorar v323.0] 🔧 Filtered by services:', globalFiltros.servicios, '→', filtered.length, 'locales');
+      console.log('[Explorar v323.0] 🔧 Filtered by services:', globalFiltros.servicios, '→', beforeFilter, '→', filtered.length, 'locales');
     }
     
     // ✅ Apply ambiente filters
     if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0) {
+      const beforeFilter = filtered.length;
       filtered = filtered.filter(local => {
         const ambienteLocal = local.ambiente_completo || {};
         return globalFiltros.ambiente!.some(ambiente => ambienteLocal[ambiente] === true);
       });
-      console.log('[Explorar v323.0] ✨ Filtered by ambiente:', globalFiltros.ambiente, '→', filtered.length, 'locales');
+      console.log('[Explorar v323.0] ✨ Filtered by ambiente:', globalFiltros.ambiente, '→', beforeFilter, '→', filtered.length, 'locales');
     }
     
     // ✅ Apply clientela filters
     if (globalFiltros.clientela && globalFiltros.clientela.length > 0) {
+      const beforeFilter = filtered.length;
       filtered = filtered.filter(local => {
         const clientelaLocal = local.clientela || {};
         return globalFiltros.clientela!.some(tipo => clientelaLocal[tipo] === true);
       });
-      console.log('[Explorar v323.0] 👥 Filtered by clientela:', globalFiltros.clientela, '→', filtered.length, 'locales');
+      console.log('[Explorar v323.0] 👥 Filtered by clientela:', globalFiltros.clientela, '→', beforeFilter, '→', filtered.length, 'locales');
     }
     
     // ✅ Apply search query
     if (query) {
+      const beforeFilter = filtered.length;
       filtered = filtered.filter(local => {
         const nombre = local.nombre?.toLowerCase() || '';
         const direccion = local.direccion?.toLowerCase() || '';
@@ -815,13 +826,14 @@ export default function ExplorarScreen() {
                tipo.includes(query) ||
                barliveTypes.includes(query);
       });
+      console.log('[Explorar v323.0] 🔍 Filtered by search query:', query, '→', beforeFilter, '→', filtered.length, 'locales');
     }
 
     const uniqueLocales = filtered.filter((item, index, self) =>
       index === self.findIndex((t) => t.id === item.id)
     );
 
-    console.log('[Explorar v323.0] ✅ Filtered:', filtered.length, '→ Unique:', uniqueLocales.length, '(removed', filtered.length - uniqueLocales.length, 'duplicates)');
+    console.log('[Explorar v323.0] ✅ Final result:', filtered.length, '→ Unique:', uniqueLocales.length, '(removed', filtered.length - uniqueLocales.length, 'duplicates)');
 
     return uniqueLocales;
   }, [allLoadedLocales, debouncedQuery, selectedCategory, globalFiltros, userLocation]);
@@ -1546,26 +1558,47 @@ export default function ExplorarScreen() {
             )}
           </View>
           
-          <TouchableOpacity 
-            onPress={() => {
-              console.log('[Explorar v323.0] 👆 Usuario abrió filtros - navegando a filtros avanzados');
-              router.push('/explorar/filtros-avanzados');
-            }}
-            style={styles.filterIconButtonCompact}
-            activeOpacity={0.7}
-          >
-            <IconSymbol 
-              ios_icon_name="slider.horizontal.3" 
-              android_material_icon_name="tune" 
-              size={scaleIconSize(20)} 
-              color={colors.headerText} 
-            />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity 
+              onPress={() => {
+                console.log('[Explorar v323.0] 👆 Usuario abrió filtros - navegando a filtros avanzados');
+                router.push('/explorar/filtros-avanzados');
+              }}
+              style={styles.filterIconButtonCompact}
+              activeOpacity={0.7}
+            >
+              <IconSymbol 
+                ios_icon_name="slider.horizontal.3" 
+                android_material_icon_name="tune" 
+                size={scaleIconSize(20)} 
+                color={colors.headerText} 
+              />
+              {hasActiveFilters && (
+                <View style={styles.filterBadge}>
+                  <View style={styles.filterBadgeDot} />
+                </View>
+              )}
+            </TouchableOpacity>
+            
+            {/* ✅ NEW: Quick clear filters button */}
             {hasActiveFilters && (
-              <View style={styles.filterBadge}>
-                <View style={styles.filterBadgeDot} />
-              </View>
+              <TouchableOpacity 
+                onPress={() => {
+                  console.log('[Explorar v323.0] 🧹 Usuario limpió filtros rápidamente');
+                  clearFilters();
+                }}
+                style={styles.quickClearButton}
+                activeOpacity={0.7}
+              >
+                <IconSymbol 
+                  ios_icon_name="xmark.circle.fill" 
+                  android_material_icon_name="cancel" 
+                  size={scaleIconSize(20)} 
+                  color={colors.headerText} 
+                />
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView
@@ -1915,6 +1948,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+  },
+  quickClearButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterBadge: {
     position: 'absolute',

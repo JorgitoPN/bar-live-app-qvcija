@@ -61,8 +61,8 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const aplicarFiltros = useCallback((nuevosFiltros: Filtros) => {
-    console.log('[FilterContext v2.0] ✅ Applying filters:', nuevosFiltros);
-    console.log('[FilterContext v2.0] 📊 Active filters:', {
+    console.log('[FilterContext v2.1] ✅ Applying filters:', nuevosFiltros);
+    console.log('[FilterContext v2.1] 📊 Active filters:', {
       tipo: nuevosFiltros.tipo?.length || 0,
       servicios: nuevosFiltros.servicios?.length || 0,
       ambiente: nuevosFiltros.ambiente?.length || 0,
@@ -70,6 +70,15 @@ export function FilterProvider({ children }: { children: ReactNode }) {
       comunidad: nuevosFiltros.comunidad ? 1 : 0,
       provincia: nuevosFiltros.provincia ? 1 : 0,
       distancia: nuevosFiltros.distancia ? 1 : 0,
+    });
+    console.log('[FilterContext v2.1] 🔍 Filter details:', {
+      tipo: nuevosFiltros.tipo,
+      servicios: nuevosFiltros.servicios,
+      ambiente: nuevosFiltros.ambiente,
+      clientela: nuevosFiltros.clientela,
+      comunidad: nuevosFiltros.comunidad,
+      provincia: nuevosFiltros.provincia,
+      distancia: nuevosFiltros.distancia,
     });
     setFiltrosState(nuevosFiltros);
   }, []);
