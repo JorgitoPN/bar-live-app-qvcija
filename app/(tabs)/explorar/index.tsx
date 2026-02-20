@@ -632,7 +632,7 @@ export default function ExplorarScreen() {
             estaAbierto: estadoLocal.estaAbierto,
             tieneHorarios: local.has_schedule_info,
             // La distancia ya viene calculada del servidor en KILÓMETROS
-            distancia: local.distancia,
+            distancia: local.distancia_km,
           };
         });
 
