@@ -1,16 +1,17 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v340.0 - ANDROID FULLSCREEN FIX COMPLETE
+ * 🚨 POST VIEWER MODAL v341.0 - ANDROID FULLSCREEN FIX COMPLETE
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v340.0:
+ * NEW CHANGES v341.0:
  * - ✅ FIXED ANDROID MODAL: presentationStyle='fullScreen' + StatusBar hidden
  * - ✅ El visor de publicaciones se abre en pantalla completa en Android
  * - ✅ No hay espacios vacíos en la parte superior e inferior
  * - ✅ Experiencia idéntica a iOS
+ * - ✅ Removed SafeAreaView padding that was causing empty spaces
  * 
- * PREVIOUS CHANGES v339.0:
+ * PREVIOUS CHANGES v340.0:
  * - ✅ FIXED PROBLEM 1: Comments open immediately without closing modal
  * - ✅ FIXED PROBLEM 2: State preserved when returning from comments (scroll + post)
  * - ✅ FIXED PROBLEM 3: Correct initial scroll position from profile grid (ENHANCED)
@@ -1676,7 +1677,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingTop: Platform.OS === 'ios' ? 60 : 20,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',

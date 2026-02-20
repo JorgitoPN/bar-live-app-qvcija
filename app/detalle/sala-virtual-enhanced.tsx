@@ -3059,12 +3059,12 @@ export default function SalaVirtualEnhancedScreen() {
   const modeIcon = mode === 'day' ? 'wb_sunny' : 'nightlight';
   const modeIconIOS = mode === 'day' ? 'sun.max.fill' : 'moon.fill';
 
-  // ✅ FIXED v7.1: iOS keyboard positioning - input field just above keyboard
-  // ✅ FIXED v7.1: Android keyboard positioning - input field moves with keyboard
+  // ✅ FIXED v7.2: iOS keyboard positioning - input field sits just above keyboard
+  // ✅ FIXED v7.2: Android keyboard positioning - input field moves up with keyboard
   const inputContainerBottomPadding =
     Platform.OS === 'ios'
-      ? isKeyboardVisible ? 0 : Math.max(insets.bottom, 8) // ✅ No padding when keyboard is open (field sits on keyboard)
-      : Math.max(insets.bottom + 8, 16); // ✅ Minimal padding for Android - just enough to avoid touch buttons
+      ? isKeyboardVisible ? 0 : Math.max(insets.bottom, 8) // ✅ iOS: No padding when keyboard open (sits on keyboard)
+      : isKeyboardVisible ? 8 : Math.max(insets.bottom + 8, 16); // ✅ Android: Minimal padding when keyboard open
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background[0] }]}>
@@ -3230,8 +3230,8 @@ export default function SalaVirtualEnhancedScreen() {
         {activeTab === 'chat' && (
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
           >
             <FlatList
               ref={flatListRef}
@@ -3378,8 +3378,8 @@ export default function SalaVirtualEnhancedScreen() {
         {activeTab === 'private' && selectedPrivateChat && (
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
           >
             <TouchableOpacity
               style={[styles.privateChatHeader, { backgroundColor: themeColors.cardBg, borderBottomColor: themeColors.cardBorder }]}
