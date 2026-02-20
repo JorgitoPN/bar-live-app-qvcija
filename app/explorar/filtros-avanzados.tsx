@@ -20,21 +20,27 @@ import { Filtros } from '@/types';
 import Slider from '@react-native-community/slider';
 
 /**
- * ✅ ADVANCED FILTERS PAGE v2.0 - ENHANCED UX & FUNCTIONALITY
+ * ✅ ADVANCED FILTERS PAGE v2.1 - ENHANCED UX & INSTANT LOADING
  * 
- * NEW FEATURES v2.0:
+ * NEW FEATURES v2.1:
+ * - ✅ INCREASED search radius to 100km (was 50km)
+ * - ✅ QUICK CLEAR button next to back button (icon-only for clean UI)
+ * - ✅ REMOVED spacing between header and content (seamless design)
+ * - ✅ INSTANT LOADING - no "Cargando opciones..." banner (uses cached data)
+ * - ✅ FIXED filter application - results now show correctly in Explorar & Mapa
+ * 
+ * FEATURES v2.0:
  * - ✅ Visual indicator badge on filter button (active filter count)
  * - ✅ Slider for search radius (smooth, intuitive distance selection)
  * - ✅ Dropdown for Comunidad Autónoma (clear, organized selection)
  * - ✅ Single-selection for venue categories (synchronized with Explorar)
  * - ✅ Improved responsive design (compact, optimized selectors)
  * - ✅ Dynamic result updates (real-time filtering in Explorar & Mapa)
- * - ✅ Clear all filters button (visible and accessible)
  * 
  * ARCHITECTURE:
  * - ✅ Full-page modal presentation (not bottom sheet)
  * - ✅ Synchronized with FilterContext for global state
- * - ✅ Dynamic filter options based on actual data
+ * - ✅ Dynamic filter options based on actual data (cached)
  * - ✅ Instant feedback with visual indicators
  * - ✅ Clear hierarchy and organization
  * - ✅ Optimized performance with memoization
@@ -89,9 +95,10 @@ export default function FiltrosAvanzadosScreen() {
   const [searchProvincia, setSearchProvincia] = useState('');
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados v1.0] 🚀 Screen mounted, loading dynamic options');
-    refreshDynamicOptions();
-  }, [refreshDynamicOptions]);
+    console.log('[FiltrosAvanzados v2.1] 🚀 Screen mounted, options loaded from cache');
+    // ✅ FIX v2.1: No need to refresh options on mount - they're already loaded in FilterContext
+    // This eliminates the "Cargando opciones..." banner and makes the page instant
+  }, []);
 
   useEffect(() => {
     console.log('[FiltrosAvanzados v1.0] 🔄 Context filters changed, updating temp filters');
@@ -358,9 +365,16 @@ export default function FiltrosAvanzadosScreen() {
             )}
           </View>
 
-          <TouchableOpacity onPress={handleLimpiar} style={styles.clearButton}>
-            <Text style={[styles.clearButtonText, { fontSize: scaleFontSize(14) }]}>Limpiar</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={handleLimpiar} style={styles.clearButton}>
+              <IconSymbol 
+                ios_icon_name="xmark.circle.fill" 
+                android_material_icon_name="cancel" 
+                size={scaleIconSize(20)} 
+                color={colors.headerText} 
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </LinearGradient>
 
@@ -369,12 +383,6 @@ export default function FiltrosAvanzadosScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {isLoadingOptions && (
-          <View style={styles.loadingBanner}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.loadingText, { fontSize: scaleFontSize(13) }]}>Cargando opciones...</Text>
-          </View>
-        )}
 
         {/* UBICACIÓN SECTION */}
         <View style={styles.section}>
@@ -521,7 +529,7 @@ export default function FiltrosAvanzadosScreen() {
                 <Slider
                   style={styles.slider}
                   minimumValue={1}
-                  maximumValue={50}
+                  maximumValue={100}
                   step={1}
                   value={filtrosTemp.distancia || 5}
                   onValueChange={handleDistanciaChange}
@@ -531,7 +539,7 @@ export default function FiltrosAvanzadosScreen() {
                 />
                 <View style={styles.sliderLabels}>
                   <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>1 km</Text>
-                  <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>50 km</Text>
+                  <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>100 km</Text>
                 </View>
               </View>
             </View>
@@ -860,22 +868,25 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.headerText,
   },
-  clearButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  clearButtonText: {
-    fontWeight: '600',
-    color: colors.headerText,
+  clearButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     flex: 1,
   },
   contentContainer: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 0,
   },
   loadingBanner: {
     flexDirection: 'row',
