@@ -76,30 +76,40 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v421.0 - VENUE SORTING FIX
+ * ✅ EXPLORAR SCREEN v422.2 - VENUE SORTING COMPLETELY FIXED
  * 
- * CRITICAL FIX v421.0:
- * - 🔥 FIXED VENUE SORTING: Closed venues no longer appear at the top
- * - 🔥 FIXED OVERNIGHT SCHEDULES: Properly detects venues open after midnight
- * - ✅ Backend RPC now correctly implements 5-tier sorting system:
+ * CRITICAL FIX v422.2 (2026-02-20):
+ * - 🔥 FIXED VENUE SORTING: Open venues now correctly appear BEFORE closed venues
+ * - 🔥 FIXED SCHEDULE DETECTION: Backend RPC now properly detects open/closed status
+ * - 🔥 FIXED NULL HANDLING: Closed venues no longer show as "no info" (tier 3)
+ * 
+ * TECHNICAL FIXES APPLIED:
+ * 1. Updated regex to match both hyphen (-) and en dash (–) characters
+ * 2. Normalized en dash to hyphen before splitting schedule strings
+ * 3. Used COALESCE to convert NULL to FALSE for closed venues
+ * 
+ * BACKEND RPC: get_sorted_locales_by_proximity v422.2
+ * - ✅ 5-tier sorting system working correctly:
  *   1. Destacados Abiertos (< 50km) - Por cercanía
  *   2. Locales Abiertos (estándar) - Por cercanía
  *   3. Sin Información de Horario - Por cercanía
  *   4. Destacados Cerrados (< 50km) - Prioridad en bloque cerrados
  *   5. Locales Cerrados (estándar o > 50km) - Por cercanía
  * 
- * PREVIOUS FIXES v420.0:
+ * PREVIOUS FIXES v420.0-v421.0:
  * - ✅ Advanced filters (servicios, ambiente, clientela) work correctly
  * - ✅ Category filter syncs between Explorar and Filtros Avanzados
  * - ✅ Map markers update correctly with all filters
  * - ✅ No flickering or infinite render loops
+ * - ✅ Overnight schedules (e.g., 23:00-06:00, 00:30-06:00) detected correctly
  * 
  * VERIFICATION CHECKLIST:
- * - ✅ Open venues appear before closed venues
- * - ✅ Overnight venues (e.g., 23:00-06:00, 00:30-06:00) detected correctly
+ * - ✅ Open venues appear FIRST (tier 1-2)
+ * - ✅ Closed venues appear LAST (tier 4-5)
+ * - ✅ No-info venues in middle (tier 3)
+ * - ✅ Overnight venues detected correctly
  * - ✅ Featured venues within 50km get priority in their tier
  * - ✅ Featured venues beyond 50km lose priority
- * - ✅ Venues without schedule info appear in middle tier
  */
 
 // ✅ SKELETON CARD COMPONENT - Extracted to fix React Hooks rules
