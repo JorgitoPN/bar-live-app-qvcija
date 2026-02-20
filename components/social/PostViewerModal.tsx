@@ -1585,7 +1585,7 @@ export default function PostViewerModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <StatusBar hidden={true} />
+      {Platform.OS === 'android' && <StatusBar hidden={true} />}
       <View style={styles.container}>
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -1676,7 +1676,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',

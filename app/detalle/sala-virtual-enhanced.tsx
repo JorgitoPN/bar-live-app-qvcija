@@ -3059,12 +3059,12 @@ export default function SalaVirtualEnhancedScreen() {
   const modeIcon = mode === 'day' ? 'wb_sunny' : 'nightlight';
   const modeIconIOS = mode === 'day' ? 'sun.max.fill' : 'moon.fill';
 
-  // ✅ FIXED: iOS keyboard positioning - input field just above keyboard
-  // ✅ FIXED: Android keyboard positioning - input field moves with keyboard
+  // ✅ FIXED v7.1: iOS keyboard positioning - input field just above keyboard
+  // ✅ FIXED v7.1: Android keyboard positioning - input field moves with keyboard
   const inputContainerBottomPadding =
     Platform.OS === 'ios'
-      ? isKeyboardVisible ? 8 : Math.max(insets.bottom, 8) // ✅ Minimal padding when keyboard is open
-      : Math.max(insets.bottom + 16, 24); // ✅ Reduced padding for Android - just enough to avoid touch buttons
+      ? isKeyboardVisible ? 0 : Math.max(insets.bottom, 8) // ✅ No padding when keyboard is open (field sits on keyboard)
+      : Math.max(insets.bottom + 8, 16); // ✅ Minimal padding for Android - just enough to avoid touch buttons
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background[0] }]}>
@@ -3231,7 +3231,7 @@ export default function SalaVirtualEnhancedScreen() {
           <KeyboardAvoidingView
             style={styles.chatContainer}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
           >
             <FlatList
               ref={flatListRef}
@@ -3379,7 +3379,7 @@ export default function SalaVirtualEnhancedScreen() {
           <KeyboardAvoidingView
             style={styles.chatContainer}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
           >
             <TouchableOpacity
               style={[styles.privateChatHeader, { backgroundColor: themeColors.cardBg, borderBottomColor: themeColors.cardBorder }]}

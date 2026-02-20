@@ -95,7 +95,7 @@ export default function ImageGalleryModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <StatusBar hidden={true} />
+      {Platform.OS === 'android' && <StatusBar hidden={true} />}
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
     paddingHorizontal: 20,
     paddingBottom: 15,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
