@@ -885,7 +885,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingBottom: 16,
+    paddingBottom: 0,
     paddingHorizontal: 16,
   },
   headerContent: {
@@ -939,7 +939,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 0,
   },
   loadingBanner: {
     flexDirection: 'row',

@@ -710,19 +710,24 @@ export default function ExplorarScreen() {
   }, [userLocation, isValidSpainCoordinate, selectedCategory, provinciaSeleccionada, isLoadingMore, locationReady]);
 
   const filteredLocales = useMemo(() => {
-    console.log('[Explorar v323.0] 🔍 Filtering locales - total loaded:', allLoadedLocales.length);
-    console.log('[Explorar v323.0] 🎯 Global filters:', globalFiltros);
+    console.log('[Explorar v323.1] 🔍 ========================================');
+    console.log('[Explorar v323.1] 🔍 STARTING FILTER PROCESS');
+    console.log('[Explorar v323.1] 🔍 Total loaded locales:', allLoadedLocales.length);
+    console.log('[Explorar v323.1] 🔍 Global filters:', JSON.stringify(globalFiltros, null, 2));
+    console.log('[Explorar v323.1] 🔍 Selected category (tab):', selectedCategory);
+    console.log('[Explorar v323.1] 🔍 User location:', userLocation);
     
     const query = debouncedQuery.toLowerCase().trim();
     
     let filtered = allLoadedLocales;
+    console.log('[Explorar v323.1] 📊 Step 0: Starting with', filtered.length, 'locales');
     
-    // ✅ Apply category filter (from tabs OR from advanced filters)
+    // ✅ STEP 1: Apply category filter (from tabs OR from advanced filters)
     const categoryToFilter = globalFiltros.tipo && globalFiltros.tipo.length > 0 
       ? globalFiltros.tipo[0] 
       : selectedCategory;
     
-    console.log('[Explorar v323.0] 🎯 Category to filter:', categoryToFilter);
+    console.log('[Explorar v323.1] 🎯 Step 1: Category filter -', categoryToFilter);
     
     if (categoryToFilter && categoryToFilter !== 'todas') {
       const beforeFilter = filtered.length;
@@ -755,64 +760,116 @@ export default function ExplorarScreen() {
         
         return false;
       });
-      console.log('[Explorar v323.0] 🎯 Category filter applied:', beforeFilter, '→', filtered.length, 'locales');
+      console.log('[Explorar v323.1] ✅ Step 1 complete:', beforeFilter, '→', filtered.length, 'locales');
+    } else {
+      console.log('[Explorar v323.1] ⏭️ Step 1 skipped: No category filter');
     }
     
-    // ✅ Apply location filters (comunidad, provincia, distancia)
+    // ✅ STEP 2: Apply location filters (comunidad, provincia, distancia)
     if (globalFiltros.comunidad && globalFiltros.comunidad !== 'Todas las Comunidades') {
       const beforeFilter = filtered.length;
-      filtered = filtered.filter(local => local.comunidad === globalFiltros.comunidad);
-      console.log('[Explorar v323.0] 📍 Filtered by comunidad:', globalFiltros.comunidad, '→', beforeFilter, '→', filtered.length, 'locales');
+      console.log('[Explorar v323.1] 📍 Step 2a: Filtering by comunidad:', globalFiltros.comunidad);
+      filtered = filtered.filter(local => {
+        const matches = local.comunidad === globalFiltros.comunidad;
+        if (!matches) {
+          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- comunidad:', local.comunidad);
+        }
+        return matches;
+      });
+      console.log('[Explorar v323.1] ✅ Step 2a complete:', beforeFilter, '→', filtered.length, 'locales');
+    } else {
+      console.log('[Explorar v323.1] ⏭️ Step 2a skipped: No comunidad filter');
     }
     
     if (globalFiltros.provincia) {
       const beforeFilter = filtered.length;
-      filtered = filtered.filter(local => local.provincia === globalFiltros.provincia);
-      console.log('[Explorar v323.0] 📍 Filtered by provincia:', globalFiltros.provincia, '→', beforeFilter, '→', filtered.length, 'locales');
+      console.log('[Explorar v323.1] 📍 Step 2b: Filtering by provincia:', globalFiltros.provincia);
+      filtered = filtered.filter(local => {
+        const matches = local.provincia === globalFiltros.provincia;
+        if (!matches) {
+          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- provincia:', local.provincia);
+        }
+        return matches;
+      });
+      console.log('[Explorar v323.1] ✅ Step 2b complete:', beforeFilter, '→', filtered.length, 'locales');
+    } else {
+      console.log('[Explorar v323.1] ⏭️ Step 2b skipped: No provincia filter');
     }
     
     if (globalFiltros.distancia && userLocation) {
       const beforeFilter = filtered.length;
+      console.log('[Explorar v323.1] 📏 Step 2c: Filtering by distance:', globalFiltros.distancia, 'km');
       filtered = filtered.filter(local => {
-        if (!local.distancia) return false;
-        return local.distancia <= (globalFiltros.distancia || 5);
+        if (!local.distancia) {
+          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- no distance data');
+          return false;
+        }
+        const matches = local.distancia <= (globalFiltros.distancia || 5);
+        if (!matches) {
+          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- distance:', local.distancia, 'km');
+        }
+        return matches;
       });
-      console.log('[Explorar v323.0] 📏 Filtered by distance:', globalFiltros.distancia, 'km →', beforeFilter, '→', filtered.length, 'locales');
+      console.log('[Explorar v323.1] ✅ Step 2c complete:', beforeFilter, '→', filtered.length, 'locales');
+    } else {
+      console.log('[Explorar v323.1] ⏭️ Step 2c skipped: No distance filter or no user location');
     }
     
-    // ✅ Apply service filters
+    // ✅ STEP 3: Apply service filters (AND logic - must have ALL selected services)
     if (globalFiltros.servicios && globalFiltros.servicios.length > 0) {
       const beforeFilter = filtered.length;
+      console.log('[Explorar v323.1] 🔧 Step 3: Filtering by services (AND logic):', globalFiltros.servicios);
       filtered = filtered.filter(local => {
         const serviciosLocal = local.servicios_disponibles || {};
-        return globalFiltros.servicios!.every(servicio => serviciosLocal[servicio] === true);
+        const hasAllServices = globalFiltros.servicios!.every(servicio => serviciosLocal[servicio] === true);
+        if (!hasAllServices) {
+          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- services:', Object.keys(serviciosLocal).filter(k => serviciosLocal[k]));
+        }
+        return hasAllServices;
       });
-      console.log('[Explorar v323.0] 🔧 Filtered by services:', globalFiltros.servicios, '→', beforeFilter, '→', filtered.length, 'locales');
+      console.log('[Explorar v323.1] ✅ Step 3 complete:', beforeFilter, '→', filtered.length, 'locales');
+    } else {
+      console.log('[Explorar v323.1] ⏭️ Step 3 skipped: No service filters');
     }
     
-    // ✅ Apply ambiente filters
+    // ✅ STEP 4: Apply ambiente filters (OR logic - must have AT LEAST ONE selected ambiente)
     if (globalFiltros.ambiente && globalFiltros.ambiente.length > 0) {
       const beforeFilter = filtered.length;
+      console.log('[Explorar v323.1] ✨ Step 4: Filtering by ambiente (OR logic):', globalFiltros.ambiente);
       filtered = filtered.filter(local => {
         const ambienteLocal = local.ambiente_completo || {};
-        return globalFiltros.ambiente!.some(ambiente => ambienteLocal[ambiente] === true);
+        const hasAnyAmbiente = globalFiltros.ambiente!.some(ambiente => ambienteLocal[ambiente] === true);
+        if (!hasAnyAmbiente) {
+          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- ambiente:', Object.keys(ambienteLocal).filter(k => ambienteLocal[k]));
+        }
+        return hasAnyAmbiente;
       });
-      console.log('[Explorar v323.0] ✨ Filtered by ambiente:', globalFiltros.ambiente, '→', beforeFilter, '→', filtered.length, 'locales');
+      console.log('[Explorar v323.1] ✅ Step 4 complete:', beforeFilter, '→', filtered.length, 'locales');
+    } else {
+      console.log('[Explorar v323.1] ⏭️ Step 4 skipped: No ambiente filters');
     }
     
-    // ✅ Apply clientela filters
+    // ✅ STEP 5: Apply clientela filters (OR logic - must have AT LEAST ONE selected clientela)
     if (globalFiltros.clientela && globalFiltros.clientela.length > 0) {
       const beforeFilter = filtered.length;
+      console.log('[Explorar v323.1] 👥 Step 5: Filtering by clientela (OR logic):', globalFiltros.clientela);
       filtered = filtered.filter(local => {
         const clientelaLocal = local.clientela || {};
-        return globalFiltros.clientela!.some(tipo => clientelaLocal[tipo] === true);
+        const hasAnyClientela = globalFiltros.clientela!.some(tipo => clientelaLocal[tipo] === true);
+        if (!hasAnyClientela) {
+          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- clientela:', Object.keys(clientelaLocal).filter(k => clientelaLocal[k]));
+        }
+        return hasAnyClientela;
       });
-      console.log('[Explorar v323.0] 👥 Filtered by clientela:', globalFiltros.clientela, '→', beforeFilter, '→', filtered.length, 'locales');
+      console.log('[Explorar v323.1] ✅ Step 5 complete:', beforeFilter, '→', filtered.length, 'locales');
+    } else {
+      console.log('[Explorar v323.1] ⏭️ Step 5 skipped: No clientela filters');
     }
     
-    // ✅ Apply search query
+    // ✅ STEP 6: Apply search query
     if (query) {
       const beforeFilter = filtered.length;
+      console.log('[Explorar v323.1] 🔍 Step 6: Filtering by search query:', query);
       filtered = filtered.filter(local => {
         const nombre = local.nombre?.toLowerCase() || '';
         const direccion = local.direccion?.toLowerCase() || '';
@@ -820,20 +877,33 @@ export default function ExplorarScreen() {
         const tipo = local.tipo?.toLowerCase() || '';
         const barliveTypes = (local.barlive_types || []).join(' ').toLowerCase();
         
-        return nombre.includes(query) || 
+        const matches = nombre.includes(query) || 
                direccion.includes(query) || 
                provincia.includes(query) ||
                tipo.includes(query) ||
                barliveTypes.includes(query);
+        
+        if (!matches) {
+          console.log('[Explorar v323.1] ❌ Excluded:', local.nombre, '- does not match query');
+        }
+        
+        return matches;
       });
-      console.log('[Explorar v323.0] 🔍 Filtered by search query:', query, '→', beforeFilter, '→', filtered.length, 'locales');
+      console.log('[Explorar v323.1] ✅ Step 6 complete:', beforeFilter, '→', filtered.length, 'locales');
+    } else {
+      console.log('[Explorar v323.1] ⏭️ Step 6 skipped: No search query');
     }
 
+    // ✅ STEP 7: Remove duplicates
     const uniqueLocales = filtered.filter((item, index, self) =>
       index === self.findIndex((t) => t.id === item.id)
     );
 
-    console.log('[Explorar v323.0] ✅ Final result:', filtered.length, '→ Unique:', uniqueLocales.length, '(removed', filtered.length - uniqueLocales.length, 'duplicates)');
+    console.log('[Explorar v323.1] ✅ Step 7 complete: Removed', filtered.length - uniqueLocales.length, 'duplicates');
+    console.log('[Explorar v323.1] 🎉 ========================================');
+    console.log('[Explorar v323.1] 🎉 FILTER PROCESS COMPLETE');
+    console.log('[Explorar v323.1] 🎉 Final result:', uniqueLocales.length, 'locales');
+    console.log('[Explorar v323.1] 🎉 ========================================');
 
     return uniqueLocales;
   }, [allLoadedLocales, debouncedQuery, selectedCategory, globalFiltros, userLocation]);
@@ -1664,8 +1734,8 @@ export default function ExplorarScreen() {
         contentContainerStyle={[
           styles.listContent,
           { 
-            marginTop: HEADER_MAX_HEIGHT + 10,
-            paddingTop: 24,
+            marginTop: HEADER_MAX_HEIGHT,
+            paddingTop: 0,
             paddingBottom: getContentBottomPadding(100)
           },
         ]}

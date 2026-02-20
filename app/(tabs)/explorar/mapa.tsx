@@ -1711,7 +1711,7 @@ const styles = StyleSheet.create({
   // ✅ FIX v274.0: REDUCED padding for minimal margin
   header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingBottom: 8,
+    paddingBottom: 0,
   },
   categoriasContainer: {
     flexGrow: 0,
