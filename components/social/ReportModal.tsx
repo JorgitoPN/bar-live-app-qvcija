@@ -248,6 +248,7 @@ const styles = StyleSheet.create({
   },
   overlayAndroid: {
     justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 20,
   },
   container: {
@@ -257,10 +258,15 @@ const styles = StyleSheet.create({
     maxHeight: '90%',
   },
   containerAndroid: {
-    flex: 1,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    maxHeight: '100%',
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   header: {
     flexDirection: 'row',
@@ -268,8 +274,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 20,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: Platform.OS === 'android' ? 20 : 24,
+    borderTopRightRadius: Platform.OS === 'android' ? 20 : 24,
   },
   title: {
     fontSize: 20,
