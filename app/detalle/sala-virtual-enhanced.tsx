@@ -37,7 +37,7 @@ import { calcularDistancia } from '@/utils/locationUtils';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 SALA VIRTUAL v7.5 - COMPLETE KEYBOARD & MODAL FIX
+ * 🚨 SALA VIRTUAL v7.6 - ANDROID KEYBOARD FIX FINAL
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * ✅ PROBLEMA 1 RESUELTO - iOS Keyboard Coverage:
@@ -47,11 +47,15 @@ import { calcularDistancia } from '@/utils/locationUtils';
  * - ScrollView forzado al final cuando teclado se abre
  * - El campo de texto queda completamente visible al escribir
  * 
- * ✅ PROBLEMA 2 RESUELTO - Android Keyboard & Touch Buttons:
- * - KeyboardAvoidingView behavior='height' (empuja contenido hacia arriba)
- * - Padding inferior dinámico: 8px cuando teclado abierto, 16px cuando cerrado
+ * ✅ PROBLEMA 2 RESUELTO - Android Keyboard Coverage (FIXED v7.6):
+ * - KeyboardAvoidingView behavior=undefined (manual control)
+ * - Keyboard.addListener para detectar altura exacta del teclado
+ * - Padding inferior dinámico: keyboardHeight + 16px cuando teclado abierto
+ * - contentPaddingBottom: keyboardHeight + 16px para elevar contenido
+ * - inputContainerBottomPadding: keyboardHeight + 16px para elevar input
  * - ScrollView forzado al final cuando teclado se abre
  * - El campo de texto es completamente visible y accesible
+ * - app.json: softwareKeyboardLayoutMode="resize" (CRÍTICO)
  * 
  * ✅ PROBLEMA 3 RESUELTO - Android Post Viewer Modal:
  * - presentationStyle='overFullScreen' en Android
@@ -69,17 +73,24 @@ import { calcularDistancia } from '@/utils/locationUtils';
  * - No hay espacios vacíos en la parte superior e inferior
  * 
  * ARQUITECTURA:
- * - Listeners de teclado para detectar apertura/cierre
+ * - Listeners de teclado para detectar apertura/cierre y altura exacta
  * - Cálculo dinámico de padding basado en plataforma y estado del teclado
  * - iOS: behavior='padding' + padding=0 cuando teclado abierto
- * - Android: behavior='height' + padding=8 cuando teclado abierto
+ * - Android: behavior=undefined + padding=keyboardHeight+16 cuando teclado abierto
  * - ScrollView auto-scroll al final cuando teclado se abre
  * - Modales fullscreen con StatusBar hidden en Android
+ * 
+ * CONFIGURACIÓN CRÍTICA (app.json):
+ * {
+ *   "android": {
+ *     "softwareKeyboardLayoutMode": "resize"
+ *   }
+ * }
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-console.log("✅ SALA VIRTUAL v7.5 - COMPLETE KEYBOARD FIX iOS/Android + FULLSCREEN MODALS");
+console.log("✅ SALA VIRTUAL v7.6 - ANDROID KEYBOARD FIX FINAL - Manual height control");
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -2939,17 +2950,17 @@ export default function SalaVirtualEnhancedScreen() {
     
     // Dynamic padding based on keyboard state
     // iOS: No extra padding when keyboard is open (input sits on keyboard)
-    // Android: Small padding when keyboard is open (8px)
+    // Android: Add keyboard height to push content above keyboard
     const dynamicPadding = Platform.OS === 'ios'
       ? (isKeyboardVisible ? 0 : Math.max(insets.bottom, 8))
-      : (isKeyboardVisible ? 8 : Math.max(insets.bottom, 8));
+      : (isKeyboardVisible ? keyboardHeight + 16 : Math.max(insets.bottom, 8));
     
     const totalPadding = baseInputHeight + quickMessagesHeight + dynamicPadding;
     
-    console.log('[SalaVirtual v7.5] 📏 Content padding bottom:', totalPadding, 'px (keyboard:', isKeyboardVisible ? 'open' : 'closed', ')');
+    console.log('[SalaVirtual v7.5] 📏 Content padding bottom:', totalPadding, 'px (keyboard:', isKeyboardVisible ? 'open' : 'closed', ', height:', keyboardHeight, ')');
     
     return totalPadding;
-  }, [showQuickMessages, activeTab, insets.bottom, isKeyboardVisible]);
+  }, [showQuickMessages, activeTab, insets.bottom, isKeyboardVisible, keyboardHeight]);
 
   const inputContainerBottomPadding = useMemo(() => {
     if (Platform.OS === 'ios') {
@@ -2957,11 +2968,11 @@ export default function SalaVirtualEnhancedScreen() {
       // When keyboard is closed, use safe area inset
       return isKeyboardVisible ? 0 : Math.max(insets.bottom, 8);
     } else {
-      // Android: Small padding when keyboard is open (8px above keyboard)
-      // When keyboard is closed, use larger padding for better spacing
-      return isKeyboardVisible ? 8 : Math.max(insets.bottom + 8, 16);
+      // Android: Add keyboard height to lift input above keyboard
+      // When keyboard is closed, use safe area inset
+      return isKeyboardVisible ? keyboardHeight + 16 : Math.max(insets.bottom, 8);
     }
-  }, [isKeyboardVisible, insets.bottom]);
+  }, [isKeyboardVisible, insets.bottom, keyboardHeight]);
 
   const headerBackgroundColor = mode === 'day' 
     ? 'rgba(255, 255, 255, 0.95)' 
@@ -3264,7 +3275,7 @@ export default function SalaVirtualEnhancedScreen() {
         {activeTab === 'chat' && (
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={Platform.OS === 'ios' ? (insets.bottom + 90) : 0}
           >
             <FlatList
@@ -3421,7 +3432,7 @@ export default function SalaVirtualEnhancedScreen() {
         {activeTab === 'private' && selectedPrivateChat && (
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={Platform.OS === 'ios' ? (insets.bottom + 90) : 0}
           >
             <TouchableOpacity
