@@ -41,17 +41,18 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v297.0 - ANDROID PROFESSIONAL SOLUTION (COMPLETE FIX)
+ * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v298.0 - ANDROID COMPACT LAYOUT (FINAL FIX)
  * 
  * ANDROID-SPECIFIC FIXES:
  * 1️⃣ CONVERSACIÓN - Input field behavior:
  *    - ✅ Absolute positioning with bottom: 0 (extends to physical screen bottom)
- *    - ✅ Input rises smoothly when keyboard opens via translateY
+ *    - ✅ Input rises smoothly when keyboard opens via dynamic bottom positioning
+ *    - ✅ Input sits DIRECTLY above keyboard (NO extra offset for compact layout)
  *    - ✅ Input returns to bottom automatically when keyboard closes
  *    - ✅ NO stuck-in-middle issue
  *    - ✅ White background extends BEHIND system navigation bar
  *    - ✅ Visible content respects safe area insets
- *    - ✅ ADDITIONAL OFFSET (+60px) for Android to ensure full visibility above keyboard
+ *    - ✅ COMPACT & NATURAL layout - input immediately above keyboard
  * 
  * 2️⃣ SEND BUTTON:
  *    - ✅ Sends message immediately on first press
@@ -59,7 +60,7 @@ interface Message {
  *    - ✅ No need to press twice
  *    - ✅ User can continue typing after sending
  * 
- * 3️⃣ SYSTEM NAVIGATION BAR (NEW v297.0):
+ * 3️⃣ SYSTEM NAVIGATION BAR:
  *    - ✅ FlatList paddingBottom correctly accounts for insets.bottom + input height
  *    - ✅ Content NEVER scrolls underneath the system navigation bar
  *    - ✅ inputContainer extends to bottom: 0 (physical screen edge)
@@ -68,7 +69,7 @@ interface Message {
  *    - ✅ Professional behavior matching standard Android apps
  * 
  * TECHNICAL IMPLEMENTATION:
- * - position: 'absolute' with bottom: 0 (CRITICAL - extends to physical screen edge)
+ * - position: 'absolute' with dynamic bottom (keyboardHeight when open, 0 when closed)
  * - paddingBottom: insets.bottom (creates white space behind system nav bar)
  * - Keyboard listeners for height tracking (keyboardDidShow/keyboardDidHide)
  * - No KeyboardAvoidingView (causes issues on Android)
@@ -76,6 +77,7 @@ interface Message {
  * - WHITE BACKGROUND (#FFFFFF) extends behind system navigation bar
  * - FlatList paddingBottom: keyboardHeight + 80 OR insets.bottom + 80
  * - Input content respects safe area via paddingBottom
+ * - NO EXTRA OFFSET - input positioned exactly at keyboard top for compact feel
  */
 export default function ConversacionScreen() {
   const router = useRouter();
@@ -112,15 +114,14 @@ export default function ConversacionScreen() {
     }
   }, []);
 
-  // ✅ FIX v297.0: Detect keyboard height dynamically with Android offset for full visibility
+  // ✅ FIX v298.0: Detect keyboard height dynamically WITHOUT extra offset for compact layout
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[Conversacion v297.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
-        // ✅ Add extra offset for Android to ensure input is fully visible above keyboard
-        const extraOffset = Platform.OS === 'android' ? 60 : 0;
-        setKeyboardHeight(e.endCoordinates.height + extraOffset);
+        console.log('[Conversacion v298.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        // ✅ NO extra offset - input sits directly above keyboard for compact layout
+        setKeyboardHeight(e.endCoordinates.height);
         setKeyboardVisible(true);
       }
     );
@@ -128,7 +129,7 @@ export default function ConversacionScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[Conversacion v297.0] ⌨️ Keyboard hidden');
+        console.log('[Conversacion v298.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
         setKeyboardVisible(false);
       }
@@ -440,7 +441,7 @@ export default function ConversacionScreen() {
   }, [chatId, user]);
 
   const enviarMensaje = async () => {
-    console.log('[Conversacion v297.0] 📤 enviarMensaje called - keyboard stays open, message sends immediately');
+    console.log('[Conversacion v298.0] 📤 enviarMensaje called - keyboard stays open, message sends immediately');
     
     if (!user || !chatId || !mensaje.trim() || enviando) return;
 
@@ -519,7 +520,7 @@ export default function ConversacionScreen() {
         });
       }
 
-      console.log('[Conversacion v297.0] ✅ Message sent successfully - keyboard stays open for continuous typing');
+      console.log('[Conversacion v298.0] ✅ Message sent successfully - keyboard stays open for continuous typing');
     } catch (error) {
       console.error('[Conversacion] Error:', error);
       
@@ -701,13 +702,14 @@ export default function ConversacionScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* ✅ FIX v297.0: Messages list with CORRECT padding to prevent content from going under system navigation bar */}
+      {/* ✅ FIX v298.0: Messages list with CORRECT padding for compact layout */}
       {/* 
-        CRITICAL FIX FOR ANDROID SYSTEM NAVIGATION BAR:
+        CRITICAL FIX FOR ANDROID COMPACT LAYOUT:
         - When keyboard is OPEN: paddingBottom = keyboardHeight + 80 (space for input + keyboard)
         - When keyboard is CLOSED: paddingBottom = insets.bottom + 80 (space for input + system nav bar)
         - The +80 accounts for the input container height (~60px) + extra safe margin
         - This ensures content NEVER scrolls underneath the system navigation bar
+        - Input sits directly above keyboard for compact, natural feel
       */}
       <FlatList
         ref={flatListRef}
@@ -736,23 +738,23 @@ export default function ConversacionScreen() {
         }
       />
 
-      {/* ✅ FIX v297.0: Input container EXTENDS TO PHYSICAL SCREEN BOTTOM with WHITE BACKGROUND behind system nav bar */}
+      {/* ✅ FIX v298.0: Input container with COMPACT positioning - sits directly above keyboard */}
       {/* 
-        CRITICAL FIX FOR ANDROID SYSTEM NAVIGATION BAR:
-        - position: 'absolute' with bottom: 0 (EXTENDS TO PHYSICAL SCREEN EDGE)
-        - paddingBottom: insets.bottom (creates white space behind system nav bar)
+        CRITICAL FIX FOR ANDROID COMPACT LAYOUT:
+        - position: 'absolute' with dynamic bottom positioning
+        - When keyboard OPEN: bottom = keyboardHeight (sits directly above keyboard)
+        - When keyboard CLOSED: bottom = 0 (sits at physical screen bottom)
+        - paddingBottom: insets.bottom (creates white space behind system nav bar when closed)
         - backgroundColor: '#FFFFFF' ensures solid white background (no transparency)
-        - When keyboard opens: transform translateY moves container up by keyboardHeight
-        - When keyboard closes: transform returns to 0, container sits at bottom: 0
         - White background extends BEHIND the system navigation bar
         - Visible content (input field) respects safe area via paddingBottom
+        - NO EXTRA OFFSET - compact and natural positioning
       */}
       <View style={[
         styles.inputContainer, 
         { 
-          bottom: 0, // ✅ CRITICAL: Extends to physical screen bottom
-          paddingBottom: insets.bottom, // ✅ CRITICAL: Creates white space behind system nav bar
-          transform: [{ translateY: isKeyboardVisible ? -keyboardHeight : 0 }], // ✅ Moves up when keyboard opens
+          bottom: isKeyboardVisible ? keyboardHeight : 0, // ✅ CRITICAL: Dynamic positioning for compact layout
+          paddingBottom: isKeyboardVisible ? 0 : insets.bottom, // ✅ CRITICAL: White space only when keyboard closed
         }
       ]}>
         <View style={styles.inputRow}>
