@@ -786,10 +786,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: 12,
+    paddingBottom: Platform.OS === 'android' ? 16 : 12,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
-    // ✅ ANDROID FIX v285.0: Use Barlive corporate blue for background
-    backgroundColor: Platform.OS === 'android' ? '#1A73E8' : colors.cardBackground,
+    // ✅ FIX: Use Barlive corporate blue (#1A73E8) for background
+    backgroundColor: '#1A73E8',
     gap: 12,
   },
   input: {

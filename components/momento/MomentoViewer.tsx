@@ -1484,7 +1484,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: Platform.OS === 'android' ? 24 : 40,
+    // ✅ FIX: Elevate input field above keyboard with proper spacing
+    paddingBottom: Platform.OS === 'android' ? 32 : 40,
   },
   messageInputClose: {
     alignSelf: 'flex-end',

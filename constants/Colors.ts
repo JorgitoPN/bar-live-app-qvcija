@@ -22,7 +22,9 @@ export const appleGreen = "#34C759";
 export const borderColor = "#A1A1AA80";
 
 // BarLive Brand Colors
+// ✅ FIX: Unified Barlive corporate blue (#1A73E8) for consistent branding
 export const barLiveColors = {
+  corporateBlue: "#1A73E8", // Main Barlive brand color
   teal400: "#14B8A6",
   teal500: "#14B8A6",
   cyan500: "#06B6D4",
