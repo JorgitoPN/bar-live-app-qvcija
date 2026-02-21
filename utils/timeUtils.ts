@@ -479,174 +479,158 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
   }
   
   // CASE B: Day has schedules → check if it's open NOW
-  // ✅ FIX v288.0: Disabled excessive logging
-  // console.log(`⏰ [TIME] Verificando ${franjas.length} rangos horarios del día ${diaParaVerificar}`);
+  // ✅ FIX v426.0: CRITICAL - Handle split schedules (e.g., 0:00-13:30, 14:00-24:00)
+  // Multiple time ranges per day must ALL be checked
+  console.log(`⏰ [TIME v426.0] Verificando ${franjas.length} rangos horarios del día ${diaParaVerificar}`);
+  
+  // Track if we're currently open in ANY time range
+  let isCurrentlyOpen = false;
+  let closingTime: number | null = null;
+  let openingTimeForClosed: number | null = null;
   
   for (let i = 0; i < franjas.length; i++) {
     const rango = franjas[i];
-    // ✅ FIX v288.0: Disabled excessive logging
-    // console.log(`⏰ [TIME] Verificando rango ${i + 1}: ${rango}`);
+    console.log(`⏰ [TIME v426.0] Verificando rango ${i + 1}/${franjas.length}: ${rango}`);
     
     if (rango === 'Cerrado' || rango.toLowerCase().includes('24')) continue;
     
     const parsed = parsearRangoHorario(rango);
     if (!parsed) {
-      // ✅ FIX v288.0: Disabled excessive logging
-      // console.log(`⏰ [TIME] Error parseando rango: ${rango}`);
+      console.log(`⏰ [TIME v426.0] ❌ Error parseando rango: ${rango}`);
       continue;
     }
     
     const { apertura, cierre } = parsed;
-    // ✅ FIX v288.0: Disabled excessive logging
-    // console.log(`⏰ [TIME] Apertura: ${formatearHora(apertura)} (${apertura} min), Cierre: ${formatearHora(cierre)} (${cierre} min)`);
+    console.log(`⏰ [TIME v426.0] Rango ${i + 1}: ${formatearHora(apertura)}-${formatearHora(cierre)} (${apertura}-${cierre} min)`);
+    console.log(`⏰ [TIME v426.0] Hora actual: ${formatearHora(horaActual)} (${horaActual} min)`);
     
     const esNocturno = esHorarioNocturno(apertura, cierre);
-    // ✅ FIX v288.0: Disabled excessive logging
-    // console.log(`⏰ [TIME] ¿Es horario nocturno? ${esNocturno ? 'Sí' : 'No'}`);
+    console.log(`⏰ [TIME v426.0] ¿Es horario nocturno? ${esNocturno ? 'Sí' : 'No'}`);
     
     // NIGHTTIME SCHEDULE
     if (esNocturno) {
-      // ✅ FIX v288.0: Disabled excessive logging
-      // console.log(`⏰ [TIME] Horario nocturno detectado`);
+      console.log(`⏰ [TIME v426.0] 🌙 Horario nocturno detectado`);
       
       // Case 1: We're in the early morning continuation of previous day's night
       if (estamosEnMadrugadaDelDiaAnterior && cierre < apertura) {
         // Traditional overnight schedule (e.g., 23:00-06:00)
         if (horaActual < cierre) {
-          // ✅ FIX v288.0: Disabled excessive logging
-          // console.log(`⏰ [TIME] ✅ ABIERTO (en la madrugada del horario nocturno del ${diaLogico})`);
-          
-          const minutosHastaCierre = cierre - horaActual;
-          // ✅ FIX v288.0: Disabled excessive logging
-          // console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
-          
-          if (minutosHastaCierre <= 60) {
-            return {
-              badge: 'Cierra pronto',
-              estaAbierto: true,
-              claseBg: 'bg-orange-500',
-              overlayIcon: null,
-              tiempoRestante: formatearTiempo(minutosHastaCierre),
-              diaLogico: diaLogico,
-            };
-          }
-          
-          return {
-            badge: 'Abierto ahora',
-            estaAbierto: true,
-            claseBg: 'bg-green-500',
-            overlayIcon: null,
-            tiempoRestante: formatearTiempo(minutosHastaCierre),
-            diaLogico: diaLogico,
-          };
+          console.log(`⏰ [TIME v426.0] ✅ ABIERTO (en la madrugada del horario nocturno del ${diaLogico})`);
+          isCurrentlyOpen = true;
+          closingTime = cierre;
+          break; // Found open range, no need to check more
         }
       }
       // Case 2: Nighttime schedule that opens after midnight (e.g., 00:30-06:00)
       else if (apertura < cierre && apertura < 480 && cierre < 480) {
         // Both opening and closing are after midnight and before 8 AM
-        // ✅ FIX v288.0: Disabled excessive logging
-        // console.log(`⏰ [TIME] Horario nocturno que abre después de medianoche`);
+        console.log(`⏰ [TIME v426.0] 🌙 Horario nocturno que abre después de medianoche`);
         
         if (horaActual >= apertura && horaActual < cierre) {
-          // ✅ FIX v288.0: Disabled excessive logging
-          // console.log(`⏰ [TIME] ✅ ABIERTO (horario nocturno del ${diaLogico})`);
-          
-          const minutosHastaCierre = cierre - horaActual;
-          // ✅ FIX v288.0: Disabled excessive logging
-          // console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
-          
-          if (minutosHastaCierre <= 60) {
-            return {
-              badge: 'Cierra pronto',
-              estaAbierto: true,
-              claseBg: 'bg-orange-500',
-              overlayIcon: null,
-              tiempoRestante: formatearTiempo(minutosHastaCierre),
-              diaLogico: diaLogico,
-            };
-          }
-          
-          return {
-            badge: 'Abierto ahora',
-            estaAbierto: true,
-            claseBg: 'bg-green-500',
-            overlayIcon: null,
-            tiempoRestante: formatearTiempo(minutosHastaCierre),
-            diaLogico: diaLogico,
-          };
+          console.log(`⏰ [TIME v426.0] ✅ ABIERTO (horario nocturno del ${diaLogico})`);
+          isCurrentlyOpen = true;
+          closingTime = cierre;
+          break; // Found open range, no need to check more
         }
       }
       // Case 3: Traditional overnight schedule, we're in the evening part
       else if (cierre < apertura && horaActual >= apertura) {
-        // ✅ FIX v288.0: Disabled excessive logging
-        // console.log(`⏰ [TIME] ✅ ABIERTO (después de la apertura del horario nocturno del ${diaLogico})`);
-        
+        console.log(`⏰ [TIME v426.0] ✅ ABIERTO (después de la apertura del horario nocturno del ${diaLogico})`);
+        isCurrentlyOpen = true;
         // Calculate minutes until closing (tomorrow morning)
-        const minutosHastaCierre = (24 * 60 - horaActual) + cierre;
-        // ✅ FIX v288.0: Disabled excessive logging
-        // console.log(`⏰ [TIME] Minutos hasta cierre (mañana): ${minutosHastaCierre}`);
-        
-        if (minutosHastaCierre <= 60) {
-          return {
-            badge: 'Cierra pronto',
-            estaAbierto: true,
-            claseBg: 'bg-orange-500',
-            overlayIcon: null,
-            tiempoRestante: formatearTiempo(minutosHastaCierre),
-            diaLogico: diaLogico,
-          };
-        }
-        
-        return {
-          badge: 'Abierto ahora',
-          estaAbierto: true,
-          claseBg: 'bg-green-500',
-          overlayIcon: null,
-          tiempoRestante: formatearTiempo(minutosHastaCierre),
-          diaLogico: diaLogico,
-        };
+        closingTime = cierre; // Will be handled specially for overnight
+        break; // Found open range, no need to check more
       } else {
-        // ✅ FIX v288.0: Disabled excessive logging
-        // console.log(`⏰ [TIME] ❌ CERRADO (fuera del horario nocturno)`);
+        console.log(`⏰ [TIME v426.0] ❌ CERRADO en este rango nocturno`);
       }
     } else {
       // DAYTIME SCHEDULE: Closing before midnight
-      // ✅ FIX v288.0: Disabled excessive logging
-      // console.log(`⏰ [TIME] Horario diurno detectado`);
+      console.log(`⏰ [TIME v426.0] ☀️ Horario diurno detectado`);
       
       if (horaActual >= apertura && horaActual < cierre) {
         // ✅ OPEN (between opening and closing)
-        // ✅ FIX v288.0: Disabled excessive logging
-        // console.log(`⏰ [TIME] ✅ ABIERTO (horario diurno del ${diaLogico})`);
-        
-        const minutosHastaCierre = cierre - horaActual;
-        // ✅ FIX v288.0: Disabled excessive logging
-        // console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
-        
-        if (minutosHastaCierre <= 60) {
-          return {
-            badge: 'Cierra pronto',
-            estaAbierto: true,
-            claseBg: 'bg-orange-500',
-            overlayIcon: null,
-            tiempoRestante: formatearTiempo(minutosHastaCierre),
-            diaLogico: diaLogico,
-          };
-        }
-        
-        return {
-          badge: 'Abierto ahora',
-          estaAbierto: true,
-          claseBg: 'bg-green-500',
-          overlayIcon: null,
-          tiempoRestante: formatearTiempo(minutosHastaCierre),
-          diaLogico: diaLogico,
-        };
+        console.log(`⏰ [TIME v426.0] ✅ ABIERTO (horario diurno del ${diaLogico})`);
+        isCurrentlyOpen = true;
+        closingTime = cierre;
+        break; // Found open range, no need to check more
       } else {
-        // ✅ FIX v288.0: Disabled excessive logging
-        // console.log(`⏰ [TIME] ❌ CERRADO (fuera del rango ${apertura}-${cierre})`);
+        console.log(`⏰ [TIME v426.0] ❌ CERRADO en este rango diurno (actual: ${horaActual}, rango: ${apertura}-${cierre})`);
+        
+        // Track next opening time if we're before it
+        if (horaActual < apertura && (openingTimeForClosed === null || apertura < openingTimeForClosed)) {
+          openingTimeForClosed = apertura;
+          console.log(`⏰ [TIME v426.0] 📍 Próxima apertura hoy: ${formatearHora(apertura)}`);
+        }
       }
     }
+  }
+  
+  // ✅ FIX v426.0: After checking ALL ranges, determine final status
+  if (isCurrentlyOpen && closingTime !== null) {
+    console.log(`⏰ [TIME v426.0] ✅ RESULTADO: ABIERTO (cierre a las ${formatearHora(closingTime)})`);
+    
+    // Calculate minutes until closing
+    let minutosHastaCierre: number;
+    
+    // Check if this is an overnight schedule
+    const isOvernight = closingTime < horaActual;
+    if (isOvernight) {
+      // Overnight: closing is tomorrow morning
+      minutosHastaCierre = (24 * 60 - horaActual) + closingTime;
+      console.log(`⏰ [TIME v426.0] 🌙 Cierre overnight: ${minutosHastaCierre} minutos hasta mañana a las ${formatearHora(closingTime)}`);
+    } else {
+      // Same day closing
+      minutosHastaCierre = closingTime - horaActual;
+      console.log(`⏰ [TIME v426.0] ☀️ Cierre hoy: ${minutosHastaCierre} minutos hasta las ${formatearHora(closingTime)}`);
+    }
+    
+    if (minutosHastaCierre <= 60) {
+      return {
+        badge: 'Cierra pronto',
+        estaAbierto: true,
+        claseBg: 'bg-orange-500',
+        overlayIcon: null,
+        tiempoRestante: formatearTiempo(minutosHastaCierre),
+        diaLogico: diaLogico,
+      };
+    }
+    
+    return {
+      badge: 'Abierto ahora',
+      estaAbierto: true,
+      claseBg: 'bg-green-500',
+      overlayIcon: null,
+      tiempoRestante: formatearTiempo(minutosHastaCierre),
+      diaLogico: diaLogico,
+    };
+  }
+  
+  console.log(`⏰ [TIME v426.0] ❌ RESULTADO: CERRADO (no está en ningún rango horario)`);
+  
+  // If we found a next opening time today, use it
+  if (openingTimeForClosed !== null) {
+    const minutosHastaApertura = openingTimeForClosed - horaActual;
+    console.log(`⏰ [TIME v426.0] 📍 Abre hoy en ${minutosHastaApertura} minutos (${formatearHora(openingTimeForClosed)})`);
+    
+    if (minutosHastaApertura <= 30) {
+      return {
+        badge: 'Abre pronto',
+        estaAbierto: false,
+        claseBg: 'bg-yellow-500',
+        overlayIcon: null,
+        tiempoRestante: formatearTiempo(minutosHastaApertura),
+        diaLogico: diaLogico,
+      };
+    }
+    
+    return {
+      badge: `Abre a las ${formatearHora(openingTimeForClosed)}`,
+      estaAbierto: false,
+      claseBg: 'bg-red-500',
+      overlayIcon: 'lock',
+      tiempoRestante: formatearTiempo(minutosHastaApertura),
+      diaLogico: diaLogico,
+    };
   }
   
   // CASE C: Outside all time ranges → CLOSED
