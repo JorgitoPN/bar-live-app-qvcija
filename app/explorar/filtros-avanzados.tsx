@@ -45,9 +45,15 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ANDROID FULL-SCREEN FILTERS PAGE v3.0 - DYNAMIC + INSTANT + SLIDER
+ * ✅ ANDROID FULL-SCREEN FILTERS PAGE v3.1 - DYNAMIC + INSTANT + SLIDER + SIN LÍMITE
  * 
- * NEW FEATURES v3.0:
+ * NEW FEATURES v3.1:
+ * - 🎯 "Sin límite" as default for search range (no distance filter applied)
+ * - ⚡ Auto-activate filter when user modifies range
+ * - 🔄 Option to return to "Sin límite" after setting a range
+ * - ✅ Clear visual feedback for active/inactive distance filter
+ * 
+ * Previous features v3.0:
  * - 🎯 DYNAMIC FILTERS: Only show characteristics with active locales
  * - ⚡ INSTANT CLEAR: Synchronous UI update, background fetch
  * - 🎚️ SLIDER: Replaced text input with slider (1-100km range)
@@ -323,7 +329,7 @@ export default function FiltrosAvanzadosScreen() {
     if (filtrosTemp.clientela && filtrosTemp.clientela.length > 0) count++;
     if (filtrosTemp.comunidad) count++;
     if (filtrosTemp.provincia) count++;
-    if (filtrosTemp.distancia) count++;
+    if (filtrosTemp.distancia !== undefined && filtrosTemp.distancia !== null) count++;
     return count;
   }, [filtrosTemp]);
 
@@ -439,27 +445,64 @@ export default function FiltrosAvanzadosScreen() {
                   </View>
                   <View style={styles.distanceValueBadge}>
                     <Text style={[styles.distanceValueText, { fontSize: scaleFontSize(14) }]}>
-                      {filtrosTemp.distancia ? `${Math.round(filtrosTemp.distancia)} km` : '50 km'}
+                      {filtrosTemp.distancia ? `${Math.round(filtrosTemp.distancia)} km` : 'Sin límite'}
                     </Text>
                   </View>
                 </View>
                 
-                <Slider
-                  style={styles.slider}
-                  minimumValue={1}
-                  maximumValue={100}
-                  step={1}
-                  value={filtrosTemp.distancia || 50}
-                  onValueChange={handleDistanciaChange}
-                  minimumTrackTintColor={colors.primary}
-                  maximumTrackTintColor={colors.cardBorder}
-                  thumbTintColor={colors.primary}
-                />
+                {filtrosTemp.distancia !== undefined && filtrosTemp.distancia !== null && (
+                  <>
+                    <Slider
+                      style={styles.slider}
+                      minimumValue={1}
+                      maximumValue={100}
+                      step={1}
+                      value={filtrosTemp.distancia}
+                      onValueChange={handleDistanciaChange}
+                      minimumTrackTintColor={colors.primary}
+                      maximumTrackTintColor={colors.cardBorder}
+                      thumbTintColor={colors.primary}
+                    />
+                    
+                    <View style={styles.sliderLabels}>
+                      <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>1 km</Text>
+                      <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>100 km</Text>
+                    </View>
+                  </>
+                )}
                 
-                <View style={styles.sliderLabels}>
-                  <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>1 km</Text>
-                  <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>100 km</Text>
-                </View>
+                {(filtrosTemp.distancia === undefined || filtrosTemp.distancia === null) ? (
+                  <TouchableOpacity 
+                    style={styles.activateRangeButton}
+                    onPress={() => {
+                      console.log('[FiltrosAvanzados] 🎯 Activating search range filter with default 50km');
+                      handleDistanciaChange(50);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol ios_icon_name="slider.horizontal.3" android_material_icon_name="tune" size={scaleIconSize(16)} color={colors.primary} />
+                    <Text style={[styles.activateRangeButtonText, { fontSize: scaleFontSize(13) }]}>
+                      Activar filtro de distancia
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity 
+                    style={styles.resetRangeButton}
+                    onPress={() => {
+                      console.log('[FiltrosAvanzados] 🔄 Resetting search range to "Sin límite"');
+                      setFiltrosTemp(prev => ({
+                        ...prev,
+                        distancia: undefined,
+                      }));
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol ios_icon_name="arrow.counterclockwise" android_material_icon_name="refresh" size={scaleIconSize(14)} color={colors.textSecondary} />
+                    <Text style={[styles.resetRangeButtonText, { fontSize: scaleFontSize(12) }]}>
+                      Volver a "Sin límite"
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           )}
@@ -1049,6 +1092,38 @@ const styles = StyleSheet.create({
   },
   sliderLabelText: {
     fontWeight: '500',
+    color: colors.textSecondary,
+  },
+  activateRangeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary + '15',
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+    borderRadius: 10,
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  activateRangeButtonText: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  resetRangeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 8,
+    paddingVertical: 8,
+    marginTop: 10,
+  },
+  resetRangeButtonText: {
+    fontWeight: '600',
     color: colors.textSecondary,
   },
   chipContainer: {
