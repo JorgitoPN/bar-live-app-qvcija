@@ -41,7 +41,7 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD FIXES v293.0 - ANDROID PROFESSIONAL SOLUTION (EXACT COMMENTSMODAL REPLICATION)
+ * ✅ KEYBOARD FIXES v294.0 - ANDROID PROFESSIONAL SOLUTION (EXACT COMMENTSMODAL REPLICATION)
  * 
  * ANDROID-SPECIFIC FIXES:
  * 1️⃣ CONVERSACIÓN - Input field behavior:
@@ -49,9 +49,10 @@ interface Message {
  *    - ✅ Input rises smoothly when keyboard opens
  *    - ✅ Input returns to bottom automatically when keyboard closes
  *    - ✅ NO stuck-in-middle issue
- *    - ✅ Proper safe area insets for system navigation
+ *    - ✅ Proper safe area insets for system navigation (insets.bottom when keyboard closed)
  *    - ✅ EXACT SAME STRUCTURE AS COMMENTSMODAL (working reference)
  *    - ✅ inputContainer + inputRow pattern for proper layout
+ *    - ✅ RESPECTS ANDROID TACTILE BUTTONS - input visible at all times
  * 
  * 2️⃣ SEND BUTTON:
  *    - ✅ Sends message immediately on first press
@@ -61,7 +62,7 @@ interface Message {
  * 
  * TECHNICAL IMPLEMENTATION:
  * - position: 'absolute' with dynamic bottom
- * - bottom: keyboardHeight > 0 ? keyboardHeight : 0
+ * - bottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom (CRITICAL FIX)
  * - Keyboard listeners for height tracking (keyboardDidShow/keyboardDidHide)
  * - No KeyboardAvoidingView (causes issues on Android)
  * - inputContainer (absolute) + inputRow (flex layout) pattern
@@ -101,12 +102,12 @@ export default function ConversacionScreen() {
     }
   }, []);
 
-  // ✅ FIX v292.0: Detect keyboard height dynamically (replicated from CommentsModal)
+  // ✅ FIX v294.0: Detect keyboard height dynamically (EXACT CommentsModal replication)
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[Conversacion v292.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[Conversacion v294.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
         setKeyboardHeight(e.endCoordinates.height);
       }
     );
@@ -114,7 +115,7 @@ export default function ConversacionScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[Conversacion v292.0] ⌨️ Keyboard hidden');
+        console.log('[Conversacion v294.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
       }
     );
@@ -425,7 +426,7 @@ export default function ConversacionScreen() {
   }, [chatId, user]);
 
   const enviarMensaje = async () => {
-    console.log('[Conversacion v292.0] 📤 enviarMensaje called - keyboard stays open, message sends immediately');
+    console.log('[Conversacion v294.0] 📤 enviarMensaje called - keyboard stays open, message sends immediately');
     
     if (!user || !chatId || !mensaje.trim() || enviando) return;
 
@@ -504,7 +505,7 @@ export default function ConversacionScreen() {
         });
       }
 
-      console.log('[Conversacion v292.0] ✅ Message sent successfully - keyboard stays open for continuous typing');
+      console.log('[Conversacion v294.0] ✅ Message sent successfully - keyboard stays open for continuous typing');
     } catch (error) {
       console.error('[Conversacion] Error:', error);
       
@@ -686,14 +687,14 @@ export default function ConversacionScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* ✅ FIX v292.0: Messages list with dynamic padding (replicated from CommentsModal) */}
+      {/* ✅ FIX v294.0: Messages list with dynamic padding (EXACT CommentsModal replication) */}
       <FlatList
         ref={flatListRef}
         data={mensajes}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.messagesList,
-          { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : 120 }
+          { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : insets.bottom + 120 }
         ]}
         renderItem={renderMessage}
         keyboardShouldPersistTaps="handled"
@@ -710,11 +711,11 @@ export default function ConversacionScreen() {
         }
       />
 
-      {/* ✅ FIX v293.0: Input container with EXACT CommentsModal positioning logic */}
+      {/* ✅ FIX v294.0: Input container with EXACT CommentsModal positioning logic - RESPECTS SAFE AREA */}
       <View style={[
         styles.inputContainer, 
         { 
-          bottom: keyboardHeight > 0 ? keyboardHeight : 0,
+          bottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom,
         }
       ]}>
         <View style={styles.inputRow}>
