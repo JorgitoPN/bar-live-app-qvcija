@@ -30,6 +30,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { captureRef } from 'react-native-view-shot';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ReportModal from '@/components/social/ReportModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const MOMENTO_DURATION = 6000;
@@ -141,6 +142,8 @@ export default function MomentoViewer({
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // Animation refs
   const progressAnims = useRef<Animated.Value[]>([]).current;
@@ -581,60 +584,25 @@ export default function MomentoViewer({
       return;
     }
 
-    const reportOptions = [
-      { text: 'Spam', value: 'spam' },
-      { text: 'Acoso', value: 'harassment' },
-      { text: 'Contenido inapropiado', value: 'inappropriate' },
-      { text: 'Violencia', value: 'violence' },
-      { text: 'Discurso de odio', value: 'hate_speech' },
-      { text: 'Información falsa', value: 'false_information' },
-      { text: 'Otro', value: 'other' },
-      { text: 'Cancelar', value: 'cancel' },
-    ];
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: reportOptions.map(o => o.text),
-          cancelButtonIndex: reportOptions.length - 1,
-          title: '¿Por qué reportas este Momento?',
-        },
-        async (buttonIndex) => {
-          if (buttonIndex < reportOptions.length - 1) {
-            await submitMomentoReport(currentMomento.id, reportOptions[buttonIndex].value);
-          }
-        }
-      );
-    } else {
-      Alert.alert(
-        'Reportar Momento',
-        '¿Por qué reportas este Momento?',
-        reportOptions.map(option => ({
-          text: option.text,
-          style: option.value === 'cancel' ? 'cancel' : 'default',
-          onPress: option.value !== 'cancel' ? () => submitMomentoReport(currentMomento.id, option.value) : undefined,
-        }))
-      );
+    console.log('[MomentoViewer v297.0] 🚨 Opening report modal, pausing momento');
+    setPaused(true);
+    
+    if (progressAnimationRef.current) {
+      progressAnimationRef.current.stop();
+      progressAnimationRef.current = null;
     }
+    if (progressTimerRef.current) {
+      clearTimeout(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+
+    setShowReportModal(true);
   };
 
-  const submitMomentoReport = async (momentoId: string, reason: string) => {
-    try {
-      const { error } = await supabase.from('content_reports').insert({
-        reporter_id: user!.id,
-        content_type: 'momento',
-        content_id: momentoId,
-        momento_id: momentoId,
-        reason,
-      });
-
-      if (error) throw error;
-
-      Alert.alert('✅ Reporte enviado', 'Gracias por ayudarnos a mantener la comunidad segura');
-    } catch (error) {
-      console.error('[MomentoViewer v179.0] Error reporting momento:', error);
-      Alert.alert('Error', 'No se pudo enviar el reporte');
-    }
+  const handleCloseReportModal = () => {
+    console.log('[MomentoViewer v297.0] ❌ Closing report modal, resuming momento');
+    setShowReportModal(false);
+    setPaused(false);
   };
 
   const handleDelete = async () => {
@@ -978,7 +946,7 @@ export default function MomentoViewer({
 
   // Progress animation management
   useEffect(() => {
-    if (!paused && !showMessageInput && !showStats && momentos.length > 0 && !loading && visible) {
+    if (!paused && !showMessageInput && !showStats && !showReportModal && momentos.length > 0 && !loading && visible) {
       console.log('[MomentoViewer v179.0] ▶️ Starting/resuming progress for momento', currentIndex);
       
       if (progressTimerRef.current) {
@@ -1019,7 +987,7 @@ export default function MomentoViewer({
         }
       };
     }
-  }, [currentIndex, paused, showMessageInput, showStats, momentos, loading, progressAnims, handleNext, visible]);
+  }, [currentIndex, paused, showMessageInput, showStats, showReportModal, momentos, loading, progressAnims, handleNext, visible]);
 
   if (!visible) return null;
 
@@ -1349,6 +1317,13 @@ export default function MomentoViewer({
             </View>
           </View>
         )}
+
+        <ReportModal
+          visible={showReportModal}
+          contentType="post"
+          contentId={currentMomento?.id || ''}
+          onClose={handleCloseReportModal}
+        />
       </Animated.View>
     </Modal>
   );

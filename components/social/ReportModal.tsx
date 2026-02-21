@@ -117,18 +117,21 @@ export default function ReportModal({
   return (
     <Modal
       visible={visible}
-      transparent={Platform.OS === 'android' ? false : true}
-      animationType="slide"
-      presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
+      transparent={true}
+      animationType="fade"
+      presentationStyle="overFullScreen"
       onRequestClose={handleClose}
     >
-      <View style={[styles.overlay, Platform.OS === 'android' && styles.overlayAndroid]}>
+      <TouchableOpacity 
+        style={[styles.overlay, Platform.OS === 'android' && styles.overlayAndroid]}
+        activeOpacity={1}
+        onPress={handleClose}
+      >
         <TouchableOpacity 
-          style={styles.backdrop}
+          style={[styles.container, Platform.OS === 'android' && styles.containerAndroid]}
           activeOpacity={1}
-          onPress={handleClose}
-        />
-        <View style={[styles.container, Platform.OS === 'android' && styles.containerAndroid]}>
+          onPress={(e) => e.stopPropagation()}
+        >
           <LinearGradient
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
             style={styles.header}
@@ -231,8 +234,8 @@ export default function ReportModal({
               </LinearGradient>
             </TouchableOpacity>
           </View>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 }
@@ -241,14 +244,11 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   overlayAndroid: {
-    backgroundColor: colors.background,
-    justifyContent: 'flex-start',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
   container: {
     backgroundColor: colors.background,
