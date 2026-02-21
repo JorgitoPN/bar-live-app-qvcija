@@ -37,7 +37,7 @@ import { calcularDistancia } from '@/utils/locationUtils';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 SALA VIRTUAL v7.6 - ANDROID KEYBOARD FIX FINAL
+ * 🚨 SALA VIRTUAL v7.7 - ANDROID KEYBOARD FIX FINAL
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * ✅ PROBLEMA 1 RESUELTO - iOS Keyboard Coverage:
@@ -47,12 +47,12 @@ import { calcularDistancia } from '@/utils/locationUtils';
  * - ScrollView forzado al final cuando teclado se abre
  * - El campo de texto queda completamente visible al escribir
  * 
- * ✅ PROBLEMA 2 RESUELTO - Android Keyboard Coverage (FIXED v7.6):
+ * ✅ PROBLEMA 2 RESUELTO - Android Keyboard Coverage (FIXED v7.7):
  * - KeyboardAvoidingView behavior=undefined (manual control)
  * - Keyboard.addListener para detectar altura exacta del teclado
- * - Padding inferior dinámico: keyboardHeight + 16px cuando teclado abierto
- * - contentPaddingBottom: keyboardHeight + 16px para elevar contenido
- * - inputContainerBottomPadding: keyboardHeight + 16px para elevar input
+ * - Padding inferior dinámico: keyboardHeight + 100px cuando teclado abierto
+ * - contentPaddingBottom: keyboardHeight + 100px para elevar contenido
+ * - inputContainerBottomPadding: keyboardHeight + 100px para elevar input
  * - ScrollView forzado al final cuando teclado se abre
  * - El campo de texto es completamente visible y accesible
  * - app.json: softwareKeyboardLayoutMode="resize" (CRÍTICO)
@@ -90,7 +90,7 @@ import { calcularDistancia } from '@/utils/locationUtils';
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-console.log("✅ SALA VIRTUAL v7.6 - ANDROID KEYBOARD FIX FINAL - Manual height control");
+console.log("✅ SALA VIRTUAL v7.7 - ANDROID KEYBOARD FIX FINAL - Manual height control with 100px lift");
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -340,12 +340,12 @@ export default function SalaVirtualEnhancedScreen() {
   }, []);
 
   useEffect(() => {
-    console.log('[SalaVirtual v7.5] 🎹 Setting up keyboard listeners with manual offset adjustment');
+    console.log('[SalaVirtual v7.7] 🎹 Setting up keyboard listeners with 100px lift adjustment');
     
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
       (e) => {
-        console.log('[SalaVirtual v7.5] ⬆️ Keyboard opened, height:', e.endCoordinates.height);
+        console.log('[SalaVirtual v7.7] ⬆️ Keyboard opened, height:', e.endCoordinates.height);
         if (isMounted.current) {
           setKeyboardHeight(e.endCoordinates.height);
           setIsKeyboardVisible(true);
@@ -365,7 +365,7 @@ export default function SalaVirtualEnhancedScreen() {
     const keyboardDidHideListener = Keyboard.addListener(
       'keyboardDidHide',
       () => {
-        console.log('[SalaVirtual v7.5] ⬇️ Keyboard closed');
+        console.log('[SalaVirtual v7.7] ⬇️ Keyboard closed');
         if (isMounted.current) {
           setKeyboardHeight(0);
           setIsKeyboardVisible(false);
@@ -374,7 +374,7 @@ export default function SalaVirtualEnhancedScreen() {
     );
 
     return () => {
-      console.log('[SalaVirtual v7.5] 🧹 Removing keyboard listeners');
+      console.log('[SalaVirtual v7.7] 🧹 Removing keyboard listeners');
       keyboardDidShowListener.remove();
       keyboardDidHideListener.remove();
     };
@@ -2951,14 +2951,14 @@ export default function SalaVirtualEnhancedScreen() {
     // Dynamic padding based on keyboard state
     // iOS: No extra padding when keyboard is open (input sits on keyboard)
     // Android: Add keyboard height + extra spacing to push content well above keyboard
-    // Increased from 40px to 60px for "un poquito mas" (20% more lift)
+    // Increased to 100px for maximum visibility above keyboard
     const dynamicPadding = Platform.OS === 'ios'
       ? (isKeyboardVisible ? 0 : Math.max(insets.bottom, 8))
-      : (isKeyboardVisible ? keyboardHeight + 60 : Math.max(insets.bottom, 8));
+      : (isKeyboardVisible ? keyboardHeight + 100 : Math.max(insets.bottom, 8));
     
     const totalPadding = baseInputHeight + quickMessagesHeight + dynamicPadding;
     
-    console.log('[SalaVirtual v7.6] 📏 Content padding bottom:', totalPadding, 'px (keyboard:', isKeyboardVisible ? 'open' : 'closed', ', height:', keyboardHeight, ')');
+    console.log('[SalaVirtual v7.7] 📏 Content padding bottom:', totalPadding, 'px (keyboard:', isKeyboardVisible ? 'open' : 'closed', ', height:', keyboardHeight, ')');
     
     return totalPadding;
   }, [showQuickMessages, activeTab, insets.bottom, isKeyboardVisible, keyboardHeight]);
@@ -2970,9 +2970,9 @@ export default function SalaVirtualEnhancedScreen() {
       return isKeyboardVisible ? 0 : Math.max(insets.bottom, 8);
     } else {
       // Android: Add keyboard height + extra spacing to lift input well above keyboard
-      // Increased from 40px to 60px for "un poquito mas" (20% more lift)
+      // Increased to 100px for maximum visibility above keyboard
       // When keyboard is closed, use safe area inset
-      return isKeyboardVisible ? keyboardHeight + 60 : Math.max(insets.bottom, 8);
+      return isKeyboardVisible ? keyboardHeight + 100 : Math.max(insets.bottom, 8);
     }
   }, [isKeyboardVisible, insets.bottom, keyboardHeight]);
 
@@ -3109,8 +3109,8 @@ export default function SalaVirtualEnhancedScreen() {
   const modeIcon = mode === 'day' ? 'wb_sunny' : 'nightlight';
   const modeIconIOS = mode === 'day' ? 'sun.max.fill' : 'moon.fill';
 
-  // ✅ FIXED v7.5: iOS keyboard positioning - input field sits directly on keyboard
-  // ✅ FIXED v7.5: Android keyboard positioning - input field visible above keyboard with proper spacing
+  // ✅ FIXED v7.7: iOS keyboard positioning - input field sits directly on keyboard
+  // ✅ FIXED v7.7: Android keyboard positioning - input field visible above keyboard with 100px lift
   // ✅ CRITICAL: Dynamic padding based on keyboard state to prevent input from being hidden
 
   return (
