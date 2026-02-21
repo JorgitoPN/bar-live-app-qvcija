@@ -17,6 +17,7 @@ import {
   Platform,
   ActionSheetIOS,
   StatusBar,
+  Keyboard,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -134,6 +135,7 @@ export default function MomentoViewer({
   const [showMessageInput, setShowMessageInput] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // Animation refs
   const progressAnims = useRef<Animated.Value[]>([]).current;
@@ -926,6 +928,30 @@ export default function MomentoViewer({
     };
   }, [visible]);
 
+  // ✅ FIX v181.0: Detect keyboard height dynamically
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        console.log('[MomentoViewer v181.0] Keyboard opening, height:', e.endCoordinates.height);
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        console.log('[MomentoViewer v181.0] Keyboard closing');
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
+
   // Load momentos on mount
   useEffect(() => {
     if (visible && authorId) {
@@ -1123,18 +1149,11 @@ export default function MomentoViewer({
         </LinearGradient>
 
         {showMessageInput && (
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
-            style={styles.messageInputOverlay}
-            keyboardVerticalOffset={0}
-          >
-            <View style={[
-              styles.messageInputContainer,
-              Platform.OS === 'android' && {
-                // ✅ FIX v180.0: MAXIMUM spacing for COMPLETE visibility above keyboard
-                paddingBottom: 300,
-              }
-            ]}>
+          <View style={[
+            styles.messageInputOverlay,
+            { bottom: keyboardHeight > 0 ? keyboardHeight : 0 }
+          ]}>
+            <View style={styles.messageInputContainer}>
               <TouchableOpacity 
                 style={styles.messageInputClose}
                 onPress={handleCloseMessageInput}
@@ -1165,8 +1184,8 @@ export default function MomentoViewer({
                 <TouchableOpacity
                   style={[styles.messageSendButton, (!messageText.trim() || sendingMessage) && styles.messageSendButtonDisabled]}
                   onPress={() => {
-                    // ✅ FIX v180.0: Send message immediately without closing keyboard
-                    console.log('[MomentoViewer v180.0] 📤 Send button pressed - sending immediately');
+                    // ✅ FIX v181.0: Send message immediately without closing keyboard
+                    console.log('[MomentoViewer v181.0] 📤 Send button pressed - sending immediately');
                     handleSendMessage();
                   }}
                   disabled={!messageText.trim() || sendingMessage}
@@ -1184,7 +1203,7 @@ export default function MomentoViewer({
                 </TouchableOpacity>
               </View>
             </View>
-          </KeyboardAvoidingView>
+          </View>
         )}
 
         {!showMessageInput && (
@@ -1485,7 +1504,6 @@ const styles = StyleSheet.create({
   },
   messageInputOverlay: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
     zIndex: 250,
@@ -1494,8 +1512,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     paddingHorizontal: 16,
     paddingTop: 16,
-    // ✅ FIX v180.0: Base padding (will be overridden by inline style for Android)
-    paddingBottom: Platform.OS === 'android' ? 300 : 40,
+    paddingBottom: 16,
   },
   messageInputClose: {
     alignSelf: 'flex-end',

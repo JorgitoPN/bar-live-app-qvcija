@@ -77,6 +77,7 @@ export default function ConversacionScreen() {
   const [mensajes, setMensajes] = useState<Message[]>([]);
   const [mensaje, setMensaje] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const channelRef = useRef<any>(null);
 
@@ -94,6 +95,30 @@ export default function ConversacionScreen() {
         SystemUI.setBackgroundColorAsync('transparent');
       };
     }
+  }, []);
+
+  // ✅ FIX v291.0: Detect keyboard height dynamically
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        console.log('[Conversacion v291.0] Keyboard opening, height:', e.endCoordinates.height);
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        console.log('[Conversacion v291.0] Keyboard closing');
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
   }, []);
 
   const loadMessages = useCallback(async (chatIdToLoad: string) => {
@@ -657,62 +682,61 @@ export default function ConversacionScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* ✅ FIX v290.0: KeyboardAvoidingView with 'height' for Android (natural push/return) */}
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-      >
-        <FlatList
-          ref={flatListRef}
-          data={mensajes}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={[
-            styles.messagesList,
-            { paddingBottom: 8 }
-          ]}
-          renderItem={renderMessage}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <IconSymbol ios_icon_name="bubble.left.and.bubble.right" android_material_icon_name="chat" size={scaleIconSize(64)} color={colors.textSecondary} />
-              <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No hay mensajes aún</Text>
-              <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
-                {isLocalChat 
-                  ? `Envía un mensaje a ${displayName}` 
-                  : 'Envía un mensaje para iniciar la conversación'}
-              </Text>
-            </View>
-          }
-        />
+      {/* ✅ FIX v291.0: Removed KeyboardAvoidingView - using manual positioning with keyboard height */}
+      <FlatList
+        ref={flatListRef}
+        data={mensajes}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={[
+          styles.messagesList,
+          { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 70 : 8 }
+        ]}
+        renderItem={renderMessage}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <IconSymbol ios_icon_name="bubble.left.and.bubble.right" android_material_icon_name="chat" size={scaleIconSize(64)} color={colors.textSecondary} />
+            <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No hay mensajes aún</Text>
+            <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
+              {isLocalChat 
+                ? `Envía un mensaje a ${displayName}` 
+                : 'Envía un mensaje para iniciar la conversación'}
+            </Text>
+          </View>
+        }
+      />
 
-        {/* ✅ FIX v290.0: Input container with proper Android spacing */}
-        <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 12) + (Platform.OS === 'android' ? 16 : 0) }]}>
-          <TextInput
-            style={[styles.input, { fontSize: scaleFontSize(16) }]}
-            placeholder="Escribe un mensaje..."
-            placeholderTextColor={colors.textSecondary}
-            value={mensaje}
-            onChangeText={setMensaje}
-            multiline
-            maxLength={1000}
-            editable={!enviando}
-            onSubmitEditing={enviarMensaje}
-            blurOnSubmit={false}
-            returnKeyType="send"
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, (!mensaje.trim() || enviando) && styles.sendButtonDisabled]}
-            onPress={enviarMensaje}
-            disabled={!mensaje.trim() || enviando}
-          >
-            {enviando ? (
-              <ActivityIndicator size="small" color={colors.headerText} />
-            ) : (
-              <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={scaleIconSize(20)} color={colors.headerText} />
-            )}
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+      {/* ✅ FIX v291.0: Input container positioned just above keyboard */}
+      <View style={[
+        styles.inputContainer, 
+        { 
+          bottom: keyboardHeight > 0 ? keyboardHeight : Math.max(insets.bottom, 12),
+        }
+      ]}>
+        <TextInput
+          style={[styles.input, { fontSize: scaleFontSize(16) }]}
+          placeholder="Escribe un mensaje..."
+          placeholderTextColor={colors.textSecondary}
+          value={mensaje}
+          onChangeText={setMensaje}
+          multiline
+          maxLength={1000}
+          editable={!enviando}
+          onSubmitEditing={enviarMensaje}
+          blurOnSubmit={false}
+          returnKeyType="send"
+        />
+        <TouchableOpacity
+          style={[styles.sendButton, (!mensaje.trim() || enviando) && styles.sendButtonDisabled]}
+          onPress={enviarMensaje}
+          disabled={!mensaje.trim() || enviando}
+        >
+          {enviando ? (
+            <ActivityIndicator size="small" color={colors.headerText} />
+          ) : (
+            <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={scaleIconSize(20)} color={colors.headerText} />
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -804,6 +828,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   inputContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: 12,
