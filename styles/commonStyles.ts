@@ -28,13 +28,13 @@ import { getHeaderTitleSize, getHeaderIconSize } from '@/utils/androidScaling';
 
 // Header gradient colors - abc
 export const colors = {
-  // Primary brand colors
+  // Primary brand colors - Original Barlive colors
   primary: '#14B8A6',
   secondary: '#06B6D4',
   
-  // Header gradient - ✅ FIX: Unified Barlive corporate blue (#1A73E8)
-  headerGradientStart: '#1A73E8',
-  headerGradientEnd: '#1A73E8',
+  // Header gradient - Original Barlive teal gradient
+  headerGradientStart: '#14B8A6',
+  headerGradientEnd: '#06B6D4',
   headerText: '#FFFFFF',
   
   // Background colors

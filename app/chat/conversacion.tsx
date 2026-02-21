@@ -39,13 +39,14 @@ interface Message {
 }
 
 /**
- * ✅ ANDROID FIXES v285.0 - FINAL
+ * ✅ ANDROID FIXES v286.0 - FINAL
  * 
  * CRITICAL FIXES:
- * - ✅ Input container properly aligned with system buttons (no extra separation)
- * - ✅ System navigation bar background set to Barlive corporate blue (#1A73E8)
+ * - ✅ Input container properly positioned above system navigation buttons
+ * - ✅ System navigation bar background set to original Barlive teal (#14B8A6)
  * - ✅ KeyboardAvoidingView with behavior="height" on Android
- * - ✅ Proper scaling applied to all text and icons
+ * - ✅ Safe area insets properly applied for dynamic bottom padding
+ * - ✅ Original Barlive color scheme restored
  * - ✅ iOS behavior unchanged
  */
 export default function ConversacionScreen() {
@@ -67,11 +68,11 @@ export default function ConversacionScreen() {
   const isLocalChat = !!params.localId;
   const localId = params.localId as string | undefined;
 
-  // ✅ ANDROID FIX v285.0: Set system navigation bar color to Barlive corporate blue
+  // ✅ ANDROID FIX v286.0: Set system navigation bar color to original Barlive teal
   useEffect(() => {
     if (Platform.OS === 'android') {
-      const barliveBlue = '#1A73E8'; // Barlive corporate blue
-      SystemUI.setBackgroundColorAsync(barliveBlue);
+      const barliveTeal = '#14B8A6'; // Original Barlive teal
+      SystemUI.setBackgroundColorAsync(barliveTeal);
       
       return () => {
         // Reset to default when leaving screen
@@ -650,8 +651,8 @@ export default function ConversacionScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={[
             styles.messagesList,
-            // ✅ ANDROID FIX v285.0: Bottom padding for input container
-            { paddingBottom: Platform.OS === 'android' ? 80 : 8 }
+            // ✅ ANDROID FIX v286.0: Bottom padding for input container
+            { paddingBottom: Platform.OS === 'android' ? 8 : 8 }
           ]}
           renderItem={renderMessage}
           ListEmptyComponent={
@@ -667,8 +668,8 @@ export default function ConversacionScreen() {
           }
         />
 
-        {/* ✅ ANDROID FIX v285.0: Input container properly aligned with system buttons */}
-        <View style={styles.inputContainer}>
+        {/* ✅ ANDROID FIX v286.0: Input container with proper safe area insets */}
+        <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 12) + (Platform.OS === 'android' ? 12 : 0) }]}>
           <TextInput
             style={[styles.input, { fontSize: scaleFontSize(16) }]}
             placeholder="Escribe un mensaje..."
@@ -786,11 +787,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: 12,
-    paddingBottom: Platform.OS === 'android' ? 16 : 12,
+    // ✅ FIX v286.0: Proper bottom padding to stay above system navigation buttons
+    paddingBottom: Platform.OS === 'android' ? 24 : 12,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
-    // ✅ FIX: Use Barlive corporate blue (#1A73E8) for background
-    backgroundColor: '#1A73E8',
+    backgroundColor: colors.background,
     gap: 12,
   },
   input: {
