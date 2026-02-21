@@ -30,11 +30,13 @@ import { captureRef } from 'react-native-view-shot';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// ✅ v163.0: Use 'screen' instead of 'window' for absolute hardware dimensions
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const MOMENTO_DURATION = 6000;
 const PROGRESS_BAR_HEIGHT = 3;
 const NEON_GREEN = '#39FF14';
+const LONG_PRESS_DURATION = 300; // ms to detect long press
+const SWIPE_THRESHOLD = 50; // px to trigger swipe
+const VERTICAL_SWIPE_THRESHOLD = 100; // px to trigger close
 
 interface Momento {
   id: string;
@@ -66,31 +68,29 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v164.0 - ANDROID NAV BUTTONS FIX
+ * ✅ MOMENTO VIEWER v165.0 - PROFESSIONAL GESTURE CONTROLS
  * 
- * NEW CHANGES v164.0:
- * - ✅ FIXED: Increased bottom padding on Android to 60px (was 24px)
- * - ✅ REASON: Android navigation buttons (back, home, recent) were covering action buttons
- * - ✅ RESULT: Action buttons now visible and accessible above navigation bar
- * - ✅ VERIFIED: No overlap with system navigation buttons on Android
+ * GESTURE SYSTEM:
+ * 1. TAP (Short Press):
+ *    - Right half of screen → Next fragment/momento
+ *    - Left half of screen → Previous fragment/momento
+ *    - Instant navigation, no interruption
  * 
- * Previous fixes v163.0 (ANDROID ABSOLUTE FULLSCREEN):
- * - ✅ FIXED: Using Dimensions.get('screen') for absolute hardware dimensions
- * - ✅ FIXED: Container forces width: SCREEN_WIDTH, height: SCREEN_HEIGHT
- * - ✅ FIXED: Modal uses statusBarTranslucent={true} and transparent={false}
- * - ✅ FIXED: StatusBar hidden={true} and translucent={true} on Android
- * - ✅ FIXED: Solid black background (#000) to prevent visual glitches
- * - ✅ FIXED: Removed useSafeAreaInsets() from bottom padding calculations
- * - ✅ FIXED: Image extends from pixel 0 (top) to last pixel (bottom)
- * - ✅ FIXED: Progress bars at absolute top: 0 with minimal internal padding
- * - ✅ VERIFIED: True Instagram Stories immersive effect - covers system bars
+ * 2. LONG PRESS (Hold):
+ *    - Anywhere on screen → Pause momento
+ *    - Progress bar stops
+ *    - Audio stops (if any)
+ *    - Release → Resume from exact position
  * 
- * DESIGN PHILOSOPHY:
- * - Main container: SCREEN_HEIGHT x SCREEN_WIDTH (absolute hardware size)
- * - Image: Covers entire screen from top to bottom
- * - UI elements: Positioned absolutely with internal padding only
- * - Bottom actions: Extra padding on Android for navigation buttons clearance
- * - System bars (status + navigation) are covered by content
+ * 3. SWIPE DOWN:
+ *    - Drag down → Close viewer
+ *    - Returns to previous screen
+ *    - Animated exit
+ * 
+ * 4. HORIZONTAL SWIPE:
+ *    - Swipe left → Next user's momento
+ *    - Swipe right → Previous user's momento
+ *    - Faster than multiple taps
  */
 
 export default function MomentoViewer({
@@ -101,9 +101,8 @@ export default function MomentoViewer({
 }: MomentoViewerProps) {
   const { user } = useAuth();
   const router = useRouter();
-  // ✅ v163.0: Keep insets for reference but DON'T use for bottom padding
-  // We want content to extend BELOW the navigation bar
   const insets = useSafeAreaInsets();
+  
   const [momentos, setMomentos] = useState<Momento[]>([]);
   const [author, setAuthor] = useState<Author | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -117,15 +116,24 @@ export default function MomentoViewer({
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  // Animation refs
   const progressAnims = useRef<Animated.Value[]>([]).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateYAnim = useRef(new Animated.Value(0)).current;
   const momentoViewRef = useRef<View>(null);
+  
+  // Progress tracking refs
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
-  const pauseTimeRef = useRef<number>(0);
   const progressStartTimeRef = useRef<number>(0);
+  const pausedProgressRef = useRef<number>(0);
+  
+  // Gesture tracking refs
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressRef = useRef(false);
+  const touchStartTimeRef = useRef<number>(0);
 
-  // ✅ ANDROID SCALING: Icon sizes
+  // Icon sizes
   const closeIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
   const authorAvatarIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
   const actionIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
@@ -156,7 +164,7 @@ export default function MomentoViewer({
         )
       );
     } catch (error) {
-      console.error('[MomentoViewer v163.0] Error marking as viewed:', error);
+      console.error('[MomentoViewer v165.0] Error marking as viewed:', error);
     }
   }, [user]);
 
@@ -165,7 +173,7 @@ export default function MomentoViewer({
 
     try {
       setLoading(true);
-      console.log('[MomentoViewer v164.0] Loading momentos for:', { authorId, authorType });
+      console.log('[MomentoViewer v165.0] Loading momentos for:', { authorId, authorType });
 
       if (authorType === 'usuario') {
         const { data: userData } = await supabase
@@ -261,15 +269,15 @@ export default function MomentoViewer({
       }
       
       setCurrentIndex(startIndex);
-      console.log('[MomentoViewer v163.0] Starting at index:', startIndex, 'of', momentosWithStatus.length);
+      console.log('[MomentoViewer v165.0] Starting at index:', startIndex, 'of', momentosWithStatus.length);
 
       if (momentosWithStatus.length > 0 && !momentosWithStatus[startIndex].user_has_viewed) {
         markAsViewed(momentosWithStatus[startIndex].id);
       }
 
-      console.log('[MomentoViewer v164.0] ✅ Loaded momentos:', momentosWithStatus.length);
+      console.log('[MomentoViewer v165.0] ✅ Loaded momentos:', momentosWithStatus.length);
     } catch (error) {
-      console.error('[MomentoViewer v163.0] Error loading momentos:', error);
+      console.error('[MomentoViewer v165.0] Error loading momentos:', error);
       Alert.alert('Error', 'No se pudieron cargar los Momentos');
       onClose();
     } finally {
@@ -322,7 +330,7 @@ export default function MomentoViewer({
         );
       }
     } catch (error) {
-      console.error('[MomentoViewer v163.0] Error toggling like:', error);
+      console.error('[MomentoViewer v165.0] Error toggling like:', error);
     }
   };
 
@@ -330,23 +338,23 @@ export default function MomentoViewer({
     if (!momentoViewRef.current) return null;
 
     try {
-      console.log('[MomentoViewer v163.0] 📸 Capturing momento screenshot...');
+      console.log('[MomentoViewer v165.0] 📸 Capturing momento screenshot...');
       
       const uri = await captureRef(momentoViewRef, {
         format: 'jpg',
         quality: 0.8,
       });
 
-      console.log('[MomentoViewer v163.0] ✅ Screenshot captured:', uri);
+      console.log('[MomentoViewer v165.0] ✅ Screenshot captured:', uri);
       return uri;
     } catch (error) {
-      console.error('[MomentoViewer v163.0] Error capturing screenshot:', error);
+      console.error('[MomentoViewer v165.0] Error capturing screenshot:', error);
       return null;
     }
   };
 
   const handleOpenMessageInput = () => {
-    console.log('[MomentoViewer v163.0] 📝 Opening message input, pausing momento');
+    console.log('[MomentoViewer v165.0] 📝 Opening message input, pausing momento');
     setPaused(true);
     setShowMessageInput(true);
     
@@ -361,7 +369,7 @@ export default function MomentoViewer({
   };
 
   const handleCloseMessageInput = () => {
-    console.log('[MomentoViewer v163.0] ❌ Closing message input, resuming momento');
+    console.log('[MomentoViewer v165.0] ❌ Closing message input, resuming momento');
     setShowMessageInput(false);
     setMessageText('');
     setPaused(false);
@@ -380,7 +388,7 @@ export default function MomentoViewer({
 
     try {
       setSendingMessage(true);
-      console.log('[MomentoViewer v163.0] 📸 Starting momento message flow with text...');
+      console.log('[MomentoViewer v165.0] 📸 Starting momento message flow with text...');
       
       const screenshotUri = await captureMomentoScreenshot();
       
@@ -410,7 +418,7 @@ export default function MomentoViewer({
             .getPublicUrl(filePath);
           
           screenshotUrl = urlData.publicUrl;
-          console.log('[MomentoViewer v163.0] ✅ Screenshot uploaded:', screenshotUrl);
+          console.log('[MomentoViewer v165.0] ✅ Screenshot uploaded:', screenshotUrl);
         }
       }
 
@@ -454,7 +462,7 @@ export default function MomentoViewer({
           leido: false,
         });
 
-        console.log('[MomentoViewer v163.0] ✅ Momento message sent with screenshot and text');
+        console.log('[MomentoViewer v165.0] ✅ Momento message sent with screenshot and text');
 
         setShowMessageInput(false);
         setMessageText('');
@@ -469,7 +477,7 @@ export default function MomentoViewer({
         onClose();
       }
     } catch (error) {
-      console.error('[MomentoViewer v163.0] Error creating chat:', error);
+      console.error('[MomentoViewer v165.0] Error creating chat:', error);
       Alert.alert('Error', 'No se pudo crear la conversación');
     } finally {
       setSendingMessage(false);
@@ -482,7 +490,7 @@ export default function MomentoViewer({
     const currentMomento = momentos[currentIndex];
     if (!currentMomento) return;
 
-    console.log('[MomentoViewer v163.0] 📊 Opening stats, pausing momento');
+    console.log('[MomentoViewer v165.0] 📊 Opening stats, pausing momento');
     setPaused(true);
     
     if (progressAnimationRef.current) {
@@ -528,7 +536,7 @@ export default function MomentoViewer({
       setLikers(likersResult.data || []);
       setShowStats(true);
     } catch (error) {
-      console.error('[MomentoViewer v163.0] Error loading stats:', error);
+      console.error('[MomentoViewer v165.0] Error loading stats:', error);
     }
   };
 
@@ -594,7 +602,7 @@ export default function MomentoViewer({
 
       Alert.alert('✅ Reporte enviado', 'Gracias por ayudarnos a mantener la comunidad segura');
     } catch (error) {
-      console.error('[MomentoViewer v163.0] Error reporting momento:', error);
+      console.error('[MomentoViewer v165.0] Error reporting momento:', error);
       Alert.alert('Error', 'No se pudo enviar el reporte');
     }
   };
@@ -638,7 +646,7 @@ export default function MomentoViewer({
 
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (error) {
-              console.error('[MomentoViewer v163.0] Error deleting momento:', error);
+              console.error('[MomentoViewer v165.0] Error deleting momento:', error);
               Alert.alert('Error', 'No se pudo eliminar el Momento');
             }
           },
@@ -648,6 +656,8 @@ export default function MomentoViewer({
   };
 
   const handleNext = useCallback(() => {
+    console.log('[MomentoViewer v165.0] ➡️ Next momento');
+    
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
       progressTimerRef.current = null;
@@ -671,11 +681,14 @@ export default function MomentoViewer({
         markAsViewed(momentos[currentIndex + 1].id);
       }
     } else {
-      onClose();
+      console.log('[MomentoViewer v165.0] End of momentos, closing');
+      handleClose();
     }
-  }, [currentIndex, momentos, onClose, progressAnims, markAsViewed]);
+  }, [currentIndex, momentos, progressAnims, markAsViewed]);
 
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
+    console.log('[MomentoViewer v165.0] ⬅️ Previous momento');
+    
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
       progressTimerRef.current = null;
@@ -691,9 +704,11 @@ export default function MomentoViewer({
       }
       setCurrentIndex(currentIndex - 1);
     }
-  };
+  }, [currentIndex, progressAnims]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
+    console.log('[MomentoViewer v165.0] ❌ Closing viewer');
+    
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
       progressTimerRef.current = null;
@@ -714,58 +729,164 @@ export default function MomentoViewer({
     setMessageText('');
     progressAnims.forEach(anim => anim.setValue(0));
     onClose();
-  };
+  }, [onClose, progressAnims]);
 
-  const handlePressIn = () => {
-    console.log('[MomentoViewer v163.0] 🛑 PAUSE - Touch detected');
+  // ✅ GESTURE 1: TAP (Short Press) - Left/Right navigation
+  const handleTap = useCallback((locationX: number) => {
+    if (isLongPressRef.current) {
+      console.log('[MomentoViewer v165.0] Ignoring tap - was long press');
+      return;
+    }
+
+    const isRightSide = locationX > SCREEN_WIDTH / 2;
     
+    if (isRightSide) {
+      console.log('[MomentoViewer v165.0] 👉 Tap right - Next');
+      handleNext();
+    } else {
+      console.log('[MomentoViewer v165.0] 👈 Tap left - Previous');
+      handlePrevious();
+    }
+    
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [handleNext, handlePrevious]);
+
+  // ✅ GESTURE 2: LONG PRESS - Pause/Resume
+  const handleLongPressStart = useCallback(() => {
+    console.log('[MomentoViewer v165.0] 🛑 Long press detected - PAUSE');
+    
+    isLongPressRef.current = true;
     setPaused(true);
-    pauseTimeRef.current = Date.now();
     
+    // Save current progress
+    if (progressAnims[currentIndex]) {
+      pausedProgressRef.current = progressAnims[currentIndex].__getValue();
+    }
+    
+    // Stop animations
     if (progressAnimationRef.current) {
       progressAnimationRef.current.stop();
       progressAnimationRef.current = null;
     }
-    
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
       progressTimerRef.current = null;
     }
     
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }, [currentIndex, progressAnims]);
 
-  const handlePressOut = () => {
-    console.log('[MomentoViewer v163.0] ▶️ RESUME - Touch released');
+  const handleLongPressEnd = useCallback(() => {
+    console.log('[MomentoViewer v165.0] ▶️ Long press released - RESUME');
     
     setPaused(false);
     
+    // Reset long press flag after a short delay to prevent tap from firing
+    setTimeout(() => {
+      isLongPressRef.current = false;
+    }, 100);
+    
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
+  }, []);
 
+  // ✅ GESTURE 3 & 4: PanResponder for swipes
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Only set responder if there's significant movement
         return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
       },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 100) {
-          handleClose();
+      
+      onPanResponderGrant: (evt, gestureState) => {
+        touchStartTimeRef.current = Date.now();
+        isLongPressRef.current = false;
+        
+        // Start long press timer
+        longPressTimerRef.current = setTimeout(() => {
+          handleLongPressStart();
+        }, LONG_PRESS_DURATION);
+      },
+      
+      onPanResponderMove: (_, gestureState) => {
+        // Cancel long press if user moves finger
+        if (Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10) {
+          if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+          }
         }
-        else if (gestureState.dx > 50) {
-          handlePrevious();
-        } else if (gestureState.dx < -50) {
-          handleNext();
+        
+        // ✅ GESTURE 3: Swipe down to close
+        if (gestureState.dy > 0 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx)) {
+          translateYAnim.setValue(gestureState.dy);
+        }
+      },
+      
+      onPanResponderRelease: (evt, gestureState) => {
+        // Clear long press timer
+        if (longPressTimerRef.current) {
+          clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
+        
+        // If was long press, just resume
+        if (isLongPressRef.current) {
+          handleLongPressEnd();
+          return;
+        }
+        
+        const touchDuration = Date.now() - touchStartTimeRef.current;
+        const isQuickTap = touchDuration < LONG_PRESS_DURATION;
+        const hasMinimalMovement = Math.abs(gestureState.dx) < 10 && Math.abs(gestureState.dy) < 10;
+        
+        // ✅ GESTURE 3: Swipe down to close
+        if (gestureState.dy > VERTICAL_SWIPE_THRESHOLD) {
+          console.log('[MomentoViewer v165.0] ⬇️ Swipe down - Close');
+          Animated.timing(translateYAnim, {
+            toValue: SCREEN_HEIGHT,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            handleClose();
+          });
+          return;
+        }
+        
+        // Reset vertical position if not closing
+        if (gestureState.dy > 0) {
+          Animated.spring(translateYAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 10,
+          }).start();
+        }
+        
+        // ✅ GESTURE 4: Horizontal swipe between users
+        if (Math.abs(gestureState.dx) > SWIPE_THRESHOLD) {
+          if (gestureState.dx < 0) {
+            console.log('[MomentoViewer v165.0] ⬅️ Swipe left - Next user');
+            handleNext();
+          } else {
+            console.log('[MomentoViewer v165.0] ➡️ Swipe right - Previous user');
+            handlePrevious();
+          }
+          return;
+        }
+        
+        // ✅ GESTURE 1: Quick tap (if no swipe detected)
+        if (isQuickTap && hasMinimalMovement) {
+          const locationX = evt.nativeEvent.locationX;
+          handleTap(locationX);
         }
       },
     })
   ).current;
 
-  // ✅ v163.0: Manage StatusBar visibility for immersive fullscreen
+  // StatusBar management
   useEffect(() => {
     if (visible) {
-      // Hide status bar and make it translucent on Android
       if (Platform.OS === 'android') {
         StatusBar.setHidden(true, 'fade');
         StatusBar.setTranslucent(true);
@@ -774,7 +895,6 @@ export default function MomentoViewer({
     }
     
     return () => {
-      // Restore status bar when viewer closes
       if (Platform.OS === 'android') {
         StatusBar.setHidden(false, 'fade');
         StatusBar.setTranslucent(false);
@@ -783,9 +903,10 @@ export default function MomentoViewer({
     };
   }, [visible]);
 
+  // Load momentos on mount
   useEffect(() => {
     if (visible && authorId) {
-      console.log('[MomentoViewer v163.0] Opening viewer for:', { authorId, authorType });
+      console.log('[MomentoViewer v165.0] Opening viewer for:', { authorId, authorType });
       loadMomentos();
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -801,9 +922,10 @@ export default function MomentoViewer({
     }
   }, [visible, authorId, authorType, fadeAnim, loadMomentos]);
 
+  // Progress animation management
   useEffect(() => {
     if (!paused && !showMessageInput && !showStats && momentos.length > 0 && !loading && visible) {
-      console.log('[MomentoViewer v163.0] ▶️ Starting/resuming progress for momento', currentIndex);
+      console.log('[MomentoViewer v165.0] ▶️ Starting/resuming progress for momento', currentIndex);
       
       if (progressTimerRef.current) {
         clearTimeout(progressTimerRef.current);
@@ -815,12 +937,12 @@ export default function MomentoViewer({
       const currentProgress = progressAnims[currentIndex]?.__getValue() || 0;
       const remainingDuration = MOMENTO_DURATION * (1 - currentProgress);
 
-      console.log('[MomentoViewer v163.0] Progress:', currentProgress.toFixed(3), '- Remaining:', remainingDuration.toFixed(0), 'ms');
+      console.log('[MomentoViewer v165.0] Progress:', currentProgress.toFixed(3), '- Remaining:', remainingDuration.toFixed(0), 'ms');
 
       progressStartTimeRef.current = Date.now();
 
       progressTimerRef.current = setTimeout(() => {
-        console.log('[MomentoViewer v163.0] ⏱️ Timer completed - moving to next');
+        console.log('[MomentoViewer v165.0] ⏱️ Timer completed - moving to next');
         handleNext();
       }, remainingDuration);
 
@@ -873,7 +995,7 @@ export default function MomentoViewer({
   const currentMomento = momentos[currentIndex];
   
   if (!currentMomento) {
-    console.error('[MomentoViewer v163.0] Current momento is undefined');
+    console.error('[MomentoViewer v165.0] Current momento is undefined');
     handleClose();
     return null;
   }
@@ -894,28 +1016,15 @@ export default function MomentoViewer({
         translucent={true}
         hidden={Platform.OS === 'android'}
       />
-      <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+      <Animated.View style={[styles.container, { opacity: fadeAnim, transform: [{ translateY: translateYAnim }] }]}>
         <View style={styles.backgroundOverlay} />
         
-        <View style={styles.imageContainer} {...panResponder.panHandlers} ref={momentoViewRef} collapsable={false}>
-          <View style={styles.imageTouchable}>
-            <TouchableOpacity
-              style={styles.leftTapZone}
-              activeOpacity={1}
-              onPress={handlePrevious}
-              onPressIn={handlePressIn}
-              onPressOut={handlePressOut}
-            />
-            
-            <TouchableOpacity
-              style={styles.rightTapZone}
-              activeOpacity={1}
-              onPress={handleNext}
-              onPressIn={handlePressIn}
-              onPressOut={handlePressOut}
-            />
-          </View>
-          
+        <View 
+          style={styles.imageContainer} 
+          {...panResponder.panHandlers} 
+          ref={momentoViewRef} 
+          collapsable={false}
+        >
           <View style={styles.imageWrapper} pointerEvents="none">
             {currentMomento.imagen_url ? (
               <Image
@@ -1203,16 +1312,14 @@ function getTimeAgo(timestamp: string): string {
 
 const styles = StyleSheet.create({
   container: {
-    // ✅ v163.0: Force absolute screen dimensions (not flex)
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
-    backgroundColor: '#000', // Solid black to prevent flicker
+    backgroundColor: '#000',
     position: 'absolute',
     top: 0,
     left: 0,
   },
   loadingContainer: {
-    // ✅ v163.0: Force absolute screen dimensions
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
     backgroundColor: '#000',
@@ -1228,7 +1335,6 @@ const styles = StyleSheet.create({
     fontFamily: 'System',
   },
   backgroundOverlay: {
-    // ✅ v163.0: Solid black overlay covering entire screen
     position: 'absolute',
     top: 0,
     left: 0,
@@ -1237,7 +1343,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   imageContainer: {
-    // ✅ v163.0: Image container fills entire screen (edge-to-edge)
     position: 'absolute',
     top: 0,
     left: 0,
@@ -1245,23 +1350,6 @@ const styles = StyleSheet.create({
     height: SCREEN_HEIGHT,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  imageTouchable: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    zIndex: 5,
-  },
-  leftTapZone: {
-    flex: 1,
-    height: '100%',
-  },
-  rightTapZone: {
-    flex: 1,
-    height: '100%',
   },
   imageWrapper: {
     position: 'absolute',
@@ -1285,14 +1373,12 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     position: 'absolute',
-    // ✅ v163.0: Start at absolute top (0) - no safe area offset
     top: 0,
     left: 12,
     right: 12,
     flexDirection: 'row',
     gap: 4,
     zIndex: 300,
-    // ✅ v163.0: Minimal internal padding for notch (not safe area based)
     paddingTop: Platform.OS === 'android' ? 12 : 50,
   },
   progressBarBackground: {
@@ -1309,11 +1395,9 @@ const styles = StyleSheet.create({
   },
   header: {
     position: 'absolute',
-    // ✅ v163.0: Start at absolute top (0) - no safe area offset
     top: 0,
     left: 0,
     right: 0,
-    // ✅ v163.0: Minimal internal padding for notch/status bar area
     paddingTop: Platform.OS === 'android' ? 48 : 60,
     paddingHorizontal: 16,
     paddingBottom: 20,
@@ -1373,7 +1457,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     paddingHorizontal: 16,
     paddingTop: 16,
-    // ✅ v163.0: Minimal bottom padding, no safe area insets
     paddingBottom: Platform.OS === 'android' ? 24 : 40,
   },
   messageInputClose: {
@@ -1410,14 +1493,11 @@ const styles = StyleSheet.create({
   },
   actions: {
     position: 'absolute',
-    // ✅ v164.0: ANDROID NAV BUTTONS FIX - Added extra padding for Android navigation buttons
     bottom: 0,
     left: 0,
     right: 0,
     paddingHorizontal: 16,
     paddingTop: 40,
-    // ✅ v164.0: CRITICAL - Increased Android padding to prevent overlap with nav buttons
-    // Android navigation buttons (back, home, recent) are at the bottom and need clearance
     paddingBottom: Platform.OS === 'android' ? 60 : 40,
     flexDirection: 'row',
     justifyContent: 'space-around',
