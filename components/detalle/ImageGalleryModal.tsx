@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,9 +14,10 @@ import {
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const SCREEN_HEIGHT = Dimensions.get('window').height;
+const SCREEN_HEIGHT_PHYSICAL = Dimensions.get('screen').height;
 
 interface ImageGalleryModalProps {
   visible: boolean;
@@ -26,16 +27,15 @@ interface ImageGalleryModalProps {
 }
 
 /**
- * ✅ IMAGE GALLERY MODAL v37.0 - ANDROID FULL SCREEN EDGE-TO-EDGE COMPLETE
+ * ✅ IMAGE GALLERY MODAL v38.0 - ANDROID FULL SCREEN EDGE-TO-EDGE FIXED
  * 
- * NEW CHANGES v37.0:
- * - ✅ ELIMINADO LETTERBOXING COMPLETAMENTE: Pantalla completa sin espacios
- * - ✅ Modal con presentationStyle='overFullScreen' en todas las plataformas
- * - ✅ Container usa Dimensions.get('window').height para altura completa
- * - ✅ StatusBar oculto para experiencia inmersiva
- * - ✅ Padding: 0, Margin: 0 en container principal
- * - ✅ ScrollView con flex: 1 para ocupar todo el espacio
- * - ✅ Header absolutamente posicionado sin afectar layout
+ * NEW CHANGES v38.0:
+ * - ✅ ANDROID: Usa Dimensions.get('screen').height para altura física completa
+ * - ✅ ANDROID: Control imperativo de StatusBar con useEffect
+ * - ✅ ANDROID: StatusBar.setHidden(true) + setTranslucent(true) + setBackgroundColor('transparent')
+ * - ✅ ANDROID: Container con position: 'absolute', top: 0, bottom: 0, left: 0, right: 0
+ * - ✅ ANDROID: useSafeAreaInsets para padding interno sin afectar fondo
+ * - ✅ ELIMINADO LETTERBOXING: Pantalla completa sin espacios vacíos
  * - ✅ Respeta botones táctiles del teléfono Android
  */
 export default function ImageGalleryModal({
@@ -46,6 +46,35 @@ export default function ImageGalleryModal({
 }: ImageGalleryModalProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const scrollViewRef = useRef<ScrollView>(null);
+  const insets = useSafeAreaInsets();
+
+  // Imperative StatusBar control for full-screen immersion on Android
+  useEffect(() => {
+    if (visible) {
+      console.log('[ImageGalleryModal v38.0] 🎬 Modal opened - setting full-screen mode');
+      StatusBar.setHidden(true, 'fade');
+      if (Platform.OS === 'android') {
+        StatusBar.setTranslucent(true);
+        StatusBar.setBackgroundColor('transparent');
+      }
+    } else {
+      console.log('[ImageGalleryModal v38.0] 🎬 Modal closed - restoring StatusBar');
+      StatusBar.setHidden(false, 'fade');
+      if (Platform.OS === 'android') {
+        StatusBar.setTranslucent(false);
+        StatusBar.setBackgroundColor('black');
+      }
+    }
+
+    // Cleanup function to ensure StatusBar is reset if component unmounts while visible
+    return () => {
+      StatusBar.setHidden(false, 'fade');
+      if (Platform.OS === 'android') {
+        StatusBar.setTranslucent(false);
+        StatusBar.setBackgroundColor('black');
+      }
+    };
+  }, [visible]);
 
   React.useEffect(() => {
     if (visible) {
@@ -78,7 +107,7 @@ export default function ImageGalleryModal({
     }
   };
 
-  console.log('[ImageGalleryModal v37.0] 📸 Displaying gallery:', {
+  console.log('[ImageGalleryModal v38.0] 📸 Displaying gallery:', {
     visible,
     totalImages: images.length,
     currentIndex,
@@ -93,7 +122,6 @@ export default function ImageGalleryModal({
       presentationStyle="overFullScreen"
       onRequestClose={onClose}
     >
-      <StatusBar hidden={true} />
       <View style={styles.container}>
         <ScrollView
           ref={scrollViewRef}
@@ -116,7 +144,12 @@ export default function ImageGalleryModal({
           ))}
         </ScrollView>
 
-        <View style={styles.header}>
+        <View style={[
+          styles.header,
+          {
+            paddingTop: Platform.OS === 'android' ? insets.top + 10 : 50,
+          }
+        ]}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
           </TouchableOpacity>
@@ -142,7 +175,12 @@ export default function ImageGalleryModal({
           </TouchableOpacity>
         )}
 
-        <View style={styles.dotsContainer}>
+        <View style={[
+          styles.dotsContainer,
+          {
+            bottom: Platform.OS === 'android' ? insets.bottom + 20 : 20,
+          }
+        ]}>
           {images.map((_, index) => (
             <View
               key={index}
@@ -160,9 +198,13 @@ export default function ImageGalleryModal({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    height: SCREEN_HEIGHT,
-    width: SCREEN_WIDTH,
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'android' ? SCREEN_HEIGHT_PHYSICAL : '100%',
+    width: '100%',
     margin: 0,
     padding: 0,
     backgroundColor: '#000',
@@ -181,7 +223,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
     paddingHorizontal: 20,
     paddingBottom: 15,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -205,13 +246,13 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    height: Platform.OS === 'android' ? SCREEN_HEIGHT_PHYSICAL : '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
   image: {
     width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    height: Platform.OS === 'android' ? SCREEN_HEIGHT_PHYSICAL : '100%',
   },
   leftArrow: {
     position: 'absolute',
@@ -237,7 +278,6 @@ const styles = StyleSheet.create({
   },
   dotsContainer: {
     position: 'absolute',
-    bottom: 20,
     left: 0,
     right: 0,
     flexDirection: 'row',
