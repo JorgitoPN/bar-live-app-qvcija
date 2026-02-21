@@ -23,7 +23,6 @@ import MessageBubble from '@/components/chat/MessageBubble';
 import MomentoMessageBubble from '@/components/chat/MomentoMessageBubble';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 import * as SystemUI from 'expo-system-ui';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Message {
   id: string;
@@ -40,22 +39,20 @@ interface Message {
 }
 
 /**
- * ✅ CONVERSACION v287.0 - ANDROID INPUT POSITIONING & NAV BAR COLOR FIX
+ * ✅ ANDROID FIXES v285.0 - FINAL
  * 
- * CRITICAL FIXES v287.0:
- * - ✅ PROBLEMA 1 RESUELTO: Input field now positioned ABOVE Android navigation buttons
- * - ✅ PROBLEMA 2 RESUELTO: Navigation bar uses Barlive corporate blue (#1A73E8)
- * - ✅ Input container elevated with proper bottom padding (24px + safe area insets)
- * - ✅ Background color matches Barlive blue for visual consistency
- * - ✅ KeyboardAvoidingView with behavior="padding" for optimal keyboard handling
- * - ✅ Input field fully visible and accessible at all times
+ * CRITICAL FIXES:
+ * - ✅ Input container properly aligned with system buttons (no extra separation)
+ * - ✅ System navigation bar background set to Barlive corporate blue (#1A73E8)
+ * - ✅ KeyboardAvoidingView with behavior="height" on Android
+ * - ✅ Proper scaling applied to all text and icons
+ * - ✅ iOS behavior unchanged
  */
 export default function ConversacionScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();
   const flatListRef = useRef<FlatList>(null);
-  const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [chatId, setChatId] = useState<string | null>(null);
@@ -70,15 +67,15 @@ export default function ConversacionScreen() {
   const isLocalChat = !!params.localId;
   const localId = params.localId as string | undefined;
 
-  // ✅ ANDROID FIX v286.0: Set system navigation bar color to Barlive corporate blue
+  // ✅ ANDROID FIX v285.0: Set system navigation bar color to Barlive corporate blue
   useEffect(() => {
     if (Platform.OS === 'android') {
       const barliveBlue = '#1A73E8'; // Barlive corporate blue
       SystemUI.setBackgroundColorAsync(barliveBlue);
       
       return () => {
-        // Keep the blue color when leaving (global consistency)
-        SystemUI.setBackgroundColorAsync(barliveBlue);
+        // Reset to default when leaving screen
+        SystemUI.setBackgroundColorAsync('transparent');
       };
     }
   }, []);
@@ -644,7 +641,7 @@ export default function ConversacionScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <FlatList
@@ -653,8 +650,8 @@ export default function ConversacionScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={[
             styles.messagesList,
-            // ✅ ANDROID FIX v286.0: Bottom padding for input container
-            { paddingBottom: Platform.OS === 'android' ? 100 : 8 }
+            // ✅ ANDROID FIX v285.0: Bottom padding for input container
+            { paddingBottom: Platform.OS === 'android' ? 80 : 8 }
           ]}
           renderItem={renderMessage}
           ListEmptyComponent={
@@ -670,15 +667,8 @@ export default function ConversacionScreen() {
           }
         />
 
-        {/* ✅ ANDROID FIX v287.0: Input container positioned ABOVE navigation buttons with proper elevation */}
-        <View style={[
-          styles.inputContainer,
-          Platform.OS === 'android' && {
-            // ✅ PROBLEMA 1 FIX: Position above Android navigation buttons
-            // Add 24px base padding + safe area insets to ensure visibility
-            paddingBottom: Math.max(insets.bottom + 24, 40),
-          }
-        ]}>
+        {/* ✅ ANDROID FIX v285.0: Input container properly aligned with system buttons */}
+        <View style={styles.inputContainer}>
           <TextInput
             style={[styles.input, { fontSize: scaleFontSize(16) }]}
             placeholder="Escribe un mensaje..."
@@ -798,7 +788,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
-    // ✅ ANDROID FIX v287.0: Use Barlive corporate blue for background (PROBLEMA 2)
+    // ✅ ANDROID FIX v285.0: Use Barlive corporate blue for background
     backgroundColor: Platform.OS === 'android' ? '#1A73E8' : colors.cardBackground,
     gap: 12,
   },

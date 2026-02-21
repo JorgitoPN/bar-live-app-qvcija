@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ModeProvider } from '@/contexts/ModeContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
+import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
 import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { FilterProvider } from '@/contexts/FilterContext';
 import { PostsProvider } from '@/contexts/PostsContext';
@@ -18,13 +19,7 @@ import { Platform } from 'react-native';
 import * as SystemUI from 'expo-system-ui';
 
 /**
- * ✅ ROOT LAYOUT v13.0 - ANDROID SYSTEM UI UNIFIED COLOR
- * 
- * CHANGES v13.0:
- * - ✅ FIXED: Android system navigation bar now uses Barlive corporate blue (#1A73E8) GLOBALLY
- * - ✅ FIXED: Applies to ALL screens in the app for visual consistency
- * - ✅ FIXED: No more transparent or mismatched navigation bar colors
- * - ✅ FIXED: Unified color scheme across entire application
+ * ✅ ROOT LAYOUT v12.0 - ANDROID SYSTEM UI FIX
  * 
  * CHANGES v12.0:
  * - ✅ FIXED: Android system navigation bar now uses Barlive corporate blue (#1A73E8)
@@ -39,12 +34,11 @@ import * as SystemUI from 'expo-system-ui';
  */
 
 export default function RootLayout() {
-  // ✅ ANDROID FIX v13.0: Set global system navigation bar color to Barlive corporate blue
+  // ✅ ANDROID FIX v12.0: Set global system navigation bar color
   useEffect(() => {
     if (Platform.OS === 'android') {
-      const barliveBlue = '#1A73E8'; // Barlive corporate blue - unified across app
+      const barliveBlue = '#1A73E8'; // Barlive corporate blue
       SystemUI.setBackgroundColorAsync(barliveBlue);
-      console.log('[RootLayout v13.0] ✅ Android navigation bar set to Barlive blue:', barliveBlue);
     }
   }, []);
 
