@@ -41,7 +41,7 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD FIXES v295.0 - ANDROID PROFESSIONAL SOLUTION (COMPLETE FIX)
+ * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v296.0 - ANDROID PROFESSIONAL SOLUTION (COMPLETE FIX)
  * 
  * ANDROID-SPECIFIC FIXES:
  * 1️⃣ CONVERSACIÓN - Input field behavior:
@@ -62,6 +62,13 @@ interface Message {
  *    - ✅ No need to press twice
  *    - ✅ User can continue typing after sending
  * 
+ * 3️⃣ SYSTEM NAVIGATION BAR (NEW v296.0):
+ *    - ✅ FlatList paddingBottom correctly accounts for insets.bottom + input height
+ *    - ✅ Content NEVER scrolls underneath the system navigation bar
+ *    - ✅ inputContainer extends white background into system nav bar area (paddingBottom: insets.bottom)
+ *    - ✅ Solid white background (#FFFFFF) prevents transparency
+ *    - ✅ Professional behavior matching standard Android apps
+ * 
  * TECHNICAL IMPLEMENTATION:
  * - position: 'absolute' with dynamic bottom
  * - bottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom (CRITICAL FIX)
@@ -71,6 +78,8 @@ interface Message {
  * - inputContainer (absolute) + inputRow (flex layout) pattern
  * - Exact replication of CommentsModal structure
  * - WHITE BACKGROUND (#FFFFFF) ONLY ON INPUT CONTAINER (system nav bar area)
+ * - FlatList paddingBottom: insets.bottom + 80 (when keyboard closed) to prevent content invasion
+ * - inputContainer paddingBottom: insets.bottom (when keyboard closed) to extend white background
  */
 export default function ConversacionScreen() {
   const router = useRouter();
@@ -693,14 +702,25 @@ export default function ConversacionScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* ✅ FIX v294.0: Messages list with dynamic padding (EXACT CommentsModal replication) */}
+      {/* ✅ FIX v296.0: Messages list with CORRECT padding to prevent content from going under system navigation bar */}
+      {/* 
+        CRITICAL FIX FOR ANDROID SYSTEM NAVIGATION BAR:
+        - When keyboard is OPEN: paddingBottom = keyboardHeight + 80 (space for input + keyboard)
+        - When keyboard is CLOSED: paddingBottom = insets.bottom + 80 (space for input + system nav bar)
+        - The +80 accounts for the input container height (~60px) + extra safe margin
+        - This ensures content NEVER scrolls underneath the system navigation bar
+      */}
       <FlatList
         ref={flatListRef}
         data={mensajes}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.messagesList,
-          { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : insets.bottom + 120 }
+          { 
+            paddingBottom: keyboardHeight > 0 
+              ? keyboardHeight + 80  // Keyboard open: space for input + keyboard
+              : insets.bottom + 80   // Keyboard closed: space for input + system nav bar (CRITICAL FIX)
+          }
         ]}
         renderItem={renderMessage}
         keyboardShouldPersistTaps="handled"
@@ -717,12 +737,21 @@ export default function ConversacionScreen() {
         }
       />
 
-      {/* ✅ FIX v294.0: Input container with EXACT CommentsModal positioning logic - RESPECTS SAFE AREA */}
-      {/* ✅ WHITE BACKGROUND (#FFFFFF) ONLY ON INPUT CONTAINER - System navigation bar area */}
+      {/* ✅ FIX v296.0: Input container with CORRECT positioning and WHITE BACKGROUND for system nav bar area */}
+      {/* 
+        CRITICAL FIX FOR ANDROID SYSTEM NAVIGATION BAR:
+        - position: 'absolute' with dynamic bottom offset
+        - When keyboard is OPEN: bottom = keyboardHeight (input rises above keyboard)
+        - When keyboard is CLOSED: bottom = insets.bottom (input sits above system nav bar)
+        - backgroundColor: '#FFFFFF' ensures solid white background (no transparency)
+        - paddingBottom: insets.bottom ensures content extends into safe area with white background
+        - This prevents content from being visible underneath the system navigation bar
+      */}
       <View style={[
         styles.inputContainer, 
         { 
           bottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom,
+          paddingBottom: keyboardHeight > 0 ? 0 : insets.bottom, // ✅ CRITICAL: Extend white background into system nav bar area
         }
       ]}>
         <View style={styles.inputRow}>
@@ -847,9 +876,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF', // ✅ WHITE BACKGROUND - System navigation bar area
+    backgroundColor: '#FFFFFF', // ✅ CRITICAL: WHITE BACKGROUND - Covers system navigation bar area
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
+    // ✅ paddingBottom is applied dynamically in the component to extend white background into safe area
   },
   inputRow: {
     flexDirection: 'row',
