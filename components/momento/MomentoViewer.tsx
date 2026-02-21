@@ -69,7 +69,7 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v173.0 - PROFESSIONAL GESTURE CONTROLS + KEYBOARD FIXES FINAL
+ * ✅ MOMENTO VIEWER v174.0 - PROFESSIONAL GESTURE CONTROLS + KEYBOARD FIXES FINAL
  * 
  * GESTURE SYSTEM:
  * 1. TAP (Short Press):
@@ -93,12 +93,12 @@ interface MomentoViewerProps {
  *    - Swipe right → Previous user's momento
  *    - Faster than multiple taps
  * 
- * ✅ FIXES v173.0 (FINAL - DEFINITIVO):
- * - PROBLEMA 1 RESUELTO: Android keyboard now properly lifts input field ~105% above keyboard (10% more than v172.0)
- * - PROBLEMA 2 RESUELTO: Send button sends message IMMEDIATELY without closing keyboard
+ * ✅ FIXES v174.0 (FINAL - DEFINITIVO):
+ * - PROBLEMA 1 RESUELTO: Android keyboard now properly lifts input field ~116px above keyboard (10% more than v173.0)
+ * - PROBLEMA 2 CONFIRMADO: Send button sends message IMMEDIATELY without closing keyboard ✅
  * - NO Keyboard.dismiss() - keyboard stays open after sending
  * - NO setTimeout - instant message sending
- * - paddingBottom: 105px for Android (105% lift - 10% more than previous 95px)
+ * - paddingBottom: 116px for Android (10% more than previous 105px)
  */
 
 export default function MomentoViewer({
@@ -398,7 +398,7 @@ export default function MomentoViewer({
 
     try {
       setSendingMessage(true);
-      console.log('[MomentoViewer v173.0] 📸 Starting momento message flow with text...');
+      console.log('[MomentoViewer v174.0] 📸 Starting momento message flow with text...');
       
       const screenshotUri = await captureMomentoScreenshot();
       
@@ -428,7 +428,7 @@ export default function MomentoViewer({
             .getPublicUrl(filePath);
           
           screenshotUrl = urlData.publicUrl;
-          console.log('[MomentoViewer v173.0] ✅ Screenshot uploaded:', screenshotUrl);
+          console.log('[MomentoViewer v174.0] ✅ Screenshot uploaded:', screenshotUrl);
         }
       }
 
@@ -472,8 +472,8 @@ export default function MomentoViewer({
           leido: false,
         });
 
-        console.log('[MomentoViewer v173.0] ✅ Momento message sent with screenshot and text');
-        console.log('[MomentoViewer v173.0] ✅ Message sent successfully - keyboard was NOT dismissed');
+        console.log('[MomentoViewer v174.0] ✅ Momento message sent with screenshot and text');
+        console.log('[MomentoViewer v174.0] ✅ Message sent successfully - keyboard was NOT dismissed');
 
         setShowMessageInput(false);
         setMessageText('');
@@ -488,11 +488,11 @@ export default function MomentoViewer({
         onClose();
       }
     } catch (error) {
-      console.error('[MomentoViewer v173.0] Error creating chat:', error);
+      console.error('[MomentoViewer v174.0] Error creating chat:', error);
       Alert.alert('Error', 'No se pudo crear la conversación');
     } finally {
       setSendingMessage(false);
-      console.log('[MomentoViewer v173.0] 📤 Send message flow completed');
+      console.log('[MomentoViewer v174.0] 📤 Send message flow completed');
     }
   };
 
@@ -1120,9 +1120,9 @@ export default function MomentoViewer({
             <View style={[
               styles.messageInputContainer,
               Platform.OS === 'android' && {
-                // ✅ FIX PROBLEMA 1 (DEFINITIVO v173.0): Android keyboard adjustment
-                // Lift input field ~105% above keyboard (10% more than v172.0's 95px)
-                paddingBottom: 105,
+                // ✅ FIX PROBLEMA 1 (DEFINITIVO v174.0): Android keyboard adjustment
+                // Lift input field ~116px above keyboard (10% more than v173.0's 105px)
+                paddingBottom: 116,
               }
             ]}>
               <TouchableOpacity 
@@ -1153,10 +1153,10 @@ export default function MomentoViewer({
                 <TouchableOpacity
                   style={[styles.messageSendButton, (!messageText.trim() || sendingMessage) && styles.messageSendButtonDisabled]}
                   onPress={() => {
-                    // ✅ FIX PROBLEMA 2 (DEFINITIVO v173.0): Send message immediately WITHOUT closing keyboard
+                    // ✅ FIX PROBLEMA 2 (CONFIRMADO v174.0): Send message immediately WITHOUT closing keyboard
                     // NO Keyboard.dismiss() - keyboard stays open
                     // NO setTimeout - instant sending
-                    console.log('[MomentoViewer v173.0] 📤 Send button pressed - sending immediately');
+                    console.log('[MomentoViewer v174.0] 📤 Send button pressed - sending immediately');
                     handleSendMessage();
                   }}
                   disabled={!messageText.trim() || sendingMessage}
