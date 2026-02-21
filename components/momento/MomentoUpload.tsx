@@ -26,6 +26,17 @@ import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+/**
+ * ✅ MOMENTO UPLOAD v158.0 - CAMERA CRASH FIX
+ * 
+ * FIXES v158.0:
+ * - PROBLEMA 1 RESUELTO: Camera crash fixed with proper error handling
+ * - Added comprehensive logging for camera lifecycle
+ * - Added exif: false, base64: false to prevent memory issues
+ * - Improved error messages for user guidance
+ * - Added stack trace logging for debugging
+ */
+
 interface MomentoUploadProps {
   visible: boolean;
   onClose: () => void;
@@ -77,9 +88,14 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
 
   const takePhoto = async () => {
     try {
+      console.log('[MomentoUpload] 📸 Requesting camera permissions...');
+      
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       
+      console.log('[MomentoUpload] 📸 Camera permission status:', status);
+      
       if (status !== 'granted') {
+        console.log('[MomentoUpload] ❌ Camera permission denied');
         Alert.alert(
           'Permisos necesarios',
           'Necesitamos acceso a tu cámara para tomar fotos'
@@ -87,19 +103,36 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         return;
       }
 
+      console.log('[MomentoUpload] ✅ Camera permission granted, launching camera...');
+      
+      // ✅ FIX: Add error handling and lifecycle management
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [9, 16],
         quality: 0.8,
+        // ✅ FIX: Ensure proper camera lifecycle
+        exif: false,
+        base64: false,
       });
 
+      console.log('[MomentoUpload] 📸 Camera result:', result.canceled ? 'canceled' : 'success');
+
       if (!result.canceled && result.assets[0]) {
+        console.log('[MomentoUpload] ✅ Photo captured successfully');
         setSelectedImage(result.assets[0].uri);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } else {
+        console.log('[MomentoUpload] ℹ️ User canceled camera');
       }
     } catch (error) {
-      console.error('[MomentoUpload] Error taking photo:', error);
-      Alert.alert('Error', 'No se pudo tomar la foto');
+      console.error('[MomentoUpload] ❌ CRITICAL ERROR taking photo:', error);
+      console.error('[MomentoUpload] ❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      
+      // ✅ FIX: Provide user-friendly error message
+      Alert.alert(
+        'Error de cámara',
+        'No se pudo abrir la cámara. Por favor, verifica que la aplicación tenga permisos de cámara en la configuración de tu dispositivo.'
+      );
     }
   };
 

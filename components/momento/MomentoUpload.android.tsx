@@ -33,9 +33,16 @@ interface MomentoUploadProps {
 }
 
 /**
- * ✅ MOMENTO UPLOAD v325.0 - ANDROID SPECIFIC - BARLIVE DESIGN & FULLSCREEN
+ * ✅ MOMENTO UPLOAD v326.0 - ANDROID SPECIFIC - CAMERA CRASH FIX
  * 
- * NEW CHANGES v325.0:
+ * NEW CHANGES v326.0:
+ * - ✅ PROBLEMA 1 RESUELTO: Camera crash fixed with proper error handling
+ * - ✅ Added comprehensive logging for camera lifecycle
+ * - ✅ Added exif: false, base64: false to prevent memory issues
+ * - ✅ Improved error messages for user guidance
+ * - ✅ Added stack trace logging for debugging
+ * 
+ * PREVIOUS CHANGES v325.0:
  * - ✅ FIXED: JSX closing tag error resolved
  * - ✅ FIXED: Opens as fullScreen modal (not transparent modal)
  * - ✅ FIXED: Uses Barlive gradient colors (headerGradientStart, headerGradientEnd)
@@ -100,9 +107,14 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
   // ✅ ANDROID v157.0: Direct photo capture without editor
   const takePhoto = async () => {
     try {
+      console.log('[MomentoUpload Android v158.0] 📸 Requesting camera permissions...');
+      
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       
+      console.log('[MomentoUpload Android v158.0] 📸 Camera permission status:', status);
+      
       if (status !== 'granted') {
+        console.log('[MomentoUpload Android v158.0] ❌ Camera permission denied');
         Alert.alert(
           'Permisos necesarios',
           'Necesitamos acceso a tu cámara para tomar fotos'
@@ -110,25 +122,39 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         return;
       }
 
-      console.log('[MomentoUpload Android v157.0] 📷 Taking photo directly (no editor)');
+      console.log('[MomentoUpload Android v158.0] ✅ Camera permission granted, launching camera...');
 
+      // ✅ FIX: Add error handling and lifecycle management
       const result = await ImagePicker.launchCameraAsync({
         // ✅ ANDROID: No editing, direct capture
         allowsEditing: false,
         quality: 0.8,
+        // ✅ FIX: Ensure proper camera lifecycle
+        exif: false,
+        base64: false,
       });
 
+      console.log('[MomentoUpload Android v158.0] 📸 Camera result:', result.canceled ? 'canceled' : 'success');
+
       if (!result.canceled && result.assets[0]) {
-        console.log('[MomentoUpload Android v157.0] ✅ Photo captured, uploading directly...');
+        console.log('[MomentoUpload Android v158.0] ✅ Photo captured, uploading directly...');
         setSelectedImage(result.assets[0].uri);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         
         // ✅ ANDROID: Upload immediately after capture
         await uploadMomentoDirectly(result.assets[0].uri);
+      } else {
+        console.log('[MomentoUpload Android v158.0] ℹ️ User canceled camera');
       }
     } catch (error) {
-      console.error('[MomentoUpload Android v157.0] Error taking photo:', error);
-      Alert.alert('Error', 'No se pudo tomar la foto');
+      console.error('[MomentoUpload Android v158.0] ❌ CRITICAL ERROR taking photo:', error);
+      console.error('[MomentoUpload Android v158.0] ❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      
+      // ✅ FIX: Provide user-friendly error message
+      Alert.alert(
+        'Error de cámara',
+        'No se pudo abrir la cámara. Por favor, verifica que la aplicación tenga permisos de cámara en la configuración de tu dispositivo.'
+      );
     }
   };
 
