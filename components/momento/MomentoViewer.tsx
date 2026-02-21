@@ -68,7 +68,7 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v178.0 - KEYBOARD FIX FINAL
+ * ✅ MOMENTO VIEWER v179.0 - KEYBOARD FIX FINAL
  * 
  * GESTURE SYSTEM:
  * 1. TAP (Short Press):
@@ -92,13 +92,14 @@ interface MomentoViewerProps {
  *    - Swipe right → Previous user's momento
  *    - Faster than multiple taps
  * 
- * ✅ FIXES v178.0 (FINAL):
- * - ✅ Input field positioned MUCH higher above keyboard (paddingBottom: 200px for Android)
- * - ✅ Excellent visual separation and visibility when keyboard is open
+ * ✅ FIXES v179.0 (FINAL):
+ * - ✅ Input field positioned MUCH higher above keyboard (paddingBottom: 250px for Android)
+ * - ✅ EXCELLENT visual separation and visibility when keyboard is open
  * - ✅ Send button sends message IMMEDIATELY without closing keyboard
  * - ✅ NO Keyboard.dismiss() - keyboard stays open after sending
  * - ✅ NO setTimeout - instant message sending
  * - ✅ User can continue typing after sending
+ * - ✅ blurOnSubmit={false} keeps keyboard open
  */
 
 export default function MomentoViewer({
@@ -172,7 +173,7 @@ export default function MomentoViewer({
         )
       );
     } catch (error) {
-      console.error('[MomentoViewer v178.0] Error marking as viewed:', error);
+      console.error('[MomentoViewer v179.0] Error marking as viewed:', error);
     }
   }, [user]);
 
@@ -181,7 +182,7 @@ export default function MomentoViewer({
 
     try {
       setLoading(true);
-      console.log('[MomentoViewer v178.0] Loading momentos for:', { authorId, authorType });
+      console.log('[MomentoViewer v179.0] Loading momentos for:', { authorId, authorType });
 
       if (authorType === 'usuario') {
         const { data: userData } = await supabase
@@ -277,15 +278,15 @@ export default function MomentoViewer({
       }
       
       setCurrentIndex(startIndex);
-      console.log('[MomentoViewer v178.0] Starting at index:', startIndex, 'of', momentosWithStatus.length);
+      console.log('[MomentoViewer v179.0] Starting at index:', startIndex, 'of', momentosWithStatus.length);
 
       if (momentosWithStatus.length > 0 && !momentosWithStatus[startIndex].user_has_viewed) {
         markAsViewed(momentosWithStatus[startIndex].id);
       }
 
-      console.log('[MomentoViewer v178.0] ✅ Loaded momentos:', momentosWithStatus.length);
+      console.log('[MomentoViewer v179.0] ✅ Loaded momentos:', momentosWithStatus.length);
     } catch (error) {
-      console.error('[MomentoViewer v178.0] Error loading momentos:', error);
+      console.error('[MomentoViewer v179.0] Error loading momentos:', error);
       Alert.alert('Error', 'No se pudieron cargar los Momentos');
       onClose();
     } finally {
@@ -338,7 +339,7 @@ export default function MomentoViewer({
         );
       }
     } catch (error) {
-      console.error('[MomentoViewer v178.0] Error toggling like:', error);
+      console.error('[MomentoViewer v179.0] Error toggling like:', error);
     }
   };
 
@@ -346,23 +347,23 @@ export default function MomentoViewer({
     if (!momentoViewRef.current) return null;
 
     try {
-      console.log('[MomentoViewer v178.0] 📸 Capturing momento screenshot...');
+      console.log('[MomentoViewer v179.0] 📸 Capturing momento screenshot...');
       
       const uri = await captureRef(momentoViewRef, {
         format: 'jpg',
         quality: 0.8,
       });
 
-      console.log('[MomentoViewer v178.0] ✅ Screenshot captured:', uri);
+      console.log('[MomentoViewer v179.0] ✅ Screenshot captured:', uri);
       return uri;
     } catch (error) {
-      console.error('[MomentoViewer v178.0] Error capturing screenshot:', error);
+      console.error('[MomentoViewer v179.0] Error capturing screenshot:', error);
       return null;
     }
   };
 
   const handleOpenMessageInput = () => {
-    console.log('[MomentoViewer v178.0] 📝 Opening message input, pausing momento');
+    console.log('[MomentoViewer v179.0] 📝 Opening message input, pausing momento');
     setPaused(true);
     setShowMessageInput(true);
     
@@ -377,14 +378,14 @@ export default function MomentoViewer({
   };
 
   const handleCloseMessageInput = () => {
-    console.log('[MomentoViewer v178.0] ❌ Closing message input, resuming momento');
+    console.log('[MomentoViewer v179.0] ❌ Closing message input, resuming momento');
     setShowMessageInput(false);
     setMessageText('');
     setPaused(false);
   };
 
   const handleSendMessage = async () => {
-    console.log('[MomentoViewer v178.0] 📤 handleSendMessage called - keyboard should stay open');
+    console.log('[MomentoViewer v179.0] 📤 handleSendMessage called - keyboard should stay open');
     
     if (!user || !author || momentos.length === 0 || !messageText.trim()) {
       if (!messageText.trim()) {
@@ -398,7 +399,7 @@ export default function MomentoViewer({
 
     try {
       setSendingMessage(true);
-      console.log('[MomentoViewer v178.0] 📸 Starting momento message flow with text...');
+      console.log('[MomentoViewer v179.0] 📸 Starting momento message flow with text...');
       
       const screenshotUri = await captureMomentoScreenshot();
       
@@ -428,7 +429,7 @@ export default function MomentoViewer({
             .getPublicUrl(filePath);
           
           screenshotUrl = urlData.publicUrl;
-          console.log('[MomentoViewer v178.0] ✅ Screenshot uploaded:', screenshotUrl);
+          console.log('[MomentoViewer v179.0] ✅ Screenshot uploaded:', screenshotUrl);
         }
       }
 
@@ -472,8 +473,8 @@ export default function MomentoViewer({
           leido: false,
         });
 
-        console.log('[MomentoViewer v178.0] ✅ Momento message sent with screenshot and text');
-        console.log('[MomentoViewer v178.0] ✅ Message sent successfully - keyboard was NOT dismissed');
+        console.log('[MomentoViewer v179.0] ✅ Momento message sent with screenshot and text');
+        console.log('[MomentoViewer v179.0] ✅ Message sent successfully - keyboard was NOT dismissed');
 
         setShowMessageInput(false);
         setMessageText('');
@@ -488,11 +489,11 @@ export default function MomentoViewer({
         onClose();
       }
     } catch (error) {
-      console.error('[MomentoViewer v178.0] Error creating chat:', error);
+      console.error('[MomentoViewer v179.0] Error creating chat:', error);
       Alert.alert('Error', 'No se pudo crear la conversación');
     } finally {
       setSendingMessage(false);
-      console.log('[MomentoViewer v178.0] 📤 Send message flow completed');
+      console.log('[MomentoViewer v179.0] 📤 Send message flow completed');
     }
   };
 
@@ -502,7 +503,7 @@ export default function MomentoViewer({
     const currentMomento = momentos[currentIndex];
     if (!currentMomento) return;
 
-    console.log('[MomentoViewer v178.0] 📊 Opening stats, pausing momento');
+    console.log('[MomentoViewer v179.0] 📊 Opening stats, pausing momento');
     setPaused(true);
     
     if (progressAnimationRef.current) {
@@ -548,7 +549,7 @@ export default function MomentoViewer({
       setLikers(likersResult.data || []);
       setShowStats(true);
     } catch (error) {
-      console.error('[MomentoViewer v178.0] Error loading stats:', error);
+      console.error('[MomentoViewer v179.0] Error loading stats:', error);
     }
   };
 
@@ -614,7 +615,7 @@ export default function MomentoViewer({
 
       Alert.alert('✅ Reporte enviado', 'Gracias por ayudarnos a mantener la comunidad segura');
     } catch (error) {
-      console.error('[MomentoViewer v178.0] Error reporting momento:', error);
+      console.error('[MomentoViewer v179.0] Error reporting momento:', error);
       Alert.alert('Error', 'No se pudo enviar el reporte');
     }
   };
@@ -658,7 +659,7 @@ export default function MomentoViewer({
 
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (error) {
-              console.error('[MomentoViewer v178.0] Error deleting momento:', error);
+              console.error('[MomentoViewer v179.0] Error deleting momento:', error);
               Alert.alert('Error', 'No se pudo eliminar el Momento');
             }
           },
@@ -668,7 +669,7 @@ export default function MomentoViewer({
   };
 
   const handleNext = useCallback(() => {
-    console.log('[MomentoViewer v178.0] ➡️ Next momento');
+    console.log('[MomentoViewer v179.0] ➡️ Next momento');
     
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
@@ -693,13 +694,13 @@ export default function MomentoViewer({
         markAsViewed(momentos[currentIndex + 1].id);
       }
     } else {
-      console.log('[MomentoViewer v178.0] End of momentos, closing');
+      console.log('[MomentoViewer v179.0] End of momentos, closing');
       handleClose();
     }
   }, [currentIndex, momentos, progressAnims, markAsViewed]);
 
   const handlePrevious = useCallback(() => {
-    console.log('[MomentoViewer v178.0] ⬅️ Previous momento');
+    console.log('[MomentoViewer v179.0] ⬅️ Previous momento');
     
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
@@ -719,7 +720,7 @@ export default function MomentoViewer({
   }, [currentIndex, progressAnims]);
 
   const handleClose = useCallback(() => {
-    console.log('[MomentoViewer v178.0] ❌ Closing viewer');
+    console.log('[MomentoViewer v179.0] ❌ Closing viewer');
     
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
@@ -746,17 +747,17 @@ export default function MomentoViewer({
   // ✅ GESTURE 1: TAP (Short Press) - Left/Right navigation
   const handleTap = useCallback((locationX: number) => {
     if (isLongPressRef.current) {
-      console.log('[MomentoViewer v178.0] Ignoring tap - was long press');
+      console.log('[MomentoViewer v179.0] Ignoring tap - was long press');
       return;
     }
 
     const isRightSide = locationX > SCREEN_WIDTH / 2;
     
     if (isRightSide) {
-      console.log('[MomentoViewer v178.0] 👉 Tap right - Next');
+      console.log('[MomentoViewer v179.0] 👉 Tap right - Next');
       handleNext();
     } else {
-      console.log('[MomentoViewer v178.0] 👈 Tap left - Previous');
+      console.log('[MomentoViewer v179.0] 👈 Tap left - Previous');
       handlePrevious();
     }
     
@@ -765,7 +766,7 @@ export default function MomentoViewer({
 
   // ✅ GESTURE 2: LONG PRESS - Pause/Resume
   const handleLongPressStart = useCallback(() => {
-    console.log('[MomentoViewer v178.0] 🛑 Long press detected - PAUSE');
+    console.log('[MomentoViewer v179.0] 🛑 Long press detected - PAUSE');
     
     isLongPressRef.current = true;
     setPaused(true);
@@ -789,7 +790,7 @@ export default function MomentoViewer({
   }, [currentIndex, progressAnims]);
 
   const handleLongPressEnd = useCallback(() => {
-    console.log('[MomentoViewer v178.0] ▶️ Long press released - RESUME');
+    console.log('[MomentoViewer v179.0] ▶️ Long press released - RESUME');
     
     setPaused(false);
     
@@ -854,7 +855,7 @@ export default function MomentoViewer({
         
         // ✅ GESTURE 3: Swipe down to close
         if (gestureState.dy > VERTICAL_SWIPE_THRESHOLD) {
-          console.log('[MomentoViewer v178.0] ⬇️ Swipe down - Close');
+          console.log('[MomentoViewer v179.0] ⬇️ Swipe down - Close');
           Animated.timing(translateYAnim, {
             toValue: SCREEN_HEIGHT,
             duration: 200,
@@ -878,10 +879,10 @@ export default function MomentoViewer({
         // ✅ GESTURE 4: Horizontal swipe between users
         if (Math.abs(gestureState.dx) > SWIPE_THRESHOLD) {
           if (gestureState.dx < 0) {
-            console.log('[MomentoViewer v178.0] ⬅️ Swipe left - Next user');
+            console.log('[MomentoViewer v179.0] ⬅️ Swipe left - Next user');
             handleNext();
           } else {
-            console.log('[MomentoViewer v178.0] ➡️ Swipe right - Previous user');
+            console.log('[MomentoViewer v179.0] ➡️ Swipe right - Previous user');
             handlePrevious();
           }
           return;
@@ -918,7 +919,7 @@ export default function MomentoViewer({
   // Load momentos on mount
   useEffect(() => {
     if (visible && authorId) {
-      console.log('[MomentoViewer v178.0] Opening viewer for:', { authorId, authorType });
+      console.log('[MomentoViewer v179.0] Opening viewer for:', { authorId, authorType });
       loadMomentos();
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -937,7 +938,7 @@ export default function MomentoViewer({
   // Progress animation management
   useEffect(() => {
     if (!paused && !showMessageInput && !showStats && momentos.length > 0 && !loading && visible) {
-      console.log('[MomentoViewer v178.0] ▶️ Starting/resuming progress for momento', currentIndex);
+      console.log('[MomentoViewer v179.0] ▶️ Starting/resuming progress for momento', currentIndex);
       
       if (progressTimerRef.current) {
         clearTimeout(progressTimerRef.current);
@@ -949,12 +950,12 @@ export default function MomentoViewer({
       const currentProgress = progressAnims[currentIndex]?.__getValue() || 0;
       const remainingDuration = MOMENTO_DURATION * (1 - currentProgress);
 
-      console.log('[MomentoViewer v178.0] Progress:', currentProgress.toFixed(3), '- Remaining:', remainingDuration.toFixed(0), 'ms');
+      console.log('[MomentoViewer v179.0] Progress:', currentProgress.toFixed(3), '- Remaining:', remainingDuration.toFixed(0), 'ms');
 
       progressStartTimeRef.current = Date.now();
 
       progressTimerRef.current = setTimeout(() => {
-        console.log('[MomentoViewer v178.0] ⏱️ Timer completed - moving to next');
+        console.log('[MomentoViewer v179.0] ⏱️ Timer completed - moving to next');
         handleNext();
       }, remainingDuration);
 
@@ -1007,7 +1008,7 @@ export default function MomentoViewer({
   const currentMomento = momentos[currentIndex];
   
   if (!currentMomento) {
-    console.error('[MomentoViewer v178.0] Current momento is undefined');
+    console.error('[MomentoViewer v179.0] Current momento is undefined');
     handleClose();
     return null;
   }
@@ -1120,8 +1121,8 @@ export default function MomentoViewer({
             <View style={[
               styles.messageInputContainer,
               Platform.OS === 'android' && {
-                // ✅ FIX v178.0: MUCH higher spacing for excellent separation from keyboard
-                paddingBottom: 200,
+                // ✅ FIX v179.0: EVEN HIGHER spacing for EXCELLENT separation from keyboard
+                paddingBottom: 250,
               }
             ]}>
               <TouchableOpacity 
@@ -1153,8 +1154,8 @@ export default function MomentoViewer({
                 <TouchableOpacity
                   style={[styles.messageSendButton, (!messageText.trim() || sendingMessage) && styles.messageSendButtonDisabled]}
                   onPress={() => {
-                    // ✅ FIX v178.0: Send message immediately without closing keyboard
-                    console.log('[MomentoViewer v178.0] 📤 Send button pressed - sending immediately');
+                    // ✅ FIX v179.0: Send message immediately without closing keyboard
+                    console.log('[MomentoViewer v179.0] 📤 Send button pressed - sending immediately');
                     handleSendMessage();
                   }}
                   disabled={!messageText.trim() || sendingMessage}
@@ -1482,8 +1483,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     paddingHorizontal: 16,
     paddingTop: 16,
-    // ✅ FIX v178.0: Base padding (will be overridden by inline style for Android)
-    paddingBottom: Platform.OS === 'android' ? 200 : 40,
+    // ✅ FIX v179.0: Base padding (will be overridden by inline style for Android)
+    paddingBottom: Platform.OS === 'android' ? 250 : 40,
   },
   messageInputClose: {
     alignSelf: 'flex-end',

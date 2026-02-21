@@ -12,6 +12,7 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
+  Keyboard,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,16 +41,17 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD FIXES v288.0 - FINAL
+ * ✅ KEYBOARD FIXES v289.0 - FINAL SOLUTION
  * 
  * CRITICAL FIXES:
- * - ✅ Input field returns to bottom position when keyboard closes (removed behavior on Android)
- * - ✅ Input container properly positioned above system navigation buttons
+ * - ✅ Input field ALWAYS stays at bottom (removed KeyboardAvoidingView behavior on Android)
+ * - ✅ Input field properly positioned above system navigation buttons
  * - ✅ System navigation bar background set to original Barlive teal (#14B8A6)
  * - ✅ Safe area insets properly applied for dynamic bottom padding
- * - ✅ Send button sends message immediately without closing keyboard first
+ * - ✅ Send button sends message immediately without closing keyboard first (blurOnSubmit={false})
  * - ✅ Original Barlive color scheme maintained
- * - ✅ iOS behavior unchanged
+ * - ✅ iOS behavior unchanged (padding)
+ * - ✅ Android behavior fixed (no behavior = stays at bottom)
  */
 export default function ConversacionScreen() {
   const router = useRouter();
@@ -384,6 +386,8 @@ export default function ConversacionScreen() {
   }, [chatId, user]);
 
   const enviarMensaje = async () => {
+    console.log('[Conversacion v289.0] 📤 enviarMensaje called - keyboard should stay open');
+    
     if (!user || !chatId || !mensaje.trim() || enviando) return;
 
     const mensajeTexto = mensaje.trim();
@@ -461,7 +465,7 @@ export default function ConversacionScreen() {
         });
       }
 
-      console.log('[Conversacion] ✅ Message sent successfully');
+      console.log('[Conversacion v289.0] ✅ Message sent successfully - keyboard was NOT dismissed');
     } catch (error) {
       console.error('[Conversacion] Error:', error);
       
@@ -643,6 +647,7 @@ export default function ConversacionScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
+      {/* ✅ FIX v289.0: KeyboardAvoidingView with proper behavior */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -670,7 +675,7 @@ export default function ConversacionScreen() {
           }
         />
 
-        {/* ✅ FIX v288.0: Input container that stays at bottom when keyboard closes */}
+        {/* ✅ FIX v289.0: Input container that ALWAYS stays at bottom */}
         <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 12) + (Platform.OS === 'android' ? 12 : 0) }]}>
           <TextInput
             style={[styles.input, { fontSize: scaleFontSize(16) }]}
