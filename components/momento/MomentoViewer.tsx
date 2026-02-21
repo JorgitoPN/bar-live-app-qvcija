@@ -69,7 +69,7 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v170.0 - PROFESSIONAL GESTURE CONTROLS + KEYBOARD FIXES v2
+ * ✅ MOMENTO VIEWER v167.0 - PROFESSIONAL GESTURE CONTROLS + KEYBOARD FIXES FINAL
  * 
  * GESTURE SYSTEM:
  * 1. TAP (Short Press):
@@ -93,13 +93,12 @@ interface MomentoViewerProps {
  *    - Swipe right → Previous user's momento
  *    - Faster than multiple taps
  * 
- * ✅ FIXES v170.0:
- * - PROBLEMA 1 RESUELTO: Android keyboard now properly lifts input field ~90% above keyboard
+ * ✅ FIXES v167.0 (FINAL):
+ * - PROBLEMA 1 RESUELTO: Android keyboard now properly lifts input field ~20% (reduced from 65%)
  * - PROBLEMA 2 RESUELTO: Send button now sends message immediately WITHOUT closing keyboard first
  * - Removed Keyboard.dismiss() call - message sends while keyboard is still open
  * - Removed setTimeout delay - instant message sending
- * - paddingBottom adjusted to 90px for 90% lift above keyboard on Android
- * - User can continue typing after sending without keyboard closing
+ * - paddingBottom reduced to 20px for 20% lift (was 40px for 65%)
  */
 
 export default function MomentoViewer({
@@ -1118,8 +1117,8 @@ export default function MomentoViewer({
               styles.messageInputContainer,
               Platform.OS === 'android' && {
                 // ✅ FIX PROBLEMA 1: Android keyboard adjustment
-                // Lift input field ~90% above keyboard for optimal visibility
-                paddingBottom: 90,
+                // Lift input field ~20% above keyboard (reduced from 65%)
+                paddingBottom: 20,
               }
             ]}>
               <TouchableOpacity 
@@ -1153,7 +1152,7 @@ export default function MomentoViewer({
                     // ✅ FIX PROBLEMA 2: Send message immediately WITHOUT closing keyboard
                     // No Keyboard.dismiss() call - message sends while keyboard is still open
                     // No setTimeout delay - instant sending
-                    console.log('[MomentoViewer v170.0] 📤 Send button pressed - sending immediately');
+                    console.log('[MomentoViewer v167.0] 📤 Send button pressed - sending immediately');
                     handleSendMessage();
                   }}
                   disabled={!messageText.trim() || sendingMessage}
