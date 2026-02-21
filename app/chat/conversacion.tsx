@@ -53,6 +53,7 @@ interface Message {
  *    - ✅ EXACT SAME STRUCTURE AS COMMENTSMODAL (working reference)
  *    - ✅ inputContainer + inputRow pattern for proper layout
  *    - ✅ RESPECTS ANDROID TACTILE BUTTONS - input visible at all times
+ *    - ✅ WHITE BACKGROUND ONLY ON SYSTEM NAVIGATION BAR AREA
  * 
  * 2️⃣ SEND BUTTON:
  *    - ✅ Sends message immediately on first press
@@ -67,6 +68,7 @@ interface Message {
  * - No KeyboardAvoidingView (causes issues on Android)
  * - inputContainer (absolute) + inputRow (flex layout) pattern
  * - Exact replication of CommentsModal structure
+ * - WHITE BACKGROUND (#FFFFFF) ONLY ON INPUT CONTAINER (system nav bar area)
  */
 export default function ConversacionScreen() {
   const router = useRouter();
@@ -89,11 +91,11 @@ export default function ConversacionScreen() {
   const isLocalChat = !!params.localId;
   const localId = params.localId as string | undefined;
 
-  // ✅ ANDROID FIX v286.0: Set system navigation bar color to original Barlive teal
+  // ✅ ANDROID FIX v286.0: Set system navigation bar color to WHITE (matching input container)
   useEffect(() => {
     if (Platform.OS === 'android') {
-      const barliveTeal = '#14B8A6'; // Original Barlive teal
-      SystemUI.setBackgroundColorAsync(barliveTeal);
+      const whiteColor = '#FFFFFF'; // White background for system navigation bar
+      SystemUI.setBackgroundColorAsync(whiteColor);
       
       return () => {
         // Reset to default when leaving screen
@@ -354,7 +356,7 @@ export default function ConversacionScreen() {
 
         setOtroUsuario(userData);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Conversacion] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar la conversación');
     } finally {
@@ -712,6 +714,7 @@ export default function ConversacionScreen() {
       />
 
       {/* ✅ FIX v294.0: Input container with EXACT CommentsModal positioning logic - RESPECTS SAFE AREA */}
+      {/* ✅ WHITE BACKGROUND (#FFFFFF) ONLY ON INPUT CONTAINER - System navigation bar area */}
       <View style={[
         styles.inputContainer, 
         { 
@@ -840,7 +843,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     overflow: 'hidden',
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF', // ✅ WHITE BACKGROUND - System navigation bar area
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
   },
@@ -850,7 +853,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 12,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF', // ✅ WHITE BACKGROUND - System navigation bar area
   },
   input: {
     flex: 1,

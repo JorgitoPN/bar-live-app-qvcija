@@ -3331,7 +3331,7 @@ export default function SalaVirtualEnhancedScreen() {
               <View style={[
                 styles.inputContainer, 
                 { 
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: themeColors.cardBg, // ✅ DYNAMIC COLOR - Changes with day/night mode
                   borderTopColor: themeColors.cardBorder,
                   paddingBottom: inputContainerPaddingBottom,
                 }
@@ -3549,7 +3549,7 @@ export default function SalaVirtualEnhancedScreen() {
               <View style={[
                 styles.inputContainer, 
                 { 
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: themeColors.cardBg, // ✅ DYNAMIC COLOR - Changes with day/night mode
                   borderTopColor: themeColors.cardBorder,
                   paddingBottom: inputContainerPaddingBottom,
                 }
