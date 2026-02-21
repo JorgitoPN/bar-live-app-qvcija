@@ -40,14 +40,15 @@ interface Message {
 }
 
 /**
- * ✅ ANDROID FIXES v286.0 - FINAL
+ * ✅ KEYBOARD FIXES v287.0 - FINAL
  * 
  * CRITICAL FIXES:
+ * - ✅ Input field returns to bottom position when keyboard closes (removed behavior="height" on Android)
  * - ✅ Input container properly positioned above system navigation buttons
  * - ✅ System navigation bar background set to original Barlive teal (#14B8A6)
- * - ✅ KeyboardAvoidingView with behavior="height" on Android
  * - ✅ Safe area insets properly applied for dynamic bottom padding
- * - ✅ Original Barlive color scheme restored
+ * - ✅ Send button sends message immediately without closing keyboard first
+ * - ✅ Original Barlive color scheme maintained
  * - ✅ iOS behavior unchanged
  */
 export default function ConversacionScreen() {
@@ -644,7 +645,7 @@ export default function ConversacionScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <FlatList
@@ -653,8 +654,7 @@ export default function ConversacionScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={[
             styles.messagesList,
-            // ✅ ANDROID FIX v286.0: Bottom padding for input container
-            { paddingBottom: Platform.OS === 'android' ? 8 : 8 }
+            { paddingBottom: 8 }
           ]}
           renderItem={renderMessage}
           ListEmptyComponent={
@@ -670,7 +670,7 @@ export default function ConversacionScreen() {
           }
         />
 
-        {/* ✅ ANDROID FIX v286.0: Input container with proper safe area insets */}
+        {/* ✅ FIX v287.0: Input container that stays at bottom when keyboard closes */}
         <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 12) + (Platform.OS === 'android' ? 12 : 0) }]}>
           <TextInput
             style={[styles.input, { fontSize: scaleFontSize(16) }]}
@@ -789,8 +789,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: 12,
-    // ✅ FIX v286.0: Proper bottom padding to stay above system navigation buttons
-    paddingBottom: Platform.OS === 'android' ? 24 : 12,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
     backgroundColor: colors.background,

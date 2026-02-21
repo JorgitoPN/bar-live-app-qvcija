@@ -69,7 +69,7 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v176.0 - ANDROID KEYBOARD FIX FINAL
+ * ✅ MOMENTO VIEWER v177.0 - KEYBOARD FIX FINAL
  * 
  * GESTURE SYSTEM:
  * 1. TAP (Short Press):
@@ -93,12 +93,12 @@ interface MomentoViewerProps {
  *    - Swipe right → Previous user's momento
  *    - Faster than multiple taps
  * 
- * ✅ FIXES v176.0 (ANDROID FINAL):
- * - PROBLEMA RESUELTO: Input field properly elevated above keyboard with better spacing
- * - paddingBottom: 160px for Android (increased from 140px for better separation)
- * - Send button sends message IMMEDIATELY without closing keyboard
- * - NO Keyboard.dismiss() - keyboard stays open after sending
- * - NO setTimeout - instant message sending
+ * ✅ FIXES v177.0 (FINAL):
+ * - ✅ Input field positioned higher above keyboard (paddingBottom: 180px for Android)
+ * - ✅ Better visual separation and visibility when keyboard is open
+ * - ✅ Send button sends message IMMEDIATELY without closing keyboard
+ * - ✅ NO Keyboard.dismiss() - keyboard stays open after sending
+ * - ✅ NO setTimeout - instant message sending
  */
 
 export default function MomentoViewer({
@@ -1120,9 +1120,8 @@ export default function MomentoViewer({
             <View style={[
               styles.messageInputContainer,
               Platform.OS === 'android' && {
-                // ✅ FIX (ANDROID v176.0): Android keyboard adjustment
-                // Lift input field 160px above keyboard for better separation from keyboard
-                paddingBottom: 160,
+                // ✅ FIX v177.0: Increased spacing for better separation from keyboard
+                paddingBottom: 180,
               }
             ]}>
               <TouchableOpacity 
@@ -1153,10 +1152,8 @@ export default function MomentoViewer({
                 <TouchableOpacity
                   style={[styles.messageSendButton, (!messageText.trim() || sendingMessage) && styles.messageSendButtonDisabled]}
                   onPress={() => {
-                    // ✅ FIX (ANDROID v176.0): Send message immediately WITHOUT closing keyboard
-                    // NO Keyboard.dismiss() - keyboard stays open
-                    // NO setTimeout - instant sending
-                    console.log('[MomentoViewer v176.0] 📤 Send button pressed - sending immediately');
+                    // ✅ FIX v177.0: Send message immediately without closing keyboard
+                    console.log('[MomentoViewer v177.0] 📤 Send button pressed - sending immediately');
                     handleSendMessage();
                   }}
                   disabled={!messageText.trim() || sendingMessage}
@@ -1484,8 +1481,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     paddingHorizontal: 16,
     paddingTop: 16,
-    // ✅ FIX v176.0: Base padding (will be overridden by inline style for Android)
-    paddingBottom: Platform.OS === 'android' ? 160 : 40,
+    // ✅ FIX v177.0: Base padding (will be overridden by inline style for Android)
+    paddingBottom: Platform.OS === 'android' ? 180 : 40,
   },
   messageInputClose: {
     alignSelf: 'flex-end',
