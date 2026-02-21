@@ -45,15 +45,16 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ANDROID FULL-SCREEN FILTERS PAGE v3.1 - DYNAMIC + INSTANT + SLIDER + SIN LÍMITE
+ * ✅ CROSS-PLATFORM FILTERS PAGE v3.2 - iOS + ANDROID - SIN LÍMITE DEFAULT
  * 
- * NEW FEATURES v3.1:
- * - 🎯 "Sin límite" as default for search range (no distance filter applied)
- * - ⚡ Auto-activate filter when user modifies range
- * - 🔄 Option to return to "Sin límite" after setting a range
+ * NEW FEATURES v3.2 (iOS FIX):
+ * - 🎯 "Sin límite" as default for search range on BOTH iOS and Android
+ * - ⚡ Auto-activate filter when user modifies range (iOS + Android)
+ * - 🔄 Option to return to "Sin límite" after setting a range (iOS + Android)
  * - ✅ Clear visual feedback for active/inactive distance filter
+ * - 🍎 Verified iOS compatibility with all features
  * 
- * Previous features v3.0:
+ * Previous features v3.1:
  * - 🎯 DYNAMIC FILTERS: Only show characteristics with active locales
  * - ⚡ INSTANT CLEAR: Synchronous UI update, background fetch
  * - 🎚️ SLIDER: Replaced text input with slider (1-100km range)
@@ -91,7 +92,7 @@ export default function FiltrosAvanzadosScreen() {
   });
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados Android v2.0] 🔄 Page opened, loading filters');
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] 🔄 Page opened, loading filters');
     setFiltrosTemp(contextFiltros);
     refreshDynamicOptions();
   }, [contextFiltros, refreshDynamicOptions]);
@@ -133,13 +134,13 @@ export default function FiltrosAvanzadosScreen() {
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados Android v2.0] ✅ Applying filters:', filtrosTemp);
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] ✅ Applying filters:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     router.back();
   }, [filtrosTemp, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados Android v3.0] 🧹 Clearing all filters - INSTANT UI UPDATE');
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] 🧹 Clearing all filters - INSTANT UI UPDATE');
     
     // ✅ PASO 1: Actualizar UI INMEDIATAMENTE (síncrono)
     const emptyFiltros = {};
@@ -152,7 +153,7 @@ export default function FiltrosAvanzadosScreen() {
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados Android v2.0] 📍 Selected comunidad:', selectedComunidad);
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] 📍 Selected comunidad:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -176,7 +177,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados Android v2.0] 📍 Selected provincia:', provincia);
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] 📍 Selected provincia:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -185,11 +186,30 @@ export default function FiltrosAvanzadosScreen() {
     setSearchProvincia('');
   }, []);
 
+  // ✅ v3.2 iOS FIX: Auto-activate distance filter when user changes slider
   const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados Android v3.0] 📏 Radius changed to:', value, 'km');
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] 📏 Radius changed to:', value, 'km - Auto-activating filter');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: value,
+    }));
+  }, []);
+
+  // ✅ v3.2 iOS FIX: Activate distance filter with default value
+  const activateDistanceFilter = useCallback(() => {
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] 🎯 Activating search range filter with default 50km');
+    setFiltrosTemp(prev => ({
+      ...prev,
+      distancia: 50,
+    }));
+  }, []);
+
+  // ✅ v3.2 iOS FIX: Reset distance filter to "Sin límite"
+  const resetDistanceFilter = useCallback(() => {
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] 🔄 Resetting search range to "Sin límite"');
+    setFiltrosTemp(prev => ({
+      ...prev,
+      distancia: undefined,
     }));
   }, []);
 
@@ -321,6 +341,7 @@ export default function FiltrosAvanzadosScreen() {
     return clientela;
   }, [dynamicOptions.clientela]);
 
+  // ✅ v3.2 iOS FIX: Only count distance filter when it's actually set (not "Sin límite")
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (filtrosTemp.tipo && filtrosTemp.tipo.length > 0) count++;
@@ -329,6 +350,7 @@ export default function FiltrosAvanzadosScreen() {
     if (filtrosTemp.clientela && filtrosTemp.clientela.length > 0) count++;
     if (filtrosTemp.comunidad) count++;
     if (filtrosTemp.provincia) count++;
+    // ✅ Only count distance if it's defined (not "Sin límite")
     if (filtrosTemp.distancia !== undefined && filtrosTemp.distancia !== null) count++;
     return count;
   }, [filtrosTemp]);
@@ -336,6 +358,9 @@ export default function FiltrosAvanzadosScreen() {
   // ✅ CRITICAL FIX v2.0: Calculate proper bottom padding for Android system buttons
   const footerPaddingBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 20) : 20;
   const scrollContentPaddingBottom = Platform.OS === 'android' ? 120 + insets.bottom : 120;
+
+  // ✅ v3.2 iOS FIX: Check if distance filter is active
+  const isDistanceFilterActive = filtrosTemp.distancia !== undefined && filtrosTemp.distancia !== null;
 
   return (
     <View style={styles.container}>
@@ -405,7 +430,7 @@ export default function FiltrosAvanzadosScreen() {
                 <TouchableOpacity
                   style={styles.locationButton}
                   onPress={() => {
-                    console.log('[FiltrosAvanzados Android v2.0] 🔍 Opening comunidad modal');
+                    console.log('[FiltrosAvanzados v3.2 iOS+Android] 🔍 Opening comunidad modal');
                     setShowComunidadModal(true);
                   }}
                 >
@@ -423,7 +448,7 @@ export default function FiltrosAvanzadosScreen() {
                   ]}
                   onPress={() => {
                     if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
-                      console.log('[FiltrosAvanzados Android v2.0] 🔍 Opening provincia modal');
+                      console.log('[FiltrosAvanzados v3.2 iOS+Android] 🔍 Opening provincia modal');
                       setShowProvinciaModal(true);
                     }
                   }}
@@ -437,27 +462,36 @@ export default function FiltrosAvanzadosScreen() {
                 </TouchableOpacity>
               </View>
 
+              {/* ✅ v3.2 iOS FIX: Distance filter with "Sin límite" default */}
               <View style={styles.distanceContainer}>
                 <View style={styles.distanceHeader}>
                   <View style={styles.distanceLabelRow}>
                     <IconSymbol ios_icon_name="location.circle" android_material_icon_name="location_on" size={scaleIconSize(14)} color={colors.primary} />
                     <Text style={[styles.distanceLabel, { fontSize: scaleFontSize(12) }]}>Radio de búsqueda</Text>
                   </View>
-                  <View style={styles.distanceValueBadge}>
-                    <Text style={[styles.distanceValueText, { fontSize: scaleFontSize(14) }]}>
-                      {filtrosTemp.distancia ? `${Math.round(filtrosTemp.distancia)} km` : 'Sin límite'}
+                  <View style={[
+                    styles.distanceValueBadge,
+                    !isDistanceFilterActive && styles.distanceValueBadgeInactive
+                  ]}>
+                    <Text style={[
+                      styles.distanceValueText, 
+                      { fontSize: scaleFontSize(14) },
+                      !isDistanceFilterActive && styles.distanceValueTextInactive
+                    ]}>
+                      {isDistanceFilterActive ? `${Math.round(filtrosTemp.distancia!)} km` : 'Sin límite'}
                     </Text>
                   </View>
                 </View>
                 
-                {filtrosTemp.distancia !== undefined && filtrosTemp.distancia !== null && (
+                {/* ✅ v3.2 iOS FIX: Show slider only when filter is active */}
+                {isDistanceFilterActive && (
                   <>
                     <Slider
                       style={styles.slider}
                       minimumValue={1}
                       maximumValue={100}
                       step={1}
-                      value={filtrosTemp.distancia}
+                      value={filtrosTemp.distancia || 50}
                       onValueChange={handleDistanciaChange}
                       minimumTrackTintColor={colors.primary}
                       maximumTrackTintColor={colors.cardBorder}
@@ -471,13 +505,11 @@ export default function FiltrosAvanzadosScreen() {
                   </>
                 )}
                 
-                {(filtrosTemp.distancia === undefined || filtrosTemp.distancia === null) ? (
+                {/* ✅ v3.2 iOS FIX: Show activate button when filter is inactive */}
+                {!isDistanceFilterActive ? (
                   <TouchableOpacity 
                     style={styles.activateRangeButton}
-                    onPress={() => {
-                      console.log('[FiltrosAvanzados] 🎯 Activating search range filter with default 50km');
-                      handleDistanciaChange(50);
-                    }}
+                    onPress={activateDistanceFilter}
                     activeOpacity={0.7}
                   >
                     <IconSymbol ios_icon_name="slider.horizontal.3" android_material_icon_name="tune" size={scaleIconSize(16)} color={colors.primary} />
@@ -486,15 +518,10 @@ export default function FiltrosAvanzadosScreen() {
                     </Text>
                   </TouchableOpacity>
                 ) : (
+                  /* ✅ v3.2 iOS FIX: Show reset button when filter is active */
                   <TouchableOpacity 
                     style={styles.resetRangeButton}
-                    onPress={() => {
-                      console.log('[FiltrosAvanzados] 🔄 Resetting search range to "Sin límite"');
-                      setFiltrosTemp(prev => ({
-                        ...prev,
-                        distancia: undefined,
-                      }));
-                    }}
+                    onPress={resetDistanceFilter}
                     activeOpacity={0.7}
                   >
                     <IconSymbol ios_icon_name="arrow.counterclockwise" android_material_icon_name="refresh" size={scaleIconSize(14)} color={colors.textSecondary} />
@@ -1076,10 +1103,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.primary + '40',
   },
+  distanceValueBadgeInactive: {
+    backgroundColor: colors.cardBorder + '30',
+    borderColor: colors.cardBorder,
+  },
   distanceValueText: {
     fontWeight: '700',
     color: colors.primary,
     letterSpacing: 0.5,
+  },
+  distanceValueTextInactive: {
+    color: colors.textSecondary,
+    fontWeight: '600',
   },
   slider: {
     width: '100%',
