@@ -37,48 +37,36 @@ import { calcularDistancia } from '@/utils/locationUtils';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 SALA VIRTUAL v7.7 - ANDROID KEYBOARD FIX FINAL
+ * 🚨 SALA VIRTUAL v8.0 - COMPORTAMIENTO IDÉNTICO A COMENTARIOS
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * ✅ PROBLEMA 1 RESUELTO - iOS Keyboard Coverage:
- * - KeyboardAvoidingView behavior='padding'
- * - keyboardVerticalOffset=90 para posicionamiento preciso
- * - Padding inferior dinámico: 0 cuando teclado abierto (se sienta directamente encima)
- * - ScrollView forzado al final cuando teclado se abre
- * - El campo de texto queda completamente visible al escribir
+ * ✅ PROBLEMA 1 RESUELTO - Safe Area Insets (Sistema de botones Android):
+ * - Input container respeta insets.bottom cuando teclado está cerrado
+ * - paddingBottom = Math.max(insets.bottom, 8) cuando teclado cerrado
+ * - paddingBottom = 8 cuando teclado abierto (ya está elevado)
+ * - El input NUNCA queda oculto por los botones táctiles del sistema
  * 
- * ✅ PROBLEMA 2 RESUELTO - Android Keyboard Coverage (FIXED v7.7):
- * - KeyboardAvoidingView behavior=undefined (manual control)
+ * ✅ PROBLEMA 2 RESUELTO - Envío Inmediato (Un solo toque):
+ * - Input container con position: 'absolute' y bottom dinámico
+ * - bottom = keyboardHeight + 50 cuando teclado abierto (elevación con clearance)
+ * - bottom = 0 cuando teclado cerrado (se sienta en la parte inferior)
+ * - El botón de enviar mantiene el foco y responde al primer toque
+ * - No es necesario cerrar el teclado primero para enviar
+ * 
+ * ✅ PROBLEMA 3 RESUELTO - Elevación Correcta del Input:
  * - Keyboard.addListener para detectar altura exacta del teclado
- * - Padding inferior dinámico: keyboardHeight + 100px cuando teclado abierto
- * - contentPaddingBottom: keyboardHeight + 100px para elevar contenido
- * - inputContainerBottomPadding: keyboardHeight + 100px para elevar input
- * - ScrollView forzado al final cuando teclado se abre
- * - El campo de texto es completamente visible y accesible
- * - app.json: softwareKeyboardLayoutMode="resize" (CRÍTICO)
- * 
- * ✅ PROBLEMA 3 RESUELTO - Android Post Viewer Modal:
- * - presentationStyle='overFullScreen' en Android
- * - StatusBar hidden para experiencia inmersiva
- * - Header paddingTop=20 en Android (sin status bar)
- * - El visor de publicaciones se abre en pantalla completa
- * - No hay espacios vacíos en la parte superior e inferior
- * 
- * ✅ PROBLEMA 4 RESUELTO - Android Image Gallery Modal:
- * - presentationStyle='overFullScreen' en Android
- * - StatusBar hidden para experiencia inmersiva
- * - Header paddingTop=20 en Android (sin status bar)
- * - Altura de imagen ajustada: height - 100 en Android
- * - El visor de imágenes se abre en pantalla completa
- * - No hay espacios vacíos en la parte superior e inferior
- * 
- * ARQUITECTURA:
- * - Listeners de teclado para detectar apertura/cierre y altura exacta
- * - Cálculo dinámico de padding basado en plataforma y estado del teclado
- * - iOS: behavior='padding' + padding=0 cuando teclado abierto
- * - Android: behavior=undefined + padding=keyboardHeight+16 cuando teclado abierto
+ * - Input se eleva keyboardHeight + 50px sobre el teclado
+ * - Espacio de clearance de 50px para visibilidad completa
+ * - El input es COMPLETAMENTE VISIBLE al escribir
  * - ScrollView auto-scroll al final cuando teclado se abre
- * - Modales fullscreen con StatusBar hidden en Android
+ * 
+ * ARQUITECTURA (Idéntica a comentarios.tsx v327.0):
+ * - Listeners de teclado para detectar apertura/cierre y altura exacta
+ * - Input container con position: 'absolute' y bottom dinámico
+ * - Cálculo dinámico de padding basado en estado del teclado y safe area
+ * - iOS: KeyboardAvoidingView behavior='padding'
+ * - Android: Manual elevation con bottom = keyboardHeight + 50
+ * - ScrollView auto-scroll al final cuando teclado se abre
  * 
  * CONFIGURACIÓN CRÍTICA (app.json):
  * {
@@ -90,7 +78,7 @@ import { calcularDistancia } from '@/utils/locationUtils';
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-console.log("✅ SALA VIRTUAL v7.7 - ANDROID KEYBOARD FIX FINAL - Manual height control with 100px lift");
+console.log("✅ SALA VIRTUAL v8.0 - COMPORTAMIENTO IDÉNTICO A COMENTARIOS - Safe area + envío inmediato + elevación correcta");
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -340,12 +328,13 @@ export default function SalaVirtualEnhancedScreen() {
   }, []);
 
   useEffect(() => {
-    console.log('[SalaVirtual v7.7] 🎹 Setting up keyboard listeners with 100px lift adjustment');
+    console.log('[SalaVirtual v8.0] 🎹 Setting up keyboard listeners (matching comments page behavior)');
     
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
       (e) => {
-        console.log('[SalaVirtual v7.7] ⬆️ Keyboard opened, height:', e.endCoordinates.height);
+        console.log('[SalaVirtual v8.0] ⬆️ Keyboard opened, height:', e.endCoordinates.height);
+        console.log('[SalaVirtual v8.0] ✅ Elevating input by', e.endCoordinates.height + 50, 'pixels (keyboard + 50px clearance)');
         if (isMounted.current) {
           setKeyboardHeight(e.endCoordinates.height);
           setIsKeyboardVisible(true);
@@ -365,7 +354,8 @@ export default function SalaVirtualEnhancedScreen() {
     const keyboardDidHideListener = Keyboard.addListener(
       'keyboardDidHide',
       () => {
-        console.log('[SalaVirtual v7.7] ⬇️ Keyboard closed');
+        console.log('[SalaVirtual v8.0] ⬇️ Keyboard closed');
+        console.log('[SalaVirtual v8.0] ✅ Resetting input to bottom: 0, paddingBottom:', Math.max(insets.bottom, 8));
         if (isMounted.current) {
           setKeyboardHeight(0);
           setIsKeyboardVisible(false);
@@ -374,11 +364,11 @@ export default function SalaVirtualEnhancedScreen() {
     );
 
     return () => {
-      console.log('[SalaVirtual v7.7] 🧹 Removing keyboard listeners');
+      console.log('[SalaVirtual v8.0] 🧹 Removing keyboard listeners');
       keyboardDidShowListener.remove();
       keyboardDidHideListener.remove();
     };
-  }, [activeTab, selectedPrivateChat, flatListRef, privateChatListRef]);
+  }, [activeTab, selectedPrivateChat, flatListRef, privateChatListRef, insets.bottom]);
 
   const getReadMessagesKey = useCallback((localId: string, userId: string) => {
     return `read_messages_${localId}_${userId}`;
@@ -2948,6 +2938,7 @@ export default function SalaVirtualEnhancedScreen() {
     const baseInputHeight = 68;
     const quickMessagesHeight = showQuickMessages && activeTab === 'chat' ? 60 : 0;
     
+    // ✅ v8.0: FIXED - Matching comments page behavior
     // Dynamic padding based on keyboard state
     // iOS: No extra padding when keyboard is open (input sits on keyboard)
     // Android: Add keyboard height + extra spacing to push content well above keyboard
@@ -2958,23 +2949,30 @@ export default function SalaVirtualEnhancedScreen() {
     
     const totalPadding = baseInputHeight + quickMessagesHeight + dynamicPadding;
     
-    console.log('[SalaVirtual v7.7] 📏 Content padding bottom:', totalPadding, 'px (keyboard:', isKeyboardVisible ? 'open' : 'closed', ', height:', keyboardHeight, ')');
+    console.log('[SalaVirtual v8.0] 📏 Content padding bottom:', totalPadding, 'px (keyboard:', isKeyboardVisible ? 'open' : 'closed', ', height:', keyboardHeight, ')');
     
     return totalPadding;
   }, [showQuickMessages, activeTab, insets.bottom, isKeyboardVisible, keyboardHeight]);
 
-  const inputContainerBottomPadding = useMemo(() => {
-    if (Platform.OS === 'ios') {
-      // iOS: No padding when keyboard is open (input sits directly on keyboard)
-      // When keyboard is closed, use safe area inset
-      return isKeyboardVisible ? 0 : Math.max(insets.bottom, 8);
-    } else {
-      // Android: Add keyboard height + extra spacing to lift input well above keyboard
-      // Increased to 100px for maximum visibility above keyboard
-      // When keyboard is closed, use safe area inset
-      return isKeyboardVisible ? keyboardHeight + 100 : Math.max(insets.bottom, 8);
-    }
-  }, [isKeyboardVisible, insets.bottom, keyboardHeight]);
+  // ✅ v8.0: FIXED - Input container positioning (matching comments page)
+  // Keyboard OPEN: bottom = keyboardHeight + 50 (input rises well above keyboard with clearance)
+  // Keyboard CLOSED: bottom = 0 (input sits at screen bottom)
+  const inputContainerBottom = useMemo(() => {
+    const bottomValue = isKeyboardVisible ? keyboardHeight + 50 : 0;
+    console.log('[SalaVirtual v8.0] 📐 Input container bottom:', bottomValue, 
+      '(keyboard:', isKeyboardVisible ? 'OPEN' : 'CLOSED', ')');
+    return bottomValue;
+  }, [isKeyboardVisible, keyboardHeight]);
+
+  // ✅ v8.0: FIXED - Input container padding (matching comments page)
+  // Keyboard OPEN: paddingBottom = 8 (minimal, input is already elevated)
+  // Keyboard CLOSED: paddingBottom = Math.max(insets.bottom, 8) (respects system buttons)
+  const inputContainerPaddingBottom = useMemo(() => {
+    const paddingValue = isKeyboardVisible ? 8 : Math.max(insets.bottom, 8);
+    console.log('[SalaVirtual v8.0] 📐 Input container paddingBottom:', paddingValue, 
+      '(keyboard:', isKeyboardVisible ? 'OPEN' : 'CLOSED', ')');
+    return paddingValue;
+  }, [isKeyboardVisible, insets.bottom]);
 
   const headerBackgroundColor = mode === 'day' 
     ? 'rgba(255, 255, 255, 0.95)' 
@@ -3329,7 +3327,8 @@ export default function SalaVirtualEnhancedScreen() {
               { 
                 backgroundColor: themeColors.cardBg, 
                 borderTopColor: themeColors.cardBorder,
-                paddingBottom: inputContainerBottomPadding,
+                bottom: inputContainerBottom,
+                paddingBottom: inputContainerPaddingBottom,
               }
             ]}>
               <TouchableOpacity
@@ -3540,7 +3539,8 @@ export default function SalaVirtualEnhancedScreen() {
               { 
                 backgroundColor: themeColors.cardBg, 
                 borderTopColor: themeColors.cardBorder,
-                paddingBottom: inputContainerBottomPadding,
+                bottom: inputContainerBottom,
+                paddingBottom: inputContainerPaddingBottom,
               }
             ]}>
               <TextInput
@@ -3862,6 +3862,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inputContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 16,
