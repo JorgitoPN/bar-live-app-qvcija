@@ -23,6 +23,7 @@ import MessageBubble from '@/components/chat/MessageBubble';
 import MomentoMessageBubble from '@/components/chat/MomentoMessageBubble';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 import * as SystemUI from 'expo-system-ui';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Message {
   id: string;
@@ -54,6 +55,7 @@ export default function ConversacionScreen() {
   const params = useLocalSearchParams();
   const { user } = useAuth();
   const flatListRef = useRef<FlatList>(null);
+  const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [chatId, setChatId] = useState<string | null>(null);
