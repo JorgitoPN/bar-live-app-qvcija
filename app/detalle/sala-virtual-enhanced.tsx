@@ -329,15 +329,24 @@ export default function SalaVirtualEnhancedScreen() {
   }, []);
 
   useEffect(() => {
-    console.log('[SalaVirtual v6.7] 🎹 Setting up keyboard listeners');
+    console.log('[SalaVirtual v7.5] 🎹 Setting up keyboard listeners with manual offset adjustment');
     
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
       (e) => {
-        console.log('[SalaVirtual v6.7] ⬆️ Keyboard opened, height:', e.endCoordinates.height);
+        console.log('[SalaVirtual v7.5] ⬆️ Keyboard opened, height:', e.endCoordinates.height);
         if (isMounted.current) {
           setKeyboardHeight(e.endCoordinates.height);
           setIsKeyboardVisible(true);
+          
+          // Force scroll to end when keyboard opens
+          setTimeout(() => {
+            if (activeTab === 'chat') {
+              flatListRef.current?.scrollToEnd({ animated: true });
+            } else if (activeTab === 'private' && selectedPrivateChat) {
+              privateChatListRef.current?.scrollToEnd({ animated: true });
+            }
+          }, 100);
         }
       }
     );
@@ -345,7 +354,7 @@ export default function SalaVirtualEnhancedScreen() {
     const keyboardDidHideListener = Keyboard.addListener(
       'keyboardDidHide',
       () => {
-        console.log('[SalaVirtual v6.7] ⬇️ Keyboard closed');
+        console.log('[SalaVirtual v7.5] ⬇️ Keyboard closed');
         if (isMounted.current) {
           setKeyboardHeight(0);
           setIsKeyboardVisible(false);
@@ -354,11 +363,11 @@ export default function SalaVirtualEnhancedScreen() {
     );
 
     return () => {
-      console.log('[SalaVirtual v6.7] 🧹 Removing keyboard listeners');
+      console.log('[SalaVirtual v7.5] 🧹 Removing keyboard listeners');
       keyboardDidShowListener.remove();
       keyboardDidHideListener.remove();
     };
-  }, []);
+  }, [activeTab, selectedPrivateChat, flatListRef, privateChatListRef]);
 
   const getReadMessagesKey = useCallback((localId: string, userId: string) => {
     return `read_messages_${localId}_${userId}`;
@@ -2928,12 +2937,31 @@ export default function SalaVirtualEnhancedScreen() {
     const baseInputHeight = 68;
     const quickMessagesHeight = showQuickMessages && activeTab === 'chat' ? 60 : 0;
     
-    const dynamicPadding = isKeyboardVisible ? 8 : Math.max(insets.bottom, 8);
+    // Dynamic padding based on keyboard state
+    // iOS: No extra padding when keyboard is open (input sits on keyboard)
+    // Android: Small padding when keyboard is open (8px)
+    const dynamicPadding = Platform.OS === 'ios'
+      ? (isKeyboardVisible ? 0 : Math.max(insets.bottom, 8))
+      : (isKeyboardVisible ? 8 : Math.max(insets.bottom, 8));
     
     const totalPadding = baseInputHeight + quickMessagesHeight + dynamicPadding;
     
+    console.log('[SalaVirtual v7.5] 📏 Content padding bottom:', totalPadding, 'px (keyboard:', isKeyboardVisible ? 'open' : 'closed', ')');
+    
     return totalPadding;
   }, [showQuickMessages, activeTab, insets.bottom, isKeyboardVisible]);
+
+  const inputContainerBottomPadding = useMemo(() => {
+    if (Platform.OS === 'ios') {
+      // iOS: No padding when keyboard is open (input sits directly on keyboard)
+      // When keyboard is closed, use safe area inset
+      return isKeyboardVisible ? 0 : Math.max(insets.bottom, 8);
+    } else {
+      // Android: Small padding when keyboard is open (8px above keyboard)
+      // When keyboard is closed, use larger padding for better spacing
+      return isKeyboardVisible ? 8 : Math.max(insets.bottom + 8, 16);
+    }
+  }, [isKeyboardVisible, insets.bottom]);
 
   const headerBackgroundColor = mode === 'day' 
     ? 'rgba(255, 255, 255, 0.95)' 
@@ -3070,10 +3098,7 @@ export default function SalaVirtualEnhancedScreen() {
 
   // ✅ FIXED v7.5: iOS keyboard positioning - input field sits directly on keyboard
   // ✅ FIXED v7.5: Android keyboard positioning - input field visible above keyboard with proper spacing
-  const inputContainerBottomPadding =
-    Platform.OS === 'ios'
-      ? isKeyboardVisible ? 0 : Math.max(insets.bottom, 8) // ✅ iOS: No padding when keyboard open (sits directly on keyboard)
-      : isKeyboardVisible ? 8 : Math.max(insets.bottom + 8, 16); // ✅ Android: Reduced padding when keyboard open
+  // ✅ CRITICAL: Dynamic padding based on keyboard state to prevent input from being hidden
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background[0] }]}>
@@ -3240,7 +3265,7 @@ export default function SalaVirtualEnhancedScreen() {
           <KeyboardAvoidingView
             style={styles.chatContainer}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? (insets.bottom + 90) : 0}
           >
             <FlatList
               ref={flatListRef}
@@ -3253,6 +3278,7 @@ export default function SalaVirtualEnhancedScreen() {
               ]}
               showsVerticalScrollIndicator={false}
               onContentSizeChange={() => {
+                // Auto-scroll to end when new messages arrive
                 setTimeout(() => {
                   flatListRef.current?.scrollToEnd({ animated: true });
                 }, 50);
@@ -3396,7 +3422,7 @@ export default function SalaVirtualEnhancedScreen() {
           <KeyboardAvoidingView
             style={styles.chatContainer}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? (insets.bottom + 90) : 0}
           >
             <TouchableOpacity
               style={[styles.privateChatHeader, { backgroundColor: themeColors.cardBg, borderBottomColor: themeColors.cardBorder }]}
@@ -3448,6 +3474,7 @@ export default function SalaVirtualEnhancedScreen() {
               ]}
               showsVerticalScrollIndicator={false}
               onContentSizeChange={() => {
+                // Auto-scroll to end when new messages arrive
                 setTimeout(() => {
                   privateChatListRef.current?.scrollToEnd({ animated: true });
                 }, 50);
