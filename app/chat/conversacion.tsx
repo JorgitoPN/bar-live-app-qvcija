@@ -41,7 +41,7 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD FIXES v292.0 - ANDROID PROFESSIONAL SOLUTION (REPLICATED FROM COMMENTSMODAL)
+ * ✅ KEYBOARD FIXES v293.0 - ANDROID PROFESSIONAL SOLUTION (EXACT COMMENTSMODAL REPLICATION)
  * 
  * ANDROID-SPECIFIC FIXES:
  * 1️⃣ CONVERSACIÓN - Input field behavior:
@@ -50,7 +50,8 @@ interface Message {
  *    - ✅ Input returns to bottom automatically when keyboard closes
  *    - ✅ NO stuck-in-middle issue
  *    - ✅ Proper safe area insets for system navigation
- *    - ✅ SAME LOGIC AS COMMENTSMODAL (working reference)
+ *    - ✅ EXACT SAME STRUCTURE AS COMMENTSMODAL (working reference)
+ *    - ✅ inputContainer + inputRow pattern for proper layout
  * 
  * 2️⃣ SEND BUTTON:
  *    - ✅ Sends message immediately on first press
@@ -60,10 +61,11 @@ interface Message {
  * 
  * TECHNICAL IMPLEMENTATION:
  * - position: 'absolute' with dynamic bottom
- * - bottom: keyboardHeight > 0 ? keyboardHeight : Math.max(insets.bottom, 12)
- * - Keyboard listeners for height tracking
+ * - bottom: keyboardHeight > 0 ? keyboardHeight : 0
+ * - Keyboard listeners for height tracking (keyboardDidShow/keyboardDidHide)
  * - No KeyboardAvoidingView (causes issues on Android)
- * - Replicated from working CommentsModal implementation
+ * - inputContainer (absolute) + inputRow (flex layout) pattern
+ * - Exact replication of CommentsModal structure
  */
 export default function ConversacionScreen() {
   const router = useRouter();
@@ -708,37 +710,39 @@ export default function ConversacionScreen() {
         }
       />
 
-      {/* ✅ FIX v292.0: Input container with absolute positioning (replicated from CommentsModal) */}
+      {/* ✅ FIX v293.0: Input container with EXACT CommentsModal positioning logic */}
       <View style={[
         styles.inputContainer, 
         { 
           bottom: keyboardHeight > 0 ? keyboardHeight : 0,
         }
       ]}>
-        <TextInput
-          style={[styles.input, { fontSize: scaleFontSize(16) }]}
-          placeholder="Escribe un mensaje..."
-          placeholderTextColor={colors.textSecondary}
-          value={mensaje}
-          onChangeText={setMensaje}
-          multiline
-          maxLength={1000}
-          editable={!enviando}
-          onSubmitEditing={enviarMensaje}
-          blurOnSubmit={false}
-          returnKeyType="send"
-        />
-        <TouchableOpacity
-          style={[styles.sendButton, (!mensaje.trim() || enviando) && styles.sendButtonDisabled]}
-          onPress={enviarMensaje}
-          disabled={!mensaje.trim() || enviando}
-        >
-          {enviando ? (
-            <ActivityIndicator size="small" color={colors.headerText} />
-          ) : (
-            <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={scaleIconSize(20)} color={colors.headerText} />
-          )}
-        </TouchableOpacity>
+        <View style={styles.inputRow}>
+          <TextInput
+            style={[styles.input, { fontSize: scaleFontSize(16) }]}
+            placeholder="Escribe un mensaje..."
+            placeholderTextColor={colors.textSecondary}
+            value={mensaje}
+            onChangeText={setMensaje}
+            multiline
+            maxLength={1000}
+            editable={!enviando}
+            onSubmitEditing={enviarMensaje}
+            blurOnSubmit={false}
+            returnKeyType="send"
+          />
+          <TouchableOpacity
+            style={[styles.sendButton, (!mensaje.trim() || enviando) && styles.sendButtonDisabled]}
+            onPress={enviarMensaje}
+            disabled={!mensaje.trim() || enviando}
+          >
+            {enviando ? (
+              <ActivityIndicator size="small" color={colors.headerText} />
+            ) : (
+              <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={scaleIconSize(20)} color={colors.headerText} />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -834,22 +838,25 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: 12,
+    overflow: 'hidden',
+    backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
-    backgroundColor: colors.background,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     gap: 12,
+    backgroundColor: colors.background,
   },
   input: {
     flex: 1,
-    backgroundColor: colors.background,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
     color: colors.text,
     maxHeight: 100,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
   },
   sendButton: {
     width: 40,
@@ -858,6 +865,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 2,
   },
   sendButtonDisabled: {
     opacity: 0.5,

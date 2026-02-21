@@ -69,7 +69,7 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v182.0 - ANDROID PROFESSIONAL KEYBOARD FIX (REPLICATED FROM COMMENTSMODAL)
+ * ✅ MOMENTO VIEWER v293.0 - ANDROID PROFESSIONAL KEYBOARD FIX (EXACT COMMENTSMODAL REPLICATION)
  * 
  * GESTURE SYSTEM:
  * 1. TAP (Short Press):
@@ -93,13 +93,14 @@ interface MomentoViewerProps {
  *    - Swipe right → Previous user's momento
  *    - Faster than multiple taps
  * 
- * ✅ ANDROID KEYBOARD FIXES v182.0:
+ * ✅ ANDROID KEYBOARD FIXES v293.0:
  * 2️⃣ VISOR DE MOMENTOS:
  *    - ✅ Absolute positioning with dynamic bottom based on keyboard height
  *    - ✅ COMPLETE visibility of input field and send button
  *    - ✅ EXCELLENT separation from keyboard
  *    - ✅ No partial occlusion - entire input visible
- *    - ✅ SAME LOGIC AS COMMENTSMODAL (working reference)
+ *    - ✅ EXACT SAME STRUCTURE AS COMMENTSMODAL (working reference)
+ *    - ✅ messageInputOverlay + messageInputRow pattern for proper layout
  * 
  * 3️⃣ SEND BUTTON:
  *    - ✅ Sends message immediately on first press
@@ -110,9 +111,10 @@ interface MomentoViewerProps {
  * TECHNICAL IMPLEMENTATION:
  * - position: 'absolute' with dynamic bottom
  * - bottom: keyboardHeight > 0 ? keyboardHeight : 0
- * - Keyboard listeners for height tracking
+ * - Keyboard listeners for height tracking (keyboardDidShow/keyboardDidHide)
  * - No KeyboardAvoidingView (causes issues on Android)
- * - Replicated from working CommentsModal implementation
+ * - messageInputOverlay (absolute) + messageInputRow (flex layout) pattern
+ * - Exact replication of CommentsModal structure
  */
 
 export default function MomentoViewer({
@@ -1155,56 +1157,54 @@ export default function MomentoViewer({
             styles.messageInputOverlay,
             { bottom: keyboardHeight > 0 ? keyboardHeight : 0 }
           ]}>
-            <View style={styles.messageInputContainer}>
-              <TouchableOpacity 
-                style={styles.messageInputClose}
-                onPress={handleCloseMessageInput}
+            <TouchableOpacity 
+              style={styles.messageInputClose}
+              onPress={handleCloseMessageInput}
+            >
+              <IconSymbol
+                ios_icon_name="xmark.circle.fill"
+                android_material_icon_name="cancel"
+                size={messageInputCloseIconSize}
+                color="rgba(255, 255, 255, 0.8)"
+              />
+            </TouchableOpacity>
+            
+            <View style={styles.messageInputRow}>
+              <TextInput
+                style={[styles.messageInput, { fontSize: scaleFontSize(16) }]}
+                placeholder="Escribe un mensaje..."
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                value={messageText}
+                onChangeText={setMessageText}
+                multiline
+                maxLength={500}
+                autoFocus
+                editable={!sendingMessage}
+                blurOnSubmit={false}
+                returnKeyType="send"
+                onSubmitEditing={handleSendMessage}
+              />
+              <TouchableOpacity
+                style={[styles.messageSendButton, (!messageText.trim() || sendingMessage) && styles.messageSendButtonDisabled]}
+                onPress={() => {
+                  // ✅ FIX v293.0: Send message immediately without closing keyboard
+                  console.log('[MomentoViewer v293.0] 📤 Send button pressed - sending immediately');
+                  handleSendMessage();
+                }}
+                disabled={!messageText.trim() || sendingMessage}
+                activeOpacity={0.7}
               >
-                <IconSymbol
-                  ios_icon_name="xmark.circle.fill"
-                  android_material_icon_name="cancel"
-                  size={messageInputCloseIconSize}
-                  color="rgba(255, 255, 255, 0.8)"
-                />
+                {sendingMessage ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <IconSymbol
+                    ios_icon_name="paperplane.fill"
+                    android_material_icon_name="send"
+                    size={messageSendIconSize}
+                    color="#fff"
+                  />
+                )}
               </TouchableOpacity>
-              
-              <View style={styles.messageInputBox}>
-                <TextInput
-                  style={[styles.messageInput, { fontSize: scaleFontSize(16) }]}
-                  placeholder="Escribe un mensaje..."
-                  placeholderTextColor="rgba(255, 255, 255, 0.5)"
-                  value={messageText}
-                  onChangeText={setMessageText}
-                  multiline
-                  maxLength={500}
-                  autoFocus
-                  editable={!sendingMessage}
-                  blurOnSubmit={false}
-                  returnKeyType="send"
-                  onSubmitEditing={handleSendMessage}
-                />
-                <TouchableOpacity
-                  style={[styles.messageSendButton, (!messageText.trim() || sendingMessage) && styles.messageSendButtonDisabled]}
-                  onPress={() => {
-                    // ✅ FIX v181.0: Send message immediately without closing keyboard
-                    console.log('[MomentoViewer v181.0] 📤 Send button pressed - sending immediately');
-                    handleSendMessage();
-                  }}
-                  disabled={!messageText.trim() || sendingMessage}
-                  activeOpacity={0.7}
-                >
-                  {sendingMessage ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <IconSymbol
-                      ios_icon_name="paperplane.fill"
-                      android_material_icon_name="send"
-                      size={messageSendIconSize}
-                      color="#fff"
-                    />
-                  )}
-                </TouchableOpacity>
-              </View>
             </View>
           </View>
         )}
@@ -1510,32 +1510,29 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 250,
-  },
-  messageInputContainer: {
+    overflow: 'hidden',
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 16,
   },
   messageInputClose: {
     alignSelf: 'flex-end',
     marginBottom: 12,
+    marginRight: 16,
   },
-  messageInputBox: {
+  messageInputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     gap: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
   },
   messageInput: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
     color: '#fff',
     maxHeight: 100,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    paddingVertical: 10,
+    paddingHorizontal: 4,
   },
   messageSendButton: {
     width: 40,
