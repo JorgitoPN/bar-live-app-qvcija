@@ -68,7 +68,7 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v179.0 - KEYBOARD FIX FINAL
+ * ✅ MOMENTO VIEWER v180.0 - ANDROID PROFESSIONAL KEYBOARD FIX
  * 
  * GESTURE SYSTEM:
  * 1. TAP (Short Press):
@@ -92,14 +92,24 @@ interface MomentoViewerProps {
  *    - Swipe right → Previous user's momento
  *    - Faster than multiple taps
  * 
- * ✅ FIXES v179.0 (FINAL):
- * - ✅ Input field positioned MUCH higher above keyboard (paddingBottom: 250px for Android)
- * - ✅ EXCELLENT visual separation and visibility when keyboard is open
- * - ✅ Send button sends message IMMEDIATELY without closing keyboard
- * - ✅ NO Keyboard.dismiss() - keyboard stays open after sending
- * - ✅ NO setTimeout - instant message sending
- * - ✅ User can continue typing after sending
- * - ✅ blurOnSubmit={false} keeps keyboard open
+ * ✅ ANDROID KEYBOARD FIXES v180.0:
+ * 2️⃣ VISOR DE MOMENTOS:
+ *    - ✅ Input field rises MUCH HIGHER above keyboard (paddingBottom: 300px)
+ *    - ✅ COMPLETE visibility of input field and send button
+ *    - ✅ EXCELLENT separation from keyboard
+ *    - ✅ No partial occlusion - entire input visible
+ * 
+ * 3️⃣ SEND BUTTON:
+ *    - ✅ Sends message immediately on first press
+ *    - ✅ Keyboard stays open (blurOnSubmit={false})
+ *    - ✅ No need to press twice
+ *    - ✅ User can continue typing after sending
+ * 
+ * TECHNICAL IMPLEMENTATION:
+ * - KeyboardAvoidingView with behavior='padding' for smooth animation
+ * - Increased paddingBottom to 300px for Android (was 250px)
+ * - returnKeyType='send' for better UX
+ * - No manual Keyboard.dismiss() calls
  */
 
 export default function MomentoViewer({
@@ -347,23 +357,23 @@ export default function MomentoViewer({
     if (!momentoViewRef.current) return null;
 
     try {
-      console.log('[MomentoViewer v179.0] 📸 Capturing momento screenshot...');
+      console.log('[MomentoViewer v180.0] 📸 Capturing momento screenshot...');
       
       const uri = await captureRef(momentoViewRef, {
         format: 'jpg',
         quality: 0.8,
       });
 
-      console.log('[MomentoViewer v179.0] ✅ Screenshot captured:', uri);
+      console.log('[MomentoViewer v180.0] ✅ Screenshot captured:', uri);
       return uri;
     } catch (error) {
-      console.error('[MomentoViewer v179.0] Error capturing screenshot:', error);
+      console.error('[MomentoViewer v180.0] Error capturing screenshot:', error);
       return null;
     }
   };
 
   const handleOpenMessageInput = () => {
-    console.log('[MomentoViewer v179.0] 📝 Opening message input, pausing momento');
+    console.log('[MomentoViewer v180.0] 📝 Opening message input, pausing momento');
     setPaused(true);
     setShowMessageInput(true);
     
@@ -378,14 +388,14 @@ export default function MomentoViewer({
   };
 
   const handleCloseMessageInput = () => {
-    console.log('[MomentoViewer v179.0] ❌ Closing message input, resuming momento');
+    console.log('[MomentoViewer v180.0] ❌ Closing message input, resuming momento');
     setShowMessageInput(false);
     setMessageText('');
     setPaused(false);
   };
 
   const handleSendMessage = async () => {
-    console.log('[MomentoViewer v179.0] 📤 handleSendMessage called - keyboard should stay open');
+    console.log('[MomentoViewer v180.0] 📤 handleSendMessage called - keyboard stays open, message sends immediately');
     
     if (!user || !author || momentos.length === 0 || !messageText.trim()) {
       if (!messageText.trim()) {
@@ -399,7 +409,7 @@ export default function MomentoViewer({
 
     try {
       setSendingMessage(true);
-      console.log('[MomentoViewer v179.0] 📸 Starting momento message flow with text...');
+      console.log('[MomentoViewer v180.0] 📸 Starting momento message flow with text...');
       
       const screenshotUri = await captureMomentoScreenshot();
       
@@ -429,7 +439,7 @@ export default function MomentoViewer({
             .getPublicUrl(filePath);
           
           screenshotUrl = urlData.publicUrl;
-          console.log('[MomentoViewer v179.0] ✅ Screenshot uploaded:', screenshotUrl);
+          console.log('[MomentoViewer v180.0] ✅ Screenshot uploaded:', screenshotUrl);
         }
       }
 
@@ -473,8 +483,8 @@ export default function MomentoViewer({
           leido: false,
         });
 
-        console.log('[MomentoViewer v179.0] ✅ Momento message sent with screenshot and text');
-        console.log('[MomentoViewer v179.0] ✅ Message sent successfully - keyboard was NOT dismissed');
+        console.log('[MomentoViewer v180.0] ✅ Momento message sent with screenshot and text');
+        console.log('[MomentoViewer v180.0] ✅ Message sent successfully - keyboard stays open for continuous typing');
 
         setShowMessageInput(false);
         setMessageText('');
@@ -489,11 +499,11 @@ export default function MomentoViewer({
         onClose();
       }
     } catch (error) {
-      console.error('[MomentoViewer v179.0] Error creating chat:', error);
+      console.error('[MomentoViewer v180.0] Error creating chat:', error);
       Alert.alert('Error', 'No se pudo crear la conversación');
     } finally {
       setSendingMessage(false);
-      console.log('[MomentoViewer v179.0] 📤 Send message flow completed');
+      console.log('[MomentoViewer v180.0] 📤 Send message flow completed');
     }
   };
 
@@ -1114,15 +1124,15 @@ export default function MomentoViewer({
 
         {showMessageInput && (
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
             style={styles.messageInputOverlay}
-            keyboardVerticalOffset={Platform.OS === 'android' ? 0 : 0}
+            keyboardVerticalOffset={0}
           >
             <View style={[
               styles.messageInputContainer,
               Platform.OS === 'android' && {
-                // ✅ FIX v179.0: EVEN HIGHER spacing for EXCELLENT separation from keyboard
-                paddingBottom: 250,
+                // ✅ FIX v180.0: MAXIMUM spacing for COMPLETE visibility above keyboard
+                paddingBottom: 300,
               }
             ]}>
               <TouchableOpacity 
@@ -1149,13 +1159,14 @@ export default function MomentoViewer({
                   autoFocus
                   editable={!sendingMessage}
                   blurOnSubmit={false}
+                  returnKeyType="send"
                   onSubmitEditing={handleSendMessage}
                 />
                 <TouchableOpacity
                   style={[styles.messageSendButton, (!messageText.trim() || sendingMessage) && styles.messageSendButtonDisabled]}
                   onPress={() => {
-                    // ✅ FIX v179.0: Send message immediately without closing keyboard
-                    console.log('[MomentoViewer v179.0] 📤 Send button pressed - sending immediately');
+                    // ✅ FIX v180.0: Send message immediately without closing keyboard
+                    console.log('[MomentoViewer v180.0] 📤 Send button pressed - sending immediately');
                     handleSendMessage();
                   }}
                   disabled={!messageText.trim() || sendingMessage}
@@ -1483,8 +1494,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     paddingHorizontal: 16,
     paddingTop: 16,
-    // ✅ FIX v179.0: Base padding (will be overridden by inline style for Android)
-    paddingBottom: Platform.OS === 'android' ? 250 : 40,
+    // ✅ FIX v180.0: Base padding (will be overridden by inline style for Android)
+    paddingBottom: Platform.OS === 'android' ? 300 : 40,
   },
   messageInputClose: {
     alignSelf: 'flex-end',

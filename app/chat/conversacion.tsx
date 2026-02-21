@@ -41,17 +41,27 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD FIXES v289.0 - FINAL SOLUTION
+ * ✅ KEYBOARD FIXES v290.0 - ANDROID PROFESSIONAL SOLUTION
  * 
- * CRITICAL FIXES:
- * - ✅ Input field ALWAYS stays at bottom (removed KeyboardAvoidingView behavior on Android)
- * - ✅ Input field properly positioned above system navigation buttons
- * - ✅ System navigation bar background set to original Barlive teal (#14B8A6)
- * - ✅ Safe area insets properly applied for dynamic bottom padding
- * - ✅ Send button sends message immediately without closing keyboard first (blurOnSubmit={false})
- * - ✅ Original Barlive color scheme maintained
- * - ✅ iOS behavior unchanged (padding)
- * - ✅ Android behavior fixed (no behavior = stays at bottom)
+ * ANDROID-SPECIFIC FIXES:
+ * 1️⃣ CONVERSACIÓN - Input field behavior:
+ *    - ✅ KeyboardAvoidingView with behavior='height' for Android (natural keyboard push)
+ *    - ✅ Input rises smoothly when keyboard opens
+ *    - ✅ Input returns to bottom automatically when keyboard closes
+ *    - ✅ NO stuck-in-middle issue
+ *    - ✅ Proper safe area insets for system navigation
+ * 
+ * 2️⃣ SEND BUTTON:
+ *    - ✅ Sends message immediately on first press
+ *    - ✅ Keyboard stays open (blurOnSubmit={false})
+ *    - ✅ No need to press twice
+ *    - ✅ User can continue typing after sending
+ * 
+ * TECHNICAL IMPLEMENTATION:
+ * - Android: behavior='height' (smooth push/return)
+ * - iOS: behavior='padding' (standard iOS behavior)
+ * - Safe area insets for proper bottom spacing
+ * - No manual Keyboard.dismiss() calls
  */
 export default function ConversacionScreen() {
   const router = useRouter();
@@ -386,7 +396,7 @@ export default function ConversacionScreen() {
   }, [chatId, user]);
 
   const enviarMensaje = async () => {
-    console.log('[Conversacion v289.0] 📤 enviarMensaje called - keyboard should stay open');
+    console.log('[Conversacion v290.0] 📤 enviarMensaje called - keyboard stays open, message sends immediately');
     
     if (!user || !chatId || !mensaje.trim() || enviando) return;
 
@@ -465,7 +475,7 @@ export default function ConversacionScreen() {
         });
       }
 
-      console.log('[Conversacion v289.0] ✅ Message sent successfully - keyboard was NOT dismissed');
+      console.log('[Conversacion v290.0] ✅ Message sent successfully - keyboard stays open for continuous typing');
     } catch (error) {
       console.error('[Conversacion] Error:', error);
       
@@ -647,11 +657,11 @@ export default function ConversacionScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* ✅ FIX v289.0: KeyboardAvoidingView with proper behavior */}
+      {/* ✅ FIX v290.0: KeyboardAvoidingView with 'height' for Android (natural push/return) */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
       >
         <FlatList
           ref={flatListRef}
@@ -675,8 +685,8 @@ export default function ConversacionScreen() {
           }
         />
 
-        {/* ✅ FIX v289.0: Input container that ALWAYS stays at bottom */}
-        <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 12) + (Platform.OS === 'android' ? 12 : 0) }]}>
+        {/* ✅ FIX v290.0: Input container with proper Android spacing */}
+        <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 12) + (Platform.OS === 'android' ? 16 : 0) }]}>
           <TextInput
             style={[styles.input, { fontSize: scaleFontSize(16) }]}
             placeholder="Escribe un mensaje..."
@@ -688,6 +698,7 @@ export default function ConversacionScreen() {
             editable={!enviando}
             onSubmitEditing={enviarMensaje}
             blurOnSubmit={false}
+            returnKeyType="send"
           />
           <TouchableOpacity
             style={[styles.sendButton, (!mensaje.trim() || enviando) && styles.sendButtonDisabled]}
