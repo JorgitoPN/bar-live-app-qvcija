@@ -2950,14 +2950,14 @@ export default function SalaVirtualEnhancedScreen() {
     
     // Dynamic padding based on keyboard state
     // iOS: No extra padding when keyboard is open (input sits on keyboard)
-    // Android: Add keyboard height to push content above keyboard
+    // Android: Add keyboard height + extra spacing to push content well above keyboard
     const dynamicPadding = Platform.OS === 'ios'
       ? (isKeyboardVisible ? 0 : Math.max(insets.bottom, 8))
-      : (isKeyboardVisible ? keyboardHeight + 16 : Math.max(insets.bottom, 8));
+      : (isKeyboardVisible ? keyboardHeight + 40 : Math.max(insets.bottom, 8));
     
     const totalPadding = baseInputHeight + quickMessagesHeight + dynamicPadding;
     
-    console.log('[SalaVirtual v7.5] 📏 Content padding bottom:', totalPadding, 'px (keyboard:', isKeyboardVisible ? 'open' : 'closed', ', height:', keyboardHeight, ')');
+    console.log('[SalaVirtual v7.6] 📏 Content padding bottom:', totalPadding, 'px (keyboard:', isKeyboardVisible ? 'open' : 'closed', ', height:', keyboardHeight, ')');
     
     return totalPadding;
   }, [showQuickMessages, activeTab, insets.bottom, isKeyboardVisible, keyboardHeight]);
@@ -2968,9 +2968,10 @@ export default function SalaVirtualEnhancedScreen() {
       // When keyboard is closed, use safe area inset
       return isKeyboardVisible ? 0 : Math.max(insets.bottom, 8);
     } else {
-      // Android: Add keyboard height to lift input above keyboard
+      // Android: Add keyboard height + extra spacing to lift input well above keyboard
+      // User reported only seeing 10% of input, so we need more spacing
       // When keyboard is closed, use safe area inset
-      return isKeyboardVisible ? keyboardHeight + 16 : Math.max(insets.bottom, 8);
+      return isKeyboardVisible ? keyboardHeight + 40 : Math.max(insets.bottom, 8);
     }
   }, [isKeyboardVisible, insets.bottom, keyboardHeight]);
 
