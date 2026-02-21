@@ -69,7 +69,7 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v180.0 - ANDROID PROFESSIONAL KEYBOARD FIX
+ * ✅ MOMENTO VIEWER v182.0 - ANDROID PROFESSIONAL KEYBOARD FIX (REPLICATED FROM COMMENTSMODAL)
  * 
  * GESTURE SYSTEM:
  * 1. TAP (Short Press):
@@ -93,12 +93,13 @@ interface MomentoViewerProps {
  *    - Swipe right → Previous user's momento
  *    - Faster than multiple taps
  * 
- * ✅ ANDROID KEYBOARD FIXES v180.0:
+ * ✅ ANDROID KEYBOARD FIXES v182.0:
  * 2️⃣ VISOR DE MOMENTOS:
- *    - ✅ Input field rises MUCH HIGHER above keyboard (paddingBottom: 300px)
+ *    - ✅ Absolute positioning with dynamic bottom based on keyboard height
  *    - ✅ COMPLETE visibility of input field and send button
  *    - ✅ EXCELLENT separation from keyboard
  *    - ✅ No partial occlusion - entire input visible
+ *    - ✅ SAME LOGIC AS COMMENTSMODAL (working reference)
  * 
  * 3️⃣ SEND BUTTON:
  *    - ✅ Sends message immediately on first press
@@ -107,10 +108,11 @@ interface MomentoViewerProps {
  *    - ✅ User can continue typing after sending
  * 
  * TECHNICAL IMPLEMENTATION:
- * - KeyboardAvoidingView with behavior='padding' for smooth animation
- * - Increased paddingBottom to 300px for Android (was 250px)
- * - returnKeyType='send' for better UX
- * - No manual Keyboard.dismiss() calls
+ * - position: 'absolute' with dynamic bottom
+ * - bottom: keyboardHeight > 0 ? keyboardHeight : 0
+ * - Keyboard listeners for height tracking
+ * - No KeyboardAvoidingView (causes issues on Android)
+ * - Replicated from working CommentsModal implementation
  */
 
 export default function MomentoViewer({
@@ -397,7 +399,7 @@ export default function MomentoViewer({
   };
 
   const handleSendMessage = async () => {
-    console.log('[MomentoViewer v180.0] 📤 handleSendMessage called - keyboard stays open, message sends immediately');
+    console.log('[MomentoViewer v182.0] 📤 handleSendMessage called - keyboard stays open, message sends immediately');
     
     if (!user || !author || momentos.length === 0 || !messageText.trim()) {
       if (!messageText.trim()) {
@@ -411,7 +413,7 @@ export default function MomentoViewer({
 
     try {
       setSendingMessage(true);
-      console.log('[MomentoViewer v180.0] 📸 Starting momento message flow with text...');
+      console.log('[MomentoViewer v182.0] 📸 Starting momento message flow with text...');
       
       const screenshotUri = await captureMomentoScreenshot();
       
@@ -441,7 +443,7 @@ export default function MomentoViewer({
             .getPublicUrl(filePath);
           
           screenshotUrl = urlData.publicUrl;
-          console.log('[MomentoViewer v180.0] ✅ Screenshot uploaded:', screenshotUrl);
+          console.log('[MomentoViewer v182.0] ✅ Screenshot uploaded:', screenshotUrl);
         }
       }
 
@@ -485,8 +487,8 @@ export default function MomentoViewer({
           leido: false,
         });
 
-        console.log('[MomentoViewer v180.0] ✅ Momento message sent with screenshot and text');
-        console.log('[MomentoViewer v180.0] ✅ Message sent successfully - keyboard stays open for continuous typing');
+        console.log('[MomentoViewer v182.0] ✅ Momento message sent with screenshot and text');
+        console.log('[MomentoViewer v182.0] ✅ Message sent successfully - keyboard stays open for continuous typing');
 
         setShowMessageInput(false);
         setMessageText('');
@@ -501,11 +503,11 @@ export default function MomentoViewer({
         onClose();
       }
     } catch (error) {
-      console.error('[MomentoViewer v180.0] Error creating chat:', error);
+      console.error('[MomentoViewer v182.0] Error creating chat:', error);
       Alert.alert('Error', 'No se pudo crear la conversación');
     } finally {
       setSendingMessage(false);
-      console.log('[MomentoViewer v180.0] 📤 Send message flow completed');
+      console.log('[MomentoViewer v182.0] 📤 Send message flow completed');
     }
   };
 
@@ -928,27 +930,27 @@ export default function MomentoViewer({
     };
   }, [visible]);
 
-  // ✅ FIX v181.0: Detect keyboard height dynamically
+  // ✅ FIX v182.0: Detect keyboard height dynamically (replicated from CommentsModal)
   useEffect(() => {
-    const keyboardWillShow = Keyboard.addListener(
+    const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[MomentoViewer v181.0] Keyboard opening, height:', e.endCoordinates.height);
+        console.log('[MomentoViewer v182.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
         setKeyboardHeight(e.endCoordinates.height);
       }
     );
 
-    const keyboardWillHide = Keyboard.addListener(
+    const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[MomentoViewer v181.0] Keyboard closing');
+        console.log('[MomentoViewer v182.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
       }
     );
 
     return () => {
-      keyboardWillShow.remove();
-      keyboardWillHide.remove();
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
     };
   }, []);
 
@@ -1189,6 +1191,7 @@ export default function MomentoViewer({
                     handleSendMessage();
                   }}
                   disabled={!messageText.trim() || sendingMessage}
+                  activeOpacity={0.7}
                 >
                   {sendingMessage ? (
                     <ActivityIndicator size="small" color="#fff" />
