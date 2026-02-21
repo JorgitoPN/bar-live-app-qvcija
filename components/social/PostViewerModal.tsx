@@ -1,15 +1,15 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v348.0 - ANDROID FULL SCREEN EDGE-TO-EDGE FIXED
+ * 🚨 POST VIEWER MODAL v350.0 - ANDROID FULL SCREEN DEFINITIVO
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v348.0:
- * - ✅ ANDROID: Usa Dimensions.get('screen').height para altura física completa
- * - ✅ ANDROID: Control imperativo de StatusBar con useEffect
- * - ✅ ANDROID: StatusBar.setHidden(true) + setTranslucent(true) + setBackgroundColor('transparent')
- * - ✅ ANDROID: Container con position: 'absolute', top: 0, bottom: 0, left: 0, right: 0
- * - ✅ ANDROID: useSafeAreaInsets para padding interno sin afectar fondo
+ * SOLUCIÓN DEFINITIVA v350.0 - ANDROID EDGE-TO-EDGE:
+ * - ✅ Modal con transparent={true} para control total del fondo
+ * - ✅ StatusBar oculta completamente (setHidden + setTranslucent)
+ * - ✅ Container con flex: 1 + backgroundColor para cubrir toda la pantalla
+ * - ✅ Sin position absolute que causa conflictos con Modal
+ * - ✅ useSafeAreaInsets solo para padding interno de contenido
  * - ✅ ELIMINADO LETTERBOXING: Pantalla completa sin espacios vacíos
  * - ✅ Respeta botones táctiles del teléfono Android
  * 
@@ -1578,10 +1578,11 @@ export default function PostViewerModal({
   return (
     <Modal
       visible={visible}
-      transparent={false}
+      transparent={true}
       animationType="slide"
       presentationStyle="overFullScreen"
       onRequestClose={onClose}
+      statusBarTranslucent={true}
     >
       <View style={styles.container}>
         {loading ? (
@@ -1683,15 +1684,8 @@ export default function PostViewerModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: Platform.OS === 'android' ? SCREEN_HEIGHT_PHYSICAL : '100%',
-    width: SCREEN_WIDTH,
-    margin: 0,
-    padding: 0,
+    width: '100%',
+    height: '100%',
     backgroundColor: colors.background,
   },
   flatList: {
