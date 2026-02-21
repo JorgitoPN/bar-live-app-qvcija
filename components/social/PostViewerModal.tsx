@@ -1,25 +1,21 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v344.0 - ANDROID FULLSCREEN FIX COMPLETE
+ * 🚨 POST VIEWER MODAL v345.0 - ANDROID EDGE-TO-EDGE COMPLETE
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v344.0:
+ * NEW CHANGES v345.0:
+ * - ✅ FIXED LETTERBOXING: Container sin márgenes, padding: 0
+ * - ✅ Header con posición absoluta para no restar altura
+ * - ✅ FlatList ocupa toda la altura disponible sin espacios vacíos
+ * - ✅ Usa Dimensions.get('window').height directamente
+ * - ✅ Experiencia verdaderamente edge-to-edge en Android
+ * 
+ * PREVIOUS CHANGES v344.0:
  * - ✅ FIXED ANDROID MODAL: presentationStyle='overFullScreen' for true edge-to-edge
  * - ✅ StatusBar hidden on Android for immersive fullscreen experience
  * - ✅ Header paddingTop=20 on Android (minimal padding without status bar)
  * - ✅ El visor de publicaciones se abre en pantalla completa en Android
- * - ✅ No hay espacios vacíos en la parte superior e inferior
- * - ✅ Experiencia optimizada para Android
- * 
- * PREVIOUS CHANGES v343.0:
- * - ✅ Removed SafeAreaView padding that was causing empty spaces
- * - ✅ FIXED PROBLEM 1: Comments open immediately without closing modal
- * - ✅ FIXED PROBLEM 2: State preserved when returning from comments (scroll + post)
- * - ✅ FIXED PROBLEM 3: Correct initial scroll position from profile grid (ENHANCED)
- * - ✅ IMPROVED: More robust scroll mechanism with multiple retry strategies
- * - ✅ IMPROVED: Better getItemLayout for accurate positioning
- * - ✅ RESULT: Seamless navigation matching Social section behavior
  * 
  * ARCHITECTURE:
  * - Modal stays mounted when navigating to comments (preserves ALL state)
@@ -1590,24 +1586,6 @@ export default function PostViewerModal({
     >
       {Platform.OS === 'android' && <StatusBar hidden={true} />}
       <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.header}
-        >
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <IconSymbol 
-              ios_icon_name="xmark" 
-              android_material_icon_name="close" 
-              size={headerIconSize} 
-              color={colors.headerText} 
-            />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { fontSize: headerTitleSize }]}>Publicación</Text>
-          <View style={{ width: 40 }} />
-        </LinearGradient>
-
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -1639,8 +1617,29 @@ export default function PostViewerModal({
             removeClippedSubviews={false}
             maxToRenderPerBatch={3}
             windowSize={5}
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1, paddingTop: Platform.OS === 'ios' ? 100 : 70 }}
           />
         )}
+
+        {/* Header - Absolute Position */}
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
+        >
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <IconSymbol 
+              ios_icon_name="xmark" 
+              android_material_icon_name="close" 
+              size={headerIconSize} 
+              color={colors.headerText} 
+            />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { fontSize: headerTitleSize }]}>Publicación</Text>
+          <View style={{ width: 40 }} />
+        </LinearGradient>
 
         {sharingPost && (
           <SharePostModal
@@ -1677,14 +1676,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    margin: 0,
+    padding: 0,
   },
   header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     paddingTop: Platform.OS === 'ios' ? 60 : 20,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    zIndex: 1000,
   },
   closeButton: {
     width: 40,

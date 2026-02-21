@@ -25,23 +25,20 @@ interface ImageGalleryModalProps {
 }
 
 /**
- * ✅ IMAGE GALLERY MODAL v34.0 - ANDROID FULLSCREEN FIX COMPLETE
+ * ✅ IMAGE GALLERY MODAL v35.0 - ANDROID EDGE-TO-EDGE COMPLETE
  * 
- * NEW CHANGES v34.0:
+ * NEW CHANGES v35.0:
+ * - ✅ FIXED LETTERBOXING: Usa Dimensions.get('window').height directamente
+ * - ✅ Container sin márgenes: margin: 0, padding: 0
+ * - ✅ Imagen ocupa toda la altura disponible sin espacios vacíos
+ * - ✅ Header con posición absoluta para no restar altura
+ * - ✅ Experiencia verdaderamente edge-to-edge en Android
+ * 
+ * PREVIOUS CHANGES v34.0:
  * - ✅ FIXED ANDROID MODAL: presentationStyle='overFullScreen' for true edge-to-edge
  * - ✅ StatusBar hidden on Android for immersive fullscreen experience
  * - ✅ Header paddingTop=20 on Android (minimal padding without status bar)
- * - ✅ Image height adjusted: height - 100 on Android for better fit
  * - ✅ El visor de imágenes se abre en pantalla completa en Android
- * - ✅ No hay espacios vacíos en la parte superior e inferior
- * - ✅ Experiencia optimizada para Android
- * 
- * PREVIOUS FIXES v33.0:
- * - ✅ Removed SafeAreaView padding that was causing empty spaces
- * - ✅ Properly displays all images from galeria_urls
- * - ✅ Fixed icon mappings for Android
- * - ✅ Smooth navigation between images
- * - ✅ Works identically on iOS and Android
  */
 export default function ImageGalleryModal({
   visible,
@@ -101,18 +98,7 @@ export default function ImageGalleryModal({
     >
       {Platform.OS === 'android' && <StatusBar hidden={true} />}
       <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-          <Text style={styles.counter}>
-            {currentIndex + 1} / {images.length}
-          </Text>
-          <View style={styles.placeholder} />
-        </View>
-
-        {/* Image Carousel */}
+        {/* Image Carousel - Full Screen */}
         <ScrollView
           ref={scrollViewRef}
           horizontal
@@ -120,6 +106,8 @@ export default function ImageGalleryModal({
           showsHorizontalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ flexGrow: 1 }}
         >
           {images.map((imageUrl, index) => (
             <View key={index} style={styles.imageContainer}>
@@ -132,7 +120,18 @@ export default function ImageGalleryModal({
           ))}
         </ScrollView>
 
-        {/* Navigation Arrows */}
+        {/* Header - Absolute Position */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
+          </TouchableOpacity>
+          <Text style={styles.counter}>
+            {currentIndex + 1} / {images.length}
+          </Text>
+          <View style={styles.placeholder} />
+        </View>
+
+        {/* Navigation Arrows - Absolute Position */}
         {currentIndex > 0 && (
           <TouchableOpacity style={styles.leftArrow} onPress={goToPrevious}>
             <View style={styles.arrowBackground}>
@@ -149,7 +148,7 @@ export default function ImageGalleryModal({
           </TouchableOpacity>
         )}
 
-        {/* Dots Indicator */}
+        {/* Dots Indicator - Absolute Position */}
         <View style={styles.dotsContainer}>
           {images.map((_, index) => (
             <View
@@ -170,8 +169,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+    margin: 0,
+    padding: 0,
   },
   header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -179,6 +184,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 15,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    zIndex: 10,
   },
   closeButton: {
     width: 40,
@@ -198,25 +204,27 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: width,
-    height: Platform.OS === 'android' ? height - 100 : height - 150,
+    height: height,
     justifyContent: 'center',
     alignItems: 'center',
   },
   image: {
     width: width,
-    height: Platform.OS === 'android' ? height - 100 : height - 150,
+    height: height,
   },
   leftArrow: {
     position: 'absolute',
     left: 20,
     top: '50%',
     marginTop: -30,
+    zIndex: 20,
   },
   rightArrow: {
     position: 'absolute',
     right: 20,
     top: '50%',
     marginTop: -30,
+    zIndex: 20,
   },
   arrowBackground: {
     width: 60,
@@ -227,11 +235,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dotsContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
     gap: 8,
+    zIndex: 10,
   },
   dot: {
     width: 8,
