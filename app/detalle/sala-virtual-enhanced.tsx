@@ -3320,69 +3320,75 @@ export default function SalaVirtualEnhancedScreen() {
               }
             />
 
-            {showQuickMessages && renderQuickMessagesBar()}
-
             <View style={[
-              styles.inputContainer, 
+              styles.chatInputArea,
               { 
-                backgroundColor: themeColors.cardBg, 
-                borderTopColor: themeColors.cardBorder,
                 bottom: inputContainerBottom,
-                paddingBottom: inputContainerPaddingBottom,
               }
             ]}>
-              <TouchableOpacity
-                style={[
-                  styles.toggleQuickMessagesButton,
-                  { backgroundColor: themeColors.primary + '20', borderColor: themeColors.primary + '40' },
-                ]}
-                onPress={() => setShowQuickMessages(prev => !prev)}
-                activeOpacity={0.7}
-              >
-                <IconSymbol
-                  ios_icon_name={showQuickMessages ? 'chevron.down' : 'chevron.up'}
-                  android_material_icon_name={showQuickMessages ? 'expand_more' : 'expand_less'}
-                  size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
-                  color={themeColors.primary}
-                />
-              </TouchableOpacity>
-              <TextInput
-                style={[
-                  styles.input,
-                  { 
-                    fontSize: scaleFontSize(15), 
-                    color: themeColors.text,
-                    backgroundColor: themeColors.background[0] + '80',
-                    borderColor: themeColors.cardBorder,
-                  },
-                ]}
-                placeholder="Escribe un mensaje..."
-                placeholderTextColor={themeColors.textSecondary}
-                value={newMessage}
-                onChangeText={setNewMessage}
-                multiline
-                maxLength={500}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  { backgroundColor: themeColors.primary },
-                  (!newMessage.trim() || sending) && { opacity: 0.5 },
-                ]}
-                onPress={() => sendPublicMessage(newMessage)}
-                disabled={!newMessage.trim() || sending}
-              >
-                {sending ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
+              {showQuickMessages && renderQuickMessagesBar()}
+
+              <View style={[
+                styles.inputContainer, 
+                { 
+                  backgroundColor: '#FFFFFF',
+                  borderTopColor: themeColors.cardBorder,
+                  paddingBottom: inputContainerPaddingBottom,
+                }
+              ]}>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleQuickMessagesButton,
+                    { backgroundColor: themeColors.primary + '20', borderColor: themeColors.primary + '40' },
+                  ]}
+                  onPress={() => setShowQuickMessages(prev => !prev)}
+                  activeOpacity={0.7}
+                >
                   <IconSymbol
-                    ios_icon_name="paperplane.fill"
-                    android_material_icon_name="send"
+                    ios_icon_name={showQuickMessages ? 'chevron.down' : 'chevron.up'}
+                    android_material_icon_name={showQuickMessages ? 'expand_more' : 'expand_less'}
                     size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
-                    color="#FFFFFF"
+                    color={themeColors.primary}
                   />
-                )}
-              </TouchableOpacity>
+                </TouchableOpacity>
+                <TextInput
+                  style={[
+                    styles.input,
+                    { 
+                      fontSize: scaleFontSize(15), 
+                      color: themeColors.text,
+                      backgroundColor: themeColors.background[0] + '80',
+                      borderColor: themeColors.cardBorder,
+                    },
+                  ]}
+                  placeholder="Escribe un mensaje..."
+                  placeholderTextColor={themeColors.textSecondary}
+                  value={newMessage}
+                  onChangeText={setNewMessage}
+                  multiline
+                  maxLength={500}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.sendButton,
+                    { backgroundColor: themeColors.primary },
+                    (!newMessage.trim() || sending) && { opacity: 0.5 },
+                  ]}
+                  onPress={() => sendPublicMessage(newMessage)}
+                  disabled={!newMessage.trim() || sending}
+                >
+                  {sending ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <IconSymbol
+                      ios_icon_name="paperplane.fill"
+                      android_material_icon_name="send"
+                      size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
+                      color="#FFFFFF"
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </KeyboardAvoidingView>
         )}
@@ -3535,56 +3541,62 @@ export default function SalaVirtualEnhancedScreen() {
             {renderTypingIndicator()}
 
             <View style={[
-              styles.inputContainer, 
+              styles.chatInputArea,
               { 
-                backgroundColor: themeColors.cardBg, 
-                borderTopColor: themeColors.cardBorder,
                 bottom: inputContainerBottom,
-                paddingBottom: inputContainerPaddingBottom,
               }
             ]}>
-              <TextInput
-                style={[
-                  styles.input,
-                  { 
-                    fontSize: scaleFontSize(15), 
-                    color: themeColors.text,
-                    backgroundColor: themeColors.background[0] + '80',
-                    borderColor: themeColors.cardBorder,
-                  },
-                ]}
-                placeholder="Escribe un mensaje privado..."
-                placeholderTextColor={themeColors.textSecondary}
-                value={newMessage}
-                onChangeText={handlePrivateMessageChange}
-                multiline
-                maxLength={500}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  { backgroundColor: themeColors.primary },
-                  (!newMessage.trim() || sending) && { opacity: 0.5 },
-                ]}
-                onPress={() => {
-                  if (selectedPrivateChat) {
-                    sendPrivateMessage(selectedPrivateChat.userId, newMessage);
-                    setNewMessage('');
-                  }
-                }}
-                disabled={!newMessage.trim() || sending}
-              >
-                {sending ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <IconSymbol
-                    ios_icon_name="paperplane.fill"
-                    android_material_icon_name="send"
-                    size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
-                    color="#FFFFFF"
-                  />
-                )}
-              </TouchableOpacity>
+              <View style={[
+                styles.inputContainer, 
+                { 
+                  backgroundColor: '#FFFFFF',
+                  borderTopColor: themeColors.cardBorder,
+                  paddingBottom: inputContainerPaddingBottom,
+                }
+              ]}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    { 
+                      fontSize: scaleFontSize(15), 
+                      color: themeColors.text,
+                      backgroundColor: themeColors.background[0] + '80',
+                      borderColor: themeColors.cardBorder,
+                    },
+                  ]}
+                  placeholder="Escribe un mensaje privado..."
+                  placeholderTextColor={themeColors.textSecondary}
+                  value={newMessage}
+                  onChangeText={handlePrivateMessageChange}
+                  multiline
+                  maxLength={500}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.sendButton,
+                    { backgroundColor: themeColors.primary },
+                    (!newMessage.trim() || sending) && { opacity: 0.5 },
+                  ]}
+                  onPress={() => {
+                    if (selectedPrivateChat) {
+                      sendPrivateMessage(selectedPrivateChat.userId, newMessage);
+                      setNewMessage('');
+                    }
+                  }}
+                  disabled={!newMessage.trim() || sending}
+                >
+                  {sending ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <IconSymbol
+                      ios_icon_name="paperplane.fill"
+                      android_material_icon_name="send"
+                      size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
+                      color="#FFFFFF"
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </KeyboardAvoidingView>
         )}
@@ -3838,9 +3850,15 @@ const styles = StyleSheet.create({
   emptySubtext: {
     textAlign: 'center',
   },
+  chatInputArea: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+  },
   quickMessagesBar: {
     borderTopWidth: 1,
     paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
   },
   quickMessagesContent: {
     paddingHorizontal: 16,
@@ -3862,9 +3880,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inputContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 16,
