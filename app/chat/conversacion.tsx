@@ -41,7 +41,7 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD FIXES v294.0 - ANDROID PROFESSIONAL SOLUTION (EXACT COMMENTSMODAL REPLICATION)
+ * ✅ KEYBOARD FIXES v295.0 - ANDROID PROFESSIONAL SOLUTION (COMPLETE FIX)
  * 
  * ANDROID-SPECIFIC FIXES:
  * 1️⃣ CONVERSACIÓN - Input field behavior:
@@ -54,6 +54,7 @@ interface Message {
  *    - ✅ inputContainer + inputRow pattern for proper layout
  *    - ✅ RESPECTS ANDROID TACTILE BUTTONS - input visible at all times
  *    - ✅ WHITE BACKGROUND ONLY ON SYSTEM NAVIGATION BAR AREA
+ *    - ✅ ADDITIONAL OFFSET (+60px) for Android to ensure full visibility above keyboard
  * 
  * 2️⃣ SEND BUTTON:
  *    - ✅ Sends message immediately on first press
@@ -64,6 +65,7 @@ interface Message {
  * TECHNICAL IMPLEMENTATION:
  * - position: 'absolute' with dynamic bottom
  * - bottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom (CRITICAL FIX)
+ * - Android: keyboardHeight + 60px offset for full visibility
  * - Keyboard listeners for height tracking (keyboardDidShow/keyboardDidHide)
  * - No KeyboardAvoidingView (causes issues on Android)
  * - inputContainer (absolute) + inputRow (flex layout) pattern
@@ -104,20 +106,22 @@ export default function ConversacionScreen() {
     }
   }, []);
 
-  // ✅ FIX v294.0: Detect keyboard height dynamically (EXACT CommentsModal replication)
+  // ✅ FIX v295.0: Detect keyboard height dynamically with Android offset for full visibility
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[Conversacion v294.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
-        setKeyboardHeight(e.endCoordinates.height);
+        console.log('[Conversacion v295.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        // ✅ Add extra offset for Android to ensure input is fully visible above keyboard
+        const extraOffset = Platform.OS === 'android' ? 60 : 0;
+        setKeyboardHeight(e.endCoordinates.height + extraOffset);
       }
     );
 
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[Conversacion v294.0] ⌨️ Keyboard hidden');
+        console.log('[Conversacion v295.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
       }
     );
