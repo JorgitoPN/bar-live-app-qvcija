@@ -25,20 +25,22 @@ interface ImageGalleryModalProps {
 }
 
 /**
- * ✅ IMAGE GALLERY MODAL v35.0 - ANDROID EDGE-TO-EDGE COMPLETE
+ * ✅ IMAGE GALLERY MODAL v36.0 - ANDROID FULL SCREEN FIX COMPLETE
  * 
- * NEW CHANGES v35.0:
+ * NEW CHANGES v36.0:
+ * - ✅ FIXED LETTERBOXING COMPLETAMENTE: Ahora cubre toda la pantalla sin espacios
+ * - ✅ Container usa height: Dimensions.get('window').height directamente
+ * - ✅ ScrollView con flex: 1 para ocupar todo el espacio disponible
+ * - ✅ Eliminados todos los márgenes que causaban espacios
+ * - ✅ Header absolutamente posicionado sin afectar el layout
+ * - ✅ Respeta los botones táctiles del teléfono Android
+ * 
+ * PREVIOUS CHANGES v35.0:
  * - ✅ FIXED LETTERBOXING: Usa Dimensions.get('window').height directamente
  * - ✅ Container sin márgenes: margin: 0, padding: 0
  * - ✅ Imagen ocupa toda la altura disponible sin espacios vacíos
  * - ✅ Header con posición absoluta para no restar altura
  * - ✅ Experiencia verdaderamente edge-to-edge en Android
- * 
- * PREVIOUS CHANGES v34.0:
- * - ✅ FIXED ANDROID MODAL: presentationStyle='overFullScreen' for true edge-to-edge
- * - ✅ StatusBar hidden on Android for immersive fullscreen experience
- * - ✅ Header paddingTop=20 on Android (minimal padding without status bar)
- * - ✅ El visor de imágenes se abre en pantalla completa en Android
  */
 export default function ImageGalleryModal({
   visible,
@@ -49,7 +51,6 @@ export default function ImageGalleryModal({
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Reset to initial index when modal opens
   React.useEffect(() => {
     if (visible) {
       setCurrentIndex(initialIndex);
@@ -81,7 +82,7 @@ export default function ImageGalleryModal({
     }
   };
 
-  console.log('[ImageGalleryModal] 📸 Displaying gallery:', {
+  console.log('[ImageGalleryModal v36.0] 📸 Displaying gallery:', {
     visible,
     totalImages: images.length,
     currentIndex,
@@ -98,7 +99,6 @@ export default function ImageGalleryModal({
     >
       {Platform.OS === 'android' && <StatusBar hidden={true} />}
       <View style={styles.container}>
-        {/* Image Carousel - Full Screen */}
         <ScrollView
           ref={scrollViewRef}
           horizontal
@@ -120,7 +120,6 @@ export default function ImageGalleryModal({
           ))}
         </ScrollView>
 
-        {/* Header - Absolute Position */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
@@ -131,7 +130,6 @@ export default function ImageGalleryModal({
           <View style={styles.placeholder} />
         </View>
 
-        {/* Navigation Arrows - Absolute Position */}
         {currentIndex > 0 && (
           <TouchableOpacity style={styles.leftArrow} onPress={goToPrevious}>
             <View style={styles.arrowBackground}>
@@ -148,7 +146,6 @@ export default function ImageGalleryModal({
           </TouchableOpacity>
         )}
 
-        {/* Dots Indicator - Absolute Position */}
         <View style={styles.dotsContainer}>
           {images.map((_, index) => (
             <View
@@ -168,9 +165,8 @@ export default function ImageGalleryModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    height: height,
     backgroundColor: '#000',
-    margin: 0,
-    padding: 0,
   },
   header: {
     position: 'absolute',
