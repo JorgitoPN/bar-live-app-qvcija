@@ -13,12 +13,18 @@ import { WidgetProvider } from '@/contexts/WidgetContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { colors } from '@/styles/commonStyles';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Platform } from 'react-native';
+import * as SystemUI from 'expo-system-ui';
 
 /**
- * ✅ ROOT LAYOUT v11.0 - SALA VIRTUAL FULL SCREEN FIX (iOS)
+ * ✅ ROOT LAYOUT v12.0 - ANDROID SYSTEM UI FIX
+ * 
+ * CHANGES v12.0:
+ * - ✅ FIXED: Android system navigation bar now uses Barlive corporate blue (#1A73E8)
+ * - ✅ FIXED: Applies globally to all screens in the app
+ * - ✅ FIXED: No more transparent navigation bar on Android
  * 
  * CHANGES v11.0:
  * - ✅ FIXED: Sala virtual ahora usa presentation: 'card' explícitamente (NO modal)
@@ -28,6 +34,14 @@ import { Platform } from 'react-native';
  */
 
 export default function RootLayout() {
+  // ✅ ANDROID FIX v12.0: Set global system navigation bar color
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const barliveBlue = '#1A73E8'; // Barlive corporate blue
+      SystemUI.setBackgroundColorAsync(barliveBlue);
+    }
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ErrorBoundary>

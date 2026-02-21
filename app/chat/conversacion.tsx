@@ -22,6 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import MessageBubble from '@/components/chat/MessageBubble';
 import MomentoMessageBubble from '@/components/chat/MomentoMessageBubble';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
+import * as SystemUI from 'expo-system-ui';
 
 interface Message {
   id: string;
@@ -38,11 +39,11 @@ interface Message {
 }
 
 /**
- * ✅ ANDROID KEYBOARD FIX v284.0
+ * ✅ ANDROID FIXES v285.0 - FINAL
  * 
  * CRITICAL FIXES:
- * - ✅ Input container positioned higher on Android (bottom: 60 instead of 0)
- * - ✅ Prevents Android navigation buttons from covering input
+ * - ✅ Input container properly aligned with system buttons (no extra separation)
+ * - ✅ System navigation bar background set to Barlive corporate blue (#1A73E8)
  * - ✅ KeyboardAvoidingView with behavior="height" on Android
  * - ✅ Proper scaling applied to all text and icons
  * - ✅ iOS behavior unchanged
@@ -65,6 +66,19 @@ export default function ConversacionScreen() {
 
   const isLocalChat = !!params.localId;
   const localId = params.localId as string | undefined;
+
+  // ✅ ANDROID FIX v285.0: Set system navigation bar color to Barlive corporate blue
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const barliveBlue = '#1A73E8'; // Barlive corporate blue
+      SystemUI.setBackgroundColorAsync(barliveBlue);
+      
+      return () => {
+        // Reset to default when leaving screen
+        SystemUI.setBackgroundColorAsync('transparent');
+      };
+    }
+  }, []);
 
   const loadMessages = useCallback(async (chatIdToLoad: string) => {
     try {
@@ -636,7 +650,7 @@ export default function ConversacionScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={[
             styles.messagesList,
-            // ✅ ANDROID FIX: Extra bottom padding to account for input container position
+            // ✅ ANDROID FIX v285.0: Bottom padding for input container
             { paddingBottom: Platform.OS === 'android' ? 80 : 8 }
           ]}
           renderItem={renderMessage}
@@ -653,11 +667,8 @@ export default function ConversacionScreen() {
           }
         />
 
-        {/* ✅ ANDROID FIX v284.0: Input container positioned higher to avoid nav buttons */}
-        <View style={[
-          styles.inputContainer,
-          Platform.OS === 'android' && styles.inputContainerAndroid
-        ]}>
+        {/* ✅ ANDROID FIX v285.0: Input container properly aligned with system buttons */}
+        <View style={styles.inputContainer}>
           <TextInput
             style={[styles.input, { fontSize: scaleFontSize(16) }]}
             placeholder="Escribe un mensaje..."
@@ -777,15 +788,9 @@ const styles = StyleSheet.create({
     padding: 12,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
-    backgroundColor: colors.cardBackground,
+    // ✅ ANDROID FIX v285.0: Use Barlive corporate blue for background
+    backgroundColor: Platform.OS === 'android' ? '#1A73E8' : colors.cardBackground,
     gap: 12,
-  },
-  // ✅ ANDROID FIX v284.0: Position input container higher to avoid nav buttons
-  inputContainerAndroid: {
-    position: 'absolute',
-    bottom: 60, // ✅ Positioned 60px from bottom to avoid Android nav buttons
-    left: 0,
-    right: 0,
   },
   input: {
     flex: 1,
