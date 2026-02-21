@@ -15,7 +15,8 @@ import {
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 
-const { width, height } = Dimensions.get('window');
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 interface ImageGalleryModalProps {
   visible: boolean;
@@ -25,22 +26,17 @@ interface ImageGalleryModalProps {
 }
 
 /**
- * ✅ IMAGE GALLERY MODAL v36.0 - ANDROID FULL SCREEN FIX COMPLETE
+ * ✅ IMAGE GALLERY MODAL v37.0 - ANDROID FULL SCREEN EDGE-TO-EDGE COMPLETE
  * 
- * NEW CHANGES v36.0:
- * - ✅ FIXED LETTERBOXING COMPLETAMENTE: Ahora cubre toda la pantalla sin espacios
- * - ✅ Container usa height: Dimensions.get('window').height directamente
- * - ✅ ScrollView con flex: 1 para ocupar todo el espacio disponible
- * - ✅ Eliminados todos los márgenes que causaban espacios
- * - ✅ Header absolutamente posicionado sin afectar el layout
- * - ✅ Respeta los botones táctiles del teléfono Android
- * 
- * PREVIOUS CHANGES v35.0:
- * - ✅ FIXED LETTERBOXING: Usa Dimensions.get('window').height directamente
- * - ✅ Container sin márgenes: margin: 0, padding: 0
- * - ✅ Imagen ocupa toda la altura disponible sin espacios vacíos
- * - ✅ Header con posición absoluta para no restar altura
- * - ✅ Experiencia verdaderamente edge-to-edge en Android
+ * NEW CHANGES v37.0:
+ * - ✅ ELIMINADO LETTERBOXING COMPLETAMENTE: Pantalla completa sin espacios
+ * - ✅ Modal con presentationStyle='overFullScreen' en todas las plataformas
+ * - ✅ Container usa Dimensions.get('window').height para altura completa
+ * - ✅ StatusBar oculto para experiencia inmersiva
+ * - ✅ Padding: 0, Margin: 0 en container principal
+ * - ✅ ScrollView con flex: 1 para ocupar todo el espacio
+ * - ✅ Header absolutamente posicionado sin afectar layout
+ * - ✅ Respeta botones táctiles del teléfono Android
  */
 export default function ImageGalleryModal({
   visible,
@@ -55,14 +51,14 @@ export default function ImageGalleryModal({
     if (visible) {
       setCurrentIndex(initialIndex);
       setTimeout(() => {
-        scrollViewRef.current?.scrollTo({ x: initialIndex * width, animated: false });
+        scrollViewRef.current?.scrollTo({ x: initialIndex * SCREEN_WIDTH, animated: false });
       }, 100);
     }
   }, [visible, initialIndex]);
 
   const handleScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffsetX / width);
+    const index = Math.round(contentOffsetX / SCREEN_WIDTH);
     setCurrentIndex(index);
   };
 
@@ -70,7 +66,7 @@ export default function ImageGalleryModal({
     if (currentIndex > 0) {
       const newIndex = currentIndex - 1;
       setCurrentIndex(newIndex);
-      scrollViewRef.current?.scrollTo({ x: newIndex * width, animated: true });
+      scrollViewRef.current?.scrollTo({ x: newIndex * SCREEN_WIDTH, animated: true });
     }
   };
 
@@ -78,11 +74,11 @@ export default function ImageGalleryModal({
     if (currentIndex < images.length - 1) {
       const newIndex = currentIndex + 1;
       setCurrentIndex(newIndex);
-      scrollViewRef.current?.scrollTo({ x: newIndex * width, animated: true });
+      scrollViewRef.current?.scrollTo({ x: newIndex * SCREEN_WIDTH, animated: true });
     }
   };
 
-  console.log('[ImageGalleryModal v36.0] 📸 Displaying gallery:', {
+  console.log('[ImageGalleryModal v37.0] 📸 Displaying gallery:', {
     visible,
     totalImages: images.length,
     currentIndex,
@@ -94,10 +90,10 @@ export default function ImageGalleryModal({
       visible={visible}
       transparent={false}
       animationType="fade"
-      presentationStyle={Platform.OS === 'android' ? 'overFullScreen' : 'fullScreen'}
+      presentationStyle="overFullScreen"
       onRequestClose={onClose}
     >
-      {Platform.OS === 'android' && <StatusBar hidden={true} />}
+      <StatusBar hidden={true} />
       <View style={styles.container}>
         <ScrollView
           ref={scrollViewRef}
@@ -106,8 +102,8 @@ export default function ImageGalleryModal({
           showsHorizontalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1 }}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
         >
           {images.map((imageUrl, index) => (
             <View key={index} style={styles.imageContainer}>
@@ -165,8 +161,17 @@ export default function ImageGalleryModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    height: height,
+    height: SCREEN_HEIGHT,
+    width: SCREEN_WIDTH,
+    margin: 0,
+    padding: 0,
     backgroundColor: '#000',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
   },
   header: {
     position: 'absolute',
@@ -199,14 +204,14 @@ const styles = StyleSheet.create({
     width: 40,
   },
   imageContainer: {
-    width: width,
-    height: height,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
     justifyContent: 'center',
     alignItems: 'center',
   },
   image: {
-    width: width,
-    height: height,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
   },
   leftArrow: {
     position: 'absolute',

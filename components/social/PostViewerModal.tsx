@@ -1,23 +1,18 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v346.0 - ANDROID FULL SCREEN FIX COMPLETE
+ * 🚨 POST VIEWER MODAL v347.0 - ANDROID FULL SCREEN EDGE-TO-EDGE COMPLETE
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * NEW CHANGES v346.0:
- * - ✅ FIXED LETTERBOXING COMPLETAMENTE: Ahora cubre toda la pantalla sin espacios
- * - ✅ Container usa height: Dimensions.get('window').height directamente
- * - ✅ FlatList con flex: 1 para ocupar todo el espacio disponible
- * - ✅ Eliminados todos los márgenes y paddings que causaban espacios
- * - ✅ Header absolutamente posicionado sin afectar el layout
- * - ✅ Respeta los botones táctiles del teléfono Android
- * 
- * PREVIOUS CHANGES v345.0:
- * - ✅ FIXED LETTERBOXING: Container sin márgenes, padding: 0
- * - ✅ Header con posición absoluta para no restar altura
- * - ✅ FlatList ocupa toda la altura disponible sin espacios vacíos
- * - ✅ Usa Dimensions.get('window').height directamente
- * - ✅ Experiencia verdaderamente edge-to-edge en Android
+ * NEW CHANGES v347.0:
+ * - ✅ ELIMINADO LETTERBOXING COMPLETAMENTE: Pantalla completa sin espacios
+ * - ✅ Modal con presentationStyle='overFullScreen' en todas las plataformas
+ * - ✅ Container usa Dimensions.get('window').height para altura completa
+ * - ✅ StatusBar oculto en Android para experiencia inmersiva
+ * - ✅ Padding: 0, Margin: 0 en container principal
+ * - ✅ FlatList con flex: 1 y contentContainerStyle optimizado
+ * - ✅ Header absolutamente posicionado sin afectar layout
+ * - ✅ Respeta botones táctiles del teléfono Android
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -47,7 +42,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useInteractionContext } from '@/hooks/useInteractionContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import ParsedText from '@/components/social/ParsedText';
-
 import { SOCIAL_ICONS } from '@/constants/SocialIcons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import TaggableUser from './TaggingModalV5';
@@ -60,7 +54,8 @@ import ReportModal from './ReportModal';
 import * as Haptics from 'expo-haptics';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
-const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 interface Post {
   id: string;
@@ -169,7 +164,7 @@ export default function PostViewerModal({
 
   useEffect(() => {
     if (visible) {
-      console.log('[PostViewerModal v346.0] Props received:', { 
+      console.log('[PostViewerModal v347.0] Props received:', { 
         visible, 
         initialPostId, 
         singlePost: !!singlePost,
@@ -194,10 +189,10 @@ export default function PostViewerModal({
 
       if (!error && data) {
         setLocalLikes(prev => new Map(prev).set(postId, data));
-        console.log('[PostViewerModal v346.0] ✅ Loaded initial likes for post:', postId, 'count:', data.length);
+        console.log('[PostViewerModal v347.0] ✅ Loaded initial likes for post:', postId, 'count:', data.length);
       }
     } catch (error) {
-      console.error('[PostViewerModal v346.0] Error loading initial likes:', error);
+      console.error('[PostViewerModal v347.0] Error loading initial likes:', error);
     }
   }, []);
 
@@ -210,10 +205,10 @@ export default function PostViewerModal({
 
       if (!error && count !== null) {
         setCommentsCount(prev => new Map(prev).set(postId, count));
-        console.log('[PostViewerModal v346.0] ✅ Loaded comment count for post:', postId, 'count:', count);
+        console.log('[PostViewerModal v347.0] ✅ Loaded comment count for post:', postId, 'count:', count);
       }
     } catch (error) {
-      console.error('[PostViewerModal v346.0] Error loading comment count:', error);
+      console.error('[PostViewerModal v347.0] Error loading comment count:', error);
     }
   };
 
@@ -221,7 +216,7 @@ export default function PostViewerModal({
     if (!currentPostId) return;
 
     try {
-      console.log('[PostViewerModal v346.0] 🔄 Refreshing post data after edit:', currentPostId);
+      console.log('[PostViewerModal v347.0] 🔄 Refreshing post data after edit:', currentPostId);
 
       const { data: postData, error: postError } = await supabase
         .from('posts')
@@ -234,7 +229,7 @@ export default function PostViewerModal({
         .single();
 
       if (postError || !postData) {
-        console.error('[PostViewerModal v346.0] Error refreshing post:', postError);
+        console.error('[PostViewerModal v347.0] Error refreshing post:', postError);
         return;
       }
 
@@ -269,16 +264,16 @@ export default function PostViewerModal({
 
       await loadTaggedUsers(currentPostId);
 
-      console.log('[PostViewerModal v346.0] ✅ Post refreshed successfully');
+      console.log('[PostViewerModal v347.0] ✅ Post refreshed successfully');
     } catch (error) {
-      console.error('[PostViewerModal v346.0] Error refreshing post:', error);
+      console.error('[PostViewerModal v347.0] Error refreshing post:', error);
     }
   }, [currentPostId]);
 
   useFocusEffect(
     useCallback(() => {
       if (visible && currentPostId) {
-        console.log('[PostViewerModal v346.0] 🔄 Screen focused - refreshing post data');
+        console.log('[PostViewerModal v347.0] 🔄 Screen focused - refreshing post data');
         refreshCurrentPost();
       }
     }, [visible, currentPostId, refreshCurrentPost])
@@ -287,12 +282,12 @@ export default function PostViewerModal({
   useEffect(() => {
     if (!user || posts.length === 0) return;
 
-    console.log('[PostViewerModal v346.0] 🔄 Setting up real-time likes subscription for', posts.length, 'posts');
+    console.log('[PostViewerModal v347.0] 🔄 Setting up real-time likes subscription for', posts.length, 'posts');
 
     const postIds = posts.map(p => p.id);
     
     if (channelRef.current?.state === 'subscribed') {
-      console.log('[PostViewerModal v346.0] ⚠️ Already subscribed, skipping');
+      console.log('[PostViewerModal v347.0] ⚠️ Already subscribed, skipping');
       return;
     }
 
@@ -314,16 +309,16 @@ export default function PostViewerModal({
             return;
           }
 
-          console.log('[PostViewerModal v346.0] 🔄 Real-time like change detected:', payload.eventType, 'for post:', postId);
+          console.log('[PostViewerModal v347.0] 🔄 Real-time like change detected:', payload.eventType, 'for post:', postId);
           
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
           if (changedByUserId === user.id) {
-            console.log('[PostViewerModal v346.0] ⏭️ Change made by current user, skipping (already handled optimistically)');
+            console.log('[PostViewerModal v347.0] ⏭️ Change made by current user, skipping (already handled optimistically)');
             return;
           }
           
-          console.log('[PostViewerModal v346.0] 🔄 Change made by another user, updating local state...');
+          console.log('[PostViewerModal v347.0] 🔄 Change made by another user, updating local state...');
           
           if (payload.eventType === 'INSERT' && payload.new) {
             setLocalLikes(prev => {
@@ -334,7 +329,7 @@ export default function PostViewerModal({
               const newArray = [...current, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
               const newMap = new Map(prev);
               newMap.set(postId, newArray);
-              console.log('[PostViewerModal v346.0] ➕ Added like to local array, new count:', newArray.length);
+              console.log('[PostViewerModal v347.0] ➕ Added like to local array, new count:', newArray.length);
               return newMap;
             });
           } else if (payload.eventType === 'DELETE' && payload.old) {
@@ -343,7 +338,7 @@ export default function PostViewerModal({
               const newArray = current.filter(like => like.id !== payload.old.id);
               const newMap = new Map(prev);
               newMap.set(postId, newArray);
-              console.log('[PostViewerModal v346.0] ➖ Removed like from local array, new count:', newArray.length);
+              console.log('[PostViewerModal v347.0] ➖ Removed like from local array, new count:', newArray.length);
               return newMap;
             });
           }
@@ -354,7 +349,7 @@ export default function PostViewerModal({
             .eq('post_id', postId);
           
           if (!countError && count !== null) {
-            console.log('[PostViewerModal v346.0] ✅ Updated likes count from database:', count);
+            console.log('[PostViewerModal v347.0] ✅ Updated likes count from database:', count);
             setLikesCount(prev => new Map(prev).set(postId, count));
           }
         }
@@ -373,7 +368,7 @@ export default function PostViewerModal({
             return;
           }
 
-          console.log('[PostViewerModal v346.0] 🔄 Real-time comment change detected:', payload.eventType, 'for post:', postId);
+          console.log('[PostViewerModal v347.0] 🔄 Real-time comment change detected:', payload.eventType, 'for post:', postId);
           
           const { count, error: countError } = await supabase
             .from('comentarios')
@@ -386,11 +381,11 @@ export default function PostViewerModal({
         }
       )
       .subscribe((status) => {
-        console.log('[PostViewerModal v346.0] 📡 Subscription status:', status);
+        console.log('[PostViewerModal v347.0] 📡 Subscription status:', status);
       });
 
     return () => {
-      console.log('[PostViewerModal v346.0] 🔄 Cleaning up real-time subscription');
+      console.log('[PostViewerModal v347.0] 🔄 Cleaning up real-time subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -405,7 +400,7 @@ export default function PostViewerModal({
       const authorIds = posts.map(p => p.autor_id).filter(Boolean);
       if (authorIds.length === 0) return;
 
-      console.log('[PostViewerModal v346.0] 🔍 Checking momentos for', authorIds.length, 'authors');
+      console.log('[PostViewerModal v347.0] 🔍 Checking momentos for', authorIds.length, 'authors');
 
       const { data: momentosData, error: momentosError } = await supabase
         .from('momentos')
@@ -415,7 +410,7 @@ export default function PostViewerModal({
         .gt('expires_at', new Date().toISOString());
 
       if (momentosError || !momentosData) {
-        console.error('[PostViewerModal v346.0] Error fetching author momentos:', momentosError);
+        console.error('[PostViewerModal v347.0] Error fetching author momentos:', momentosError);
         return;
       }
 
@@ -440,10 +435,10 @@ export default function PostViewerModal({
         }
       });
 
-      console.log('[PostViewerModal v346.0] ✅ Authors with unviewed momentos:', authorsWithUnviewed.size);
+      console.log('[PostViewerModal v347.0] ✅ Authors with unviewed momentos:', authorsWithUnviewed.size);
       setAuthorsWithMomentos(authorsWithUnviewed);
     } catch (error) {
-      console.error('[PostViewerModal v346.0] Error checking authors momentos:', error);
+      console.error('[PostViewerModal v347.0] Error checking authors momentos:', error);
     }
   }, [user, posts]);
 
@@ -452,7 +447,7 @@ export default function PostViewerModal({
       setLoading(true);
       
       if (singlePost) {
-        console.log('[PostViewerModal v346.0] Using single post mode');
+        console.log('[PostViewerModal v347.0] Using single post mode');
         
         let liked = false;
         if (interactionUserId) {
@@ -529,13 +524,13 @@ export default function PostViewerModal({
       }
       
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v346.0] Invalid allPostIds in loadPosts:', allPostIds);
+        console.error('[PostViewerModal v347.0] Invalid allPostIds in loadPosts:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
       }
       
-      console.log('[PostViewerModal v346.0] 🔄 Loading posts for IDs:', allPostIds);
+      console.log('[PostViewerModal v347.0] 🔄 Loading posts for IDs:', allPostIds);
       
       const { data, error } = await supabase
         .from('posts')
@@ -548,7 +543,7 @@ export default function PostViewerModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[PostViewerModal v346.0] Error loading posts:', error);
+        console.error('[PostViewerModal v347.0] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
         setPosts([]);
         setLoading(false);
@@ -556,14 +551,14 @@ export default function PostViewerModal({
       }
 
       if (!data || !Array.isArray(data)) {
-        console.error('[PostViewerModal v346.0] Invalid data received:', data);
+        console.error('[PostViewerModal v347.0] Invalid data received:', data);
         setPosts([]);
         setLoading(false);
         return;
       }
 
       if (data.length === 0) {
-        console.warn('[PostViewerModal v346.0] No posts found for IDs:', allPostIds);
+        console.warn('[PostViewerModal v347.0] No posts found for IDs:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -639,13 +634,13 @@ export default function PostViewerModal({
         .filter(Boolean) as Post[];
 
       if (!sortedPosts || sortedPosts.length === 0) {
-        console.warn('[PostViewerModal v346.0] No valid posts after sorting');
+        console.warn('[PostViewerModal v347.0] No valid posts after sorting');
         setPosts([]);
         setLoading(false);
         return;
       }
 
-      console.log('[PostViewerModal v346.0] ✅ Posts loaded and sorted:', sortedPosts.length);
+      console.log('[PostViewerModal v347.0] ✅ Posts loaded and sorted:', sortedPosts.length);
       setPosts(sortedPosts);
       
       const likedMap = new Map<string, boolean>();
@@ -664,7 +659,7 @@ export default function PostViewerModal({
       setCommentsCount(commentsMap);
       
       const initialIdx = sortedPosts.findIndex(p => p.id === initialPostId);
-      console.log('[PostViewerModal v346.0] 📍 Initial post ID:', initialPostId, 'found at index:', initialIdx);
+      console.log('[PostViewerModal v347.0] 📍 Initial post ID:', initialPostId, 'found at index:', initialIdx);
       
       if (initialIdx !== -1) {
         setCurrentIndex(initialIdx);
@@ -673,7 +668,7 @@ export default function PostViewerModal({
       
       setLoading(false);
     } catch (error) {
-      console.error('[PostViewerModal v346.0] Error:', error);
+      console.error('[PostViewerModal v347.0] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
       setPosts([]);
       setLoading(false);
@@ -688,11 +683,11 @@ export default function PostViewerModal({
     const initialIdx = posts.findIndex(p => p.id === initialPostId);
     
     if (initialIdx === -1) {
-      console.warn('[PostViewerModal v346.0] ⚠️ Initial post not found in posts array');
+      console.warn('[PostViewerModal v347.0] ⚠️ Initial post not found in posts array');
       return;
     }
 
-    console.log('[PostViewerModal v346.0] 📜 Attempting scroll to index:', initialIdx, 'retry:', scrollRetryCount.current);
+    console.log('[PostViewerModal v347.0] 📜 Attempting scroll to index:', initialIdx, 'retry:', scrollRetryCount.current);
     
     try {
       flatListRef.current.scrollToIndex({
@@ -702,27 +697,27 @@ export default function PostViewerModal({
       });
       hasScrolledToInitial.current = true;
       scrollRetryCount.current = 0;
-      console.log('[PostViewerModal v346.0] ✅ Scroll completed successfully to post:', initialPostId);
+      console.log('[PostViewerModal v347.0] ✅ Scroll completed successfully to post:', initialPostId);
     } catch (error) {
-      console.error('[PostViewerModal v346.0] ❌ ScrollToIndex error:', error);
+      console.error('[PostViewerModal v347.0] ❌ ScrollToIndex error:', error);
       
       if (scrollRetryCount.current < 5) {
         scrollRetryCount.current++;
         const delay = scrollRetryCount.current * 200;
-        console.log('[PostViewerModal v346.0] 🔄 Scheduling retry', scrollRetryCount.current, 'in', delay, 'ms');
+        console.log('[PostViewerModal v347.0] 🔄 Scheduling retry', scrollRetryCount.current, 'in', delay, 'ms');
         
         scrollRetryTimer.current = setTimeout(() => {
           attemptScrollToInitial();
         }, delay);
       } else {
-        console.error('[PostViewerModal v346.0] ❌ Max retries reached, scroll failed');
+        console.error('[PostViewerModal v347.0] ❌ Max retries reached, scroll failed');
       }
     }
   }, [posts, initialPostId]);
 
   useEffect(() => {
     if (!loading && posts.length > 0 && initialPostId && !hasScrolledToInitial.current) {
-      console.log('[PostViewerModal v346.0] 📜 Posts loaded, preparing to scroll...');
+      console.log('[PostViewerModal v347.0] 📜 Posts loaded, preparing to scroll...');
       
       const timer = setTimeout(() => {
         attemptScrollToInitial();
@@ -820,11 +815,11 @@ export default function PostViewerModal({
       const tempId = `temp-${Date.now()}`;
       const newArray = [...previousLocalLikes, { id: tempId, usuario_id: interactionUserId }];
       setLocalLikes(prev => new Map(prev).set(post.id, newArray));
-      console.log('[PostViewerModal v346.0] ✅ Optimistic ADD: Local likes array updated instantly, new count:', newArray.length);
+      console.log('[PostViewerModal v347.0] ✅ Optimistic ADD: Local likes array updated instantly, new count:', newArray.length);
     } else {
       const newArray = previousLocalLikes.filter(like => like.usuario_id !== interactionUserId);
       setLocalLikes(prev => new Map(prev).set(post.id, newArray));
-      console.log('[PostViewerModal v346.0] ✅ Optimistic REMOVE: Local likes array updated instantly, new count:', newArray.length);
+      console.log('[PostViewerModal v347.0] ✅ Optimistic REMOVE: Local likes array updated instantly, new count:', newArray.length);
     }
 
     const existingTimer = likeDebounceTimer.current.get(post.id);
@@ -835,7 +830,7 @@ export default function PostViewerModal({
     const timer = setTimeout(async () => {
       try {
         if (newLikedState) {
-          console.log('[PostViewerModal v346.0] ➕ Adding like to database for post:', post.id);
+          console.log('[PostViewerModal v347.0] ➕ Adding like to database for post:', post.id);
           
           const likeData: any = {
             post_id: post.id,
@@ -852,7 +847,7 @@ export default function PostViewerModal({
           const { data, error } = await supabase.from('likes').insert(likeData).select().single();
           
           if (error) {
-            console.error('[PostViewerModal v346.0] ❌ Error adding like:', error);
+            console.error('[PostViewerModal v347.0] ❌ Error adding like:', error);
             throw error;
           }
           
@@ -866,9 +861,9 @@ export default function PostViewerModal({
             return new Map(prev).set(post.id, updated);
           });
           
-          console.log('[PostViewerModal v346.0] ✅ Like added successfully, real ID:', data.id);
+          console.log('[PostViewerModal v347.0] ✅ Like added successfully, real ID:', data.id);
         } else {
-          console.log('[PostViewerModal v346.0] ➖ Removing like from database for post:', post.id);
+          console.log('[PostViewerModal v347.0] ➖ Removing like from database for post:', post.id);
           
           let deleteQuery = supabase
             .from('likes')
@@ -885,11 +880,11 @@ export default function PostViewerModal({
           const { error } = await deleteQuery;
           
           if (error) {
-            console.error('[PostViewerModal v346.0] ❌ Error removing like:', error);
+            console.error('[PostViewerModal v347.0] ❌ Error removing like:', error);
             throw error;
           }
           
-          console.log('[PostViewerModal v346.0] ✅ Like removed successfully from database');
+          console.log('[PostViewerModal v347.0] ✅ Like removed successfully from database');
         }
 
         const { count, error: countError } = await supabase
@@ -898,7 +893,7 @@ export default function PostViewerModal({
           .eq('post_id', post.id);
         
         if (!countError && count !== null) {
-          console.log('[PostViewerModal v346.0] ✅ Verified final count from database:', count);
+          console.log('[PostViewerModal v347.0] ✅ Verified final count from database:', count);
           setLikesCount(prev => new Map(prev).set(post.id, count));
         }
         
@@ -906,7 +901,7 @@ export default function PostViewerModal({
           onUpdate();
         }
       } catch (error) {
-        console.error('[PostViewerModal v346.0] ❌ Error toggling like:', error);
+        console.error('[PostViewerModal v347.0] ❌ Error toggling like:', error);
         setIsLiked(prev => new Map(prev).set(post.id, previousLiked));
         setLikesCount(prev => new Map(prev).set(post.id, previousCount));
         setLocalLikes(prev => new Map(prev).set(post.id, previousLocalLikes));
@@ -984,7 +979,7 @@ export default function PostViewerModal({
         onUpdate();
       }
     } catch (error) {
-      console.error('[PostViewerModal v346.0] Error toggling save:', error);
+      console.error('[PostViewerModal v347.0] Error toggling save:', error);
       setPosts(prevPosts =>
         prevPosts.map(p =>
           p.id === post.id ? { ...p, saved: isSaved } : p
@@ -1020,13 +1015,13 @@ export default function PostViewerModal({
           },
           (buttonIndex) => {
             if (buttonIndex === 1) {
-              console.log('[PostViewerModal v346.0] 📝 Opening edit description - POST STAYS OPEN');
+              console.log('[PostViewerModal v347.0] 📝 Opening edit description - POST STAYS OPEN');
               router.push({
                 pathname: '/social/editar-descripcion',
                 params: { postId: post.id },
               });
             } else if (buttonIndex === 2) {
-              console.log('[PostViewerModal v346.0] 🏷️ Opening manage tags - POST STAYS OPEN');
+              console.log('[PostViewerModal v347.0] 🏷️ Opening manage tags - POST STAYS OPEN');
               router.push({
                 pathname: '/social/gestionar-etiquetas',
                 params: { postId: post.id },
@@ -1045,7 +1040,7 @@ export default function PostViewerModal({
             { 
               text: 'Editar descripción', 
               onPress: () => {
-                console.log('[PostViewerModal v346.0] 📝 Opening edit description - POST STAYS OPEN');
+                console.log('[PostViewerModal v347.0] 📝 Opening edit description - POST STAYS OPEN');
                 router.push({
                   pathname: '/social/editar-descripcion',
                   params: { postId: post.id },
@@ -1055,7 +1050,7 @@ export default function PostViewerModal({
             { 
               text: 'Gestionar etiquetas', 
               onPress: () => {
-                console.log('[PostViewerModal v346.0] 🏷️ Opening manage tags - POST STAYS OPEN');
+                console.log('[PostViewerModal v347.0] 🏷️ Opening manage tags - POST STAYS OPEN');
                 router.push({
                   pathname: '/social/gestionar-etiquetas',
                   params: { postId: post.id },
@@ -1126,7 +1121,7 @@ export default function PostViewerModal({
                 }},
               ]);
             } catch (error) {
-              console.error('[PostViewerModal v346.0] Error deleting post:', error);
+              console.error('[PostViewerModal v347.0] Error deleting post:', error);
               Alert.alert('Error', 'No se pudo eliminar la publicación');
             }
           },
@@ -1177,7 +1172,7 @@ export default function PostViewerModal({
 
       setTaggedUsers(prev => new Map(prev).set(postId, tags));
     } catch (error) {
-      console.error('[PostViewerModal v346.0] Error loading tagged users:', error);
+      console.error('[PostViewerModal v347.0] Error loading tagged users:', error);
     }
   }, []);
 
@@ -1311,7 +1306,7 @@ export default function PostViewerModal({
               showsHorizontalScrollIndicator={false}
               style={styles.imageCarousel}
               onScroll={(event) => {
-                const index = Math.round(event.nativeEvent.contentOffset.x / width);
+                const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
                 setCurrentImageIndex(index);
               }}
               scrollEventThrottle={16}
@@ -1358,8 +1353,8 @@ export default function PostViewerModal({
                       <TagDisplay
                         postId={post.id}
                         imageIndex={index}
-                        imageWidth={width}
-                        imageHeight={width}
+                        imageWidth={SCREEN_WIDTH}
+                        imageHeight={SCREEN_WIDTH}
                         visible={true}
                       />
                     )}
@@ -1398,8 +1393,8 @@ export default function PostViewerModal({
             <TouchableOpacity 
               style={styles.actionButton}
               onPress={() => {
-                console.log('[PostViewerModal v346.0] 💬 Opening comments page for post:', post.id);
-                console.log('[PostViewerModal v346.0] ✅ Modal stays mounted - navigating directly to comments');
+                console.log('[PostViewerModal v347.0] 💬 Opening comments page for post:', post.id);
+                console.log('[PostViewerModal v347.0] ✅ Modal stays mounted - navigating directly to comments');
                 
                 router.push({
                   pathname: '/social/comentarios',
@@ -1473,8 +1468,8 @@ export default function PostViewerModal({
         <TouchableOpacity 
           style={styles.commentsContainer}
           onPress={() => {
-            console.log('[PostViewerModal v346.0] 💬 Opening comments page for post:', post.id);
-            console.log('[PostViewerModal v346.0] ✅ Modal stays mounted - navigating directly to comments');
+            console.log('[PostViewerModal v347.0] 💬 Opening comments page for post:', post.id);
+            console.log('[PostViewerModal v347.0] ✅ Modal stays mounted - navigating directly to comments');
             
             router.push({
               pathname: '/social/comentarios',
@@ -1527,11 +1522,11 @@ export default function PostViewerModal({
   }, []);
 
   const handleScrollToIndexFailed = useCallback((info: any) => {
-    console.warn('[PostViewerModal v346.0] ⚠️ ScrollToIndex failed, info:', info);
+    console.warn('[PostViewerModal v347.0] ⚠️ ScrollToIndex failed, info:', info);
     
     if (flatListRef.current && !hasScrolledToInitial.current) {
       const offset = info.averageItemLength * info.index;
-      console.log('[PostViewerModal v346.0] 🔄 Attempting fallback scrollToOffset:', offset);
+      console.log('[PostViewerModal v347.0] 🔄 Attempting fallback scrollToOffset:', offset);
       
       try {
         flatListRef.current.scrollToOffset({
@@ -1539,9 +1534,9 @@ export default function PostViewerModal({
           animated: false,
         });
         hasScrolledToInitial.current = true;
-        console.log('[PostViewerModal v346.0] ✅ Fallback scroll successful');
+        console.log('[PostViewerModal v347.0] ✅ Fallback scroll successful');
       } catch (error) {
-        console.error('[PostViewerModal v346.0] ❌ Fallback scroll failed:', error);
+        console.error('[PostViewerModal v347.0] ❌ Fallback scroll failed:', error);
       }
     }
   }, []);
@@ -1556,10 +1551,10 @@ export default function PostViewerModal({
       visible={visible}
       transparent={false}
       animationType="slide"
-      presentationStyle={Platform.OS === 'android' ? 'overFullScreen' : 'fullScreen'}
+      presentationStyle="overFullScreen"
       onRequestClose={onClose}
     >
-      {Platform.OS === 'android' && <StatusBar hidden={true} />}
+      <StatusBar hidden={true} />
       <View style={styles.container}>
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -1592,8 +1587,8 @@ export default function PostViewerModal({
             removeClippedSubviews={false}
             maxToRenderPerBatch={3}
             windowSize={5}
-            style={{ flex: 1 }}
-            contentContainerStyle={{ flexGrow: 1, paddingTop: Platform.OS === 'ios' ? 100 : 70 }}
+            style={styles.flatList}
+            contentContainerStyle={styles.flatListContent}
           />
         )}
 
@@ -1650,7 +1645,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     height: SCREEN_HEIGHT,
+    width: SCREEN_WIDTH,
+    margin: 0,
+    padding: 0,
     backgroundColor: colors.background,
+  },
+  flatList: {
+    flex: 1,
+  },
+  flatListContent: {
+    flexGrow: 1,
+    paddingTop: Platform.OS === 'ios' ? 100 : 70,
   },
   header: {
     position: 'absolute',
@@ -1759,22 +1764,22 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   imageContainer: {
-    width: width,
-    height: width,
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH,
     position: 'relative',
   },
   imageCarousel: {
-    width: width,
-    height: width,
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH,
   },
   imageWrapper: {
-    width: width,
-    height: width,
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH,
     position: 'relative',
   },
   postImage: {
-    width: width,
-    height: width,
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH,
     backgroundColor: colors.cardBorder,
   },
   doubleTapHeart: {
