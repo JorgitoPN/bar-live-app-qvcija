@@ -120,6 +120,13 @@ const MAX_LOGS = 50;
  * - ✅ FIXED: Replaced MIN(id) with ORDER BY created_at ASC LIMIT 1
  * - ✅ FIXED: Database trigger now works correctly without UUID MIN() error
  * 
+ * ⏰ TIME NORMALIZATION v428.0:
+ * - ✅ FIXED: All "24:00" times are now converted to "23:59"
+ * - ✅ FIXED: Venues like "A' Escala" now display correct closing times
+ * - ✅ FIXED: Database migration normalizes all existing schedule data
+ * - ✅ FIXED: Enrichment process normalizes times during import
+ * - ✅ COMPLIANT: All times now use standard 24-hour format (00:00-23:59)
+ * 
  * PREVIOUS FIXES v130.0:
  * - ✅ FIXED: Locales that fail with P0001 (duplicate) are now automatically deleted
  * - ✅ FIXED: Locales rejected during enrichment are automatically deleted
@@ -690,6 +697,7 @@ export default function EnriquecimientoGoogleScreen() {
   };
 
   // Función para convertir horarios de Google a formato estructurado
+  // ✅ v428.0: NORMALIZE "24:00" TO "23:59" DURING ENRICHMENT
   const convertirHorariosCompletos = (openingHours: any) => {
     if (!openingHours || !openingHours.periods) {
       return {};
@@ -709,10 +717,22 @@ export default function EnriquecimientoGoogleScreen() {
       openingHours.periods.forEach((period: any) => {
         const dia = DIAS_SEMANA[period.open.day];
         if (dia) {
-          const horaApertura = period.open.time.substring(0, 2) + ':' + period.open.time.substring(2);
-          const horaCierre = period.close 
+          let horaApertura = period.open.time.substring(0, 2) + ':' + period.open.time.substring(2);
+          let horaCierre = period.close 
             ? period.close.time.substring(0, 2) + ':' + period.close.time.substring(2)
             : '23:59';
+          
+          // ✅ v428.0: NORMALIZE "24:00" TO "23:59"
+          // Google Places API sometimes returns "24:00" for midnight closing
+          // We normalize this to "23:59" to comply with standard 24-hour format (00:00-23:59)
+          if (horaApertura === '24:00') {
+            horaApertura = '23:59';
+            console.log(`⏰ [ENRICHMENT] Normalized opening time 24:00 → 23:59 for ${dia}`);
+          }
+          if (horaCierre === '24:00') {
+            horaCierre = '23:59';
+            console.log(`⏰ [ENRICHMENT] Normalized closing time 24:00 → 23:59 for ${dia}`);
+          }
           
           horarios[dia].push(`${horaApertura}–${horaCierre}`);
         }

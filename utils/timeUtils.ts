@@ -1,6 +1,20 @@
 
 /**
  * Utility functions for time calculations and schedule handling
+ * 
+ * ✅ v428.0: TIME NORMALIZATION SYSTEM
+ * All times ending in "24:00" are automatically converted to "23:59"
+ * This ensures compliance with standard 24-hour format (00:00-23:59)
+ * 
+ * AFFECTED VENUES:
+ * - "A' Escala" and similar venues with schedules like "14:00-24:00"
+ * - All venues imported from Google Places API
+ * - All venues with overnight schedules
+ * 
+ * IMPLEMENTATION:
+ * 1. Frontend: normalizeAndValidateTime() converts "24:00" → "23:59"
+ * 2. Database: Migration normalizes all existing schedule data
+ * 3. Enrichment: convertirHorariosCompletos() normalizes during import
  */
 
 interface EstadoLocal {
@@ -39,7 +53,8 @@ export function normalizeAndValidateTime(timeStr: string): string {
 
   const trimmedTime = timeStr.trim();
 
-  // Convert "24:00" to "23:59"
+  // Convert "24:00" to "23:59" - CRITICAL FIX v428.0
+  // This ensures all schedules use valid 24-hour format (00:00-23:59)
   if (trimmedTime === '24:00') {
     console.log('⏰ [TIME NORMALIZE] Converting 24:00 to 23:59');
     return '23:59';
