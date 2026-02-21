@@ -40,10 +40,10 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD FIXES v287.0 - FINAL
+ * ✅ KEYBOARD FIXES v288.0 - FINAL
  * 
  * CRITICAL FIXES:
- * - ✅ Input field returns to bottom position when keyboard closes (removed behavior="height" on Android)
+ * - ✅ Input field returns to bottom position when keyboard closes (removed behavior on Android)
  * - ✅ Input container properly positioned above system navigation buttons
  * - ✅ System navigation bar background set to original Barlive teal (#14B8A6)
  * - ✅ Safe area insets properly applied for dynamic bottom padding
@@ -670,7 +670,7 @@ export default function ConversacionScreen() {
           }
         />
 
-        {/* ✅ FIX v287.0: Input container that stays at bottom when keyboard closes */}
+        {/* ✅ FIX v288.0: Input container that stays at bottom when keyboard closes */}
         <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 12) + (Platform.OS === 'android' ? 12 : 0) }]}>
           <TextInput
             style={[styles.input, { fontSize: scaleFontSize(16) }]}
@@ -681,6 +681,8 @@ export default function ConversacionScreen() {
             multiline
             maxLength={1000}
             editable={!enviando}
+            onSubmitEditing={enviarMensaje}
+            blurOnSubmit={false}
           />
           <TouchableOpacity
             style={[styles.sendButton, (!mensaje.trim() || enviando) && styles.sendButtonDisabled]}
