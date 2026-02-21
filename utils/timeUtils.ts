@@ -26,6 +26,36 @@ interface RangoHorario {
 const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
 
 /**
+ * Normalize and validate a time string
+ * Converts "24:00" to "23:59" and validates the time is between 00:00 and 23:59
+ * @param timeStr - Time string in HH:MM format
+ * @returns Normalized time string or the original if invalid
+ */
+export function normalizeAndValidateTime(timeStr: string): string {
+  if (!timeStr || typeof timeStr !== 'string') {
+    console.warn('Invalid time string provided:', timeStr);
+    return timeStr;
+  }
+
+  const trimmedTime = timeStr.trim();
+
+  // Convert "24:00" to "23:59"
+  if (trimmedTime === '24:00') {
+    console.log('⏰ [TIME NORMALIZE] Converting 24:00 to 23:59');
+    return '23:59';
+  }
+
+  // Validate format HH:MM and range 00:00 to 23:59
+  const timeRegex = /^([01]?[0-9]|2[0-3]):([0-5][0-9])$/;
+  if (!timeRegex.test(trimmedTime)) {
+    console.warn(`⏰ [TIME NORMALIZE] Invalid time format or range: ${trimmedTime}. Expected HH:MM between 00:00 and 23:59.`);
+    return trimmedTime;
+  }
+
+  return trimmedTime;
+}
+
+/**
  * Normalize schedule data to array format
  */
 function normalizarFranjas(franjas: any): string[] {
@@ -38,6 +68,7 @@ function normalizarFranjas(franjas: any): string[] {
 /**
  * Parse a time range string and validate it
  * Returns null if the format is invalid or corrupted
+ * Now includes normalization to convert "24:00" to "23:59"
  */
 export function parsearRangoHorario(rango: string): RangoHorario | null {
   try {
@@ -49,24 +80,28 @@ export function parsearRangoHorario(rango: string): RangoHorario | null {
       return null;
     }
     
-    const [horaInicio, minInicio] = inicio.trim().split(':').map(Number);
-    const [horaFin, minFin] = fin.trim().split(':').map(Number);
+    // Normalize times (convert 24:00 to 23:59)
+    const inicioNormalizado = normalizeAndValidateTime(inicio.trim());
+    const finNormalizado = normalizeAndValidateTime(fin.trim());
     
-    // Validar rangos
+    const [horaInicio, minInicio] = inicioNormalizado.split(':').map(Number);
+    const [horaFin, minFin] = finNormalizado.split(':').map(Number);
+    
+    // Validar rangos (now 0-23 for hours since we normalize 24:00 to 23:59)
     if (isNaN(horaInicio) || horaInicio < 0 || horaInicio > 23) {
-      console.error('Error parseando horario: hora inicio inválida', rango);
+      console.error('Error parseando horario: hora inicio inválida', rango, '→', inicioNormalizado);
       return null;
     }
     if (isNaN(minInicio) || minInicio < 0 || minInicio > 59) {
-      console.error('Error parseando horario: minutos inicio inválidos', rango);
+      console.error('Error parseando horario: minutos inicio inválidos', rango, '→', inicioNormalizado);
       return null;
     }
-    if (isNaN(horaFin) || horaFin < 0 || horaFin > 24) {
-      console.error('Error parseando horario: hora fin inválida', rango);
+    if (isNaN(horaFin) || horaFin < 0 || horaFin > 23) {
+      console.error('Error parseando horario: hora fin inválida', rango, '→', finNormalizado);
       return null;
     }
     if (isNaN(minFin) || minFin < 0 || minFin > 59) {
-      console.error('Error parseando horario: minutos fin inválidos', rango);
+      console.error('Error parseando horario: minutos fin inválidos', rango, '→', finNormalizado);
       return null;
     }
     
