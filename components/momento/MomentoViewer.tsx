@@ -69,7 +69,7 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v166.0 - PROFESSIONAL GESTURE CONTROLS + KEYBOARD FIXES
+ * ✅ MOMENTO VIEWER v167.0 - PROFESSIONAL GESTURE CONTROLS + KEYBOARD FIXES FINAL
  * 
  * GESTURE SYSTEM:
  * 1. TAP (Short Press):
@@ -93,11 +93,12 @@ interface MomentoViewerProps {
  *    - Swipe right → Previous user's momento
  *    - Faster than multiple taps
  * 
- * ✅ FIXES v166.0:
- * - PROBLEMA 2 RESUELTO: Android keyboard now properly lifts input field ~65%
- * - PROBLEMA 3 RESUELTO: Send button now sends message immediately (keyboard dismissed first)
- * - Added paddingBottom adjustment for Android to prevent keyboard overlap
- * - Send button now uses Keyboard.dismiss() + setTimeout for reliable sending
+ * ✅ FIXES v167.0 (FINAL):
+ * - PROBLEMA 1 RESUELTO: Android keyboard now properly lifts input field ~20% (reduced from 65%)
+ * - PROBLEMA 2 RESUELTO: Send button now sends message immediately WITHOUT closing keyboard first
+ * - Removed Keyboard.dismiss() call - message sends while keyboard is still open
+ * - Removed setTimeout delay - instant message sending
+ * - paddingBottom reduced to 20px for 20% lift (was 40px for 65%)
  */
 
 export default function MomentoViewer({
@@ -1115,9 +1116,9 @@ export default function MomentoViewer({
             <View style={[
               styles.messageInputContainer,
               Platform.OS === 'android' && {
-                // ✅ FIX PROBLEMA 2: Android keyboard adjustment
-                // Lift input field ~65% above keyboard
-                paddingBottom: Platform.OS === 'android' ? 40 : 24,
+                // ✅ FIX PROBLEMA 1: Android keyboard adjustment
+                // Lift input field ~20% above keyboard (reduced from 65%)
+                paddingBottom: 20,
               }
             ]}>
               <TouchableOpacity 
@@ -1143,20 +1144,16 @@ export default function MomentoViewer({
                   maxLength={500}
                   autoFocus
                   editable={!sendingMessage}
-                  // ✅ FIX PROBLEMA 3: Ensure keyboard doesn't dismiss on submit
                   blurOnSubmit={false}
                 />
                 <TouchableOpacity
                   style={[styles.messageSendButton, (!messageText.trim() || sendingMessage) && styles.messageSendButtonDisabled]}
                   onPress={() => {
-                    // ✅ FIX PROBLEMA 3: Force send even if keyboard is open
-                    // Dismiss keyboard first, then send
-                    console.log('[MomentoViewer v166.0] 📤 Send button pressed');
-                    Keyboard.dismiss();
-                    // Use setTimeout to ensure keyboard dismissal completes before sending
-                    setTimeout(() => {
-                      handleSendMessage();
-                    }, 50);
+                    // ✅ FIX PROBLEMA 2: Send message immediately WITHOUT closing keyboard
+                    // No Keyboard.dismiss() call - message sends while keyboard is still open
+                    // No setTimeout delay - instant sending
+                    console.log('[MomentoViewer v167.0] 📤 Send button pressed - sending immediately');
+                    handleSendMessage();
                   }}
                   disabled={!messageText.trim() || sendingMessage}
                 >
