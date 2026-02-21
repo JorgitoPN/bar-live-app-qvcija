@@ -2951,9 +2951,10 @@ export default function SalaVirtualEnhancedScreen() {
     // Dynamic padding based on keyboard state
     // iOS: No extra padding when keyboard is open (input sits on keyboard)
     // Android: Add keyboard height + extra spacing to push content well above keyboard
+    // Increased from 40px to 60px for "un poquito mas" (20% more lift)
     const dynamicPadding = Platform.OS === 'ios'
       ? (isKeyboardVisible ? 0 : Math.max(insets.bottom, 8))
-      : (isKeyboardVisible ? keyboardHeight + 40 : Math.max(insets.bottom, 8));
+      : (isKeyboardVisible ? keyboardHeight + 60 : Math.max(insets.bottom, 8));
     
     const totalPadding = baseInputHeight + quickMessagesHeight + dynamicPadding;
     
@@ -2969,9 +2970,9 @@ export default function SalaVirtualEnhancedScreen() {
       return isKeyboardVisible ? 0 : Math.max(insets.bottom, 8);
     } else {
       // Android: Add keyboard height + extra spacing to lift input well above keyboard
-      // User reported only seeing 10% of input, so we need more spacing
+      // Increased from 40px to 60px for "un poquito mas" (20% more lift)
       // When keyboard is closed, use safe area inset
-      return isKeyboardVisible ? keyboardHeight + 40 : Math.max(insets.bottom, 8);
+      return isKeyboardVisible ? keyboardHeight + 60 : Math.max(insets.bottom, 8);
     }
   }, [isKeyboardVisible, insets.bottom, keyboardHeight]);
 
@@ -3331,6 +3332,21 @@ export default function SalaVirtualEnhancedScreen() {
                 paddingBottom: inputContainerBottomPadding,
               }
             ]}>
+              <TouchableOpacity
+                style={[
+                  styles.toggleQuickMessagesButton,
+                  { backgroundColor: themeColors.primary + '20', borderColor: themeColors.primary + '40' },
+                ]}
+                onPress={() => setShowQuickMessages(prev => !prev)}
+                activeOpacity={0.7}
+              >
+                <IconSymbol
+                  ios_icon_name={showQuickMessages ? 'chevron.down' : 'chevron.up'}
+                  android_material_icon_name={showQuickMessages ? 'expand_more' : 'expand_less'}
+                  size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
+                  color={themeColors.primary}
+                />
+              </TouchableOpacity>
               <TextInput
                 style={[
                   styles.input,
@@ -3852,6 +3868,14 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     gap: 12,
     borderTopWidth: 1,
+  },
+  toggleQuickMessagesButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
   },
   input: {
     flex: 1,
