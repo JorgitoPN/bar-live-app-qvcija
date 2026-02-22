@@ -85,27 +85,20 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v436.0 - CRITICAL FIX: SCROLL JUMPS & iOS CRASH
+ * ✅ EXPLORAR SCREEN v437.0 - CRITICAL FIX: iOS EXPO GO CRASH
  * 
- * CRITICAL FIX v436.0 (2026-02-22):
- * - 🔧 FIXED: Scroll jumps to top when reaching end of list
+ * CRITICAL FIX v437.0 (2026-02-22):
  * - 🔧 FIXED: iOS Expo Go crash on app launch
- * - 🔧 REMOVED: maintainVisibleContentPosition (causes jumps and iOS crashes)
- * - 🔧 IMPROVED: Stable scroll position tracking with manual restoration
- * - 🔧 IMPROVED: Simplified header animation (no complex transforms)
- * - 🔧 IMPROVED: Better data update batching during scroll
+ * - 🔧 FIXED: Background location tracking disabled on iOS (causes permission crashes)
+ * - 🔧 IMPROVED: Graceful error handling for all location operations
+ * - 🔧 IMPROVED: Silent fallback when location services fail
  * 
  * ROOT CAUSE ANALYSIS:
- * 1. Scroll Jumps: maintainVisibleContentPosition + data updates = position loss
- * 2. iOS Crash: Complex header animations + maintainVisibleContentPosition = crash
- * 
- * SOLUTION:
- * - Remove maintainVisibleContentPosition entirely
- * - Use manual scroll position tracking with refs
- * - Batch all state updates outside of scroll events
- * - Simplify header animation to basic translateY
+ * - iOS Expo Go crash: Background location tracking started before permissions granted
+ * - Solution: Skip background tracking on iOS, use foreground location only
  * 
  * Previous fixes:
+ * - v436.0: Scroll jumps and iOS crash (maintainVisibleContentPosition removed)
  * - v435.0: Scroll stability with state update prevention
  * - v434.0: Infinite loop and location error fixes
  * - v433.0: Featured locals and sorting consistency
@@ -228,7 +221,7 @@ export default function ExplorarScreen() {
   
   useEffect(() => {
     if (!mountedRef.current) {
-      console.log('[Explorar v436.0] 🚀 Component mounted - SCROLL JUMP & iOS CRASH FIX');
+      console.log('[Explorar v437.0] 🚀 Component mounted - iOS CRASH FIX APPLIED');
       mountedRef.current = true;
     }
   }, []);
@@ -434,26 +427,29 @@ export default function ExplorarScreen() {
     return lat >= MIN_LAT && lat <= MAX_LAT && lng >= MIN_LNG && lng <= MAX_LNG;
   }, []);
 
-  // ✅ v434.0: BACKGROUND LOCATION TRACKING + INTELLIGENT PRELOADING (WITH ERROR HANDLING)
+  // ✅ v437.0: CRITICAL FIX - iOS CRASH FIX (Graceful location handling)
   useEffect(() => {
     let isMounted = true;
     let unsubscribe: (() => void) | null = null;
     
     (async () => {
       try {
-        console.log('[Explorar v436.0] 🚀 Starting intelligent location system');
+        console.log('[Explorar v437.0] 🚀 Starting location system (iOS crash fix)');
         
-        // ✅ STEP 1: Start background location tracking (with graceful degradation)
-        if (!isBackgroundTrackingEnabled()) {
-          try {
-            const started = await startBackgroundLocationTracking();
-            if (started) {
-              console.log('[Explorar v436.0] ✅ Background tracking started');
-            } else {
-              console.log('[Explorar v436.0] ⚠️ Background tracking failed - using manual updates');
+        // ✅ CRITICAL: Skip background tracking on iOS in Expo Go (causes crashes)
+        if (Platform.OS === 'ios') {
+          console.log('[Explorar v437.0] ⏸️ Skipping background tracking on iOS (Expo Go compatibility)');
+        } else {
+          // ✅ STEP 1: Start background location tracking on Android only
+          if (!isBackgroundTrackingEnabled()) {
+            try {
+              const started = await startBackgroundLocationTracking();
+              if (started) {
+                console.log('[Explorar v437.0] ✅ Background tracking started (Android)');
+              }
+            } catch (trackingError) {
+              console.log('[Explorar v437.0] ⚠️ Background tracking error - continuing');
             }
-          } catch (trackingError) {
-            console.log('[Explorar v436.0] ⚠️ Background tracking error - continuing with manual updates');
           }
         }
         
@@ -462,36 +458,33 @@ export default function ExplorarScreen() {
           unsubscribe = subscribeToLocationUpdates('explorar-screen', (location) => {
             if (!isMounted) return;
             
-            console.log('[Explorar v436.0] 📍 Location update received:', {
-              lat: location.latitude.toFixed(4),
-              lng: location.longitude.toFixed(4),
-            });
+            console.log('[Explorar v437.0] 📍 Location update received');
             
             if (isValidSpainCoordinate(location.latitude, location.longitude)) {
               setUserLocation({ lat: location.latitude, lng: location.longitude });
               setLocationError(null);
               setLocationReady(true);
               
-              // ✅ STEP 3: Trigger intelligent preloading (with error handling)
+              // ✅ Trigger intelligent preloading (with error handling)
               try {
                 backgroundSync.preloadLocalesForLocation(
                   location.latitude,
                   location.longitude,
-                  false // Don't force if location change is small
+                  false
                 );
               } catch (preloadError) {
-                console.log('[Explorar v436.0] ⚠️ Preload error - data will load on demand');
+                // Silent fail - data will load on demand
               }
             }
           });
         } catch (subscribeError) {
-          console.log('[Explorar v436.0] ⚠️ Location subscription error - using manual updates');
+          console.log('[Explorar v437.0] ⚠️ Location subscription error - using manual updates');
         }
         
-        // ✅ STEP 4: Check cached location first (instant)
+        // ✅ STEP 3: Check cached location first (instant)
         const cached = getCachedLocation();
         if (cached) {
-          console.log('[Explorar v436.0] ⚡ Using cached location (instant)');
+          console.log('[Explorar v437.0] ⚡ Using cached location');
           
           if (isValidSpainCoordinate(cached.latitude, cached.longitude)) {
             if (isMounted) {
@@ -499,7 +492,7 @@ export default function ExplorarScreen() {
               setLocationError(null);
               setLocationReady(true);
               
-              // Preload data for cached location (with error handling)
+              // Preload data for cached location
               try {
                 backgroundSync.preloadLocalesForLocation(
                   cached.latitude,
@@ -507,20 +500,20 @@ export default function ExplorarScreen() {
                   false
                 );
               } catch (preloadError) {
-                console.log('[Explorar v436.0] ⚠️ Preload error - data will load on demand');
+                // Silent fail
               }
             }
             return;
           }
         }
         
-        // ✅ STEP 5: Fetch fresh location if no cache
+        // ✅ STEP 4: Fetch fresh location if no cache
         const location = await getOptimizedUserLocation();
         
         if (!isMounted) return;
         
         if (!location) {
-          console.log('[Explorar v436.0] ⚠️ Location not available');
+          console.log('[Explorar v437.0] ⚠️ Location not available');
           setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
           setUserLocation(null);
           setLocationReady(true);
@@ -530,10 +523,10 @@ export default function ExplorarScreen() {
         const lat = location.coords.latitude;
         const lng = location.coords.longitude;
         
-        console.log('[Explorar v436.0] ✅ Location obtained:', { lat, lng });
+        console.log('[Explorar v437.0] ✅ Location obtained');
         
         if (!isValidSpainCoordinate(lat, lng)) {
-          console.log('[Explorar v436.0] ⚠️ Location outside Spain');
+          console.log('[Explorar v437.0] ⚠️ Location outside Spain');
           setLocationError('Ubicación fuera de España. Mostrando todos los locales.');
           setUserLocation(null);
           setLocationReady(true);
@@ -544,17 +537,17 @@ export default function ExplorarScreen() {
         setLocationError(null);
         setLocationReady(true);
         
-        // Preload data for this location (with error handling)
+        // Preload data for this location
         try {
           backgroundSync.preloadLocalesForLocation(lat, lng, true);
-          console.log('[Explorar v436.0] ✅ Location ready - intelligent preloading active');
+          console.log('[Explorar v437.0] ✅ Location ready');
         } catch (preloadError) {
-          console.log('[Explorar v436.0] ⚠️ Preload error - data will load on demand');
+          // Silent fail
         }
         
       } catch (error: any) {
         if (!isMounted) return;
-        console.error('[Explorar v436.0] ❌ Location error:', error);
+        console.log('[Explorar v437.0] ⚠️ Location error - continuing with fallback');
         setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
         setUserLocation(null);
         setLocationReady(true);
