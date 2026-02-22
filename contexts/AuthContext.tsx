@@ -1,7 +1,8 @@
 
-import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/app/integrations/supabase/client';
 import { AuthUser, getCurrentUser } from '@/utils/auth';
+import { registerForPushNotifications, savePushToken } from '@/utils/notifications';
 import { Session } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
@@ -17,189 +18,311 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// ✅ CRITICAL: Disable console logs on Android for performance
+const log = Platform.OS === 'android' ? () => {} : console.log;
+const warn = Platform.OS === 'android' ? () => {} : console.warn;
+const error = Platform.OS === 'android' ? () => {} : console.error;
+
 /**
- * ✅ AUTH CONTEXT v500.0 - ULTRA PERFORMANCE ANDROID FIX
+ * ✅ AUTH CONTEXT v337.0 - ULTRA-FAST GUEST MODE REPLICATION
  * 
- * CRITICAL CHANGES v500.0 (PROFESSIONAL OPTIMIZATION):
- * - 🔥 INSTANT STARTUP: Zero blocking operations on mount
- * - 🔥 LAZY EVERYTHING: All data loads in background
- * - 🔥 NO PUSH NOTIFICATIONS: Completely disabled on Android
- * - 🔥 MINIMAL STATE UPDATES: Batched updates to prevent re-renders
- * - 🔥 SMART CACHING: Session cached in memory
- * - 🔥 RESULT: Identical to guest mode - INSTANT, SMOOTH, RESPONSIVE
+ * CRITICAL FIXES v337.0 (FINAL PERFORMANCE PARITY):
+ * - ✅ INSTANT SESSION LOAD: No waiting for session validation on Android
+ * - ✅ ZERO BLOCKING OPERATIONS: All auth operations are non-blocking
+ * - ✅ DISABLED PUSH NOTIFICATIONS: Completely disabled on Android
+ * - ✅ MINIMAL SESSION CHECKS: Only when absolutely necessary
+ * - ✅ BACKGROUND USER FETCH: User data loads in background, doesn't block UI
+ * - ✅ 100% GUEST MODE PARITY: Identical instant experience
+ * 
+ * PREVIOUS FIXES v295.0:
+ * - ✅ INSTANT LOGIN: User sees UI immediately, no waiting
+ * - ✅ DISABLED PUSH NOTIFICATIONS: Completely disabled on Android
+ * - ✅ ZERO BACKGROUND OPERATIONS: No automatic operations on Android
+ * - ✅ 100% IDENTICAL TO GUEST MODE: Same instant, responsive experience
  */
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(false); // ✅ Start false for instant render
-  
-  const sessionCacheRef = useRef<Session | null>(null);
-  const userCacheRef = useRef<AuthUser | null>(null);
-  const initializingRef = useRef(false);
-  const isMountedRef = useRef(true);
+  const [loading, setLoading] = useState(true);
+  const [initializing, setInitializing] = useState(true);
+  const [sessionReady, setSessionReady] = useState(false);
 
   const setSessionManually = (newSession: Session | null) => {
-    sessionCacheRef.current = newSession;
     setSession(newSession);
+    setSessionReady(!!newSession);
     
-    if (newSession && Platform.OS === 'android') {
-      // ✅ Defer user data fetch to background
-      setTimeout(() => {
-        if (!isMountedRef.current) return;
-        getCurrentUser().then(({ user: userData }) => {
-          if (userData && isMountedRef.current) {
-            userCacheRef.current = userData;
-            setUser(userData);
-          }
-        });
-      }, 200);
+    if (newSession) {
+      getCurrentUser().then(({ user: userData, error: userError }) => {
+        if (!userError && userData) {
+          setUser(userData);
+        }
+      });
+    } else {
+      setUser(null);
     }
   };
 
   const ensureValidSession = async (): Promise<Session | null> => {
-    // ✅ Return cached session immediately if available
-    if (sessionCacheRef.current) {
-      const expiresAt = sessionCacheRef.current.expires_at! * 1000;
-      const now = Date.now();
-      if (expiresAt - now > 5 * 60 * 1000) {
-        return sessionCacheRef.current;
-      }
-    }
-
     try {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const { data: { session: currentSession }, error: getError } = await supabase.auth.getSession();
       
-      if (currentSession) {
-        sessionCacheRef.current = currentSession;
-        setSession(currentSession);
-        return currentSession;
+      if (getError || !currentSession) {
+        return null;
       }
-      
-      return null;
-    } catch {
+
+      const expiresAt = currentSession.expires_at! * 1000;
+      const now = Date.now();
+      const timeUntilExpiry = expiresAt - now;
+
+      // ✅ v293.0: Only refresh if < 2 minutes to expiry (was 3)
+      if (timeUntilExpiry < 2 * 60 * 1000) {
+        const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError) {
+          if (timeUntilExpiry <= 0) {
+            return null;
+          }
+          setSession(currentSession);
+          setSessionReady(true);
+          return currentSession;
+        }
+
+        if (!refreshedSession) {
+          return null;
+        }
+        
+        setSession(refreshedSession);
+        setSessionReady(true);
+        
+        return refreshedSession;
+      }
+
+      setSession(currentSession);
+      setSessionReady(true);
+      return currentSession;
+    } catch (err) {
       return null;
     }
   };
 
   useEffect(() => {
-    if (initializingRef.current) return;
-    initializingRef.current = true;
-
     const initializeAuth = async () => {
       try {
-        // ✅ ANDROID: INSTANT session load without validation
+        // ✅ v337.0: CRITICAL ANDROID PERFORMANCE FIX
+        // On Android, we load session instantly without validation
+        // This replicates guest mode's instant startup
         if (Platform.OS === 'android') {
+          // ✅ INSTANT: Get session without waiting for validation
           const { data: { session: currentSession } } = await supabase.auth.getSession();
           
-          if (currentSession && isMountedRef.current) {
-            sessionCacheRef.current = currentSession;
+          if (currentSession) {
+            // ✅ INSTANT: Set session immediately (no validation delay)
             setSession(currentSession);
+            setSessionReady(true);
             
-            // ✅ Load user data in background (LOW priority)
+            // ✅ BACKGROUND: Load user data in background (doesn't block UI)
             setTimeout(() => {
-              if (!isMountedRef.current) return;
-              getCurrentUser().then(({ user: userData }) => {
-                if (userData && isMountedRef.current) {
-                  userCacheRef.current = userData;
+              getCurrentUser().then(({ user: userData, error: userError }) => {
+                if (!userError && userData) {
                   setUser(userData);
                 }
               });
-            }, 300);
+            }, 100); // Minimal delay to ensure UI renders first
           }
           
+          // ✅ INSTANT: Mark as ready immediately
+          setInitializing(false);
+          setLoading(false);
           return;
         }
         
-        // iOS: Standard flow
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        // iOS: Keep original behavior (more robust validation)
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
         
-        if (currentSession && isMountedRef.current) {
-          sessionCacheRef.current = currentSession;
+        if (sessionError) {
+          setInitializing(false);
+          setLoading(false);
+          return;
+        }
+        
+        if (currentSession) {
           setSession(currentSession);
+          setSessionReady(true);
           
-          const { user: userData } = await getCurrentUser();
-          if (userData && isMountedRef.current) {
-            userCacheRef.current = userData;
+          const { user: userData, error: userError } = await getCurrentUser();
+          
+          if (!userError && userData) {
             setUser(userData);
+            
+            // iOS can handle push notifications
+            setTimeout(() => {
+              registerForPushNotifications()
+                .then(pushToken => {
+                  if (pushToken) {
+                    savePushToken(userData.id, pushToken).catch(() => {});
+                  }
+                })
+                .catch(() => {});
+            }, 10000);
           }
         }
-      } catch {
+      } catch (err) {
         // Silent error
+      } finally {
+        setInitializing(false);
+        setLoading(false);
       }
     };
 
     initializeAuth();
 
-    // ✅ MINIMAL auth state listener
+    let subscription: { unsubscribe: () => void } | null = null;
+    let refreshInterval: NodeJS.Timeout | null = null;
+    
     const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      if (!isMountedRef.current) return;
-      
       if (currentSession) {
-        sessionCacheRef.current = currentSession;
         setSession(currentSession);
+        setSessionReady(true);
       } else {
-        sessionCacheRef.current = null;
-        userCacheRef.current = null;
         setSession(null);
+        setSessionReady(false);
         setUser(null);
       }
       
-      if (event === 'SIGNED_IN' && currentSession && Platform.OS === 'android') {
-        // ✅ Defer user data load
-        setTimeout(() => {
-          if (!isMountedRef.current) return;
-          getCurrentUser().then(({ user: userData }) => {
-            if (userData && isMountedRef.current) {
-              userCacheRef.current = userData;
-              setUser(userData);
-            }
-          });
-        }, 200);
+      if (initializing) {
+        return;
+      }
+      
+      if (event === 'SIGNED_IN' && currentSession) {
+        // ✅ v337.0: INSTANT LOGIN on Android (guest mode parity)
+        if (Platform.OS === 'android') {
+          // ✅ INSTANT: Set session immediately, no validation delay
+          setSession(currentSession);
+          setSessionReady(true);
+          
+          // ✅ BACKGROUND: Load user data in background
+          setTimeout(() => {
+            getCurrentUser().then(({ user: userData, error: userError }) => {
+              if (!userError && userData) {
+                setUser(userData);
+              }
+            });
+          }, 100);
+          
+          return; // Skip iOS validation flow
+        }
+        
+        // iOS: Keep original validation flow
+        setLoading(true);
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+        
+        if (!verifiedSession) {
+          setLoading(false);
+          return;
+        }
+        
+        const { user: userData, error: userError } = await getCurrentUser();
+        
+        if (!userError && userData) {
+          setUser(userData);
+          
+          setTimeout(() => {
+            registerForPushNotifications()
+              .then(pushToken => {
+                if (pushToken) {
+                  savePushToken(userData.id, pushToken).catch(() => {});
+                }
+              })
+              .catch(() => {});
+          }, 10000);
+        }
+        
+        setLoading(false);
       } else if (event === 'SIGNED_OUT') {
-        sessionCacheRef.current = null;
-        userCacheRef.current = null;
         setUser(null);
         setSession(null);
+        setSessionReady(false);
+      } else if (event === 'USER_UPDATED') {
+        setLoading(true);
+        const { user: userData } = await getCurrentUser();
+        if (userData) {
+          setUser(userData);
+        }
+        setLoading(false);
       }
     });
     
-    const subscription = data.subscription;
+    subscription = data.subscription;
+
+    // ✅ v337.0: DISABLED on Android (guest mode doesn't refresh sessions)
+    // Guest mode = no background session checks = instant performance
+    if (Platform.OS !== 'android') {
+      refreshInterval = setInterval(async () => {
+        try {
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          
+          if (currentSession) {
+            const expiresAt = currentSession.expires_at! * 1000;
+            const now = Date.now();
+            const timeUntilExpiry = expiresAt - now;
+            
+            // Only refresh if < 2 minutes until expiry
+            if (timeUntilExpiry < 2 * 60 * 1000) {
+              const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
+              
+              if (!error && refreshedSession) {
+                setSession(refreshedSession);
+                setSessionReady(true);
+              }
+            }
+          }
+        } catch (err) {
+          // Silent fail
+        }
+      }, 3 * 60 * 60 * 1000);
+    }
 
     return () => {
-      isMountedRef.current = false;
       if (subscription) {
         subscription.unsubscribe();
       }
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
     };
-  }, []);
+  }, [initializing]);
 
   const handleSignOut = async () => {
     try {
-      sessionCacheRef.current = null;
-      userCacheRef.current = null;
       setUser(null);
       setSession(null);
+      setSessionReady(false);
       
-      supabase.auth.signOut().catch(() => {});
-    } catch {
-      sessionCacheRef.current = null;
-      userCacheRef.current = null;
+      supabase.auth.signOut().then(() => {}).catch(() => {});
+    } catch (err) {
       setUser(null);
       setSession(null);
+      setSessionReady(false);
     }
   };
 
   const refreshUser = async () => {
     try {
+      setLoading(true);
+      
       const { user: userData } = await getCurrentUser();
       
-      if (userData && isMountedRef.current) {
-        userCacheRef.current = userData;
+      if (userData) {
         setUser(userData);
       }
-    } catch {
+    } catch (err) {
       // Silent error
+    } finally {
+      setLoading(false);
     }
   };
 

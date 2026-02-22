@@ -19,14 +19,7 @@ import { Platform } from 'react-native';
 import * as SystemUI from 'expo-system-ui';
 
 /**
- * ✅ ROOT LAYOUT v450.0 - OPTIMIZED NAVIGATION & LAZY LOADING
- * 
- * CRITICAL OPTIMIZATIONS v450.0:
- * - ✅ LAZY LOADING: All screens load on-demand (lazy: true)
- * - ✅ FREEZE INACTIVE: Inactive screens frozen to save memory (Android)
- * - ✅ OPTIMIZED ANIMATIONS: Faster animations on Android (150ms vs 300ms)
- * - ✅ DEFERRED SYSTEM UI: System UI color set after interactions complete
- * - ✅ RESULT: Instant app startup, smooth navigation, reduced memory usage
+ * ✅ ROOT LAYOUT v12.0 - ANDROID SYSTEM UI FIX
  * 
  * CHANGES v12.0:
  * - ✅ FIXED: Android system navigation bar now uses Barlive corporate blue (#1A73E8)
@@ -41,16 +34,11 @@ import * as SystemUI from 'expo-system-ui';
  */
 
 export default function RootLayout() {
-  // ✅ v450.0: DEFERRED SYSTEM UI - Set after interactions complete
+  // ✅ ANDROID FIX v13.0: Set global system navigation bar color to WHITE (no blue flash)
   useEffect(() => {
     if (Platform.OS === 'android') {
-      // ✅ v450.0: Defer to background to not block initial render
-      const timer = setTimeout(() => {
-        const white = '#FFFFFF'; // White background to prevent blue flash
-        SystemUI.setBackgroundColorAsync(white);
-      }, 100);
-      
-      return () => clearTimeout(timer);
+      const white = '#FFFFFF'; // White background to prevent blue flash
+      SystemUI.setBackgroundColorAsync(white);
     }
   }, []);
 
@@ -72,13 +60,7 @@ export default function RootLayout() {
                                 screenOptions={{
                                   headerShown: false,
                                   contentStyle: { backgroundColor: colors.background },
-                                  // ✅ v450.0: OPTIMIZED NAVIGATION SETTINGS
-                                  animation: Platform.OS === 'android' ? 'fade' : 'default',
-                                  animationDuration: Platform.OS === 'android' ? 150 : 300,
-                                  // ✅ v450.0: LAZY LOADING - Screens load on-demand
-                                  lazy: true,
-                                  // ✅ v450.0: FREEZE INACTIVE SCREENS - Save memory on Android
-                                  freezeOnBlur: Platform.OS === 'android',
+                                  animation: 'default',
                                 }}
                               >
                                 <Stack.Screen name="index" options={{ headerShown: false }} />
