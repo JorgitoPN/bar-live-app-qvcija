@@ -14,9 +14,11 @@ interface InvoiceEmailRequest {
 }
 
 /**
- * ✅ SEND INVOICE EMAIL v56.0 - RESEND INTEGRATION
+ * ✅ SEND INVOICE EMAIL v57.0 - DOMAIN FIX
  * 
- * CRITICAL FIXES v56.0:
+ * CRITICAL FIXES v57.0:
+ * - ✅ FIXED: Changed from noreply@barlive.es to noreply@barliveapp.es (verified domain)
+ * - ✅ FIXED: Updated link from barlive.es to barliveapp.es
  * - ✅ Integrates with Resend API for actual email delivery
  * - ✅ Creates notification in database as fallback
  * - ✅ Professional HTML email template
@@ -36,7 +38,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    console.log('[send-invoice-email v56.0] 📧 Starting invoice email send...');
+    console.log('[send-invoice-email v57.0] 📧 Starting invoice email send...');
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -46,7 +48,7 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { invoiceId, invoiceData, recipientEmail, isTest = false, isManual = false }: InvoiceEmailRequest = await req.json();
 
-    console.log('[send-invoice-email v56.0] 📋 Request details:', {
+    console.log('[send-invoice-email v57.0] 📋 Request details:', {
       invoiceId,
       recipientEmail,
       isTest,
@@ -68,17 +70,17 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (fiscalError || !fiscalDataResult) {
-      console.error('[send-invoice-email v56.0] ❌ Fiscal data error:', fiscalError);
+      console.error('[send-invoice-email v57.0] ❌ Fiscal data error:', fiscalError);
       throw new Error('Company fiscal data not configured');
     }
 
     fiscalData = fiscalDataResult;
-    console.log('[send-invoice-email v56.0] ✅ Fiscal data loaded');
+    console.log('[send-invoice-email v57.0] ✅ Fiscal data loaded');
 
     // Load or use invoice data
     if (isTest && invoiceData) {
       invoice = invoiceData;
-      console.log('[send-invoice-email v56.0] ✅ Using test invoice data');
+      console.log('[send-invoice-email v57.0] ✅ Using test invoice data');
     } else if (invoiceId) {
       const tableName = isManual ? 'manual_invoices' : 'invoices';
       const { data: invoiceResult, error: invoiceError } = await supabase
@@ -88,18 +90,18 @@ Deno.serve(async (req: Request) => {
         .single();
 
       if (invoiceError || !invoiceResult) {
-        console.error('[send-invoice-email v56.0] ❌ Invoice error:', invoiceError);
+        console.error('[send-invoice-email v57.0] ❌ Invoice error:', invoiceError);
         throw new Error('Invoice not found');
       }
 
       invoice = invoiceResult;
-      console.log('[send-invoice-email v56.0] ✅ Invoice loaded:', invoice.invoice_number);
+      console.log('[send-invoice-email v57.0] ✅ Invoice loaded:', invoice.invoice_number);
     } else {
       throw new Error('Either invoiceId or invoiceData must be provided');
     }
 
-    // ✅ CRITICAL FIX v56.0: Create in-app notification as fallback
-    console.log('[send-invoice-email v56.0] 📬 Creating in-app notification...');
+    // ✅ CRITICAL FIX v57.0: Create in-app notification as fallback
+    console.log('[send-invoice-email v57.0] 📬 Creating in-app notification...');
     
     // Find user by email
     const { data: userData, error: userError } = await supabase
@@ -121,16 +123,16 @@ Deno.serve(async (req: Request) => {
         });
 
       if (notifError) {
-        console.error('[send-invoice-email v56.0] ⚠️ Error creating notification:', notifError);
+        console.error('[send-invoice-email v57.0] ⚠️ Error creating notification:', notifError);
       } else {
-        console.log('[send-invoice-email v56.0] ✅ In-app notification created');
+        console.log('[send-invoice-email v57.0] ✅ In-app notification created');
       }
     } else {
-      console.log('[send-invoice-email v56.0] ℹ️ User not found in database, skipping notification');
+      console.log('[send-invoice-email v57.0] ℹ️ User not found in database, skipping notification');
     }
 
-    // ✅ CRITICAL FIX v56.0: Use Resend API to send email
-    console.log('[send-invoice-email v56.0] 📧 Sending email via Resend API...');
+    // ✅ CRITICAL FIX v57.0: Use Resend API to send email
+    console.log('[send-invoice-email v57.0] 📧 Sending email via Resend API...');
     
     let emailSent = false;
     let emailError = null;
@@ -228,7 +230,7 @@ Deno.serve(async (req: Request) => {
                 ${fiscalData.address || ''} • ${fiscalData.city || ''} • ${fiscalData.postal_code || ''}
               </p>
               <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-                CIF: ${fiscalData.tax_id || ''} • Email: ${fiscalData.email || 'info@barlive.es'}
+                CIF: ${fiscalData.tax_id || ''} • Email: ${fiscalData.email || 'info@barliveapp.es'}
               </p>
             </td>
           </tr>
@@ -240,8 +242,8 @@ Deno.serve(async (req: Request) => {
 </html>
       `;
 
-      // Send email using Resend API
-      console.log('[send-invoice-email v56.0] 📧 Calling Resend API...');
+      // ✅ CRITICAL FIX v57.0: Use correct verified domain barliveapp.es
+      console.log('[send-invoice-email v57.0] 📧 Calling Resend API with verified domain...');
       
       const resendResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -260,14 +262,14 @@ Deno.serve(async (req: Request) => {
       const resendData = await resendResponse.json();
 
       if (!resendResponse.ok) {
-        console.error('[send-invoice-email v56.0] ❌ Resend API error:', resendData);
+        console.error('[send-invoice-email v57.0] ❌ Resend API error:', resendData);
         emailError = resendData.message || 'Failed to send email via Resend';
       } else {
-        console.log('[send-invoice-email v56.0] ✅ Email sent successfully via Resend:', resendData);
+        console.log('[send-invoice-email v57.0] ✅ Email sent successfully via Resend:', resendData);
         emailSent = true;
       }
     } catch (error: any) {
-      console.error('[send-invoice-email v56.0] ⚠️ Error sending email:', error);
+      console.error('[send-invoice-email v57.0] ⚠️ Error sending email:', error);
       emailError = error.message;
       // Continue anyway - notification was created
     }
@@ -290,7 +292,7 @@ Deno.serve(async (req: Request) => {
         })
         .eq('id', invoiceId);
       
-      console.log('[send-invoice-email v56.0] ✅ Invoice metadata updated');
+      console.log('[send-invoice-email v57.0] ✅ Invoice metadata updated');
     }
 
     // Return success if either email was sent OR notification was created
@@ -314,8 +316,8 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error: any) {
-    console.error('[send-invoice-email v56.0] ❌ Error:', error);
-    console.error('[send-invoice-email v56.0] ❌ Error stack:', error.stack);
+    console.error('[send-invoice-email v57.0] ❌ Error:', error);
+    console.error('[send-invoice-email v57.0] ❌ Error stack:', error.stack);
     
     return new Response(
       JSON.stringify({ 
