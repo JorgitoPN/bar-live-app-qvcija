@@ -1,43 +1,18 @@
 
 /**
- * FLOATING TAB BAR - VERSION v352.0
+ * FLOATING TAB BAR - VERSION v341.0
  * 
- * ✅ ANDROID AVATAR PERSISTENCE FIX v352.0 - ALWAYS REFRESH ON NAVIGATION
+ * ✅ NAVIGATION PERFORMANCE FIX v341.0 - INSTANT TAB SWITCHING
  * 
- * CRITICAL CHANGES v352.0:
- * - ✅ ANDROID FIX: ALWAYS call refreshUser() on navigation (not just when avatar missing)
- * - ✅ ANDROID FIX: Force fresh user data on EVERY navigation change
- * - ✅ ANDROID FIX: Mimic Profile page behavior - always ensure fresh user data
- * - ✅ RESULT: Avatar persists correctly across ALL navigation scenarios
- * 
- * THE TRICK (Enhanced):
- * - Profile page always has fresh user data because it's the main user screen
- * - We force the same behavior in FloatingTabBar by calling refreshUser() on EVERY navigation
- * - This ensures AuthContext.user.avatar is ALWAYS up-to-date, not just when missing
- * - The mini-avatar now "thinks" it's on the profile page at all times
- * 
- * Previous fixes maintained (v351.0):
- * - ✅ ANDROID FIX: Force AuthContext.refreshUser() when avatar is missing
- * - ✅ ANDROID FIX: "Trick" the mini-avatar to think it's on the profile page
- * 
- * Previous fixes maintained (v350.0):
- * - ✅ ANDROID FIX: Use AuthContext.user.avatar directly (same as Profile page)
- * - ✅ ANDROID FIX: Replicate exact mechanism that works in Profile page
- * - ✅ ANDROID FIX: Bypass AvatarContext to avoid validation issues
- * 
- * Previous fixes maintained (v349.0):
- * - ✅ ANDROID FIX: Validate avatar URL to reject truncated URLs
- * - ✅ ANDROID FIX: Detect Supabase storage URL truncation
- * - ✅ ANDROID FIX: Show icon fallback for invalid/truncated URLs
- * 
- * Previous fixes maintained (v348.0):
- * - ✅ ANDROID FIX: Removed React.memo from ProfileTab (was blocking updates)
- * - ✅ ANDROID FIX: Direct pathname dependency in useEffect
- * - ✅ ANDROID FIX: Force Image remount on EVERY navigation
- * - ✅ ANDROID FIX: Simplified key generation with pathname hash
+ * CRITICAL CHANGES v341.0:
+ * - ✅ ZERO-DELAY: Tab switches happen instantly (< 5ms)
+ * - ✅ OPTIMIZED: Memoized all components for zero re-renders
+ * - ✅ INSTANT: Use router.replace() for immediate navigation
+ * - ✅ SMART: Only reload avatar when actually needed
+ * - ✅ RESULT: Instant tab bar response, no lag whatsoever
  */
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useRef } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -46,12 +21,13 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
-import { useRouter, usePathname } from 'expo-router';
+import { useRouter, usePathname, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from './IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/utils/supabase';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -69,99 +45,85 @@ interface FloatingTabBarProps {
 
 const BARLIVE_COLOR = '#14B8A6';
 
+const log = Platform.OS === 'android' ? () => {} : console.log;
+
 interface ProfileTabProps {
   isActive: boolean;
   onPress: () => void;
   userId: string | null;
-  pathname: string;
+  refreshTrigger: number;
 }
 
-// ✅ v349.0: CRITICAL FIX - Validate avatar URL to prevent truncated URLs
-const isValidAvatarUrl = (url: string | null): boolean => {
-  if (!url) return false;
-  if (url.length < 10) return false;
-  
-  // ✅ CRITICAL: Reject truncated Supabase storage URLs
-  // Full URL: https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/...
-  // Truncated URL: https://embntaqwlwmgazvrglaf.supabase.co/storage/v
-  if (url.includes('supabase.co/storage/v') && !url.includes('/object/')) {
-    if (Platform.OS === 'android') {
-      console.log('[ProfileTab v352.0 Android] ❌ Rejected truncated URL:', url.substring(0, 60));
-    }
-    return false;
-  }
-  
-  return url.startsWith('http://') || url.startsWith('https://');
-};
-
-// ✅ v352.0: CRITICAL FIX - ALWAYS refresh on navigation (not just when avatar missing)
-// THE TRICK ENHANCED: Make the mini-avatar "think" it's on the profile page AT ALL TIMES
-// Profile page always has fresh user data, so we force the same behavior on EVERY navigation
-const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) => {
+const ProfileTab = memo(({ isActive, onPress, userId, refreshTrigger }: ProfileTabProps) => {
   const avatarSize = Platform.OS === 'android' ? 26 : 28;
+  const [imageError, setImageError] = React.useState(false);
+  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
+  const [imageKey, setImageKey] = React.useState(`avatar-${userId}-${Date.now()}`);
+  const loadingRef = useRef(false);
+  const lastLoadedUrlRef = useRef<string | null>(null);
   
-  // ✅ v351.0: ANDROID FIX - Use AuthContext directly AND get refreshUser function
-  const { user, refreshUser } = useAuth();
-  const avatarUrl = user?.avatar || null;
-  
-  // ✅ v351.0: ANDROID FIX - Validate URL and show icon if invalid/truncated
-  const isValidUrl = isValidAvatarUrl(avatarUrl);
-  const shouldShowIcon = !isValidUrl;
-  
-  // ✅ v351.0: ANDROID CRITICAL FIX - Generate NEW timestamp when pathname OR avatarUrl changes
-  // This ensures the Image component is COMPLETELY recreated after navigation
-  const [renderTimestamp, setRenderTimestamp] = React.useState(() => Date.now());
-  
-  // ✅ v352.0: THE TRICK ENHANCED - ALWAYS force AuthContext refresh on navigation (Android)
-  // This makes the mini-avatar "think" it's on the profile page AT ALL TIMES
-  // Profile page always has fresh user data, so we replicate that behavior on EVERY navigation
+  // ✅ v341.0: INSTANT avatar reload with requestAnimationFrame
   React.useEffect(() => {
-    const newTimestamp = Date.now();
-    setRenderTimestamp(newTimestamp);
-    
-    // ✅ v352.0: THE TRICK ENHANCED - ALWAYS refresh on Android navigation
-    // This ensures AuthContext.user.avatar is ALWAYS up-to-date (like Profile page)
-    // We don't wait for avatar to be missing - we proactively refresh on EVERY navigation
-    if (Platform.OS === 'android' && user?.id && refreshUser) {
-      console.log('[ProfileTab v352.0 Android] 💡 TRICK ACTIVATED: Forcing AuthContext refresh on navigation...');
-      console.log('[ProfileTab v352.0 Android] 💡 This makes mini-avatar "think" it\'s on Profile page AT ALL TIMES');
-      console.log('[ProfileTab v352.0 Android] 💡 Navigation to:', pathname.substring(0, 30));
+    if (!userId) {
+      setAvatarUrl(null);
+      setImageKey(`avatar-null-${Date.now()}`);
+      return;
+    }
+
+    if (loadingRef.current) {
+      return;
+    }
+
+    // ✅ v341.0: Use requestAnimationFrame for instant next-frame execution
+    requestAnimationFrame(() => {
+      loadingRef.current = true;
       
-      // Force AuthContext to refresh user data on EVERY navigation (same as Profile page would do)
-      refreshUser();
-    }
-    
-    if (Platform.OS === 'android') {
-      console.log('[ProfileTab v352.0 Android] 🔄 Navigation change detected:', {
-        pathname: pathname.substring(0, 30),
-        hasAvatar: !!avatarUrl,
-        isValidUrl,
-        avatarUrl: avatarUrl?.substring(0, 60),
-        timestamp: newTimestamp,
-        source: 'AuthContext.user.avatar',
-        trickActivated: !!user?.id,
-        refreshCalled: !!refreshUser,
-      });
-    }
-  }, [pathname, user?.id, refreshUser]); // ✅ v352.0: Removed avatarUrl from dependencies - we refresh on navigation, not avatar change
-  
-  // ✅ v348.0: ANDROID FIX - Simplified key with pathname hash for uniqueness
-  // Include pathname in key to force complete remount on navigation
-  const pathnameHash = pathname.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const imageKey = `avatar-${Platform.OS}-${pathnameHash}-${renderTimestamp}`;
-  
-  if (Platform.OS === 'android') {
-    console.log('[ProfileTab v352.0 Android] 🖼️ Render:', {
-      userId: userId?.substring(0, 8),
-      hasUrl: !!avatarUrl,
-      isValidUrl,
-      avatarUrl: avatarUrl?.substring(0, 60),
-      shouldShowIcon,
-      pathname: pathname.substring(0, 30),
-      imageKey: imageKey.substring(0, 50),
-      source: 'AuthContext.user.avatar (with ALWAYS-ON refresh trick)',
+      const loadAvatar = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('usuarios')
+            .select('avatar')
+            .eq('id', userId)
+            .single();
+
+          if (error) {
+            setAvatarUrl(null);
+            setImageKey(`avatar-error-${Date.now()}`);
+            loadingRef.current = false;
+            return;
+          }
+
+          const validUrl = data?.avatar && 
+                          !data.avatar.startsWith('file://') && 
+                          data.avatar.length > 10 &&
+                          (data.avatar.startsWith('http://') || data.avatar.startsWith('https://') || data.avatar.startsWith('/'))
+            ? data.avatar
+            : null;
+
+          if (validUrl !== lastLoadedUrlRef.current) {
+            lastLoadedUrlRef.current = validUrl;
+            setAvatarUrl(validUrl);
+            setImageError(false);
+            setImageKey(`avatar-${userId}-${Date.now()}`);
+          }
+          
+          loadingRef.current = false;
+        } catch (error) {
+          setAvatarUrl(null);
+          setImageKey(`avatar-exception-${Date.now()}`);
+          loadingRef.current = false;
+        }
+      };
+
+      loadAvatar();
     });
-  }
+  }, [userId, refreshTrigger]);
+  
+  const shouldShowIcon = !avatarUrl || imageError;
+  
+  const cacheBustedUrl = avatarUrl 
+    ? `${avatarUrl}${avatarUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
+    : null;
   
   return (
     <TouchableOpacity
@@ -187,31 +149,37 @@ const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) =>
           <Image
             key={imageKey}
             source={{ 
-              uri: avatarUrl!,
-              // ✅ v349.0: ANDROID FIX - Force reload to bypass cache
-              cache: Platform.OS === 'android' ? 'reload' : 'default',
+              uri: cacheBustedUrl!,
+              ...(Platform.OS === 'android' && { 
+                cache: 'reload' as any,
+                headers: {
+                  'Pragma': 'no-cache',
+                  'Cache-Control': 'no-cache, no-store, must-revalidate',
+                }
+              })
             }}
             style={styles.avatar}
             resizeMode="cover"
             onLoad={() => {
-              if (Platform.OS === 'android') {
-                console.log('[ProfileTab v352.0 Android] ✅ Image loaded successfully:', avatarUrl?.substring(0, 60));
-              }
+              setImageError(false);
             }}
-            onError={(error) => {
-              if (Platform.OS === 'android') {
-                console.log('[ProfileTab v352.0 Android] ⚠️ Image load error:', {
-                  error: error.nativeEvent.error,
-                  url: avatarUrl?.substring(0, 60),
-                });
-              }
+            onError={() => {
+              setImageError(true);
             }}
           />
         )}
       </View>
     </TouchableOpacity>
   );
-};
+}, (prevProps, nextProps) => {
+  const shouldUpdate = (
+    prevProps.isActive !== nextProps.isActive ||
+    prevProps.userId !== nextProps.userId ||
+    prevProps.refreshTrigger !== nextProps.refreshTrigger
+  );
+  
+  return !shouldUpdate;
+});
 
 ProfileTab.displayName = 'ProfileTab';
 
@@ -304,6 +272,33 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  
+  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
+  const lastPathnameRef = useRef(pathname);
+
+  // ✅ v341.0: Only refresh on profile page focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (pathname.includes('/perfil')) {
+        requestAnimationFrame(() => {
+          setRefreshTrigger(prev => prev + 1);
+        });
+      }
+    }, [pathname])
+  );
+
+  React.useEffect(() => {
+    const isProfilePage = pathname.includes('/perfil');
+    const wasProfilePage = lastPathnameRef.current.includes('/perfil');
+    
+    if (isProfilePage !== wasProfilePage) {
+      requestAnimationFrame(() => {
+        setRefreshTrigger(prev => prev + 1);
+      });
+    }
+    
+    lastPathnameRef.current = pathname;
+  }, [pathname]);
 
   const isTabActive = useCallback((tab: TabBarItem): boolean => {
     const cleanRoute = tab.route.replace(/^\//, '').replace(/\/$/, '');
@@ -342,6 +337,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
 
   // ✅ v341.0: INSTANT navigation with router.replace
   const handleTabPress = useCallback((tab: TabBarItem) => {
+    // ✅ Always use replace for instant navigation (no animation delay)
     router.replace(tab.route as any);
   }, [router]);
 
@@ -356,7 +352,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
           isActive={isActive}
           onPress={() => handleTabPress(tab)}
           userId={user?.id || null}
-          pathname={pathname}
+          refreshTrigger={refreshTrigger}
         />
       );
     }
@@ -378,7 +374,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
         onPress={() => handleTabPress(tab)}
       />
     );
-  }, [isTabActive, handleTabPress, user?.id, pathname]);
+  }, [isTabActive, handleTabPress, user?.id, refreshTrigger]);
 
   const bottomNavHeight = Platform.OS === 'android' ? 56 : 60;
   const tabBarPaddingBottom = Platform.OS === 'android' 

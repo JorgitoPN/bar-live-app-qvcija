@@ -251,29 +251,11 @@ export const getCurrentUser = async (): Promise<{ user: AuthUser | null; error: 
       return { user: null, error: 'No se pudo obtener el perfil de usuario' };
     }
 
-    // ✅ v349.0: ANDROID FIX - Validate avatar URL to prevent truncated URLs
-    const isValidAvatarUrl = (url: string | null | undefined): boolean => {
-      if (!url) return false;
-      if (url.length < 10) return false;
-      
-      // ✅ CRITICAL: Reject truncated Supabase storage URLs
-      // Full URL: https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/...
-      // Truncated URL: https://embntaqwlwmgazvrglaf.supabase.co/storage/v
-      if (url.includes('supabase.co/storage/v') && !url.includes('/object/')) {
-        console.log('[Auth v349.0] ❌ Rejected truncated avatar URL:', url.substring(0, 60));
-        return false;
-      }
-      
-      return url.startsWith('http://') || url.startsWith('https://');
-    };
-
-    const validAvatar = isValidAvatarUrl(profileData.avatar) ? profileData.avatar : undefined;
-
     const user: AuthUser = {
       id: authUser.id,
       email: authUser.email || '',
       nombre: profileData.nombre || 'Usuario',
-      avatar: validAvatar,
+      avatar: profileData.avatar,
       rol_app: profileData.rol_app || 'cliente',
       provider: profileData.provider || 'barlive',
       ha_visto_mensaje_propietario: profileData.ha_visto_mensaje_propietario || false,
