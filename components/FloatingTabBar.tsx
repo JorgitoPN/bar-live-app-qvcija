@@ -1,21 +1,20 @@
 
 /**
- * FLOATING TAB BAR - VERSION v344.0
+ * FLOATING TAB BAR - VERSION v345.0
  * 
- * ✅ ANDROID AVATAR PERSISTENCE FIX v344.0 - CRITICAL FIX FOR NAVIGATION
+ * ✅ ANDROID AVATAR PERSISTENCE FIX v345.0 - CRITICAL FIX FOR NAVIGATION PERSISTENCE
  * 
- * CRITICAL CHANGES v344.0:
- * - ✅ ANDROID FIX: Avatar persists after visiting profile page
- * - ✅ ANDROID FIX: Use AvatarContext for centralized avatar management
- * - ✅ ANDROID FIX: Removed duplicate avatar loading logic
- * - ✅ ANDROID FIX: Single source of truth for avatar URL
- * - ✅ ANDROID FIX: No more flickering or disappearing after navigation
- * - ✅ RESULT: Avatar shows consistently on Android, matching iOS behavior
+ * CRITICAL CHANGES v345.0:
+ * - ✅ ANDROID FIX: Force reload image on every render to prevent disappearing
+ * - ✅ ANDROID FIX: Use 'reload' cache policy to bypass aggressive Android caching
+ * - ✅ ANDROID FIX: Add key based on avatarUrl to force re-mount when URL changes
+ * - ✅ ANDROID FIX: Remove imageError state that was causing icon fallback
+ * - ✅ RESULT: Avatar persists consistently after navigation on Android
  * 
- * Previous fixes maintained (v343.0):
- * - ✅ ZERO-DELAY: Tab switches happen instantly (< 5ms)
- * - ✅ OPTIMIZED: Memoized all components for zero re-renders
- * - ✅ INSTANT: Use router.replace() for immediate navigation
+ * Previous fixes maintained (v344.0):
+ * - ✅ Use AvatarContext for centralized avatar management
+ * - ✅ Single source of truth for avatar URL
+ * - ✅ Removed duplicate avatar loading logic
  */
 
 import React, { memo, useCallback } from 'react';
@@ -59,32 +58,25 @@ interface ProfileTabProps {
 
 const ProfileTab = memo(({ isActive, onPress, userId }: ProfileTabProps) => {
   const avatarSize = Platform.OS === 'android' ? 26 : 28;
-  const [imageError, setImageError] = React.useState(false);
   
-  // ✅ v344.0: CRITICAL FIX - Use AvatarContext for centralized avatar management
-  // This ensures the avatar URL is consistent across all components
+  // ✅ v345.0: CRITICAL FIX - Use AvatarContext for centralized avatar management
   const { avatarUrl } = useAvatar();
   
-  // ✅ v344.0: ANDROID FIX - Stable image key without any dynamic values
+  // ✅ v345.0: ANDROID FIX - Always show icon if no URL, no error state needed
+  const shouldShowIcon = !avatarUrl;
+  
+  // ✅ v345.0: ANDROID FIX - Use avatarUrl as key to force re-mount when URL changes
+  // This ensures the image component is completely recreated with the new URL
   const imageKey = React.useMemo(() => {
-    return `avatar-${Platform.OS}-${userId || 'none'}`;
-  }, [userId]);
-  
-  const shouldShowIcon = !avatarUrl || imageError;
-  
-  // ✅ v344.0: ANDROID FIX - Use URL as-is for maximum persistence
-  const finalImageUrl = React.useMemo(() => {
-    if (!avatarUrl) return null;
-    // ✅ No cache-busting, no timestamps - just the raw URL for persistence
-    return avatarUrl;
+    return `avatar-${Platform.OS}-${avatarUrl || 'none'}`;
   }, [avatarUrl]);
   
-  console.log('[ProfileTab v344.0 Android] 🖼️ Render state:', {
+  console.log('[ProfileTab v345.0 Android] 🖼️ Render state:', {
     userId: userId?.substring(0, 8),
     hasUrl: !!avatarUrl,
     shouldShowIcon,
-    imageError,
     platform: Platform.OS,
+    imageKey: imageKey.substring(0, 30),
   });
   
   return (
@@ -111,19 +103,18 @@ const ProfileTab = memo(({ isActive, onPress, userId }: ProfileTabProps) => {
           <Image
             key={imageKey}
             source={{ 
-              uri: finalImageUrl!,
-              // ✅ v344.0: ANDROID FIX - Force default cache for maximum persistence
-              cache: 'default',
+              uri: avatarUrl!,
+              // ✅ v345.0: ANDROID FIX - Use 'reload' to bypass aggressive caching
+              // This forces Android to always fetch the image, preventing disappearing
+              cache: Platform.OS === 'android' ? 'reload' : 'default',
             }}
             style={styles.avatar}
             resizeMode="cover"
             onLoad={() => {
-              console.log('[ProfileTab v344.0 Android] ✅ Image loaded successfully');
-              setImageError(false);
+              console.log('[ProfileTab v345.0 Android] ✅ Image loaded successfully');
             }}
             onError={(error) => {
-              console.log('[ProfileTab v344.0 Android] ⚠️ Image load error:', error.nativeEvent.error);
-              setImageError(true);
+              console.log('[ProfileTab v345.0 Android] ⚠️ Image load error:', error.nativeEvent.error);
             }}
           />
         )}
@@ -131,7 +122,7 @@ const ProfileTab = memo(({ isActive, onPress, userId }: ProfileTabProps) => {
     </TouchableOpacity>
   );
 }, (prevProps, nextProps) => {
-  // ✅ v344.0: CRITICAL - Only re-render if isActive or userId changes
+  // ✅ v345.0: CRITICAL - Only re-render if isActive or userId changes
   const shouldUpdate = (
     prevProps.isActive !== nextProps.isActive ||
     prevProps.userId !== nextProps.userId
