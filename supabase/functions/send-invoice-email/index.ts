@@ -209,7 +209,7 @@ Deno.serve(async (req: Request) => {
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="padding: 20px 0;">
-                    <a href="https://barlive.es/gestion/mis-locales" style="display: inline-block; background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%); color: #ffffff; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-size: 16px; font-weight: 600;">
+                    <a href="https://barliveapp.es/gestion/mis-locales" style="display: inline-block; background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%); color: #ffffff; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-size: 16px; font-weight: 600;">
                       Ver Factura
                     </a>
                   </td>
@@ -250,7 +250,7 @@ Deno.serve(async (req: Request) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'BarLive <noreply@barlive.es>',
+          from: 'BarLive <noreply@barliveapp.es>',
           to: [recipientEmail],
           subject: `Factura ${invoice.invoice_number} - BarLive`,
           html: emailHTML,
