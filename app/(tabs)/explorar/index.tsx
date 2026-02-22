@@ -76,51 +76,22 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v429.0 - OVERNIGHT SCHEDULE DETECTION FIXED
+ * ✅ EXPLORAR SCREEN v430.0 - ANDROID LOCATION FIX
  * 
- * CRITICAL FIX v429.0 (2026-02-22):
- * - 🔥 FIXED OVERNIGHT SCHEDULE BUG: Venues that close in early morning now correctly show as CLOSED
- * - 🔥 EXAMPLE: "A do Cuñado" closes Saturday at 01:00 (1:00 AM Sunday morning)
- *   - At Sunday 01:19 AM, it now correctly shows as CLOSED (was showing as OPEN)
- * - 🔥 ROOT CAUSE: Function was checking current day's schedule but not properly handling
- *   the case where we're PAST the closing time of previous day's overnight schedule
- * - 🔥 SOLUTION: Now checks BOTH current day schedule AND previous day's overnight continuation
+ * CRITICAL FIX v430.0 (2026-02-22):
+ * - 🔥 FIXED ANDROID LOCATION PRIORITY: Location now fetched IMMEDIATELY on Android
+ * - 🔥 FIXED DISTANCE DISPLAY: First 20 locals now show correct distance on Android
+ * - 🔥 FIXED SORTING: First 20 locals now sorted by proximity on Android
+ * - 🔥 ROOT CAUSE: Android was using LOW priority deferred location fetch, causing
+ *   initial load to happen WITHOUT user coordinates (p_user_lat/p_user_lng = NULL)
+ * - 🔥 SOLUTION: On Android, location is now fetched with HIGH priority BEFORE initial load
+ * - 🔥 iOS UNCHANGED: iOS continues to use existing flow (works correctly)
  * 
- * CRITICAL FIX v425.0 (2026-02-21):
- * - 🔥 FIXED DAY NAME MAPPING: Database uses "sabado", "miercoles" (no accents)
- * - 🔥 FIXED SCHEDULE DETECTION: Now correctly detects open/closed status
- * - 🔥 FIXED SORTING RULE: Closed locales NEVER appear before open ones
- * - 🔥 VERIFIED: 338 open venues (tier 2) appear before 370 closed venues (tier 5)
- * 
- * CRITICAL FIX v424.0 (2026-02-21):
- * - 🔥 FIXED OVERNIGHT SCHEDULES: Properly detects 23:00-06:00 as open
- * - 🔥 IMPROVED LOGIC: start > end means overnight (open if time >= start OR <= end)
- * 
- * CRITICAL FIX v423.0 (2026-02-21):
- * - 🔥 FIXED FLICKERING: Resolved ambiguous "tipo" column reference in SQL
- * - 🔥 FIXED DATABASE ERROR: Qualified all column names in RPC function
- * - 🔥 FIXED INFINITE LOOP: Added retry limit and better error handling
- * - 🔥 STABILIZED LIST: No more continuous re-renders or blinking
- * 
- * BACKEND RPC: get_sorted_locales_by_proximity v429.0
- * - ✅ 5-tier sorting system working correctly:
- *   1. Destacados Abiertos (< 50km) - Por cercanía
- *   2. Locales Abiertos (estándar) - Por cercanía
- *   3. Sin Información de Horario - Por cercanía
- *   4. Destacados Cerrados (< 50km) - Prioridad en bloque cerrados
- *   5. Locales Cerrados (estándar o > 50km) - Por cercanía
- * 
- * VERIFICATION CHECKLIST:
- * - ✅ Open venues appear FIRST (tier 1-2) - VERIFIED: 338 venues
- * - ✅ Closed venues appear LAST (tier 4-5) - VERIFIED: 370 venues
- * - ✅ No-info venues in middle (tier 3)
- * - ✅ Overnight venues detected correctly (23:00-06:00)
- * - ✅ Early morning closures detected correctly (e.g., closes at 01:00, now 01:19 = CLOSED)
- * - ✅ Featured venues within 50km get priority in their tier
- * - ✅ Featured venues beyond 50km lose priority
- * - ✅ NO FLICKERING - Page loads smoothly
- * - ✅ NO BLINKING - Stable list rendering
- * - ✅ SORTING RULE ENFORCED: Even closed venues at 0.4km appear AFTER open venues at 545km
+ * Previous fixes:
+ * - v429.0: Fixed overnight schedule detection (closes at 01:00, now 01:19 = CLOSED)
+ * - v425.0: Fixed day name mapping (sabado, miercoles without accents)
+ * - v424.0: Fixed overnight schedules (23:00-06:00 detected correctly)
+ * - v423.0: Fixed flickering and infinite loops
  */
 
 // ✅ SKELETON CARD COMPONENT - Extracted to fix React Hooks rules
@@ -240,7 +211,7 @@ export default function ExplorarScreen() {
   
   useEffect(() => {
     if (!mountedRef.current) {
-      console.log('[Explorar v423.0] 🚀 Component mounted - FLICKERING FIXED');
+      console.log('[Explorar v430.0] 🚀 Component mounted - ANDROID LOCATION FIX');
       mountedRef.current = true;
     }
   }, []);
@@ -342,24 +313,28 @@ export default function ExplorarScreen() {
     return lat >= MIN_LAT && lat <= MAX_LAT && lng >= MIN_LNG && lng <= MAX_LNG;
   }, []);
 
-  // ✅ OBTENER UBICACIÓN DEL USUARIO
+  // ✅ CRITICAL FIX v430.0: ANDROID LOCATION FETCH - HIGH PRIORITY
   useEffect(() => {
     let isMounted = true;
     
     if (Platform.OS === 'android') {
-      setLocationReady(true);
+      // ✅ ANDROID: Fetch location IMMEDIATELY with HIGH priority
+      console.log('[Explorar v430.0] 🎯 ANDROID: Fetching location with HIGH priority');
       
-      deferWithPriority(async () => {
+      (async () => {
         try {
           const { status } = await Location.requestForegroundPermissionsAsync();
           
           if (!isMounted) return;
           
           if (status !== 'granted') {
+            console.log('[Explorar v430.0] ⚠️ Location permission denied');
             setLocationError('Permiso de ubicación denegado. Las distancias no estarán disponibles.');
+            setLocationReady(true);
             return;
           }
 
+          console.log('[Explorar v430.0] 📍 Fetching Android location...');
           const location = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Balanced,
           });
@@ -369,27 +344,36 @@ export default function ExplorarScreen() {
           const lat = location.coords.latitude;
           const lng = location.coords.longitude;
           
+          console.log('[Explorar v430.0] ✅ Android location obtained:', { lat, lng });
+          
           if (!isValidSpainCoordinate(lat, lng)) {
+            console.log('[Explorar v430.0] ⚠️ Location outside Spain');
             setLocationError('Ubicación fuera de España. Mostrando todos los locales.');
             setUserLocation(null);
+            setLocationReady(true);
             return;
           }
           
           setUserLocation({ lat, lng });
           setLocationError(null);
+          setLocationReady(true);
+          console.log('[Explorar v430.0] ✅ Android location ready - can now load locales');
           
         } catch (error: any) {
           if (!isMounted) return;
+          console.log('[Explorar v430.0] ❌ Android location error:', error);
           setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
           setUserLocation(null);
+          setLocationReady(true);
         }
-      }, 'LOW');
+      })();
       
       return () => {
         isMounted = false;
       };
     }
     
+    // ✅ iOS: Use existing deferred flow (works correctly)
     const timer = setTimeout(() => {
       (async () => {
         try {
@@ -436,7 +420,7 @@ export default function ExplorarScreen() {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [isValidSpainCoordinate, deferWithPriority]);
+  }, [isValidSpainCoordinate]);
 
   // ✅ MAPEO DE CATEGORÍAS PARA EL BACKEND
   const getCategoryFilterForBackend = useCallback((category: string): string[] | null => {
@@ -458,7 +442,7 @@ export default function ExplorarScreen() {
 
   // ✅ CRITICAL FIX v420.0: Función para sincronizar categoría con FilterContext
   const handleCategoryChange = useCallback((categoryId: string) => {
-    console.log('[Explorar v423.0] 🔄 Category changed to:', categoryId);
+    console.log('[Explorar v430.0] 🔄 Category changed to:', categoryId);
     
     // Update FilterContext to sync with Filtros Avanzados
     if (categoryId === 'todas') {
@@ -488,25 +472,25 @@ export default function ExplorarScreen() {
   const loadLocales = useCallback(async (reset: boolean = false) => {
     // ✅ GUARDIA 1: Verificar si ya está cargando
     if (loadingRef.current) {
-      console.log('[Explorar v423.0] ⏸️ Already loading, skipping...');
+      console.log('[Explorar v430.0] ⏸️ Already loading, skipping...');
       return;
     }
     
     // ✅ GUARDIA 2: Si no es reset y no hay más datos, no cargar
     if (!reset && !hasMore) {
-      console.log('[Explorar v423.0] ⏸️ No more data to load');
+      console.log('[Explorar v430.0] ⏸️ No more data to load');
       return;
     }
     
     // ✅ GUARDIA 3: Verificar que la ubicación esté lista
     if (!locationReady) {
-      console.log('[Explorar v423.0] ⏸️ Location not ready yet');
+      console.log('[Explorar v430.0] ⏸️ Location not ready yet');
       return;
     }
 
     // ✅ GUARDIA 4: Verificar límite de reintentos de error
     if (errorCountRef.current >= MAX_ERROR_RETRIES) {
-      console.log('[Explorar v423.0] ⏸️ Max error retries reached, stopping...');
+      console.log('[Explorar v430.0] ⏸️ Max error retries reached, stopping...');
       return;
     }
 
@@ -533,21 +517,21 @@ export default function ExplorarScreen() {
         p_offset: offset
       };
       
-      console.log('[Explorar v423.0] 📡 Fetching locales with FULL advanced filters...');
-      console.log('[Explorar v423.0] 📍 User location:', userLocation);
-      console.log('[Explorar v423.0] 🏷️ Category filter:', categoryFilter);
-      console.log('[Explorar v423.0] 🔧 Servicios filter:', rpcParams.p_servicios_filter);
-      console.log('[Explorar v423.0] 🎨 Ambiente filter:', rpcParams.p_ambiente_filter);
-      console.log('[Explorar v423.0] 👥 Clientela filter:', rpcParams.p_clientela_filter);
-      console.log('[Explorar v423.0] 🌍 Comunidad filter:', rpcParams.p_comunidad_filter);
-      console.log('[Explorar v423.0] 📍 Provincia filter:', rpcParams.p_provincia_filter);
-      console.log('[Explorar v423.0] 📏 Max distance:', rpcParams.p_max_distance_km);
-      console.log('[Explorar v423.0] 📄 Offset:', offset, 'Limit:', ITEMS_PER_PAGE);
+      console.log('[Explorar v430.0] 📡 Fetching locales with FULL advanced filters...');
+      console.log('[Explorar v430.0] 📍 User location:', userLocation);
+      console.log('[Explorar v430.0] 🏷️ Category filter:', categoryFilter);
+      console.log('[Explorar v430.0] 🔧 Servicios filter:', rpcParams.p_servicios_filter);
+      console.log('[Explorar v430.0] 🎨 Ambiente filter:', rpcParams.p_ambiente_filter);
+      console.log('[Explorar v430.0] 👥 Clientela filter:', rpcParams.p_clientela_filter);
+      console.log('[Explorar v430.0] 🌍 Comunidad filter:', rpcParams.p_comunidad_filter);
+      console.log('[Explorar v430.0] 📍 Provincia filter:', rpcParams.p_provincia_filter);
+      console.log('[Explorar v430.0] 📏 Max distance:', rpcParams.p_max_distance_km);
+      console.log('[Explorar v430.0] 📄 Offset:', offset, 'Limit:', ITEMS_PER_PAGE);
       
       const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity', rpcParams);
 
       if (error) {
-        console.error('[Explorar v423.0] ❌ Error fetching:', error);
+        console.error('[Explorar v430.0] ❌ Error fetching:', error);
         errorCountRef.current += 1;
         
         // Show user-friendly error message
@@ -565,8 +549,8 @@ export default function ExplorarScreen() {
       errorCountRef.current = 0;
 
       if (data && data.length > 0) {
-        console.log('[Explorar v423.0] ✅ Received', data.length, 'locales from backend');
-        console.log('[Explorar v423.0] 🎯 First 5 locales (sorted by tier):', data.slice(0, 5).map((l: any) => ({
+        console.log('[Explorar v430.0] ✅ Received', data.length, 'locales from backend');
+        console.log('[Explorar v430.0] 🎯 First 5 locales (sorted by tier):', data.slice(0, 5).map((l: any) => ({
           nombre: l.nombre,
           tier: l.sorting_tier,
           destacado: l.destacado,
@@ -604,22 +588,22 @@ export default function ExplorarScreen() {
 
         const hasMoreData = data.length >= ITEMS_PER_PAGE;
         setHasMore(hasMoreData);
-        console.log('[Explorar v423.0] 📊 Has more data:', hasMoreData);
+        console.log('[Explorar v430.0] 📊 Has more data:', hasMoreData);
         
       } else {
-        console.log('[Explorar v423.0] 📭 No data received');
+        console.log('[Explorar v430.0] 📭 No data received');
         setHasMore(false);
         if (reset) {
           setAllLocales([]);
         }
       }
     } catch (error: any) {
-      console.error('[Explorar v423.0] ❌ Error loading locales:', error);
+      console.error('[Explorar v430.0] ❌ Error loading locales:', error);
       
       // Only show alert if we haven't reached max retries
       if (errorCountRef.current < MAX_ERROR_RETRIES) {
         // Don't show alert for every error, just log it
-        console.log('[Explorar v423.0] 🔄 Will retry on next attempt...');
+        console.log('[Explorar v430.0] 🔄 Will retry on next attempt...');
       }
     } finally {
       loadingRef.current = false;
@@ -630,7 +614,7 @@ export default function ExplorarScreen() {
   // ✅ CARGA INICIAL: Cuando la ubicación esté lista
   useEffect(() => {
     if (locationReady && allLocales.length === 0 && !isLoading && errorCountRef.current < MAX_ERROR_RETRIES) {
-      console.log('[Explorar v423.0] 🎬 Initial load triggered');
+      console.log('[Explorar v430.0] 🎬 Initial load triggered');
       loadLocales(true);
     }
   }, [locationReady, allLocales.length, isLoading, loadLocales]);
@@ -660,9 +644,9 @@ export default function ExplorarScreen() {
     const filtersChanged = filtersKey !== lastFiltersRef.current;
 
     if (filtersChanged && lastFiltersRef.current !== '') {
-      console.log('[Explorar v423.0] 🔄 Filters changed, resetting...');
-      console.log('[Explorar v423.0] Old key:', lastFiltersRef.current);
-      console.log('[Explorar v423.0] New key:', filtersKey);
+      console.log('[Explorar v430.0] 🔄 Filters changed, resetting...');
+      console.log('[Explorar v430.0] Old key:', lastFiltersRef.current);
+      console.log('[Explorar v430.0] New key:', filtersKey);
       
       lastFiltersRef.current = filtersKey;
       
@@ -709,7 +693,7 @@ export default function ExplorarScreen() {
 
     // ✅ NO CLIENT-SIDE ADVANCED FILTERING - Backend handles it all
     // ✅ NO SORTING HERE - Backend already sorted by 5-tier system
-    console.log('[Explorar v423.0] 📊 Filtered locales (search only):', filtered.length);
+    console.log('[Explorar v430.0] 📊 Filtered locales (search only):', filtered.length);
     
     return filtered;
   }, [allLocales, debouncedQuery]);
@@ -727,7 +711,7 @@ export default function ExplorarScreen() {
       locationReady &&
       errorCountRef.current < MAX_ERROR_RETRIES
     ) {
-      console.log('[Explorar v423.0] 🔄 Auto-loading more (filtered list too small)');
+      console.log('[Explorar v430.0] 🔄 Auto-loading more (filtered list too small)');
       loadLocales(false);
     }
   }, [filteredLocales.length, hasMore, isLoading, allLocales.length, locationReady, loadLocales]);
@@ -738,13 +722,13 @@ export default function ExplorarScreen() {
       return;
     }
 
-    console.log('[Explorar v423.0] 📜 Loading more locales (infinite scroll)');
+    console.log('[Explorar v430.0] 📜 Loading more locales (infinite scroll)');
     loadLocales(false);
   }, [hasMore, isLoading, loadLocales]);
 
   // ✅ REFRESH: Resetear todo y cargar desde cero
   const onRefresh = async () => {
-    console.log('[Explorar v423.0] 🔄 Refreshing...');
+    console.log('[Explorar v430.0] 🔄 Refreshing...');
     setRefreshing(true);
     
     setSearchQuery('');
@@ -775,7 +759,7 @@ export default function ExplorarScreen() {
 
   // ✅ LIMPIAR FILTROS
   const clearFilters = useCallback(() => {
-    console.log('[Explorar v423.0] 🧹 Clearing filters');
+    console.log('[Explorar v430.0] 🧹 Clearing filters');
     setSearchQuery('');
     setDebouncedQuery('');
     
