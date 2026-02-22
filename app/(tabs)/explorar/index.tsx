@@ -37,7 +37,7 @@ import { getEstadoLocal } from '@/utils/timeUtils';
 import { IconSymbol } from '@/components/IconSymbol';
 import LoginPrompt from '@/components/common/LoginPrompt';
 import * as Location from 'expo-location';
-import { calcularDistancia } from '@/utils/locationUtils';
+import { calcularDistancia, getOptimizedUserLocation, getCachedLocation, clearLocationCache } from '@/utils/locationUtils';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCategoryIcon } from '@/utils/categoryIcons';
@@ -313,112 +313,71 @@ export default function ExplorarScreen() {
     return lat >= MIN_LAT && lat <= MAX_LAT && lng >= MIN_LNG && lng <= MAX_LNG;
   }, []);
 
-  // ✅ CRITICAL FIX v430.0: ANDROID LOCATION FETCH - HIGH PRIORITY
+  // ✅ OPTIMIZED v431.0: FAST LOCATION FETCH WITH CACHING
   useEffect(() => {
     let isMounted = true;
     
-    if (Platform.OS === 'android') {
-      // ✅ ANDROID: Fetch location IMMEDIATELY with HIGH priority
-      console.log('[Explorar v430.0] 🎯 ANDROID: Fetching location with HIGH priority');
-      
-      (async () => {
-        try {
-          const { status } = await Location.requestForegroundPermissionsAsync();
+    (async () => {
+      try {
+        console.log('[Explorar v431.0] 🚀 Starting optimized location fetch');
+        
+        // ✅ STEP 1: Check cached location first (instant)
+        const cached = getCachedLocation();
+        if (cached) {
+          console.log('[Explorar v431.0] ⚡ Using cached location (instant)');
           
-          if (!isMounted) return;
-          
-          if (status !== 'granted') {
-            console.log('[Explorar v430.0] ⚠️ Location permission denied');
-            setLocationError('Permiso de ubicación denegado. Las distancias no estarán disponibles.');
-            setLocationReady(true);
+          if (isValidSpainCoordinate(cached.latitude, cached.longitude)) {
+            if (isMounted) {
+              setUserLocation({ lat: cached.latitude, lng: cached.longitude });
+              setLocationError(null);
+              setLocationReady(true);
+            }
             return;
           }
-
-          console.log('[Explorar v430.0] 📍 Fetching Android location...');
-          const location = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          });
-          
-          if (!isMounted) return;
-          
-          const lat = location.coords.latitude;
-          const lng = location.coords.longitude;
-          
-          console.log('[Explorar v430.0] ✅ Android location obtained:', { lat, lng });
-          
-          if (!isValidSpainCoordinate(lat, lng)) {
-            console.log('[Explorar v430.0] ⚠️ Location outside Spain');
-            setLocationError('Ubicación fuera de España. Mostrando todos los locales.');
-            setUserLocation(null);
-            setLocationReady(true);
-            return;
-          }
-          
-          setUserLocation({ lat, lng });
-          setLocationError(null);
-          setLocationReady(true);
-          console.log('[Explorar v430.0] ✅ Android location ready - can now load locales');
-          
-        } catch (error: any) {
-          if (!isMounted) return;
-          console.log('[Explorar v430.0] ❌ Android location error:', error);
+        }
+        
+        // ✅ STEP 2: Fetch with optimized strategy (last known + timeout)
+        const location = await getOptimizedUserLocation();
+        
+        if (!isMounted) return;
+        
+        if (!location) {
+          console.log('[Explorar v431.0] ⚠️ Location not available');
           setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
           setUserLocation(null);
           setLocationReady(true);
+          return;
         }
-      })();
-      
-      return () => {
-        isMounted = false;
-      };
-    }
-    
-    // ✅ iOS: Use existing deferred flow (works correctly)
-    const timer = setTimeout(() => {
-      (async () => {
-        try {
-          const { status } = await Location.requestForegroundPermissionsAsync();
-          
-          if (!isMounted) return;
-          
-          if (status !== 'granted') {
-            setLocationError('Permiso de ubicación denegado. Las distancias no estarán disponibles.');
-            setLocationReady(true);
-            return;
-          }
-
-          const location = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          });
-          
-          if (!isMounted) return;
-          
-          const lat = location.coords.latitude;
-          const lng = location.coords.longitude;
-          
-          if (!isValidSpainCoordinate(lat, lng)) {
-            setLocationError('Ubicación fuera de España. Mostrando todos los locales.');
-            setUserLocation(null);
-            setLocationReady(true);
-            return;
-          }
-          
-          setUserLocation({ lat, lng });
-          setLocationError(null);
-          setLocationReady(true);
-          
-        } catch (error: any) {
-          if (!isMounted) return;
-          setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
+        
+        const lat = location.coords.latitude;
+        const lng = location.coords.longitude;
+        
+        console.log('[Explorar v431.0] ✅ Location obtained:', { lat, lng });
+        
+        if (!isValidSpainCoordinate(lat, lng)) {
+          console.log('[Explorar v431.0] ⚠️ Location outside Spain');
+          setLocationError('Ubicación fuera de España. Mostrando todos los locales.');
           setUserLocation(null);
           setLocationReady(true);
+          return;
         }
-      })();
-    }, 100);
+        
+        setUserLocation({ lat, lng });
+        setLocationError(null);
+        setLocationReady(true);
+        console.log('[Explorar v431.0] ✅ Location ready - can now load locales');
+        
+      } catch (error: any) {
+        if (!isMounted) return;
+        console.error('[Explorar v431.0] ❌ Location error:', error);
+        setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
+        setUserLocation(null);
+        setLocationReady(true);
+      }
+    })();
     
     return () => {
       isMounted = false;
-      clearTimeout(timer);
     };
   }, [isValidSpainCoordinate]);
 
@@ -728,8 +687,12 @@ export default function ExplorarScreen() {
 
   // ✅ REFRESH: Resetear todo y cargar desde cero
   const onRefresh = async () => {
-    console.log('[Explorar v430.0] 🔄 Refreshing...');
+    console.log('[Explorar v431.0] 🔄 Refreshing...');
     setRefreshing(true);
+    
+    // ✅ Clear location cache to force fresh location fetch
+    clearLocationCache();
+    console.log('[Explorar v431.0] 🧹 Location cache cleared - will fetch fresh location');
     
     setSearchQuery('');
     setDebouncedQuery('');
@@ -752,6 +715,13 @@ export default function ExplorarScreen() {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       savedScrollPosition.current = 0;
     }, 100);
+    
+    // ✅ Fetch fresh location before loading locales
+    const location = await getOptimizedUserLocation();
+    if (location && isValidSpainCoordinate(location.coords.latitude, location.coords.longitude)) {
+      setUserLocation({ lat: location.coords.latitude, lng: location.coords.longitude });
+      console.log('[Explorar v431.0] ✅ Fresh location obtained on refresh');
+    }
     
     await loadLocales(true);
     setRefreshing(false);

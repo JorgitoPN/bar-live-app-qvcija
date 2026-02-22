@@ -451,35 +451,34 @@ export default function DetalleLocalScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[DetalleLocal v336.0] 🔍 Requesting location permissions...');
+        console.log('[DetalleLocal v337.0] 🚀 Starting optimized location fetch');
         
-        const isAvailable = await Location.hasServicesEnabledAsync();
-        if (!isAvailable) {
-          console.log('[DetalleLocal v336.0] ⚠️ Location services are disabled');
+        // ✅ STEP 1: Check cached location first (instant)
+        const cached = getCachedLocation();
+        if (cached) {
+          console.log('[DetalleLocal v337.0] ⚡ Using cached location (instant)');
+          setUserLocation({
+            latitude: cached.latitude,
+            longitude: cached.longitude,
+          });
           return;
         }
-
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          console.log('[DetalleLocal v336.0] ⚠️ Location permission denied');
-          return;
+        
+        // ✅ STEP 2: Fetch with optimized strategy
+        const location = await getOptimizedUserLocation();
+        
+        if (location) {
+          console.log('[DetalleLocal v337.0] ✅ Location obtained');
+          setUserLocation({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+        } else {
+          console.log('[DetalleLocal v337.0] ⚠️ Location not available');
+          setUserLocation(null);
         }
-
-        console.log('[DetalleLocal v336.0] ✅ Location permission granted, getting position...');
-        
-        const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-          timeInterval: 5000,
-          distanceInterval: 0,
-        });
-        
-        setUserLocation({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        });
-        console.log('[DetalleLocal v336.0] 📍 User location obtained');
       } catch (error: any) {
-        console.error('[DetalleLocal v336.0] ❌ Error getting location:', error?.message);
+        console.error('[DetalleLocal v337.0] ❌ Error getting location:', error?.message);
         setUserLocation(null);
       }
     })();
