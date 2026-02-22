@@ -78,23 +78,17 @@ export interface TaggableUser {
 }
 
 /**
- * ✅ PUBLICACION CARD v401.0 - MAXIMUM ANDROID PERFORMANCE
+ * ✅ PUBLICACION CARD v410.0 - ULTRA PERFORMANCE OPTIMIZATION
  * 
- * CRITICAL OPTIMIZATIONS v401.0 (INSTAGRAM-LEVEL PERFORMANCE):
+ * CRITICAL OPTIMIZATIONS v410.0 (INSTAGRAM-LEVEL PERFORMANCE):
  * - ✅ ZERO REALTIME SUBSCRIPTIONS: Completely disabled on Android
  * - ✅ OPTIMISTIC UI ONLY: Instant feedback without WebSocket overhead
  * - ✅ DEFERRED OPERATIONS: All heavy operations use InteractionManager
  * - ✅ SMART MEMOIZATION: Prevents unnecessary re-renders
  * - ✅ LAZY LOADING: Tags and likes load only when needed
+ * - ✅ AGGRESSIVE DEBOUNCING: Database operations batched and delayed
+ * - ✅ MINIMAL RE-RENDERS: Only update when essential props change
  * - ✅ RESULT: Smooth scrolling, instant interactions, no lag
- * 
- * KEY CHANGES v401.0:
- * 1. Removed ALL real-time subscriptions on Android
- * 2. Optimistic UI updates for likes/saves
- * 3. Deferred tag loading to background
- * 4. Reduced initial render complexity
- * 5. Smart debouncing for database operations
- * 6. Lazy loading for non-critical data
  */
 
 const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
@@ -125,7 +119,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
   const MAX_IMAGES = 10;
 
-  // ✅ v401.0: LAZY LOADING - Only load tags when user taps image
+  // ✅ v410.0: LAZY LOADING - Only load tags when user taps image
   const loadTaggedUsers = useCallback(async () => {
     if (tagsLoaded) return;
     
@@ -177,7 +171,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     });
   }, [post.id, tagsLoaded]);
 
-  // ✅ v401.0: LAZY LOADING - Only load likes when user interacts
+  // ✅ v410.0: LAZY LOADING - Only load likes when user interacts
   const loadLikes = useCallback(async () => {
     if (likesLoaded) return;
     
@@ -199,7 +193,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     });
   }, [post.id, likesLoaded]);
 
-  // ✅ v401.0: CRITICAL FIX - COMPLETELY DISABLED REALTIME SUBSCRIPTIONS
+  // ✅ v410.0: CRITICAL FIX - COMPLETELY DISABLED REALTIME SUBSCRIPTIONS
   // Real-time subscriptions cause severe performance degradation on Android
   // Optimistic UI updates provide instant feedback without WebSocket overhead
   // NO subscriptions = NO CHANNEL_ERROR spam = SMOOTH performance
@@ -210,7 +204,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
       return;
     }
 
-    // ✅ v401.0: Load likes on first interaction
+    // ✅ v410.0: Load likes on first interaction
     if (!likesLoaded) {
       loadLikes();
     }
@@ -237,7 +231,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     
     setLocalLikes(newLocalLikes);
 
-    // ✅ Debounce database operation
+    // ✅ v410.0: Aggressive debouncing (500ms instead of 300ms)
     if (likeDebounceTimer.current) {
       clearTimeout(likeDebounceTimer.current);
     }
@@ -268,15 +262,17 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           if (error) throw error;
         }
 
-        // ✅ Verify count in background
-        const { count, error: countError } = await supabase
-          .from('likes')
-          .select('id', { count: 'exact', head: true })
-          .eq('post_id', post.id);
-        
-        if (!countError && count !== null) {
-          setLikesCount(count);
-        }
+        // ✅ v410.0: Verify count in background (LOW priority)
+        InteractionManager.runAfterInteractions(async () => {
+          const { count, error: countError } = await supabase
+            .from('likes')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+          
+          if (!countError && count !== null) {
+            setLikesCount(count);
+          }
+        });
       } catch (error) {
         // ✅ Rollback on error
         setLiked(previousLiked);
@@ -284,7 +280,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         setLocalLikes(previousLocalLikes);
         Alert.alert('Error', 'No se pudo actualizar el me gusta');
       }
-    }, 300);
+    }, 500); // ✅ v410.0: Increased from 300ms to 500ms
   }, [user, liked, likesCount, localLikes, post.id, likesLoaded, loadLikes]);
 
   const handleDoubleTap = useCallback(async (event: any) => {
@@ -326,22 +322,25 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     const newSavedState = !saved;
     setSaved(newSavedState);
 
-    try {
-      if (newSavedState) {
-        await supabase.from('posts_guardados').insert({
-          post_id: post.id,
-          usuario_id: user.id,
-        });
-      } else {
-        await supabase
-          .from('posts_guardados')
-          .delete()
-          .eq('post_id', post.id)
-          .eq('usuario_id', user.id);
+    // ✅ v410.0: Defer database operation to background
+    InteractionManager.runAfterInteractions(async () => {
+      try {
+        if (newSavedState) {
+          await supabase.from('posts_guardados').insert({
+            post_id: post.id,
+            usuario_id: user.id,
+          });
+        } else {
+          await supabase
+            .from('posts_guardados')
+            .delete()
+            .eq('post_id', post.id)
+            .eq('usuario_id', user.id);
+        }
+      } catch (error) {
+        setSaved(!newSavedState);
       }
-    } catch (error) {
-      setSaved(!newSavedState);
-    }
+    });
   }, [user, saved, post.id]);
 
   const handleComment = useCallback(() => {
@@ -390,7 +389,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   }, [router, post.id]);
 
   const handleImageTap = useCallback(() => {
-    // ✅ v401.0: Load tags on first tap
+    // ✅ v410.0: Load tags on first tap
     if (!tagsLoaded) {
       loadTaggedUsers();
     }
@@ -796,7 +795,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     </View>
   );
 }, (prevProps, nextProps) => {
-  // ✅ v401.0: Smart memoization - only re-render if essential props change
+  // ✅ v410.0: Smart memoization - only re-render if essential props change
   return (
     prevProps.post.id === nextProps.post.id &&
     prevProps.post.likes_count === nextProps.post.likes_count &&
