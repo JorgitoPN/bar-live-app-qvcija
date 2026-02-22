@@ -78,21 +78,23 @@ export interface TaggableUser {
 }
 
 /**
- * ✅ PUBLICACION CARD v400.0 - MAXIMUM ANDROID PERFORMANCE
+ * ✅ PUBLICACION CARD v401.0 - MAXIMUM ANDROID PERFORMANCE
  * 
- * CRITICAL OPTIMIZATIONS v400.0 (INSTAGRAM-LEVEL PERFORMANCE):
+ * CRITICAL OPTIMIZATIONS v401.0 (INSTAGRAM-LEVEL PERFORMANCE):
  * - ✅ ZERO REALTIME SUBSCRIPTIONS: Completely disabled on Android
  * - ✅ OPTIMISTIC UI ONLY: Instant feedback without WebSocket overhead
  * - ✅ DEFERRED OPERATIONS: All heavy operations use InteractionManager
  * - ✅ SMART MEMOIZATION: Prevents unnecessary re-renders
+ * - ✅ LAZY LOADING: Tags and likes load only when needed
  * - ✅ RESULT: Smooth scrolling, instant interactions, no lag
  * 
- * KEY CHANGES:
+ * KEY CHANGES v401.0:
  * 1. Removed ALL real-time subscriptions on Android
  * 2. Optimistic UI updates for likes/saves
  * 3. Deferred tag loading to background
  * 4. Reduced initial render complexity
  * 5. Smart debouncing for database operations
+ * 6. Lazy loading for non-critical data
  */
 
 const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
@@ -110,6 +112,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const [showTags, setShowTags] = useState(false);
 
   const [taggedUsers, setTaggedUsers] = useState<TaggableUser[]>([]);
+  const [tagsLoaded, setTagsLoaded] = useState(false);
 
   const [showReportModal, setShowReportModal] = useState(false);
 
@@ -117,12 +120,17 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   const [localLikes, setLocalLikes] = useState<{ id: string; usuario_id: string }[]>([]);
+  const [likesLoaded, setLikesLoaded] = useState(false);
   const likeDebounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   const MAX_IMAGES = 10;
 
-  // ✅ v400.0: Defer tag loading to background
+  // ✅ v401.0: LAZY LOADING - Only load tags when user taps image
   const loadTaggedUsers = useCallback(async () => {
+    if (tagsLoaded) return;
+    
+    setTagsLoaded(true);
+    
     // ✅ Defer to background to not block initial render
     InteractionManager.runAfterInteractions(async () => {
       try {
@@ -131,7 +139,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
           .select(`
             *,
             usuario:usuarios!post_tags_usuario_id_fkey(id, nombre, username, avatar),
-            local:locales(id, nombre, imagen_url)
+            local:locales!post_tags_local_id_fkey(id, nombre, imagen_url)
           `)
           .eq('post_id', post.id)
           .eq('estado', 'aceptado');
@@ -167,14 +175,14 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         // Silent error
       }
     });
-  }, [post.id]);
+  }, [post.id, tagsLoaded]);
 
-  useEffect(() => {
-    loadTaggedUsers();
-  }, [loadTaggedUsers]);
-
-  // ✅ v400.0: Defer initial likes load to background
-  useEffect(() => {
+  // ✅ v401.0: LAZY LOADING - Only load likes when user interacts
+  const loadLikes = useCallback(async () => {
+    if (likesLoaded) return;
+    
+    setLikesLoaded(true);
+    
     InteractionManager.runAfterInteractions(async () => {
       try {
         const { data, error } = await supabase
@@ -189,9 +197,9 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         // Silent error
       }
     });
-  }, [post.id]);
+  }, [post.id, likesLoaded]);
 
-  // ✅ v400.0: CRITICAL FIX - COMPLETELY DISABLED REALTIME SUBSCRIPTIONS
+  // ✅ v401.0: CRITICAL FIX - COMPLETELY DISABLED REALTIME SUBSCRIPTIONS
   // Real-time subscriptions cause severe performance degradation on Android
   // Optimistic UI updates provide instant feedback without WebSocket overhead
   // NO subscriptions = NO CHANNEL_ERROR spam = SMOOTH performance
@@ -200,6 +208,11 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para dar me gusta');
       return;
+    }
+
+    // ✅ v401.0: Load likes on first interaction
+    if (!likesLoaded) {
+      loadLikes();
     }
 
     const newLikedState = !liked;
@@ -272,7 +285,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         Alert.alert('Error', 'No se pudo actualizar el me gusta');
       }
     }, 300);
-  }, [user, liked, likesCount, localLikes, post.id]);
+  }, [user, liked, likesCount, localLikes, post.id, likesLoaded, loadLikes]);
 
   const handleDoubleTap = useCallback(async (event: any) => {
     if (event.nativeEvent.state === State.ACTIVE) {
@@ -377,8 +390,12 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   }, [router, post.id]);
 
   const handleImageTap = useCallback(() => {
+    // ✅ v401.0: Load tags on first tap
+    if (!tagsLoaded) {
+      loadTaggedUsers();
+    }
     setShowTags(!showTags);
-  }, [showTags]);
+  }, [showTags, tagsLoaded, loadTaggedUsers]);
 
   const handleProfilePress = useCallback(() => {
     if (post.tipo === 'local' && post.local_id) {
@@ -661,13 +678,15 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
                     />
                   </Animated.View>
 
-                  <TagDisplay
-                    postId={post.id}
-                    imageIndex={index}
-                    imageWidth={SCREEN_WIDTH}
-                    imageHeight={SCREEN_WIDTH}
-                    visible={showTags && index === currentImageIndex}
-                  />
+                  {showTags && tagsLoaded && (
+                    <TagDisplay
+                      postId={post.id}
+                      imageIndex={index}
+                      imageWidth={SCREEN_WIDTH}
+                      imageHeight={SCREEN_WIDTH}
+                      visible={index === currentImageIndex}
+                    />
+                  )}
                 </View>
               </TapGestureHandler>
             ))}
@@ -732,7 +751,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         <PostLikesAvatars 
           postId={post.id} 
           totalLikes={likesCount}
-          localLikes={localLikes}
+          localLikes={likesLoaded ? localLikes : []}
         />
       )}
 
@@ -777,7 +796,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
     </View>
   );
 }, (prevProps, nextProps) => {
-  // ✅ v400.0: Smart memoization - only re-render if essential props change
+  // ✅ v401.0: Smart memoization - only re-render if essential props change
   return (
     prevProps.post.id === nextProps.post.id &&
     prevProps.post.likes_count === nextProps.post.likes_count &&
