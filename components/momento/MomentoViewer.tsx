@@ -70,7 +70,7 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v294.0 - ANDROID PROFESSIONAL KEYBOARD FIX (EXACT COMMENTSMODAL REPLICATION)
+ * ✅ MOMENTO VIEWER v298.0 - UNIFIED REPORTING SYSTEM (SAME AS POSTS)
  * 
  * GESTURE SYSTEM:
  * 1. TAP (Short Press):
@@ -110,6 +110,13 @@ interface MomentoViewerProps {
  *    - ✅ No need to press twice
  *    - ✅ User can continue typing after sending
  * 
+ * ✅ REPORTING SYSTEM v298.0:
+ *    - ✅ Uses the SAME ReportModal component as posts
+ *    - ✅ Pauses momento when report modal opens
+ *    - ✅ Resumes momento when report modal closes
+ *    - ✅ Consistent UX across all content types
+ *    - ✅ Properly stores reports in content_reports table with momento_id
+ * 
  * TECHNICAL IMPLEMENTATION:
  * - position: 'absolute' with dynamic bottom
  * - bottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom (CRITICAL FIX)
@@ -117,6 +124,7 @@ interface MomentoViewerProps {
  * - No KeyboardAvoidingView (causes issues on Android)
  * - messageInputOverlay (absolute) + messageInputRow (flex layout) pattern
  * - Exact replication of CommentsModal structure
+ * - ReportModal with contentType="momento" and contentId={currentMomento.id}
  */
 
 export default function MomentoViewer({
@@ -584,7 +592,7 @@ export default function MomentoViewer({
       return;
     }
 
-    console.log('[MomentoViewer v297.0] 🚨 Opening report modal, pausing momento');
+    console.log('[MomentoViewer v298.0] 🚨 Opening report modal (same as posts), pausing momento');
     setPaused(true);
     
     if (progressAnimationRef.current) {
@@ -600,7 +608,7 @@ export default function MomentoViewer({
   };
 
   const handleCloseReportModal = () => {
-    console.log('[MomentoViewer v297.0] ❌ Closing report modal, resuming momento');
+    console.log('[MomentoViewer v298.0] ❌ Closing report modal, resuming momento');
     setShowReportModal(false);
     setPaused(false);
   };
