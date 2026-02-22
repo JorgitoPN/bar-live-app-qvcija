@@ -850,12 +850,16 @@ export default function FacturacionScreen() {
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>Facturas Manuales</Text>
             <Text style={styles.infoText}>
-              - Crea facturas personalizadas cuando lo necesites{'\n'}
-              - Los datos de la empresa se toman automáticamente{'\n'}
-              - Solo editas el producto/concepto y el precio{'\n'}
-              - El sistema calcula automáticamente IVA (21%) y total{'\n'}
-              - Puedes enviarlas por email al cliente{'\n'}
-              - Diseño profesional y elegante
+              ✅ Crea facturas personalizadas cuando lo necesites{'\n'}
+              ✅ Datos de empresa tomados automáticamente{'\n'}
+              ✅ Solo editas producto/concepto y precio base{'\n'}
+              ✅ Cálculo automático de IVA según cliente:{'\n'}
+              {'   '}• España: 21% IVA{'\n'}
+              {'   '}• B2B UE: 0% + texto legal inversión{'\n'}
+              {'   '}• Extra-UE: 0% + texto legal exportación{'\n'}
+              ✅ Factura en HTML profesional (sin PDF){'\n'}
+              ✅ Optimizada para imprimir desde email{'\n'}
+              ✅ Datos inmutables al emitir
             </Text>
           </View>
         </View>
@@ -1023,13 +1027,17 @@ export default function FacturacionScreen() {
       <View style={styles.infoCard}>
         <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={24} color={colors.primary} />
         <View style={styles.infoContent}>
-          <Text style={styles.infoTitle}>Sistema de Facturación</Text>
+          <Text style={styles.infoTitle}>Sistema de Facturación Español</Text>
           <Text style={styles.infoText}>
-            - Las facturas automáticas se emiten tras cada compra{'\n'}
-            - Puedes crear facturas manuales cuando lo necesites{'\n'}
-            - Todas incluyen IVA del 21% (España){'\n'}
-            - Puedes enviarlas por email a clientes y gestoría{'\n'}
-            - Diseño profesional y elegante
+            ✅ Cumplimiento normativa fiscal española{'\n'}
+            ✅ Cálculo automático de IVA según cliente:{'\n'}
+            {'   '}• España: 21% IVA{'\n'}
+            {'   '}• B2B UE (con VAT ID): 0% - Inversión Sujeto Pasivo{'\n'}
+            {'   '}• Extracomunitario: 0% - Exportación de servicios{'\n'}
+            ✅ Factura en HTML (email) - optimizada para imprimir{'\n'}
+            ✅ Datos inmutables (snapshot al emitir){'\n'}
+            ✅ Textos legales RGPD incluidos{'\n'}
+            ✅ Sin PDFs - la factura ES el email
           </Text>
         </View>
       </View>

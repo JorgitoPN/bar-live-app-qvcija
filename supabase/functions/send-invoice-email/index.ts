@@ -13,18 +13,469 @@ interface InvoiceEmailRequest {
   isManual?: boolean;
 }
 
+interface TaxCalculation {
+  baseImponible: number;
+  ivaRate: number;
+  ivaCuota: number;
+  total: number;
+  legalText: string;
+  scenario: 'ES' | 'B2B_EU' | 'EXTRA_EU';
+}
+
 /**
- * ✅ SEND INVOICE EMAIL v57.0 - DOMAIN FIX
+ * ✅ SEND INVOICE EMAIL v58.0 - SPANISH FISCAL COMPLIANCE
  * 
- * CRITICAL FIXES v57.0:
- * - ✅ FIXED: Changed from noreply@barlive.es to noreply@barliveapp.es (verified domain)
- * - ✅ FIXED: Updated link from barlive.es to barliveapp.es
- * - ✅ Integrates with Resend API for actual email delivery
- * - ✅ Creates notification in database as fallback
- * - ✅ Professional HTML email template
- * - ✅ Proper error handling and logging
- * - ✅ Works for both test and real invoices
+ * NEW IN v58.0:
+ * - ✅ Spanish fiscal regulations compliance
+ * - ✅ Automatic tax calculation (21% IVA, 0% B2B EU, 0% Extra-EU)
+ * - ✅ Data snapshotting for immutability
+ * - ✅ Professional HTML invoice template (print-optimized)
+ * - ✅ No PDF generation - invoice IS the email
+ * - ✅ Dynamic configuration binding
+ * - ✅ Legal texts for each tax scenario
+ * - ✅ RGPD footer text
  */
+
+// EU country codes for B2B validation
+const EU_COUNTRIES = [
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE'
+];
+
+/**
+ * Calculate Spanish taxes based on client location and VAT ID
+ * Escenario A (España): 21% IVA
+ * Escenario B (B2B UE): 0% IVA + Inversión del Sujeto Pasivo
+ * Escenario C (Extracomunitario): 0% IVA + Exportación de servicios
+ */
+function calculateSpanishTaxes(baseAmount: number, clientData: any): TaxCalculation {
+  const countryCode = (clientData.customer_country || clientData.country_code || 'ES').toUpperCase();
+  const vatId = clientData.customer_tax_id || clientData.vat_id || '';
+  const isEU = EU_COUNTRIES.includes(countryCode);
+  
+  console.log('[calculateSpanishTaxes] Calculating for:', { countryCode, vatId, isEU });
+  
+  // Escenario A: España - 21% IVA
+  if (countryCode === 'ES' || countryCode === 'ESPAÑA') {
+    const ivaRate = 21.0;
+    const ivaCuota = Number((baseAmount * (ivaRate / 100)).toFixed(2));
+    const total = Number((baseAmount + ivaCuota).toFixed(2));
+    
+    return {
+      baseImponible: Number(baseAmount.toFixed(2)),
+      ivaRate,
+      ivaCuota,
+      total,
+      legalText: '',
+      scenario: 'ES',
+    };
+  }
+  
+  // Escenario B: B2B UE - Inversión del Sujeto Pasivo
+  if (isEU && vatId && vatId.trim().length > 0) {
+    return {
+      baseImponible: Number(baseAmount.toFixed(2)),
+      ivaRate: 0,
+      ivaCuota: 0,
+      total: Number(baseAmount.toFixed(2)),
+      legalText: 'Operación sujeta a inversión del sujeto pasivo conforme a la Directiva 2006/112/CE.',
+      scenario: 'B2B_EU',
+    };
+  }
+  
+  // Escenario C: Extracomunitario - Exportación de servicios
+  if (!isEU) {
+    return {
+      baseImponible: Number(baseAmount.toFixed(2)),
+      ivaRate: 0,
+      ivaCuota: 0,
+      total: Number(baseAmount.toFixed(2)),
+      legalText: 'Exportación de servicios exenta de IVA según Art. 21 de la Ley 37/1992.',
+      scenario: 'EXTRA_EU',
+    };
+  }
+  
+  // Default: Apply Spanish VAT (for EU consumers without VAT ID)
+  const ivaRate = 21.0;
+  const ivaCuota = Number((baseAmount * (ivaRate / 100)).toFixed(2));
+  const total = Number((baseAmount + ivaCuota).toFixed(2));
+  
+  return {
+    baseImponible: Number(baseAmount.toFixed(2)),
+    ivaRate,
+    ivaCuota,
+    total,
+    legalText: '',
+    scenario: 'ES',
+  };
+}
+
+/**
+ * Generate professional HTML invoice template
+ * Optimized for email display and printing
+ */
+function generateInvoiceHTML(
+  invoice: any,
+  fiscalData: any,
+  clientSnapshot: any,
+  taxCalc: TaxCalculation
+): string {
+  const invoiceDate = new Date(invoice.issued_at || invoice.created_at).toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+  
+  const items = invoice.items || [{ concept: `Suscripción - Plan ${invoice.plan_id || 'Premium'}`, price: invoice.subtotal }];
+  
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Factura ${invoice.invoice_number}</title>
+  <style>
+    @media print {
+      body { margin: 0; padding: 20px; background: white; }
+      .no-print { display: none !important; }
+      .invoice-container { box-shadow: none !important; border: 1px solid #e5e7eb; }
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f3f4f6;
+      color: #111827;
+      line-height: 1.6;
+    }
+    
+    .invoice-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 3px solid #14B8A6;
+    }
+    
+    .company-info h1 {
+      margin: 0 0 10px 0;
+      font-size: 28px;
+      color: #14B8A6;
+      font-weight: 700;
+    }
+    
+    .company-info p {
+      margin: 4px 0;
+      font-size: 14px;
+      color: #6b7280;
+    }
+    
+    .invoice-title {
+      text-align: right;
+    }
+    
+    .invoice-title h2 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      color: #6b7280;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .invoice-title .invoice-number {
+      font-size: 24px;
+      color: #111827;
+      font-weight: 700;
+    }
+    
+    .invoice-title .invoice-date {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #6b7280;
+    }
+    
+    .parties {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+    
+    .party-section h3 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      color: #14B8A6;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .party-section p {
+      margin: 4px 0;
+      font-size: 14px;
+      color: #374151;
+    }
+    
+    .party-section .party-name {
+      font-weight: 700;
+      font-size: 16px;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+    }
+    
+    thead {
+      background-color: #f9fafb;
+    }
+    
+    th {
+      padding: 12px;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    
+    th:last-child {
+      text-align: right;
+    }
+    
+    td {
+      padding: 12px;
+      font-size: 14px;
+      color: #374151;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    
+    td:last-child {
+      text-align: right;
+      font-weight: 600;
+    }
+    
+    .totals {
+      margin-left: auto;
+      width: 300px;
+      margin-bottom: 30px;
+    }
+    
+    .totals-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    
+    .totals-row.subtotal {
+      color: #6b7280;
+    }
+    
+    .totals-row.tax {
+      color: #6b7280;
+    }
+    
+    .totals-row.total {
+      border-top: 2px solid #14B8A6;
+      margin-top: 8px;
+      padding-top: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #111827;
+    }
+    
+    .totals-row.total .amount {
+      color: #14B8A6;
+      font-size: 24px;
+    }
+    
+    .legal-notice {
+      background-color: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 16px;
+      margin-bottom: 30px;
+      border-radius: 4px;
+    }
+    
+    .legal-notice p {
+      margin: 0;
+      font-size: 13px;
+      color: #92400e;
+      line-height: 1.6;
+    }
+    
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+      text-align: center;
+    }
+    
+    .footer p {
+      margin: 6px 0;
+      font-size: 12px;
+      color: #9ca3af;
+      line-height: 1.5;
+    }
+    
+    .footer .rgpd {
+      margin-top: 16px;
+      font-size: 11px;
+      color: #6b7280;
+      line-height: 1.6;
+    }
+    
+    @media screen and (max-width: 600px) {
+      .invoice-container {
+        padding: 20px;
+      }
+      
+      .header {
+        flex-direction: column;
+        gap: 20px;
+      }
+      
+      .invoice-title {
+        text-align: left;
+      }
+      
+      .parties {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      
+      .totals {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="invoice-container">
+    <!-- Header -->
+    <div class="header">
+      <div class="company-info">
+        <h1>${fiscalData.company_name || 'BarLive'}</h1>
+        <p><strong>NIF:</strong> ${fiscalData.tax_id || ''}</p>
+        <p>${fiscalData.address || ''}</p>
+        <p>${fiscalData.postal_code || ''} ${fiscalData.city || ''}</p>
+        <p>${fiscalData.country || 'España'}</p>
+        ${fiscalData.email ? `<p><strong>Email:</strong> ${fiscalData.email}</p>` : ''}
+        ${fiscalData.phone ? `<p><strong>Tel:</strong> ${fiscalData.phone}</p>` : ''}
+      </div>
+      
+      <div class="invoice-title">
+        <h2>Factura</h2>
+        <div class="invoice-number">${invoice.invoice_number}</div>
+        <div class="invoice-date">Fecha: ${invoiceDate}</div>
+      </div>
+    </div>
+    
+    <!-- Parties -->
+    <div class="parties">
+      <div class="party-section">
+        <h3>Datos del Emisor</h3>
+        <p class="party-name">${fiscalData.company_name || 'BarLive'}</p>
+        <p><strong>NIF:</strong> ${fiscalData.tax_id || ''}</p>
+        <p>${fiscalData.address || ''}</p>
+        <p>${fiscalData.postal_code || ''} ${fiscalData.city || ''}</p>
+      </div>
+      
+      <div class="party-section">
+        <h3>Datos del Receptor</h3>
+        <p class="party-name">${clientSnapshot.customer_name || invoice.customer_name}</p>
+        ${clientSnapshot.customer_tax_id ? `<p><strong>NIF/CIF:</strong> ${clientSnapshot.customer_tax_id}</p>` : ''}
+        ${clientSnapshot.customer_address ? `<p>${clientSnapshot.customer_address}</p>` : ''}
+        ${clientSnapshot.customer_city ? `<p>${clientSnapshot.customer_postal_code || ''} ${clientSnapshot.customer_city}</p>` : ''}
+        ${clientSnapshot.customer_country ? `<p>${clientSnapshot.customer_country}</p>` : ''}
+        <p><strong>Email:</strong> ${clientSnapshot.customer_email || invoice.customer_email}</p>
+      </div>
+    </div>
+    
+    <!-- Items Table -->
+    <table>
+      <thead>
+        <tr>
+          <th>Descripción</th>
+          <th style="width: 100px;">Cantidad</th>
+          <th style="width: 120px;">Precio Unit.</th>
+          <th style="width: 120px;">Base Imponible</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${items.map((item: any) => `
+          <tr>
+            <td>${item.concept || item.description || 'Servicio'}</td>
+            <td>1</td>
+            <td>${Number(item.price || 0).toFixed(2)} €</td>
+            <td>${Number(item.price || 0).toFixed(2)} €</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    
+    <!-- Totals -->
+    <div class="totals">
+      <div class="totals-row subtotal">
+        <span>Base Imponible:</span>
+        <span>${taxCalc.baseImponible.toFixed(2)} €</span>
+      </div>
+      <div class="totals-row tax">
+        <span>IVA (${taxCalc.ivaRate}%):</span>
+        <span>${taxCalc.ivaCuota.toFixed(2)} €</span>
+      </div>
+      <div class="totals-row total">
+        <span>TOTAL:</span>
+        <span class="amount">${taxCalc.total.toFixed(2)} €</span>
+      </div>
+    </div>
+    
+    <!-- Legal Notice (if applicable) -->
+    ${taxCalc.legalText ? `
+      <div class="legal-notice">
+        <p><strong>Nota Legal:</strong> ${taxCalc.legalText}</p>
+      </div>
+    ` : ''}
+    
+    <!-- Footer -->
+    <div class="footer">
+      ${fiscalData.bank_name || fiscalData.iban ? `
+        <p><strong>Datos Bancarios:</strong></p>
+        ${fiscalData.bank_name ? `<p>${fiscalData.bank_name}</p>` : ''}
+        ${fiscalData.iban ? `<p>IBAN: ${fiscalData.iban}</p>` : ''}
+      ` : ''}
+      
+      ${fiscalData.invoice_footer_text ? `
+        <div class="rgpd">
+          <p>${fiscalData.invoice_footer_text}</p>
+        </div>
+      ` : ''}
+      
+      <p style="margin-top: 20px;">Gracias por confiar en ${fiscalData.company_name || 'BarLive'}</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -38,7 +489,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    console.log('[send-invoice-email v57.0] 📧 Starting invoice email send...');
+    console.log('[send-invoice-email v58.0] 📧 Starting invoice email send...');
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -48,7 +499,7 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { invoiceId, invoiceData, recipientEmail, isTest = false, isManual = false }: InvoiceEmailRequest = await req.json();
 
-    console.log('[send-invoice-email v57.0] 📋 Request details:', {
+    console.log('[send-invoice-email v58.0] 📋 Request details:', {
       invoiceId,
       recipientEmail,
       isTest,
@@ -62,25 +513,35 @@ Deno.serve(async (req: Request) => {
 
     let invoice: any;
     let fiscalData: any;
+    let clientSnapshot: any;
 
-    // Load fiscal data
+    // Load fiscal data (real-time configuration)
     const { data: fiscalDataResult, error: fiscalError } = await supabase
       .from('company_fiscal_data')
       .select('*')
       .single();
 
     if (fiscalError || !fiscalDataResult) {
-      console.error('[send-invoice-email v57.0] ❌ Fiscal data error:', fiscalError);
+      console.error('[send-invoice-email v58.0] ❌ Fiscal data error:', fiscalError);
       throw new Error('Company fiscal data not configured');
     }
 
     fiscalData = fiscalDataResult;
-    console.log('[send-invoice-email v57.0] ✅ Fiscal data loaded');
+    console.log('[send-invoice-email v58.0] ✅ Fiscal data loaded');
 
     // Load or use invoice data
     if (isTest && invoiceData) {
       invoice = invoiceData;
-      console.log('[send-invoice-email v57.0] ✅ Using test invoice data');
+      clientSnapshot = {
+        customer_name: invoice.customer_name,
+        customer_email: invoice.customer_email,
+        customer_tax_id: invoice.customer_tax_id,
+        customer_address: invoice.customer_address,
+        customer_city: invoice.customer_city,
+        customer_postal_code: invoice.customer_postal_code,
+        customer_country: invoice.customer_country || 'España',
+      };
+      console.log('[send-invoice-email v58.0] ✅ Using test invoice data');
     } else if (invoiceId) {
       const tableName = isManual ? 'manual_invoices' : 'invoices';
       const { data: invoiceResult, error: invoiceError } = await supabase
@@ -90,18 +551,84 @@ Deno.serve(async (req: Request) => {
         .single();
 
       if (invoiceError || !invoiceResult) {
-        console.error('[send-invoice-email v57.0] ❌ Invoice error:', invoiceError);
+        console.error('[send-invoice-email v58.0] ❌ Invoice error:', invoiceError);
         throw new Error('Invoice not found');
       }
 
       invoice = invoiceResult;
-      console.log('[send-invoice-email v57.0] ✅ Invoice loaded:', invoice.invoice_number);
+      console.log('[send-invoice-email v58.0] ✅ Invoice loaded:', invoice.invoice_number);
+      
+      // Check if snapshot already exists (immutability)
+      if (invoice.company_snapshot && invoice.client_snapshot) {
+        console.log('[send-invoice-email v58.0] ✅ Using existing snapshots (immutable data)');
+        fiscalData = invoice.company_snapshot;
+        clientSnapshot = invoice.client_snapshot;
+      } else {
+        // Create snapshots for immutability
+        console.log('[send-invoice-email v58.0] 📸 Creating data snapshots...');
+        
+        // Client snapshot from invoice data
+        clientSnapshot = {
+          customer_name: invoice.customer_name,
+          customer_email: invoice.customer_email,
+          customer_tax_id: invoice.customer_tax_id,
+          customer_address: invoice.customer_address,
+          customer_city: invoice.customer_city,
+          customer_postal_code: invoice.customer_postal_code,
+          customer_country: invoice.customer_country || 'España',
+        };
+        
+        // Company snapshot (current fiscal data)
+        const companySnapshot = {
+          company_name: fiscalData.company_name,
+          tax_id: fiscalData.tax_id,
+          address: fiscalData.address,
+          city: fiscalData.city,
+          postal_code: fiscalData.postal_code,
+          country: fiscalData.country,
+          phone: fiscalData.phone,
+          email: fiscalData.email,
+          website: fiscalData.website,
+          logo_url: fiscalData.logo_url,
+          bank_name: fiscalData.bank_name,
+          iban: fiscalData.iban,
+          swift_bic: fiscalData.swift_bic,
+          invoice_footer_text: fiscalData.invoice_footer_text,
+        };
+        
+        // Calculate Spanish taxes based on client data
+        const baseAmount = invoice.subtotal || invoice.total / 1.21; // Fallback calculation
+        const taxCalc = calculateSpanishTaxes(baseAmount, clientSnapshot);
+        
+        console.log('[send-invoice-email v58.0] 💰 Tax calculation:', taxCalc);
+        
+        // Save snapshots to database (immutability)
+        await supabase
+          .from(tableName)
+          .update({
+            company_snapshot: companySnapshot,
+            client_snapshot: clientSnapshot,
+            subtotal: taxCalc.baseImponible,
+            tax_rate: taxCalc.ivaRate,
+            tax_amount: taxCalc.ivaCuota,
+            total: taxCalc.total,
+            metadata: {
+              ...invoice.metadata,
+              tax_scenario: taxCalc.scenario,
+              tax_legal_text: taxCalc.legalText,
+              snapshot_created_at: new Date().toISOString(),
+            }
+          })
+          .eq('id', invoiceId);
+        
+        console.log('[send-invoice-email v58.0] ✅ Snapshots saved to database');
+      }
     } else {
       throw new Error('Either invoiceId or invoiceData must be provided');
     }
 
-    // ✅ CRITICAL FIX v57.0: Create in-app notification as fallback
-    console.log('[send-invoice-email v57.0] 📬 Creating in-app notification...');
+    // ✅ Create in-app notification as fallback
+    console.log('[send-invoice-email v58.0] 📬 Creating in-app notification...');
     
     // Find user by email
     const { data: userData, error: userError } = await supabase
@@ -118,132 +645,39 @@ Deno.serve(async (req: Request) => {
           usuario_id: userData.id,
           tipo: 'sistema',
           titulo: `📄 Nueva Factura: ${invoice.invoice_number}`,
-          mensaje: `Se ha generado una nueva factura por ${invoice.total}€. Puedes descargarla desde tu panel de gestión.`,
+          mensaje: `Se ha generado una nueva factura por ${taxCalc.total.toFixed(2)}€. Puedes consultarla en tu email.`,
           imagen_url: null,
         });
 
       if (notifError) {
-        console.error('[send-invoice-email v57.0] ⚠️ Error creating notification:', notifError);
+        console.error('[send-invoice-email v58.0] ⚠️ Error creating notification:', notifError);
       } else {
-        console.log('[send-invoice-email v57.0] ✅ In-app notification created');
+        console.log('[send-invoice-email v58.0] ✅ In-app notification created');
       }
     } else {
-      console.log('[send-invoice-email v57.0] ℹ️ User not found in database, skipping notification');
+      console.log('[send-invoice-email v58.0] ℹ️ User not found in database, skipping notification');
     }
 
-    // ✅ CRITICAL FIX v57.0: Use Resend API to send email
-    console.log('[send-invoice-email v57.0] 📧 Sending email via Resend API...');
+    // Calculate taxes if not already calculated
+    const baseAmount = invoice.subtotal || invoice.total / 1.21;
+    const taxCalc = calculateSpanishTaxes(baseAmount, clientSnapshot);
+    
+    console.log('[send-invoice-email v58.0] 💰 Final tax calculation:', taxCalc);
+    
+    // ✅ Generate professional HTML invoice (the invoice IS the email)
+    console.log('[send-invoice-email v58.0] 📧 Generating HTML invoice...');
+    const emailHTML = generateInvoiceHTML(invoice, fiscalData, clientSnapshot, taxCalc);
+    
+    // ✅ Send email via Resend API
+    console.log('[send-invoice-email v58.0] 📧 Sending email via Resend API...');
     
     let emailSent = false;
     let emailError = null;
     
     try {
-      // Generate email HTML
-      const emailHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Factura ${invoice.invoice_number}</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-          <!-- Header -->
-          <tr>
-            <td style="background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%); padding: 40px 30px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">BarLive</h1>
-              <p style="margin: 10px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 16px;">Factura Generada</p>
-            </td>
-          </tr>
-          
-          <!-- Content -->
-          <tr>
-            <td style="padding: 40px 30px;">
-              <h2 style="margin: 0 0 20px 0; color: #111827; font-size: 24px; font-weight: 600;">Factura ${invoice.invoice_number}</h2>
-              
-              <p style="margin: 0 0 20px 0; color: #6b7280; font-size: 16px; line-height: 1.6;">
-                Hola ${invoice.customer_name || 'Cliente'},
-              </p>
-              
-              <p style="margin: 0 0 30px 0; color: #6b7280; font-size: 16px; line-height: 1.6;">
-                Se ha generado una nueva factura para tu suscripción en BarLive.
-              </p>
-              
-              <!-- Invoice Details -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
-                <tr>
-                  <td style="padding: 10px 0;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="color: #6b7280; font-size: 14px; padding: 8px 0;">Número de Factura:</td>
-                        <td align="right" style="color: #111827; font-size: 14px; font-weight: 600; padding: 8px 0;">${invoice.invoice_number}</td>
-                      </tr>
-                      <tr>
-                        <td style="color: #6b7280; font-size: 14px; padding: 8px 0;">Fecha de Emisión:</td>
-                        <td align="right" style="color: #111827; font-size: 14px; font-weight: 600; padding: 8px 0;">${new Date(invoice.issued_at || invoice.created_at).toLocaleDateString('es-ES')}</td>
-                      </tr>
-                      <tr>
-                        <td style="color: #6b7280; font-size: 14px; padding: 8px 0;">Subtotal:</td>
-                        <td align="right" style="color: #111827; font-size: 14px; font-weight: 600; padding: 8px 0;">${Number(invoice.subtotal).toFixed(2)}€</td>
-                      </tr>
-                      <tr>
-                        <td style="color: #6b7280; font-size: 14px; padding: 8px 0;">IVA (${invoice.tax_rate}%):</td>
-                        <td align="right" style="color: #111827; font-size: 14px; font-weight: 600; padding: 8px 0;">${Number(invoice.tax_amount).toFixed(2)}€</td>
-                      </tr>
-                      <tr style="border-top: 2px solid #e5e7eb;">
-                        <td style="color: #111827; font-size: 18px; font-weight: 700; padding: 15px 0 0 0;">Total:</td>
-                        <td align="right" style="color: #14B8A6; font-size: 24px; font-weight: 700; padding: 15px 0 0 0;">${Number(invoice.total).toFixed(2)}€</td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-              
-              <p style="margin: 0 0 20px 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                Puedes descargar tu factura desde el panel de gestión de BarLive o contactar con nuestro equipo de soporte si tienes alguna pregunta.
-              </p>
-              
-              <!-- CTA Button -->
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td align="center" style="padding: 20px 0;">
-                    <a href="https://barliveapp.es/gestion/mis-locales" style="display: inline-block; background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%); color: #ffffff; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-size: 16px; font-weight: 600;">
-                      Ver Factura
-                    </a>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          
-          <!-- Footer -->
-          <tr>
-            <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
-              <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;">
-                ${fiscalData.company_name || 'BarLive'}
-              </p>
-              <p style="margin: 0 0 10px 0; color: #9ca3af; font-size: 12px;">
-                ${fiscalData.address || ''} • ${fiscalData.city || ''} • ${fiscalData.postal_code || ''}
-              </p>
-              <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-                CIF: ${fiscalData.tax_id || ''} • Email: ${fiscalData.email || 'info@barliveapp.es'}
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-      `;
 
-      // ✅ CRITICAL FIX v57.0: Use correct verified domain barliveapp.es
-      console.log('[send-invoice-email v57.0] 📧 Calling Resend API with verified domain...');
+      // ✅ Use correct verified domain barliveapp.es
+      console.log('[send-invoice-email v58.0] 📧 Calling Resend API with verified domain...');
       
       const resendResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -252,9 +686,9 @@ Deno.serve(async (req: Request) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'BarLive <noreply@barliveapp.es>',
+          from: `${fiscalData.company_name || 'BarLive'} <noreply@barliveapp.es>`,
           to: [recipientEmail],
-          subject: `Factura ${invoice.invoice_number} - BarLive`,
+          subject: `Factura ${invoice.invoice_number} - ${fiscalData.company_name || 'BarLive'}`,
           html: emailHTML,
         }),
       });
@@ -262,14 +696,14 @@ Deno.serve(async (req: Request) => {
       const resendData = await resendResponse.json();
 
       if (!resendResponse.ok) {
-        console.error('[send-invoice-email v57.0] ❌ Resend API error:', resendData);
+        console.error('[send-invoice-email v58.0] ❌ Resend API error:', resendData);
         emailError = resendData.message || 'Failed to send email via Resend';
       } else {
-        console.log('[send-invoice-email v57.0] ✅ Email sent successfully via Resend:', resendData);
+        console.log('[send-invoice-email v58.0] ✅ Email sent successfully via Resend:', resendData);
         emailSent = true;
       }
     } catch (error: any) {
-      console.error('[send-invoice-email v57.0] ⚠️ Error sending email:', error);
+      console.error('[send-invoice-email v58.0] ⚠️ Error sending email:', error);
       emailError = error.message;
       // Continue anyway - notification was created
     }
@@ -284,15 +718,17 @@ Deno.serve(async (req: Request) => {
           metadata: {
             ...invoice.metadata,
             email_sent_at: new Date().toISOString(),
-            email_method: emailSent ? 'resend' : 'notification_only',
+            email_method: emailSent ? 'resend_html' : 'notification_only',
             email_sent: emailSent,
             notification_created: true,
             email_error: emailError || null,
+            tax_scenario: taxCalc.scenario,
+            tax_legal_text: taxCalc.legalText,
           }
         })
         .eq('id', invoiceId);
       
-      console.log('[send-invoice-email v57.0] ✅ Invoice metadata updated');
+      console.log('[send-invoice-email v58.0] ✅ Invoice metadata updated');
     }
 
     // Return success if either email was sent OR notification was created
@@ -316,8 +752,8 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error: any) {
-    console.error('[send-invoice-email v57.0] ❌ Error:', error);
-    console.error('[send-invoice-email v57.0] ❌ Error stack:', error.stack);
+    console.error('[send-invoice-email v58.0] ❌ Error:', error);
+    console.error('[send-invoice-email v58.0] ❌ Error stack:', error.stack);
     
     return new Response(
       JSON.stringify({ 
