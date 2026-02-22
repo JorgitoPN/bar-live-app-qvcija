@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "BarLive",
@@ -16,7 +17,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.Natively",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "BarLive necesita acceso a tu ubicación para mostrarte locales cercanos y eventos relevantes en tu zona, mejorando tu experiencia al descubrir lugares de interés.",
+        "NSCameraUsageDescription": "BarLive necesita acceso a tu cámara para que puedas tomar fotos y videos, enriqueciendo tus publicaciones y perfil en la comunidad.",
+        "NSMicrophoneUsageDescription": "BarLive necesita acceso a tu micrófono para grabar audio en videos, permitiéndote compartir experiencias más completas con otros usuarios."
       }
     },
     "android": {
@@ -26,7 +30,15 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.barlive.app",
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/images/final_quest_240x240.png",
@@ -35,9 +47,30 @@
     "plugins": [
       "expo-font",
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/natively-dark.png",
+          "color": "#000000",
+          "mode": "production"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "BarLive necesita acceso a tu ubicación para mostrarte locales cercanos y eventos relevantes en tu zona, mejorando tu experiencia al descubrir lugares de interés."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "BarLive necesita acceso a tu cámara para que puedas tomar fotos y videos, enriqueciendo tus publicaciones y perfil en la comunidad.",
+          "cameraPermission": "BarLive necesita acceso a tu cámara para que puedas tomar fotos y videos, enriqueciendo tus publicaciones y perfil en la comunidad."
+        }
+      ]
     ],
-    "scheme": "BarLive",
+    "scheme": "barlive",
     "experiments": {
       "typedRoutes": true
     },
