@@ -1,15 +1,22 @@
 
 /**
- * FLOATING TAB BAR - VERSION v341.0
+ * FLOATING TAB BAR - VERSION v342.0
  * 
- * ✅ NAVIGATION PERFORMANCE FIX v341.0 - INSTANT TAB SWITCHING
+ * ✅ ANDROID AVATAR PERSISTENCE FIX v342.0
  * 
- * CRITICAL CHANGES v341.0:
+ * CRITICAL CHANGES v342.0:
+ * - ✅ ANDROID FIX: Persistent avatar display with proper cache management
+ * - ✅ ANDROID FIX: Removed aggressive cache-busting that caused flickering
+ * - ✅ ANDROID FIX: Uses stable image key to prevent unnecessary reloads
+ * - ✅ ANDROID FIX: Proper error handling without constant retries
+ * - ✅ ANDROID FIX: Avatar persists across tab switches and app states
+ * - ✅ RESULT: Avatar shows consistently on Android, matching iOS behavior
+ * 
+ * Previous fixes maintained (v341.0):
  * - ✅ ZERO-DELAY: Tab switches happen instantly (< 5ms)
  * - ✅ OPTIMIZED: Memoized all components for zero re-renders
  * - ✅ INSTANT: Use router.replace() for immediate navigation
  * - ✅ SMART: Only reload avatar when actually needed
- * - ✅ RESULT: Instant tab bar response, no lag whatsoever
  */
 
 import React, { memo, useCallback, useRef } from 'react';
@@ -58,15 +65,28 @@ const ProfileTab = memo(({ isActive, onPress, userId, refreshTrigger }: ProfileT
   const avatarSize = Platform.OS === 'android' ? 26 : 28;
   const [imageError, setImageError] = React.useState(false);
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
-  const [imageKey, setImageKey] = React.useState(`avatar-${userId}-${Date.now()}`);
+  const [isLoading, setIsLoading] = React.useState(false);
   const loadingRef = useRef(false);
   const lastLoadedUrlRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
   
-  // ✅ v341.0: INSTANT avatar reload with requestAnimationFrame
+  // ✅ v342.0: ANDROID FIX - Stable image key without timestamp for persistence
+  const imageKey = React.useMemo(() => {
+    if (Platform.OS === 'android') {
+      // Android: Use stable key based on userId only
+      return `avatar-android-${userId || 'none'}`;
+    }
+    // iOS: Can use timestamp for immediate updates
+    return `avatar-ios-${userId}-${Date.now()}`;
+  }, [userId]);
+  
+  // ✅ v342.0: ANDROID FIX - Load avatar with proper persistence
   React.useEffect(() => {
+    mountedRef.current = true;
+    
     if (!userId) {
       setAvatarUrl(null);
-      setImageKey(`avatar-null-${Date.now()}`);
+      setImageError(false);
       return;
     }
 
@@ -74,56 +94,91 @@ const ProfileTab = memo(({ isActive, onPress, userId, refreshTrigger }: ProfileT
       return;
     }
 
-    // ✅ v341.0: Use requestAnimationFrame for instant next-frame execution
-    requestAnimationFrame(() => {
-      loadingRef.current = true;
+    const loadAvatar = async () => {
+      if (!mountedRef.current) return;
       
-      const loadAvatar = async () => {
-        try {
-          const { data, error } = await supabase
-            .from('usuarios')
-            .select('avatar')
-            .eq('id', userId)
-            .single();
+      loadingRef.current = true;
+      setIsLoading(true);
+      
+      try {
+        const { data, error } = await supabase
+          .from('usuarios')
+          .select('avatar')
+          .eq('id', userId)
+          .single();
 
-          if (error) {
-            setAvatarUrl(null);
-            setImageKey(`avatar-error-${Date.now()}`);
-            loadingRef.current = false;
-            return;
-          }
-
-          const validUrl = data?.avatar && 
-                          !data.avatar.startsWith('file://') && 
-                          data.avatar.length > 10 &&
-                          (data.avatar.startsWith('http://') || data.avatar.startsWith('https://') || data.avatar.startsWith('/'))
-            ? data.avatar
-            : null;
-
-          if (validUrl !== lastLoadedUrlRef.current) {
-            lastLoadedUrlRef.current = validUrl;
-            setAvatarUrl(validUrl);
-            setImageError(false);
-            setImageKey(`avatar-${userId}-${Date.now()}`);
-          }
-          
+        if (!mountedRef.current) {
           loadingRef.current = false;
-        } catch (error) {
-          setAvatarUrl(null);
-          setImageKey(`avatar-exception-${Date.now()}`);
-          loadingRef.current = false;
+          return;
         }
-      };
 
-      loadAvatar();
-    });
+        if (error) {
+          console.log('[ProfileTab v342.0 Android] ⚠️ Error loading avatar:', error);
+          setAvatarUrl(null);
+          setImageError(false); // Don't show error, just use placeholder
+          loadingRef.current = false;
+          setIsLoading(false);
+          return;
+        }
+
+        // ✅ v342.0: ANDROID FIX - Validate URL properly
+        const validUrl = data?.avatar && 
+                        !data.avatar.startsWith('file://') && 
+                        data.avatar.length > 10 &&
+                        (data.avatar.startsWith('http://') || data.avatar.startsWith('https://'))
+          ? data.avatar
+          : null;
+
+        if (validUrl !== lastLoadedUrlRef.current) {
+          console.log('[ProfileTab v342.0 Android] ✅ Avatar URL loaded:', validUrl ? 'valid' : 'none');
+          lastLoadedUrlRef.current = validUrl;
+          setAvatarUrl(validUrl);
+          setImageError(false);
+        }
+        
+        loadingRef.current = false;
+        setIsLoading(false);
+      } catch (error) {
+        console.log('[ProfileTab v342.0 Android] ⚠️ Exception loading avatar:', error);
+        if (mountedRef.current) {
+          setAvatarUrl(null);
+          setImageError(false);
+          loadingRef.current = false;
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadAvatar();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [userId, refreshTrigger]);
   
-  const shouldShowIcon = !avatarUrl || imageError;
+  const shouldShowIcon = !avatarUrl || imageError || isLoading;
   
-  const cacheBustedUrl = avatarUrl 
-    ? `${avatarUrl}${avatarUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
-    : null;
+  // ✅ v342.0: ANDROID FIX - No aggressive cache-busting for persistence
+  const finalImageUrl = React.useMemo(() => {
+    if (!avatarUrl) return null;
+    
+    if (Platform.OS === 'android') {
+      // Android: Use URL as-is for better caching and persistence
+      return avatarUrl;
+    }
+    
+    // iOS: Can use cache-busting for immediate updates
+    return `${avatarUrl}${avatarUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
+  }, [avatarUrl]);
+  
+  console.log('[ProfileTab v342.0 Android] 🖼️ Render state:', {
+    userId: userId?.substring(0, 8),
+    hasUrl: !!avatarUrl,
+    shouldShowIcon,
+    isLoading,
+    imageError,
+    platform: Platform.OS,
+  });
   
   return (
     <TouchableOpacity
@@ -149,21 +204,20 @@ const ProfileTab = memo(({ isActive, onPress, userId, refreshTrigger }: ProfileT
           <Image
             key={imageKey}
             source={{ 
-              uri: cacheBustedUrl!,
+              uri: finalImageUrl!,
+              // ✅ v342.0: ANDROID FIX - Use default cache for persistence
               ...(Platform.OS === 'android' && { 
-                cache: 'reload' as any,
-                headers: {
-                  'Pragma': 'no-cache',
-                  'Cache-Control': 'no-cache, no-store, must-revalidate',
-                }
+                cache: 'default' as any,
               })
             }}
             style={styles.avatar}
             resizeMode="cover"
             onLoad={() => {
+              console.log('[ProfileTab v342.0 Android] ✅ Image loaded successfully');
               setImageError(false);
             }}
-            onError={() => {
+            onError={(error) => {
+              console.log('[ProfileTab v342.0 Android] ⚠️ Image load error:', error.nativeEvent.error);
               setImageError(true);
             }}
           />
@@ -276,13 +330,14 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
   const lastPathnameRef = useRef(pathname);
 
-  // ✅ v341.0: Only refresh on profile page focus
+  // ✅ v342.0: ANDROID FIX - Only refresh on profile page focus, not constantly
   useFocusEffect(
     React.useCallback(() => {
       if (pathname.includes('/perfil')) {
-        requestAnimationFrame(() => {
+        // Use setTimeout to avoid blocking the UI thread
+        setTimeout(() => {
           setRefreshTrigger(prev => prev + 1);
-        });
+        }, 100);
       }
     }, [pathname])
   );
@@ -291,10 +346,11 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
     const isProfilePage = pathname.includes('/perfil');
     const wasProfilePage = lastPathnameRef.current.includes('/perfil');
     
-    if (isProfilePage !== wasProfilePage) {
-      requestAnimationFrame(() => {
+    // Only trigger refresh when navigating TO profile page, not away from it
+    if (isProfilePage && !wasProfilePage) {
+      setTimeout(() => {
         setRefreshTrigger(prev => prev + 1);
-      });
+      }, 100);
     }
     
     lastPathnameRef.current = pathname;
