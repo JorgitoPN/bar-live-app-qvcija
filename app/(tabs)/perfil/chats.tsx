@@ -748,7 +748,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: Platform.OS === 'android' ? 6 : 12, // ✅ ANDROID FIX: Half height on Android
     gap: 8,
   },
   searchInput: {

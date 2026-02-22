@@ -34,11 +34,11 @@ import * as SystemUI from 'expo-system-ui';
  */
 
 export default function RootLayout() {
-  // ✅ ANDROID FIX v12.0: Set global system navigation bar color
+  // ✅ ANDROID FIX v13.0: Set global system navigation bar color to WHITE (no blue flash)
   useEffect(() => {
     if (Platform.OS === 'android') {
-      const barliveBlue = '#1A73E8'; // Barlive corporate blue
-      SystemUI.setBackgroundColorAsync(barliveBlue);
+      const white = '#FFFFFF'; // White background to prevent blue flash
+      SystemUI.setBackgroundColorAsync(white);
     }
   }, []);
 

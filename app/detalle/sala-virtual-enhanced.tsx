@@ -2450,17 +2450,7 @@ export default function SalaVirtualEnhancedScreen() {
 
     return (
       <TouchableOpacity
-        style={[
-          styles.gridUserCard,
-          isNearby && mode === 'night' && {
-            borderColor: themeColors.primary,
-            borderWidth: 2,
-            shadowColor: themeColors.glow,
-            shadowOffset: { width: 0, height: 0 },
-            shadowOpacity: 1,
-            shadowRadius: 12,
-          },
-        ]}
+        style={styles.gridUserItem}
         onPress={() => {
           if (isCurrentUser) {
             router.push('/perfil');
@@ -3916,16 +3906,11 @@ const styles = StyleSheet.create({
   usersGridRow: {
     justifyContent: 'flex-start',
   },
-  gridUserCard: {
+  gridUserItem: {
     width: (SCREEN_WIDTH - 32 - 24) / 5,
     margin: 6,
-    padding: 12,
-    borderRadius: 16,
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   gridUserAvatarContainer: {
     position: 'relative',
