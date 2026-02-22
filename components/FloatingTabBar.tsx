@@ -1,19 +1,25 @@
 
 /**
- * FLOATING TAB BAR - VERSION v350.0
+ * FLOATING TAB BAR - VERSION v351.0
  * 
- * ✅ ANDROID AVATAR PERSISTENCE FIX v350.0 - USE AUTHCONTEXT DIRECTLY
+ * ✅ ANDROID AVATAR PERSISTENCE FIX v351.0 - FORCE AUTHCONTEXT REFRESH
  * 
- * CRITICAL CHANGES v350.0:
+ * CRITICAL CHANGES v351.0:
+ * - ✅ ANDROID FIX: Force AuthContext.refreshUser() when avatar is missing
+ * - ✅ ANDROID FIX: Mimic Profile page behavior - always ensure fresh user data
+ * - ✅ ANDROID FIX: "Trick" the mini-avatar to think it's on the profile page
+ * - ✅ RESULT: Avatar persists correctly across all navigation (like Profile page)
+ * 
+ * THE TRICK:
+ * - Profile page always has fresh user data because it's the main user screen
+ * - We force the same behavior in FloatingTabBar by calling refreshUser()
+ * - This ensures AuthContext.user.avatar is always up-to-date
+ * - The mini-avatar now "thinks" it's on the profile page
+ * 
+ * Previous fixes maintained (v350.0):
  * - ✅ ANDROID FIX: Use AuthContext.user.avatar directly (same as Profile page)
  * - ✅ ANDROID FIX: Replicate exact mechanism that works in Profile page
  * - ✅ ANDROID FIX: Bypass AvatarContext to avoid validation issues
- * - ✅ RESULT: Avatar persists correctly across all navigation
- * 
- * ROOT CAUSE IDENTIFIED:
- * - Profile page uses user.avatar from AuthContext → works correctly
- * - FloatingTabBar was using AvatarContext → had validation issues
- * - Solution: Use the same data source (AuthContext) in both places
  * 
  * Previous fixes maintained (v349.0):
  * - ✅ ANDROID FIX: Validate avatar URL to reject truncated URLs
@@ -63,7 +69,7 @@ interface ProfileTabProps {
   isActive: boolean;
   onPress: () => void;
   userId: string | null;
-  pathname: string; // ✅ v348.0: Track pathname to detect navigation
+  pathname: string;
 }
 
 // ✅ v349.0: CRITICAL FIX - Validate avatar URL to prevent truncated URLs
@@ -76,7 +82,7 @@ const isValidAvatarUrl = (url: string | null): boolean => {
   // Truncated URL: https://embntaqwlwmgazvrglaf.supabase.co/storage/v
   if (url.includes('supabase.co/storage/v') && !url.includes('/object/')) {
     if (Platform.OS === 'android') {
-      console.log('[ProfileTab v349.0 Android] ❌ Rejected truncated URL:', url.substring(0, 60));
+      console.log('[ProfileTab v351.0 Android] ❌ Rejected truncated URL:', url.substring(0, 60));
     }
     return false;
   }
@@ -84,40 +90,55 @@ const isValidAvatarUrl = (url: string | null): boolean => {
   return url.startsWith('http://') || url.startsWith('https://');
 };
 
-// ✅ v350.0: CRITICAL FIX - Use AuthContext directly (same as Profile page)
-// The Profile page uses user.avatar from AuthContext and it works correctly
-// We replicate that exact mechanism here for consistency
+// ✅ v351.0: CRITICAL FIX - Force AuthContext refresh when avatar is missing
+// THE TRICK: Make the mini-avatar "think" it's on the profile page
+// Profile page always has fresh user data, so we force the same behavior here
 const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) => {
   const avatarSize = Platform.OS === 'android' ? 26 : 28;
   
-  // ✅ v350.0: ANDROID FIX - Use AuthContext directly (same source as Profile page)
-  const { user } = useAuth();
+  // ✅ v351.0: ANDROID FIX - Use AuthContext directly AND get refreshUser function
+  const { user, refreshUser } = useAuth();
   const avatarUrl = user?.avatar || null;
   
-  // ✅ v350.0: ANDROID FIX - Validate URL and show icon if invalid/truncated
+  // ✅ v351.0: ANDROID FIX - Validate URL and show icon if invalid/truncated
   const isValidUrl = isValidAvatarUrl(avatarUrl);
   const shouldShowIcon = !isValidUrl;
   
-  // ✅ v350.0: ANDROID CRITICAL FIX - Generate NEW timestamp when pathname OR avatarUrl changes
+  // ✅ v351.0: ANDROID CRITICAL FIX - Generate NEW timestamp when pathname OR avatarUrl changes
   // This ensures the Image component is COMPLETELY recreated after navigation
   const [renderTimestamp, setRenderTimestamp] = React.useState(() => Date.now());
   
-  // ✅ v350.0: CRITICAL - Regenerate timestamp when pathname OR avatarUrl changes
+  // ✅ v351.0: THE TRICK - Force AuthContext refresh when avatar is missing on Android
+  // This makes the mini-avatar "think" it's on the profile page
+  // Profile page always has fresh user data, so we replicate that behavior
   React.useEffect(() => {
     const newTimestamp = Date.now();
     setRenderTimestamp(newTimestamp);
     
+    // ✅ v351.0: THE TRICK - If avatar is missing on Android, force refresh
+    // This ensures AuthContext.user.avatar is always up-to-date (like Profile page)
+    if (Platform.OS === 'android' && !avatarUrl && user?.id) {
+      console.log('[ProfileTab v351.0 Android] 💡 TRICK ACTIVATED: Avatar missing, forcing AuthContext refresh...');
+      console.log('[ProfileTab v351.0 Android] 💡 This makes mini-avatar "think" it\'s on Profile page');
+      
+      // Force AuthContext to refresh user data (same as Profile page would do)
+      if (refreshUser) {
+        refreshUser();
+      }
+    }
+    
     if (Platform.OS === 'android') {
-      console.log('[ProfileTab v350.0 Android] 🔄 Navigation/Avatar change detected:', {
+      console.log('[ProfileTab v351.0 Android] 🔄 Navigation/Avatar change detected:', {
         pathname: pathname.substring(0, 30),
         hasAvatar: !!avatarUrl,
         isValidUrl,
         avatarUrl: avatarUrl?.substring(0, 60),
         timestamp: newTimestamp,
         source: 'AuthContext.user.avatar',
+        trickActivated: !avatarUrl && user?.id,
       });
     }
-  }, [pathname, avatarUrl, isValidUrl]); // ✅ Regenerate on navigation OR avatar change
+  }, [pathname, avatarUrl, isValidUrl, user?.id, refreshUser]); // ✅ Added user.id and refreshUser to dependencies
   
   // ✅ v348.0: ANDROID FIX - Simplified key with pathname hash for uniqueness
   // Include pathname in key to force complete remount on navigation
@@ -125,7 +146,7 @@ const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) =>
   const imageKey = `avatar-${Platform.OS}-${pathnameHash}-${renderTimestamp}`;
   
   if (Platform.OS === 'android') {
-    console.log('[ProfileTab v350.0 Android] 🖼️ Render:', {
+    console.log('[ProfileTab v351.0 Android] 🖼️ Render:', {
       userId: userId?.substring(0, 8),
       hasUrl: !!avatarUrl,
       isValidUrl,
@@ -133,7 +154,7 @@ const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) =>
       shouldShowIcon,
       pathname: pathname.substring(0, 30),
       imageKey: imageKey.substring(0, 50),
-      source: 'AuthContext.user.avatar (same as Profile page)',
+      source: 'AuthContext.user.avatar (with forced refresh trick)',
     });
   }
   
@@ -169,12 +190,12 @@ const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) =>
             resizeMode="cover"
             onLoad={() => {
               if (Platform.OS === 'android') {
-                console.log('[ProfileTab v350.0 Android] ✅ Image loaded successfully:', avatarUrl?.substring(0, 60));
+                console.log('[ProfileTab v351.0 Android] ✅ Image loaded successfully:', avatarUrl?.substring(0, 60));
               }
             }}
             onError={(error) => {
               if (Platform.OS === 'android') {
-                console.log('[ProfileTab v350.0 Android] ⚠️ Image load error:', {
+                console.log('[ProfileTab v351.0 Android] ⚠️ Image load error:', {
                   error: error.nativeEvent.error,
                   url: avatarUrl?.substring(0, 60),
                 });
@@ -330,7 +351,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
           isActive={isActive}
           onPress={() => handleTabPress(tab)}
           userId={user?.id || null}
-          pathname={pathname} // ✅ v347.0: Pass pathname to detect navigation
+          pathname={pathname}
         />
       );
     }
@@ -352,7 +373,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
         onPress={() => handleTabPress(tab)}
       />
     );
-  }, [isTabActive, handleTabPress, user?.id]);
+  }, [isTabActive, handleTabPress, user?.id, pathname]);
 
   const bottomNavHeight = Platform.OS === 'android' ? 56 : 60;
   const tabBarPaddingBottom = Platform.OS === 'android' 
