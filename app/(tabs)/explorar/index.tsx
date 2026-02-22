@@ -85,7 +85,15 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v434.0 - CRITICAL FIX: INFINITE LOOP & LOCATION ERRORS
+ * ✅ EXPLORAR SCREEN v435.0 - CRITICAL FIX: SCROLL STABILITY
+ * 
+ * CRITICAL FIX v435.0 (2026-02-22):
+ * - 🔧 FIXED: Unstable scroll with unexpected jumps
+ * - 🔧 FIXED: State updates during scroll causing position loss
+ * - 🔧 FIXED: Array reference changes triggering FlatList recalculation
+ * - 🔧 IMPROVED: Scroll-aware state updates (no updates while scrolling)
+ * - 🔧 IMPROVED: Stable snapshot comparison using IDs + status
+ * - 🔧 IMPROVED: Batched updates with requestAnimationFrame
  * 
  * CRITICAL FIX v434.0 (2026-02-22):
  * - 🔧 FIXED: "Maximum update depth exceeded" infinite loop error
@@ -113,6 +121,7 @@ const CATEGORIAS = [
  * - On data load: Transform + re-sort with current time
  * - On preload use: Re-evaluate + re-sort cached data
  * - Smart snapshot comparison to detect real changes
+ * - NO state updates while user is scrolling (prevents jumps)
  * 
  * Previous fixes:
  * - v432.0: Intelligent background preloading
@@ -238,7 +247,7 @@ export default function ExplorarScreen() {
   
   useEffect(() => {
     if (!mountedRef.current) {
-      console.log('[Explorar v434.0] 🚀 Component mounted - INFINITE LOOP & LOCATION FIX');
+      console.log('[Explorar v435.0] 🚀 Component mounted - SCROLL STABILITY FIX');
       mountedRef.current = true;
     }
   }, []);
@@ -301,43 +310,48 @@ export default function ExplorarScreen() {
   // ✅ REF PARA TRACKING DE FILTROS - CRITICAL FIX: Stable serialization
   const lastFiltersRef = useRef<string>('');
 
-  // ✅ v434.0: CRITICAL FIX - RE-EVALUATE DATA ON FOCUS (WITHOUT INFINITE LOOP)
+  // ✅ v435.0: CRITICAL FIX - PREVENT SCROLL JUMPS BY AVOIDING STATE UPDATES DURING SCROLL
   // Store a ref to track if we've already re-evaluated on this focus
   const hasReEvaluatedRef = useRef(false);
-  const localesSnapshotRef = useRef<any[]>([]);
+  const localesSnapshotRef = useRef<string>('');
+  const isScrollingRef = useRef(false);
   
   useFocusEffect(
     useCallback(() => {
-      console.log('[Explorar v434.0] 🔄 Screen focused - checking if re-evaluation needed');
+      console.log('[Explorar v435.0] 🔄 Screen focused - checking if re-evaluation needed');
       
-      // ✅ CRITICAL FIX: Only re-evaluate if data has actually changed
-      // Compare by length and first item ID to detect real changes
-      const currentSnapshot = allLocales.map(l => l.id).join(',');
-      const previousSnapshot = localesSnapshotRef.current.map(l => l.id).join(',');
+      // ✅ CRITICAL FIX: Create stable snapshot using IDs + status
+      const createSnapshot = (locales: any[]) => {
+        return locales.map(l => `${l.id}-${l.estaAbierto ? '1' : '0'}`).join('|');
+      };
       
-      const dataChanged = currentSnapshot !== previousSnapshot;
+      const currentSnapshot = createSnapshot(allLocales);
+      const dataChanged = currentSnapshot !== localesSnapshotRef.current;
       
       if (allLocales.length > 0 && (dataChanged || !hasReEvaluatedRef.current)) {
-        console.log('[Explorar v434.0] 🔄 Re-evaluating', allLocales.length, 'locales (data changed:', dataChanged, ')');
+        console.log('[Explorar v435.0] 🔄 Re-evaluating', allLocales.length, 'locales (data changed:', dataChanged, ')');
         
         // Store snapshot BEFORE re-evaluation to prevent loop
-        localesSnapshotRef.current = allLocales;
         hasReEvaluatedRef.current = true;
         
+        // ✅ CRITICAL: Re-evaluate IN PLACE to avoid creating new array
         const reEvaluatedLocales = allLocales.map((local: any) => {
-          // ✅ RE-EVALUATE estado local with current time
           const estadoLocal = getEstadoLocal(local);
           
-          return {
-            ...local,
-            estadoCompleto: estadoLocal,
-            // ✅ CRITICAL: Update estaAbierto with current time
-            estaAbierto: estadoLocal.estaAbierto,
-          };
+          // Only update if status actually changed
+          if (estadoLocal.estaAbierto !== local.estaAbierto) {
+            return {
+              ...local,
+              estadoCompleto: estadoLocal,
+              estaAbierto: estadoLocal.estaAbierto,
+            };
+          }
+          
+          return local;
         });
         
         // ✅ CRITICAL: Re-apply 5-tier sorting
-        const reSortedLocales = reEvaluatedLocales.sort((a: any, b: any) => {
+        const reSortedLocales = [...reEvaluatedLocales].sort((a: any, b: any) => {
           // Tier 1: Featured + Open (highest priority)
           const aTier1 = a.destacado && a.estaAbierto;
           const bTier1 = b.destacado && b.estaAbierto;
@@ -370,26 +384,29 @@ export default function ExplorarScreen() {
           return 0;
         });
         
-        console.log('[Explorar v434.0] ✅ Re-sorted on focus - First 5:', reSortedLocales.slice(0, 5).map((l: any) => ({
-          nombre: l.nombre,
-          destacado: l.destacado,
-          estaAbierto: l.estaAbierto,
-          distancia: l.distancia ? `${l.distancia.toFixed(1)}km` : 'N/A',
-        })));
-        
         // ✅ CRITICAL: Only update state if sorting actually changed
-        const sortingChanged = reSortedLocales.some((local, index) => 
-          local.id !== allLocales[index]?.id
-        );
+        const newSnapshot = createSnapshot(reSortedLocales);
+        const sortingChanged = newSnapshot !== currentSnapshot;
         
         if (sortingChanged) {
-          console.log('[Explorar v434.0] 🔄 Sorting changed - updating state');
-          setAllLocales(reSortedLocales);
+          console.log('[Explorar v435.0] 🔄 Sorting changed - updating state');
+          localesSnapshotRef.current = newSnapshot;
+          
+          // ✅ CRITICAL: Batch update to prevent multiple renders
+          requestAnimationFrame(() => {
+            if (!isScrollingRef.current) {
+              setAllLocales(reSortedLocales);
+            }
+          });
         } else {
-          console.log('[Explorar v434.0] ✅ Sorting unchanged - no state update needed');
+          console.log('[Explorar v435.0] ✅ Sorting unchanged - no state update needed');
+          localesSnapshotRef.current = currentSnapshot;
         }
       } else {
-        console.log('[Explorar v434.0] ⏸️ No re-evaluation needed');
+        console.log('[Explorar v435.0] ⏸️ No re-evaluation needed');
+        if (allLocales.length > 0) {
+          localesSnapshotRef.current = createSnapshot(allLocales);
+        }
       }
       
       // ✅ Restore scroll position
@@ -1164,13 +1181,16 @@ export default function ExplorarScreen() {
     return { ios: 'person.fill', android: 'person' };
   };
 
-  // ✅ HANDLER DE SCROLL CON CARGA ANTICIPADA
+  // ✅ v435.0: HANDLER DE SCROLL CON PROTECCIÓN CONTRA ACTUALIZACIONES
   const handleScroll = useCallback((event: any) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
     const contentHeight = event.nativeEvent.contentSize.height;
     const layoutHeight = event.nativeEvent.layoutMeasurement.height;
     
     savedScrollPosition.current = currentScrollY;
+    
+    // ✅ CRITICAL: Mark as scrolling to prevent state updates
+    isScrollingRef.current = true;
     
     const diff = currentScrollY - lastScrollY.current;
     
@@ -1200,6 +1220,14 @@ export default function ExplorarScreen() {
     lastScrollY.current = currentScrollY;
     scrollY.current = currentScrollY;
   }, [headerTranslateY, hasMore, isLoading, filteredLocales.length, loadMoreLocales]);
+  
+  // ✅ v435.0: CRITICAL - Reset scrolling flag after scroll ends
+  const handleScrollEnd = useCallback(() => {
+    // Delay to ensure scroll has fully stopped
+    setTimeout(() => {
+      isScrollingRef.current = false;
+    }, 100);
+  }, []);
 
   // ✅ RENDER SKELETON CARD
   const renderSkeletonCard = useCallback(() => {
@@ -1781,7 +1809,7 @@ export default function ExplorarScreen() {
         ref={flatListRef}
         data={filteredLocales}
         renderItem={renderLocalCard}
-        keyExtractor={(item: any) => item.id}
+        keyExtractor={(item: any) => item.id.toString()}
         contentContainerStyle={[
           styles.listContent,
           { 
@@ -1807,6 +1835,8 @@ export default function ExplorarScreen() {
         removeClippedSubviews={Platform.OS === 'android'}
         updateCellsBatchingPeriod={100}
         onScroll={handleScroll}
+        onScrollEndDrag={handleScrollEnd}
+        onMomentumScrollEnd={handleScrollEnd}
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
