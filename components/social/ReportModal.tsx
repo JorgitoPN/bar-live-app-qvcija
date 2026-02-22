@@ -20,7 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 interface ReportModalProps {
   visible: boolean;
-  contentType: 'post' | 'comment';
+  contentType: 'post' | 'comment' | 'momento';
   contentId: string;
   onClose: () => void;
 }
@@ -83,6 +83,8 @@ export default function ReportModal({
         reportData.post_id = contentId;
       } else if (contentType === 'comment') {
         reportData.comentario_id = contentId;
+      } else if (contentType === 'momento') {
+        reportData.momento_id = contentId;
       }
 
       const { error } = await supabase
@@ -136,7 +138,9 @@ export default function ReportModal({
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
             style={styles.header}
           >
-            <Text style={styles.title}>Reportar {contentType === 'post' ? 'publicación' : 'comentario'}</Text>
+            <Text style={styles.title}>
+              Reportar {contentType === 'post' ? 'publicación' : contentType === 'comment' ? 'comentario' : 'momento'}
+            </Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.headerText} />
             </TouchableOpacity>

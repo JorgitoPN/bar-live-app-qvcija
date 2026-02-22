@@ -1320,7 +1320,7 @@ export default function MomentoViewer({
 
         <ReportModal
           visible={showReportModal}
-          contentType="post"
+          contentType="momento"
           contentId={currentMomento?.id || ''}
           onClose={handleCloseReportModal}
         />
