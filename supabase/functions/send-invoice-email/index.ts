@@ -3,6 +3,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!;
 
 interface InvoiceEmailRequest {
   invoiceId?: string;
@@ -13,11 +14,12 @@ interface InvoiceEmailRequest {
 }
 
 /**
- * ✅ SEND INVOICE EMAIL v55.0 - FIXED EMAIL DELIVERY
+ * ✅ SEND INVOICE EMAIL v56.0 - RESEND INTEGRATION
  * 
- * CRITICAL FIXES v55.0:
- * - ✅ Uses Supabase Admin API to send emails directly
+ * CRITICAL FIXES v56.0:
+ * - ✅ Integrates with Resend API for actual email delivery
  * - ✅ Creates notification in database as fallback
+ * - ✅ Professional HTML email template
  * - ✅ Proper error handling and logging
  * - ✅ Works for both test and real invoices
  */
@@ -34,7 +36,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    console.log('[send-invoice-email v55.0] 📧 Starting invoice email send...');
+    console.log('[send-invoice-email v56.0] 📧 Starting invoice email send...');
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -44,7 +46,7 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { invoiceId, invoiceData, recipientEmail, isTest = false, isManual = false }: InvoiceEmailRequest = await req.json();
 
-    console.log('[send-invoice-email v55.0] 📋 Request details:', {
+    console.log('[send-invoice-email v56.0] 📋 Request details:', {
       invoiceId,
       recipientEmail,
       isTest,
@@ -66,17 +68,17 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (fiscalError || !fiscalDataResult) {
-      console.error('[send-invoice-email v55.0] ❌ Fiscal data error:', fiscalError);
+      console.error('[send-invoice-email v56.0] ❌ Fiscal data error:', fiscalError);
       throw new Error('Company fiscal data not configured');
     }
 
     fiscalData = fiscalDataResult;
-    console.log('[send-invoice-email v55.0] ✅ Fiscal data loaded');
+    console.log('[send-invoice-email v56.0] ✅ Fiscal data loaded');
 
     // Load or use invoice data
     if (isTest && invoiceData) {
       invoice = invoiceData;
-      console.log('[send-invoice-email v55.0] ✅ Using test invoice data');
+      console.log('[send-invoice-email v56.0] ✅ Using test invoice data');
     } else if (invoiceId) {
       const tableName = isManual ? 'manual_invoices' : 'invoices';
       const { data: invoiceResult, error: invoiceError } = await supabase
@@ -86,18 +88,18 @@ Deno.serve(async (req: Request) => {
         .single();
 
       if (invoiceError || !invoiceResult) {
-        console.error('[send-invoice-email v55.0] ❌ Invoice error:', invoiceError);
+        console.error('[send-invoice-email v56.0] ❌ Invoice error:', invoiceError);
         throw new Error('Invoice not found');
       }
 
       invoice = invoiceResult;
-      console.log('[send-invoice-email v55.0] ✅ Invoice loaded:', invoice.invoice_number);
+      console.log('[send-invoice-email v56.0] ✅ Invoice loaded:', invoice.invoice_number);
     } else {
       throw new Error('Either invoiceId or invoiceData must be provided');
     }
 
-    // ✅ CRITICAL FIX v55.0: Create in-app notification as primary delivery method
-    console.log('[send-invoice-email v55.0] 📬 Creating in-app notification...');
+    // ✅ CRITICAL FIX v56.0: Create in-app notification as fallback
+    console.log('[send-invoice-email v56.0] 📬 Creating in-app notification...');
     
     // Find user by email
     const { data: userData, error: userError } = await supabase
@@ -119,16 +121,19 @@ Deno.serve(async (req: Request) => {
         });
 
       if (notifError) {
-        console.error('[send-invoice-email v55.0] ⚠️ Error creating notification:', notifError);
+        console.error('[send-invoice-email v56.0] ⚠️ Error creating notification:', notifError);
       } else {
-        console.log('[send-invoice-email v55.0] ✅ In-app notification created');
+        console.log('[send-invoice-email v56.0] ✅ In-app notification created');
       }
     } else {
-      console.log('[send-invoice-email v55.0] ℹ️ User not found in database, skipping notification');
+      console.log('[send-invoice-email v56.0] ℹ️ User not found in database, skipping notification');
     }
 
-    // ✅ CRITICAL FIX v55.0: Use Supabase Admin API to send email
-    console.log('[send-invoice-email v55.0] 📧 Attempting to send email via Supabase Admin API...');
+    // ✅ CRITICAL FIX v56.0: Use Resend API to send email
+    console.log('[send-invoice-email v56.0] 📧 Sending email via Resend API...');
+    
+    let emailSent = false;
+    let emailError = null;
     
     try {
       // Generate email HTML
@@ -235,31 +240,35 @@ Deno.serve(async (req: Request) => {
 </html>
       `;
 
-      // Try to send email using Supabase Admin API
-      const { data: authUser, error: authUserError } = await supabase.auth.admin.getUserByEmail(recipientEmail);
+      // Send email using Resend API
+      console.log('[send-invoice-email v56.0] 📧 Calling Resend API...');
+      
+      const resendResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'BarLive <noreply@barlive.es>',
+          to: [recipientEmail],
+          subject: `Factura ${invoice.invoice_number} - BarLive`,
+          html: emailHTML,
+        }),
+      });
 
-      if (!authUserError && authUser) {
-        console.log('[send-invoice-email v55.0] ✅ User found in auth system, sending email...');
-        
-        // Use Supabase's admin.generateLink to send a custom email
-        // This is a workaround since Supabase doesn't have a direct "send email" API
-        // We'll create a notification instead and log the email attempt
-        
-        console.log('[send-invoice-email v55.0] ℹ️ Email would be sent to:', recipientEmail);
-        console.log('[send-invoice-email v55.0] ℹ️ Invoice:', invoice.invoice_number);
-        console.log('[send-invoice-email v55.0] ℹ️ Total:', invoice.total, invoice.currency);
-        
-        // For now, we'll rely on the in-app notification created above
-        // In production, you would integrate with a proper email service like:
-        // - Resend (https://resend.com)
-        // - SendGrid (https://sendgrid.com)
-        // - AWS SES (https://aws.amazon.com/ses/)
-        
+      const resendData = await resendResponse.json();
+
+      if (!resendResponse.ok) {
+        console.error('[send-invoice-email v56.0] ❌ Resend API error:', resendData);
+        emailError = resendData.message || 'Failed to send email via Resend';
       } else {
-        console.log('[send-invoice-email v55.0] ℹ️ User not in auth system');
+        console.log('[send-invoice-email v56.0] ✅ Email sent successfully via Resend:', resendData);
+        emailSent = true;
       }
-    } catch (emailError) {
-      console.error('[send-invoice-email v55.0] ⚠️ Error sending email:', emailError);
+    } catch (error: any) {
+      console.error('[send-invoice-email v56.0] ⚠️ Error sending email:', error);
+      emailError = error.message;
       // Continue anyway - notification was created
     }
 
@@ -273,21 +282,29 @@ Deno.serve(async (req: Request) => {
           metadata: {
             ...invoice.metadata,
             email_sent_at: new Date().toISOString(),
-            email_method: 'notification',
+            email_method: emailSent ? 'resend' : 'notification_only',
+            email_sent: emailSent,
             notification_created: true,
+            email_error: emailError || null,
           }
         })
         .eq('id', invoiceId);
       
-      console.log('[send-invoice-email v55.0] ✅ Invoice metadata updated');
+      console.log('[send-invoice-email v56.0] ✅ Invoice metadata updated');
     }
+
+    // Return success if either email was sent OR notification was created
+    const responseMessage = emailSent 
+      ? `Factura enviada correctamente a ${recipientEmail}` 
+      : `Notificación creada. ${emailError ? 'Error al enviar email: ' + emailError : 'Email no enviado.'}`;
 
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        message: 'Invoice notification created successfully. User will see it in their notifications.',
-        method: 'in_app_notification',
-        note: 'For production email delivery, integrate with Resend, SendGrid, or AWS SES',
+        success: emailSent || userData !== null, // Success if email sent OR notification created
+        message: responseMessage,
+        email_sent: emailSent,
+        notification_created: userData !== null,
+        email_error: emailError,
       }),
       {
         headers: {
@@ -297,8 +314,8 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error: any) {
-    console.error('[send-invoice-email v55.0] ❌ Error:', error);
-    console.error('[send-invoice-email v55.0] ❌ Error stack:', error.stack);
+    console.error('[send-invoice-email v56.0] ❌ Error:', error);
+    console.error('[send-invoice-email v56.0] ❌ Error stack:', error.stack);
     
     return new Response(
       JSON.stringify({ 

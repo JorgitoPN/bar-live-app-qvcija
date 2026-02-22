@@ -470,6 +470,7 @@ export default function FacturacionScreen() {
         currency: 'EUR',
         status: 'issued' as const,
         issued_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
       };
       
       console.log('[Facturacion] 📧 Sending test email to:', testEmail);
@@ -482,21 +483,51 @@ export default function FacturacionScreen() {
         },
       });
 
-      if (error) throw error;
+      console.log('[Facturacion] 📧 Response:', data);
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to send email');
+      if (error) {
+        console.error('[Facturacion] ❌ Supabase function error:', error);
+        throw error;
       }
 
+      if (!data || !data.success) {
+        const errorMsg = data?.error || data?.message || 'Failed to send email';
+        console.error('[Facturacion] ❌ Function returned error:', errorMsg);
+        
+        // Show detailed error message
+        if (data?.email_sent === false && data?.notification_created) {
+          Alert.alert(
+            '⚠️ Email No Enviado',
+            `No se pudo enviar el email, pero se creó una notificación en la app.\n\nError: ${data.email_error || 'Desconocido'}\n\nPor favor, verifica la configuración de Resend.`,
+            [{ text: 'OK' }]
+          );
+        } else {
+          throw new Error(errorMsg);
+        }
+        return;
+      }
+
+      // Success!
+      const successMessage = data.email_sent 
+        ? `✅ Email enviado correctamente a ${testEmail}\n\n${data.notification_created ? 'También se creó una notificación en la app.' : ''}`
+        : `⚠️ Se creó una notificación en la app, pero el email no se pudo enviar.\n\nError: ${data.email_error || 'Desconocido'}`;
+
       Alert.alert(
-        '✅ Email de Prueba Enviado',
-        `Se ha enviado una factura de prueba profesional a ${testEmail}`,
+        data.email_sent ? '✅ Email de Prueba Enviado' : '⚠️ Notificación Creada',
+        successMessage,
         [{ text: 'OK' }]
       );
-      setTestEmail('');
+      
+      if (data.email_sent) {
+        setTestEmail('');
+      }
     } catch (error: any) {
-      console.error('[Facturacion] Error enviando email de prueba:', error);
-      Alert.alert('Error', error.message || 'No se pudo enviar el email de prueba');
+      console.error('[Facturacion] ❌ Error enviando email de prueba:', error);
+      Alert.alert(
+        'Error',
+        `No se pudo enviar el email de prueba.\n\nDetalles: ${error.message || 'Error desconocido'}\n\nPor favor, verifica:\n- Configuración de Resend\n- Dominio verificado\n- API Key válida`,
+        [{ text: 'OK' }]
+      );
     } finally {
       setSendingTestEmail(false);
     }
@@ -529,22 +560,50 @@ export default function FacturacionScreen() {
                 },
               });
 
-              if (error) throw error;
+              console.log('[Facturacion] 📧 Response:', data);
 
-              if (!data.success) {
-                throw new Error(data.error || 'Failed to send email');
+              if (error) {
+                console.error('[Facturacion] ❌ Supabase function error:', error);
+                throw error;
               }
 
+              if (!data || !data.success) {
+                const errorMsg = data?.error || data?.message || 'Failed to send email';
+                console.error('[Facturacion] ❌ Function returned error:', errorMsg);
+                
+                // Show detailed error message
+                if (data?.email_sent === false && data?.notification_created) {
+                  Alert.alert(
+                    '⚠️ Email No Enviado',
+                    `No se pudo enviar el email, pero se creó una notificación en la app para el cliente.\n\nError: ${data.email_error || 'Desconocido'}\n\nPor favor, verifica la configuración de Resend.`,
+                    [{ text: 'OK' }]
+                  );
+                } else {
+                  throw new Error(errorMsg);
+                }
+                await cargarDatos();
+                return;
+              }
+
+              // Success!
+              const successMessage = data.email_sent 
+                ? `Email enviado correctamente a ${invoice.customer_email}\n\n${data.notification_created ? 'También se creó una notificación en la app.' : ''}`
+                : `Se creó una notificación en la app, pero el email no se pudo enviar.\n\nError: ${data.email_error || 'Desconocido'}`;
+
               Alert.alert(
-                '✅ Factura Enviada',
-                `La factura ${invoice.invoice_number} ha sido enviada a ${invoice.customer_email}`,
+                data.email_sent ? '✅ Factura Enviada' : '⚠️ Notificación Creada',
+                successMessage,
                 [{ text: 'OK' }]
               );
               
               await cargarDatos();
             } catch (error: any) {
-              console.error('[Facturacion] Error enviando factura:', error);
-              Alert.alert('Error', error.message || 'No se pudo enviar la factura');
+              console.error('[Facturacion] ❌ Error enviando factura:', error);
+              Alert.alert(
+                'Error',
+                `No se pudo enviar la factura.\n\nDetalles: ${error.message || 'Error desconocido'}\n\nPor favor, verifica:\n- Configuración de Resend\n- Dominio verificado\n- API Key válida`,
+                [{ text: 'OK' }]
+              );
             } finally {
               setSendingInvoiceId(null);
             }
