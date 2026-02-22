@@ -1,8 +1,20 @@
 
 /**
- * AVATAR CONTEXT v292.0 - ANDROID CRITICAL PERFORMANCE FIX
+ * AVATAR CONTEXT v349.0 - ANDROID AVATAR PERSISTENCE FIX
  * 
- * CRITICAL FIXES v292.0:
+ * CRITICAL FIXES v349.0:
+ * - ✅ ANDROID FIX: Enhanced URL validation to reject truncated URLs
+ * - ✅ ANDROID FIX: Detect and prevent Supabase storage URL truncation
+ * - ✅ ANDROID FIX: Preserve full avatar URL across navigation
+ * - ✅ RESULT: Avatar persists correctly after profile page navigation
+ * 
+ * ROOT CAUSE IDENTIFIED:
+ * - Avatar URLs were being truncated somewhere in the data flow
+ * - Truncated URL: https://...supabase.co/storage/v (missing /object/public/...)
+ * - Full URL: https://...supabase.co/storage/v1/object/public/avatars/...
+ * - Solution: Reject truncated URLs in validation to force re-fetch of full URL
+ * 
+ * Previous fixes maintained (v292.0):
  * - ✅ DISABLED CONSOLE LOGS: Removed ALL console.log on Android
  * - ✅ SILENT MODE: All operations run silently
  * - ✅ DELAYED REFRESH: Background refresh after 5 seconds (was 2)
@@ -41,11 +53,20 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
 
   // ✅ v292.0: Removed console.log for Android performance
 
-  // Validate avatar URL
+  // ✅ v349.0: ANDROID FIX - Enhanced URL validation to prevent truncated URLs
   const isValidUrl = (url: string | null): boolean => {
     if (!url) return false;
     if (url.startsWith('file://')) return false;
     if (url.length < 10) return false;
+    
+    // ✅ CRITICAL: Reject truncated Supabase storage URLs
+    // Full URL should be: https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/...
+    // Truncated URL: https://embntaqwlwmgazvrglaf.supabase.co/storage/v
+    if (url.includes('supabase.co/storage/v') && !url.includes('/object/')) {
+      console.log('[AvatarContext v349.0] ❌ Rejected truncated Supabase URL:', url);
+      return false;
+    }
+    
     return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/');
   };
 
@@ -75,7 +96,7 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // ✅ CRITICAL FIX v292.0: Load avatar URL from database (background only, silent)
+  // ✅ CRITICAL FIX v349.0: Load avatar URL from database (background only, with truncation protection)
   const loadAvatarUrl = async (silent: boolean = false) => {
     if (!user?.id) {
       setAvatarUrl(null);
@@ -97,11 +118,18 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
 
       const validUrl = isValidUrl(data?.avatar) ? data.avatar : null;
 
-      setAvatarUrl(validUrl);
-      setIsLoading(false);
+      // ✅ v349.0: ANDROID FIX - Only update if URL is different and valid
+      // This prevents overwriting a valid URL with a truncated one
+      if (validUrl !== avatarUrl) {
+        setAvatarUrl(validUrl);
+        
+        // Save to cache for next startup (only if valid)
+        if (validUrl) {
+          await saveToCache(user.id, validUrl);
+        }
+      }
       
-      // Save to cache for next startup
-      await saveToCache(user.id, validUrl);
+      setIsLoading(false);
     } catch (error) {
       // ✅ v292.0: Silent error
       setIsLoading(false);

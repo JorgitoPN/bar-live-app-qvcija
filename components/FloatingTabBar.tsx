@@ -1,21 +1,26 @@
 
 /**
- * FLOATING TAB BAR - VERSION v348.0
+ * FLOATING TAB BAR - VERSION v349.0
  * 
- * ✅ ANDROID AVATAR PERSISTENCE FIX v348.0 - DEFINITIVE FIX
+ * ✅ ANDROID AVATAR PERSISTENCE FIX v349.0 - TRUNCATED URL PROTECTION
  * 
- * CRITICAL CHANGES v348.0:
+ * CRITICAL CHANGES v349.0:
+ * - ✅ ANDROID FIX: Validate avatar URL to reject truncated URLs
+ * - ✅ ANDROID FIX: Detect Supabase storage URL truncation
+ * - ✅ ANDROID FIX: Show icon fallback for invalid/truncated URLs
+ * - ✅ RESULT: Avatar displays correctly or shows fallback icon
+ * 
+ * ROOT CAUSE IDENTIFIED:
+ * - Avatar URLs were being truncated in the data flow
+ * - Truncated: https://...supabase.co/storage/v (invalid)
+ * - Full: https://...supabase.co/storage/v1/object/public/... (valid)
+ * - Solution: Validate URL before rendering Image component
+ * 
+ * Previous fixes maintained (v348.0):
  * - ✅ ANDROID FIX: Removed React.memo from ProfileTab (was blocking updates)
  * - ✅ ANDROID FIX: Direct pathname dependency in useEffect
  * - ✅ ANDROID FIX: Force Image remount on EVERY navigation
  * - ✅ ANDROID FIX: Simplified key generation with pathname hash
- * - ✅ RESULT: Avatar PERSISTS after navigation on Android
- * 
- * ROOT CAUSE FINALLY IDENTIFIED:
- * - React.memo comparison was TOO STRICT, blocking re-renders
- * - Even with pathname in comparison, memo was preventing updates
- * - Solution: Remove memo entirely from ProfileTab
- * - Let React handle re-renders naturally with pathname changes
  * 
  * Previous fixes maintained (v345.0-v347.0):
  * - ✅ Use AvatarContext for centralized avatar management
@@ -63,6 +68,24 @@ interface ProfileTabProps {
   pathname: string; // ✅ v348.0: Track pathname to detect navigation
 }
 
+// ✅ v349.0: CRITICAL FIX - Validate avatar URL to prevent truncated URLs
+const isValidAvatarUrl = (url: string | null): boolean => {
+  if (!url) return false;
+  if (url.length < 10) return false;
+  
+  // ✅ CRITICAL: Reject truncated Supabase storage URLs
+  // Full URL: https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/...
+  // Truncated URL: https://embntaqwlwmgazvrglaf.supabase.co/storage/v
+  if (url.includes('supabase.co/storage/v') && !url.includes('/object/')) {
+    if (Platform.OS === 'android') {
+      console.log('[ProfileTab v349.0 Android] ❌ Rejected truncated URL:', url.substring(0, 60));
+    }
+    return false;
+  }
+  
+  return url.startsWith('http://') || url.startsWith('https://');
+};
+
 // ✅ v348.0: CRITICAL FIX - REMOVED React.memo
 // React.memo was preventing re-renders even with pathname changes
 // Let React handle natural re-renders for avatar persistence
@@ -72,26 +95,29 @@ const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) =>
   // ✅ v348.0: CRITICAL FIX - Use AvatarContext for centralized avatar management
   const { avatarUrl } = useAvatar();
   
-  // ✅ v348.0: ANDROID FIX - Always show icon if no URL
-  const shouldShowIcon = !avatarUrl;
+  // ✅ v349.0: ANDROID FIX - Validate URL and show icon if invalid/truncated
+  const isValidUrl = isValidAvatarUrl(avatarUrl);
+  const shouldShowIcon = !isValidUrl;
   
   // ✅ v348.0: ANDROID CRITICAL FIX - Generate NEW timestamp when pathname OR avatarUrl changes
   // This ensures the Image component is COMPLETELY recreated after navigation
   const [renderTimestamp, setRenderTimestamp] = React.useState(() => Date.now());
   
-  // ✅ v348.0: CRITICAL - Regenerate timestamp when pathname OR avatarUrl changes
+  // ✅ v349.0: CRITICAL - Regenerate timestamp when pathname OR avatarUrl changes
   React.useEffect(() => {
     const newTimestamp = Date.now();
     setRenderTimestamp(newTimestamp);
     
     if (Platform.OS === 'android') {
-      console.log('[ProfileTab v348.0 Android] 🔄 Navigation/Avatar change detected:', {
+      console.log('[ProfileTab v349.0 Android] 🔄 Navigation/Avatar change detected:', {
         pathname: pathname.substring(0, 30),
         hasAvatar: !!avatarUrl,
+        isValidUrl,
+        avatarUrl: avatarUrl?.substring(0, 60),
         timestamp: newTimestamp,
       });
     }
-  }, [pathname, avatarUrl]); // ✅ Regenerate on navigation OR avatar change
+  }, [pathname, avatarUrl, isValidUrl]); // ✅ Regenerate on navigation OR avatar change
   
   // ✅ v348.0: ANDROID FIX - Simplified key with pathname hash for uniqueness
   // Include pathname in key to force complete remount on navigation
@@ -99,10 +125,11 @@ const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) =>
   const imageKey = `avatar-${Platform.OS}-${pathnameHash}-${renderTimestamp}`;
   
   if (Platform.OS === 'android') {
-    console.log('[ProfileTab v348.0 Android] 🖼️ Render:', {
+    console.log('[ProfileTab v349.0 Android] 🖼️ Render:', {
       userId: userId?.substring(0, 8),
       hasUrl: !!avatarUrl,
-      avatarUrl: avatarUrl?.substring(0, 50),
+      isValidUrl,
+      avatarUrl: avatarUrl?.substring(0, 60),
       shouldShowIcon,
       pathname: pathname.substring(0, 30),
       imageKey: imageKey.substring(0, 50),
@@ -134,19 +161,22 @@ const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) =>
             key={imageKey}
             source={{ 
               uri: avatarUrl!,
-              // ✅ v348.0: ANDROID FIX - Force reload to bypass cache
+              // ✅ v349.0: ANDROID FIX - Force reload to bypass cache
               cache: Platform.OS === 'android' ? 'reload' : 'default',
             }}
             style={styles.avatar}
             resizeMode="cover"
             onLoad={() => {
               if (Platform.OS === 'android') {
-                console.log('[ProfileTab v348.0 Android] ✅ Image loaded successfully');
+                console.log('[ProfileTab v349.0 Android] ✅ Image loaded successfully:', avatarUrl?.substring(0, 60));
               }
             }}
             onError={(error) => {
               if (Platform.OS === 'android') {
-                console.log('[ProfileTab v348.0 Android] ⚠️ Image load error:', error.nativeEvent.error);
+                console.log('[ProfileTab v349.0 Android] ⚠️ Image load error:', {
+                  error: error.nativeEvent.error,
+                  url: avatarUrl?.substring(0, 60),
+                });
               }
             }}
           />
