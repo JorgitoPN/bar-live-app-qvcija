@@ -17,9 +17,17 @@ import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Platform } from 'react-native';
 import * as SystemUI from 'expo-system-ui';
+import { startBackgroundLocationTracking } from '@/utils/locationUtils';
+import { backgroundSync } from '@/utils/backgroundSync';
 
 /**
- * ✅ ROOT LAYOUT v12.0 - ANDROID SYSTEM UI FIX
+ * ✅ ROOT LAYOUT v13.0 - BACKGROUND LOCATION & INTELLIGENT PRELOADING
+ * 
+ * CHANGES v13.0:
+ * - 🚀 BACKGROUND LOCATION TRACKING: Starts automatically on app launch
+ * - 🚀 INTELLIGENT PRELOADING: Data preloads in background when location changes
+ * - 🚀 INSTANT SCREENS: Explorar/Mapa screens load instantly with preloaded data
+ * - 🚀 BATTERY OPTIMIZED: Efficient background tracking with smart intervals
  * 
  * CHANGES v12.0:
  * - ✅ FIXED: Android system navigation bar now uses Barlive corporate blue (#1A73E8)
@@ -40,6 +48,31 @@ export default function RootLayout() {
       const white = '#FFFFFF'; // White background to prevent blue flash
       SystemUI.setBackgroundColorAsync(white);
     }
+  }, []);
+
+  // ✅ v13.0: Initialize background location tracking and intelligent preloading
+  useEffect(() => {
+    const initializeBackgroundSystems = async () => {
+      try {
+        console.log('[RootLayout v13.0] 🚀 Initializing background systems');
+        
+        // Initialize background sync manager
+        await backgroundSync.initialize();
+        console.log('[RootLayout v13.0] ✅ Background sync initialized');
+        
+        // Start background location tracking
+        const started = await startBackgroundLocationTracking();
+        if (started) {
+          console.log('[RootLayout v13.0] ✅ Background location tracking started');
+        } else {
+          console.log('[RootLayout v13.0] ⚠️ Background location tracking not started (permissions?)');
+        }
+      } catch (error) {
+        console.error('[RootLayout v13.0] ❌ Failed to initialize background systems:', error);
+      }
+    };
+
+    initializeBackgroundSystems();
   }, []);
 
   return (
