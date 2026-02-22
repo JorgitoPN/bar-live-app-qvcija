@@ -76,7 +76,15 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v425.0 - SORTING RULE COMPLETELY FIXED
+ * ✅ EXPLORAR SCREEN v429.0 - OVERNIGHT SCHEDULE DETECTION FIXED
+ * 
+ * CRITICAL FIX v429.0 (2026-02-22):
+ * - 🔥 FIXED OVERNIGHT SCHEDULE BUG: Venues that close in early morning now correctly show as CLOSED
+ * - 🔥 EXAMPLE: "A do Cuñado" closes Saturday at 01:00 (1:00 AM Sunday morning)
+ *   - At Sunday 01:19 AM, it now correctly shows as CLOSED (was showing as OPEN)
+ * - 🔥 ROOT CAUSE: Function was checking current day's schedule but not properly handling
+ *   the case where we're PAST the closing time of previous day's overnight schedule
+ * - 🔥 SOLUTION: Now checks BOTH current day schedule AND previous day's overnight continuation
  * 
  * CRITICAL FIX v425.0 (2026-02-21):
  * - 🔥 FIXED DAY NAME MAPPING: Database uses "sabado", "miercoles" (no accents)
@@ -94,7 +102,7 @@ const CATEGORIAS = [
  * - 🔥 FIXED INFINITE LOOP: Added retry limit and better error handling
  * - 🔥 STABILIZED LIST: No more continuous re-renders or blinking
  * 
- * BACKEND RPC: get_sorted_locales_by_proximity v425.0
+ * BACKEND RPC: get_sorted_locales_by_proximity v429.0
  * - ✅ 5-tier sorting system working correctly:
  *   1. Destacados Abiertos (< 50km) - Por cercanía
  *   2. Locales Abiertos (estándar) - Por cercanía
@@ -107,6 +115,7 @@ const CATEGORIAS = [
  * - ✅ Closed venues appear LAST (tier 4-5) - VERIFIED: 370 venues
  * - ✅ No-info venues in middle (tier 3)
  * - ✅ Overnight venues detected correctly (23:00-06:00)
+ * - ✅ Early morning closures detected correctly (e.g., closes at 01:00, now 01:19 = CLOSED)
  * - ✅ Featured venues within 50km get priority in their tier
  * - ✅ Featured venues beyond 50km lose priority
  * - ✅ NO FLICKERING - Page loads smoothly
