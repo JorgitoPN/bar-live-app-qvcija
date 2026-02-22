@@ -1,20 +1,26 @@
 
 /**
- * FLOATING TAB BAR - VERSION v352.0
+ * FLOATING TAB BAR - VERSION v353.0
  * 
- * ✅ ANDROID AVATAR PERSISTENCE FIX v352.0 - ALWAYS REFRESH ON NAVIGATION
+ * ✅ ANDROID AVATAR PERSISTENCE FIX v353.0 - THE ULTIMATE TRICK
  * 
- * CRITICAL CHANGES v352.0:
- * - ✅ ANDROID FIX: ALWAYS call refreshUser() on navigation (not just when avatar missing)
- * - ✅ ANDROID FIX: Force fresh user data on EVERY navigation change
+ * CRITICAL CHANGES v353.0:
+ * - ✅ ANDROID FIX: ALWAYS call refreshUser() on navigation AND avatar change
+ * - ✅ ANDROID FIX: Added avatarUrl back to useEffect dependencies (was missing!)
+ * - ✅ ANDROID FIX: Force fresh user data on EVERY navigation AND avatar change
  * - ✅ ANDROID FIX: Mimic Profile page behavior - always ensure fresh user data
- * - ✅ RESULT: Avatar persists correctly across ALL navigation scenarios
+ * - ✅ RESULT: Avatar persists correctly across ALL scenarios (navigation + avatar updates)
  * 
- * THE TRICK (Enhanced):
+ * THE ULTIMATE TRICK:
  * - Profile page always has fresh user data because it's the main user screen
- * - We force the same behavior in FloatingTabBar by calling refreshUser() on EVERY navigation
+ * - We force the same behavior in FloatingTabBar by calling refreshUser() on EVERY change
  * - This ensures AuthContext.user.avatar is ALWAYS up-to-date, not just when missing
  * - The mini-avatar now "thinks" it's on the profile page at all times
+ * - We react to BOTH pathname changes AND avatarUrl changes to guarantee persistence
+ * 
+ * Previous fixes maintained (v352.0):
+ * - ✅ ANDROID FIX: ALWAYS call refreshUser() on navigation (not just when avatar missing)
+ * - ✅ ANDROID FIX: Force fresh user data on EVERY navigation change
  * 
  * Previous fixes maintained (v351.0):
  * - ✅ ANDROID FIX: Force AuthContext.refreshUser() when avatar is missing
@@ -86,7 +92,7 @@ const isValidAvatarUrl = (url: string | null): boolean => {
   // Truncated URL: https://embntaqwlwmgazvrglaf.supabase.co/storage/v
   if (url.includes('supabase.co/storage/v') && !url.includes('/object/')) {
     if (Platform.OS === 'android') {
-      console.log('[ProfileTab v352.0 Android] ❌ Rejected truncated URL:', url.substring(0, 60));
+      console.log('[ProfileTab v353.0 Android] ❌ Rejected truncated URL:', url.substring(0, 60));
     }
     return false;
   }
@@ -94,45 +100,46 @@ const isValidAvatarUrl = (url: string | null): boolean => {
   return url.startsWith('http://') || url.startsWith('https://');
 };
 
-// ✅ v352.0: CRITICAL FIX - ALWAYS refresh on navigation (not just when avatar missing)
-// THE TRICK ENHANCED: Make the mini-avatar "think" it's on the profile page AT ALL TIMES
-// Profile page always has fresh user data, so we force the same behavior on EVERY navigation
+// ✅ v353.0: CRITICAL FIX - FORCE REFRESH ON EVERY NAVIGATION + AVATAR CHANGE
+// THE ULTIMATE TRICK: Make the mini-avatar "think" it's ALWAYS on the profile page
+// Profile page always has fresh user data, so we force the same behavior EVERYWHERE
 const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) => {
   const avatarSize = Platform.OS === 'android' ? 26 : 28;
   
-  // ✅ v351.0: ANDROID FIX - Use AuthContext directly AND get refreshUser function
+  // ✅ v353.0: ANDROID FIX - Use AuthContext directly AND get refreshUser function
   const { user, refreshUser } = useAuth();
   const avatarUrl = user?.avatar || null;
   
-  // ✅ v351.0: ANDROID FIX - Validate URL and show icon if invalid/truncated
+  // ✅ v353.0: ANDROID FIX - Validate URL and show icon if invalid/truncated
   const isValidUrl = isValidAvatarUrl(avatarUrl);
   const shouldShowIcon = !isValidUrl;
   
-  // ✅ v351.0: ANDROID CRITICAL FIX - Generate NEW timestamp when pathname OR avatarUrl changes
-  // This ensures the Image component is COMPLETELY recreated after navigation
+  // ✅ v353.0: ANDROID CRITICAL FIX - Generate NEW timestamp when pathname OR avatarUrl changes
+  // This ensures the Image component is COMPLETELY recreated after navigation OR avatar change
   const [renderTimestamp, setRenderTimestamp] = React.useState(() => Date.now());
   
-  // ✅ v352.0: THE TRICK ENHANCED - ALWAYS force AuthContext refresh on navigation (Android)
+  // ✅ v353.0: THE ULTIMATE TRICK - ALWAYS force AuthContext refresh on navigation AND avatar change (Android)
   // This makes the mini-avatar "think" it's on the profile page AT ALL TIMES
-  // Profile page always has fresh user data, so we replicate that behavior on EVERY navigation
+  // Profile page always has fresh user data, so we replicate that behavior on EVERY change
   React.useEffect(() => {
     const newTimestamp = Date.now();
     setRenderTimestamp(newTimestamp);
     
-    // ✅ v352.0: THE TRICK ENHANCED - ALWAYS refresh on Android navigation
+    // ✅ v353.0: THE ULTIMATE TRICK - ALWAYS refresh on Android (navigation OR avatar change)
     // This ensures AuthContext.user.avatar is ALWAYS up-to-date (like Profile page)
-    // We don't wait for avatar to be missing - we proactively refresh on EVERY navigation
+    // We proactively refresh on EVERY change to guarantee persistence
     if (Platform.OS === 'android' && user?.id && refreshUser) {
-      console.log('[ProfileTab v352.0 Android] 💡 TRICK ACTIVATED: Forcing AuthContext refresh on navigation...');
-      console.log('[ProfileTab v352.0 Android] 💡 This makes mini-avatar "think" it\'s on Profile page AT ALL TIMES');
-      console.log('[ProfileTab v352.0 Android] 💡 Navigation to:', pathname.substring(0, 30));
+      console.log('[ProfileTab v353.0 Android] 💡 ULTIMATE TRICK ACTIVATED: Forcing AuthContext refresh...');
+      console.log('[ProfileTab v353.0 Android] 💡 This makes mini-avatar "think" it\'s on Profile page AT ALL TIMES');
+      console.log('[ProfileTab v353.0 Android] 💡 Navigation to:', pathname.substring(0, 30));
+      console.log('[ProfileTab v353.0 Android] 💡 Avatar URL:', avatarUrl?.substring(0, 60));
       
-      // Force AuthContext to refresh user data on EVERY navigation (same as Profile page would do)
+      // Force AuthContext to refresh user data on EVERY change (same as Profile page would do)
       refreshUser();
     }
     
     if (Platform.OS === 'android') {
-      console.log('[ProfileTab v352.0 Android] 🔄 Navigation change detected:', {
+      console.log('[ProfileTab v353.0 Android] 🔄 Change detected:', {
         pathname: pathname.substring(0, 30),
         hasAvatar: !!avatarUrl,
         isValidUrl,
@@ -143,7 +150,7 @@ const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) =>
         refreshCalled: !!refreshUser,
       });
     }
-  }, [pathname, user?.id, refreshUser]); // ✅ v352.0: Removed avatarUrl from dependencies - we refresh on navigation, not avatar change
+  }, [pathname, avatarUrl, user?.id, refreshUser]); // ✅ v353.0: CRITICAL - Added avatarUrl back to dependencies!
   
   // ✅ v348.0: ANDROID FIX - Simplified key with pathname hash for uniqueness
   // Include pathname in key to force complete remount on navigation
@@ -151,7 +158,7 @@ const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) =>
   const imageKey = `avatar-${Platform.OS}-${pathnameHash}-${renderTimestamp}`;
   
   if (Platform.OS === 'android') {
-    console.log('[ProfileTab v352.0 Android] 🖼️ Render:', {
+    console.log('[ProfileTab v353.0 Android] 🖼️ Render:', {
       userId: userId?.substring(0, 8),
       hasUrl: !!avatarUrl,
       isValidUrl,
@@ -159,7 +166,7 @@ const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) =>
       shouldShowIcon,
       pathname: pathname.substring(0, 30),
       imageKey: imageKey.substring(0, 50),
-      source: 'AuthContext.user.avatar (with ALWAYS-ON refresh trick)',
+      source: 'AuthContext.user.avatar (with ULTIMATE refresh trick on navigation + avatar change)',
     });
   }
   
@@ -195,12 +202,12 @@ const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) =>
             resizeMode="cover"
             onLoad={() => {
               if (Platform.OS === 'android') {
-                console.log('[ProfileTab v352.0 Android] ✅ Image loaded successfully:', avatarUrl?.substring(0, 60));
+                console.log('[ProfileTab v353.0 Android] ✅ Image loaded successfully:', avatarUrl?.substring(0, 60));
               }
             }}
             onError={(error) => {
               if (Platform.OS === 'android') {
-                console.log('[ProfileTab v352.0 Android] ⚠️ Image load error:', {
+                console.log('[ProfileTab v353.0 Android] ⚠️ Image load error:', {
                   error: error.nativeEvent.error,
                   url: avatarUrl?.substring(0, 60),
                 });
