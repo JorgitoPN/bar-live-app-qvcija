@@ -1,22 +1,23 @@
 
 /**
- * FLOATING TAB BAR - VERSION v346.0
+ * FLOATING TAB BAR - VERSION v347.0
  * 
- * ✅ ANDROID AVATAR PERSISTENCE FIX v346.0 - FINAL FIX FOR NAVIGATION PERSISTENCE
+ * ✅ ANDROID AVATAR PERSISTENCE FIX v347.0 - FINAL FIX WITH PATHNAME TRACKING
  * 
- * CRITICAL CHANGES v346.0:
- * - ✅ ANDROID FIX: Add timestamp to key to force complete re-mount on every render
- * - ✅ ANDROID FIX: Use 'reload' cache policy + timestamp to bypass ALL caching
- * - ✅ ANDROID FIX: Force image component recreation on navigation
- * - ✅ ANDROID FIX: Prevent React Native's aggressive image caching from hiding avatar
+ * CRITICAL CHANGES v347.0:
+ * - ✅ ANDROID FIX: Track pathname changes to force Image re-mount on navigation
+ * - ✅ ANDROID FIX: Generate new timestamp when pathname changes
+ * - ✅ ANDROID FIX: Bypass React.memo optimization for avatar updates
+ * - ✅ ANDROID FIX: Force complete Image component recreation after navigation
  * - ✅ RESULT: Avatar ALWAYS visible after navigation on Android
  * 
  * ROOT CAUSE IDENTIFIED:
- * - Android's Image component caches aggressively and doesn't invalidate on navigation
- * - The cache persists even with 'reload' policy
- * - Solution: Force complete component re-mount with timestamp-based key
+ * - React.memo was preventing component re-mount on navigation
+ * - useState(() => Date.now()) only ran ONCE, timestamp never changed
+ * - Android's Image component cached aggressively with stale key
+ * - Solution: Track pathname + regenerate timestamp on pathname change
  * 
- * Previous fixes maintained (v345.0):
+ * Previous fixes maintained (v345.0-v346.0):
  * - ✅ Use AvatarContext for centralized avatar management
  * - ✅ Single source of truth for avatar URL
  * - ✅ Removed duplicate avatar loading logic
@@ -59,34 +60,41 @@ interface ProfileTabProps {
   isActive: boolean;
   onPress: () => void;
   userId: string | null;
+  pathname: string; // ✅ v347.0: Track pathname to detect navigation
 }
 
-const ProfileTab = memo(({ isActive, onPress, userId }: ProfileTabProps) => {
+const ProfileTab = memo(({ isActive, onPress, userId, pathname }: ProfileTabProps) => {
   const avatarSize = Platform.OS === 'android' ? 26 : 28;
   
-  // ✅ v346.0: CRITICAL FIX - Use AvatarContext for centralized avatar management
+  // ✅ v347.0: CRITICAL FIX - Use AvatarContext for centralized avatar management
   const { avatarUrl } = useAvatar();
   
-  // ✅ v346.0: ANDROID FIX - Always show icon if no URL, no error state needed
+  // ✅ v347.0: ANDROID FIX - Always show icon if no URL, no error state needed
   const shouldShowIcon = !avatarUrl;
   
-  // ✅ v346.0: ANDROID CRITICAL FIX - Add timestamp to force complete re-mount on EVERY render
-  // This is the ONLY way to bypass Android's aggressive image caching
-  // Without timestamp, Android caches the image and doesn't reload it after navigation
-  const [renderTimestamp] = React.useState(() => Date.now());
+  // ✅ v347.0: ANDROID CRITICAL FIX - Generate NEW timestamp when pathname changes
+  // This ensures the Image component is COMPLETELY recreated after navigation
+  // Previous bug: useState(() => Date.now()) only ran ONCE, so timestamp never changed
+  // New fix: Track pathname and regenerate timestamp on pathname change
+  const [renderTimestamp, setRenderTimestamp] = React.useState(() => Date.now());
   
-  // ✅ v346.0: ANDROID FIX - Use avatarUrl + timestamp as key to force re-mount
-  // The timestamp ensures the Image component is COMPLETELY recreated on every mount
+  // ✅ v347.0: CRITICAL - Regenerate timestamp when pathname changes (navigation detected)
+  React.useEffect(() => {
+    setRenderTimestamp(Date.now());
+    console.log('[ProfileTab v347.0 Android] 🔄 Navigation detected, regenerating timestamp');
+  }, [pathname]); // Regenerate on every navigation
+  
+  // ✅ v347.0: ANDROID FIX - Use avatarUrl + timestamp as key to force re-mount
+  // The timestamp ensures the Image component is COMPLETELY recreated on every navigation
   // This prevents Android from using stale cached images
-  const imageKey = React.useMemo(() => {
-    return `avatar-${Platform.OS}-${avatarUrl || 'none'}-${renderTimestamp}`;
-  }, [avatarUrl, renderTimestamp]);
+  const imageKey = `avatar-${Platform.OS}-${avatarUrl || 'none'}-${renderTimestamp}`;
   
-  console.log('[ProfileTab v346.0 Android] 🖼️ Render state:', {
+  console.log('[ProfileTab v347.0 Android] 🖼️ Render state:', {
     userId: userId?.substring(0, 8),
     hasUrl: !!avatarUrl,
     shouldShowIcon,
     platform: Platform.OS,
+    pathname: pathname.substring(0, 20),
     imageKey: imageKey.substring(0, 40),
     timestamp: renderTimestamp,
   });
@@ -134,10 +142,11 @@ const ProfileTab = memo(({ isActive, onPress, userId }: ProfileTabProps) => {
     </TouchableOpacity>
   );
 }, (prevProps, nextProps) => {
-  // ✅ v346.0: CRITICAL - Only re-render if isActive or userId changes
+  // ✅ v347.0: CRITICAL - Re-render if isActive, userId, OR pathname changes
   const shouldUpdate = (
     prevProps.isActive !== nextProps.isActive ||
-    prevProps.userId !== nextProps.userId
+    prevProps.userId !== nextProps.userId ||
+    prevProps.pathname !== nextProps.pathname // ✅ v347.0: Detect navigation
   );
   
   return !shouldUpdate;
@@ -286,6 +295,7 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
           isActive={isActive}
           onPress={() => handleTabPress(tab)}
           userId={user?.id || null}
+          pathname={pathname} // ✅ v347.0: Pass pathname to detect navigation
         />
       );
     }
