@@ -85,7 +85,14 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v433.0 - CRITICAL FIX: SORTING & PRIORITIZATION STABILITY
+ * ✅ EXPLORAR SCREEN v434.0 - CRITICAL FIX: INFINITE LOOP & LOCATION ERRORS
+ * 
+ * CRITICAL FIX v434.0 (2026-02-22):
+ * - 🔧 FIXED: "Maximum update depth exceeded" infinite loop error
+ * - 🔧 FIXED: useFocusEffect dependency causing re-render loop
+ * - 🔧 FIXED: Background location tracking errors on Android
+ * - 🔧 FIXED: Graceful degradation when location services fail
+ * - 🔧 IMPROVED: Smart re-evaluation only when data actually changes
  * 
  * CRITICAL FIX v433.0 (2026-02-22):
  * - 🔧 FIXED: Featured locals now always show correctly
@@ -102,9 +109,10 @@ const CATEGORIAS = [
  * 5. Tier 5: Within tier, sort by distance
  * 
  * RE-EVALUATION STRATEGY:
- * - On screen focus: Re-evaluate all business rules
+ * - On screen focus: Re-evaluate only if data changed (prevents infinite loop)
  * - On data load: Transform + re-sort with current time
  * - On preload use: Re-evaluate + re-sort cached data
+ * - Smart snapshot comparison to detect real changes
  * 
  * Previous fixes:
  * - v432.0: Intelligent background preloading
@@ -230,7 +238,7 @@ export default function ExplorarScreen() {
   
   useEffect(() => {
     if (!mountedRef.current) {
-      console.log('[Explorar v433.0] 🚀 Component mounted - SORTING & PRIORITIZATION FIX');
+      console.log('[Explorar v434.0] 🚀 Component mounted - INFINITE LOOP & LOCATION FIX');
       mountedRef.current = true;
     }
   }, []);
@@ -293,14 +301,28 @@ export default function ExplorarScreen() {
   // ✅ REF PARA TRACKING DE FILTROS - CRITICAL FIX: Stable serialization
   const lastFiltersRef = useRef<string>('');
 
-  // ✅ v433.0: CRITICAL FIX - RE-EVALUATE DATA ON FOCUS
+  // ✅ v434.0: CRITICAL FIX - RE-EVALUATE DATA ON FOCUS (WITHOUT INFINITE LOOP)
+  // Store a ref to track if we've already re-evaluated on this focus
+  const hasReEvaluatedRef = useRef(false);
+  const localesSnapshotRef = useRef<any[]>([]);
+  
   useFocusEffect(
     useCallback(() => {
-      console.log('[Explorar v433.0] 🔄 Screen focused - re-evaluating data');
+      console.log('[Explorar v434.0] 🔄 Screen focused - checking if re-evaluation needed');
       
-      // ✅ CRITICAL: Re-evaluate business rules for existing data
-      if (allLocales.length > 0) {
-        console.log('[Explorar v433.0] 🔄 Re-evaluating', allLocales.length, 'locales');
+      // ✅ CRITICAL FIX: Only re-evaluate if data has actually changed
+      // Compare by length and first item ID to detect real changes
+      const currentSnapshot = allLocales.map(l => l.id).join(',');
+      const previousSnapshot = localesSnapshotRef.current.map(l => l.id).join(',');
+      
+      const dataChanged = currentSnapshot !== previousSnapshot;
+      
+      if (allLocales.length > 0 && (dataChanged || !hasReEvaluatedRef.current)) {
+        console.log('[Explorar v434.0] 🔄 Re-evaluating', allLocales.length, 'locales (data changed:', dataChanged, ')');
+        
+        // Store snapshot BEFORE re-evaluation to prevent loop
+        localesSnapshotRef.current = allLocales;
+        hasReEvaluatedRef.current = true;
         
         const reEvaluatedLocales = allLocales.map((local: any) => {
           // ✅ RE-EVALUATE estado local with current time
@@ -348,14 +370,26 @@ export default function ExplorarScreen() {
           return 0;
         });
         
-        console.log('[Explorar v433.0] ✅ Re-sorted on focus - First 5:', reSortedLocales.slice(0, 5).map((l: any) => ({
+        console.log('[Explorar v434.0] ✅ Re-sorted on focus - First 5:', reSortedLocales.slice(0, 5).map((l: any) => ({
           nombre: l.nombre,
           destacado: l.destacado,
           estaAbierto: l.estaAbierto,
           distancia: l.distancia ? `${l.distancia.toFixed(1)}km` : 'N/A',
         })));
         
-        setAllLocales(reSortedLocales);
+        // ✅ CRITICAL: Only update state if sorting actually changed
+        const sortingChanged = reSortedLocales.some((local, index) => 
+          local.id !== allLocales[index]?.id
+        );
+        
+        if (sortingChanged) {
+          console.log('[Explorar v434.0] 🔄 Sorting changed - updating state');
+          setAllLocales(reSortedLocales);
+        } else {
+          console.log('[Explorar v434.0] ✅ Sorting unchanged - no state update needed');
+        }
+      } else {
+        console.log('[Explorar v434.0] ⏸️ No re-evaluation needed');
       }
       
       // ✅ Restore scroll position
@@ -373,6 +407,11 @@ export default function ExplorarScreen() {
           savedScrollPosition.current = 0;
         }, 100);
       }
+      
+      // Reset flag when screen loses focus
+      return () => {
+        hasReEvaluatedRef.current = false;
+      };
     }, [allLocales])
   );
 
@@ -395,50 +434,64 @@ export default function ExplorarScreen() {
     return lat >= MIN_LAT && lat <= MAX_LAT && lng >= MIN_LNG && lng <= MAX_LNG;
   }, []);
 
-  // ✅ v433.0: BACKGROUND LOCATION TRACKING + INTELLIGENT PRELOADING
+  // ✅ v434.0: BACKGROUND LOCATION TRACKING + INTELLIGENT PRELOADING (WITH ERROR HANDLING)
   useEffect(() => {
     let isMounted = true;
     let unsubscribe: (() => void) | null = null;
     
     (async () => {
       try {
-        console.log('[Explorar v433.0] 🚀 Starting intelligent location system');
+        console.log('[Explorar v434.0] 🚀 Starting intelligent location system');
         
-        // ✅ STEP 1: Start background location tracking
+        // ✅ STEP 1: Start background location tracking (with graceful degradation)
         if (!isBackgroundTrackingEnabled()) {
-          const started = await startBackgroundLocationTracking();
-          if (started) {
-            console.log('[Explorar v433.0] ✅ Background tracking started');
+          try {
+            const started = await startBackgroundLocationTracking();
+            if (started) {
+              console.log('[Explorar v434.0] ✅ Background tracking started');
+            } else {
+              console.log('[Explorar v434.0] ⚠️ Background tracking failed - using manual updates');
+            }
+          } catch (trackingError) {
+            console.log('[Explorar v434.0] ⚠️ Background tracking error - continuing with manual updates');
           }
         }
         
-        // ✅ STEP 2: Subscribe to location updates
-        unsubscribe = subscribeToLocationUpdates('explorar-screen', (location) => {
-          if (!isMounted) return;
-          
-          console.log('[Explorar v433.0] 📍 Location update received:', {
-            lat: location.latitude.toFixed(4),
-            lng: location.longitude.toFixed(4),
-          });
-          
-          if (isValidSpainCoordinate(location.latitude, location.longitude)) {
-            setUserLocation({ lat: location.latitude, lng: location.longitude });
-            setLocationError(null);
-            setLocationReady(true);
+        // ✅ STEP 2: Subscribe to location updates (with error handling)
+        try {
+          unsubscribe = subscribeToLocationUpdates('explorar-screen', (location) => {
+            if (!isMounted) return;
             
-            // ✅ STEP 3: Trigger intelligent preloading
-            backgroundSync.preloadLocalesForLocation(
-              location.latitude,
-              location.longitude,
-              false // Don't force if location change is small
-            );
-          }
-        });
+            console.log('[Explorar v434.0] 📍 Location update received:', {
+              lat: location.latitude.toFixed(4),
+              lng: location.longitude.toFixed(4),
+            });
+            
+            if (isValidSpainCoordinate(location.latitude, location.longitude)) {
+              setUserLocation({ lat: location.latitude, lng: location.longitude });
+              setLocationError(null);
+              setLocationReady(true);
+              
+              // ✅ STEP 3: Trigger intelligent preloading (with error handling)
+              try {
+                backgroundSync.preloadLocalesForLocation(
+                  location.latitude,
+                  location.longitude,
+                  false // Don't force if location change is small
+                );
+              } catch (preloadError) {
+                console.log('[Explorar v434.0] ⚠️ Preload error - data will load on demand');
+              }
+            }
+          });
+        } catch (subscribeError) {
+          console.log('[Explorar v434.0] ⚠️ Location subscription error - using manual updates');
+        }
         
         // ✅ STEP 4: Check cached location first (instant)
         const cached = getCachedLocation();
         if (cached) {
-          console.log('[Explorar v433.0] ⚡ Using cached location (instant)');
+          console.log('[Explorar v434.0] ⚡ Using cached location (instant)');
           
           if (isValidSpainCoordinate(cached.latitude, cached.longitude)) {
             if (isMounted) {
@@ -446,12 +499,16 @@ export default function ExplorarScreen() {
               setLocationError(null);
               setLocationReady(true);
               
-              // Preload data for cached location
-              backgroundSync.preloadLocalesForLocation(
-                cached.latitude,
-                cached.longitude,
-                false
-              );
+              // Preload data for cached location (with error handling)
+              try {
+                backgroundSync.preloadLocalesForLocation(
+                  cached.latitude,
+                  cached.longitude,
+                  false
+                );
+              } catch (preloadError) {
+                console.log('[Explorar v434.0] ⚠️ Preload error - data will load on demand');
+              }
             }
             return;
           }
@@ -463,7 +520,7 @@ export default function ExplorarScreen() {
         if (!isMounted) return;
         
         if (!location) {
-          console.log('[Explorar v433.0] ⚠️ Location not available');
+          console.log('[Explorar v434.0] ⚠️ Location not available');
           setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
           setUserLocation(null);
           setLocationReady(true);
@@ -473,10 +530,10 @@ export default function ExplorarScreen() {
         const lat = location.coords.latitude;
         const lng = location.coords.longitude;
         
-        console.log('[Explorar v433.0] ✅ Location obtained:', { lat, lng });
+        console.log('[Explorar v434.0] ✅ Location obtained:', { lat, lng });
         
         if (!isValidSpainCoordinate(lat, lng)) {
-          console.log('[Explorar v433.0] ⚠️ Location outside Spain');
+          console.log('[Explorar v434.0] ⚠️ Location outside Spain');
           setLocationError('Ubicación fuera de España. Mostrando todos los locales.');
           setUserLocation(null);
           setLocationReady(true);
@@ -487,14 +544,17 @@ export default function ExplorarScreen() {
         setLocationError(null);
         setLocationReady(true);
         
-        // Preload data for this location
-        backgroundSync.preloadLocalesForLocation(lat, lng, true);
-        
-        console.log('[Explorar v433.0] ✅ Location ready - intelligent preloading active');
+        // Preload data for this location (with error handling)
+        try {
+          backgroundSync.preloadLocalesForLocation(lat, lng, true);
+          console.log('[Explorar v434.0] ✅ Location ready - intelligent preloading active');
+        } catch (preloadError) {
+          console.log('[Explorar v434.0] ⚠️ Preload error - data will load on demand');
+        }
         
       } catch (error: any) {
         if (!isMounted) return;
-        console.error('[Explorar v433.0] ❌ Location error:', error);
+        console.error('[Explorar v434.0] ❌ Location error:', error);
         setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
         setUserLocation(null);
         setLocationReady(true);

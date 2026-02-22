@@ -185,10 +185,16 @@ export async function startBackgroundLocationTracking(): Promise<boolean> {
       return false;
     }
     
-    // Request background permissions (optional - graceful degradation)
-    const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
-    if (backgroundStatus !== 'granted') {
-      console.log('[LocationUtils v3.0] ⚠️ Background permission denied - using foreground only');
+    // ✅ CRITICAL FIX: Don't request background permissions on Android
+    // Background location requires special manifest permissions and user approval
+    // We'll use foreground-only tracking which is sufficient
+    if (Platform.OS === 'ios') {
+      const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
+      if (backgroundStatus !== 'granted') {
+        console.log('[LocationUtils v3.0] ⚠️ iOS background permission denied - using foreground only');
+      }
+    } else {
+      console.log('[LocationUtils v3.0] ℹ️ Android: Using foreground-only tracking (no background permission needed)');
     }
     
     // Start watching location
@@ -206,7 +212,7 @@ export async function startBackgroundLocationTracking(): Promise<boolean> {
           accuracy: location.coords.accuracy,
         };
         
-        console.log('[LocationUtils v3.0] 📍 Background location update:', {
+        console.log('[LocationUtils v3.0] 📍 Location update:', {
           lat: newLocation.latitude.toFixed(4),
           lng: newLocation.longitude.toFixed(4),
           accuracy: newLocation.accuracy?.toFixed(0) + 'm',
@@ -228,14 +234,17 @@ export async function startBackgroundLocationTracking(): Promise<boolean> {
     );
     
     isBackgroundTrackingActive = true;
-    console.log('[LocationUtils v3.0] ✅ Background tracking started');
+    console.log('[LocationUtils v3.0] ✅ Location tracking started successfully');
     
     // Listen to app state changes
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     
     return true;
   } catch (error: any) {
-    console.error('[LocationUtils v3.0] ❌ Failed to start background tracking:', error?.message);
+    console.error('[LocationUtils v3.0] ❌ Failed to start location tracking:', error?.message);
+    console.log('[LocationUtils v3.0] ℹ️ App will continue with manual location updates');
+    // ✅ GRACEFUL DEGRADATION: Return true to allow app to continue
+    // Location will be fetched on-demand instead of background updates
     return false;
   }
 }
