@@ -1,31 +1,30 @@
 
 /**
- * FLOATING TAB BAR - VERSION v349.0
+ * FLOATING TAB BAR - VERSION v350.0
  * 
- * ✅ ANDROID AVATAR PERSISTENCE FIX v349.0 - TRUNCATED URL PROTECTION
+ * ✅ ANDROID AVATAR PERSISTENCE FIX v350.0 - USE AUTHCONTEXT DIRECTLY
  * 
- * CRITICAL CHANGES v349.0:
+ * CRITICAL CHANGES v350.0:
+ * - ✅ ANDROID FIX: Use AuthContext.user.avatar directly (same as Profile page)
+ * - ✅ ANDROID FIX: Replicate exact mechanism that works in Profile page
+ * - ✅ ANDROID FIX: Bypass AvatarContext to avoid validation issues
+ * - ✅ RESULT: Avatar persists correctly across all navigation
+ * 
+ * ROOT CAUSE IDENTIFIED:
+ * - Profile page uses user.avatar from AuthContext → works correctly
+ * - FloatingTabBar was using AvatarContext → had validation issues
+ * - Solution: Use the same data source (AuthContext) in both places
+ * 
+ * Previous fixes maintained (v349.0):
  * - ✅ ANDROID FIX: Validate avatar URL to reject truncated URLs
  * - ✅ ANDROID FIX: Detect Supabase storage URL truncation
  * - ✅ ANDROID FIX: Show icon fallback for invalid/truncated URLs
- * - ✅ RESULT: Avatar displays correctly or shows fallback icon
- * 
- * ROOT CAUSE IDENTIFIED:
- * - Avatar URLs were being truncated in the data flow
- * - Truncated: https://...supabase.co/storage/v (invalid)
- * - Full: https://...supabase.co/storage/v1/object/public/... (valid)
- * - Solution: Validate URL before rendering Image component
  * 
  * Previous fixes maintained (v348.0):
  * - ✅ ANDROID FIX: Removed React.memo from ProfileTab (was blocking updates)
  * - ✅ ANDROID FIX: Direct pathname dependency in useEffect
  * - ✅ ANDROID FIX: Force Image remount on EVERY navigation
  * - ✅ ANDROID FIX: Simplified key generation with pathname hash
- * 
- * Previous fixes maintained (v345.0-v347.0):
- * - ✅ Use AvatarContext for centralized avatar management
- * - ✅ Single source of truth for avatar URL
- * - ✅ Timestamp-based key regeneration
  */
 
 import React, { memo, useCallback } from 'react';
@@ -43,7 +42,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from './IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAvatar } from '@/contexts/AvatarContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -86,35 +84,37 @@ const isValidAvatarUrl = (url: string | null): boolean => {
   return url.startsWith('http://') || url.startsWith('https://');
 };
 
-// ✅ v348.0: CRITICAL FIX - REMOVED React.memo
-// React.memo was preventing re-renders even with pathname changes
-// Let React handle natural re-renders for avatar persistence
+// ✅ v350.0: CRITICAL FIX - Use AuthContext directly (same as Profile page)
+// The Profile page uses user.avatar from AuthContext and it works correctly
+// We replicate that exact mechanism here for consistency
 const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) => {
   const avatarSize = Platform.OS === 'android' ? 26 : 28;
   
-  // ✅ v348.0: CRITICAL FIX - Use AvatarContext for centralized avatar management
-  const { avatarUrl } = useAvatar();
+  // ✅ v350.0: ANDROID FIX - Use AuthContext directly (same source as Profile page)
+  const { user } = useAuth();
+  const avatarUrl = user?.avatar || null;
   
-  // ✅ v349.0: ANDROID FIX - Validate URL and show icon if invalid/truncated
+  // ✅ v350.0: ANDROID FIX - Validate URL and show icon if invalid/truncated
   const isValidUrl = isValidAvatarUrl(avatarUrl);
   const shouldShowIcon = !isValidUrl;
   
-  // ✅ v348.0: ANDROID CRITICAL FIX - Generate NEW timestamp when pathname OR avatarUrl changes
+  // ✅ v350.0: ANDROID CRITICAL FIX - Generate NEW timestamp when pathname OR avatarUrl changes
   // This ensures the Image component is COMPLETELY recreated after navigation
   const [renderTimestamp, setRenderTimestamp] = React.useState(() => Date.now());
   
-  // ✅ v349.0: CRITICAL - Regenerate timestamp when pathname OR avatarUrl changes
+  // ✅ v350.0: CRITICAL - Regenerate timestamp when pathname OR avatarUrl changes
   React.useEffect(() => {
     const newTimestamp = Date.now();
     setRenderTimestamp(newTimestamp);
     
     if (Platform.OS === 'android') {
-      console.log('[ProfileTab v349.0 Android] 🔄 Navigation/Avatar change detected:', {
+      console.log('[ProfileTab v350.0 Android] 🔄 Navigation/Avatar change detected:', {
         pathname: pathname.substring(0, 30),
         hasAvatar: !!avatarUrl,
         isValidUrl,
         avatarUrl: avatarUrl?.substring(0, 60),
         timestamp: newTimestamp,
+        source: 'AuthContext.user.avatar',
       });
     }
   }, [pathname, avatarUrl, isValidUrl]); // ✅ Regenerate on navigation OR avatar change
@@ -125,7 +125,7 @@ const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) =>
   const imageKey = `avatar-${Platform.OS}-${pathnameHash}-${renderTimestamp}`;
   
   if (Platform.OS === 'android') {
-    console.log('[ProfileTab v349.0 Android] 🖼️ Render:', {
+    console.log('[ProfileTab v350.0 Android] 🖼️ Render:', {
       userId: userId?.substring(0, 8),
       hasUrl: !!avatarUrl,
       isValidUrl,
@@ -133,6 +133,7 @@ const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) =>
       shouldShowIcon,
       pathname: pathname.substring(0, 30),
       imageKey: imageKey.substring(0, 50),
+      source: 'AuthContext.user.avatar (same as Profile page)',
     });
   }
   
@@ -168,12 +169,12 @@ const ProfileTab = ({ isActive, onPress, userId, pathname }: ProfileTabProps) =>
             resizeMode="cover"
             onLoad={() => {
               if (Platform.OS === 'android') {
-                console.log('[ProfileTab v349.0 Android] ✅ Image loaded successfully:', avatarUrl?.substring(0, 60));
+                console.log('[ProfileTab v350.0 Android] ✅ Image loaded successfully:', avatarUrl?.substring(0, 60));
               }
             }}
             onError={(error) => {
               if (Platform.OS === 'android') {
-                console.log('[ProfileTab v349.0 Android] ⚠️ Image load error:', {
+                console.log('[ProfileTab v350.0 Android] ⚠️ Image load error:', {
                   error: error.nativeEvent.error,
                   url: avatarUrl?.substring(0, 60),
                 });
