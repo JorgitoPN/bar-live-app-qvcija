@@ -21,7 +21,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/final_quest_240x240.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.barlive.app",
