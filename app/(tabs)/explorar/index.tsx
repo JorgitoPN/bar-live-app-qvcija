@@ -89,10 +89,10 @@ interface Category {
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 110 : 240;
-const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 60 : 100;
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 280;
+const HEADER_MIN_HEIGHT = 0;
 const ITEMS_PER_PAGE = 20;
-const PRELOAD_THRESHOLD = 0.7; // ✅ OPTIMIZADO: Precargar cuando quedan 6 items (30% de 20)
+const PRELOAD_THRESHOLD = 0.5; // ✅ OPTIMIZADO: Precargar cuando quedan 10 items (50% de 20)
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 const CATEGORIAS: Category[] = [
@@ -167,11 +167,14 @@ export default function ExplorarScreen() {
   const flatListRef = useRef<FlatList>(null);
   const debouncedQuery = useDebounce(searchQuery, 500);
   
-  // ✅ FIX 4: Animated header
+  // ✅ FIX 4: Animated header - COMPLETE HIDE including categories
   const scrollY = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+  const scrollDirection = useRef<'up' | 'down'>('down');
+  
   const headerTranslateY = scrollY.interpolate({
-    inputRange: [0, HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT],
-    outputRange: [0, -(HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT)],
+    inputRange: [0, HEADER_MAX_HEIGHT],
+    outputRange: [0, -HEADER_MAX_HEIGHT],
     extrapolate: 'clamp',
   });
 
@@ -251,8 +254,14 @@ export default function ExplorarScreen() {
     try {
       console.log('[ExplorarScreen v600.0] 🔍 Cargando locales - Página:', pageNum);
       
-      // ✅ FIX 1: Usar selectedCategory correctamente
-      const categoryFilter = selectedCategory === 'todos' ? null : [selectedCategory];
+      // ✅ FIX 1: Usar selectedCategory correctamente - FIXED LOGIC
+      const categoryFilter = !selectedCategory || selectedCategory === 'todos' ? null : [selectedCategory];
+      
+      console.log('[ExplorarScreen v600.0] 🔍 Category filter:', {
+        selectedCategory,
+        categoryFilter,
+        willFilterByCategory: categoryFilter !== null
+      });
       
       const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity', {
         p_user_lat: userLocation?.latitude || 40.4168,
@@ -382,9 +391,22 @@ export default function ExplorarScreen() {
 
   const handleCategoryChange = useCallback((categoryId: string) => {
     console.log('[ExplorarScreen v600.0] 🏷️ Cambiando categoría a:', categoryId);
-    setSelectedCategory(categoryId === 'todos' ? null : categoryId);
+    
+    // ✅ FIX 2: Limpiar caché al cambiar categoría
+    dataCache.clear(cacheKey);
+    
+    // ✅ FIX 2: Actualizar categoría seleccionada
+    const newCategory = categoryId === 'todos' ? null : categoryId;
+    setSelectedCategory(newCategory);
+    
+    // ✅ FIX 2: Reset pagination
+    setPage(1);
+    setHasMore(true);
+    setAllVenues([]);
+    
+    // ✅ FIX 2: Scroll to top
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-  }, [setSelectedCategory]);
+  }, [setSelectedCategory, cacheKey]);
 
   const clearFilters = useCallback(() => {
     console.log('[ExplorarScreen v600.0] 🧹 Limpiando filtros...');
@@ -452,10 +474,14 @@ export default function ExplorarScreen() {
     router.push('/solicitudes/solicitar-propiedad-v2');
   }, [user, router]);
 
-  // ✅ FIX 3: Apertura instantánea del modal
+  // ✅ FIX 3: Apertura instantánea del modal - OPTIMIZED
   const handleOpenAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v600.0] 🎯 Abriendo filtros avanzados - INSTANT');
-    setShowAdvancedFilters(true);
+    console.log('[ExplorarScreen v600.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
+    
+    // ✅ Respuesta INMEDIATA - sin esperar nada
+    requestAnimationFrame(() => {
+      setShowAdvancedFilters(true);
+    });
   }, []);
 
   const handleCloseAdvancedFilters = useCallback(() => {
@@ -608,10 +634,26 @@ export default function ExplorarScreen() {
 
   const modeIcon = getModeIcon();
 
-  // ✅ FIX 4: Scroll handler para header animado
+  // ✅ FIX 4: Scroll handler para header animado - BIDIRECTIONAL
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    { useNativeDriver: true }
+    { 
+      useNativeDriver: true,
+      listener: (event: any) => {
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+        
+        // Detectar dirección del scroll
+        if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
+          // Scroll hacia abajo - ocultar header
+          scrollDirection.current = 'down';
+        } else if (currentScrollY < lastScrollY.current) {
+          // Scroll hacia arriba - mostrar header
+          scrollDirection.current = 'up';
+        }
+        
+        lastScrollY.current = currentScrollY;
+      }
+    }
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -844,6 +886,10 @@ export default function ExplorarScreen() {
         scrollEventThrottle={16}
         onEndReached={filteredVenues.length > 0 ? loadMoreVenues : undefined}
         onEndReachedThreshold={PRELOAD_THRESHOLD}
+        maintainVisibleContentPosition={{
+          minIndexForVisible: 0,
+          autoscrollToTopThreshold: 10,
+        }}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
         // ✅ FIX 2: Virtualización agresiva

@@ -97,9 +97,15 @@ export default function FiltrosAvanzadosSheet({
 
   useEffect(() => {
     if (visible) {
-      console.log('[FiltrosAvanzados v41.0 CROSS-PLATFORM] 🔄 Modal opened, resetting temp filters');
+      console.log('[FiltrosAvanzados v41.0 CROSS-PLATFORM] 🔄 Modal opened - INSTANT UI');
+      
+      // ✅ INSTANT: Actualizar UI inmediatamente
       setFiltrosTemp(initialFiltros);
-      refreshDynamicOptions();
+      
+      // ✅ BACKGROUND: Refrescar opciones en segundo plano
+      requestAnimationFrame(() => {
+        refreshDynamicOptions();
+      });
     }
   }, [visible, initialFiltros, refreshDynamicOptions]);
 
