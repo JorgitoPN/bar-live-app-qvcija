@@ -23,9 +23,14 @@ interface TaxCalculation {
 }
 
 /**
- * ✅ SEND INVOICE EMAIL v59.0 - SPANISH FISCAL COMPLIANCE (NO BUTTON FIX)
+ * ✅ SEND INVOICE EMAIL v61.0 - SPANISH FISCAL COMPLIANCE (HOISTING FIX)
  * 
- * NEW IN v59.0:
+ * NEW IN v61.0:
+ * - ✅ FIXED: "Cannot access 'taxCalc' before initialization" error
+ * - ✅ Moved tax calculation BEFORE it's used in notifications and HTML generation
+ * - ✅ Proper variable declaration order to prevent hoisting issues
+ * 
+ * PREVIOUS (v59.0):
  * - ✅ REMOVED "Ver Factura" button completely from email template
  * - ✅ Invoice IS the email body - no external links needed
  * - ✅ Force cache refresh by incrementing version number
@@ -494,7 +499,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    console.log('[send-invoice-email v59.0] 📧 Starting invoice email send (NO BUTTON VERSION)...');
+    console.log('[send-invoice-email v61.0] 📧 Starting invoice email send (HOISTING FIX)...');
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -504,7 +509,7 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { invoiceId, invoiceData, recipientEmail, isTest = false, isManual = false }: InvoiceEmailRequest = await req.json();
 
-    console.log('[send-invoice-email v59.0] 📋 Request details:', {
+    console.log('[send-invoice-email v61.0] 📋 Request details:', {
       invoiceId,
       recipientEmail,
       isTest,
@@ -527,12 +532,12 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (fiscalError || !fiscalDataResult) {
-      console.error('[send-invoice-email v59.0] ❌ Fiscal data error:', fiscalError);
+      console.error('[send-invoice-email v61.0] ❌ Fiscal data error:', fiscalError);
       throw new Error('Company fiscal data not configured');
     }
 
     fiscalData = fiscalDataResult;
-    console.log('[send-invoice-email v59.0] ✅ Fiscal data loaded');
+    console.log('[send-invoice-email v61.0] ✅ Fiscal data loaded');
 
     // Load or use invoice data
     if (isTest && invoiceData) {
@@ -546,7 +551,7 @@ Deno.serve(async (req: Request) => {
         customer_postal_code: invoice.customer_postal_code,
         customer_country: invoice.customer_country || 'España',
       };
-      console.log('[send-invoice-email v59.0] ✅ Using test invoice data');
+      console.log('[send-invoice-email v61.0] ✅ Using test invoice data');
     } else if (invoiceId) {
       const tableName = isManual ? 'manual_invoices' : 'invoices';
       const { data: invoiceResult, error: invoiceError } = await supabase
@@ -556,21 +561,21 @@ Deno.serve(async (req: Request) => {
         .single();
 
       if (invoiceError || !invoiceResult) {
-        console.error('[send-invoice-email v59.0] ❌ Invoice error:', invoiceError);
+        console.error('[send-invoice-email v61.0] ❌ Invoice error:', invoiceError);
         throw new Error('Invoice not found');
       }
 
       invoice = invoiceResult;
-      console.log('[send-invoice-email v59.0] ✅ Invoice loaded:', invoice.invoice_number);
+      console.log('[send-invoice-email v61.0] ✅ Invoice loaded:', invoice.invoice_number);
       
       // Check if snapshot already exists (immutability)
       if (invoice.company_snapshot && invoice.client_snapshot) {
-        console.log('[send-invoice-email v59.0] ✅ Using existing snapshots (immutable data)');
+        console.log('[send-invoice-email v61.0] ✅ Using existing snapshots (immutable data)');
         fiscalData = invoice.company_snapshot;
         clientSnapshot = invoice.client_snapshot;
       } else {
         // Create snapshots for immutability
-        console.log('[send-invoice-email v59.0] 📸 Creating data snapshots...');
+        console.log('[send-invoice-email v61.0] 📸 Creating data snapshots...');
         
         // Client snapshot from invoice data
         clientSnapshot = {
@@ -605,7 +610,7 @@ Deno.serve(async (req: Request) => {
         const baseAmount = invoice.subtotal || invoice.total / 1.21; // Fallback calculation
         const taxCalc = calculateSpanishTaxes(baseAmount, clientSnapshot);
         
-        console.log('[send-invoice-email v59.0] 💰 Tax calculation:', taxCalc);
+        console.log('[send-invoice-email v61.0] 💰 Tax calculation:', taxCalc);
         
         // Save snapshots to database (immutability)
         await supabase
@@ -626,14 +631,20 @@ Deno.serve(async (req: Request) => {
           })
           .eq('id', invoiceId);
         
-        console.log('[send-invoice-email v59.0] ✅ Snapshots saved to database');
+        console.log('[send-invoice-email v61.0] ✅ Snapshots saved to database');
       }
     } else {
       throw new Error('Either invoiceId or invoiceData must be provided');
     }
 
+    // Calculate taxes FIRST (before using in notifications or HTML generation)
+    const baseAmount = invoice.subtotal || invoice.total / 1.21;
+    const taxCalc = calculateSpanishTaxes(baseAmount, clientSnapshot);
+    
+    console.log('[send-invoice-email v61.0] 💰 Tax calculation:', taxCalc);
+
     // ✅ Create in-app notification as fallback
-    console.log('[send-invoice-email v59.0] 📬 Creating in-app notification...');
+    console.log('[send-invoice-email v61.0] 📬 Creating in-app notification...');
     
     // Find user by email
     const { data: userData, error: userError } = await supabase
@@ -655,26 +666,20 @@ Deno.serve(async (req: Request) => {
         });
 
       if (notifError) {
-        console.error('[send-invoice-email v59.0] ⚠️ Error creating notification:', notifError);
+        console.error('[send-invoice-email v61.0] ⚠️ Error creating notification:', notifError);
       } else {
-        console.log('[send-invoice-email v59.0] ✅ In-app notification created');
+        console.log('[send-invoice-email v61.0] ✅ In-app notification created');
       }
     } else {
-      console.log('[send-invoice-email v59.0] ℹ️ User not found in database, skipping notification');
+      console.log('[send-invoice-email v61.0] ℹ️ User not found in database, skipping notification');
     }
-
-    // Calculate taxes if not already calculated
-    const baseAmount = invoice.subtotal || invoice.total / 1.21;
-    const taxCalc = calculateSpanishTaxes(baseAmount, clientSnapshot);
-    
-    console.log('[send-invoice-email v59.0] 💰 Final tax calculation:', taxCalc);
     
     // ✅ Generate professional HTML invoice (the invoice IS the email - NO BUTTON)
-    console.log('[send-invoice-email v59.0] 📧 Generating HTML invoice (NO BUTTON VERSION)...');
+    console.log('[send-invoice-email v61.0] 📧 Generating HTML invoice...');
     const emailHTML = generateInvoiceHTML(invoice, fiscalData, clientSnapshot, taxCalc);
     
     // ✅ Send email via Resend API
-    console.log('[send-invoice-email v59.0] 📧 Sending email via Resend API...');
+    console.log('[send-invoice-email v61.0] 📧 Sending email via Resend API...');
     
     let emailSent = false;
     let emailError = null;
@@ -682,7 +687,7 @@ Deno.serve(async (req: Request) => {
     try {
 
       // ✅ Use correct verified domain barliveapp.es
-      console.log('[send-invoice-email v59.0] 📧 Calling Resend API with verified domain...');
+      console.log('[send-invoice-email v61.0] 📧 Calling Resend API with verified domain...');
       
       const resendResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -701,14 +706,14 @@ Deno.serve(async (req: Request) => {
       const resendData = await resendResponse.json();
 
       if (!resendResponse.ok) {
-        console.error('[send-invoice-email v59.0] ❌ Resend API error:', resendData);
+        console.error('[send-invoice-email v61.0] ❌ Resend API error:', resendData);
         emailError = resendData.message || 'Failed to send email via Resend';
       } else {
-        console.log('[send-invoice-email v59.0] ✅ Email sent successfully via Resend (NO BUTTON VERSION):', resendData);
+        console.log('[send-invoice-email v61.0] ✅ Email sent successfully via Resend:', resendData);
         emailSent = true;
       }
     } catch (error: any) {
-      console.error('[send-invoice-email v59.0] ⚠️ Error sending email:', error);
+      console.error('[send-invoice-email v61.0] ⚠️ Error sending email:', error);
       emailError = error.message;
       // Continue anyway - notification was created
     }
@@ -733,7 +738,7 @@ Deno.serve(async (req: Request) => {
         })
         .eq('id', invoiceId);
       
-      console.log('[send-invoice-email v59.0] ✅ Invoice metadata updated');
+      console.log('[send-invoice-email v61.0] ✅ Invoice metadata updated');
     }
 
     // Return success if either email was sent OR notification was created
@@ -757,8 +762,8 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error: any) {
-    console.error('[send-invoice-email v59.0] ❌ Error:', error);
-    console.error('[send-invoice-email v59.0] ❌ Error stack:', error.stack);
+    console.error('[send-invoice-email v61.0] ❌ Error:', error);
+    console.error('[send-invoice-email v61.0] ❌ Error stack:', error.stack);
     
     return new Response(
       JSON.stringify({ 

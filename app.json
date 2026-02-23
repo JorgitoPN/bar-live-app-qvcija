@@ -1,4 +1,3 @@
-
 {
   "expo": {
     "name": "BarLive",
@@ -18,9 +17,9 @@
       "bundleIdentifier": "com.anonymous.Natively",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "BarLive necesita acceso a tu ubicación para mostrarte locales cercanos y eventos relevantes en tu zona, mejorando tu experiencia al descubrir lugares de interés.",
-        "NSCameraUsageDescription": "BarLive necesita acceso a tu cámara para que puedas tomar fotos y videos, enriqueciendo tus publicaciones y perfil en la comunidad.",
-        "NSMicrophoneUsageDescription": "BarLive necesita acceso a tu micrófono para grabar audio en videos, permitiéndote compartir experiencias más completas con otros usuarios."
+        "NSLocationWhenInUseUsageDescription": "BarLive necesita acceso a tu ubicaci\u00f3n para mostrarte locales cercanos y eventos relevantes en tu zona, mejorando tu experiencia al descubrir lugares de inter\u00e9s.",
+        "NSCameraUsageDescription": "BarLive necesita acceso a tu c\u00e1mara para que puedas tomar fotos y videos, enriqueciendo tus publicaciones y perfil en la comunidad.",
+        "NSMicrophoneUsageDescription": "BarLive necesita acceso a tu micr\u00f3fono para grabar audio en videos, permiti\u00e9ndote compartir experiencias m\u00e1s completas con otros usuarios."
       }
     },
     "android": {
@@ -59,18 +58,18 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "BarLive necesita acceso a tu ubicación para mostrarte locales cercanos y eventos relevantes en tu zona, mejorando tu experiencia al descubrir lugares de interés."
+          "locationAlwaysAndWhenInUsePermission": "BarLive necesita acceso a tu ubicaci\u00f3n para mostrarte locales cercanos y eventos relevantes en tu zona, mejorando tu experiencia al descubrir lugares de inter\u00e9s."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "BarLive necesita acceso a tu cámara para que puedas tomar fotos y videos, enriqueciendo tus publicaciones y perfil en la comunidad.",
-          "cameraPermission": "BarLive necesita acceso a tu cámara para que puedas tomar fotos y videos, enriqueciendo tus publicaciones y perfil en la comunidad."
+          "photosPermission": "BarLive necesita acceso a tu c\u00e1mara para que puedas tomar fotos y videos, enriqueciendo tus publicaciones y perfil en la comunidad.",
+          "cameraPermission": "BarLive necesita acceso a tu c\u00e1mara para que puedas tomar fotos y videos, enriqueciendo tus publicaciones y perfil en la comunidad."
         }
       ]
     ],
-    "scheme": "barlive",
+    "scheme": "BarLive",
     "experiments": {
       "typedRoutes": true
     },
