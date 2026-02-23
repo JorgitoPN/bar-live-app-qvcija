@@ -30,6 +30,9 @@ import {
   ActivityIndicator,
   Animated,
 } from 'react-native';
+
+// ✅ FIX: Wrap FlatList with Animated for native scroll events
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -816,8 +819,8 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* ✅ FIX 2: OPTIMIZED VENUE LIST */}
-      <FlatList
+      {/* ✅ FIX 2: OPTIMIZED VENUE LIST - Using AnimatedFlatList for native scroll events */}
+      <AnimatedFlatList
         ref={flatListRef}
         data={filteredVenues}
         renderItem={renderVenueCard}
