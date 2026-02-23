@@ -178,6 +178,52 @@ npx eas build --profile development --platform android --clear-cache
 - [Push Notifications Setup](https://docs.expo.dev/push-notifications/overview/)
 - [Testing Push Notifications](https://docs.expo.dev/push-notifications/testing/)
 
+## 📐 Arquitectura Técnica Completa
+
+### Flujo: Servidor → Envío → Recepción → Apertura
+
+```
+1. REGISTRO (Cliente)
+   ├─ initializeNotifications(userId)
+   ├─ registerForPushNotifications()
+   └─ savePushToken(userId, token)
+
+2. ENVÍO (Servidor)
+   ├─ Edge Function: send-push-notification
+   ├─ Expo Push API
+   └─ FCM/APNs
+
+3. RECEPCIÓN (Cliente)
+   ├─ Foreground: addNotificationReceivedListener()
+   ├─ Background: Sistema operativo
+   └─ Cerrada: Sistema operativo
+
+4. APERTURA (Deep Linking)
+   └─ addNotificationResponseReceivedListener()
+      └─ Navegar a pantalla específica
+```
+
+### Configuración de Canales (Android)
+
+| Canal | Importancia | Uso |
+|-------|-------------|-----|
+| `default` | HIGH | Notificaciones generales |
+| `messages` | MAX | Mensajes directos |
+| `events` | HIGH | Recordatorios de eventos |
+| `cheers` | MAX | Brindis y celebraciones |
+| `promos` | DEFAULT | Promociones |
+| `silent` | LOW | Actualizaciones background |
+
+### Deep Linking
+
+```
+barlive://chat/{conversationId}
+barlive://social/post/{postId}
+barlive://perfil/usuario?userId={userId}
+barlive://detalle/evento?id={eventId}
+barlive://detalle/sala-virtual-enhanced?localId={localId}
+```
+
 ## 🎉 Ventajas del Development Build
 
 1. **Funcionalidad Completa**: Todas las features nativas disponibles
