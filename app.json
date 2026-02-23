@@ -2,83 +2,89 @@
 {
   "expo": {
     "name": "BarLive",
-    "slug": "BarLive",
+    "slug": "bar-live-app-qvcija",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/natively-dark.png",
+    "icon": "./assets/images/final_quest_240x240.png",
+    "scheme": "barlive",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/natively-dark.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#000000"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.barlive.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "BarLive necesita acceso a tu ubicación para mostrarte locales cercanos y eventos relevantes en tu zona, mejorando tu experiencia al descubrir lugares de interés.",
-        "NSCameraUsageDescription": "BarLive necesita acceso a tu cámara para que puedas tomar fotos y videos, enriqueciendo tus publicaciones y perfil en la comunidad.",
-        "NSMicrophoneUsageDescription": "BarLive necesita acceso a tu micrófono para grabar audio en videos, permitiéndote compartir experiencias más completas con otros usuarios."
+        "NSCameraUsageDescription": "Esta aplicación necesita acceso a la cámara para tomar fotos.",
+        "NSPhotoLibraryUsageDescription": "Esta aplicación necesita acceso a tu galería para seleccionar fotos.",
+        "NSLocationWhenInUseUsageDescription": "Esta aplicación necesita tu ubicación para mostrarte locales cercanos.",
+        "NSFaceIDUsageDescription": "Usamos Face ID para proteger tu cuenta."
+      },
+      "config": {
+        "googleMapsApiKey": "YOUR_IOS_GOOGLE_MAPS_API_KEY"
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/natively-dark.png",
-        "backgroundColor": "#000000"
+        "foregroundImage": "./assets/images/final_quest_240x240.png",
+        "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.barlive.app",
-      "softwareKeyboardLayoutMode": "resize",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "CAMERA",
-        "RECORD_AUDIO",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.POST_NOTIFICATIONS"
       ],
-      "googleServicesFile": "./google-services.json"
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_ANDROID_GOOGLE_MAPS_API_KEY"
+        }
+      }
     },
     "web": {
-      "favicon": "./assets/images/final_quest_240x240.png",
-      "bundler": "metro"
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/final_quest_240x240.png"
     },
     "plugins": [
-      "expo-font",
       "expo-router",
-      "expo-web-browser",
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/natively-dark.png",
-          "color": "#000000",
-          "mode": "production"
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#ffffff",
+          "mode": "production",
+          "sounds": []
         }
       ],
       [
-        "expo-location",
+        "expo-build-properties",
         {
-          "locationAlwaysAndWhenInUsePermission": "BarLive necesita acceso a tu ubicación para mostrarte locales cercanos y eventos relevantes en tu zona, mejorando tu experiencia al descubrir lugares de interés."
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "BarLive necesita acceso a tu cámara para que puedas tomar fotos y videos, enriqueciendo tus publicaciones y perfil en la comunidad.",
-          "cameraPermission": "BarLive necesita acceso a tu cámara para que puedas tomar fotos y videos, enriqueciendo tus publicaciones y perfil en la comunidad."
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0"
+          },
+          "ios": {
+            "deploymentTarget": "13.4"
+          }
         }
       ]
     ],
-    "scheme": "barlive",
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
-      "router": {},
+      "router": {
+        "origin": false
+      },
       "eas": {
-        "projectId": "REPLACE_WITH_YOUR_EAS_PROJECT_ID"
+        "projectId": "TU_NUEVO_ID_AQUÍ"
       }
     }
   }
