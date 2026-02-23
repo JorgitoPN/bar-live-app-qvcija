@@ -31,7 +31,7 @@ import { getEstadoLocal } from '../../utils/timeUtils';
 import { useEffectiveUser } from '../../hooks/useEffectiveUser';
 import { useFavorites } from '../../contexts/FavoritesContext';
 import { useMode } from '../../contexts/ModeContext';
-import { calcularDistancia } from '../../utils/locationUtils';
+import { calcularDistancia, getOptimizedUserLocation, getCachedLocation } from '../../utils/locationUtils';
 import ParsedText from '../../components/social/ParsedText';
 import ReviewsModal from '../../components/social/ReviewsModal';
 import CheckInModal from '../../components/detalle/CheckInModal';
@@ -317,21 +317,12 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL SCREEN v337.0 - COMPACT & ORGANIZED UX
+ * ✅ DETALLE LOCAL SCREEN v338.0 - FIXED getCachedLocation IMPORT
  * 
- * 🚨 NEW CHANGES v337.0:
- * - ✅ REDESIGNED: Virtual Room button - compact, responsive with community icon (groups)
- * - ✅ REORGANIZED: All action buttons in logical grid layout
- * - ✅ IMPROVED: Better visual hierarchy and cleaner spacing
- * - ✅ ENHANCED: Purple gradient matching BarLive colors but distinctive
- * - ✅ OPTIMIZED: Responsive design that adapts to screen sizes
- * - ✅ RESULT: Professional UX with clear action priorities
- * 
- * Button Organization Logic:
- * 1. Check-in (most important when local is open)
- * 2. Virtual Room (community feature, prominent but not overwhelming)
- * 3. Contact Actions (Call & Directions - practical needs)
- * 4. Social & Web (additional information)
+ * 🚨 CRITICAL FIX v338.0:
+ * - ✅ FIXED: Added getCachedLocation import from locationUtils
+ * - ✅ FIXED: Now properly uses cached location for instant response
+ * - ✅ RESULT: No more "Property 'getCachedLocation' doesn't exist" error
  */
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
@@ -440,7 +431,7 @@ export default function DetalleLocalScreen() {
     outputRange: [0.3, 0.8],
   });
 
-  console.log('[DetalleLocal v336.0] 🎭 Mode check:', {
+  console.log('[DetalleLocal v338.0] 🎭 Mode check:', {
     currentMode,
     activeProfileType,
     isClientMode,
@@ -451,12 +442,12 @@ export default function DetalleLocalScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[DetalleLocal v337.0] 🚀 Starting optimized location fetch');
+        console.log('[DetalleLocal v338.0] 🚀 Starting optimized location fetch');
         
         // ✅ STEP 1: Check cached location first (instant)
         const cached = getCachedLocation();
         if (cached) {
-          console.log('[DetalleLocal v337.0] ⚡ Using cached location (instant)');
+          console.log('[DetalleLocal v338.0] ⚡ Using cached location (instant)');
           setUserLocation({
             latitude: cached.latitude,
             longitude: cached.longitude,
@@ -468,17 +459,17 @@ export default function DetalleLocalScreen() {
         const location = await getOptimizedUserLocation();
         
         if (location) {
-          console.log('[DetalleLocal v337.0] ✅ Location obtained');
+          console.log('[DetalleLocal v338.0] ✅ Location obtained');
           setUserLocation({
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
           });
         } else {
-          console.log('[DetalleLocal v337.0] ⚠️ Location not available');
+          console.log('[DetalleLocal v338.0] ⚠️ Location not available');
           setUserLocation(null);
         }
       } catch (error: any) {
-        console.error('[DetalleLocal v337.0] ❌ Error getting location:', error?.message);
+        console.error('[DetalleLocal v338.0] ❌ Error getting location:', error?.message);
         setUserLocation(null);
       }
     })();
@@ -540,9 +531,9 @@ export default function DetalleLocalScreen() {
       });
 
       setCheckedInUsers(visibleUsers);
-      console.log('[DetalleLocal v336.0] ✅ Loaded checked-in users:', visibleUsers.length);
+      console.log('[DetalleLocal v338.0] ✅ Loaded checked-in users:', visibleUsers.length);
     } catch (error) {
-      console.error('[DetalleLocal v336.0] Error loading checked-in users:', error);
+      console.error('[DetalleLocal v338.0] Error loading checked-in users:', error);
     } finally {
       setLoadingCheckIns(false);
     }
@@ -560,13 +551,13 @@ export default function DetalleLocalScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[DetalleLocal v336.0] Error checking check-in status:', error);
+        console.error('[DetalleLocal v338.0] Error checking check-in status:', error);
         return;
       }
 
       setIsCheckedIn(!!data);
     } catch (error) {
-      console.error('[DetalleLocal v336.0] Error checking check-in status:', error);
+      console.error('[DetalleLocal v338.0] Error checking check-in status:', error);
     }
   }, [user, params.id]);
 
@@ -587,7 +578,7 @@ export default function DetalleLocalScreen() {
         .order('created_at', { ascending: false });
 
       if (barliveError) {
-        console.error('[DetalleLocal v336.0] Error loading Barlive reviews:', barliveError);
+        console.error('[DetalleLocal v338.0] Error loading Barlive reviews:', barliveError);
       }
 
       const { data: localData } = await supabase
@@ -608,7 +599,7 @@ export default function DetalleLocalScreen() {
       });
 
       setAllReviews(combinedReviews);
-      console.log('[DetalleLocal v336.0] ✅ Loaded unified reviews:', {
+      console.log('[DetalleLocal v338.0] ✅ Loaded unified reviews:', {
         barlive: barliveReviews?.length || 0,
         google: googleReviews.length,
         total: combinedReviews.length,
@@ -618,7 +609,7 @@ export default function DetalleLocalScreen() {
         const avg = barliveReviews.reduce((sum, r) => sum + r.rating, 0) / barliveReviews.length;
         setAverageRating(avg);
         
-        console.log('[DetalleLocal v336.0] 📊 Calculated average rating:', avg.toFixed(2), 'from', barliveReviews.length, 'reviews');
+        console.log('[DetalleLocal v338.0] 📊 Calculated average rating:', avg.toFixed(2), 'from', barliveReviews.length, 'reviews');
         
         const { error: updateError } = await supabase
           .from('locales')
@@ -626,18 +617,18 @@ export default function DetalleLocalScreen() {
           .eq('id', params.id);
 
         if (updateError) {
-          console.error('[DetalleLocal v336.0] ❌ Error updating rating:', updateError);
+          console.error('[DetalleLocal v338.0] ❌ Error updating rating:', updateError);
         } else {
-          console.log('[DetalleLocal v336.0] ✅ Rating updated in database');
+          console.log('[DetalleLocal v338.0] ✅ Rating updated in database');
         }
       } else if (localData?.google_rating) {
         setAverageRating(localData.google_rating);
-        console.log('[DetalleLocal v336.0] 📊 Using Google rating:', localData.google_rating);
+        console.log('[DetalleLocal v338.0] 📊 Using Google rating:', localData.google_rating);
       }
 
       setLoadingReviews(false);
     } catch (error) {
-      console.error('[DetalleLocal v336.0] Error loading reviews:', error);
+      console.error('[DetalleLocal v338.0] Error loading reviews:', error);
       setLoadingReviews(false);
     }
   }, [params.id]);
@@ -655,14 +646,14 @@ export default function DetalleLocalScreen() {
         .limit(3);
 
       if (error) {
-        console.error('[DetalleLocal v336.0] Error loading eventos:', error);
+        console.error('[DetalleLocal v338.0] Error loading eventos:', error);
         return;
       }
 
       setEventos(data || []);
       setLoadingEventos(false);
     } catch (error) {
-      console.error('[DetalleLocal v336.0] Error loading eventos:', error);
+      console.error('[DetalleLocal v338.0] Error loading eventos:', error);
       setLoadingEventos(false);
     }
   }, [params.id]);
@@ -673,12 +664,12 @@ export default function DetalleLocalScreen() {
       const { data, error } = await supabase.from('locales').select('*').eq('id', params.id).single();
 
       if (error) {
-        console.error('[DetalleLocal v336.0] Error loading local:', error);
+        console.error('[DetalleLocal v338.0] Error loading local:', error);
         setLoading(false);
         return;
       }
 
-      console.log('[DetalleLocal v336.0] ✅ Local loaded:', {
+      console.log('[DetalleLocal v338.0] ✅ Local loaded:', {
         id: data.id,
         nombre: data.nombre,
         propietario_id: data.propietario_id,
@@ -693,7 +684,7 @@ export default function DetalleLocalScreen() {
       checkUserCheckInStatus();
       loadCheckedInUsers();
     } catch (error) {
-      console.error('[DetalleLocal v336.0] Error:', error);
+      console.error('[DetalleLocal v338.0] Error:', error);
       setLoading(false);
     }
   }, [params.id, cargarReviewsUnificadas, cargarEventos, checkUserCheckInStatus, loadCheckedInUsers]);
@@ -718,7 +709,7 @@ export default function DetalleLocalScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         () => {
-          console.log('[DetalleLocal v336.0] 🔄 Reviews changed, reloading...');
+          console.log('[DetalleLocal v338.0] 🔄 Reviews changed, reloading...');
           cargarReviewsUnificadas();
         }
       )
@@ -743,7 +734,7 @@ export default function DetalleLocalScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         () => {
-          console.log('[DetalleLocal v336.0] Check-ins changed, reloading...');
+          console.log('[DetalleLocal v338.0] Check-ins changed, reloading...');
           loadCheckedInUsers();
           checkUserCheckInStatus();
         }
@@ -756,9 +747,9 @@ export default function DetalleLocalScreen() {
   }, [params.id, user, loadCheckedInUsers, checkUserCheckInStatus]);
 
   const handleClose = useCallback(() => {
-    console.log('[DetalleLocal v336.0] 🔙 Close button pressed - using fast navigation');
+    console.log('[DetalleLocal v338.0] 🔙 Close button pressed - using fast navigation');
     router.back();
-    console.log('[DetalleLocal v336.0] ✅ Fast navigation executed - scroll position preserved');
+    console.log('[DetalleLocal v338.0] ✅ Fast navigation executed - scroll position preserved');
   }, [router]);
 
   const handleToggleFavorito = async (e: any) => {
@@ -843,7 +834,7 @@ export default function DetalleLocalScreen() {
         title: local?.nombre || 'Local en BarLive',
       });
     } catch (error) {
-      console.error('[DetalleLocal v336.0] Error sharing:', error);
+      console.error('[DetalleLocal v338.0] Error sharing:', error);
     }
   };
 
@@ -914,7 +905,7 @@ export default function DetalleLocalScreen() {
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
               loadCheckedInUsers();
             } catch (error) {
-              console.error('[DetalleLocal v336.0] Error checking out:', error);
+              console.error('[DetalleLocal v338.0] Error checking out:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -924,7 +915,7 @@ export default function DetalleLocalScreen() {
   };
 
   const handleClaimLocal = () => {
-    console.log('[DetalleLocal v336.0] User tapped Claim Local button');
+    console.log('[DetalleLocal v338.0] User tapped Claim Local button');
     router.push({
       pathname: '/solicitudes/solicitar-propiedad',
       params: { localId: params.id, type: 'reclamar_local' },
@@ -932,7 +923,7 @@ export default function DetalleLocalScreen() {
   };
 
   const handleLoadMoreReviews = () => {
-    console.log('[DetalleLocal v336.0] 📄 Loading more reviews...');
+    console.log('[DetalleLocal v338.0] 📄 Loading more reviews...');
     setDisplayedReviewsCount(prev => prev + 5);
   };
 
@@ -951,7 +942,7 @@ export default function DetalleLocalScreen() {
       return;
     }
 
-    console.log('[DetalleLocal v336.0] 🚀 Navigating to virtual room from local details');
+    console.log('[DetalleLocal v338.0] 🚀 Navigating to virtual room from local details');
     router.push({ 
       pathname: '/detalle/sala-virtual-enhanced', 
       params: { 

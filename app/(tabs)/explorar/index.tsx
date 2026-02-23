@@ -1,7 +1,7 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🏆 EXPLORAR SCREEN v450.0 - SENIOR-LEVEL COMPLETE REFACTORING
+ * 🏆 EXPLORAR SCREEN v451.0 - FIXED RPC PARAMETER NAMES
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * ARCHITECTURE PRINCIPLES:
@@ -11,13 +11,18 @@
  * ✅ Type Safety: Comprehensive TypeScript interfaces
  * ✅ Clean Code: DRY, SOLID principles, No technical debt
  * 
- * CRITICAL FIXES v450.0:
- * - ✅ FIXED: Parsing error (removed inline dynamic import)
- * - ✅ REMOVED: All redundant code and patches
- * - ✅ SIMPLIFIED: State management (removed unnecessary complexity)
- * - ✅ OPTIMIZED: Rendering performance (proper memoization)
- * - ✅ CLEANED: All console logs and debug code
- * - ✅ STANDARDIZED: Consistent naming and structure
+ * CRITICAL FIXES v451.0:
+ * - ✅ FIXED: RPC parameter names now match database function signature
+ * - ✅ FIXED: Changed user_latitude → p_user_lat, user_longitude → p_user_lng
+ * - ✅ FIXED: Changed categoria_filter → p_category_filter
+ * - ✅ FIXED: Changed servicios_filter → p_servicios_filter
+ * - ✅ FIXED: Changed ambiente_filter → p_ambiente_filter
+ * - ✅ FIXED: Changed clientela_filter → p_clientela_filter
+ * - ✅ FIXED: Changed comunidad_filter → p_comunidad_filter
+ * - ✅ FIXED: Changed provincia_filter → p_provincia_filter
+ * - ✅ FIXED: Changed distancia_max → p_max_distance_km
+ * - ✅ FIXED: Changed page_number/page_size → p_offset/p_limit
+ * - ✅ REMOVED: search_query (not in DB function signature)
  * 
  * DATA FLOW:
  * 1. User Location → getOptimizedUserLocation()
@@ -197,7 +202,7 @@ export default function ExplorarScreen() {
   }, []);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // DATA LOADING
+  // DATA LOADING - FIXED v451.0: Correct RPC parameter names
   // ═══════════════════════════════════════════════════════════════════════════
   
   const loadVenues = useCallback(async (pageNum: number, isRefresh: boolean = false) => {
@@ -210,22 +215,29 @@ export default function ExplorarScreen() {
     }
     
     try {
+      console.log('[ExplorarScreen v451.0] 🔍 Loading venues with correct RPC params');
+      
+      // ✅ FIXED: Use correct parameter names matching DB function signature
       const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity', {
-        user_latitude: userLocation?.latitude || 40.4168,
-        user_longitude: userLocation?.longitude || -3.7038,
-        page_number: pageNum,
-        page_size: ITEMS_PER_PAGE,
-        categoria_filter: selectedCategory === 'todos' ? null : selectedCategory,
-        search_query: debouncedQuery || null,
-        servicios_filter: globalFiltros.servicios?.length > 0 ? globalFiltros.servicios : null,
-        ambiente_filter: globalFiltros.ambiente?.length > 0 ? globalFiltros.ambiente : null,
-        clientela_filter: globalFiltros.clientela?.length > 0 ? globalFiltros.clientela : null,
-        comunidad_filter: globalFiltros.comunidad || null,
-        provincia_filter: globalFiltros.provincia || null,
-        distancia_max: globalFiltros.distancia || null,
+        p_user_lat: userLocation?.latitude || 40.4168,
+        p_user_lng: userLocation?.longitude || -3.7038,
+        p_offset: (pageNum - 1) * ITEMS_PER_PAGE,
+        p_limit: ITEMS_PER_PAGE,
+        p_category_filter: selectedCategory === 'todos' ? null : [selectedCategory],
+        p_servicios_filter: globalFiltros.servicios?.length > 0 ? globalFiltros.servicios : null,
+        p_ambiente_filter: globalFiltros.ambiente?.length > 0 ? globalFiltros.ambiente : null,
+        p_clientela_filter: globalFiltros.clientela?.length > 0 ? globalFiltros.clientela : null,
+        p_comunidad_filter: globalFiltros.comunidad || null,
+        p_provincia_filter: globalFiltros.provincia || null,
+        p_max_distance_km: globalFiltros.distancia || null,
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('[ExplorarScreen v451.0] ❌ RPC Error:', error);
+        throw error;
+      }
+      
+      console.log('[ExplorarScreen v451.0] ✅ Loaded', data?.length || 0, 'venues');
       
       const venues = data || [];
       
@@ -239,7 +251,7 @@ export default function ExplorarScreen() {
       setHasMore(venues.length === ITEMS_PER_PAGE);
       
     } catch (error: any) {
-      console.error('[ExplorarScreen] Error loading venues:', error);
+      console.error('[ExplorarScreen v451.0] ❌ Error loading venues:', error);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -277,8 +289,15 @@ export default function ExplorarScreen() {
   // ═══════════════════════════════════════════════════════════════════════════
   
   const filteredVenues = useMemo(() => {
-    return allVenues;
-  }, [allVenues]);
+    // Apply client-side search filter if needed
+    if (!debouncedQuery) return allVenues;
+    
+    const query = debouncedQuery.toLowerCase();
+    return allVenues.filter(venue => 
+      venue.nombre.toLowerCase().includes(query) ||
+      venue.direccion?.toLowerCase().includes(query)
+    );
+  }, [allVenues, debouncedQuery]);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
