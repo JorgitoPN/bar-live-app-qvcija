@@ -1,8 +1,14 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🏆 EXPLORAR SCREEN v452.0 - VERIFIED RPC PARAMETERS & LOCATION
+ * 🏆 EXPLORAR SCREEN v453.0 - FIXED BADGES, DISTANCE & SORTING
  * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * CRITICAL FIXES v453.0:
+ * ✅ BADGE INFO: Now calculates status from horarios_completos using getEstadoLocal()
+ * ✅ DISTANCE DISPLAY: Fixed mapping from backend distance_km to frontend distancia
+ * ✅ FIELD MAPPING: Corrected esta_abierto, galeria_urls, latitud/longitud mapping
+ * ✅ COORDINATES: Added fallback for coordenadas from latitud/longitud
  * 
  * ARCHITECTURE PRINCIPLES:
  * ✅ Single Source of Truth: Backend RPC (get_sorted_locales_by_proximity)
@@ -11,11 +17,12 @@
  * ✅ Type Safety: Comprehensive TypeScript interfaces
  * ✅ Clean Code: DRY, SOLID principles, No technical debt
  * 
- * CRITICAL FIXES v452.0:
- * - ✅ VERIFIED: All RPC parameters use correct p_ prefix
- * - ✅ VERIFIED: Location utilities properly imported and used
- * - ✅ VERIFIED: getOptimizedUserLocation() handles all edge cases
- * - ✅ VERIFIED: Backend RPC function signature matches frontend calls
+ * BACKEND RESPONSE STRUCTURE:
+ * - esta_abierto (boolean) - Current open/closed status
+ * - distance_km (number) - Distance from user in kilometers
+ * - horarios_completos (object) - Full schedule data for badge calculation
+ * - galeria_urls (array) - Image URLs
+ * - latitud, longitud (numbers) - Coordinates
  * 
  * RPC PARAMETERS (VERIFIED CORRECT):
  * - p_user_lat, p_user_lng (user location)
@@ -31,7 +38,7 @@
  * DATA FLOW:
  * 1. User Location → getOptimizedUserLocation()
  * 2. Backend RPC → get_sorted_locales_by_proximity (5-tier sorting + status)
- * 3. Frontend → Display only (no re-sorting, no status recalculation)
+ * 3. Frontend → Calculate badge from horarios_completos, display distance_km
  * 4. Filters → Search query only (backend handles all other filters)
  * 
  * ═══════════════════════════════════════════════════════════════════════════
@@ -77,6 +84,7 @@ import {
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import { getOptimizedUserLocation } from '@/utils/locationUtils';
 import { useDebounce } from '@/hooks/useDebounce';
+import { getEstadoLocal } from '@/utils/timeUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES & INTERFACES
@@ -88,21 +96,20 @@ interface Venue {
   direccion: string;
   imagenes?: string[];
   imagen_url?: string;
-  estaAbierto?: boolean;
+  galeria_urls?: string[];
+  esta_abierto?: boolean;
   destacado?: boolean;
-  distancia?: number;
+  distance_km?: number;
   rating?: number;
   google_rating?: number;
   barlive_types?: string[];
   barlive_type?: string;
-  coordenadas: {
+  latitud?: number;
+  longitud?: number;
+  horarios_completos?: Record<string, string[]>;
+  coordenadas?: {
     lat: number;
     lng: number;
-  };
-  estadoCompleto?: {
-    badge: string;
-    estaAbierto: boolean;
-    claseBg?: string;
   };
 }
 
@@ -343,8 +350,20 @@ export default function ExplorarScreen() {
   // ═══════════════════════════════════════════════════════════════════════════
   
   const getBadgeInfo = useCallback((venue: Venue): BadgeInfo => {
-    if (venue.estadoCompleto) {
-      const estado = venue.estadoCompleto;
+    // ✅ CRITICAL FIX v453.0: Calculate status from horarios_completos
+    // Backend returns esta_abierto (boolean) and horarios_completos (schedule data)
+    // We need to calculate the full status with badge text on the frontend
+    
+    console.log('[ExplorarScreen v453.0] 🏷️ Calculating badge for:', venue.nombre);
+    console.log('[ExplorarScreen v453.0] 📊 Data:', {
+      esta_abierto: venue.esta_abierto,
+      has_horarios: !!venue.horarios_completos,
+      horarios_keys: venue.horarios_completos ? Object.keys(venue.horarios_completos) : []
+    });
+    
+    // If we have schedule data, calculate the full status
+    if (venue.horarios_completos && Object.keys(venue.horarios_completos).length > 0) {
+      const estado = getEstadoLocal({ horarios_completos: venue.horarios_completos });
       
       const colorMap: Record<string, string> = {
         'bg-green-500': '#22C55E',
@@ -354,15 +373,22 @@ export default function ExplorarScreen() {
         'bg-gray-400': '#9CA3AF',
       };
       
+      console.log('[ExplorarScreen v453.0] ✅ Status calculated:', {
+        badge: estado.badge,
+        color: estado.claseBg,
+        isOpen: estado.estaAbierto
+      });
+      
       return {
         text: estado.badge,
         color: colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF',
       };
     }
     
-    if (venue.estaAbierto === true) {
+    // ✅ Fallback: Use esta_abierto if no schedule data
+    if (venue.esta_abierto === true) {
       return { text: 'Abierto ahora', color: '#22C55E' };
-    } else if (venue.estaAbierto === false) {
+    } else if (venue.esta_abierto === false) {
       return { text: 'Cerrado ahora', color: '#EF4444' };
     } else {
       return { text: 'Sin info de horario', color: '#9CA3AF' };
@@ -370,11 +396,12 @@ export default function ExplorarScreen() {
   }, []);
 
   const getShouldDimImage = useCallback((venue: Venue): boolean => {
-    if (venue.estadoCompleto) {
-      return venue.estadoCompleto.estaAbierto === false && 
-             !venue.estadoCompleto.badge.includes('pronto');
+    // ✅ v453.0: Calculate from horarios_completos if available
+    if (venue.horarios_completos && Object.keys(venue.horarios_completos).length > 0) {
+      const estado = getEstadoLocal({ horarios_completos: venue.horarios_completos });
+      return estado.estaAbierto === false && !estado.badge.includes('pronto');
     }
-    return venue.estaAbierto === false;
+    return venue.esta_abierto === false;
   }, []);
 
   const getCategoriasAMostrar = useCallback((venue: Venue): string[] => {
@@ -414,9 +441,12 @@ export default function ExplorarScreen() {
 
   const handleComoLlegar = useCallback((venue: Venue, e: any) => {
     e.stopPropagation();
-    const { lat, lng } = venue.coordenadas;
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-    Linking.openURL(url);
+    const lat = venue.coordenadas?.lat || venue.latitud;
+    const lng = venue.coordenadas?.lng || venue.longitud;
+    if (lat && lng) {
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+      Linking.openURL(url);
+    }
   }, []);
 
   const handlePerfilSocial = useCallback((venueId: string, e: any) => {
@@ -473,10 +503,14 @@ export default function ExplorarScreen() {
   }, []);
 
   const renderVenueCard = useCallback(({ item, index }: { item: Venue; index: number }) => {
-    const imagenPrincipal = item.imagenes?.[0] || item.imagen_url;
+    const imagenPrincipal = item.galeria_urls?.[0] || item.imagen_url;
     const isDestacado = item.destacado;
     const hasSocialProfile = false;
     const activeEvent = null;
+    
+    // ✅ v453.0: Map backend field names to frontend expectations
+    const distancia = item.distance_km;
+    const coordenadas = item.coordenadas || { lat: item.latitud || 0, lng: item.longitud || 0 };
     
     const venueIsFavorite = user ? isFavorite(item.id) : false;
     const badgeInfo = getBadgeInfo(item);
@@ -603,11 +637,11 @@ export default function ExplorarScreen() {
                   <Text style={[styles.comoLlegarText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>Cómo llegar</Text>
                 </View>
                 
-                {item.distancia !== null && item.distancia !== undefined && (
+                {distancia !== null && distancia !== undefined && (
                   <View style={styles.distanciaInButton}>
                     <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={iconSize} color={colors.headerText} />
                     <Text style={[styles.distanciaInButtonText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
-                      {item.distancia.toFixed(1)} km
+                      {distancia.toFixed(1)} km
                     </Text>
                   </View>
                 )}
