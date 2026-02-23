@@ -173,7 +173,6 @@ export default function ExplorarScreen() {
   const headerTranslateY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   const scrollDirection = useRef<'up' | 'down'>('up');
-  const headerTranslateY = useRef(new Animated.Value(0)).current;
   
   // ✅ v602: Header animation with smooth timing
   const animateHeader = useCallback((direction: 'up' | 'down') => {
