@@ -287,7 +287,6 @@ export default function ExplorarScreen() {
       
       console.log('[ExplorarScreen v600.0] 🔍 Final category filter:', {
         selectedCategory,
-        categoryForBackend,
         categoryFilter,
         willFilterByCategory: categoryFilter !== null
       });
