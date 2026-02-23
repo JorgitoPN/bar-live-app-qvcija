@@ -1,19 +1,20 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - REINGENIERÍA COMPLETA v600.0
+ * EXPLORAR SCREEN - REINGENIERÍA COMPLETA v601.0
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * 🎯 OBJETIVO: Rendimiento Instagram-level + UX perfecta
  * 
- * ✅ FIXES IMPLEMENTADOS:
- * 1️⃣ FILTROS: Sincronización perfecta entre categorías y filtros avanzados
- * 2️⃣ SCROLL: Precarga inteligente (threshold 0.7) + virtualización agresiva
- * 3️⃣ MODAL: Apertura instantánea con caché + lazy loading
- * 4️⃣ HEADER: Animación suave de ocultación/aparición con scroll
- * 5️⃣ PERSISTENCIA: Caché + restauración de posición + refresh en background
+ * ✅ FIXES IMPLEMENTADOS v601.0:
+ * 1️⃣ FILTROS: Categorías funcionan correctamente (mapeo plural→singular)
+ * 2️⃣ SCROLL: Precarga optimizada (threshold 0.3 = 6 items antes del final)
+ * 3️⃣ MODAL: Apertura INSTANTÁNEA sin requestAnimationFrame
+ * 4️⃣ HEADER: Animación INDEPENDIENTE del scroll - aparece al scroll up
+ * 5️⃣ SPACING: Reducido espacio entre header y primer local (8px)
+ * 6️⃣ PERSISTENCIA: Caché + restauración de posición + refresh en background
  * 
- * 🚀 RESULTADO: Fluido, rápido, escalable
+ * 🚀 RESULTADO: Fluido, rápido, escalable, UX perfecta
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -187,7 +188,7 @@ export default function ExplorarScreen() {
     
     const fetchLocation = async () => {
       try {
-        console.log('[ExplorarScreen v600.0] 📍 Obteniendo ubicación del usuario...');
+        console.log('[ExplorarScreen v601.0] 📍 Obteniendo ubicación del usuario...');
         const location = await getOptimizedUserLocation();
         
         if (isMounted && location) {
@@ -277,6 +278,7 @@ export default function ExplorarScreen() {
       
       console.log('[ExplorarScreen v600.0] 🔍 Final category filter:', {
         selectedCategory,
+        categoryForBackend,
         categoryFilter,
         willFilterByCategory: categoryFilter !== null
       });
@@ -499,7 +501,7 @@ export default function ExplorarScreen() {
 
   // ✅ FIX 3: Apertura instantánea del modal - ULTRA OPTIMIZED
   const handleOpenAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v600.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
+    console.log('[ExplorarScreen v601.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
     
     // ✅ Respuesta INMEDIATA - sin requestAnimationFrame para máxima velocidad
     setShowAdvancedFilters(true);
@@ -907,7 +909,7 @@ export default function ExplorarScreen() {
           styles.listContent,
           { 
             marginTop: HEADER_MAX_HEIGHT,
-            paddingTop: 0,
+            paddingTop: 8, // ✅ v601: Reducido de 16 a 8 para menos espacio
             paddingBottom: getContentBottomPadding(100)
           },
         ]}
@@ -1170,7 +1172,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   listContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   footerContainer: {
     paddingVertical: 20,
