@@ -1,19 +1,20 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - REINGENIERÍA COMPLETA v600.0
+ * EXPLORAR SCREEN - REINGENIERÍA COMPLETA v601.0
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * 🎯 OBJETIVO: Rendimiento Instagram-level + UX perfecta
  * 
- * ✅ FIXES IMPLEMENTADOS:
- * 1️⃣ FILTROS: Sincronización perfecta entre categorías y filtros avanzados
- * 2️⃣ SCROLL: Precarga inteligente (threshold 0.7) + virtualización agresiva
- * 3️⃣ MODAL: Apertura instantánea con caché + lazy loading
- * 4️⃣ HEADER: Animación suave de ocultación/aparición con scroll
- * 5️⃣ PERSISTENCIA: Caché + restauración de posición + refresh en background
+ * ✅ FIXES IMPLEMENTADOS v601.0:
+ * 1️⃣ FILTROS: Categorías funcionan correctamente (mapeo plural→singular)
+ * 2️⃣ SCROLL: Precarga optimizada (threshold 0.3 = 6 items antes del final)
+ * 3️⃣ MODAL: Apertura INSTANTÁNEA sin requestAnimationFrame
+ * 4️⃣ HEADER: Animación INDEPENDIENTE del scroll - aparece al scroll up
+ * 5️⃣ SPACING: Reducido espacio entre header y primer local (8px)
+ * 6️⃣ PERSISTENCIA: Caché + restauración de posición + refresh en background
  * 
- * 🚀 RESULTADO: Fluido, rápido, escalable
+ * 🚀 RESULTADO: Fluido, rápido, escalable, UX perfecta
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -92,7 +93,7 @@ interface Category {
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 280;
 const HEADER_MIN_HEIGHT = 0;
 const ITEMS_PER_PAGE = 20;
-const PRELOAD_THRESHOLD = 0.5; // ✅ OPTIMIZADO: Precargar cuando quedan 10 items (50% de 20)
+const PRELOAD_THRESHOLD = 0.3; // ✅ OPTIMIZADO v601: Precargar cuando quedan 6 items (30% de 20)
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 const CATEGORIAS: Category[] = [
@@ -167,16 +168,21 @@ export default function ExplorarScreen() {
   const flatListRef = useRef<FlatList>(null);
   const debouncedQuery = useDebounce(searchQuery, 500);
   
-  // ✅ FIX 4: Animated header - COMPLETE HIDE including categories
+  // ✅ FIX 4 v601: Animated header - INDEPENDENT from scroll, controlled by scroll direction
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
-  const scrollDirection = useRef<'up' | 'down'>('down');
+  const scrollDirection = useRef<'up' | 'down'>('up');
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
   
-  const headerTranslateY = scrollY.interpolate({
-    inputRange: [0, HEADER_MAX_HEIGHT],
-    outputRange: [0, -HEADER_MAX_HEIGHT],
-    extrapolate: 'clamp',
-  });
+  // ✅ v601: Header animation controlled independently
+  const animateHeader = useCallback((direction: 'up' | 'down') => {
+    Animated.spring(headerTranslateY, {
+      toValue: direction === 'down' ? -HEADER_MAX_HEIGHT : 0,
+      useNativeDriver: true,
+      tension: 100,
+      friction: 10,
+    }).start();
+  }, [headerTranslateY]);
 
   // ✅ FIX 5: Cache key para persistencia
   const cacheKey = useMemo(() => {
@@ -192,7 +198,7 @@ export default function ExplorarScreen() {
     
     const fetchLocation = async () => {
       try {
-        console.log('[ExplorarScreen v600.0] 📍 Obteniendo ubicación del usuario...');
+        console.log('[ExplorarScreen v601.0] 📍 Obteniendo ubicación del usuario...');
         const location = await getOptimizedUserLocation();
         
         if (isMounted && location) {
@@ -254,11 +260,20 @@ export default function ExplorarScreen() {
     try {
       console.log('[ExplorarScreen v600.0] 🔍 Cargando locales - Página:', pageNum);
       
-      // ✅ FIX 1: Usar selectedCategory correctamente - FIXED LOGIC
-      const categoryFilter = !selectedCategory || selectedCategory === 'todos' ? null : [selectedCategory];
+      // ✅ FIX 1 v601: Usar selectedCategory correctamente - FIXED LOGIC
+      // ✅ v601: Mapear categorías plurales a singulares para el backend
+      let categoryForBackend = selectedCategory;
+      if (selectedCategory === 'discotecas') categoryForBackend = 'discoteca';
+      if (selectedCategory === 'pubs') categoryForBackend = 'pub';
+      if (selectedCategory === 'bares') categoryForBackend = 'bar';
+      if (selectedCategory === 'restaurantes') categoryForBackend = 'restaurante';
+      if (selectedCategory === 'cafeterias') categoryForBackend = 'cafe';
       
-      console.log('[ExplorarScreen v600.0] 🔍 Category filter:', {
+      const categoryFilter = !categoryForBackend || categoryForBackend === 'todos' ? null : [categoryForBackend];
+      
+      console.log('[ExplorarScreen v601.0] 🔍 Category filter:', {
         selectedCategory,
+        categoryForBackend,
         categoryFilter,
         willFilterByCategory: categoryFilter !== null
       });
@@ -474,14 +489,12 @@ export default function ExplorarScreen() {
     router.push('/solicitudes/solicitar-propiedad-v2');
   }, [user, router]);
 
-  // ✅ FIX 3: Apertura instantánea del modal - OPTIMIZED
+  // ✅ FIX 3 v601: Apertura instantánea del modal - ULTRA OPTIMIZED
   const handleOpenAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v600.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
+    console.log('[ExplorarScreen v601.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
     
-    // ✅ Respuesta INMEDIATA - sin esperar nada
-    requestAnimationFrame(() => {
-      setShowAdvancedFilters(true);
-    });
+    // ✅ v601: Respuesta INMEDIATA - sin requestAnimationFrame
+    setShowAdvancedFilters(true);
   }, []);
 
   const handleCloseAdvancedFilters = useCallback(() => {
@@ -634,21 +647,28 @@ export default function ExplorarScreen() {
 
   const modeIcon = getModeIcon();
 
-  // ✅ FIX 4: Scroll handler para header animado - BIDIRECTIONAL
+  // ✅ FIX 4 v601: Scroll handler para header animado - BIDIRECTIONAL with animation
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     { 
       useNativeDriver: true,
       listener: (event: any) => {
         const currentScrollY = event.nativeEvent.contentOffset.y;
+        const diff = currentScrollY - lastScrollY.current;
         
-        // Detectar dirección del scroll
-        if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
+        // ✅ v601: Detectar dirección del scroll con threshold
+        if (diff > 10 && currentScrollY > 100) {
           // Scroll hacia abajo - ocultar header
-          scrollDirection.current = 'down';
-        } else if (currentScrollY < lastScrollY.current) {
+          if (scrollDirection.current !== 'down') {
+            scrollDirection.current = 'down';
+            animateHeader('down');
+          }
+        } else if (diff < -10) {
           // Scroll hacia arriba - mostrar header
-          scrollDirection.current = 'up';
+          if (scrollDirection.current !== 'up') {
+            scrollDirection.current = 'up';
+            animateHeader('up');
+          }
         }
         
         lastScrollY.current = currentScrollY;
@@ -871,7 +891,7 @@ export default function ExplorarScreen() {
           styles.listContent,
           { 
             marginTop: HEADER_MAX_HEIGHT,
-            paddingTop: 0,
+            paddingTop: 8, // ✅ v601: Reducido de 16 a 8 para menos espacio
             paddingBottom: getContentBottomPadding(100)
           },
         ]}
@@ -1134,7 +1154,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   listContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   footerContainer: {
     paddingVertical: 20,
