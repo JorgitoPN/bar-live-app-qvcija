@@ -85,17 +85,20 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v438.0 - CRITICAL FIX: SORTING & SCROLL STABILITY
+ * ✅ EXPLORAR SCREEN v439.0 - CRITICAL FIX: SORTING & SCROLL STABILITY (FINAL)
  * 
- * CRITICAL FIX v438.0 (2026-02-23):
+ * CRITICAL FIX v439.0 (2026-02-23):
  * - 🔧 FIXED: Featured closed venues appearing in open venues section
- *   - Changed from 5-tier to 3-tier sorting: Featured Open → Regular Open → All Closed
+ *   - Implemented STRICT 3-tier sorting: Featured Open → Regular Open → All Closed
  *   - Featured closed venues now ONLY appear after ALL regular open venues
+ *   - NO closed venue (featured or not) can appear before ANY open venue
  * - 🔧 FIXED: Screen jumping to top when reaching end of 20-item batch
- *   - Removed automatic scroll-to-top on data updates during scroll
- *   - Improved scroll position preservation during pagination
+ *   - Removed ALL automatic scroll-to-top behavior during pagination
+ *   - Scroll position now preserved during infinite scroll
+ *   - Only restores scroll when explicitly returning from detail view
  * 
  * Previous fixes:
+ * - v438.0: Initial sorting & scroll fixes (incomplete)
  * - v437.0: iOS Expo Go crash fix (background location tracking)
  * - v436.0: Scroll jumps and iOS crash (maintainVisibleContentPosition removed)
  * - v435.0: Scroll stability with state update prevention
@@ -220,7 +223,7 @@ export default function ExplorarScreen() {
   
   useEffect(() => {
     if (!mountedRef.current) {
-      console.log('[Explorar v438.0] 🚀 Component mounted - SORTING & SCROLL FIX APPLIED');
+      console.log('[Explorar v439.0] 🚀 Component mounted - STRICT 3-TIER SORTING & SCROLL FIX APPLIED');
       mountedRef.current = true;
     }
   }, []);
@@ -291,7 +294,7 @@ export default function ExplorarScreen() {
   
   useFocusEffect(
     useCallback(() => {
-      console.log('[Explorar v438.0] 🔄 Screen focused - checking if re-evaluation needed');
+      console.log('[Explorar v439.0] 🔄 Screen focused - checking if re-evaluation needed');
       
       // ✅ CRITICAL FIX: Create stable snapshot using IDs + status
       const createSnapshot = (locales: any[]) => {
@@ -323,33 +326,37 @@ export default function ExplorarScreen() {
           return local;
         });
         
-        // ✅ CRITICAL: Re-apply 5-tier sorting
+        // ✅ CRITICAL FIX v439.0: STRICT 3-TIER SORTING (Featured closed NEVER appear before regular open)
         const reSortedLocales = [...reEvaluatedLocales].sort((a: any, b: any) => {
           // Tier 1: Featured + Open (highest priority)
-          const aTier1 = a.destacado && a.estaAbierto;
-          const bTier1 = b.destacado && b.estaAbierto;
-          if (aTier1 && !bTier1) return -1;
-          if (!aTier1 && bTier1) return 1;
+          const aIsFeaturedOpen = a.destacado && a.estaAbierto;
+          const bIsFeaturedOpen = b.destacado && b.estaAbierto;
+          if (aIsFeaturedOpen && !bIsFeaturedOpen) return -1;
+          if (!aIsFeaturedOpen && bIsFeaturedOpen) return 1;
           
-          // Tier 2: Featured + Closed
-          const aTier2 = a.destacado && !a.estaAbierto;
-          const bTier2 = b.destacado && !b.estaAbierto;
-          if (aTier2 && !bTier2) return -1;
-          if (!aTier2 && bTier2) return 1;
+          // Tier 2: Regular + Open (MUST come before ANY closed venue)
+          const aIsRegularOpen = !a.destacado && a.estaAbierto;
+          const bIsRegularOpen = !b.destacado && b.estaAbierto;
+          if (aIsRegularOpen && !bIsRegularOpen) return -1;
+          if (!aIsRegularOpen && bIsRegularOpen) return 1;
           
-          // Tier 3: Regular + Open
-          const aTier3 = !a.destacado && a.estaAbierto;
-          const bTier3 = !b.destacado && b.estaAbierto;
-          if (aTier3 && !bTier3) return -1;
-          if (!aTier3 && bTier3) return 1;
+          // Tier 3: ALL CLOSED (featured and regular together at the end)
+          // If both are closed, featured comes first within closed section
+          const aIsClosed = !a.estaAbierto;
+          const bIsClosed = !b.estaAbierto;
           
-          // Tier 4: Regular + Closed
-          const aTier4 = !a.destacado && !a.estaAbierto;
-          const bTier4 = !b.destacado && !b.estaAbierto;
-          if (aTier4 && !bTier4) return -1;
-          if (!aTier4 && bTier4) return 1;
+          if (aIsClosed && bIsClosed) {
+            // Both closed - featured closed before regular closed
+            if (a.destacado && !b.destacado) return -1;
+            if (!a.destacado && b.destacado) return 1;
+            
+            // Same type (both featured closed or both regular closed) - sort by distance
+            if (a.distancia !== null && b.distancia !== null) {
+              return a.distancia - b.distancia;
+            }
+          }
           
-          // Tier 5: Within same tier, sort by distance
+          // Within same tier (both featured open or both regular open), sort by distance
           if (a.distancia !== null && b.distancia !== null) {
             return a.distancia - b.distancia;
           }
@@ -384,8 +391,8 @@ export default function ExplorarScreen() {
         }
       }
       
-      // ✅ v438.0: CRITICAL FIX - Only restore scroll position when returning from detail
-      // DON'T scroll to top automatically (causes jumps during pagination)
+      // ✅ v439.0: CRITICAL FIX - NEVER scroll automatically during pagination
+      // Only restore scroll position when explicitly returning from detail view
       if (isReturningFromDetail.current) {
         setTimeout(() => {
           flatListRef.current?.scrollToOffset({ 
@@ -395,7 +402,7 @@ export default function ExplorarScreen() {
         }, 150);
         isReturningFromDetail.current = false;
       }
-      // ✅ REMOVED: Automatic scroll to top on focus (was causing jumps during pagination)
+      // ✅ REMOVED: All automatic scroll-to-top behavior (was causing jumps during pagination)
       
       // Reset flag when screen loses focus
       return () => {
@@ -663,31 +670,37 @@ export default function ExplorarScreen() {
           };
         });
         
-        // ✅ CRITICAL FIX v438.0: STRICT 3-TIER SORTING (Featured closed NEVER mix with regular open)
+        // ✅ CRITICAL FIX v439.0: STRICT 3-TIER SORTING (Featured closed NEVER appear before regular open)
         const sortedLocales = transformedLocales.sort((a: any, b: any) => {
           // Tier 1: Featured + Open (highest priority)
-          const aTier1 = a.destacado && a.estaAbierto;
-          const bTier1 = b.destacado && b.estaAbierto;
-          if (aTier1 && !bTier1) return -1;
-          if (!aTier1 && bTier1) return 1;
+          const aIsFeaturedOpen = a.destacado && a.estaAbierto;
+          const bIsFeaturedOpen = b.destacado && b.estaAbierto;
+          if (aIsFeaturedOpen && !bIsFeaturedOpen) return -1;
+          if (!aIsFeaturedOpen && bIsFeaturedOpen) return 1;
           
-          // Tier 2: Regular + Open (BEFORE featured closed)
-          const aTier2 = !a.destacado && a.estaAbierto;
-          const bTier2 = !b.destacado && b.estaAbierto;
-          if (aTier2 && !bTier2) return -1;
-          if (!aTier2 && bTier2) return 1;
+          // Tier 2: Regular + Open (MUST come before ANY closed venue)
+          const aIsRegularOpen = !a.destacado && a.estaAbierto;
+          const bIsRegularOpen = !b.destacado && b.estaAbierto;
+          if (aIsRegularOpen && !bIsRegularOpen) return -1;
+          if (!aIsRegularOpen && bIsRegularOpen) return 1;
           
           // Tier 3: ALL CLOSED (featured and regular together at the end)
-          const aTier3 = !a.estaAbierto;
-          const bTier3 = !b.estaAbierto;
+          // If both are closed, featured comes first within closed section
+          const aIsClosed = !a.estaAbierto;
+          const bIsClosed = !b.estaAbierto;
           
-          // Within closed tier, featured first
-          if (aTier3 && bTier3) {
+          if (aIsClosed && bIsClosed) {
+            // Both closed - featured closed before regular closed
             if (a.destacado && !b.destacado) return -1;
             if (!a.destacado && b.destacado) return 1;
+            
+            // Same type (both featured closed or both regular closed) - sort by distance
+            if (a.distancia !== null && b.distancia !== null) {
+              return a.distancia - b.distancia;
+            }
           }
           
-          // Within same tier, sort by distance
+          // Within same tier (both featured open or both regular open), sort by distance
           if (a.distancia !== null && b.distancia !== null) {
             return a.distancia - b.distancia;
           }
@@ -789,33 +802,37 @@ export default function ExplorarScreen() {
           };
         });
 
-        // ✅ CRITICAL FIX: Re-apply 5-tier sorting after transformation
+        // ✅ CRITICAL FIX v439.0: STRICT 3-TIER SORTING (Featured closed NEVER appear before regular open)
         const sortedLocales = transformedLocales.sort((a: any, b: any) => {
           // Tier 1: Featured + Open (highest priority)
-          const aTier1 = a.destacado && a.estaAbierto;
-          const bTier1 = b.destacado && b.estaAbierto;
-          if (aTier1 && !bTier1) return -1;
-          if (!aTier1 && bTier1) return 1;
+          const aIsFeaturedOpen = a.destacado && a.estaAbierto;
+          const bIsFeaturedOpen = b.destacado && b.estaAbierto;
+          if (aIsFeaturedOpen && !bIsFeaturedOpen) return -1;
+          if (!aIsFeaturedOpen && bIsFeaturedOpen) return 1;
           
-          // Tier 2: Featured + Closed
-          const aTier2 = a.destacado && !a.estaAbierto;
-          const bTier2 = b.destacado && !b.estaAbierto;
-          if (aTier2 && !bTier2) return -1;
-          if (!aTier2 && bTier2) return 1;
+          // Tier 2: Regular + Open (MUST come before ANY closed venue)
+          const aIsRegularOpen = !a.destacado && a.estaAbierto;
+          const bIsRegularOpen = !b.destacado && b.estaAbierto;
+          if (aIsRegularOpen && !bIsRegularOpen) return -1;
+          if (!aIsRegularOpen && bIsRegularOpen) return 1;
           
-          // Tier 3: Regular + Open
-          const aTier3 = !a.destacado && a.estaAbierto;
-          const bTier3 = !b.destacado && b.estaAbierto;
-          if (aTier3 && !bTier3) return -1;
-          if (!aTier3 && bTier3) return 1;
+          // Tier 3: ALL CLOSED (featured and regular together at the end)
+          // If both are closed, featured comes first within closed section
+          const aIsClosed = !a.estaAbierto;
+          const bIsClosed = !b.estaAbierto;
           
-          // Tier 4: Regular + Closed
-          const aTier4 = !a.destacado && !a.estaAbierto;
-          const bTier4 = !b.destacado && !b.estaAbierto;
-          if (aTier4 && !bTier4) return -1;
-          if (!aTier4 && bTier4) return 1;
+          if (aIsClosed && bIsClosed) {
+            // Both closed - featured closed before regular closed
+            if (a.destacado && !b.destacado) return -1;
+            if (!a.destacado && b.destacado) return 1;
+            
+            // Same type (both featured closed or both regular closed) - sort by distance
+            if (a.distancia !== null && b.distancia !== null) {
+              return a.distancia - b.distancia;
+            }
+          }
           
-          // Tier 5: Within same tier, sort by distance
+          // Within same tier (both featured open or both regular open), sort by distance
           if (a.distancia !== null && b.distancia !== null) {
             return a.distancia - b.distancia;
           }
