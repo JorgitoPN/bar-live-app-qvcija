@@ -1,17 +1,17 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - REINGENIERÍA COMPLETA v601.0
+ * EXPLORAR SCREEN - REINGENIERÍA COMPLETA v602.0
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * 🎯 OBJETIVO: Rendimiento Instagram-level + UX perfecta
  * 
- * ✅ FIXES IMPLEMENTADOS v601.0:
- * 1️⃣ FILTROS: Categorías funcionan correctamente (mapeo plural→singular)
- * 2️⃣ SCROLL: Precarga optimizada (threshold 0.3 = 6 items antes del final)
+ * ✅ FIXES IMPLEMENTADOS v602.0:
+ * 1️⃣ HEADER: FIXED - Aparece correctamente al hacer scroll hacia arriba
+ * 2️⃣ SCROLL: OPTIMIZADO - Precarga cuando quedan 10 items (threshold 0.5)
  * 3️⃣ MODAL: Apertura INSTANTÁNEA sin requestAnimationFrame
- * 4️⃣ HEADER: Animación INDEPENDIENTE del scroll - aparece al scroll up
- * 5️⃣ SPACING: Reducido espacio entre header y primer local (8px)
+ * 4️⃣ SPACING: Reducido espacio entre header y primer local (4px)
+ * 5️⃣ FILTROS: Categorías funcionan correctamente (mapeo plural→singular)
  * 6️⃣ PERSISTENCIA: Caché + restauración de posición + refresh en background
  * 
  * 🚀 RESULTADO: Fluido, rápido, escalable, UX perfecta
@@ -93,7 +93,7 @@ interface Category {
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 280;
 const HEADER_MIN_HEIGHT = 0;
 const ITEMS_PER_PAGE = 20;
-const PRELOAD_THRESHOLD = 0.3; // ✅ OPTIMIZADO v601: Precargar cuando quedan 6 items (30% de 20)
+const PRELOAD_THRESHOLD = 0.5; // ✅ OPTIMIZADO v602: Precargar cuando quedan 10 items (50% de 20)
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 const CATEGORIAS: Category[] = [
@@ -168,19 +168,18 @@ export default function ExplorarScreen() {
   const flatListRef = useRef<FlatList>(null);
   const debouncedQuery = useDebounce(searchQuery, 500);
   
-  // ✅ FIX 4 v601: Animated header - INDEPENDENT from scroll, controlled by scroll direction
+  // ✅ FIX 4 v602: Animated header - FIXED to show on scroll up
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   const scrollDirection = useRef<'up' | 'down'>('up');
   const headerTranslateY = useRef(new Animated.Value(0)).current;
   
-  // ✅ v601: Header animation controlled independently
+  // ✅ v602: Header animation with smooth timing
   const animateHeader = useCallback((direction: 'up' | 'down') => {
-    Animated.spring(headerTranslateY, {
+    Animated.timing(headerTranslateY, {
       toValue: direction === 'down' ? -HEADER_MAX_HEIGHT : 0,
+      duration: 250,
       useNativeDriver: true,
-      tension: 100,
-      friction: 10,
     }).start();
   }, [headerTranslateY]);
 
@@ -335,11 +334,11 @@ export default function ExplorarScreen() {
     }
   }, [locationReady, userLocation, selectedCategory, debouncedQuery, globalFiltros, cacheKey]);
 
-  // ✅ FIX 2: PRELOAD SYSTEM - Cargar siguiente tanda cuando quedan 6 items (threshold 0.7)
+  // ✅ FIX 2 v602: PRELOAD SYSTEM - Cargar siguiente tanda cuando quedan 10 items (threshold 0.5)
   const loadMoreVenues = useCallback(() => {
     if (!isLoading && hasMore && allVenues.length >= ITEMS_PER_PAGE) {
       const nextPage = page + 1;
-      console.log('[ExplorarScreen v600.0] 🔄 Precargando siguiente tanda - Página:', nextPage);
+      console.log('[ExplorarScreen v602.0] 🔄 Precargando siguiente tanda - Página:', nextPage);
       setPage(nextPage);
       loadVenues(nextPage, false);
     }
@@ -489,11 +488,11 @@ export default function ExplorarScreen() {
     router.push('/solicitudes/solicitar-propiedad-v2');
   }, [user, router]);
 
-  // ✅ FIX 3 v601: Apertura instantánea del modal - ULTRA OPTIMIZED
+  // ✅ FIX 3 v602: Apertura instantánea del modal - ULTRA OPTIMIZED
   const handleOpenAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v601.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
+    console.log('[ExplorarScreen v602.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
     
-    // ✅ v601: Respuesta INMEDIATA - sin requestAnimationFrame
+    // ✅ v602: Respuesta INMEDIATA - sin requestAnimationFrame
     setShowAdvancedFilters(true);
   }, []);
 
@@ -647,7 +646,7 @@ export default function ExplorarScreen() {
 
   const modeIcon = getModeIcon();
 
-  // ✅ FIX 4 v601: Scroll handler para header animado - BIDIRECTIONAL with animation
+  // ✅ FIX 4 v602: Scroll handler para header animado - FIXED THRESHOLD
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     { 
@@ -656,14 +655,14 @@ export default function ExplorarScreen() {
         const currentScrollY = event.nativeEvent.contentOffset.y;
         const diff = currentScrollY - lastScrollY.current;
         
-        // ✅ v601: Detectar dirección del scroll con threshold
-        if (diff > 10 && currentScrollY > 100) {
+        // ✅ v602: Detectar dirección del scroll con threshold más sensible
+        if (diff > 5 && currentScrollY > 50) {
           // Scroll hacia abajo - ocultar header
           if (scrollDirection.current !== 'down') {
             scrollDirection.current = 'down';
             animateHeader('down');
           }
-        } else if (diff < -10) {
+        } else if (diff < -5) {
           // Scroll hacia arriba - mostrar header
           if (scrollDirection.current !== 'up') {
             scrollDirection.current = 'up';
@@ -891,7 +890,7 @@ export default function ExplorarScreen() {
           styles.listContent,
           { 
             marginTop: HEADER_MAX_HEIGHT,
-            paddingTop: 8, // ✅ v601: Reducido de 16 a 8 para menos espacio
+            paddingTop: 4, // ✅ v602: Reducido de 8 a 4 para menos espacio
             paddingBottom: getContentBottomPadding(100)
           },
         ]}
