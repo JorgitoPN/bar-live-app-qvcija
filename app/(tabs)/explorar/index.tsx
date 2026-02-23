@@ -85,21 +85,25 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v441.0 - MOBILE FIX: ANDROID/iOS SCROLL STABILITY
+ * ✅ EXPLORAR SCREEN v442.0 - 50KM VALIDATION FOR FEATURED VENUES
  * 
- * CRITICAL FIX v441.0 (2026-02-23):
+ * CRITICAL UPDATE v442.0 (2026-02-23):
+ * - 🎯 NEW SORTING LOGIC: Featured venues > 50km lose "Destacado" priority
+ *   - Tier 1: Featured Open (< 50km) - sorted by proximity
+ *   - Tier 2: Regular Open OR Featured > 50km - sorted by proximity
+ *   - Tier 3: No Schedule Info - sorted by proximity
+ *   - Tier 4: Featured Closed (< 50km) - priority within closed block
+ *   - Tier 5: Regular Closed OR Featured > 50km - sorted by proximity
+ * 
+ * Previous fixes (v441.0):
  * - 🔧 FIXED: Android/iOS scroll behavior issues
  *   - Added getItemLayout for consistent item heights (prevents jumps)
  *   - Optimized scroll thresholds for mobile (more conservative preload)
  *   - Platform-specific FlatList performance settings
- *   - Longer scroll-end delay on Android (200ms vs 100ms)
- *   - Improved key extraction with prefix to prevent conflicts
- *   - Adjusted scroll event throttle for Android (32ms vs 16ms)
  * 
  * Previous fixes (v440.0):
  * - 🔧 FIXED: Closed venues appearing among open venues
  *   - REMOVED all client-side sorting - backend 5-tier system is authoritative
- *   - Backend sorting: Tier 1 (Featured Open) → Tier 2 (Regular Open) → Tier 3 (No Schedule) → Tier 4 (Featured Closed) → Tier 5 (Regular Closed)
  * - 🔧 FIXED: Screen jumping to top during pagination
  *   - Removed ALL automatic scroll-to-top during data loading
  *   - FlatList maintains scroll position naturally during pagination
@@ -222,7 +226,8 @@ export default function ExplorarScreen() {
   
   useEffect(() => {
     if (!mountedRef.current) {
-      console.log(`[Explorar v441.0] 🚀 Component mounted on ${Platform.OS} - MOBILE SCROLL FIX APPLIED`);
+      console.log(`[Explorar v442.0] 🚀 Component mounted on ${Platform.OS} - 50KM VALIDATION ACTIVE`);
+      console.log(`[Explorar v442.0] 📊 Sorting Logic: Tier 1 (Featured Open <50km) → Tier 2 (Regular Open OR Featured >50km) → Tier 3 (No Schedule) → Tier 4 (Featured Closed <50km) → Tier 5 (Regular Closed OR Featured >50km)`);
       mountedRef.current = true;
     }
   }, []);
@@ -293,7 +298,7 @@ export default function ExplorarScreen() {
   
   useFocusEffect(
     useCallback(() => {
-      console.log('[Explorar v441.0] 🔄 Screen focused - checking if re-evaluation needed');
+      console.log('[Explorar v442.0] 🔄 Screen focused - checking if re-evaluation needed');
       
       // ✅ CRITICAL FIX v440.0: Create stable snapshot using IDs + tier + status
       const createSnapshot = (locales: any[]) => {
@@ -304,7 +309,7 @@ export default function ExplorarScreen() {
       const dataChanged = currentSnapshot !== localesSnapshotRef.current;
       
       if (allLocales.length > 0 && (dataChanged || !hasReEvaluatedRef.current)) {
-        console.log('[Explorar v441.0] 🔄 Re-evaluating', allLocales.length, 'locales (data changed:', dataChanged, ')');
+        console.log('[Explorar v442.0] 🔄 Re-evaluating', allLocales.length, 'locales (data changed:', dataChanged, ')');
         
         // Store snapshot BEFORE re-evaluation to prevent loop
         hasReEvaluatedRef.current = true;
@@ -336,7 +341,7 @@ export default function ExplorarScreen() {
         const statusChanged = newSnapshot !== currentSnapshot;
         
         if (statusChanged) {
-          console.log('[Explorar v441.0] 🔄 Status changed - scheduling update (NO re-sorting)');
+          console.log('[Explorar v442.0] 🔄 Status changed - scheduling update (NO re-sorting)');
           localesSnapshotRef.current = newSnapshot;
           
           // ✅ CRITICAL: If scrolling, store pending update
@@ -687,10 +692,10 @@ export default function ExplorarScreen() {
         p_offset: offset
       };
       
-      console.log('[Explorar v440.0] 📡 Fetching locales with FULL advanced filters...');
-      console.log('[Explorar v440.0] 📍 User location:', userLocation);
-      console.log('[Explorar v440.0] 🏷️ Category filter:', categoryFilter);
-      console.log('[Explorar v440.0] 📄 Offset:', offset, 'Limit:', ITEMS_PER_PAGE);
+      console.log('[Explorar v442.0] 📡 Fetching locales with 50km validation for featured venues...');
+      console.log('[Explorar v442.0] 📍 User location:', userLocation);
+      console.log('[Explorar v442.0] 🏷️ Category filter:', categoryFilter);
+      console.log('[Explorar v442.0] 📄 Offset:', offset, 'Limit:', ITEMS_PER_PAGE);
       
       const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity', rpcParams);
 
@@ -713,7 +718,7 @@ export default function ExplorarScreen() {
       errorCountRef.current = 0;
 
       if (data && data.length > 0) {
-        console.log('[Explorar v440.0] ✅ Received', data.length, 'locales from backend (already sorted by 5-tier system)');
+        console.log('[Explorar v442.0] ✅ Received', data.length, 'locales from backend (sorted by 5-tier system with 50km validation)');
         
         // ✅ CRITICAL FIX v440.0: Transform but DO NOT re-sort
         // Backend 5-tier sorting is authoritative and must be preserved
@@ -744,7 +749,7 @@ export default function ExplorarScreen() {
         // Tier 1: Featured Open → Tier 2: Regular Open → Tier 3: No Schedule → Tier 4: Featured Closed → Tier 5: Regular Closed
         // Client-side sorting breaks this order and causes closed venues to appear among open ones
 
-        console.log('[Explorar v440.0] ✅ Using backend-sorted data - First 5:', transformedLocales.slice(0, 5).map((l: any) => ({
+        console.log('[Explorar v442.0] ✅ Using backend-sorted data (50km validation) - First 5:', transformedLocales.slice(0, 5).map((l: any) => ({
           nombre: l.nombre,
           tier: l.sortingTier,
           destacado: l.destacado,
