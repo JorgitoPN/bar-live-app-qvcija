@@ -90,7 +90,7 @@ interface Category {
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 280;
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 240; // ✅ REDUCED: Menos espacio entre header y primer local
 const HEADER_MIN_HEIGHT = 0;
 const ITEMS_PER_PAGE = 20;
 const PRELOAD_THRESHOLD = 0.5; // ✅ OPTIMIZADO v602: Precargar cuando quedan 10 items (50% de 20)
@@ -170,6 +170,7 @@ export default function ExplorarScreen() {
   
   // ✅ FIX 4 v602: Animated header - FIXED to show on scroll up
   const scrollY = useRef(new Animated.Value(0)).current;
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   const scrollDirection = useRef<'up' | 'down'>('up');
   const headerTranslateY = useRef(new Animated.Value(0)).current;
@@ -258,19 +259,34 @@ export default function ExplorarScreen() {
     
     try {
       console.log('[ExplorarScreen v600.0] 🔍 Cargando locales - Página:', pageNum);
+      console.log('[ExplorarScreen v600.0] 🔍 Selected category:', selectedCategory);
+      console.log('[ExplorarScreen v600.0] 🔍 Selected category type:', typeof selectedCategory);
       
-      // ✅ FIX 1 v601: Usar selectedCategory correctamente - FIXED LOGIC
-      // ✅ v601: Mapear categorías plurales a singulares para el backend
-      let categoryForBackend = selectedCategory;
-      if (selectedCategory === 'discotecas') categoryForBackend = 'discoteca';
-      if (selectedCategory === 'pubs') categoryForBackend = 'pub';
-      if (selectedCategory === 'bares') categoryForBackend = 'bar';
-      if (selectedCategory === 'restaurantes') categoryForBackend = 'restaurante';
-      if (selectedCategory === 'cafeterias') categoryForBackend = 'cafe';
+      // ✅ FIX 1: Usar selectedCategory correctamente - ULTRA FIXED LOGIC
+      // CRITICAL: selectedCategory can be null, 'todos', or a category name like 'discotecas'
+      let categoryFilter = null;
       
-      const categoryFilter = !categoryForBackend || categoryForBackend === 'todos' ? null : [categoryForBackend];
+      if (selectedCategory && selectedCategory !== 'todos') {
+        // ✅ CRITICAL: Map frontend category names to database barlive_types
+        const categoryMapping: Record<string, string> = {
+          'discotecas': 'discoteca',
+          'pubs': 'pub',
+          'bares': 'bar',
+          'restaurantes': 'restaurante',
+          'cafeterias': 'cafeteria',
+        };
+        
+        const dbCategoryName = categoryMapping[selectedCategory] || selectedCategory;
+        categoryFilter = [dbCategoryName];
+        
+        console.log('[ExplorarScreen v600.0] 🔍 Category mapping:', {
+          frontend: selectedCategory,
+          database: dbCategoryName,
+          filter: categoryFilter
+        });
+      }
       
-      console.log('[ExplorarScreen v601.0] 🔍 Category filter:', {
+      console.log('[ExplorarScreen v600.0] 🔍 Final category filter:', {
         selectedCategory,
         categoryForBackend,
         categoryFilter,
@@ -405,22 +421,27 @@ export default function ExplorarScreen() {
 
   const handleCategoryChange = useCallback((categoryId: string) => {
     console.log('[ExplorarScreen v600.0] 🏷️ Cambiando categoría a:', categoryId);
+    console.log('[ExplorarScreen v600.0] 🏷️ Category ID received:', categoryId);
+    console.log('[ExplorarScreen v600.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
     
-    // ✅ FIX 2: Limpiar caché al cambiar categoría
-    dataCache.clear(cacheKey);
-    
-    // ✅ FIX 2: Actualizar categoría seleccionada
+    // ✅ FIX: Actualizar categoría seleccionada PRIMERO
     const newCategory = categoryId === 'todos' ? null : categoryId;
     setSelectedCategory(newCategory);
     
-    // ✅ FIX 2: Reset pagination
+    // ✅ FIX: Limpiar caché DESPUÉS de actualizar categoría
+    const newCacheKey = `explorar-${newCategory}-${JSON.stringify(globalFiltros)}-${debouncedQuery}`;
+    dataCache.clear(newCacheKey);
+    
+    // ✅ FIX: Reset pagination y datos
     setPage(1);
     setHasMore(true);
     setAllVenues([]);
     
-    // ✅ FIX 2: Scroll to top
+    // ✅ FIX: Scroll to top
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-  }, [setSelectedCategory, cacheKey]);
+    
+    console.log('[ExplorarScreen v600.0] ✅ Category changed successfully');
+  }, [setSelectedCategory, globalFiltros, debouncedQuery]);
 
   const clearFilters = useCallback(() => {
     console.log('[ExplorarScreen v600.0] 🧹 Limpiando filtros...');
@@ -660,13 +681,21 @@ export default function ExplorarScreen() {
           // Scroll hacia abajo - ocultar header
           if (scrollDirection.current !== 'down') {
             scrollDirection.current = 'down';
-            animateHeader('down');
+            Animated.timing(headerTranslateY, {
+              toValue: -HEADER_MAX_HEIGHT,
+              duration: 250,
+              useNativeDriver: true,
+            }).start();
           }
         } else if (diff < -5) {
           // Scroll hacia arriba - mostrar header
           if (scrollDirection.current !== 'up') {
             scrollDirection.current = 'up';
-            animateHeader('up');
+            Animated.timing(headerTranslateY, {
+              toValue: 0,
+              duration: 250,
+              useNativeDriver: true,
+            }).start();
           }
         }
         
