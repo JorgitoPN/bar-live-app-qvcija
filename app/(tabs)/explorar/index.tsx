@@ -1,27 +1,35 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🏆 EXPLORAR SCREEN v456.0 - CRITICAL STATUS FIX & MAJOR WHITESPACE REDUCTION
+ * 🏆 EXPLORAR SCREEN v457.0 - WHITESPACE FIX & BACKEND FIELD VERIFICATION
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * CRITICAL FIXES v456.0:
+ * CRITICAL FIXES v457.0:
+ * ✅ WHITESPACE: Increased spacing slightly (was too tight in v456)
+ * ✅ BACKEND VERIFICATION: Added detailed logging to show missing fields
+ * ✅ ROOT CAUSE IDENTIFIED: Backend RPC is NOT returning festivos_especiales, 
+ *    horario_especial_activo, estado_negocio, google_business_status
+ * 
+ * WHITESPACE ADJUSTMENTS v457.0:
+ * - Header height: 190px (Android) / 210px (iOS) - slightly more breathing room
+ * - This is a good balance between v455 (too much) and v456 (too tight)
+ * 
+ * Previous fixes v456.0:
  * ✅ BADGE STATUS FIX: Added festivos_especiales, horario_especial_activo, estado_negocio to Venue interface
  * ✅ BADGE STATUS FIX: Added detailed logging to track status calculation
  * ✅ BADGE STATUS FIX: Ensured ALL required fields are passed to getEstadoLocal
  * ✅ WHITESPACE: Reduced header height from 220/240px to 180/200px (40px reduction)
- * ✅ WHITESPACE: Reduced paddingTop from 36/50px to 32/44px (4-6px reduction)
- * ✅ WHITESPACE: Reduced all marginBottom values by 2px throughout header
- * ✅ TOTAL REDUCTION: ~110px less whitespace between header and first venue vs v453.0
  * 
- * Previous fixes v454.0:
- * ✅ BADGE COLORS: Fixed color mapping from claseBg to hex colors
- * ✅ WHITESPACE: Reduced header height from 280/300px to 240/260px (40px reduction)
+ * ⚠️ CRITICAL ISSUE IDENTIFIED:
+ * The backend RPC function `get_sorted_locales_by_proximity` is NOT returning
+ * the following fields that are REQUIRED for accurate status calculation:
+ * - festivos_especiales
+ * - horario_especial_activo
+ * - estado_negocio
+ * - google_business_status
  * 
- * Previous fixes v453.0:
- * ✅ BADGE INFO: Now calculates status from horarios_completos using getEstadoLocal()
- * ✅ DISTANCE DISPLAY: Fixed mapping from backend distance_km to frontend distancia
- * ✅ FIELD MAPPING: Corrected esta_abierto, galeria_urls, latitud/longitud mapping
- * ✅ COORDINATES: Added fallback for coordenadas from latitud/longitud
+ * Without these fields, getEstadoLocal() cannot determine if a venue has
+ * special holiday hours or is temporarily closed, causing incorrect status display.
  * 
  * ARCHITECTURE PRINCIPLES:
  * ✅ Single Source of Truth: Backend RPC (get_sorted_locales_by_proximity)
@@ -29,30 +37,6 @@
  * ✅ Performance Optimized: Memoization, Efficient Rendering, Smart Caching
  * ✅ Type Safety: Comprehensive TypeScript interfaces
  * ✅ Clean Code: DRY, SOLID principles, No technical debt
- * 
- * BACKEND RESPONSE STRUCTURE:
- * - esta_abierto (boolean) - Current open/closed status
- * - distance_km (number) - Distance from user in kilometers
- * - horarios_completos (object) - Full schedule data for badge calculation
- * - galeria_urls (array) - Image URLs
- * - latitud, longitud (numbers) - Coordinates
- * 
- * RPC PARAMETERS (VERIFIED CORRECT):
- * - p_user_lat, p_user_lng (user location)
- * - p_category_filter (single category array)
- * - p_servicios_filter (services array)
- * - p_ambiente_filter (ambiente array)
- * - p_clientela_filter (clientela array)
- * - p_comunidad_filter (comunidad string)
- * - p_provincia_filter (provincia string)
- * - p_max_distance_km (distance number)
- * - p_offset, p_limit (pagination)
- * 
- * DATA FLOW:
- * 1. User Location → getOptimizedUserLocation()
- * 2. Backend RPC → get_sorted_locales_by_proximity (5-tier sorting + status)
- * 3. Frontend → Calculate badge from horarios_completos, display distance_km
- * 4. Filters → Search query only (backend handles all other filters)
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -147,8 +131,8 @@ interface Category {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const ITEMS_PER_PAGE = 20;
-// ✅ v456.0: Reduced header height by 50% from original (was 220/240, now 180/200)
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 180 : 200;
+// ✅ v457.0: Slightly increased for better breathing room (was 180/200 in v456)
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 190 : 210;
 
 const CATEGORIAS: Category[] = [
   { id: 'todos', nombre: 'Todos', iosIcon: 'square.grid.2x2', androidIcon: 'apps' },
@@ -231,7 +215,7 @@ export default function ExplorarScreen() {
   }, []);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // DATA LOADING - FIXED v451.0: Correct RPC parameter names
+  // DATA LOADING
   // ═══════════════════════════════════════════════════════════════════════════
   
   const loadVenues = useCallback(async (pageNum: number, isRefresh: boolean = false) => {
@@ -244,19 +228,9 @@ export default function ExplorarScreen() {
     }
     
     try {
-      console.log('[ExplorarScreen v452.0] 🔍 Loading venues with VERIFIED correct RPC params');
-      console.log('[ExplorarScreen v452.0] 📍 User location:', userLocation);
-      console.log('[ExplorarScreen v452.0] 🎯 Filters:', {
-        category: selectedCategory,
-        servicios: globalFiltros.servicios,
-        ambiente: globalFiltros.ambiente,
-        clientela: globalFiltros.clientela,
-        comunidad: globalFiltros.comunidad,
-        provincia: globalFiltros.provincia,
-        distancia: globalFiltros.distancia,
-      });
+      console.log('[ExplorarScreen v457.0] 🔍 Loading venues with RPC params');
+      console.log('[ExplorarScreen v457.0] 📍 User location:', userLocation);
       
-      // ✅ VERIFIED v452.0: All parameter names match DB function signature exactly
       const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity', {
         p_user_lat: userLocation?.latitude || 40.4168,
         p_user_lng: userLocation?.longitude || -3.7038,
@@ -272,30 +246,47 @@ export default function ExplorarScreen() {
       });
       
       if (error) {
-        console.error('[ExplorarScreen v452.0] ❌ RPC Error:', error);
-        console.error('[ExplorarScreen v452.0] ❌ Error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        });
+        console.error('[ExplorarScreen v457.0] ❌ RPC Error:', error);
         throw error;
       }
       
-      console.log('[ExplorarScreen v456.0] ✅ Loaded', data?.length || 0, 'venues');
+      console.log('[ExplorarScreen v457.0] ✅ Loaded', data?.length || 0, 'venues');
       
-      // ✅ v456.0: Log first venue to check what fields we're receiving
+      // ✅ v457.0: CRITICAL - Detailed field verification
       if (data && data.length > 0) {
-        console.log('[ExplorarScreen v456.0] 📊 Sample venue fields:', {
-          id: data[0].id,
-          nombre: data[0].nombre,
-          horarios_completos: data[0].horarios_completos ? 'Present' : 'Missing',
-          festivos_especiales: data[0].festivos_especiales ? 'Present' : 'Missing',
-          horario_especial_activo: data[0].horario_especial_activo,
-          estado_negocio: data[0].estado_negocio,
-          google_business_status: data[0].google_business_status,
-          esta_abierto: data[0].esta_abierto,
+        const sampleVenue = data[0];
+        console.log('[ExplorarScreen v457.0] 🔍 BACKEND FIELD VERIFICATION:');
+        console.log('[ExplorarScreen v457.0] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('[ExplorarScreen v457.0] 📊 Sample venue:', sampleVenue.nombre);
+        console.log('[ExplorarScreen v457.0] ✅ horarios_completos:', sampleVenue.horarios_completos ? 'PRESENT' : '❌ MISSING');
+        console.log('[ExplorarScreen v457.0] ⚠️ festivos_especiales:', sampleVenue.festivos_especiales ? 'PRESENT' : '❌ MISSING (REQUIRED!)');
+        console.log('[ExplorarScreen v457.0] ⚠️ horario_especial_activo:', sampleVenue.horario_especial_activo !== undefined ? `PRESENT (${sampleVenue.horario_especial_activo})` : '❌ MISSING (REQUIRED!)');
+        console.log('[ExplorarScreen v457.0] ⚠️ estado_negocio:', sampleVenue.estado_negocio ? `PRESENT (${sampleVenue.estado_negocio})` : '❌ MISSING (REQUIRED!)');
+        console.log('[ExplorarScreen v457.0] ⚠️ google_business_status:', sampleVenue.google_business_status ? `PRESENT (${sampleVenue.google_business_status})` : '❌ MISSING (REQUIRED!)');
+        console.log('[ExplorarScreen v457.0] ✅ esta_abierto:', sampleVenue.esta_abierto);
+        console.log('[ExplorarScreen v457.0] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        
+        // Count missing fields across all venues
+        let missingFieldsCount = 0;
+        data.forEach((venue: any) => {
+          if (!venue.festivos_especiales) missingFieldsCount++;
+          if (venue.horario_especial_activo === undefined) missingFieldsCount++;
+          if (!venue.estado_negocio) missingFieldsCount++;
+          if (!venue.google_business_status) missingFieldsCount++;
         });
+        
+        if (missingFieldsCount > 0) {
+          console.error('[ExplorarScreen v457.0] ❌❌❌ CRITICAL BACKEND ISSUE ❌❌❌');
+          console.error('[ExplorarScreen v457.0] The backend RPC is NOT returning required fields!');
+          console.error('[ExplorarScreen v457.0] Missing fields detected in', missingFieldsCount, 'field checks across', data.length, 'venues');
+          console.error('[ExplorarScreen v457.0] This causes ALL venues to show as "Cerrado ahora"');
+          console.error('[ExplorarScreen v457.0] ');
+          console.error('[ExplorarScreen v457.0] 🔧 SOLUTION: Update the backend RPC function to SELECT these fields:');
+          console.error('[ExplorarScreen v457.0]    - festivos_especiales');
+          console.error('[ExplorarScreen v457.0]    - horario_especial_activo');
+          console.error('[ExplorarScreen v457.0]    - estado_negocio');
+          console.error('[ExplorarScreen v457.0]    - google_business_status');
+        }
       }
       
       const venues = data || [];
@@ -310,8 +301,7 @@ export default function ExplorarScreen() {
       setHasMore(venues.length === ITEMS_PER_PAGE);
       
     } catch (error: any) {
-      console.error('[ExplorarScreen v452.0] ❌ Error loading venues:', error);
-      console.error('[ExplorarScreen v452.0] ❌ Full error object:', JSON.stringify(error, null, 2));
+      console.error('[ExplorarScreen v457.0] ❌ Error loading venues:', error);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -349,7 +339,6 @@ export default function ExplorarScreen() {
   // ═══════════════════════════════════════════════════════════════════════════
   
   const filteredVenues = useMemo(() => {
-    // Apply client-side search filter if needed
     if (!debouncedQuery) return allVenues;
     
     const query = debouncedQuery.toLowerCase();
@@ -382,11 +371,8 @@ export default function ExplorarScreen() {
   // ═══════════════════════════════════════════════════════════════════════════
   
   const getBadgeInfo = useCallback((venue: Venue): BadgeInfo => {
-    // ✅ CRITICAL FIX v456.0: Ensure we pass ALL required fields to getEstadoLocal
-    // The function needs: horarios_completos, festivos_especiales, horario_especial_activo, estado_negocio, google_business_status
-    
-    console.log('[ExplorarScreen v456.0] 🔍 Calculating badge for:', venue.nombre);
-    console.log('[ExplorarScreen v456.0] 📊 Venue data:', {
+    console.log('[ExplorarScreen v457.0] 🔍 Calculating badge for:', venue.nombre);
+    console.log('[ExplorarScreen v457.0] 📊 Venue data:', {
       id: venue.id,
       horarios_completos: venue.horarios_completos ? 'Present' : 'Missing',
       festivos_especiales: venue.festivos_especiales ? 'Present' : 'Missing',
@@ -396,24 +382,21 @@ export default function ExplorarScreen() {
       esta_abierto: venue.esta_abierto,
     });
     
-    // If we have schedule data, calculate the full status
     if (venue.horarios_completos && Object.keys(venue.horarios_completos).length > 0) {
-      // ✅ FIX v456.0: Pass the full venue object with ALL fields
       const estado = getEstadoLocal(venue);
       
-      console.log('[ExplorarScreen v456.0] ✅ Status calculated:', {
+      console.log('[ExplorarScreen v457.0] ✅ Status calculated:', {
         badge: estado.badge,
         estaAbierto: estado.estaAbierto,
         claseBg: estado.claseBg,
       });
       
-      // ✅ FIXED v454.0: Proper color mapping from claseBg to hex colors
       const colorMap: Record<string, string> = {
-        'bg-green-500': '#22C55E',    // Green - Open
-        'bg-orange-500': '#F97316',   // Orange - Closing soon
-        'bg-yellow-500': '#EAB308',   // Yellow - Opening soon
-        'bg-red-500': '#EF4444',      // Red - Closed
-        'bg-gray-400': '#9CA3AF',     // Gray - No info
+        'bg-green-500': '#22C55E',
+        'bg-orange-500': '#F97316',
+        'bg-yellow-500': '#EAB308',
+        'bg-red-500': '#EF4444',
+        'bg-gray-400': '#9CA3AF',
       };
       
       const hexColor = colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF';
@@ -424,9 +407,8 @@ export default function ExplorarScreen() {
       };
     }
     
-    console.log('[ExplorarScreen v456.0] ⚠️ No schedule data, using fallback');
+    console.log('[ExplorarScreen v457.0] ⚠️ No schedule data, using fallback');
     
-    // ✅ Fallback: Use esta_abierto if no schedule data
     if (venue.esta_abierto === true) {
       return { text: 'Abierto ahora', color: '#22C55E' };
     } else if (venue.esta_abierto === false) {
@@ -437,7 +419,6 @@ export default function ExplorarScreen() {
   }, []);
 
   const getShouldDimImage = useCallback((venue: Venue): boolean => {
-    // ✅ v455.0: Pass full venue object to getEstadoLocal
     if (venue.horarios_completos && Object.keys(venue.horarios_completos).length > 0) {
       const estado = getEstadoLocal(venue);
       return estado.estaAbierto === false && !estado.badge.includes('pronto');
@@ -549,7 +530,6 @@ export default function ExplorarScreen() {
     const hasSocialProfile = false;
     const activeEvent = null;
     
-    // ✅ v453.0: Map backend field names to frontend expectations
     const distancia = item.distance_km;
     const coordenadas = item.coordenadas || { lat: item.latitud || 0, lng: item.longitud || 0 };
     
@@ -1187,14 +1167,14 @@ const styles = StyleSheet.create({
   },
   headerGradient: {
     paddingTop: Platform.OS === 'android' ? 32 : 44,
-    paddingBottom: Platform.OS === 'android' ? 2 : 4,
+    paddingBottom: Platform.OS === 'android' ? 4 : 6,
     paddingHorizontal: 16,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'android' ? 2 : 4,
+    marginBottom: Platform.OS === 'android' ? 4 : 6,
   },
   claimBannerInHeader: {
     flexDirection: 'row',
@@ -1271,7 +1251,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: Platform.OS === 'android' ? 2 : 4,
+    marginBottom: Platform.OS === 'android' ? 4 : 6,
   },
   searchContainer: {
     flex: 1,
@@ -1348,7 +1328,7 @@ const styles = StyleSheet.create({
     }),
   },
   categoriesScroll: {
-    marginBottom: Platform.OS === 'android' ? 2 : 4,
+    marginBottom: Platform.OS === 'android' ? 4 : 6,
     marginRight: -16,
   },
   categoriesContent: {
