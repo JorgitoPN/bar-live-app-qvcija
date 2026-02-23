@@ -82,9 +82,17 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v444.0 - STABILITY FIX (REMOVED BACKGROUND TRACKING)
+ * ✅ EXPLORAR SCREEN v445.0 - CRITICAL SORTING FIX
  * 
- * CRITICAL UPDATE v444.0 (2026-02-23):
+ * CRITICAL UPDATE v445.0 (2025-02-23):
+ * - 🔧 FIXED: Open venues appearing after closed venues
+ *   - ROOT CAUSE: Status re-evaluation on focus was NOT re-sorting the list
+ *   - When a venue's open/closed status changed, it stayed in wrong position
+ *   - SOLUTION: Re-sort list using 5-tier logic when status changes
+ *   - Now open venues ALWAYS appear before closed venues
+ *   - Maintains backend 5-tier sorting: Featured Open → Regular Open → No Schedule → Featured Closed → Regular Closed
+ * 
+ * Previous fixes (v444.0):
  * - 🔧 FIXED: Background tracking causing crashes and conflicts
  *   - REMOVED background location tracking (was causing iOS crashes in Expo Go)
  *   - REMOVED location subscriptions (was interfering with normal flow)
@@ -225,9 +233,9 @@ export default function ExplorarScreen() {
   
   useEffect(() => {
     if (!mountedRef.current) {
-      console.log(`[Explorar v444.0] 🚀 Component mounted on ${Platform.OS} - SIMPLIFIED & STABLE`);
-      console.log(`[Explorar v444.0] 📊 Sorting Logic: Backend 5-tier system (no client-side sorting)`);
-      console.log(`[Explorar v444.0] 🔧 Location: Simple caching only (no background tracking)`);
+      console.log(`[Explorar v445.0] 🚀 Component mounted on ${Platform.OS} - CRITICAL SORTING FIX`);
+      console.log(`[Explorar v445.0] 📊 Sorting Logic: 5-tier system with status re-evaluation & re-sorting`);
+      console.log(`[Explorar v445.0] ✅ Open venues ALWAYS appear before closed venues`);
       mountedRef.current = true;
     }
   }, []);
@@ -298,9 +306,9 @@ export default function ExplorarScreen() {
   
   useFocusEffect(
     useCallback(() => {
-      console.log('[Explorar v443.0] 🔄 Screen focused - checking if re-evaluation needed');
+      console.log('[Explorar v445.0] 🔄 Screen focused - checking if re-evaluation needed');
       
-      // ✅ CRITICAL FIX v440.0: Create stable snapshot using IDs + tier + status
+      // ✅ CRITICAL FIX v445.0: Create stable snapshot using IDs + tier + status
       const createSnapshot = (locales: any[]) => {
         return locales.map(l => `${l.id}-${l.sorting_tier || 0}-${l.estaAbierto ? '1' : '0'}`).join('|');
       };
@@ -309,61 +317,77 @@ export default function ExplorarScreen() {
       const dataChanged = currentSnapshot !== localesSnapshotRef.current;
       
       if (allLocales.length > 0 && (dataChanged || !hasReEvaluatedRef.current)) {
-        console.log('[Explorar v443.0] 🔄 Re-evaluating', allLocales.length, 'locales (data changed:', dataChanged, ')');
+        console.log('[Explorar v445.0] 🔄 Re-evaluating', allLocales.length, 'locales (data changed:', dataChanged, ')');
         
         // Store snapshot BEFORE re-evaluation to prevent loop
         hasReEvaluatedRef.current = true;
         
-        // ✅ CRITICAL v440.0: Re-evaluate status ONLY - DO NOT re-sort
-        // Backend sorting is authoritative and must be preserved
+        // ✅ CRITICAL v445.0: Re-evaluate status AND re-sort if status changed
+        // If a venue's open/closed status changes, we MUST re-sort to maintain correct order
         const reEvaluatedLocales = allLocales.map((local: any) => {
           const estadoLocal = getEstadoLocal(local);
           
-          // Only update if status actually changed
-          if (estadoLocal.estaAbierto !== local.estaAbierto) {
-            return {
-              ...local,
-              estadoCompleto: estadoLocal,
-              estaAbierto: estadoLocal.estaAbierto,
-            };
-          }
-          
-          return local;
+          // Always update estadoCompleto for badge display
+          return {
+            ...local,
+            estadoCompleto: estadoLocal,
+            estaAbierto: estadoLocal.estaAbierto,
+          };
         });
         
-        // ✅ CRITICAL FIX v440.0: NO CLIENT-SIDE SORTING
-        // Backend 5-tier system is authoritative:
-        // Tier 1: Featured Open → Tier 2: Regular Open → Tier 3: No Schedule → Tier 4: Featured Closed → Tier 5: Regular Closed
-        // Any client-side sorting breaks this order and causes closed venues to appear among open ones
-        
-        // ✅ v436.0: CRITICAL FIX - Only update if NOT scrolling
+        // ✅ CRITICAL FIX v445.0: RE-SORT if any status changed
+        // This ensures open venues always appear before closed ones
         const newSnapshot = createSnapshot(reEvaluatedLocales);
         const statusChanged = newSnapshot !== currentSnapshot;
         
         if (statusChanged) {
-          console.log('[Explorar v442.0] 🔄 Status changed - scheduling update (NO re-sorting)');
+          console.log('[Explorar v445.0] 🔄 Status changed - RE-SORTING to maintain correct order');
           localesSnapshotRef.current = newSnapshot;
+          
+          // ✅ CRITICAL v445.0: RE-SORT using the same 5-tier logic as backend
+          const sortedLocales = [...reEvaluatedLocales].sort((a, b) => {
+            const tierA = calculateSortingTier(a);
+            const tierB = calculateSortingTier(b);
+            
+            // First sort by tier
+            if (tierA !== tierB) {
+              return tierA - tierB;
+            }
+            
+            // Then sort by distance within tier
+            const distA = a.distancia ?? 999999;
+            const distB = b.distancia ?? 999999;
+            return distA - distB;
+          });
+          
+          console.log('[Explorar v445.0] ✅ Re-sorted - First 5:', sortedLocales.slice(0, 5).map((l: any) => ({
+            nombre: l.nombre,
+            tier: calculateSortingTier(l),
+            estaAbierto: l.estaAbierto,
+            destacado: l.destacado,
+            distancia: l.distancia ? `${l.distancia.toFixed(1)}km` : 'N/A',
+          })))
           
           // ✅ CRITICAL: If scrolling, store pending update
           if (isScrollingRef.current) {
-            console.log('[Explorar v440.0] ⏸️ User is scrolling - deferring update');
-            pendingUpdateRef.current = reEvaluatedLocales;
+            console.log('[Explorar v445.0] ⏸️ User is scrolling - deferring update');
+            pendingUpdateRef.current = sortedLocales;
           } else {
             // Update immediately if not scrolling
-            setAllLocales(reEvaluatedLocales);
+            setAllLocales(sortedLocales);
           }
         } else {
-          console.log('[Explorar v440.0] ✅ Status unchanged - no state update needed');
+          console.log('[Explorar v445.0] ✅ Status unchanged - no state update needed');
           localesSnapshotRef.current = currentSnapshot;
         }
       } else {
-        console.log('[Explorar v440.0] ⏸️ No re-evaluation needed');
+        console.log('[Explorar v445.0] ⏸️ No re-evaluation needed');
         if (allLocales.length > 0) {
           localesSnapshotRef.current = createSnapshot(allLocales);
         }
       }
       
-      // ✅ v440.0: CRITICAL FIX - NEVER scroll automatically during pagination
+      // ✅ v445.0: CRITICAL FIX - NEVER scroll automatically during pagination
       // Only restore scroll position when explicitly returning from detail view
       if (isReturningFromDetail.current) {
         setTimeout(() => {
@@ -380,7 +404,7 @@ export default function ExplorarScreen() {
       return () => {
         hasReEvaluatedRef.current = false;
       };
-    }, [allLocales])
+    }, [allLocales, calculateSortingTier])
   );
 
   // ✅ DEBOUNCE DE BÚSQUEDA - 500ms PARA REDUCIR PARPADEO
@@ -402,18 +426,18 @@ export default function ExplorarScreen() {
     return lat >= MIN_LAT && lat <= MAX_LAT && lng >= MIN_LNG && lng <= MAX_LNG;
   }, []);
 
-  // ✅ v444.0: SIMPLIFIED LOCATION FETCH (no background tracking)
+  // ✅ v445.0: SIMPLIFIED LOCATION FETCH (no background tracking)
   useEffect(() => {
     let isMounted = true;
     
     (async () => {
       try {
-        console.log('[Explorar v444.0] 🚀 Fetching location');
+        console.log('[Explorar v445.0] 🚀 Fetching location');
         
         // ✅ STEP 1: Check cached location first (instant)
         const cached = getCachedLocation();
         if (cached) {
-          console.log('[Explorar v444.0] ⚡ Using cached location');
+          console.log('[Explorar v445.0] ⚡ Using cached location');
           
           if (isValidSpainCoordinate(cached.latitude, cached.longitude)) {
             if (isMounted) {
@@ -431,7 +455,7 @@ export default function ExplorarScreen() {
         if (!isMounted) return;
         
         if (!location) {
-          console.log('[Explorar v444.0] ⚠️ Location not available');
+          console.log('[Explorar v445.0] ⚠️ Location not available');
           setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
           setUserLocation(null);
           setLocationReady(true);
@@ -441,10 +465,10 @@ export default function ExplorarScreen() {
         const lat = location.coords.latitude;
         const lng = location.coords.longitude;
         
-        console.log('[Explorar v444.0] ✅ Location obtained');
+        console.log('[Explorar v445.0] ✅ Location obtained');
         
         if (!isValidSpainCoordinate(lat, lng)) {
-          console.log('[Explorar v444.0] ⚠️ Location outside Spain');
+          console.log('[Explorar v445.0] ⚠️ Location outside Spain');
           setLocationError('Ubicación fuera de España. Mostrando todos los locales.');
           setUserLocation(null);
           setLocationReady(true);
@@ -454,11 +478,11 @@ export default function ExplorarScreen() {
         setUserLocation({ lat, lng });
         setLocationError(null);
         setLocationReady(true);
-        console.log('[Explorar v444.0] ✅ Location ready');
+        console.log('[Explorar v445.0] ✅ Location ready');
         
       } catch (error: any) {
         if (!isMounted) return;
-        console.log('[Explorar v444.0] ⚠️ Location error - continuing with fallback');
+        console.log('[Explorar v445.0] ⚠️ Location error - continuing with fallback');
         setLocationError('No se pudo obtener la ubicación. Mostrando todos los locales.');
         setUserLocation(null);
         setLocationReady(true);
@@ -567,10 +591,10 @@ export default function ExplorarScreen() {
         p_offset: offset
       };
       
-      console.log('[Explorar v444.0] 📡 Fetching locales with 50km validation for featured venues...');
-      console.log('[Explorar v444.0] 📍 User location:', userLocation);
-      console.log('[Explorar v444.0] 🏷️ Category filter:', categoryFilter);
-      console.log('[Explorar v444.0] 📄 Offset:', offset, 'Limit:', ITEMS_PER_PAGE);
+      console.log('[Explorar v445.0] 📡 Fetching locales with 50km validation for featured venues...');
+      console.log('[Explorar v445.0] 📍 User location:', userLocation);
+      console.log('[Explorar v445.0] 🏷️ Category filter:', categoryFilter);
+      console.log('[Explorar v445.0] 📄 Offset:', offset, 'Limit:', ITEMS_PER_PAGE);
       
       const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity', rpcParams);
 
@@ -593,7 +617,7 @@ export default function ExplorarScreen() {
       errorCountRef.current = 0;
 
       if (data && data.length > 0) {
-        console.log('[Explorar v444.0] ✅ Received', data.length, 'locales from backend (sorted by 5-tier system with 50km validation)');
+        console.log('[Explorar v445.0] ✅ Received', data.length, 'locales from backend (sorted by 5-tier system with 50km validation)');
         
         // ✅ CRITICAL FIX v440.0: Transform but DO NOT re-sort
         // Backend 5-tier sorting is authoritative and must be preserved
@@ -624,7 +648,7 @@ export default function ExplorarScreen() {
         // Tier 1: Featured Open → Tier 2: Regular Open → Tier 3: No Schedule → Tier 4: Featured Closed → Tier 5: Regular Closed
         // Client-side sorting breaks this order and causes closed venues to appear among open ones
 
-        console.log('[Explorar v444.0] ✅ Using backend-sorted data (50km validation) - First 5:', transformedLocales.slice(0, 5).map((l: any) => ({
+        console.log('[Explorar v445.0] ✅ Using backend-sorted data (50km validation) - First 5:', transformedLocales.slice(0, 5).map((l: any) => ({
           nombre: l.nombre,
           tier: l.sortingTier,
           destacado: l.destacado,
@@ -780,14 +804,14 @@ export default function ExplorarScreen() {
     loadLocales(false);
   }, [hasMore, isLoading, loadLocales]);
 
-  // ✅ v444.0: SIMPLIFIED REFRESH (no preloading)
+  // ✅ v445.0: SIMPLIFIED REFRESH (no preloading)
   const onRefresh = async () => {
-    console.log('[Explorar v444.0] 🔄 Refreshing...');
+    console.log('[Explorar v445.0] 🔄 Refreshing...');
     setRefreshing(true);
     
     // ✅ Clear location cache to force fresh location fetch
     clearLocationCache();
-    console.log('[Explorar v444.0] 🧹 Location cache cleared');
+    console.log('[Explorar v445.0] 🧹 Location cache cleared');
     
     setSearchQuery('');
     setDebouncedQuery('');
@@ -815,7 +839,7 @@ export default function ExplorarScreen() {
     const location = await getOptimizedUserLocation();
     if (location && isValidSpainCoordinate(location.coords.latitude, location.coords.longitude)) {
       setUserLocation({ lat: location.coords.latitude, lng: location.coords.longitude });
-      console.log('[Explorar v444.0] ✅ Fresh location obtained on refresh');
+      console.log('[Explorar v445.0] ✅ Fresh location obtained on refresh');
     }
     
     await loadLocales(true);
@@ -919,7 +943,7 @@ export default function ExplorarScreen() {
     return { ios: 'person.fill', android: 'person' };
   };
 
-  // ✅ v444.0: SIMPLIFIED SCROLL HANDLING (no header animation)
+  // ✅ v445.0: SIMPLIFIED SCROLL HANDLING (no header animation)
   const handleScroll = useCallback((event: any) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
     const contentHeight = event.nativeEvent.contentSize.height;
@@ -946,7 +970,7 @@ export default function ExplorarScreen() {
     scrollY.current = currentScrollY;
   }, [hasMore, isLoading, filteredLocales.length, loadMoreLocales]);
   
-  // ✅ v444.0: Apply pending updates after scroll ends (MOBILE OPTIMIZED)
+  // ✅ v445.0: Apply pending updates after scroll ends (MOBILE OPTIMIZED)
   const handleScrollEnd = useCallback(() => {
     // ✅ MOBILE FIX: Longer delay on Android to ensure scroll has fully stopped
     const delay = Platform.OS === 'android' ? 300 : 150;
@@ -956,7 +980,7 @@ export default function ExplorarScreen() {
       
       // Apply any pending updates
       if (pendingUpdateRef.current) {
-        console.log('[Explorar v444.0] ✅ Applying pending update after scroll ended');
+        console.log('[Explorar v445.0] ✅ Applying pending update after scroll ended');
         setAllLocales(pendingUpdateRef.current);
         pendingUpdateRef.current = null;
       }
@@ -1035,6 +1059,29 @@ export default function ExplorarScreen() {
       return item.google_rating;
     }
     return 0;
+  }, []);
+
+  // ✅ CRITICAL v445.0: Helper function to calculate sorting tier (moved to root to fix linting)
+  const calculateSortingTier = useCallback((local: any) => {
+    const isOpen = local.estaAbierto === true;
+    const isClosed = local.estaAbierto === false;
+    const noSchedule = local.estaAbierto === null;
+    const isFeatured = local.destacado === true;
+    const distance = local.distancia;
+    const isNear = distance !== null && distance < 50;
+    
+    // Tier 1: Featured Open (< 50km)
+    if (isFeatured && isOpen && isNear) return 1;
+    // Tier 2: Regular Open
+    if (isOpen) return 2;
+    // Tier 3: No Schedule Info
+    if (noSchedule) return 3;
+    // Tier 4: Featured Closed (< 50km)
+    if (isFeatured && isClosed && isNear) return 4;
+    // Tier 5: Regular Closed
+    if (isClosed) return 5;
+    // Default
+    return 5;
   }, []);
 
   // ✅ RENDER LOCAL CARD
