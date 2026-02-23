@@ -85,23 +85,24 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v440.0 - COMPLETE FIX: BACKEND SORTING + SCROLL STABILITY
+ * ✅ EXPLORAR SCREEN v441.0 - MOBILE FIX: ANDROID/iOS SCROLL STABILITY
  * 
- * CRITICAL FIX v440.0 (2026-02-23):
- * - 🔧 FIXED: Closed venues (featured or not) appearing among open venues
+ * CRITICAL FIX v441.0 (2026-02-23):
+ * - 🔧 FIXED: Android/iOS scroll behavior issues
+ *   - Added getItemLayout for consistent item heights (prevents jumps)
+ *   - Optimized scroll thresholds for mobile (more conservative preload)
+ *   - Platform-specific FlatList performance settings
+ *   - Longer scroll-end delay on Android (200ms vs 100ms)
+ *   - Improved key extraction with prefix to prevent conflicts
+ *   - Adjusted scroll event throttle for Android (32ms vs 16ms)
+ * 
+ * Previous fixes (v440.0):
+ * - 🔧 FIXED: Closed venues appearing among open venues
  *   - REMOVED all client-side sorting - backend 5-tier system is authoritative
  *   - Backend sorting: Tier 1 (Featured Open) → Tier 2 (Regular Open) → Tier 3 (No Schedule) → Tier 4 (Featured Closed) → Tier 5 (Regular Closed)
- *   - NO client-side re-sorting that could break backend order
  * - 🔧 FIXED: Screen jumping to top during pagination
  *   - Removed ALL automatic scroll-to-top during data loading
- *   - Removed state updates during active scrolling
  *   - FlatList maintains scroll position naturally during pagination
- *   - Only restores scroll when explicitly returning from detail view
- * 
- * Previous fixes:
- * - v439.0: Attempted 3-tier client sorting (caused conflicts with backend)
- * - v438.0: Initial sorting & scroll fixes (incomplete)
- * - v437.0: iOS Expo Go crash fix (background location tracking)
  */
 
 // ✅ SKELETON CARD COMPONENT - Extracted to fix React Hooks rules
@@ -221,7 +222,7 @@ export default function ExplorarScreen() {
   
   useEffect(() => {
     if (!mountedRef.current) {
-      console.log('[Explorar v440.0] 🚀 Component mounted - BACKEND 5-TIER SORTING & SCROLL FIX APPLIED');
+      console.log(`[Explorar v441.0] 🚀 Component mounted on ${Platform.OS} - MOBILE SCROLL FIX APPLIED`);
       mountedRef.current = true;
     }
   }, []);
@@ -292,7 +293,7 @@ export default function ExplorarScreen() {
   
   useFocusEffect(
     useCallback(() => {
-      console.log('[Explorar v440.0] 🔄 Screen focused - checking if re-evaluation needed');
+      console.log('[Explorar v441.0] 🔄 Screen focused - checking if re-evaluation needed');
       
       // ✅ CRITICAL FIX v440.0: Create stable snapshot using IDs + tier + status
       const createSnapshot = (locales: any[]) => {
@@ -303,7 +304,7 @@ export default function ExplorarScreen() {
       const dataChanged = currentSnapshot !== localesSnapshotRef.current;
       
       if (allLocales.length > 0 && (dataChanged || !hasReEvaluatedRef.current)) {
-        console.log('[Explorar v440.0] 🔄 Re-evaluating', allLocales.length, 'locales (data changed:', dataChanged, ')');
+        console.log('[Explorar v441.0] 🔄 Re-evaluating', allLocales.length, 'locales (data changed:', dataChanged, ')');
         
         // Store snapshot BEFORE re-evaluation to prevent loop
         hasReEvaluatedRef.current = true;
@@ -335,7 +336,7 @@ export default function ExplorarScreen() {
         const statusChanged = newSnapshot !== currentSnapshot;
         
         if (statusChanged) {
-          console.log('[Explorar v440.0] 🔄 Status changed - scheduling update (NO re-sorting)');
+          console.log('[Explorar v441.0] 🔄 Status changed - scheduling update (NO re-sorting)');
           localesSnapshotRef.current = newSnapshot;
           
           // ✅ CRITICAL: If scrolling, store pending update
@@ -1049,7 +1050,7 @@ export default function ExplorarScreen() {
     return { ios: 'person.fill', android: 'person' };
   };
 
-  // ✅ v440.0: CRITICAL FIX - SIMPLIFIED SCROLL HANDLER (NO COMPLEX ANIMATIONS)
+  // ✅ v441.0: CRITICAL FIX - MOBILE-OPTIMIZED SCROLL HANDLER
   const handleScroll = useCallback((event: any) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
     const contentHeight = event.nativeEvent.contentSize.height;
@@ -1062,25 +1063,27 @@ export default function ExplorarScreen() {
     
     const diff = currentScrollY - lastScrollY.current;
     
-    // ✅ SIMPLIFIED: Basic header hide/show (no complex transforms)
-    if (Math.abs(diff) > 5) {
+    // ✅ MOBILE FIX: Only animate header on significant scroll changes
+    if (Math.abs(diff) > 10) {
       if (diff > 0 && currentScrollY > 50) {
         Animated.timing(headerTranslateY, {
           toValue: -HEADER_MAX_HEIGHT - 10,
-          duration: 250,
+          duration: Platform.OS === 'android' ? 200 : 250,
           useNativeDriver: true,
         }).start();
       } else if (diff < 0) {
         Animated.timing(headerTranslateY, {
           toValue: 0,
-          duration: 250,
+          duration: Platform.OS === 'android' ? 200 : 250,
           useNativeDriver: true,
         }).start();
       }
     }
     
+    // ✅ MOBILE FIX: More conservative preload threshold for mobile
     const distanceFromBottom = contentHeight - (currentScrollY + layoutHeight);
-    const shouldPreload = distanceFromBottom < layoutHeight * 3;
+    const preloadThreshold = Platform.OS === 'web' ? layoutHeight * 3 : layoutHeight * 2;
+    const shouldPreload = distanceFromBottom < preloadThreshold;
     
     if (shouldPreload && hasMore && !isLoading && !loadingRef.current && filteredLocales.length > 0) {
       loadMoreLocales();
@@ -1090,19 +1093,21 @@ export default function ExplorarScreen() {
     scrollY.current = currentScrollY;
   }, [headerTranslateY, hasMore, isLoading, filteredLocales.length, loadMoreLocales]);
   
-  // ✅ v440.0: CRITICAL - Apply pending updates after scroll ends
+  // ✅ v441.0: CRITICAL - Apply pending updates after scroll ends (MOBILE OPTIMIZED)
   const handleScrollEnd = useCallback(() => {
-    // Delay to ensure scroll has fully stopped
+    // ✅ MOBILE FIX: Longer delay on Android to ensure scroll has fully stopped
+    const delay = Platform.OS === 'android' ? 200 : 100;
+    
     setTimeout(() => {
       isScrollingRef.current = false;
       
       // Apply any pending updates
       if (pendingUpdateRef.current) {
-        console.log('[Explorar v440.0] ✅ Applying pending update after scroll ended');
+        console.log('[Explorar v441.0] ✅ Applying pending update after scroll ended');
         setAllLocales(pendingUpdateRef.current);
         pendingUpdateRef.current = null;
       }
-    }, 100);
+    }, delay);
   }, []);
 
   // ✅ RENDER SKELETON CARD
@@ -1685,7 +1690,7 @@ export default function ExplorarScreen() {
         ref={flatListRef}
         data={filteredLocales}
         renderItem={renderLocalCard}
-        keyExtractor={(item: any) => item.id.toString()}
+        keyExtractor={(item: any) => `local-${item.id}`}
         contentContainerStyle={[
           styles.listContent,
           { 
@@ -1702,20 +1707,25 @@ export default function ExplorarScreen() {
           />
         }
         onEndReached={filteredLocales.length > 0 ? loadMoreLocales : undefined}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={Platform.OS === 'android' ? 0.3 : 0.5}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={5}
+        initialNumToRender={Platform.OS === 'android' ? 8 : 10}
+        maxToRenderPerBatch={Platform.OS === 'android' ? 8 : 10}
+        windowSize={Platform.OS === 'android' ? 7 : 5}
         removeClippedSubviews={Platform.OS === 'android'}
-        updateCellsBatchingPeriod={100}
+        updateCellsBatchingPeriod={Platform.OS === 'android' ? 50 : 100}
         onScroll={handleScroll}
         onScrollEndDrag={handleScrollEnd}
         onMomentumScrollEnd={handleScrollEnd}
-        scrollEventThrottle={16}
+        scrollEventThrottle={Platform.OS === 'android' ? 32 : 16}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        getItemLayout={(data, index) => ({
+          length: 280,
+          offset: 280 * index,
+          index,
+        })}
       />
 
       <FiltrosAvanzadosSheet
