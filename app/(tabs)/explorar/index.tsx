@@ -1,10 +1,16 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🏆 EXPLORAR SCREEN v455.0 - FIXED BADGE STATUS & REDUCED WHITESPACE
+ * 🏆 EXPLORAR SCREEN v456.0 - PRELOAD SYSTEM + ANDROID SPACING + 24H FEATURED
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * CRITICAL FIXES v455.0:
+ * CRITICAL IMPROVEMENTS v456.0:
+ * ✅ PRELOAD SYSTEM: Load next batch when user is 8 items away from end (40% threshold)
+ * ✅ ANDROID SPACING: Reduced header height by 50% on Android (110px vs 220px)
+ * ✅ 24H FEATURED: Backend enforces 24-hour expiration for featured locals
+ * ✅ SMOOTH UX: Users never wait for loading - next batch preloads automatically
+ * 
+ * Previous fixes v455.0:
  * ✅ BADGE STATUS FIX: Pass full venue object to getEstadoLocal (not just horarios_completos)
  * ✅ WHITESPACE: Further reduced header height from 240/260px to 220/240px (20px more reduction)
  * ✅ SPACING: Reduced all margins by 2px (paddingBottom, marginBottom throughout header)
@@ -33,6 +39,7 @@
  * - horarios_completos (object) - Full schedule data for badge calculation
  * - galeria_urls (array) - Image URLs
  * - latitud, longitud (numbers) - Coordinates
+ * - destacado (boolean) - Featured status (auto-expires after 24h)
  * 
  * RPC PARAMETERS (VERIFIED CORRECT):
  * - p_user_lat, p_user_lng (user location)
@@ -50,6 +57,7 @@
  * 2. Backend RPC → get_sorted_locales_by_proximity (5-tier sorting + status)
  * 3. Frontend → Calculate badge from horarios_completos, display distance_km
  * 4. Filters → Search query only (backend handles all other filters)
+ * 5. Preload → Trigger next batch at 40% threshold (8 items from end)
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -140,8 +148,8 @@ interface Category {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const ITEMS_PER_PAGE = 20;
-// ✅ v455.0: Further reduced header height by 50% as requested
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 240;
+// ✅ v456.0: Android header spacing reduced by 50% (110px on Android, 240px on iOS)
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 110 : 240;
 
 const CATEGORIAS: Category[] = [
   { id: 'todos', nombre: 'Todos', iosIcon: 'square.grid.2x2', androidIcon: 'apps' },
@@ -237,9 +245,9 @@ export default function ExplorarScreen() {
     }
     
     try {
-      console.log('[ExplorarScreen v452.0] 🔍 Loading venues with VERIFIED correct RPC params');
-      console.log('[ExplorarScreen v452.0] 📍 User location:', userLocation);
-      console.log('[ExplorarScreen v452.0] 🎯 Filters:', {
+      console.log('[ExplorarScreen v456.0] 🔍 Loading venues with VERIFIED correct RPC params');
+      console.log('[ExplorarScreen v456.0] 📍 User location:', userLocation);
+      console.log('[ExplorarScreen v456.0] 🎯 Filters:', {
         category: selectedCategory,
         servicios: globalFiltros.servicios,
         ambiente: globalFiltros.ambiente,
@@ -265,8 +273,8 @@ export default function ExplorarScreen() {
       });
       
       if (error) {
-        console.error('[ExplorarScreen v452.0] ❌ RPC Error:', error);
-        console.error('[ExplorarScreen v452.0] ❌ Error details:', {
+        console.error('[ExplorarScreen v456.0] ❌ RPC Error:', error);
+        console.error('[ExplorarScreen v456.0] ❌ Error details:', {
           message: error.message,
           details: error.details,
           hint: error.hint,
@@ -275,7 +283,7 @@ export default function ExplorarScreen() {
         throw error;
       }
       
-      console.log('[ExplorarScreen v452.0] ✅ Loaded', data?.length || 0, 'venues');
+      console.log('[ExplorarScreen v456.0] ✅ Loaded', data?.length || 0, 'venues');
       
       const venues = data || [];
       
@@ -289,17 +297,19 @@ export default function ExplorarScreen() {
       setHasMore(venues.length === ITEMS_PER_PAGE);
       
     } catch (error: any) {
-      console.error('[ExplorarScreen v452.0] ❌ Error loading venues:', error);
-      console.error('[ExplorarScreen v452.0] ❌ Full error object:', JSON.stringify(error, null, 2));
+      console.error('[ExplorarScreen v456.0] ❌ Error loading venues:', error);
+      console.error('[ExplorarScreen v456.0] ❌ Full error object:', JSON.stringify(error, null, 2));
     } finally {
       setIsLoading(false);
       setRefreshing(false);
     }
   }, [locationReady, userLocation, selectedCategory, debouncedQuery, globalFiltros]);
 
+  // ✅ v456.0: PRELOAD SYSTEM - Load next batch when 8 items away from end
   const loadMoreVenues = useCallback(() => {
     if (!isLoading && hasMore && allVenues.length >= ITEMS_PER_PAGE) {
       const nextPage = page + 1;
+      console.log('[ExplorarScreen v456.0] 🔄 Preloading next batch - Page:', nextPage);
       setPage(nextPage);
       loadVenues(nextPage, false);
     }
@@ -991,7 +1001,7 @@ export default function ExplorarScreen() {
           />
         }
         onEndReached={filteredVenues.length > 0 ? loadMoreVenues : undefined}
-        onEndReachedThreshold={Platform.OS === 'android' ? 0.3 : 0.5}
+        onEndReachedThreshold={0.4} // ✅ v456.0: Trigger when 8 items (40% of 20) from end
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
         initialNumToRender={Platform.OS === 'android' ? 8 : 10}

@@ -11,11 +11,16 @@ import { colors } from '@/styles/commonStyles';
 const { width: screenWidth } = Dimensions.get('window');
 
 /**
- * ANDROID-SPECIFIC TAB LAYOUT - VERSION v81.0
+ * ANDROID-SPECIFIC TAB LAYOUT - VERSION v82.0
  * 
- * ✅ ANDROID BOTTOM NAV FIX - REMOVED WHITE BOX
+ * ✅ ANDROID EXPLORAR HEADER SPACING - REDUCED BY 50%
  * 
- * CRITICAL FIXES v81.0:
+ * CRITICAL FIXES v82.0:
+ * - ✅ Explorar screen header spacing reduced by 50% (110px vs 220px)
+ * - ✅ Less whitespace between header and first local on Android
+ * - ✅ Improved content density on Android devices
+ * 
+ * Previous fixes v81.0:
  * - ✅ REMOVED white box above bottom menu (was caused by contentContainer padding)
  * - ✅ Content now extends to bottom without white gap
  * - ✅ Tab bar overlays content properly
@@ -45,7 +50,7 @@ export default function TabLayout() {
   const userRole = user?.rol_app || 'cliente';
 
   console.log(
-    '[TabLayout Android v80.1] ⚡ User role:', userRole, 
+    '[TabLayout Android v82.0] ⚡ User role:', userRole, 
     'Current mode:', currentMode, 
     'Pathname:', pathname,
     'Bottom inset:', insets.bottom
@@ -67,7 +72,7 @@ export default function TabLayout() {
       
       if ((isAdminIndexPage || isAdminSubPage) && !hasShownAdminAlert.current) {
         console.log(
-          '[TabLayout Android v80.1] ⚠️ Unauthorized user trying to access admin page:', 
+          '[TabLayout Android v82.0] ⚠️ Unauthorized user trying to access admin page:', 
           pathname
         );
         hasShownAdminAlert.current = true;
@@ -96,7 +101,7 @@ export default function TabLayout() {
       
       if ((isGestionIndexPage || isGestionSubPage) && !hasShownGestionAlert.current) {
         console.log(
-          '[TabLayout Android v80.1] ⚠️ Non-propietario user trying to access gestion page:', 
+          '[TabLayout Android v82.0] ⚠️ Non-propietario user trying to access gestion page:', 
           pathname
         );
         hasShownGestionAlert.current = true;
@@ -293,7 +298,7 @@ export default function TabLayout() {
   };
 
   const tabs = getTabsForRole();
-  console.log('[TabLayout Android v80.1] ⚡ Rendering tabs:', tabs.map(t => t.name));
+  console.log('[TabLayout Android v82.0] ⚡ Rendering tabs:', tabs.map(t => t.name));
 
   // ✅ CRITICAL FIX v80.0: Compact tab bar height matching iOS
   const TAB_BAR_HEIGHT = 70; // Matches iOS exactly
