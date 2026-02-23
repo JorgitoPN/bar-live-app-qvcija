@@ -1,0 +1,30 @@
+
+{
+  "project_info": {
+    "project_number": "10164277032",
+    "project_id": "barlive-492b0",
+    "storage_bucket": "barlive-492b0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:10164277032:android:ed43a2f5a1f7402b878a1d",
+        "android_client_info": {
+          "package_name": "com.barlive.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCW69VuBktuIce7rqZmXaXykppanU1lTo4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
