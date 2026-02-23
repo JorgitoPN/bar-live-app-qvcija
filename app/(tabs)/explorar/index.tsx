@@ -89,10 +89,10 @@ interface Category {
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 280;
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 240; // ✅ REDUCED: Menos espacio entre header y primer local
 const HEADER_MIN_HEIGHT = 0;
 const ITEMS_PER_PAGE = 20;
-const PRELOAD_THRESHOLD = 0.5; // ✅ OPTIMIZADO: Precargar cuando quedan 10 items (50% de 20)
+const PRELOAD_THRESHOLD = 0.3; // ✅ OPTIMIZADO: Precargar cuando quedan 6 items (30% de 20)
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 const CATEGORIAS: Category[] = [
@@ -167,16 +167,11 @@ export default function ExplorarScreen() {
   const flatListRef = useRef<FlatList>(null);
   const debouncedQuery = useDebounce(searchQuery, 500);
   
-  // ✅ FIX 4: Animated header - COMPLETE HIDE including categories
+  // ✅ FIX 4: Animated header - BIDIRECTIONAL with independent animation
   const scrollY = useRef(new Animated.Value(0)).current;
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
-  const scrollDirection = useRef<'up' | 'down'>('down');
-  
-  const headerTranslateY = scrollY.interpolate({
-    inputRange: [0, HEADER_MAX_HEIGHT],
-    outputRange: [0, -HEADER_MAX_HEIGHT],
-    extrapolate: 'clamp',
-  });
+  const scrollDirection = useRef<'up' | 'down'>('up');
 
   // ✅ FIX 5: Cache key para persistencia
   const cacheKey = useMemo(() => {
@@ -253,11 +248,34 @@ export default function ExplorarScreen() {
     
     try {
       console.log('[ExplorarScreen v600.0] 🔍 Cargando locales - Página:', pageNum);
+      console.log('[ExplorarScreen v600.0] 🔍 Selected category:', selectedCategory);
+      console.log('[ExplorarScreen v600.0] 🔍 Selected category type:', typeof selectedCategory);
       
-      // ✅ FIX 1: Usar selectedCategory correctamente - FIXED LOGIC
-      const categoryFilter = !selectedCategory || selectedCategory === 'todos' ? null : [selectedCategory];
+      // ✅ FIX 1: Usar selectedCategory correctamente - ULTRA FIXED LOGIC
+      // CRITICAL: selectedCategory can be null, 'todos', or a category name like 'discotecas'
+      let categoryFilter = null;
       
-      console.log('[ExplorarScreen v600.0] 🔍 Category filter:', {
+      if (selectedCategory && selectedCategory !== 'todos') {
+        // ✅ CRITICAL: Map frontend category names to database barlive_types
+        const categoryMapping: Record<string, string> = {
+          'discotecas': 'discoteca',
+          'pubs': 'pub',
+          'bares': 'bar',
+          'restaurantes': 'restaurante',
+          'cafeterias': 'cafeteria',
+        };
+        
+        const dbCategoryName = categoryMapping[selectedCategory] || selectedCategory;
+        categoryFilter = [dbCategoryName];
+        
+        console.log('[ExplorarScreen v600.0] 🔍 Category mapping:', {
+          frontend: selectedCategory,
+          database: dbCategoryName,
+          filter: categoryFilter
+        });
+      }
+      
+      console.log('[ExplorarScreen v600.0] 🔍 Final category filter:', {
         selectedCategory,
         categoryFilter,
         willFilterByCategory: categoryFilter !== null
@@ -391,22 +409,27 @@ export default function ExplorarScreen() {
 
   const handleCategoryChange = useCallback((categoryId: string) => {
     console.log('[ExplorarScreen v600.0] 🏷️ Cambiando categoría a:', categoryId);
+    console.log('[ExplorarScreen v600.0] 🏷️ Category ID received:', categoryId);
+    console.log('[ExplorarScreen v600.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
     
-    // ✅ FIX 2: Limpiar caché al cambiar categoría
-    dataCache.clear(cacheKey);
-    
-    // ✅ FIX 2: Actualizar categoría seleccionada
+    // ✅ FIX: Actualizar categoría seleccionada PRIMERO
     const newCategory = categoryId === 'todos' ? null : categoryId;
     setSelectedCategory(newCategory);
     
-    // ✅ FIX 2: Reset pagination
+    // ✅ FIX: Limpiar caché DESPUÉS de actualizar categoría
+    const newCacheKey = `explorar-${newCategory}-${JSON.stringify(globalFiltros)}-${debouncedQuery}`;
+    dataCache.clear(newCacheKey);
+    
+    // ✅ FIX: Reset pagination y datos
     setPage(1);
     setHasMore(true);
     setAllVenues([]);
     
-    // ✅ FIX 2: Scroll to top
+    // ✅ FIX: Scroll to top
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-  }, [setSelectedCategory, cacheKey]);
+    
+    console.log('[ExplorarScreen v600.0] ✅ Category changed successfully');
+  }, [setSelectedCategory, globalFiltros, debouncedQuery]);
 
   const clearFilters = useCallback(() => {
     console.log('[ExplorarScreen v600.0] 🧹 Limpiando filtros...');
@@ -474,14 +497,12 @@ export default function ExplorarScreen() {
     router.push('/solicitudes/solicitar-propiedad-v2');
   }, [user, router]);
 
-  // ✅ FIX 3: Apertura instantánea del modal - OPTIMIZED
+  // ✅ FIX 3: Apertura instantánea del modal - ULTRA OPTIMIZED
   const handleOpenAdvancedFilters = useCallback(() => {
     console.log('[ExplorarScreen v600.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
     
-    // ✅ Respuesta INMEDIATA - sin esperar nada
-    requestAnimationFrame(() => {
-      setShowAdvancedFilters(true);
-    });
+    // ✅ Respuesta INMEDIATA - sin requestAnimationFrame para máxima velocidad
+    setShowAdvancedFilters(true);
   }, []);
 
   const handleCloseAdvancedFilters = useCallback(() => {
@@ -634,21 +655,36 @@ export default function ExplorarScreen() {
 
   const modeIcon = getModeIcon();
 
-  // ✅ FIX 4: Scroll handler para header animado - BIDIRECTIONAL
+  // ✅ FIX 4: Scroll handler para header animado - BIDIRECTIONAL FIXED
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     { 
       useNativeDriver: true,
       listener: (event: any) => {
         const currentScrollY = event.nativeEvent.contentOffset.y;
+        const diff = currentScrollY - lastScrollY.current;
         
         // Detectar dirección del scroll
-        if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
+        if (diff > 5 && currentScrollY > 50) {
           // Scroll hacia abajo - ocultar header
-          scrollDirection.current = 'down';
-        } else if (currentScrollY < lastScrollY.current) {
+          if (scrollDirection.current !== 'down') {
+            scrollDirection.current = 'down';
+            Animated.timing(headerTranslateY, {
+              toValue: -HEADER_MAX_HEIGHT,
+              duration: 250,
+              useNativeDriver: true,
+            }).start();
+          }
+        } else if (diff < -5) {
           // Scroll hacia arriba - mostrar header
-          scrollDirection.current = 'up';
+          if (scrollDirection.current !== 'up') {
+            scrollDirection.current = 'up';
+            Animated.timing(headerTranslateY, {
+              toValue: 0,
+              duration: 250,
+              useNativeDriver: true,
+            }).start();
+          }
         }
         
         lastScrollY.current = currentScrollY;
