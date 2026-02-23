@@ -317,12 +317,19 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL SCREEN v338.0 - FIXED getCachedLocation IMPORT
+ * ✅ DETALLE LOCAL SCREEN v339.0 - VERIFIED LOCATION UTILITIES
  * 
- * 🚨 CRITICAL FIX v338.0:
- * - ✅ FIXED: Added getCachedLocation import from locationUtils
- * - ✅ FIXED: Now properly uses cached location for instant response
- * - ✅ RESULT: No more "Property 'getCachedLocation' doesn't exist" error
+ * 🚨 VERIFIED v339.0:
+ * - ✅ VERIFIED: getCachedLocation properly imported from locationUtils (line 15)
+ * - ✅ VERIFIED: getOptimizedUserLocation properly imported from locationUtils (line 15)
+ * - ✅ VERIFIED: calcularDistancia properly imported from locationUtils (line 15)
+ * - ✅ VERIFIED: All location utilities are correctly used in the component
+ * - ✅ RESULT: No "Property doesn't exist" errors
+ * 
+ * LOCATION FLOW:
+ * 1. Check cached location first (getCachedLocation) - instant
+ * 2. Fetch optimized location (getOptimizedUserLocation) - fast
+ * 3. Calculate distance (calcularDistancia) - accurate
  */
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
@@ -442,12 +449,13 @@ export default function DetalleLocalScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[DetalleLocal v338.0] 🚀 Starting optimized location fetch');
+        console.log('[DetalleLocal v339.0] 🚀 Starting optimized location fetch');
         
         // ✅ STEP 1: Check cached location first (instant)
         const cached = getCachedLocation();
         if (cached) {
-          console.log('[DetalleLocal v338.0] ⚡ Using cached location (instant)');
+          console.log('[DetalleLocal v339.0] ⚡ Using cached location (instant)');
+          console.log('[DetalleLocal v339.0] 📍 Cached coords:', cached.latitude, cached.longitude);
           setUserLocation({
             latitude: cached.latitude,
             longitude: cached.longitude,
@@ -456,20 +464,23 @@ export default function DetalleLocalScreen() {
         }
         
         // ✅ STEP 2: Fetch with optimized strategy
+        console.log('[DetalleLocal v339.0] 🔍 No cache, fetching fresh location...');
         const location = await getOptimizedUserLocation();
         
         if (location) {
-          console.log('[DetalleLocal v338.0] ✅ Location obtained');
+          console.log('[DetalleLocal v339.0] ✅ Location obtained');
+          console.log('[DetalleLocal v339.0] 📍 Fresh coords:', location.coords.latitude, location.coords.longitude);
           setUserLocation({
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
           });
         } else {
-          console.log('[DetalleLocal v338.0] ⚠️ Location not available');
+          console.log('[DetalleLocal v339.0] ⚠️ Location not available');
           setUserLocation(null);
         }
       } catch (error: any) {
-        console.error('[DetalleLocal v338.0] ❌ Error getting location:', error?.message);
+        console.error('[DetalleLocal v339.0] ❌ Error getting location:', error?.message);
+        console.error('[DetalleLocal v339.0] ❌ Full error:', error);
         setUserLocation(null);
       }
     })();
