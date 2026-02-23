@@ -211,168 +211,32 @@ class BackgroundSyncManager {
   }
 
   /**
-   * ✅ v3.0: Preload locales based on user location
+   * ✅ v444.0: DISABLED - Preloading removed (was causing conflicts)
    */
   preloadLocalesForLocation(
     latitude: number,
     longitude: number,
     force: boolean = false
   ): void {
-    // Check if we need to preload (location changed significantly)
-    if (!force && this.lastPreloadLocation) {
-      const distance = this.calculateDistance(
-        this.lastPreloadLocation.lat,
-        this.lastPreloadLocation.lng,
-        latitude,
-        longitude
-      );
-      
-      // Only preload if moved more than 2km
-      if (distance < 2000) {
-        console.log('[BackgroundSync v3.0] ⏸️ Location change too small, skipping preload');
-        return;
-      }
-    }
-
-    this.scheduleTask({
-      id: `preload:locales:${latitude.toFixed(4)},${longitude.toFixed(4)}`,
-      type: 'location_sync',
-      priority: 'high',
-      maxRetries: 2,
-      execute: async () => {
-        console.log('[BackgroundSync v3.0] 🚀 Preloading locales for location:', {
-          lat: latitude.toFixed(4),
-          lng: longitude.toFixed(4),
-        });
-
-        try {
-          // Fetch locales near this location
-          const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity', {
-            p_user_lat: latitude,
-            p_user_lng: longitude,
-            p_category_filter: null,
-            p_servicios_filter: null,
-            p_ambiente_filter: null,
-            p_clientela_filter: null,
-            p_comunidad_filter: null,
-            p_provincia_filter: null,
-            p_max_distance_km: PRELOAD_RADIUS_KM,
-            p_limit: PRELOAD_LIMIT,
-            p_offset: 0,
-          });
-
-          if (error) {
-            console.error('[BackgroundSync v3.0] ❌ Preload error:', error);
-            throw error;
-          }
-
-          if (data && data.length > 0) {
-            console.log('[BackgroundSync v3.0] ✅ Preloaded', data.length, 'locales');
-
-            // Save to cache
-            const preloadedData: PreloadedData = {
-              locales: data,
-              timestamp: Date.now(),
-              location: { lat: latitude, lng: longitude },
-            };
-
-            await AsyncStorage.setItem(PRELOAD_CACHE_KEY, JSON.stringify(preloadedData));
-            
-            // Update last preload location
-            this.lastPreloadLocation = { lat: latitude, lng: longitude };
-
-            // Preload images for first 10 locales
-            const imagesToPreload = data
-              .slice(0, 10)
-              .map((local: any) => local.imagen_url)
-              .filter(Boolean);
-
-            if (imagesToPreload.length > 0) {
-              this.preloadContent('images', imagesToPreload, 'medium');
-            }
-          } else {
-            console.log('[BackgroundSync v3.0] 📭 No locales found for preload');
-          }
-        } catch (error) {
-          console.error('[BackgroundSync v3.0] ❌ Preload failed:', error);
-          throw error;
-        }
-      },
-    });
+    // Disabled - was interfering with normal data loading
+    console.log('[BackgroundSync v444.0] ⏸️ Preloading disabled');
   }
 
   /**
-   * ✅ v3.0: Get preloaded locales from cache
+   * ✅ v444.0: DISABLED - Returns null (preloading removed)
    */
   async getPreloadedLocales(
     currentLat: number,
     currentLng: number
   ): Promise<any[] | null> {
-    try {
-      const cached = await AsyncStorage.getItem(PRELOAD_CACHE_KEY);
-      if (!cached) {
-        return null;
-      }
-
-      const preloadedData: PreloadedData = JSON.parse(cached);
-      
-      // Check if cache is still valid (within 5 minutes and 5km)
-      const age = Date.now() - preloadedData.timestamp;
-      const distance = this.calculateDistance(
-        preloadedData.location.lat,
-        preloadedData.location.lng,
-        currentLat,
-        currentLng
-      );
-
-      if (age < 300000 && distance < 5000) {
-        console.log('[BackgroundSync v3.0] ⚡ Using preloaded locales (age:', Math.round(age / 1000), 's, distance:', Math.round(distance), 'm)');
-        return preloadedData.locales;
-      }
-
-      console.log('[BackgroundSync v3.0] ⚠️ Preloaded cache expired or too far');
-      return null;
-    } catch (error) {
-      console.error('[BackgroundSync v3.0] ❌ Error reading preloaded cache:', error);
-      return null;
-    }
+    return null;
   }
 
   /**
-   * ✅ v3.0: Calculate distance between two points (Haversine formula)
-   */
-  private calculateDistance(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ): number {
-    const R = 6371000; // Earth's radius in meters
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-    
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Distance in meters
-  }
-
-  /**
-   * ✅ v3.0: Clear preloaded cache
+   * ✅ v444.0: DISABLED - No cache to clear
    */
   async clearPreloadedCache(): Promise<void> {
-    try {
-      await AsyncStorage.removeItem(PRELOAD_CACHE_KEY);
-      this.lastPreloadLocation = null;
-      console.log('[BackgroundSync v3.0] 🧹 Preloaded cache cleared');
-    } catch (error) {
-      console.error('[BackgroundSync v3.0] ❌ Error clearing preloaded cache:', error);
-    }
+    console.log('[BackgroundSync v444.0] ⏸️ No preload cache to clear');
   }
 }
 
