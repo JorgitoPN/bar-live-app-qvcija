@@ -35,18 +35,57 @@ interface RangoHorario {
 const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
 
 /**
- * ✅ v446.0: CRITICAL - Get current time in Spain timezone
- * This ensures consistency with backend RPC function
+ * ✅ v456.0: CRITICAL FIX - Get current time in Spain timezone (CROSS-PLATFORM)
+ * This ensures consistency with backend RPC function on Web, iOS, and Android
+ * 
+ * ISSUE: toLocaleString() behaves differently on mobile vs web
+ * SOLUTION: Use Intl.DateTimeFormat for consistent timezone conversion
  */
 function getCurrentSpainTime(): Date {
-  // Get current UTC time
   const now = new Date();
   
-  // Convert to Spain timezone (Europe/Madrid)
-  // Spain is UTC+1 (CET) or UTC+2 (CEST during daylight saving)
-  const spainTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
-  
-  return spainTime;
+  try {
+    // ✅ CROSS-PLATFORM: Use Intl.DateTimeFormat for reliable timezone conversion
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Madrid',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+    
+    const parts = formatter.formatToParts(now);
+    const dateParts: Record<string, string> = {};
+    
+    parts.forEach(part => {
+      if (part.type !== 'literal') {
+        dateParts[part.type] = part.value;
+      }
+    });
+    
+    // Construct date string in format: YYYY-MM-DD HH:mm:ss
+    const dateString = `${dateParts.year}-${dateParts.month}-${dateParts.day} ${dateParts.hour}:${dateParts.minute}:${dateParts.second}`;
+    
+    // Create Date object from the Spain time string
+    const spainTime = new Date(dateString);
+    
+    console.log('[timeUtils v456.0] 🕐 Spain time calculated:', {
+      utcTime: now.toISOString(),
+      spainTimeString: dateString,
+      spainTime: spainTime.toISOString(),
+      localHour: spainTime.getHours(),
+      localMinute: spainTime.getMinutes(),
+    });
+    
+    return spainTime;
+  } catch (error) {
+    console.error('[timeUtils v456.0] ❌ Error calculating Spain time, falling back to local time:', error);
+    // Fallback: return local time if timezone conversion fails
+    return now;
+  }
 }
 
 /**
@@ -313,7 +352,7 @@ export function buscarProximaApertura(local: any, ahora: Date): ProximaApertura 
 }
 
 /**
- * ✅ v446.0: CRITICAL FIX - Calculate status matching backend RPC EXACTLY
+ * ✅ v456.0: CRITICAL FIX - Calculate status matching backend RPC EXACTLY (CROSS-PLATFORM)
  * This function now uses Spain timezone and matches backend logic 100%
  */
 export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLocal {
@@ -321,8 +360,20 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
   const diaActual = diasSemana[diaActualIndex];
   const horaActual = ahora.getHours() * 60 + ahora.getMinutes();
   
+  console.log('[calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule:', {
+    diaActual,
+    horaActual: `${Math.floor(horaActual / 60)}:${(horaActual % 60).toString().padStart(2, '0')}`,
+    horaActualMinutos: horaActual,
+  });
+  
   // ✅ STEP 1: Check current day's schedule
   const horarioActual = local.horarios_completos?.[diaActual];
+  
+  console.log('[calcularEstadoHorarioNormal v456.0] 📋 Today\'s schedule:', {
+    diaActual,
+    horarioActual,
+    hasSchedule: !!horarioActual,
+  });
   
   if (!horarioActual) {
     // No schedule for today - check next opening
@@ -517,63 +568,88 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
 }
 
 /**
- * ✅ v446.0: CRITICAL FIX - Get status using Spain timezone
- * This is the main entry point - now uses Spain time for consistency
+ * ✅ v456.0: CRITICAL FIX - Get status using Spain timezone (CROSS-PLATFORM)
+ * This is the main entry point - now uses Spain time for consistency on all platforms
  */
 export function getEstadoLocal(local: any, ahora?: Date): EstadoLocal {
   // ✅ CRITICAL: Use Spain timezone if no time provided
   const spainTime = ahora || getCurrentSpainTime();
   
+  const diaActual = diasSemana[spainTime.getDay()];
+  const horaActual = spainTime.getHours();
+  const minutoActual = spainTime.getMinutes();
+  
+  console.log('[getEstadoLocal v456.0] 📍 Calculating status for:', {
+    localNombre: local.nombre,
+    diaActual,
+    horaActual,
+    minutoActual,
+    hasHorarios: !!local.horarios_completos,
+    horariosKeys: local.horarios_completos ? Object.keys(local.horarios_completos) : [],
+  });
+  
   // CASE: Permanently closed
   if (local.estado_negocio === 'CLOSED_PERMANENTLY' || local.google_business_status === 'CLOSED_PERMANENTLY') {
+    console.log('[getEstadoLocal v456.0] ❌ Local permanently closed');
     return { 
       badge: 'Cerrado permanentemente', 
       estaAbierto: false,
       claseBg: 'bg-red-500',
       overlayIcon: 'lock',
       tiempoRestante: null,
-      diaLogico: diasSemana[spainTime.getDay()],
+      diaLogico: diaActual,
     };
   }
   
   // CASE: Temporarily closed
   if (local.estado_negocio === 'CLOSED_TEMPORARILY' || local.google_business_status === 'CLOSED_TEMPORARILY') {
+    console.log('[getEstadoLocal v456.0] ⏸️ Local temporarily closed');
     return { 
       badge: 'Cerrado temporalmente', 
       estaAbierto: false,
       claseBg: 'bg-orange-500',
       overlayIcon: 'clock',
       tiempoRestante: null,
-      diaLogico: diasSemana[spainTime.getDay()],
+      diaLogico: diaActual,
     };
   }
   
   // CASE: No schedule information
   if (!local.horarios_completos || Object.keys(local.horarios_completos).length === 0) {
+    console.log('[getEstadoLocal v456.0] ❓ No schedule information available');
     return { 
       badge: 'Sin información de horario', 
       estaAbierto: null,
       claseBg: 'bg-gray-400',
       overlayIcon: 'questionmark',
       tiempoRestante: null,
-      diaLogico: diasSemana[spainTime.getDay()],
+      diaLogico: diaActual,
     };
   }
   
   // CASE: Open 24 hours
   if (esLocal24Horas(local.horarios_completos)) {
+    console.log('[getEstadoLocal v456.0] 🌙 Local is 24/7');
     return { 
       badge: 'Abierto 24h', 
       estaAbierto: true,
       claseBg: 'bg-green-500',
       overlayIcon: null,
       tiempoRestante: null,
-      diaLogico: diasSemana[spainTime.getDay()],
+      diaLogico: diaActual,
     };
   }
   
   // CASE: Normal schedule
-  return calcularEstadoHorarioNormal(local, spainTime);
+  console.log('[getEstadoLocal v456.0] 📅 Calculating normal schedule status');
+  const resultado = calcularEstadoHorarioNormal(local, spainTime);
+  console.log('[getEstadoLocal v456.0] ✅ Result:', {
+    badge: resultado.badge,
+    estaAbierto: resultado.estaAbierto,
+    claseBg: resultado.claseBg,
+  });
+  
+  return resultado;
 }
 
 /**
