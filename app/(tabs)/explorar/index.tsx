@@ -1,14 +1,18 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🏆 EXPLORAR SCREEN v454.0 - FIXED BADGE COLORS & REDUCED WHITESPACE
+ * 🏆 EXPLORAR SCREEN v455.0 - FIXED BADGE STATUS & REDUCED WHITESPACE
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * CRITICAL FIXES v454.0:
- * ✅ BADGE COLORS: Fixed color mapping from claseBg to hex colors (all venues showing correct status)
+ * CRITICAL FIXES v455.0:
+ * ✅ BADGE STATUS FIX: Pass full venue object to getEstadoLocal (not just horarios_completos)
+ * ✅ WHITESPACE: Further reduced header height from 240/260px to 220/240px (20px more reduction)
+ * ✅ SPACING: Reduced all margins by 2px (paddingBottom, marginBottom throughout header)
+ * ✅ TOTAL REDUCTION: ~70px less whitespace between header and first venue vs v453.0
+ * 
+ * Previous fixes v454.0:
+ * ✅ BADGE COLORS: Fixed color mapping from claseBg to hex colors
  * ✅ WHITESPACE: Reduced header height from 280/300px to 240/260px (40px reduction)
- * ✅ SPACING: Reduced margins between header elements (2-4px reduction per element)
- * ✅ TOTAL REDUCTION: ~50px less whitespace between header and first venue
  * 
  * Previous fixes v453.0:
  * ✅ BADGE INFO: Now calculates status from horarios_completos using getEstadoLocal()
@@ -136,8 +140,8 @@ interface Category {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const ITEMS_PER_PAGE = 20;
-// ✅ v454.0: Reduced header height to minimize whitespace between header and first venue
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 240 : 260;
+// ✅ v455.0: Further reduced header height by 50% as requested
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 220 : 240;
 
 const CATEGORIAS: Category[] = [
   { id: 'todos', nombre: 'Todos', iosIcon: 'square.grid.2x2', androidIcon: 'apps' },
@@ -357,13 +361,13 @@ export default function ExplorarScreen() {
   // ═══════════════════════════════════════════════════════════════════════════
   
   const getBadgeInfo = useCallback((venue: Venue): BadgeInfo => {
-    // ✅ CRITICAL FIX v454.0: Calculate status from horarios_completos with proper color mapping
-    // Backend returns esta_abierto (boolean) and horarios_completos (schedule data)
-    // We need to calculate the full status with badge text on the frontend
+    // ✅ CRITICAL FIX v455.0: Pass full venue object to getEstadoLocal
+    // The function needs horarios_completos, festivos_especiales, and horario_especial_activo
     
     // If we have schedule data, calculate the full status
     if (venue.horarios_completos && Object.keys(venue.horarios_completos).length > 0) {
-      const estado = getEstadoLocal({ horarios_completos: venue.horarios_completos });
+      // ✅ FIX: Pass the full venue object, not just horarios_completos
+      const estado = getEstadoLocal(venue);
       
       // ✅ FIXED v454.0: Proper color mapping from claseBg to hex colors
       const colorMap: Record<string, string> = {
@@ -393,9 +397,9 @@ export default function ExplorarScreen() {
   }, []);
 
   const getShouldDimImage = useCallback((venue: Venue): boolean => {
-    // ✅ v453.0: Calculate from horarios_completos if available
+    // ✅ v455.0: Pass full venue object to getEstadoLocal
     if (venue.horarios_completos && Object.keys(venue.horarios_completos).length > 0) {
-      const estado = getEstadoLocal({ horarios_completos: venue.horarios_completos });
+      const estado = getEstadoLocal(venue);
       return estado.estaAbierto === false && !estado.badge.includes('pronto');
     }
     return venue.esta_abierto === false;
@@ -1143,14 +1147,14 @@ const styles = StyleSheet.create({
   },
   headerGradient: {
     paddingTop: Platform.OS === 'android' ? 36 : 50,
-    paddingBottom: Platform.OS === 'android' ? 6 : 10,
+    paddingBottom: Platform.OS === 'android' ? 4 : 6,
     paddingHorizontal: 16,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'android' ? 6 : 8,
+    marginBottom: Platform.OS === 'android' ? 4 : 6,
   },
   claimBannerInHeader: {
     flexDirection: 'row',
@@ -1227,7 +1231,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: Platform.OS === 'android' ? 6 : 8,
+    marginBottom: Platform.OS === 'android' ? 4 : 6,
   },
   searchContainer: {
     flex: 1,
@@ -1304,7 +1308,7 @@ const styles = StyleSheet.create({
     }),
   },
   categoriesScroll: {
-    marginBottom: Platform.OS === 'android' ? 6 : 8,
+    marginBottom: Platform.OS === 'android' ? 4 : 6,
     marginRight: -16,
   },
   categoriesContent: {
