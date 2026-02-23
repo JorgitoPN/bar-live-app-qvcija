@@ -1,7 +1,7 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - CLEAN REBUILD v500.0
+ * EXPLORAR SCREEN - CLEAN REBUILD v500.1 - FORCE RELOAD
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Completamente reconstruido desde cero con:
@@ -12,6 +12,8 @@
  * - ✅ Código mantenible y escalable
  * - ✅ Sin dependencias innecesarias
  * - ✅ Cálculo correcto de estado abierto/cerrado en Android/iOS
+ * 
+ * ÚLTIMA ACTUALIZACIÓN: Forzando recarga completa
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -125,6 +127,9 @@ function useDebounce<T>(value: T, delay: number): T {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function ExplorarScreen() {
+  // ✅ VERIFICACIÓN DE VERSIÓN - Si ves este log, la nueva versión está cargada
+  console.log('🔄 [ExplorarScreen v500.1] Pantalla Explorar RECONSTRUIDA cargada correctamente');
+  
   const router = useRouter();
   const { user } = useAuth();
   const { currentMode } = useMode();
