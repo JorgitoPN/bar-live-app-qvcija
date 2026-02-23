@@ -41,7 +41,7 @@ interface LocationSubscriber {
 let locationCache: LocationCache | null = null;
 let lastSignificantLocation: LocationCache | null = null;
 const CACHE_DURATION = 60000; // 60 seconds cache (extended for background)
-const LOCATION_TIMEOUT = 10000; // 10 second timeout
+const LOCATION_TIMEOUT = 5000; // ✅ v3.1: Reduced to 5 seconds (was causing delays)
 const SIGNIFICANT_DISTANCE = 500; // 500 meters = significant movement
 const BACKGROUND_UPDATE_INTERVAL = 120000; // 2 minutes
 const STORAGE_KEY = 'last_known_location_v3';
@@ -346,12 +346,12 @@ export async function getOptimizedUserLocation(): Promise<Location.LocationObjec
     // ✅ STEP 3: Try last known location first (FAST - no GPS wait)
     try {
       const lastKnown = await Location.getLastKnownPositionAsync({
-        maxAge: 120000, // Accept location up to 2 minutes old
-        requiredAccuracy: 1000, // Accept accuracy up to 1km
+        maxAge: 300000, // ✅ v3.1: Accept location up to 5 minutes old (was 2 min)
+        requiredAccuracy: 2000, // ✅ v3.1: Accept accuracy up to 2km (was 1km)
       });
       
       if (lastKnown) {
-        console.log('[LocationUtils v3.0] ⚡ Using last known location (fast fallback)');
+        console.log('[LocationUtils v3.1] ⚡ Using last known location (fast fallback)');
         
         // Cache it
         locationCache = {
@@ -371,23 +371,23 @@ export async function getOptimizedUserLocation(): Promise<Location.LocationObjec
         return lastKnown;
       }
     } catch (error) {
-      console.log('[LocationUtils v3.0] ⚠️ Last known location not available');
+      console.log('[LocationUtils v3.1] ⚠️ Last known location not available');
     }
     
     // ✅ STEP 4: Get current position with timeout and optimized accuracy
-    console.log('[LocationUtils v3.0] 📍 Fetching current location with timeout protection');
+    console.log('[LocationUtils v3.1] 📍 Fetching current location with timeout protection');
     
     const locationPromise = Location.getCurrentPositionAsync({
       accuracy: Platform.OS === 'android' 
-        ? Location.Accuracy.Balanced // ✅ ANDROID: Balanced for speed (100m accuracy, 1-3s response)
-        : Location.Accuracy.Balanced, // iOS: Balanced is also good
-      maximumAge: 10000, // Accept cached location up to 10s old
-      timeout: LOCATION_TIMEOUT, // 10 second timeout
+        ? Location.Accuracy.Low // ✅ v3.1: ANDROID: Low for speed (500m accuracy, instant response)
+        : Location.Accuracy.Balanced, // iOS: Balanced is good
+      maximumAge: 30000, // ✅ v3.1: Accept cached location up to 30s old (was 10s)
+      timeout: LOCATION_TIMEOUT, // 5 second timeout
     });
     
     const timeoutPromise = new Promise<null>((resolve) => {
       setTimeout(() => {
-        console.log('[LocationUtils v3.0] ⏱️ Location fetch timeout (10s)');
+        console.log('[LocationUtils v3.1] ⏱️ Location fetch timeout (5s)');
         resolve(null);
       }, LOCATION_TIMEOUT);
     });
@@ -395,7 +395,7 @@ export async function getOptimizedUserLocation(): Promise<Location.LocationObjec
     const location = await Promise.race([locationPromise, timeoutPromise]);
     
     if (location) {
-      console.log('[LocationUtils v3.0] ✅ Current location obtained');
+      console.log('[LocationUtils v3.1] ✅ Current location obtained');
       
       // Cache it
       locationCache = {
@@ -415,7 +415,7 @@ export async function getOptimizedUserLocation(): Promise<Location.LocationObjec
       return location;
     }
     
-    console.log('[LocationUtils v3.0] ❌ Failed to get location');
+    console.log('[LocationUtils v3.1] ❌ Failed to get location');
     return null;
     
   } catch (error: any) {

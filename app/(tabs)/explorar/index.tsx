@@ -85,21 +85,26 @@ const CATEGORIAS = [
 ];
 
 /**
- * ✅ EXPLORAR SCREEN v442.0 - 50KM VALIDATION FOR FEATURED VENUES
+ * ✅ EXPLORAR SCREEN v443.0 - SCROLL STABILITY FIX FOR MOBILE
  * 
- * CRITICAL UPDATE v442.0 (2026-02-23):
+ * CRITICAL UPDATE v443.0 (2026-02-23):
+ * - 🔧 FIXED: Scroll jumps and instability on Android/iOS/Web
+ *   - REMOVED animated header (was interfering with FlatList scroll calculations)
+ *   - REMOVED getItemLayout (was causing jumps with variable card heights)
+ *   - Increased scroll end delay for Android (300ms) to ensure scroll fully stops
+ *   - FlatList now calculates heights dynamically for smooth scrolling
+ * - 🔧 FIXED: Location timeout issues
+ *   - Reduced location timeout from 10s to 5s
+ *   - Increased last known location acceptance to 5 minutes
+ *   - Using Low accuracy on Android for instant response
+ * 
+ * Previous fixes (v442.0):
  * - 🎯 NEW SORTING LOGIC: Featured venues > 50km lose "Destacado" priority
  *   - Tier 1: Featured Open (< 50km) - sorted by proximity
  *   - Tier 2: Regular Open OR Featured > 50km - sorted by proximity
  *   - Tier 3: No Schedule Info - sorted by proximity
  *   - Tier 4: Featured Closed (< 50km) - priority within closed block
  *   - Tier 5: Regular Closed OR Featured > 50km - sorted by proximity
- * 
- * Previous fixes (v441.0):
- * - 🔧 FIXED: Android/iOS scroll behavior issues
- *   - Added getItemLayout for consistent item heights (prevents jumps)
- *   - Optimized scroll thresholds for mobile (more conservative preload)
- *   - Platform-specific FlatList performance settings
  * 
  * Previous fixes (v440.0):
  * - 🔧 FIXED: Closed venues appearing among open venues
@@ -226,8 +231,9 @@ export default function ExplorarScreen() {
   
   useEffect(() => {
     if (!mountedRef.current) {
-      console.log(`[Explorar v442.0] 🚀 Component mounted on ${Platform.OS} - 50KM VALIDATION ACTIVE`);
-      console.log(`[Explorar v442.0] 📊 Sorting Logic: Tier 1 (Featured Open <50km) → Tier 2 (Regular Open OR Featured >50km) → Tier 3 (No Schedule) → Tier 4 (Featured Closed <50km) → Tier 5 (Regular Closed OR Featured >50km)`);
+      console.log(`[Explorar v443.0] 🚀 Component mounted on ${Platform.OS} - SCROLL STABILITY FIX ACTIVE`);
+      console.log(`[Explorar v443.0] 📊 Sorting Logic: Tier 1 (Featured Open <50km) → Tier 2 (Regular Open OR Featured >50km) → Tier 3 (No Schedule) → Tier 4 (Featured Closed <50km) → Tier 5 (Regular Closed OR Featured >50km)`);
+      console.log(`[Explorar v443.0] 🔧 Scroll Fixes: No animated header, dynamic heights, increased delays`);
       mountedRef.current = true;
     }
   }, []);
@@ -298,7 +304,7 @@ export default function ExplorarScreen() {
   
   useFocusEffect(
     useCallback(() => {
-      console.log('[Explorar v442.0] 🔄 Screen focused - checking if re-evaluation needed');
+      console.log('[Explorar v443.0] 🔄 Screen focused - checking if re-evaluation needed');
       
       // ✅ CRITICAL FIX v440.0: Create stable snapshot using IDs + tier + status
       const createSnapshot = (locales: any[]) => {
@@ -309,7 +315,7 @@ export default function ExplorarScreen() {
       const dataChanged = currentSnapshot !== localesSnapshotRef.current;
       
       if (allLocales.length > 0 && (dataChanged || !hasReEvaluatedRef.current)) {
-        console.log('[Explorar v442.0] 🔄 Re-evaluating', allLocales.length, 'locales (data changed:', dataChanged, ')');
+        console.log('[Explorar v443.0] 🔄 Re-evaluating', allLocales.length, 'locales (data changed:', dataChanged, ')');
         
         // Store snapshot BEFORE re-evaluation to prevent loop
         hasReEvaluatedRef.current = true;
@@ -692,10 +698,10 @@ export default function ExplorarScreen() {
         p_offset: offset
       };
       
-      console.log('[Explorar v442.0] 📡 Fetching locales with 50km validation for featured venues...');
-      console.log('[Explorar v442.0] 📍 User location:', userLocation);
-      console.log('[Explorar v442.0] 🏷️ Category filter:', categoryFilter);
-      console.log('[Explorar v442.0] 📄 Offset:', offset, 'Limit:', ITEMS_PER_PAGE);
+      console.log('[Explorar v443.0] 📡 Fetching locales with 50km validation for featured venues...');
+      console.log('[Explorar v443.0] 📍 User location:', userLocation);
+      console.log('[Explorar v443.0] 🏷️ Category filter:', categoryFilter);
+      console.log('[Explorar v443.0] 📄 Offset:', offset, 'Limit:', ITEMS_PER_PAGE);
       
       const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity', rpcParams);
 
@@ -718,7 +724,7 @@ export default function ExplorarScreen() {
       errorCountRef.current = 0;
 
       if (data && data.length > 0) {
-        console.log('[Explorar v442.0] ✅ Received', data.length, 'locales from backend (sorted by 5-tier system with 50km validation)');
+        console.log('[Explorar v443.0] ✅ Received', data.length, 'locales from backend (sorted by 5-tier system with 50km validation)');
         
         // ✅ CRITICAL FIX v440.0: Transform but DO NOT re-sort
         // Backend 5-tier sorting is authoritative and must be preserved
@@ -749,7 +755,7 @@ export default function ExplorarScreen() {
         // Tier 1: Featured Open → Tier 2: Regular Open → Tier 3: No Schedule → Tier 4: Featured Closed → Tier 5: Regular Closed
         // Client-side sorting breaks this order and causes closed venues to appear among open ones
 
-        console.log('[Explorar v442.0] ✅ Using backend-sorted data (50km validation) - First 5:', transformedLocales.slice(0, 5).map((l: any) => ({
+        console.log('[Explorar v443.0] ✅ Using backend-sorted data (50km validation) - First 5:', transformedLocales.slice(0, 5).map((l: any) => ({
           nombre: l.nombre,
           tier: l.sortingTier,
           destacado: l.destacado,
@@ -1055,7 +1061,7 @@ export default function ExplorarScreen() {
     return { ios: 'person.fill', android: 'person' };
   };
 
-  // ✅ v441.0: CRITICAL FIX - MOBILE-OPTIMIZED SCROLL HANDLER
+  // ✅ v443.0: CRITICAL FIX - REMOVE HEADER ANIMATION (causes scroll jumps)
   const handleScroll = useCallback((event: any) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
     const contentHeight = event.nativeEvent.contentSize.height;
@@ -1066,24 +1072,8 @@ export default function ExplorarScreen() {
     // ✅ CRITICAL: Mark as scrolling to prevent state updates
     isScrollingRef.current = true;
     
-    const diff = currentScrollY - lastScrollY.current;
-    
-    // ✅ MOBILE FIX: Only animate header on significant scroll changes
-    if (Math.abs(diff) > 10) {
-      if (diff > 0 && currentScrollY > 50) {
-        Animated.timing(headerTranslateY, {
-          toValue: -HEADER_MAX_HEIGHT - 10,
-          duration: Platform.OS === 'android' ? 200 : 250,
-          useNativeDriver: true,
-        }).start();
-      } else if (diff < 0) {
-        Animated.timing(headerTranslateY, {
-          toValue: 0,
-          duration: Platform.OS === 'android' ? 200 : 250,
-          useNativeDriver: true,
-        }).start();
-      }
-    }
+    // ✅ REMOVED: Header animation (was causing scroll instability)
+    // The animated header was interfering with FlatList's scroll calculations
     
     // ✅ MOBILE FIX: More conservative preload threshold for mobile
     const distanceFromBottom = contentHeight - (currentScrollY + layoutHeight);
@@ -1096,19 +1086,19 @@ export default function ExplorarScreen() {
     
     lastScrollY.current = currentScrollY;
     scrollY.current = currentScrollY;
-  }, [headerTranslateY, hasMore, isLoading, filteredLocales.length, loadMoreLocales]);
+  }, [hasMore, isLoading, filteredLocales.length, loadMoreLocales]);
   
-  // ✅ v441.0: CRITICAL - Apply pending updates after scroll ends (MOBILE OPTIMIZED)
+  // ✅ v443.0: CRITICAL - Apply pending updates after scroll ends (MOBILE OPTIMIZED)
   const handleScrollEnd = useCallback(() => {
     // ✅ MOBILE FIX: Longer delay on Android to ensure scroll has fully stopped
-    const delay = Platform.OS === 'android' ? 200 : 100;
+    const delay = Platform.OS === 'android' ? 300 : 150;
     
     setTimeout(() => {
       isScrollingRef.current = false;
       
       // Apply any pending updates
       if (pendingUpdateRef.current) {
-        console.log('[Explorar v441.0] ✅ Applying pending update after scroll ended');
+        console.log('[Explorar v443.0] ✅ Applying pending update after scroll ended');
         setAllLocales(pendingUpdateRef.current);
         pendingUpdateRef.current = null;
       }
@@ -1482,14 +1472,8 @@ export default function ExplorarScreen() {
 
   return (
     <View style={styles.container}>
-      <Animated.View
-        style={[
-          styles.headerContainer,
-          {
-            transform: [{ translateY: headerTranslateY }],
-          },
-        ]}
-      >
+      {/* ✅ v443.0: REMOVED animated header - was causing scroll instability */}
+      <View style={styles.headerContainer}>
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.headerGradient}
@@ -1689,7 +1673,7 @@ export default function ExplorarScreen() {
           ))}
         </ScrollView>
         </LinearGradient>
-      </Animated.View>
+      </View>
 
       <FlatList
         ref={flatListRef}
@@ -1726,11 +1710,8 @@ export default function ExplorarScreen() {
         scrollEventThrottle={Platform.OS === 'android' ? 32 : 16}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        getItemLayout={(data, index) => ({
-          length: 280,
-          offset: 280 * index,
-          index,
-        })}
+        // ✅ v443.0: REMOVED getItemLayout - was causing jumps with variable card heights
+        // FlatList will calculate heights dynamically for smooth scrolling
       />
 
       <FiltrosAvanzadosSheet
