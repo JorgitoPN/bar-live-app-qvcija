@@ -28,7 +28,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * NOTIFICACIONES SCREEN v7.0 - INSTAGRAM-INSPIRED SYSTEM WITH FULL NAVIGATION
+ * NOTIFICACIONES SCREEN v7.1 - INSTAGRAM-INSPIRED SYSTEM WITH EXHAUSTIVE NAVIGATION
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * 🎯 INSTAGRAM-INSPIRED FEATURES:
@@ -45,35 +45,48 @@ import { Swipeable } from 'react-native-gesture-handler';
  * ✅ User avatars and timestamps
  * ✅ Settings panel for notification preferences
  * 
- * 🔔 NOTIFICATION CLICK BEHAVIOR (v7.0):
+ * 🔔 NOTIFICATION CLICK BEHAVIOR (v7.1 - EXHAUSTIVO):
  * ✅ Like → Opens specific post
- * ✅ Comment → Opens post and scrolls to comment (with highlight)
- * ✅ Follow → Opens follower's profile
- * ✅ Mention → Opens content where mention occurred
- * ✅ Message → Opens specific conversation
- * ✅ Event → Opens event details
+ * ✅ Comment/Comentario → Opens post and scrolls to comment (with highlight)
+ * ✅ Follow/Seguidor → Opens follower's profile
+ * ✅ Mention/Mencion → Opens content where mention occurred
+ * ✅ Message/Mensaje/Mensaje_privado → Opens specific conversation
+ * ✅ Event/Evento → Opens event details
  * ✅ Cheers → Opens virtual room
  * ✅ Plan Purchase/Renewal → Opens subscription management
  * ✅ Featured Local Reminder → Opens local management
+ * ✅ Urgent/Sistema → Shows alert or navigates to action URL
+ * ✅ Promo → Opens promo URL or local details
+ * ✅ Unknown types → Attempts generic navigation or shows content
  * ✅ Automatic read status update on click
  * ✅ Visual style change for read notifications
  * ✅ Error handling for deleted/unavailable content
  * ✅ Smooth navigation without app reload
+ * ✅ Fallback navigation for incomplete data
+ * 
+ * 🚨 CRITICAL: TODAS LAS NOTIFICACIONES TIENEN ACCIÓN ASOCIADA
+ * - Cada tipo de notificación tiene un case específico en handleNotificationPress
+ * - Si falta información, se intenta navegación genérica basada en related_type
+ * - Como último recurso, se muestra el contenido de la notificación en un Alert
+ * - NUNCA se muestra "Esta notificación no tiene una acción asociada" sin intentar alternativas
  * 
  * DATABASE STRUCTURE:
  * - notifications table: user_id (text), type, title, body, read, created_at, related_id, related_type, data
  * - notificaciones table: usuario_id (uuid), tipo, titulo, mensaje, leida, created_at, related_id, related_type, data
  * 
- * NAVIGATION MAPPING:
+ * NAVIGATION MAPPING (EXHAUSTIVO):
  * - like → /social/post?id={postId}
- * - comment → /social/post?id={postId}&scrollToComment={commentId}
- * - follow → /perfil/usuario?userId={userId}
- * - mention → /social/post?id={postId} or /social/post?id={postId}&scrollToComment={commentId}
- * - message → /chat/conversacion?conversationId={conversationId}
- * - event → /detalle/evento?id={eventId}
+ * - comment/comentario → /social/post?id={postId}&scrollToComment={commentId}
+ * - follow/seguidor → /perfil/usuario?userId={userId}
+ * - mention/mencion → /social/post?id={postId} or /social/post?id={postId}&scrollToComment={commentId}
+ * - message/mensaje/mensaje_privado → /chat/conversacion?conversationId={conversationId}
+ * - event/evento → /detalle/evento?id={eventId}
  * - cheers → /detalle/sala-virtual-enhanced?localId={localId}
  * - plan_purchase/plan_renewal → /gestion/mi-suscripcion
  * - featured_local_reminder → /gestion/mis-locales?localId={localId}
+ * - urgent/sistema → data.actionUrl or Alert with content
+ * - promo → data.promoUrl or /detalle/local?id={localId} or Alert with content
+ * - unknown → Attempts generic navigation based on related_type or shows Alert
  */
 
 type NotificationType = 
@@ -86,7 +99,16 @@ type NotificationType =
   | 'cheers'
   | 'plan_purchase'
   | 'plan_renewal'
-  | 'featured_local_reminder';
+  | 'featured_local_reminder'
+  | 'urgent'
+  | 'promo'
+  | 'comentario'
+  | 'seguidor'
+  | 'mencion'
+  | 'evento'
+  | 'mensaje'
+  | 'mensaje_privado'
+  | 'sistema';
 
 interface NotificationItem {
   id: string;
@@ -752,14 +774,15 @@ export default function NotificacionesScreen() {
 
   /**
    * Navigate to related content based on notification type
-   * 🔔 COMPORTAMIENTO OBLIGATORIO AL HACER CLIC:
+   * 🔔 COMPORTAMIENTO OBLIGATORIO AL HACER CLIC (v7.1 - EXHAUSTIVO):
    * 1. Marca la notificación como leída automáticamente
    * 2. Navega al contenido exacto que originó la notificación
    * 3. Maneja errores si el contenido fue eliminado
    * 4. Proporciona feedback visual y háptico
+   * 5. TODOS los tipos de notificación tienen una acción asociada
    */
   const handleNotificationPress = async (notification: NotificationItem) => {
-    console.log('[Notificaciones v6.0] 👆 Usuario hizo clic en notificación:', notification.type || notification.tipo);
+    console.log('[Notificaciones v7.1] 👆 Usuario hizo clic en notificación:', notification.type || notification.tipo);
     
     // 1. Mark as read immediately (optimistic update)
     await markAsRead(notification.id);
@@ -768,185 +791,342 @@ export default function NotificacionesScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     // 3. Extract notification data (handle both English and Spanish fields)
-    const type = notification.type || notification.tipo || '';
+    const type = (notification.type || notification.tipo || '').toLowerCase();
     const relatedId = notification.related_id;
     const relatedType = notification.related_type;
     const senderId = notification.sender_id;
     const data = notification.data || {};
 
-    console.log('[Notificaciones v6.0] 📊 Datos de navegación:', {
+    console.log('[Notificaciones v7.1] 📊 Datos de navegación:', {
       type,
       relatedId,
       relatedType,
       senderId,
       hasData: !!data,
+      dataKeys: Object.keys(data),
     });
 
+    // 4. Validate that we have a type
+    if (!type) {
+      console.error('[Notificaciones v7.1] ❌ Notificación sin tipo:', notification);
+      Alert.alert(
+        'Error',
+        'Esta notificación está incompleta y no se puede procesar.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     try {
-      // 4. Navigate based on notification type
+      // 5. Navigate based on notification type
       switch (type) {
         // ═══════════════════════════════════════════════════════════════
         // LIKES - Abrir publicación específica
         // ═══════════════════════════════════════════════════════════════
-        case 'like':
-          if (relatedId && relatedType === 'post') {
-            console.log('[Notificaciones v6.0] 🔗 Navegando a publicación con like:', relatedId);
-            router.push(`/social/post?id=${relatedId}`);
+        case 'like': {
+          const postId = relatedId || data.postId || data.post_id;
+          if (postId && (relatedType === 'post' || !relatedType)) {
+            console.log('[Notificaciones v7.1] 🔗 Navegando a publicación con like:', postId);
+            router.push(`/social/post?id=${postId}`);
           } else {
-            throw new Error('ID de publicación no disponible');
+            console.warn('[Notificaciones v7.1] ⚠️ Like sin ID de publicación');
+            Alert.alert(
+              'Publicación no disponible',
+              'La publicación asociada a este like no se pudo encontrar.',
+              [{ text: 'OK' }]
+            );
           }
           break;
+        }
 
         // ═══════════════════════════════════════════════════════════════
         // COMENTARIOS - Abrir publicación y hacer scroll al comentario
         // ═══════════════════════════════════════════════════════════════
         case 'comment':
-        case 'comentario':
-          if (relatedId && relatedType === 'post') {
-            const commentId = data.commentId || data.comment_id;
+        case 'comentario': {
+          const postId = relatedId || data.postId || data.post_id;
+          const commentId = data.commentId || data.comment_id;
+          
+          if (postId) {
             if (commentId) {
-              console.log('[Notificaciones v6.0] 🔗 Navegando a publicación con comentario:', relatedId, 'comentario:', commentId);
-              // Pass commentId to highlight and scroll to it
-              router.push(`/social/post?id=${relatedId}&scrollToComment=${commentId}`);
+              console.log('[Notificaciones v7.1] 🔗 Navegando a publicación con comentario:', postId, 'comentario:', commentId);
+              router.push(`/social/post?id=${postId}&scrollToComment=${commentId}`);
             } else {
-              console.log('[Notificaciones v6.0] 🔗 Navegando a publicación (sin ID de comentario):', relatedId);
-              router.push(`/social/post?id=${relatedId}`);
+              console.log('[Notificaciones v7.1] 🔗 Navegando a publicación (sin ID de comentario):', postId);
+              router.push(`/social/post?id=${postId}`);
             }
-          } else if (relatedId && relatedType === 'comment') {
-            // If we only have comment ID, try to get post ID from data
-            const postId = data.postId || data.post_id;
-            if (postId) {
-              console.log('[Notificaciones v6.0] 🔗 Navegando a publicación desde comentario:', postId);
-              router.push(`/social/post?id=${postId}&scrollToComment=${relatedId}`);
-            } else {
-              throw new Error('ID de publicación no disponible');
-            }
+          } else if (relatedType === 'comment' && relatedId) {
+            // If we only have comment ID, navigate to comments section
+            console.log('[Notificaciones v7.1] 🔗 Navegando a comentarios (solo ID de comentario):', relatedId);
+            router.push(`/social/comentarios?commentId=${relatedId}`);
           } else {
-            throw new Error('Información de comentario no disponible');
+            console.warn('[Notificaciones v7.1] ⚠️ Comentario sin ID de publicación');
+            Alert.alert(
+              'Publicación no disponible',
+              'La publicación asociada a este comentario no se pudo encontrar.',
+              [{ text: 'OK' }]
+            );
           }
           break;
+        }
 
         // ═══════════════════════════════════════════════════════════════
         // NUEVOS SEGUIDORES - Abrir perfil del usuario
         // ═══════════════════════════════════════════════════════════════
         case 'follow':
-        case 'seguidor':
-          const followerId = senderId || relatedId;
+        case 'seguidor': {
+          const followerId = senderId || relatedId || data.userId || data.user_id;
           if (followerId) {
-            console.log('[Notificaciones v6.0] 🔗 Navegando a perfil de seguidor:', followerId);
+            console.log('[Notificaciones v7.1] 🔗 Navegando a perfil de seguidor:', followerId);
             router.push(`/perfil/usuario?userId=${followerId}`);
           } else {
-            throw new Error('ID de usuario no disponible');
+            console.warn('[Notificaciones v7.1] ⚠️ Seguidor sin ID de usuario');
+            Alert.alert(
+              'Perfil no disponible',
+              'El perfil del usuario no se pudo encontrar.',
+              [{ text: 'OK' }]
+            );
           }
           break;
+        }
 
         // ═══════════════════════════════════════════════════════════════
         // MENCIONES - Abrir contenido donde se realizó la mención
         // ═══════════════════════════════════════════════════════════════
         case 'mention':
-        case 'mencion':
-          if (relatedId && relatedType === 'post') {
-            console.log('[Notificaciones v6.0] 🔗 Navegando a publicación con mención:', relatedId);
-            router.push(`/social/post?id=${relatedId}`);
-          } else if (relatedId && relatedType === 'comment') {
-            const postId = data.postId || data.post_id;
-            if (postId) {
-              console.log('[Notificaciones v6.0] 🔗 Navegando a comentario con mención:', postId);
-              router.push(`/social/post?id=${postId}&scrollToComment=${relatedId}`);
-            } else {
-              throw new Error('ID de publicación no disponible');
-            }
+        case 'mencion': {
+          const postId = relatedId || data.postId || data.post_id;
+          const commentId = data.commentId || data.comment_id;
+          
+          if (postId && (relatedType === 'post' || !relatedType)) {
+            console.log('[Notificaciones v7.1] 🔗 Navegando a publicación con mención:', postId);
+            router.push(`/social/post?id=${postId}`);
+          } else if (postId && commentId) {
+            console.log('[Notificaciones v7.1] 🔗 Navegando a comentario con mención:', postId);
+            router.push(`/social/post?id=${postId}&scrollToComment=${commentId}`);
+          } else if (relatedType === 'comment' && relatedId) {
+            console.log('[Notificaciones v7.1] 🔗 Navegando a comentarios (mención en comentario):', relatedId);
+            router.push(`/social/comentarios?commentId=${relatedId}`);
           } else {
-            throw new Error('Contenido de mención no disponible');
+            console.warn('[Notificaciones v7.1] ⚠️ Mención sin contenido asociado');
+            Alert.alert(
+              'Contenido no disponible',
+              'El contenido donde fuiste mencionado no se pudo encontrar.',
+              [{ text: 'OK' }]
+            );
           }
           break;
+        }
 
         // ═══════════════════════════════════════════════════════════════
         // EVENTOS - Abrir detalle del evento
         // ═══════════════════════════════════════════════════════════════
         case 'event':
-        case 'evento':
-          if (relatedId) {
-            console.log('[Notificaciones v6.0] 🔗 Navegando a evento:', relatedId);
-            router.push(`/detalle/evento?id=${relatedId}`);
+        case 'evento': {
+          const eventId = relatedId || data.eventId || data.event_id;
+          if (eventId) {
+            console.log('[Notificaciones v7.1] 🔗 Navegando a evento:', eventId);
+            router.push(`/detalle/evento?id=${eventId}`);
           } else {
-            throw new Error('ID de evento no disponible');
+            console.warn('[Notificaciones v7.1] ⚠️ Evento sin ID');
+            Alert.alert(
+              'Evento no disponible',
+              'El evento asociado a esta notificación no se pudo encontrar.',
+              [{ text: 'OK' }]
+            );
           }
           break;
+        }
 
         // ═══════════════════════════════════════════════════════════════
         // MENSAJES DIRECTOS - Abrir conversación específica
         // ═══════════════════════════════════════════════════════════════
         case 'message':
         case 'mensaje':
-        case 'mensaje_privado':
+        case 'mensaje_privado': {
           const conversationId = relatedId || data.conversationId || data.conversation_id;
+          const chatUserId = senderId || data.userId || data.user_id;
+          
           if (conversationId) {
-            console.log('[Notificaciones v6.0] 🔗 Navegando a conversación:', conversationId);
+            console.log('[Notificaciones v7.1] 🔗 Navegando a conversación:', conversationId);
             router.push(`/chat/conversacion?conversationId=${conversationId}`);
-          } else if (senderId) {
+          } else if (chatUserId) {
             // If no conversation ID, try to open chat with sender
-            console.log('[Notificaciones v6.0] 🔗 Navegando a chat con usuario:', senderId);
-            router.push(`/chat/conversacion?userId=${senderId}`);
+            console.log('[Notificaciones v7.1] 🔗 Navegando a chat con usuario:', chatUserId);
+            router.push(`/chat/conversacion?userId=${chatUserId}`);
           } else {
-            throw new Error('Información de conversación no disponible');
+            console.warn('[Notificaciones v7.1] ⚠️ Mensaje sin información de conversación');
+            Alert.alert(
+              'Conversación no disponible',
+              'La conversación asociada a esta notificación no se pudo encontrar.',
+              [{ text: 'OK' }]
+            );
           }
           break;
+        }
 
         // ═══════════════════════════════════════════════════════════════
         // BRINDIS - Abrir sala virtual del local
         // ═══════════════════════════════════════════════════════════════
-        case 'cheers':
+        case 'cheers': {
           const localId = relatedId || data.localId || data.local_id;
           if (localId) {
-            console.log('[Notificaciones v6.0] 🔗 Navegando a sala virtual:', localId);
+            console.log('[Notificaciones v7.1] 🔗 Navegando a sala virtual:', localId);
             router.push(`/detalle/sala-virtual-enhanced?localId=${localId}`);
           } else {
-            throw new Error('ID de local no disponible');
+            console.warn('[Notificaciones v7.1] ⚠️ Brindis sin ID de local');
+            Alert.alert(
+              'Sala virtual no disponible',
+              'La sala virtual asociada a esta notificación no se pudo encontrar.',
+              [{ text: 'OK' }]
+            );
           }
           break;
+        }
 
         // ═══════════════════════════════════════════════════════════════
         // PLANES Y SUSCRIPCIONES - Abrir gestión de suscripción
         // ═══════════════════════════════════════════════════════════════
         case 'plan_purchase':
-        case 'plan_renewal':
-          console.log('[Notificaciones v6.0] 🔗 Navegando a gestión de suscripción');
+        case 'plan_renewal': {
+          console.log('[Notificaciones v7.1] 🔗 Navegando a gestión de suscripción');
           router.push('/gestion/mi-suscripcion');
           break;
+        }
 
         // ═══════════════════════════════════════════════════════════════
         // RECORDATORIO DE LOCAL DESTACADO - Abrir gestión de locales
         // ═══════════════════════════════════════════════════════════════
-        case 'featured_local_reminder':
+        case 'featured_local_reminder': {
           const featuredLocalId = relatedId || data.localId || data.local_id;
           if (featuredLocalId) {
-            console.log('[Notificaciones v6.0] 🔗 Navegando a gestión de locales:', featuredLocalId);
+            console.log('[Notificaciones v7.1] 🔗 Navegando a gestión de locales:', featuredLocalId);
             router.push(`/gestion/mis-locales?localId=${featuredLocalId}`);
           } else {
-            console.log('[Notificaciones v6.0] 🔗 Navegando a gestión de locales (sin ID específico)');
+            console.log('[Notificaciones v7.1] 🔗 Navegando a gestión de locales (sin ID específico)');
             router.push('/gestion/mis-locales');
           }
           break;
+        }
 
         // ═══════════════════════════════════════════════════════════════
-        // TIPO DESCONOCIDO - Log para debugging
+        // NOTIFICACIONES URGENTES DEL SISTEMA
         // ═══════════════════════════════════════════════════════════════
-        default:
-          console.warn('[Notificaciones v6.0] ⚠️ Tipo de notificación no manejado:', type);
-          console.warn('[Notificaciones v6.0] 📊 Datos completos:', notification);
-          Alert.alert(
-            'Notificación',
-            'Esta notificación no tiene una acción asociada.',
-            [{ text: 'OK' }]
-          );
+        case 'urgent':
+        case 'sistema': {
+          // Check if there's a specific action URL in the data
+          const actionUrl = data.actionUrl || data.action_url || data.url;
+          if (actionUrl) {
+            console.log('[Notificaciones v7.1] 🔗 Navegando a URL de acción:', actionUrl);
+            router.push(actionUrl);
+          } else {
+            // Show the notification content in an alert
+            const title = notification.title || notification.titulo || 'Notificación del sistema';
+            const body = notification.body || notification.mensaje || '';
+            console.log('[Notificaciones v7.1] 📢 Mostrando notificación urgente');
+            Alert.alert(
+              title,
+              body,
+              [{ text: 'OK' }]
+            );
+          }
+          break;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // PROMOCIONES Y OFERTAS ESPECIALES
+        // ═══════════════════════════════════════════════════════════════
+        case 'promo': {
+          // Check if there's a specific promo URL or local ID
+          const promoUrl = data.promoUrl || data.promo_url || data.url;
+          const promoLocalId = relatedId || data.localId || data.local_id;
+          
+          if (promoUrl) {
+            console.log('[Notificaciones v7.1] 🔗 Navegando a URL de promoción:', promoUrl);
+            router.push(promoUrl);
+          } else if (promoLocalId) {
+            console.log('[Notificaciones v7.1] 🔗 Navegando a local con promoción:', promoLocalId);
+            router.push(`/detalle/local?id=${promoLocalId}`);
+          } else {
+            // Show the promo content in an alert
+            const title = notification.title || notification.titulo || 'Promoción especial';
+            const body = notification.body || notification.mensaje || '';
+            console.log('[Notificaciones v7.1] 🎁 Mostrando promoción');
+            Alert.alert(
+              title,
+              body,
+              [{ text: 'Ver más', onPress: () => router.push('/explorar') }, { text: 'Cerrar' }]
+            );
+          }
+          break;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // TIPO DESCONOCIDO - Intentar navegación genérica
+        // ═══════════════════════════════════════════════════════════════
+        default: {
+          console.warn('[Notificaciones v7.1] ⚠️ Tipo de notificación no manejado:', type);
+          console.warn('[Notificaciones v7.1] 📊 Datos completos:', notification);
+          
+          // Try to extract any possible navigation data
+          const genericUrl = data.url || data.actionUrl || data.action_url;
+          const genericId = relatedId || data.id;
+          
+          if (genericUrl) {
+            console.log('[Notificaciones v7.1] 🔗 Intentando navegación genérica a URL:', genericUrl);
+            router.push(genericUrl);
+          } else if (genericId && relatedType) {
+            // Try to construct a URL based on related_type
+            let constructedUrl = '';
+            switch (relatedType) {
+              case 'post':
+                constructedUrl = `/social/post?id=${genericId}`;
+                break;
+              case 'user':
+                constructedUrl = `/perfil/usuario?userId=${genericId}`;
+                break;
+              case 'event':
+                constructedUrl = `/detalle/evento?id=${genericId}`;
+                break;
+              case 'local':
+                constructedUrl = `/detalle/local?id=${genericId}`;
+                break;
+              default:
+                break;
+            }
+            
+            if (constructedUrl) {
+              console.log('[Notificaciones v7.1] 🔗 Navegando a URL construida:', constructedUrl);
+              router.push(constructedUrl);
+            } else {
+              // Show notification content as fallback
+              const title = notification.title || notification.titulo || 'Notificación';
+              const body = notification.body || notification.mensaje || '';
+              Alert.alert(
+                title,
+                body || 'Esta notificación no tiene una acción específica asociada.',
+                [{ text: 'OK' }]
+              );
+            }
+          } else {
+            // Last resort: show notification content
+            const title = notification.title || notification.titulo || 'Notificación';
+            const body = notification.body || notification.mensaje || '';
+            Alert.alert(
+              title,
+              body || 'Esta notificación no tiene una acción específica asociada.',
+              [{ text: 'OK' }]
+            );
+          }
+          break;
+        }
       }
     } catch (error: any) {
       // ═══════════════════════════════════════════════════════════════
       // MANEJO DE ERRORES - Contenido no disponible
       // ═══════════════════════════════════════════════════════════════
-      console.error('[Notificaciones v6.0] ❌ Error de navegación:', error.message);
-      console.error('[Notificaciones v6.0] 📊 Notificación que causó el error:', notification);
+      console.error('[Notificaciones v7.1] ❌ Error de navegación:', error.message);
+      console.error('[Notificaciones v7.1] 📊 Notificación que causó el error:', notification);
       
       // Show user-friendly error message
       Alert.alert(
@@ -959,10 +1139,12 @@ export default function NotificacionesScreen() {
 
   /**
    * Get icon for notification type (handles both English and Spanish types)
+   * v7.1 - EXHAUSTIVO: Todos los tipos tienen un icono específico
    */
   const getNotificationIcon = (notification: NotificationItem): string => {
-    const type = notification.type || notification.tipo || '';
+    const type = (notification.type || notification.tipo || '').toLowerCase();
     const iconMap: Record<string, string> = {
+      // Social interactions
       like: '❤️',
       comment: '💬',
       comentario: '💬',
@@ -970,15 +1152,24 @@ export default function NotificacionesScreen() {
       seguidor: '👥',
       mention: '@',
       mencion: '@',
+      
+      // Events & Activities
       event: '📅',
       evento: '📅',
       message: '✉️',
+      mensaje: '✉️',
       mensaje_privado: '✉️',
       cheers: '🍻',
+      
+      // Business & Subscriptions
       plan_purchase: '💳',
       plan_renewal: '🔄',
       featured_local_reminder: '⭐',
+      
+      // System notifications
+      urgent: '🚨',
       sistema: '🔔',
+      promo: '🎁',
     };
     return iconMap[type] || '🔔';
   };
