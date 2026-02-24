@@ -41,19 +41,19 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v300.0 - ANDROID INCREASED OFFSET (USER REQUEST)
+ * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v301.0 - ANDROID BALANCED OFFSET (USER REFINEMENT)
  * 
  * ANDROID-SPECIFIC FIXES:
  * 1️⃣ CONVERSACIÓN - Input field behavior:
  *    - ✅ Absolute positioning with bottom: 0 (extends to physical screen bottom)
  *    - ✅ Input rises smoothly when keyboard opens via dynamic bottom positioning
- *    - ✅ INCREASED OFFSET: Input now sits MUCH HIGHER above keyboard (2.5x previous offset)
- *    - ✅ User requested: "subir un poco mas y mas del doble la caja de comentarios"
+ *    - ✅ BALANCED OFFSET: 80px provides optimal visibility without excessive gap
+ *    - ✅ User refinement: Previous 150px was too much, now perfectly balanced
  *    - ✅ Input returns to bottom automatically when keyboard closes
  *    - ✅ NO stuck-in-middle issue
  *    - ✅ White background extends BEHIND system navigation bar
  *    - ✅ Visible content respects safe area insets
- *    - ✅ MORE VISIBLE layout - input well above keyboard for better visibility
+ *    - ✅ OPTIMAL layout - input clearly visible above keyboard with minimal gap
  *    - ✅ Enhanced logging for debugging keyboard behavior
  * 
  * 2️⃣ SEND BUTTON:
@@ -105,9 +105,9 @@ export default function ConversacionScreen() {
   const isLocalChat = !!params.localId;
   const localId = params.localId as string | undefined;
   
-  // ✅ FIX v300.0: INCREASED OFFSET - User requested "mas del doble" (more than double)
-  // Previous offset was ~60px, now 150px (2.5x increase)
-  const EXTRA_KEYBOARD_OFFSET = 150;
+  // ✅ FIX v301.0: BALANCED OFFSET - User reported 150px was too much space
+  // Reduced from 150px to 80px for optimal visibility without excessive gap
+  const EXTRA_KEYBOARD_OFFSET = 80;
 
   // ✅ ANDROID FIX v286.0: Set system navigation bar color to WHITE (matching input container)
   useEffect(() => {
@@ -122,18 +122,18 @@ export default function ConversacionScreen() {
     }
   }, []);
 
-  // ✅ FIX v300.0: Detect keyboard height dynamically WITH INCREASED OFFSET (user requested)
+  // ✅ FIX v301.0: Detect keyboard height dynamically WITH BALANCED OFFSET (user refinement)
   useEffect(() => {
-    console.log('[Conversacion v300.0] 🎹 Setting up keyboard listeners for Android fix');
-    console.log('[Conversacion v300.0] 📏 EXTRA_KEYBOARD_OFFSET:', EXTRA_KEYBOARD_OFFSET, 'px (2.5x previous)');
+    console.log('[Conversacion v301.0] 🎹 Setting up keyboard listeners for Android fix');
+    console.log('[Conversacion v301.0] 📏 EXTRA_KEYBOARD_OFFSET:', EXTRA_KEYBOARD_OFFSET, 'px (balanced)');
     
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[Conversacion v300.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
-        console.log('[Conversacion v300.0] 📱 Platform:', Platform.OS);
-        console.log('[Conversacion v300.0] 📏 Total offset will be:', e.endCoordinates.height + EXTRA_KEYBOARD_OFFSET, 'px');
-        // ✅ INCREASED OFFSET - input sits well above keyboard for better visibility
+        console.log('[Conversacion v301.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[Conversacion v301.0] 📱 Platform:', Platform.OS);
+        console.log('[Conversacion v301.0] 📏 Total offset will be:', e.endCoordinates.height + EXTRA_KEYBOARD_OFFSET, 'px');
+        // ✅ BALANCED OFFSET - input clearly visible with minimal gap
         setKeyboardHeight(e.endCoordinates.height);
         setKeyboardVisible(true);
       }
@@ -142,14 +142,14 @@ export default function ConversacionScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[Conversacion v300.0] ⌨️ Keyboard hidden');
+        console.log('[Conversacion v301.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
         setKeyboardVisible(false);
       }
     );
 
     return () => {
-      console.log('[Conversacion v300.0] 🧹 Cleaning up keyboard listeners');
+      console.log('[Conversacion v301.0] 🧹 Cleaning up keyboard listeners');
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
