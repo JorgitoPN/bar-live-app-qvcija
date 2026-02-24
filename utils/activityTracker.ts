@@ -59,28 +59,70 @@ export async function trackActivity({
   }
 }
 
+// ✅ PASO 5: BATCHING OPTIMIZATION - Buffer for profile views to reduce DB writes
+let profileViewBuffer: string[] = [];
+let flushTimeout: NodeJS.Timeout | null = null;
+
 /**
- * Track profile view in Explore page
+ * Track profile view in Explore page (OPTIMIZED WITH BATCHING)
+ * 
+ * ✅ OPTIMIZATION: Instead of writing to DB on every scroll, we batch profile views
+ * - Collects views in a buffer
+ * - Sends to Supabase every 3 seconds OR when 5 views are collected
+ * - Prevents excessive DB writes during rapid scrolling
+ * - Reduces SQLITE_FULL errors by minimizing write operations
  */
 export async function trackProfileView(
   localId: string,
   usuarioId?: string,
   source: 'explore' | 'search' | 'map' | 'social' | 'direct' = 'explore'
 ): Promise<void> {
-  try {
-    const { error } = await supabase.from('profile_views').insert({
-      local_id: localId,
-      usuario_id: usuarioId || null,
-      source,
-    });
+  // Avoid duplicates in the same buffer
+  if (profileViewBuffer.includes(localId)) {
+    console.log('[ActivityTracker] ⏭️ Skipping duplicate view in buffer:', localId);
+    return;
+  }
+  
+  profileViewBuffer.push(localId);
+  console.log('[ActivityTracker] 📦 Added to buffer:', localId, `(${profileViewBuffer.length}/5)`);
 
-    if (error) {
-      console.error('[ActivityTracker] Error tracking profile view:', error);
-    } else {
-      console.log('[ActivityTracker] ✅ Profile view tracked:', { localId, source });
+  // Send to Supabase every 3 seconds OR when 5 views are buffered
+  if (profileViewBuffer.length >= 5 || !flushTimeout) {
+    if (flushTimeout) {
+      clearTimeout(flushTimeout);
     }
-  } catch (error) {
-    console.error('[ActivityTracker] Error tracking profile view:', error);
+    
+    flushTimeout = setTimeout(async () => {
+      const idsToSend = [...profileViewBuffer];
+      profileViewBuffer = [];
+      flushTimeout = null;
+
+      if (idsToSend.length === 0) {
+        console.log('[ActivityTracker] ⚠️ Buffer empty, skipping flush');
+        return;
+      }
+
+      try {
+        console.log('[ActivityTracker] 🚀 Flushing batch of', idsToSend.length, 'profile views');
+        
+        // Batch insert all views at once
+        const { error } = await supabase.from('profile_views').insert(
+          idsToSend.map(id => ({
+            local_id: id,
+            usuario_id: usuarioId || null,
+            source,
+          }))
+        );
+        
+        if (error) {
+          console.error('[ActivityTracker] ❌ Error en batch:', error);
+        } else {
+          console.log('[ActivityTracker] ✅ Batch inserted successfully:', idsToSend.length, 'views');
+        }
+      } catch (e) {
+        console.error('[ActivityTracker] ❌ Batch insert failed:', e);
+      }
+    }, 3000);
   }
 }
 

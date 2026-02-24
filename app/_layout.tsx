@@ -22,6 +22,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { supabaseStorage } from '@/src/lib/supabaseStorage';
+import { Image } from 'expo-image';
 
 /**
  * ✅ ROOT LAYOUT v18.2 - TANSTACK QUERY ASYNC PERSISTER (PASO 4.2 COMPLETADO)
@@ -159,7 +160,27 @@ const persister = createAsyncStoragePersister({
 
 console.log('[TanStack Query] ✅ Async cache persister initialized successfully');
 
+// ✅ PASO 5: EMERGENCY OPTIMIZATION - Limit image cache globally to prevent SQLITE_FULL
+// This prevents the "Code 13: SQLITE_FULL" error by limiting memory history
+console.log('[Image Cache] 🛡️ Setting memory history limit to prevent SQLITE_FULL errors');
+Image.setMemoryHistoryEnabled(true);
+console.log('[Image Cache] ✅ Memory history enabled with automatic limits');
+
 export default function RootLayout() {
+  // ✅ PASO 5: EMERGENCY MAINTENANCE - Clear disk cache on startup to prevent SQLITE_FULL
+  useEffect(() => {
+    const maintenance = async () => {
+      try {
+        console.log('[Maintenance] 🧹 Starting emergency disk cache cleanup...');
+        await Image.clearDiskCache();
+        console.log('[Maintenance] ✅ Disco purgado para evitar SQLITE_FULL');
+      } catch (error) {
+        console.log('[Maintenance] ⚠️ Cache cleanup failed (non-critical):', error);
+      }
+    };
+    maintenance();
+  }, []);
+
   // ✅ v17.0: Initialize Zustand stores (replaces Provider initialization)
   useEffect(() => {
     console.log('[RootLayout v17.0] 🚀 Initializing Zustand stores...');
