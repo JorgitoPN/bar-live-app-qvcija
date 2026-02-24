@@ -18,6 +18,7 @@ import {
   Pressable,
   Keyboard,
   ImageBackground,
+  Alert,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -650,6 +651,29 @@ export default function SalaVirtualEnhancedScreen() {
     try {
       console.log('[SalaVirtual v6.7] 🚪 User checking in...');
       
+      // ✅ CRITICAL FIX: Verify session is valid before check-in
+      console.log('[SalaVirtual v6.7] 🔐 Verifying session validity...');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error('[SalaVirtual v6.7] ❌ Session invalid or expired:', sessionError);
+        Alert.alert(
+          'Sesión Expirada',
+          'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                router.push('/auth/login');
+              }
+            }
+          ]
+        );
+        return false;
+      }
+      
+      console.log('[SalaVirtual v6.7] ✅ Session is valid');
+      
       if (!isMounted.current) return false;
       
       setCheckingIn(true);
@@ -684,7 +708,25 @@ export default function SalaVirtualEnhancedScreen() {
         if (isMounted.current) {
           setIsCheckedIn(false);
         }
-        throw new Error('No se pudo entrar en la sala');
+        
+        // ✅ Better error message for authentication issues
+        if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
+          Alert.alert(
+            'Error de Autenticación',
+            'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  router.push('/auth/login');
+                }
+              }
+            ]
+          );
+        } else {
+          throw new Error('No se pudo entrar en la sala');
+        }
+        return false;
       }
 
       console.log('[SalaVirtual v6.7] ✅ User checked in successfully');
@@ -700,7 +742,7 @@ export default function SalaVirtualEnhancedScreen() {
       }
       return false;
     }
-  }, [user, localId]);
+  }, [user, localId, router]);
 
   const handleCheckOut = useCallback(async () => {
     if (!user || !localId) return;
@@ -1528,6 +1570,27 @@ export default function SalaVirtualEnhancedScreen() {
     }
 
     try {
+      // ✅ CRITICAL FIX: Verify session before sending message
+      console.log('[SalaVirtual v6.7] 🔐 Verifying session before sending message...');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error('[SalaVirtual v6.7] ❌ Session invalid:', sessionError);
+        Alert.alert(
+          'Sesión Expirada',
+          'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                router.push('/auth/login');
+              }
+            }
+          ]
+        );
+        return;
+      }
+      
       setSending(true);
 
       const pendingId = content + user.id;
@@ -1598,6 +1661,22 @@ export default function SalaVirtualEnhancedScreen() {
 
       if (error) {
         console.error('[SalaVirtual v6.7] ❌ Error saving message to DB:', error);
+        
+        // ✅ Better error handling for auth issues
+        if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
+          Alert.alert(
+            'Error de Autenticación',
+            'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  router.push('/auth/login');
+                }
+              }
+            ]
+          );
+        }
         
         messageIdsRef.current.delete(messageId);
         if (isMounted.current) {

@@ -65,43 +65,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const ensureValidSession = async (): Promise<Session | null> => {
     try {
+      console.log('[AuthContext] 🔍 Checking session validity...');
       const { data: { session: currentSession }, error: getError } = await supabase.auth.getSession();
       
-      if (getError || !currentSession) {
+      if (getError) {
+        console.error('[AuthContext] ❌ Error getting session:', getError);
+        return null;
+      }
+      
+      if (!currentSession) {
+        console.log('[AuthContext] ⚠️ No active session found');
         return null;
       }
 
       const expiresAt = currentSession.expires_at! * 1000;
       const now = Date.now();
       const timeUntilExpiry = expiresAt - now;
+      
+      console.log('[AuthContext] ⏰ Session expires in:', Math.floor(timeUntilExpiry / 1000 / 60), 'minutes');
 
-      // ✅ v293.0: Only refresh if < 2 minutes to expiry (was 3)
-      if (timeUntilExpiry < 2 * 60 * 1000) {
+      // ✅ Refresh if session is expired or will expire in < 5 minutes
+      if (timeUntilExpiry < 5 * 60 * 1000) {
+        console.log('[AuthContext] 🔄 Session expiring soon, refreshing...');
         const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
         
         if (refreshError) {
+          console.error('[AuthContext] ❌ Error refreshing session:', refreshError);
+          // If session is already expired, return null
           if (timeUntilExpiry <= 0) {
+            console.log('[AuthContext] ⚠️ Session expired, cannot refresh');
             return null;
           }
+          // If refresh failed but session is still valid, use current session
+          console.log('[AuthContext] ⚠️ Refresh failed but session still valid, using current session');
           setSession(currentSession);
           setSessionReady(true);
           return currentSession;
         }
 
         if (!refreshedSession) {
+          console.log('[AuthContext] ⚠️ No refreshed session returned');
           return null;
         }
         
+        console.log('[AuthContext] ✅ Session refreshed successfully');
         setSession(refreshedSession);
         setSessionReady(true);
         
         return refreshedSession;
       }
 
+      console.log('[AuthContext] ✅ Session is valid');
       setSession(currentSession);
       setSessionReady(true);
       return currentSession;
     } catch (err) {
+      console.error('[AuthContext] ❌ Exception in ensureValidSession:', err);
       return null;
     }
   };
