@@ -316,9 +316,10 @@ export default function ComentariosScreen() {
       console.log('[ComentariosScreen v327.0] ✅ Valid session confirmed, user ID:', validSession.user.id);
 
       if (editingComment) {
+        // ✅ Ensure texto is a string, not an array
         const { error } = await supabase
           .from('comentarios')
-          .update({ texto: text })
+          .update({ texto: String(text).trim() })
           .eq('id', editingComment.id);
 
         if (error) throw error;
@@ -326,10 +327,12 @@ export default function ComentariosScreen() {
         setEditingComment(null);
         await loadComments();
       } else {
+        // ✅ CRITICAL FIX: Ensure texto is explicitly a string, not an array
+        // This prevents PostgreSQL error 42883: function pg_catalog.substring(text[], integer) does not exist
         const commentData: any = {
           post_id: postId,
           autor_id: validSession.user.id,
-          texto: text,
+          texto: String(text).trim(), // ✅ Explicitly convert to string and trim
           parent_comment_id: replyingTo?.id || null,
         };
         
@@ -341,6 +344,7 @@ export default function ComentariosScreen() {
         }
 
         console.log('[ComentariosScreen v327.0] 📝 Inserting comment with data:', commentData);
+        console.log('[ComentariosScreen v327.0] 🔍 texto type:', typeof commentData.texto, 'value:', commentData.texto);
 
         const { data: newComment, error } = await supabase
           .from('comentarios')
