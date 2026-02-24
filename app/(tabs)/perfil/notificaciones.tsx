@@ -774,18 +774,24 @@ export default function NotificacionesScreen() {
 
   /**
    * Navigate to related content based on notification type
-   * 🔔 COMPORTAMIENTO OBLIGATORIO AL HACER CLIC (v7.1 - EXHAUSTIVO):
+   * 🔔 COMPORTAMIENTO OBLIGATORIO AL HACER CLIC (v7.2 - EXHAUSTIVO CON MEJOR LOGGING):
    * 1. Marca la notificación como leída automáticamente
    * 2. Navega al contenido exacto que originó la notificación
    * 3. Maneja errores si el contenido fue eliminado
    * 4. Proporciona feedback visual y háptico
    * 5. TODOS los tipos de notificación tienen una acción asociada
+   * 6. Logging mejorado para debugging
    */
   const handleNotificationPress = async (notification: NotificationItem) => {
-    console.log('[Notificaciones v7.1] 👆 Usuario hizo clic en notificación:', notification.type || notification.tipo);
+    console.log('[Notificaciones v7.2] ═══════════════════════════════════════════════════════');
+    console.log('[Notificaciones v7.2] 👆 Usuario hizo clic en notificación');
+    console.log('[Notificaciones v7.2] 📊 NOTIFICACIÓN COMPLETA:', JSON.stringify(notification, null, 2));
     
     // 1. Mark as read immediately (optimistic update)
-    await markAsRead(notification.id);
+    const wasRead = notification.read || notification.leida;
+    if (!wasRead) {
+      await markAsRead(notification.id, wasRead || false);
+    }
 
     // 2. Haptic feedback for better UX
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -797,18 +803,17 @@ export default function NotificacionesScreen() {
     const senderId = notification.sender_id;
     const data = notification.data || {};
 
-    console.log('[Notificaciones v7.1] 📊 Datos de navegación:', {
-      type,
-      relatedId,
-      relatedType,
-      senderId,
-      hasData: !!data,
-      dataKeys: Object.keys(data),
-    });
+    console.log('[Notificaciones v7.2] 📊 Datos extraídos:');
+    console.log('[Notificaciones v7.2]    - type:', type);
+    console.log('[Notificaciones v7.2]    - relatedId:', relatedId);
+    console.log('[Notificaciones v7.2]    - relatedType:', relatedType);
+    console.log('[Notificaciones v7.2]    - senderId:', senderId);
+    console.log('[Notificaciones v7.2]    - data:', JSON.stringify(data, null, 2));
 
     // 4. Validate that we have a type
     if (!type) {
-      console.error('[Notificaciones v7.1] ❌ Notificación sin tipo:', notification);
+      console.error('[Notificaciones v7.2] ❌ CRÍTICO: Notificación sin tipo');
+      console.error('[Notificaciones v7.2] 📊 Notificación completa:', notification);
       Alert.alert(
         'Error',
         'Esta notificación está incompleta y no se puede procesar.',
@@ -819,17 +824,23 @@ export default function NotificacionesScreen() {
 
     try {
       // 5. Navigate based on notification type
+      console.log('[Notificaciones v7.2] 🔀 Evaluando tipo de notificación:', type);
+      
       switch (type) {
         // ═══════════════════════════════════════════════════════════════
         // LIKES - Abrir publicación específica
         // ═══════════════════════════════════════════════════════════════
         case 'like': {
-          const postId = relatedId || data.postId || data.post_id;
-          if (postId && (relatedType === 'post' || !relatedType)) {
-            console.log('[Notificaciones v7.1] 🔗 Navegando a publicación con like:', postId);
+          console.log('[Notificaciones v7.2] ❤️ Procesando LIKE');
+          const postId = relatedId || data.postId || data.post_id || data.entityId;
+          console.log('[Notificaciones v7.2]    - postId encontrado:', postId);
+          
+          if (postId) {
+            console.log('[Notificaciones v7.2] ✅ Navegando a publicación:', postId);
             router.push(`/social/post?id=${postId}`);
           } else {
-            console.warn('[Notificaciones v7.1] ⚠️ Like sin ID de publicación');
+            console.warn('[Notificaciones v7.2] ⚠️ Like sin ID de publicación');
+            console.warn('[Notificaciones v7.2] 📊 Datos disponibles:', { relatedId, data });
             Alert.alert(
               'Publicación no disponible',
               'La publicación asociada a este like no se pudo encontrar.',
@@ -844,23 +855,26 @@ export default function NotificacionesScreen() {
         // ═══════════════════════════════════════════════════════════════
         case 'comment':
         case 'comentario': {
-          const postId = relatedId || data.postId || data.post_id;
+          console.log('[Notificaciones v7.2] 💬 Procesando COMENTARIO');
+          const postId = relatedId || data.postId || data.post_id || data.entityId;
           const commentId = data.commentId || data.comment_id;
+          console.log('[Notificaciones v7.2]    - postId:', postId);
+          console.log('[Notificaciones v7.2]    - commentId:', commentId);
           
           if (postId) {
             if (commentId) {
-              console.log('[Notificaciones v7.1] 🔗 Navegando a publicación con comentario:', postId, 'comentario:', commentId);
+              console.log('[Notificaciones v7.2] ✅ Navegando a publicación con comentario');
               router.push(`/social/post?id=${postId}&scrollToComment=${commentId}`);
             } else {
-              console.log('[Notificaciones v7.1] 🔗 Navegando a publicación (sin ID de comentario):', postId);
+              console.log('[Notificaciones v7.2] ✅ Navegando a publicación (sin ID de comentario)');
               router.push(`/social/post?id=${postId}`);
             }
           } else if (relatedType === 'comment' && relatedId) {
-            // If we only have comment ID, navigate to comments section
-            console.log('[Notificaciones v7.1] 🔗 Navegando a comentarios (solo ID de comentario):', relatedId);
+            console.log('[Notificaciones v7.2] ✅ Navegando a comentarios (solo ID de comentario)');
             router.push(`/social/comentarios?commentId=${relatedId}`);
           } else {
-            console.warn('[Notificaciones v7.1] ⚠️ Comentario sin ID de publicación');
+            console.warn('[Notificaciones v7.2] ⚠️ Comentario sin ID de publicación');
+            console.warn('[Notificaciones v7.2] 📊 Datos disponibles:', { relatedId, relatedType, data });
             Alert.alert(
               'Publicación no disponible',
               'La publicación asociada a este comentario no se pudo encontrar.',
@@ -875,12 +889,16 @@ export default function NotificacionesScreen() {
         // ═══════════════════════════════════════════════════════════════
         case 'follow':
         case 'seguidor': {
-          const followerId = senderId || relatedId || data.userId || data.user_id;
+          console.log('[Notificaciones v7.2] 👥 Procesando SEGUIDOR');
+          const followerId = senderId || relatedId || data.userId || data.user_id || data.entityId;
+          console.log('[Notificaciones v7.2]    - followerId encontrado:', followerId);
+          
           if (followerId) {
-            console.log('[Notificaciones v7.1] 🔗 Navegando a perfil de seguidor:', followerId);
+            console.log('[Notificaciones v7.2] ✅ Navegando a perfil de seguidor');
             router.push(`/perfil/usuario?userId=${followerId}`);
           } else {
-            console.warn('[Notificaciones v7.1] ⚠️ Seguidor sin ID de usuario');
+            console.warn('[Notificaciones v7.2] ⚠️ Seguidor sin ID de usuario');
+            console.warn('[Notificaciones v7.2] 📊 Datos disponibles:', { senderId, relatedId, data });
             Alert.alert(
               'Perfil no disponible',
               'El perfil del usuario no se pudo encontrar.',
@@ -895,20 +913,24 @@ export default function NotificacionesScreen() {
         // ═══════════════════════════════════════════════════════════════
         case 'mention':
         case 'mencion': {
-          const postId = relatedId || data.postId || data.post_id;
+          console.log('[Notificaciones v7.2] @ Procesando MENCIÓN');
+          const postId = relatedId || data.postId || data.post_id || data.entityId;
           const commentId = data.commentId || data.comment_id;
+          console.log('[Notificaciones v7.2]    - postId:', postId);
+          console.log('[Notificaciones v7.2]    - commentId:', commentId);
           
           if (postId && (relatedType === 'post' || !relatedType)) {
-            console.log('[Notificaciones v7.1] 🔗 Navegando a publicación con mención:', postId);
+            console.log('[Notificaciones v7.2] ✅ Navegando a publicación con mención');
             router.push(`/social/post?id=${postId}`);
           } else if (postId && commentId) {
-            console.log('[Notificaciones v7.1] 🔗 Navegando a comentario con mención:', postId);
+            console.log('[Notificaciones v7.2] ✅ Navegando a comentario con mención');
             router.push(`/social/post?id=${postId}&scrollToComment=${commentId}`);
           } else if (relatedType === 'comment' && relatedId) {
-            console.log('[Notificaciones v7.1] 🔗 Navegando a comentarios (mención en comentario):', relatedId);
+            console.log('[Notificaciones v7.2] ✅ Navegando a comentarios (mención en comentario)');
             router.push(`/social/comentarios?commentId=${relatedId}`);
           } else {
-            console.warn('[Notificaciones v7.1] ⚠️ Mención sin contenido asociado');
+            console.warn('[Notificaciones v7.2] ⚠️ Mención sin contenido asociado');
+            console.warn('[Notificaciones v7.2] 📊 Datos disponibles:', { relatedId, relatedType, data });
             Alert.alert(
               'Contenido no disponible',
               'El contenido donde fuiste mencionado no se pudo encontrar.',
@@ -923,12 +945,16 @@ export default function NotificacionesScreen() {
         // ═══════════════════════════════════════════════════════════════
         case 'event':
         case 'evento': {
-          const eventId = relatedId || data.eventId || data.event_id;
+          console.log('[Notificaciones v7.2] 📅 Procesando EVENTO');
+          const eventId = relatedId || data.eventId || data.event_id || data.entityId;
+          console.log('[Notificaciones v7.2]    - eventId encontrado:', eventId);
+          
           if (eventId) {
-            console.log('[Notificaciones v7.1] 🔗 Navegando a evento:', eventId);
+            console.log('[Notificaciones v7.2] ✅ Navegando a evento');
             router.push(`/detalle/evento?id=${eventId}`);
           } else {
-            console.warn('[Notificaciones v7.1] ⚠️ Evento sin ID');
+            console.warn('[Notificaciones v7.2] ⚠️ Evento sin ID');
+            console.warn('[Notificaciones v7.2] 📊 Datos disponibles:', { relatedId, data });
             Alert.alert(
               'Evento no disponible',
               'El evento asociado a esta notificación no se pudo encontrar.',
@@ -944,18 +970,21 @@ export default function NotificacionesScreen() {
         case 'message':
         case 'mensaje':
         case 'mensaje_privado': {
-          const conversationId = relatedId || data.conversationId || data.conversation_id;
+          console.log('[Notificaciones v7.2] ✉️ Procesando MENSAJE');
+          const conversationId = relatedId || data.conversationId || data.conversation_id || data.entityId;
           const chatUserId = senderId || data.userId || data.user_id;
+          console.log('[Notificaciones v7.2]    - conversationId:', conversationId);
+          console.log('[Notificaciones v7.2]    - chatUserId:', chatUserId);
           
           if (conversationId) {
-            console.log('[Notificaciones v7.1] 🔗 Navegando a conversación:', conversationId);
+            console.log('[Notificaciones v7.2] ✅ Navegando a conversación');
             router.push(`/chat/conversacion?conversationId=${conversationId}`);
           } else if (chatUserId) {
-            // If no conversation ID, try to open chat with sender
-            console.log('[Notificaciones v7.1] 🔗 Navegando a chat con usuario:', chatUserId);
+            console.log('[Notificaciones v7.2] ✅ Navegando a chat con usuario');
             router.push(`/chat/conversacion?userId=${chatUserId}`);
           } else {
-            console.warn('[Notificaciones v7.1] ⚠️ Mensaje sin información de conversación');
+            console.warn('[Notificaciones v7.2] ⚠️ Mensaje sin información de conversación');
+            console.warn('[Notificaciones v7.2] 📊 Datos disponibles:', { relatedId, senderId, data });
             Alert.alert(
               'Conversación no disponible',
               'La conversación asociada a esta notificación no se pudo encontrar.',
@@ -968,13 +997,18 @@ export default function NotificacionesScreen() {
         // ═══════════════════════════════════════════════════════════════
         // BRINDIS - Abrir sala virtual del local
         // ═══════════════════════════════════════════════════════════════
-        case 'cheers': {
-          const localId = relatedId || data.localId || data.local_id;
+        case 'cheers':
+        case 'saludos': {
+          console.log('[Notificaciones v7.2] 🍻 Procesando BRINDIS');
+          const localId = relatedId || data.localId || data.local_id || data.entityId;
+          console.log('[Notificaciones v7.2]    - localId encontrado:', localId);
+          
           if (localId) {
-            console.log('[Notificaciones v7.1] 🔗 Navegando a sala virtual:', localId);
+            console.log('[Notificaciones v7.2] ✅ Navegando a sala virtual');
             router.push(`/detalle/sala-virtual-enhanced?localId=${localId}`);
           } else {
-            console.warn('[Notificaciones v7.1] ⚠️ Brindis sin ID de local');
+            console.warn('[Notificaciones v7.2] ⚠️ Brindis sin ID de local');
+            console.warn('[Notificaciones v7.2] 📊 Datos disponibles:', { relatedId, data });
             Alert.alert(
               'Sala virtual no disponible',
               'La sala virtual asociada a esta notificación no se pudo encontrar.',
@@ -988,8 +1022,11 @@ export default function NotificacionesScreen() {
         // PLANES Y SUSCRIPCIONES - Abrir gestión de suscripción
         // ═══════════════════════════════════════════════════════════════
         case 'plan_purchase':
-        case 'plan_renewal': {
-          console.log('[Notificaciones v7.1] 🔗 Navegando a gestión de suscripción');
+        case 'plan_renewal':
+        case 'compra_plan':
+        case 'renovacion_plan': {
+          console.log('[Notificaciones v7.2] 💳 Procesando PLAN/SUSCRIPCIÓN');
+          console.log('[Notificaciones v7.2] ✅ Navegando a gestión de suscripción');
           router.push('/gestion/mi-suscripcion');
           break;
         }
@@ -997,13 +1034,17 @@ export default function NotificacionesScreen() {
         // ═══════════════════════════════════════════════════════════════
         // RECORDATORIO DE LOCAL DESTACADO - Abrir gestión de locales
         // ═══════════════════════════════════════════════════════════════
-        case 'featured_local_reminder': {
-          const featuredLocalId = relatedId || data.localId || data.local_id;
+        case 'featured_local_reminder':
+        case 'recordatorio_local': {
+          console.log('[Notificaciones v7.2] ⭐ Procesando RECORDATORIO LOCAL');
+          const featuredLocalId = relatedId || data.localId || data.local_id || data.entityId;
+          console.log('[Notificaciones v7.2]    - featuredLocalId:', featuredLocalId);
+          
           if (featuredLocalId) {
-            console.log('[Notificaciones v7.1] 🔗 Navegando a gestión de locales:', featuredLocalId);
+            console.log('[Notificaciones v7.2] ✅ Navegando a gestión de locales (con ID)');
             router.push(`/gestion/mis-locales?localId=${featuredLocalId}`);
           } else {
-            console.log('[Notificaciones v7.1] 🔗 Navegando a gestión de locales (sin ID específico)');
+            console.log('[Notificaciones v7.2] ✅ Navegando a gestión de locales (sin ID específico)');
             router.push('/gestion/mis-locales');
           }
           break;
@@ -1013,22 +1054,21 @@ export default function NotificacionesScreen() {
         // NOTIFICACIONES URGENTES DEL SISTEMA
         // ═══════════════════════════════════════════════════════════════
         case 'urgent':
-        case 'sistema': {
-          // Check if there's a specific action URL in the data
+        case 'urgente':
+        case 'sistema':
+        case 'system': {
+          console.log('[Notificaciones v7.2] 🚨 Procesando URGENTE/SISTEMA');
           const actionUrl = data.actionUrl || data.action_url || data.url;
+          console.log('[Notificaciones v7.2]    - actionUrl:', actionUrl);
+          
           if (actionUrl) {
-            console.log('[Notificaciones v7.1] 🔗 Navegando a URL de acción:', actionUrl);
+            console.log('[Notificaciones v7.2] ✅ Navegando a URL de acción');
             router.push(actionUrl);
           } else {
-            // Show the notification content in an alert
             const title = notification.title || notification.titulo || 'Notificación del sistema';
             const body = notification.body || notification.mensaje || '';
-            console.log('[Notificaciones v7.1] 📢 Mostrando notificación urgente');
-            Alert.alert(
-              title,
-              body,
-              [{ text: 'OK' }]
-            );
+            console.log('[Notificaciones v7.2] 📢 Mostrando notificación urgente en Alert');
+            Alert.alert(title, body, [{ text: 'OK' }]);
           }
           break;
         }
@@ -1036,22 +1076,24 @@ export default function NotificacionesScreen() {
         // ═══════════════════════════════════════════════════════════════
         // PROMOCIONES Y OFERTAS ESPECIALES
         // ═══════════════════════════════════════════════════════════════
-        case 'promo': {
-          // Check if there's a specific promo URL or local ID
+        case 'promo':
+        case 'promocion': {
+          console.log('[Notificaciones v7.2] 🎁 Procesando PROMOCIÓN');
           const promoUrl = data.promoUrl || data.promo_url || data.url;
-          const promoLocalId = relatedId || data.localId || data.local_id;
+          const promoLocalId = relatedId || data.localId || data.local_id || data.entityId;
+          console.log('[Notificaciones v7.2]    - promoUrl:', promoUrl);
+          console.log('[Notificaciones v7.2]    - promoLocalId:', promoLocalId);
           
           if (promoUrl) {
-            console.log('[Notificaciones v7.1] 🔗 Navegando a URL de promoción:', promoUrl);
+            console.log('[Notificaciones v7.2] ✅ Navegando a URL de promoción');
             router.push(promoUrl);
           } else if (promoLocalId) {
-            console.log('[Notificaciones v7.1] 🔗 Navegando a local con promoción:', promoLocalId);
+            console.log('[Notificaciones v7.2] ✅ Navegando a local con promoción');
             router.push(`/detalle/local?id=${promoLocalId}`);
           } else {
-            // Show the promo content in an alert
             const title = notification.title || notification.titulo || 'Promoción especial';
             const body = notification.body || notification.mensaje || '';
-            console.log('[Notificaciones v7.1] 🎁 Mostrando promoción');
+            console.log('[Notificaciones v7.2] 🎁 Mostrando promoción en Alert');
             Alert.alert(
               title,
               body,
@@ -1065,15 +1107,20 @@ export default function NotificacionesScreen() {
         // TIPO DESCONOCIDO - Intentar navegación genérica
         // ═══════════════════════════════════════════════════════════════
         default: {
-          console.warn('[Notificaciones v7.1] ⚠️ Tipo de notificación no manejado:', type);
-          console.warn('[Notificaciones v7.1] 📊 Datos completos:', notification);
+          console.warn('[Notificaciones v7.2] ⚠️ TIPO DESCONOCIDO:', type);
+          console.warn('[Notificaciones v7.2] 📊 Intentando navegación genérica...');
+          console.warn('[Notificaciones v7.2] 📊 Notificación completa:', notification);
           
           // Try to extract any possible navigation data
           const genericUrl = data.url || data.actionUrl || data.action_url;
-          const genericId = relatedId || data.id;
+          const genericId = relatedId || data.id || data.entityId;
+          
+          console.log('[Notificaciones v7.2]    - genericUrl:', genericUrl);
+          console.log('[Notificaciones v7.2]    - genericId:', genericId);
+          console.log('[Notificaciones v7.2]    - relatedType:', relatedType);
           
           if (genericUrl) {
-            console.log('[Notificaciones v7.1] 🔗 Intentando navegación genérica a URL:', genericUrl);
+            console.log('[Notificaciones v7.2] ✅ Navegando a URL genérica');
             router.push(genericUrl);
           } else if (genericId && relatedType) {
             // Try to construct a URL based on related_type
@@ -1092,16 +1139,17 @@ export default function NotificacionesScreen() {
                 constructedUrl = `/detalle/local?id=${genericId}`;
                 break;
               default:
+                console.warn('[Notificaciones v7.2] ⚠️ related_type no reconocido:', relatedType);
                 break;
             }
             
             if (constructedUrl) {
-              console.log('[Notificaciones v7.1] 🔗 Navegando a URL construida:', constructedUrl);
+              console.log('[Notificaciones v7.2] ✅ Navegando a URL construida:', constructedUrl);
               router.push(constructedUrl);
             } else {
-              // Show notification content as fallback
               const title = notification.title || notification.titulo || 'Notificación';
               const body = notification.body || notification.mensaje || '';
+              console.log('[Notificaciones v7.2] 📢 Mostrando contenido en Alert (no se pudo construir URL)');
               Alert.alert(
                 title,
                 body || 'Esta notificación no tiene una acción específica asociada.',
@@ -1112,6 +1160,7 @@ export default function NotificacionesScreen() {
             // Last resort: show notification content
             const title = notification.title || notification.titulo || 'Notificación';
             const body = notification.body || notification.mensaje || '';
+            console.log('[Notificaciones v7.2] 📢 Mostrando contenido en Alert (sin datos de navegación)');
             Alert.alert(
               title,
               body || 'Esta notificación no tiene una acción específica asociada.',
@@ -1121,12 +1170,18 @@ export default function NotificacionesScreen() {
           break;
         }
       }
+      
+      console.log('[Notificaciones v7.2] ✅ Navegación completada');
+      console.log('[Notificaciones v7.2] ═══════════════════════════════════════════════════════');
     } catch (error: any) {
       // ═══════════════════════════════════════════════════════════════
       // MANEJO DE ERRORES - Contenido no disponible
       // ═══════════════════════════════════════════════════════════════
-      console.error('[Notificaciones v7.1] ❌ Error de navegación:', error.message);
-      console.error('[Notificaciones v7.1] 📊 Notificación que causó el error:', notification);
+      console.error('[Notificaciones v7.2] ❌ ERROR DE NAVEGACIÓN');
+      console.error('[Notificaciones v7.2] 📊 Error:', error.message);
+      console.error('[Notificaciones v7.2] 📊 Stack:', error.stack);
+      console.error('[Notificaciones v7.2] 📊 Notificación que causó el error:', notification);
+      console.error('[Notificaciones v7.2] ═══════════════════════════════════════════════════════');
       
       // Show user-friendly error message
       Alert.alert(
