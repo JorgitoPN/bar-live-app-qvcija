@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   TextInput,
   Keyboard,
   KeyboardAvoidingView,
+  ScrollView,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -22,26 +23,22 @@ import { supabase } from '@/utils/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
- * ✅ GESTIONAR ETIQUETAS PAGE v328.0 - MODAL STACK GROUP FIX
+ * ✅ GESTIONAR ETIQUETAS PAGE v329.0 - ANDROID KEYBOARD FIX
  * 
- * NEW CHANGES v328.0:
+ * NEW CHANGES v329.0:
+ * - ✅ FIXED: Android keyboard no longer covers search input
+ * - ✅ ADDED: KeyboardAvoidingView with proper behavior for Android
+ * - ✅ ADDED: ScrollView to allow scrolling when keyboard is open
+ * - ✅ IMPROVED: Search input stays visible above keyboard
+ * 
+ * PREVIOUS v328.0:
  * - ✅ FIXED: Page is part of Stack.Group with post viewer
  * - ✅ FIXED: Opens as fullScreenModal ON TOP of post viewer
  * - ✅ FIXED: Post viewer stays mounted and visible in background
  * - ✅ IMPROVED: router.back() returns to post viewer which auto-refreshes
- * 
- * TECHNICAL EXPLANATION:
- * - This page is registered in Stack.Group in _layout.tsx
- * - When opened via router.push(), it stacks on top of PostViewerModal
- * - PostViewerModal remains mounted and uses useFocusEffect to refresh
- * - When this page closes, PostViewerModal regains focus and updates tags
- * 
- * Previous changes v327.0:
- * - ✅ FIXED: Page now opens as fullScreenModal, not covered by post viewer
- * - ✅ FIXED: Proper z-index - page is always on top
- * - ✅ IMPROVED: No visual glitches when opening from profile grid posts
  */
 
 export interface TaggableUser {
@@ -470,6 +467,36 @@ export default function GestionarEtiquetasScreen() {
   };
 
   const backIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+  const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  // ✅ v329.0: Track keyboard visibility to auto-scroll to search input
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => {
+        console.log('[GestionarEtiquetas v329.0] ⌨️ Keyboard opened - scrolling to search input');
+        setKeyboardVisible(true);
+        // Scroll to search section when keyboard opens
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        console.log('[GestionarEtiquetas v329.0] ⌨️ Keyboard closed');
+        setKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   return (
     <>
@@ -481,7 +508,7 @@ export default function GestionarEtiquetasScreen() {
       
       <KeyboardAvoidingView 
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
         <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
@@ -506,7 +533,16 @@ export default function GestionarEtiquetasScreen() {
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
-          <View style={styles.contentContainer}>
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.scrollContainer}
+            contentContainerStyle={[
+              styles.contentContainer,
+              { paddingBottom: Math.max(insets.bottom, 20) + (keyboardVisible ? 20 : 0) }
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             {/* ✅ v320.0: Section 1 - Existing Tags */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
@@ -520,20 +556,19 @@ export default function GestionarEtiquetasScreen() {
               </View>
               
               {existingTags.length > 0 ? (
-                <FlatList
-                  data={existingTags}
-                  renderItem={renderExistingTag}
-                  keyExtractor={(item) => `${item.id}-${item.tipo}`}
-                  contentContainerStyle={styles.tagsList}
-                  showsVerticalScrollIndicator={false}
-                  scrollEnabled={false}
-                />
+                <View>
+                  {existingTags.map((item) => (
+                    <View key={`${item.id}-${item.tipo}`}>
+                      {renderExistingTag({ item })}
+                    </View>
+                  ))}
+                </View>
               ) : (
                 renderEmptyExistingTags()
               )}
             </View>
 
-            {/* ✅ v320.0: Section 2 - Search (Integrated directly, no modal) */}
+            {/* ✅ v329.0: Section 2 - Search (Now in ScrollView for keyboard visibility) */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <IconSymbol 
@@ -587,19 +622,18 @@ export default function GestionarEtiquetasScreen() {
                   <Text style={[styles.searchLoadingText, { fontSize: scaleFontSize(14) }]}>Buscando...</Text>
                 </View>
               ) : searchResults.length > 0 ? (
-                <FlatList
-                  data={searchResults}
-                  renderItem={renderSearchResult}
-                  keyExtractor={(item) => `${item.id}-${item.tipo}`}
-                  contentContainerStyle={styles.searchResultsList}
-                  showsVerticalScrollIndicator={false}
-                  scrollEnabled={false}
-                />
+                <View>
+                  {searchResults.map((item) => (
+                    <View key={`${item.id}-${item.tipo}`}>
+                      {renderSearchResult({ item })}
+                    </View>
+                  ))}
+                </View>
               ) : (
                 renderEmptySearchResults()
               )}
             </View>
-          </View>
+          </ScrollView>
         )}
       </KeyboardAvoidingView>
     </>
@@ -638,8 +672,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  contentContainer: {
+  scrollContainer: {
     flex: 1,
+  },
+  contentContainer: {
+    flexGrow: 1,
   },
   section: {
     backgroundColor: colors.cardBackground,

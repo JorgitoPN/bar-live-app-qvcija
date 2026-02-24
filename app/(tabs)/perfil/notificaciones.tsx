@@ -21,9 +21,14 @@ interface Notification {
 }
 
 /**
- * ✅ NOTIFICACIONES SCREEN v3.2 - REAL-TIME UPDATES
+ * ✅ NOTIFICACIONES SCREEN v3.3 - WELCOME NOTIFICATION FILTER
  * 
- * NEW CHANGES v3.2:
+ * NEW CHANGES v3.3:
+ * - ✅ FIXED: Welcome notification no longer appears in notifications list
+ * - ✅ ADDED: Filter to remove "Bienvenido a Barlive" system message
+ * - ✅ IMPROVED: Cleaner notifications feed without test messages
+ * 
+ * PREVIOUS v3.2:
  * - ✅ ADDED: Real-time notifications using Supabase Realtime
  * - ✅ IMPROVED: Notifications appear instantly without refresh
  * - ✅ REMOVED: Info icon from header for cleaner UI
@@ -36,12 +41,6 @@ interface Notification {
  *   - featured_local_reminder: Tiempo restante de locales destacados
  * - ✅ IMPROVED: Icon mapping for all notification types
  * - ✅ IMPROVED: Better visual distinction for business notifications
- * 
- * PREVIOUS v3.0:
- * - ✅ REMOVED: "Configuración" tab - simplified to single notifications view
- * - ✅ IMPROVED: Automatic badge clearing when viewing notifications
- * - ✅ REMOVED: System status message for cleaner UI
- * - ✅ IMPROVED: Streamlined interface focused on notifications only
  */
 
 export default function Notificaciones() {
@@ -58,7 +57,7 @@ export default function Notificaciones() {
     }
 
     try {
-      console.log('[Notificaciones v3.1] Cargando notificaciones del usuario...');
+      console.log('[Notificaciones v3.3] Cargando notificaciones del usuario...');
       
       // Load from the notifications table
       const { data, error } = await supabase
@@ -69,14 +68,31 @@ export default function Notificaciones() {
         .limit(50);
 
       if (error) {
-        console.error('[Notificaciones v3.1] Error cargando notificaciones:', error);
+        console.error('[Notificaciones v3.3] Error cargando notificaciones:', error);
         setNotifications([]);
       } else {
-        console.log('[Notificaciones v3.1] Notificaciones cargadas:', data?.length || 0);
-        setNotifications(data || []);
+        console.log('[Notificaciones v3.3] Notificaciones cargadas:', data?.length || 0);
+        
+        // ✅ v3.3: Filter out welcome notification
+        const filteredNotifications = (data || []).filter(notification => {
+          const isWelcomeNotification = 
+            notification.title?.includes('Bienvenido') || 
+            notification.title?.includes('bienvenido') ||
+            notification.body?.includes('sistema de notificaciones está activo') ||
+            notification.body?.includes('funcionando correctamente');
+          
+          if (isWelcomeNotification) {
+            console.log('[Notificaciones v3.3] 🚫 Filtering out welcome notification:', notification.id);
+          }
+          
+          return !isWelcomeNotification;
+        });
+        
+        console.log('[Notificaciones v3.3] ✅ Filtered notifications:', filteredNotifications.length);
+        setNotifications(filteredNotifications);
       }
     } catch (error) {
-      console.error('[Notificaciones v3.1] Error en loadNotifications:', error);
+      console.error('[Notificaciones v3.3] Error en loadNotifications:', error);
       setNotifications([]);
     } finally {
       setLoading(false);
