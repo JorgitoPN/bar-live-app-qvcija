@@ -41,13 +41,13 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v303.0 - USER REFINEMENT (+5PX)
+ * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v304.0 - USER REFINEMENT (+5PX MORE)
  * 
  * ANDROID-SPECIFIC FIXES:
  * 1️⃣ CONVERSACIÓN - Input field behavior:
  *    - ✅ Absolute positioning with bottom: 0 (extends to physical screen bottom)
  *    - ✅ Input rises smoothly when keyboard opens via dynamic bottom positioning
- *    - ✅ USER REFINEMENT: Increased from 10px to 15px (+5px as requested)
+ *    - ✅ USER REFINEMENT: Increased from 15px to 20px (+5px more as requested)
  *    - ✅ Input returns to bottom automatically when keyboard closes
  *    - ✅ NO stuck-in-middle issue
  *    - ✅ White background extends BEHIND system navigation bar
@@ -71,7 +71,7 @@ interface Message {
  * 
  * TECHNICAL IMPLEMENTATION:
  * - position: 'absolute' with dynamic bottom (keyboardHeight + EXTRA_OFFSET when open, 0 when closed)
- * - EXTRA_OFFSET = 15 (increased by 5px as user requested)
+ * - EXTRA_OFFSET = 20 (increased by 5px more as user requested)
  * - paddingBottom: insets.bottom (creates white space behind system nav bar)
  * - Keyboard listeners for height tracking (keyboardDidShow/keyboardDidHide)
  * - No KeyboardAvoidingView (causes issues on Android)
@@ -104,9 +104,9 @@ export default function ConversacionScreen() {
   const isLocalChat = !!params.localId;
   const localId = params.localId as string | undefined;
   
-  // ✅ FIX v303.0: USER REFINEMENT - Increased by 5px (from 10px to 15px)
+  // ✅ FIX v304.0: USER REFINEMENT - Increased by 5px more (from 15px to 20px)
   // Provides balanced spacing between keyboard and input field
-  const EXTRA_KEYBOARD_OFFSET = 15;
+  const EXTRA_KEYBOARD_OFFSET = 20;
 
   // ✅ ANDROID FIX v286.0: Set system navigation bar color to WHITE (matching input container)
   useEffect(() => {
@@ -121,17 +121,17 @@ export default function ConversacionScreen() {
     }
   }, []);
 
-  // ✅ FIX v303.0: Detect keyboard height dynamically WITH BALANCED OFFSET (user refinement +5px)
+  // ✅ FIX v304.0: Detect keyboard height dynamically WITH BALANCED OFFSET (user refinement +5px more)
   useEffect(() => {
-    console.log('[Conversacion v303.0] 🎹 Setting up keyboard listeners for Android fix');
-    console.log('[Conversacion v303.0] 📏 EXTRA_KEYBOARD_OFFSET:', EXTRA_KEYBOARD_OFFSET, 'px (balanced - increased by 5px)');
+    console.log('[Conversacion v304.0] 🎹 Setting up keyboard listeners for Android fix');
+    console.log('[Conversacion v304.0] 📏 EXTRA_KEYBOARD_OFFSET:', EXTRA_KEYBOARD_OFFSET, 'px (balanced - increased by 5px more)');
     
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[Conversacion v303.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
-        console.log('[Conversacion v303.0] 📱 Platform:', Platform.OS);
-        console.log('[Conversacion v303.0] 📏 Total offset will be:', e.endCoordinates.height + EXTRA_KEYBOARD_OFFSET, 'px');
+        console.log('[Conversacion v304.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[Conversacion v304.0] 📱 Platform:', Platform.OS);
+        console.log('[Conversacion v304.0] 📏 Total offset will be:', e.endCoordinates.height + EXTRA_KEYBOARD_OFFSET, 'px');
         // ✅ BALANCED OFFSET - comfortable spacing between keyboard and input
         setKeyboardHeight(e.endCoordinates.height);
         setKeyboardVisible(true);
@@ -141,14 +141,14 @@ export default function ConversacionScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[Conversacion v303.0] ⌨️ Keyboard hidden');
+        console.log('[Conversacion v304.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
         setKeyboardVisible(false);
       }
     );
 
     return () => {
-      console.log('[Conversacion v303.0] 🧹 Cleaning up keyboard listeners');
+      console.log('[Conversacion v304.0] 🧹 Cleaning up keyboard listeners');
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
@@ -454,7 +454,7 @@ export default function ConversacionScreen() {
   }, [chatId, user]);
 
   const enviarMensaje = async () => {
-    console.log('[Conversacion v303.0] 📤 enviarMensaje called - keyboard stays open, message sends immediately');
+    console.log('[Conversacion v304.0] 📤 enviarMensaje called - keyboard stays open, message sends immediately');
     
     if (!user || !chatId || !mensaje.trim() || enviando) return;
 
@@ -520,7 +520,7 @@ export default function ConversacionScreen() {
         : otroUsuario?.id;
 
       if (recipientId && recipientId !== user.id) {
-        console.log('[Conversacion v303.0] 📬 Sending notification to:', recipientId, isLocalChat ? '(local owner)' : '(user)');
+        console.log('[Conversacion v304.0] 📬 Sending notification to:', recipientId, isLocalChat ? '(local owner)' : '(user)');
         
         // ✅ Try both table names for notifications (notifications and notificaciones)
         const { error: notifError1 } = await supabase.from('notifications').insert({
@@ -539,7 +539,7 @@ export default function ConversacionScreen() {
         });
         
         if (notifError1) {
-          console.log('[Conversacion v303.0] ⚠️ Failed with "notifications" table, trying "notificaciones"...');
+          console.log('[Conversacion v304.0] ⚠️ Failed with "notifications" table, trying "notificaciones"...');
           // Try Spanish table name
           await supabase.from('notificaciones').insert({
             usuario_id: recipientId,
@@ -554,7 +554,7 @@ export default function ConversacionScreen() {
         }
       }
 
-      console.log('[Conversacion v303.0] ✅ Message sent successfully - keyboard stays open for continuous typing');
+      console.log('[Conversacion v304.0] ✅ Message sent successfully - keyboard stays open for continuous typing');
     } catch (error) {
       console.error('[Conversacion] Error:', error);
       
@@ -736,12 +736,12 @@ export default function ConversacionScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* ✅ FIX v303.0: Messages list with BALANCED OFFSET (user requested +5px) */}
+      {/* ✅ FIX v304.0: Messages list with BALANCED OFFSET (user requested +5px more) */}
       {/* 
         CRITICAL FIX FOR ANDROID WITH BALANCED OFFSET:
         - When keyboard is OPEN: paddingBottom = keyboardHeight + EXTRA_KEYBOARD_OFFSET + 80
         - When keyboard is CLOSED: paddingBottom = insets.bottom + 80 (space for input + system nav bar)
-        - EXTRA_KEYBOARD_OFFSET = 15px (increased by 5px as user requested)
+        - EXTRA_KEYBOARD_OFFSET = 20px (increased by 5px more as user requested)
         - The +80 accounts for the input container height (~60px) + extra safe margin
         - This ensures content NEVER scrolls underneath the system navigation bar
         - Input sits with comfortable spacing above keyboard (not too tight, not too loose)
@@ -773,13 +773,13 @@ export default function ConversacionScreen() {
         }
       />
 
-      {/* ✅ FIX v303.0: Input container with BALANCED OFFSET - comfortable spacing with keyboard (user requested +5px) */}
+      {/* ✅ FIX v304.0: Input container with BALANCED OFFSET - comfortable spacing with keyboard (user requested +5px more) */}
       {/* 
         CRITICAL FIX FOR ANDROID WITH BALANCED OFFSET:
         - position: 'absolute' with dynamic bottom positioning
         - When keyboard OPEN: bottom = keyboardHeight + EXTRA_KEYBOARD_OFFSET (sits comfortably above keyboard)
         - When keyboard CLOSED: bottom = 0 (sits at physical screen bottom)
-        - EXTRA_KEYBOARD_OFFSET = 15px (increased by 5px as user requested)
+        - EXTRA_KEYBOARD_OFFSET = 20px (increased by 5px more as user requested)
         - paddingBottom: insets.bottom (creates white space behind system nav bar when closed)
         - backgroundColor: '#FFFFFF' ensures solid white background (no transparency)
         - White background extends BEHIND the system navigation bar
