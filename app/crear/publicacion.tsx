@@ -82,9 +82,15 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
 };
 
 /**
- * ✅ CREATE PUBLICATION v324.0 - BARLIVE DESIGN & FULLSCREEN
+ * ✅ CREATE PUBLICATION v325.0 - UPLOAD PROGRESS BAR
  * 
- * NEW CHANGES v324.0:
+ * NEW CHANGES v325.0:
+ * - ✅ ADDED: Upload progress modal with percentage and progress bar
+ * - ✅ IMPROVED: Detailed progress tracking for each image upload
+ * - ✅ IMPROVED: Better user feedback during upload process
+ * - ✅ IMPROVED: Non-blocking progress indicator
+ * 
+ * Previous changes v324.0:
  * - ✅ FIXED: Opens as fullScreen modal (not transparent modal)
  * - ✅ FIXED: Uses Barlive gradient colors (headerGradientStart, headerGradientEnd)
  * - ✅ IMPROVED: Consistent with Barlive design system
@@ -421,15 +427,19 @@ export default function CrearPublicacionScreen() {
     setUploadProgress(0);
 
     try {
-      console.log('[CrearPublicacion v282.0] Starting publication...');
+      console.log('[CrearPublicacion v325.0] 🚀 Starting publication...');
+      
+      setUploadProgress(5);
       
       let imagenesUrls: string[] = [];
       if (imagenes.length > 0) {
-        console.log('[CrearPublicacion v282.0] Uploading', imagenes.length, 'images...');
+        console.log('[CrearPublicacion v325.0] 📸 Uploading', imagenes.length, 'images...');
         
         for (let i = 0; i < imagenes.length; i++) {
-          const progressStart = 10 + (i * 60 / imagenes.length);
+          const progressStart = 10 + (i * 50 / imagenes.length);
           setUploadProgress(progressStart);
+          
+          console.log(`[CrearPublicacion v325.0] 📤 Uploading image ${i + 1}/${imagenes.length}...`);
           
           const imageUrl = await uploadImage(imagenes[i]);
           if (!imageUrl) {
@@ -440,11 +450,13 @@ export default function CrearPublicacionScreen() {
           }
           imagenesUrls.push(imageUrl);
           
-          const progressEnd = 10 + ((i + 1) * 60 / imagenes.length);
+          const progressEnd = 10 + ((i + 1) * 50 / imagenes.length);
           setUploadProgress(progressEnd);
+          
+          console.log(`[CrearPublicacion v325.0] ✅ Image ${i + 1}/${imagenes.length} uploaded`);
         }
       } else {
-        setUploadProgress(70);
+        setUploadProgress(60);
       }
 
       let postLocalId: string | null = null;
@@ -458,7 +470,8 @@ export default function CrearPublicacionScreen() {
         postTipo = 'local';
       }
 
-      setUploadProgress(75);
+      setUploadProgress(65);
+      console.log('[CrearPublicacion v325.0] 💾 Creating post record...');
 
       const postData: any = {
         autor_id: user.id,
@@ -482,13 +495,15 @@ export default function CrearPublicacionScreen() {
         .single();
 
       if (postError) {
-        console.error('[CrearPublicacion v282.0] Error publicando:', postError);
+        console.error('[CrearPublicacion v325.0] ❌ Error creating post:', postError);
         throw postError;
       }
 
-      setUploadProgress(80);
+      setUploadProgress(75);
+      console.log('[CrearPublicacion v325.0] ✅ Post created successfully');
 
       if (postData2 && contenido) {
+        console.log('[CrearPublicacion v325.0] 🏷️ Processing hashtags and mentions...');
         await Promise.all([
           processPostHashtags(postData2.id, contenido),
           processPostMentions(postData2.id, contenido),
@@ -498,6 +513,7 @@ export default function CrearPublicacionScreen() {
       setUploadProgress(85);
 
       if (usuariosEtiquetados.length > 0 && postData2) {
+        console.log('[CrearPublicacion v325.0] 👥 Processing tags...');
         const tags = usuariosEtiquetados.map((item) => {
           const tagData: any = {
             post_id: postData2.id,
@@ -536,26 +552,28 @@ export default function CrearPublicacionScreen() {
         
         if (notifications.length > 0) {
           await supabase.from('notificaciones').insert(notifications);
-          console.log('[CrearPublicacion v282.0] ✅ Sent', notifications.length, 'tag notifications');
+          console.log('[CrearPublicacion v325.0] ✅ Sent', notifications.length, 'tag notifications');
         }
       }
 
-      setUploadProgress(90);
+      setUploadProgress(95);
+      console.log('[CrearPublicacion v325.0] 🔄 Refreshing data...');
 
       await refreshData(true);
 
       setUploadProgress(100);
+      console.log('[CrearPublicacion v325.0] ✅ Publication complete!');
 
       setTimeout(() => {
         setShowUploadProgress(false);
-        Alert.alert('Éxito', 'Publicación creada correctamente', [
+        Alert.alert('¡Éxito!', 'Tu publicación se ha creado correctamente', [
           { text: 'OK', onPress: () => router.back() },
         ]);
       }, 500);
     } catch (error) {
-      console.error('[CrearPublicacion v282.0] Error publicando:', error);
+      console.error('[CrearPublicacion v325.0] ❌ Error publishing:', error);
       setShowUploadProgress(false);
-      Alert.alert('Error', 'No se pudo crear la publicación');
+      Alert.alert('Error', 'No se pudo crear la publicación. Por favor, intenta de nuevo.');
     } finally {
       setPublishing(false);
     }

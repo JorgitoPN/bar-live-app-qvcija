@@ -21,9 +21,15 @@ interface Notification {
 }
 
 /**
- * ✅ NOTIFICACIONES SCREEN v3.1 - EXTENDED NOTIFICATION TYPES
+ * ✅ NOTIFICACIONES SCREEN v3.2 - REAL-TIME UPDATES
  * 
- * NEW CHANGES v3.1:
+ * NEW CHANGES v3.2:
+ * - ✅ ADDED: Real-time notifications using Supabase Realtime
+ * - ✅ IMPROVED: Notifications appear instantly without refresh
+ * - ✅ REMOVED: Info icon from header for cleaner UI
+ * - ✅ IMPROVED: Haptic feedback when new notification arrives
+ * 
+ * PREVIOUS v3.1:
  * - ✅ ADDED: Support for new notification types:
  *   - plan_purchase: Compras de planes
  *   - plan_renewal: Renovaciones automáticas de planes
@@ -92,7 +98,43 @@ export default function Notificaciones() {
   useEffect(() => {
     loadNotifications();
     clearBadgeCount();
-  }, [loadNotifications, clearBadgeCount]);
+    
+    // ✅ REAL-TIME NOTIFICATIONS: Subscribe to new notifications
+    if (!user) return;
+    
+    console.log('[Notificaciones v3.2] 🔔 Subscribing to real-time notifications for user:', user.id);
+    
+    const channel = supabase
+      .channel('notifications-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('[Notificaciones v3.2] 🔔 New notification received:', payload.new);
+          
+          // Add new notification to the top of the list
+          setNotifications((prev) => [payload.new as Notification, ...prev]);
+          
+          // Show a subtle haptic feedback
+          import('expo-haptics').then(Haptics => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          });
+        }
+      )
+      .subscribe();
+    
+    console.log('[Notificaciones v3.2] ✅ Real-time subscription active');
+    
+    return () => {
+      console.log('[Notificaciones v3.2] 🔕 Unsubscribing from real-time notifications');
+      supabase.removeChannel(channel);
+    };
+  }, [loadNotifications, clearBadgeCount, user]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -440,16 +482,6 @@ export default function Notificaciones() {
           <Text style={{ fontSize: scaleFontSize(24), fontWeight: '700', color: colors.headerText, flex: 1 }}>
             Notificaciones {unreadCount > 0 && `(${unreadCount})`}
           </Text>
-          <TouchableOpacity
-            onPress={() => router.push('/perfil/notificaciones-info')}
-          >
-            <IconSymbol
-              ios_icon_name="info.circle"
-              android_material_icon_name="info"
-              size={infoIconSize}
-              color={colors.headerText}
-            />
-          </TouchableOpacity>
         </View>
       </LinearGradient>
 
