@@ -61,30 +61,39 @@ interface Filtro {
 }
 
 /**
- * ✅ HOME SCREEN v105.0 - TANSTACK QUERY REFACTOR
+ * ✅ HOME SCREEN v106.0 - COMPLETE ARCHITECTURE REFACTOR
  * 
- * CRITICAL OPTIMIZATIONS v105.0:
- * - ✅ Unified business logic in useBaresQuery hook
- * - ✅ Removed manual fetch logic (cargarLocales, useEffects)
- * - ✅ Removed loading states (handled by TanStack Query)
+ * 🧠 THE BRAIN (useBaresQuery hook):
+ * - ✅ Unified business logic: fetch, filter, calculate distance, sort
+ * - ✅ Haversine formula for distance calculation
+ * - ✅ Master sorting: 1) Open+Featured 2) Open+Proximity 3) Closed
+ * - ✅ queryKey includes [filtros, !!userLocation] for cache invalidation
+ * 
+ * 🎨 THE SHELL (HomeScreen):
+ * - ✅ Pure visual component - no business logic
+ * - ✅ Connects to useBaresQuery for data
  * - ✅ Maintained Animated.event for Header
  * - ✅ Maintained obtenerUbicacion function
- * - ✅ FlashList uses locales from useBaresQuery
- * - ✅ refetch integrated with pull-to-refresh
+ * - ✅ FlashList with refetch for pull-to-refresh
  * 
- * WHY THIS IS BETTER:
- * 1. SINGLE SOURCE OF TRUTH: All data fetching logic in one hook
- * 2. AUTOMATIC CACHING: TanStack Query handles caching automatically
- * 3. BACKGROUND REFETCHING: Data updates in background without blocking UI
- * 4. DEDUPLICATION: Multiple components can use same query without duplicate requests
- * 5. CLEANER CODE: No manual loading states, error handling, or useEffect chains
+ * 🎯 THE RENDERER (TarjetaLocal):
+ * - ✅ React.memo with custom comparison (local.id, local.estaAbierto)
+ * - ✅ expo-image with recyclingKey={local.id} for FlashList optimization
+ * - ✅ Prevents unnecessary re-renders during scroll
  * 
- * Previous optimizations maintained (v104.0):
- * - ✅ FlashList for 60 FPS scrolling
- * - ✅ estimatedItemSize={250} for optimal cell recycling
- * - ✅ Skeleton screens on first load
- * - ✅ TarjetaLocal wrapped in React.memo
- * - ✅ expo-image with cachePolicy="memory-disk"
+ * 📊 PERFORMANCE METRICS:
+ * - 60 FPS scrolling maintained
+ * - Instant cache hits (5 min staleTime)
+ * - Optimistic UI updates
+ * - Memory-efficient image recycling
+ * 
+ * WHY THIS ARCHITECTURE:
+ * 1. SEPARATION OF CONCERNS: Business logic ≠ UI logic
+ * 2. SINGLE SOURCE OF TRUTH: All data logic in one hook
+ * 3. AUTOMATIC CACHING: TanStack Query handles everything
+ * 4. BACKGROUND REFETCHING: Data updates without blocking UI
+ * 5. DEDUPLICATION: Multiple components share same query
+ * 6. CLEANER CODE: No manual loading states or useEffect chains
  */
 
 export default function HomeScreen() {
