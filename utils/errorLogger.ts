@@ -1,3 +1,4 @@
+
 // Global error logging for runtime errors
 // Captures console.log/warn/error and sends to Natively server for AI debugging
 
@@ -91,6 +92,14 @@ const getLogServerUrl = (): string | null => {
 // Track if we've logged fetch errors to avoid spam
 let fetchErrorLogged = false;
 
+// ✅ SAFE LOGGING FUNCTION - NO __proto__ ACCESS
+// Uses console.warn which is less likely to be intercepted and doesn't cause recursion
+const safeLog = (message: string) => {
+  if (typeof console !== 'undefined' && console.warn) {
+    console.warn(message);
+  }
+};
+
 // Flush the log queue to server
 const flushLogs = async () => {
   if (logQueue.length === 0) return;
@@ -112,13 +121,11 @@ const flushLogs = async () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(log),
       }).catch((e) => {
+        // ✅ FIX: Use safe logging instead of __proto__ access
         // Log fetch errors only once to avoid spam
         if (!fetchErrorLogged) {
           fetchErrorLogged = true;
-          // Use a different method to avoid recursion - write directly without going through our intercept
-          if (typeof window !== 'undefined' && window.console) {
-            (window.console as any).__proto__.log.call(console, '[Natively] Fetch error (will not repeat):', e.message || e);
-          }
+          safeLog(`[Natively] Fetch error (will not repeat): ${e.message || e}`);
         }
       });
     } catch (e) {
