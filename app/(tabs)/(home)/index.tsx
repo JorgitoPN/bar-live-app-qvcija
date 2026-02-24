@@ -15,19 +15,16 @@ import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
-import { supabase } from '@/utils/supabase';
 import { useEffectiveUser } from '@/hooks/useEffectiveUser';
 import { useImpersonation } from '@/contexts/ImpersonationContext';
 import TarjetaLocal from '@/components/home/TarjetaLocal';
 import BarraFiltrosInteractiva from '@/components/home/BarraFiltrosInteractiva';
 import { SkeletonLocalCard } from '@/components/common/SkeletonLoader';
 import * as Location from 'expo-location';
-import { getEstadoLocal } from '@/utils/timeUtils';
 import { scaleFontSize } from '@/utils/androidScaling';
+import { useBaresQuery } from '@/hooks/useBaresQuery';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-const MAX_FEATURED_DISTANCE_KM = 100;
 
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 220;
 const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
@@ -53,6 +50,7 @@ interface Local {
   horarios_completos?: Record<string, string[]>;
   google_business_status?: string;
   estado_actual?: string;
+  estaAbierto?: boolean;
 }
 
 interface Filtro {
@@ -63,46 +61,36 @@ interface Filtro {
 }
 
 /**
- * ✅ HOME SCREEN v104.0 - FLASHLIST OPTIMIZATION (60 FPS)
+ * ✅ HOME SCREEN v105.0 - TANSTACK QUERY REFACTOR
  * 
- * CRITICAL OPTIMIZATIONS v104.0:
- * - ✅ Replaced ScrollView with FlashList for 60 FPS scrolling
+ * CRITICAL OPTIMIZATIONS v105.0:
+ * - ✅ Unified business logic in useBaresQuery hook
+ * - ✅ Removed manual fetch logic (cargarLocales, useEffects)
+ * - ✅ Removed loading states (handled by TanStack Query)
+ * - ✅ Maintained Animated.event for Header
+ * - ✅ Maintained obtenerUbicacion function
+ * - ✅ FlashList uses locales from useBaresQuery
+ * - ✅ refetch integrated with pull-to-refresh
+ * 
+ * WHY THIS IS BETTER:
+ * 1. SINGLE SOURCE OF TRUTH: All data fetching logic in one hook
+ * 2. AUTOMATIC CACHING: TanStack Query handles caching automatically
+ * 3. BACKGROUND REFETCHING: Data updates in background without blocking UI
+ * 4. DEDUPLICATION: Multiple components can use same query without duplicate requests
+ * 5. CLEANER CODE: No manual loading states, error handling, or useEffect chains
+ * 
+ * Previous optimizations maintained (v104.0):
+ * - ✅ FlashList for 60 FPS scrolling
  * - ✅ estimatedItemSize={250} for optimal cell recycling
- * - ✅ Skeleton screens on first load (no cache)
+ * - ✅ Skeleton screens on first load
  * - ✅ TarjetaLocal wrapped in React.memo
- * - ✅ expo-image with cachePolicy="memory-disk" and transition={200}
- * 
- * WHY FLASHLIST IS SUPERIOR TO FLATLIST:
- * 1. CELL RECYCLING: FlashList recycles cells more efficiently by using a "blank space" strategy
- *    - FlatList: Creates new cells as you scroll, leading to memory spikes
- *    - FlashList: Reuses existing cells, keeping memory constant
- * 
- * 2. MEMORY MANAGEMENT: FlashList uses ~10x less memory than FlatList
- *    - FlatList: Keeps all rendered items in memory
- *    - FlashList: Only keeps visible items + small buffer
- * 
- * 3. SCROLL PERFORMANCE: FlashList maintains 60 FPS even with complex items
- *    - FlatList: Drops frames with heavy items (images, gradients)
- *    - FlashList: Optimized rendering pipeline prevents frame drops
- * 
- * 4. LAYOUT CALCULATION: FlashList calculates layouts more efficiently
- *    - FlatList: Measures each item individually
- *    - FlashList: Uses estimatedItemSize for instant layout
- * 
- * Previous fixes maintained (v101.0):
- * - ✅ All text uses scaleFontSize() for consistency
- * - ✅ Banner white background removed on Android
- * - ✅ Header properly scaled
- * - ✅ iOS design remains unchanged
+ * - ✅ expo-image with cachePolicy="memory-disk"
  */
 
 export default function HomeScreen() {
   const router = useRouter();
   const { userId, user, isImpersonating } = useEffectiveUser();
   const { impersonationSession } = useImpersonation();
-  const [locales, setLocales] = useState<Local[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [filtros, setFiltros] = useState({
     tipo: 'todos',
@@ -111,11 +99,13 @@ export default function HomeScreen() {
     abierto: false,
     destacado: false,
   });
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   const scrollDirection = useRef<'up' | 'down'>('down');
+
+  // ✅ USE TANSTACK QUERY HOOK - All business logic unified here
+  const { data: locales, isLoading, refetch } = useBaresQuery(userLocation, filtros);
 
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE],
@@ -162,11 +152,12 @@ export default function HomeScreen() {
     },
   ], [filtros]);
 
+  // ✅ MAINTAINED: obtenerUbicacion function
   const obtenerUbicacion = useCallback(async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        console.log('[Home v101.0] Permiso de ubicación denegado');
+        console.log('[Home v105.0] Permiso de ubicación denegado');
         return;
       }
 
@@ -179,179 +170,21 @@ export default function HomeScreen() {
         longitude: location.coords.longitude,
       });
 
-      console.log('[Home v101.0] ✅ Ubicación obtenida:', {
+      console.log('[Home v105.0] ✅ Ubicación obtenida:', {
         lat: location.coords.latitude,
         lng: location.coords.longitude,
       });
     } catch (error) {
-      console.error('[Home v101.0] Error obteniendo ubicación:', error);
+      console.error('[Home v105.0] Error obteniendo ubicación:', error);
     }
   }, []);
-
-  const calcularDistancia = useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }, []);
-
-  const cargarLocales = useCallback(async () => {
-    try {
-      console.log(`[Home v101.0] 🔄 Cargando locales para usuario ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'})`);
-      
-      let query = supabase
-        .from('locales')
-        .select('*')
-        .eq('activo', true)
-        .limit(200);
-
-      if (filtros.tipo !== 'todos') {
-        query = query.eq('tipo', filtros.tipo);
-      }
-
-      if (filtros.provincia !== 'todos') {
-        query = query.eq('provincia', filtros.provincia);
-      }
-
-      if (filtros.precioMedio !== 'todos') {
-        const precioNum = parseInt(filtros.precioMedio);
-        query = query.eq('precio_medio', precioNum);
-      }
-
-      if (filtros.abierto) {
-        query = query.eq('abierto', true);
-      }
-
-      if (filtros.destacado) {
-        query = query.eq('destacado', true);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      let localesConDistancia = data || [];
-
-      localesConDistancia = localesConDistancia.map(local => {
-        const estadoLocal = getEstadoLocal(local);
-        return {
-          ...local,
-          estaAbierto: estadoLocal.estaAbierto,
-        };
-      });
-
-      if (userLocation) {
-        console.log('[Home v101.0] 📍 User location:', userLocation);
-        
-        localesConDistancia = localesConDistancia.map(local => {
-          if (local.latitud && local.longitud) {
-            const distancia = calcularDistancia(
-              userLocation.latitude,
-              userLocation.longitude,
-              parseFloat(local.latitud.toString()),
-              parseFloat(local.longitud.toString())
-            );
-            return { ...local, distancia };
-          }
-          return { ...local, distancia: 999999 };
-        });
-
-        const localesAbiertos = localesConDistancia.filter(l => l.estaAbierto === true);
-        const localesCerrados = localesConDistancia.filter(l => l.estaAbierto !== true);
-
-        const groupA = localesAbiertos.filter(l => 
-          l.distancia !== undefined && l.distancia <= MAX_FEATURED_DISTANCE_KM
-        );
-        
-        const groupB = localesAbiertos.filter(l => 
-          l.distancia !== undefined && l.distancia > MAX_FEATURED_DISTANCE_KM
-        );
-
-        const groupA_destacados = groupA
-          .filter(l => l.destacado === true)
-          .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
-
-        const groupA_no_destacados = groupA
-          .filter(l => l.destacado === false)
-          .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
-
-        const groupB_no_destacados = groupB
-          .filter(l => l.destacado === false)
-          .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
-
-        const groupB_destacados = groupB
-          .filter(l => l.destacado === true)
-          .sort((a, b) => (a.distancia || 999999) - (b.distancia || 999999));
-
-        const localesCerradosOrdenados = localesCerrados.sort((a, b) => 
-          (a.distancia || 999999) - (b.distancia || 999999)
-        );
-
-        localesConDistancia = [
-          ...groupA_destacados,
-          ...groupA_no_destacados,
-          ...groupB_no_destacados,
-          ...groupB_destacados,
-          ...localesCerradosOrdenados,
-        ];
-      } else {
-        const localesAbiertos = localesConDistancia.filter(l => l.estaAbierto === true);
-        const localesCerrados = localesConDistancia.filter(l => l.estaAbierto !== true);
-
-        localesAbiertos.sort((a, b) => {
-          if (a.destacado !== b.destacado) {
-            return a.destacado ? -1 : 1;
-          }
-          const ratingA = parseFloat((a.rating || a.google_rating || 0).toString());
-          const ratingB = parseFloat((b.rating || b.google_rating || 0).toString());
-          return ratingB - ratingA;
-        });
-
-        localesCerrados.sort((a, b) => {
-          if (a.destacado !== b.destacado) {
-            return a.destacado ? -1 : 1;
-          }
-          const ratingA = parseFloat((a.rating || a.google_rating || 0).toString());
-          const ratingB = parseFloat((b.rating || b.google_rating || 0).toString());
-          return ratingB - ratingA;
-        });
-
-        localesConDistancia = [...localesAbiertos, ...localesCerrados];
-      }
-
-      console.log('[Home v104.0] ✅ Locales cargados:', localesConDistancia.length);
-      setLocales(localesConDistancia);
-    } catch (error) {
-      console.error('[Home v104.0] ❌ Error cargando locales:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-      setIsFirstLoad(false);
-    }
-  }, [userId, isImpersonating, filtros, userLocation, calcularDistancia]);
 
   useEffect(() => {
     obtenerUbicacion();
   }, [obtenerUbicacion]);
 
-  useEffect(() => {
-    if (userId) {
-      cargarLocales();
-    }
-  }, [userId, cargarLocales]);
-
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    cargarLocales();
-  }, [cargarLocales]);
-
   const handleFiltroPress = useCallback((filtroId: string) => {
-    console.log('[Home v104.0] Filtro presionado:', filtroId);
+    console.log('[Home v105.0] Filtro presionado:', filtroId);
     
     if (filtroId === 'todos') {
       setFiltros(prev => ({ ...prev, tipo: 'todos' }));
@@ -365,7 +198,7 @@ export default function HomeScreen() {
   }, []);
 
   const handleMasFiltrosPress = useCallback(() => {
-    console.log('[Home v104.0] Más filtros presionado');
+    console.log('[Home v105.0] Más filtros presionado');
   }, []);
 
   const renderItem = useCallback(({ item }: { item: Local }) => (
@@ -375,7 +208,7 @@ export default function HomeScreen() {
   const keyExtractor = useCallback((item: Local) => item.id, []);
 
   const renderListEmpty = useCallback(() => {
-    if (loading || isFirstLoad) {
+    if (isLoading) {
       return (
         <View style={styles.skeletonContainer}>
           <SkeletonLocalCard />
@@ -394,12 +227,13 @@ export default function HomeScreen() {
         </Text>
       </View>
     );
-  }, [loading, isFirstLoad]);
+  }, [isLoading]);
 
   const handleClaimOrCreateLocal = useCallback(() => {
     router.push('/auth/local-ownership-request' as any);
   }, [router]);
 
+  // ✅ MAINTAINED: Animated.event for Header
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     {
@@ -420,9 +254,6 @@ export default function HomeScreen() {
       },
     }
   );
-
-  // Show skeleton on first load only
-  const showSkeleton = loading && isFirstLoad;
 
   return (
     <View style={styles.container}>
@@ -470,7 +301,6 @@ export default function HomeScreen() {
             onMasFiltrosPress={handleMasFiltrosPress}
           />
 
-          {/* ✅ CRITICAL FIX v101.0: Banner with NO white background on Android */}
           <TouchableOpacity 
             style={styles.claimLocalBanner}
             onPress={handleClaimOrCreateLocal}
@@ -489,7 +319,6 @@ export default function HomeScreen() {
                   size={16} 
                   color={colors.primary} 
                 />
-                {/* ✅ CRITICAL FIX v101.0: NO backgroundColor - text displays directly on gradient */}
                 <Text 
                   style={[
                     styles.claimLocalText, 
@@ -573,13 +402,14 @@ export default function HomeScreen() {
       )}
 
       <View style={styles.flashListContainer}>
+        {/* ✅ FLASHLIST USES locales FROM useBaresQuery AND refetch FOR PULL-TO-REFRESH */}
         <FlashList
-          data={locales}
+          data={locales || []}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           estimatedItemSize={250}
-          onRefresh={handleRefresh}
-          refreshing={refreshing}
+          onRefresh={refetch}
+          refreshing={isLoading}
           ListEmptyComponent={renderListEmpty}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.flashListContent}
@@ -673,7 +503,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontWeight: '600',
     color: colors.text,
-    // ✅ CRITICAL FIX v101.0: NO backgroundColor - text displays directly on gradient
   },
   content: {
     flex: 1,
