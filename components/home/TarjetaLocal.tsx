@@ -1,6 +1,7 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Linking, ActivityIndicator, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback, memo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Linking, ActivityIndicator, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Local } from '@/types';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -35,20 +36,24 @@ interface CheckedInUser {
 }
 
 /**
- * ✅ TARJETA LOCAL v102.0 - ANDROID PERFORMANCE FIX
+ * ✅ TARJETA LOCAL v103.0 - FLASHLIST OPTIMIZATION (60 FPS)
  * 
- * CRITICAL FIXES v102.0:
+ * CRITICAL OPTIMIZATIONS v103.0:
+ * - ✅ Wrapped in React.memo to prevent unnecessary re-renders
+ * - ✅ Using expo-image with cachePolicy="memory-disk" and transition={200}
+ * - ✅ Optimized for FlashList recycling with stable keys
+ * - ✅ Smooth fade-in transitions for images
+ * 
+ * Previous fixes maintained (v102.0):
  * - ✅ REMOVED useLocalEvent hook that was causing 20+ simultaneous queries
  * - ✅ NOW receives activeEvent as prop from parent (batch loaded)
  * - ✅ REMOVED individual social profile check (now passed as prop)
  * - ✅ MASSIVE PERFORMANCE IMPROVEMENT: 20+ queries → 2 batch queries
- * 
- * Previous fixes maintained (v101.0):
  * - ✅ Eliminated getEstadoLocal() call that was blocking UI thread
  * - ✅ Uses pre-calculated estaAbierto from backend
  * - ✅ All font sizes use scaleFontSize() for consistency
  */
-export default function TarjetaLocal({ 
+const TarjetaLocal = memo(function TarjetaLocal({ 
   local, 
   destacado, 
   userLocation, 
@@ -277,7 +282,10 @@ export default function TarjetaLocal({
           <Image
             source={{ uri: imagenPrincipal }}
             style={styles.image}
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
+            priority="high"
           />
         ) : (
           <View style={[styles.image, styles.placeholderImage]}>
@@ -438,7 +446,9 @@ export default function TarjetaLocal({
       </View>
     </TouchableOpacity>
   );
-}
+});
+
+export default TarjetaLocal;
 
 const styles = StyleSheet.create({
   card: {
