@@ -22,7 +22,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { supabaseStorage } from '@/src/lib/supabaseStorage';
-import { Image } from 'expo-image';
+// Image import removed - now using dynamic import in useEffect
 
 /**
  * ✅ ROOT LAYOUT v18.2 - TANSTACK QUERY ASYNC PERSISTER (PASO 4.2 COMPLETADO)
@@ -161,27 +161,14 @@ const persister = createAsyncStoragePersister({
 console.log('[TanStack Query] ✅ Async cache persister initialized successfully');
 
 export default function RootLayout() {
-  // ✅ PASO 5: EMERGENCY MAINTENANCE - Clear disk and memory cache on startup to prevent SQLITE_FULL
+  // ✅ PASO 5: EMERGENCY MAINTENANCE - Clear disk cache on startup to prevent SQLITE_FULL
   // This frees up space for SQLite by clearing expo-image cache
   useEffect(() => {
-    const maintenance = async () => {
-      try {
-        console.log('[Storage] 🧹 Starting disk and memory cache cleanup...');
-        
-        // ✅ PASO 1: Clear disk cache (frees up disk space for SQLite)
-        await Image.clearDiskCache();
-        console.log('[Storage] ✅ Disk cache cleared');
-        
-        // ✅ PASO 2: Clear memory cache (prevents lag during scrolling)
-        await Image.clearMemoryCache();
-        console.log('[Storage] ✅ Memory cache cleared');
-        
-        console.log('[Storage] 🧹 Disco y memoria purgados. SQLite ahora tiene espacio.');
-      } catch (e) {
-        console.error('[Storage] Error en mantenimiento:', e);
-      }
-    };
-    maintenance();
+    import('expo-image').then(({ Image }) => {
+      Image.clearDiskCache().catch(() => {
+        console.warn('[Storage] Error clearing disk cache on startup.');
+      });
+    });
   }, []);
 
   // ✅ v17.0: Initialize Zustand stores (replaces Provider initialization)

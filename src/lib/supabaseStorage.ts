@@ -103,38 +103,62 @@ const asyncStorageAdapter: StorageAdapter = {
 // MMKV adapter (for native platforms)
 let mmkvAdapter: StorageAdapter | null = null;
 
-// Try to initialize MMKV on native platforms
+// Try to initialize MMKV on native platforms - ROBUST INITIALIZATION
 if (Platform.OS === 'ios' || Platform.OS === 'android') {
   try {
     // Dynamic import to avoid errors on Web
-    const { MMKV } = require('react-native-mmkv');
+    const MMKVModule = require('react-native-mmkv');
     
-    // Check if MMKV is a valid constructor
-    if (typeof MMKV === 'function') {
-      const mmkvStorage = new MMKV({
-        id: 'supabase-storage',
-        encryptionKey: 'barlive-secure-key-2025',
-      });
+    // Robust check for MMKV availability
+    if (MMKVModule && MMKVModule.MMKV && typeof MMKVModule.MMKV === 'function') {
+      const { MMKV } = MMKVModule;
+      
+      try {
+        const mmkvStorage = new MMKV({
+          id: 'supabase-storage',
+          encryptionKey: 'barlive-secure-key-2025',
+        });
 
-      mmkvAdapter = {
-        getItem: (key: string): string | null => {
-          const value = mmkvStorage.getString(key);
-          console.log('[MMKV] getItem:', key, value ? '✓ found' : '✗ not found');
-          return value ?? null;
-        },
-        setItem: (key: string, value: string): void => {
-          console.log('[MMKV] setItem:', key, `(${value.length} chars)`);
-          mmkvStorage.set(key, value);
-        },
-        removeItem: (key: string): void => {
-          console.log('[MMKV] removeItem:', key);
-          mmkvStorage.delete(key);
-        },
-      };
+        // Verify MMKV instance is working
+        if (mmkvStorage && typeof mmkvStorage.getString === 'function') {
+          mmkvAdapter = {
+            getItem: (key: string): string | null => {
+              try {
+                const value = mmkvStorage.getString(key);
+                console.log('[MMKV] getItem:', key, value ? '✓ found' : '✗ not found');
+                return value ?? null;
+              } catch (err) {
+                console.error('[MMKV] getItem error:', err);
+                return null;
+              }
+            },
+            setItem: (key: string, value: string): void => {
+              try {
+                console.log('[MMKV] setItem:', key, `(${value.length} chars)`);
+                mmkvStorage.set(key, value);
+              } catch (err) {
+                console.error('[MMKV] setItem error:', err);
+              }
+            },
+            removeItem: (key: string): void => {
+              try {
+                console.log('[MMKV] removeItem:', key);
+                mmkvStorage.delete(key);
+              } catch (err) {
+                console.error('[MMKV] removeItem error:', err);
+              }
+            },
+          };
 
-      console.log('[Storage] ✅ Using MMKV (high-performance native storage)');
+          console.log('[Storage] ✅ Using MMKV (high-performance native storage)');
+        } else {
+          console.warn('[Storage] ⚠️ MMKV instance invalid, falling back to AsyncStorage');
+        }
+      } catch (instanceError) {
+        console.warn('[Storage] ⚠️ MMKV instance creation failed, falling back to AsyncStorage:', instanceError);
+      }
     } else {
-      console.warn('[Storage] ⚠️ MMKV is not a valid constructor, falling back to AsyncStorage');
+      console.warn('[Storage] ⚠️ MMKV module not available, falling back to AsyncStorage');
     }
   } catch (error) {
     console.warn('[Storage] ⚠️ MMKV initialization failed, falling back to AsyncStorage:', error);
