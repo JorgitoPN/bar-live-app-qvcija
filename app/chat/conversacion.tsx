@@ -41,19 +41,19 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v301.0 - ANDROID BALANCED OFFSET (USER REFINEMENT)
+ * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v302.0 - ANDROID MINIMAL OFFSET (USER REFINEMENT)
  * 
  * ANDROID-SPECIFIC FIXES:
  * 1️⃣ CONVERSACIÓN - Input field behavior:
  *    - ✅ Absolute positioning with bottom: 0 (extends to physical screen bottom)
  *    - ✅ Input rises smoothly when keyboard opens via dynamic bottom positioning
- *    - ✅ BALANCED OFFSET: 80px provides optimal visibility without excessive gap
- *    - ✅ User refinement: Previous 150px was too much, now perfectly balanced
+ *    - ✅ MINIMAL OFFSET: 10px provides tight spacing as requested by user
+ *    - ✅ User refinement: Reduced from 80px to 10px (70px lower as requested)
  *    - ✅ Input returns to bottom automatically when keyboard closes
  *    - ✅ NO stuck-in-middle issue
  *    - ✅ White background extends BEHIND system navigation bar
  *    - ✅ Visible content respects safe area insets
- *    - ✅ OPTIMAL layout - input clearly visible above keyboard with minimal gap
+ *    - ✅ TIGHT layout - minimal gap between keyboard and input field
  *    - ✅ Enhanced logging for debugging keyboard behavior
  * 
  * 2️⃣ SEND BUTTON:
@@ -105,9 +105,9 @@ export default function ConversacionScreen() {
   const isLocalChat = !!params.localId;
   const localId = params.localId as string | undefined;
   
-  // ✅ FIX v301.0: BALANCED OFFSET - User reported 150px was too much space
-  // Reduced from 150px to 80px for optimal visibility without excessive gap
-  const EXTRA_KEYBOARD_OFFSET = 80;
+  // ✅ FIX v302.0: MINIMAL OFFSET - User requested 70px lower than previous 80px
+  // Reduced from 80px to 10px for tight spacing between keyboard and input
+  const EXTRA_KEYBOARD_OFFSET = 10;
 
   // ✅ ANDROID FIX v286.0: Set system navigation bar color to WHITE (matching input container)
   useEffect(() => {
@@ -122,18 +122,18 @@ export default function ConversacionScreen() {
     }
   }, []);
 
-  // ✅ FIX v301.0: Detect keyboard height dynamically WITH BALANCED OFFSET (user refinement)
+  // ✅ FIX v302.0: Detect keyboard height dynamically WITH MINIMAL OFFSET (user refinement)
   useEffect(() => {
-    console.log('[Conversacion v301.0] 🎹 Setting up keyboard listeners for Android fix');
-    console.log('[Conversacion v301.0] 📏 EXTRA_KEYBOARD_OFFSET:', EXTRA_KEYBOARD_OFFSET, 'px (balanced)');
+    console.log('[Conversacion v302.0] 🎹 Setting up keyboard listeners for Android fix');
+    console.log('[Conversacion v302.0] 📏 EXTRA_KEYBOARD_OFFSET:', EXTRA_KEYBOARD_OFFSET, 'px (minimal - 70px lower than before)');
     
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[Conversacion v301.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
-        console.log('[Conversacion v301.0] 📱 Platform:', Platform.OS);
-        console.log('[Conversacion v301.0] 📏 Total offset will be:', e.endCoordinates.height + EXTRA_KEYBOARD_OFFSET, 'px');
-        // ✅ BALANCED OFFSET - input clearly visible with minimal gap
+        console.log('[Conversacion v302.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[Conversacion v302.0] 📱 Platform:', Platform.OS);
+        console.log('[Conversacion v302.0] 📏 Total offset will be:', e.endCoordinates.height + EXTRA_KEYBOARD_OFFSET, 'px');
+        // ✅ MINIMAL OFFSET - tight spacing between keyboard and input
         setKeyboardHeight(e.endCoordinates.height);
         setKeyboardVisible(true);
       }
@@ -142,14 +142,14 @@ export default function ConversacionScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[Conversacion v301.0] ⌨️ Keyboard hidden');
+        console.log('[Conversacion v302.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
         setKeyboardVisible(false);
       }
     );
 
     return () => {
-      console.log('[Conversacion v301.0] 🧹 Cleaning up keyboard listeners');
+      console.log('[Conversacion v302.0] 🧹 Cleaning up keyboard listeners');
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
@@ -521,20 +521,41 @@ export default function ConversacionScreen() {
         : otroUsuario?.id;
 
       if (recipientId && recipientId !== user.id) {
-        console.log('[Conversacion] 📬 Sending notification to:', recipientId, isLocalChat ? '(local owner)' : '(user)');
-        await supabase.from('notificaciones').insert({
-          usuario_id: recipientId,
-          tipo: 'mensaje_privado',
-          titulo: 'Nuevo mensaje',
-          mensaje: isLocalChat 
+        console.log('[Conversacion v302.0] 📬 Sending notification to:', recipientId, isLocalChat ? '(local owner)' : '(user)');
+        
+        // ✅ Try both table names for notifications (notifications and notificaciones)
+        const { error: notifError1 } = await supabase.from('notifications').insert({
+          user_id: recipientId,
+          type: 'message',
+          title: 'Nuevo mensaje',
+          body: isLocalChat 
             ? `${user.nombre} te envió un mensaje sobre ${localInfo.nombre}`
             : `${user.nombre} te envió un mensaje`,
-          usuario_origen_id: user.id,
-          local_id: isLocalChat ? localId : null,
+          read: false,
+          data: {
+            sender_id: user.id,
+            chat_id: chatId,
+            local_id: isLocalChat ? localId : null,
+          }
         });
+        
+        if (notifError1) {
+          console.log('[Conversacion v302.0] ⚠️ Failed with "notifications" table, trying "notificaciones"...');
+          // Try Spanish table name
+          await supabase.from('notificaciones').insert({
+            usuario_id: recipientId,
+            tipo: 'mensaje_privado',
+            titulo: 'Nuevo mensaje',
+            mensaje: isLocalChat 
+              ? `${user.nombre} te envió un mensaje sobre ${localInfo.nombre}`
+              : `${user.nombre} te envió un mensaje`,
+            usuario_origen_id: user.id,
+            local_id: isLocalChat ? localId : null,
+          });
+        }
       }
 
-      console.log('[Conversacion v298.0] ✅ Message sent successfully - keyboard stays open for continuous typing');
+      console.log('[Conversacion v302.0] ✅ Message sent successfully - keyboard stays open for continuous typing');
     } catch (error) {
       console.error('[Conversacion] Error:', error);
       
@@ -716,15 +737,15 @@ export default function ConversacionScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* ✅ FIX v300.0: Messages list with INCREASED OFFSET (user requested) */}
+      {/* ✅ FIX v302.0: Messages list with MINIMAL OFFSET (user requested) */}
       {/* 
-        CRITICAL FIX FOR ANDROID WITH INCREASED OFFSET:
+        CRITICAL FIX FOR ANDROID WITH MINIMAL OFFSET:
         - When keyboard is OPEN: paddingBottom = keyboardHeight + EXTRA_KEYBOARD_OFFSET + 80
         - When keyboard is CLOSED: paddingBottom = insets.bottom + 80 (space for input + system nav bar)
-        - EXTRA_KEYBOARD_OFFSET = 150px (2.5x previous offset) - USER REQUESTED
+        - EXTRA_KEYBOARD_OFFSET = 10px (reduced by 70px as user requested)
         - The +80 accounts for the input container height (~60px) + extra safe margin
         - This ensures content NEVER scrolls underneath the system navigation bar
-        - Input sits WELL ABOVE keyboard for maximum visibility (user can see 98% of input box)
+        - Input sits CLOSE to keyboard with minimal gap (tight spacing)
       */}
       <FlatList
         ref={flatListRef}
@@ -734,7 +755,7 @@ export default function ConversacionScreen() {
           styles.messagesList,
           { 
             paddingBottom: isKeyboardVisible
-              ? keyboardHeight + EXTRA_KEYBOARD_OFFSET + 80  // ✅ INCREASED: Keyboard open with extra offset
+              ? keyboardHeight + EXTRA_KEYBOARD_OFFSET + 80  // ✅ MINIMAL: Keyboard open with tight spacing (10px offset)
               : insets.bottom + 80   // Keyboard closed: space for input + system nav bar
           }
         ]}
@@ -753,18 +774,18 @@ export default function ConversacionScreen() {
         }
       />
 
-      {/* ✅ FIX v300.0: Input container with INCREASED OFFSET - sits well above keyboard (user requested) */}
+      {/* ✅ FIX v302.0: Input container with MINIMAL OFFSET - tight spacing with keyboard (user requested) */}
       {/* 
-        CRITICAL FIX FOR ANDROID WITH INCREASED OFFSET:
+        CRITICAL FIX FOR ANDROID WITH MINIMAL OFFSET:
         - position: 'absolute' with dynamic bottom positioning
-        - When keyboard OPEN: bottom = keyboardHeight + EXTRA_KEYBOARD_OFFSET (sits WELL ABOVE keyboard)
+        - When keyboard OPEN: bottom = keyboardHeight + EXTRA_KEYBOARD_OFFSET (sits CLOSE to keyboard)
         - When keyboard CLOSED: bottom = 0 (sits at physical screen bottom)
-        - EXTRA_KEYBOARD_OFFSET = 150px (2.5x previous offset) - USER REQUESTED "mas del doble"
+        - EXTRA_KEYBOARD_OFFSET = 10px (reduced by 70px as user requested)
         - paddingBottom: insets.bottom (creates white space behind system nav bar when closed)
         - backgroundColor: '#FFFFFF' ensures solid white background (no transparency)
         - White background extends BEHIND the system navigation bar
         - Visible content (input field) respects safe area via paddingBottom
-        - INCREASED OFFSET - input positioned well above keyboard for maximum visibility (98% visible)
+        - MINIMAL OFFSET - input positioned close to keyboard with tight spacing
       */}
       <View style={[
         styles.inputContainer, 

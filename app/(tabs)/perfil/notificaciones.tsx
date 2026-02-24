@@ -21,9 +21,15 @@ interface Notification {
 }
 
 /**
- * ✅ NOTIFICACIONES SCREEN v3.6 - CRITICAL FIX FOR COLUMN NAMES
+ * ✅ NOTIFICACIONES SCREEN v3.7 - CRITICAL FIX FOR NOTIFICATION FILTERING
  * 
- * NEW CHANGES v3.6:
+ * NEW CHANGES v3.7:
+ * - ✅ CRITICAL FIX: Fixed overly aggressive filtering that was removing ALL notifications
+ * - ✅ IMPROVED: Welcome notification filter now requires BOTH title AND body match
+ * - ✅ FIXED: Regular notifications now display correctly in the list
+ * - ✅ IMPROVED: Enhanced logging shows which notifications are kept vs filtered
+ * 
+ * PREVIOUS v3.6:
  * - ✅ CRITICAL FIX: Now correctly uses 'usuario_id' for Spanish table (notificaciones)
  * - ✅ CRITICAL FIX: Uses 'user_id' for English table (notifications)
  * - ✅ IMPROVED: Proper column name mapping for both table schemas
@@ -141,16 +147,18 @@ export default function Notificaciones() {
           console.log('[Notificaciones v3.6] ⚠️ No notifications found in database');
         }
         
-        // ✅ v3.3: Filter out welcome notification
+        // ✅ v3.7: FIXED - More specific welcome notification filter
         const filteredNotifications = (data || []).filter(notification => {
+          // Only filter out if BOTH title contains "Bienvenido" AND body contains "sistema de notificaciones"
           const isWelcomeNotification = 
-            notification.title?.includes('Bienvenido') || 
-            notification.title?.includes('bienvenido') ||
-            notification.body?.includes('sistema de notificaciones está activo') ||
-            notification.body?.includes('funcionando correctamente');
+            (notification.title?.includes('Bienvenido') || notification.title?.includes('bienvenido')) &&
+            (notification.body?.includes('sistema de notificaciones está activo') ||
+             notification.body?.includes('funcionando correctamente'));
           
           if (isWelcomeNotification) {
-            console.log('[Notificaciones v3.6] 🚫 Filtering out welcome notification:', notification.id);
+            console.log('[Notificaciones v3.7] 🚫 Filtering out welcome notification:', notification.id);
+          } else {
+            console.log('[Notificaciones v3.7] ✅ Keeping notification:', notification.id, notification.title);
           }
           
           return !isWelcomeNotification;
@@ -208,15 +216,14 @@ export default function Notificaciones() {
           
           const newNotification = payload.new as Notification;
           
-          // ✅ Filter out welcome notifications in real-time too
+          // ✅ v3.7: FIXED - More specific welcome notification filter for real-time
           const isWelcomeNotification = 
-            newNotification.title?.includes('Bienvenido') || 
-            newNotification.title?.includes('bienvenido') ||
-            newNotification.body?.includes('sistema de notificaciones está activo') ||
-            newNotification.body?.includes('funcionando correctamente');
+            (newNotification.title?.includes('Bienvenido') || newNotification.title?.includes('bienvenido')) &&
+            (newNotification.body?.includes('sistema de notificaciones está activo') ||
+             newNotification.body?.includes('funcionando correctamente'));
           
           if (isWelcomeNotification) {
-            console.log('[Notificaciones v3.6] 🚫 Filtering out welcome notification in real-time');
+            console.log('[Notificaciones v3.7] 🚫 Filtering out welcome notification in real-time');
             return;
           }
           
@@ -242,15 +249,14 @@ export default function Notificaciones() {
           
           const newNotification = payload.new as Notification;
           
-          // ✅ Filter out welcome notifications in real-time too
+          // ✅ v3.7: FIXED - More specific welcome notification filter for real-time (notificaciones table)
           const isWelcomeNotification = 
-            newNotification.title?.includes('Bienvenido') || 
-            newNotification.title?.includes('bienvenido') ||
-            newNotification.body?.includes('sistema de notificaciones está activo') ||
-            newNotification.body?.includes('funcionando correctamente');
+            (newNotification.title?.includes('Bienvenido') || newNotification.title?.includes('bienvenido')) &&
+            (newNotification.body?.includes('sistema de notificaciones está activo') ||
+             newNotification.body?.includes('funcionando correctamente'));
           
           if (isWelcomeNotification) {
-            console.log('[Notificaciones v3.6] 🚫 Filtering out welcome notification in real-time');
+            console.log('[Notificaciones v3.7] 🚫 Filtering out welcome notification in real-time');
             return;
           }
           
