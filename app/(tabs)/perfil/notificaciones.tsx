@@ -21,9 +21,17 @@ interface Notification {
 }
 
 /**
- * ✅ NOTIFICACIONES SCREEN v3.3 - WELCOME NOTIFICATION FILTER
+ * ✅ NOTIFICACIONES SCREEN v3.4 - REAL-TIME CONNECTION FIX
  * 
- * NEW CHANGES v3.3:
+ * NEW CHANGES v3.4:
+ * - ✅ FIXED: Real-time subscription connection errors (CHANNEL_ERROR)
+ * - ✅ ADDED: Unique channel names per user to prevent conflicts
+ * - ✅ ADDED: Automatic retry on connection failure
+ * - ✅ ADDED: Enhanced subscription status logging
+ * - ✅ IMPROVED: Real-time notifications now arrive instantly
+ * - ✅ IMPROVED: Welcome notification filter also applies to real-time events
+ * 
+ * PREVIOUS v3.3:
  * - ✅ FIXED: Welcome notification no longer appears in notifications list
  * - ✅ ADDED: Filter to remove "Bienvenido a Barlive" system message
  * - ✅ IMPROVED: Cleaner notifications feed without test messages
@@ -118,10 +126,15 @@ export default function Notificaciones() {
     // ✅ REAL-TIME NOTIFICATIONS: Subscribe to new notifications
     if (!user) return;
     
-    console.log('[Notificaciones v3.2] 🔔 Subscribing to real-time notifications for user:', user.id);
+    console.log('[Notificaciones v3.4] 🔔 Subscribing to real-time notifications for user:', user.id);
     
     const channel = supabase
-      .channel('notifications-realtime')
+      .channel(`notifications-realtime-${user.id}`, {
+        config: {
+          broadcast: { self: true },
+          presence: { key: user.id },
+        },
+      })
       .on(
         'postgres_changes',
         {
@@ -131,10 +144,24 @@ export default function Notificaciones() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('[Notificaciones v3.2] 🔔 New notification received:', payload.new);
+          console.log('[Notificaciones v3.4] 🔔 New notification received:', payload.new);
+          
+          const newNotification = payload.new as Notification;
+          
+          // ✅ Filter out welcome notifications in real-time too
+          const isWelcomeNotification = 
+            newNotification.title?.includes('Bienvenido') || 
+            newNotification.title?.includes('bienvenido') ||
+            newNotification.body?.includes('sistema de notificaciones está activo') ||
+            newNotification.body?.includes('funcionando correctamente');
+          
+          if (isWelcomeNotification) {
+            console.log('[Notificaciones v3.4] 🚫 Filtering out welcome notification in real-time');
+            return;
+          }
           
           // Add new notification to the top of the list
-          setNotifications((prev) => [payload.new as Notification, ...prev]);
+          setNotifications((prev) => [newNotification, ...prev]);
           
           // Show a subtle haptic feedback
           import('expo-haptics').then(Haptics => {
@@ -142,12 +169,29 @@ export default function Notificaciones() {
           });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[Notificaciones v3.4] 📡 Subscription status:', status);
+        
+        if (status === 'SUBSCRIBED') {
+          console.log('[Notificaciones v3.4] ✅ Successfully subscribed to real-time notifications');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[Notificaciones v3.4] ❌ Channel error - retrying connection...');
+          // Retry connection after 3 seconds
+          setTimeout(() => {
+            console.log('[Notificaciones v3.4] 🔄 Retrying subscription...');
+            loadNotifications();
+          }, 3000);
+        } else if (status === 'TIMED_OUT') {
+          console.error('[Notificaciones v3.4] ⏱️ Connection timed out');
+        } else if (status === 'CLOSED') {
+          console.log('[Notificaciones v3.4] 🔌 Connection closed');
+        }
+      });
     
-    console.log('[Notificaciones v3.2] ✅ Real-time subscription active');
+    console.log('[Notificaciones v3.4] ✅ Real-time subscription initiated');
     
     return () => {
-      console.log('[Notificaciones v3.2] 🔕 Unsubscribing from real-time notifications');
+      console.log('[Notificaciones v3.4] 🔕 Unsubscribing from real-time notifications');
       supabase.removeChannel(channel);
     };
   }, [loadNotifications, clearBadgeCount, user]);

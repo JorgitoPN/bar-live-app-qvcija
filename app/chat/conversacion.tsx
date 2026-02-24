@@ -41,7 +41,7 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v298.0 - ANDROID COMPACT LAYOUT (FINAL FIX)
+ * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v299.0 - ANDROID COMPACT LAYOUT (ENHANCED LOGGING)
  * 
  * ANDROID-SPECIFIC FIXES:
  * 1️⃣ CONVERSACIÓN - Input field behavior:
@@ -53,6 +53,7 @@ interface Message {
  *    - ✅ White background extends BEHIND system navigation bar
  *    - ✅ Visible content respects safe area insets
  *    - ✅ COMPACT & NATURAL layout - input immediately above keyboard
+ *    - ✅ Enhanced logging for debugging keyboard behavior
  * 
  * 2️⃣ SEND BUTTON:
  *    - ✅ Sends message immediately on first press
@@ -78,6 +79,7 @@ interface Message {
  * - FlatList paddingBottom: keyboardHeight + 80 OR insets.bottom + 80
  * - Input content respects safe area via paddingBottom
  * - NO EXTRA OFFSET - input positioned exactly at keyboard top for compact feel
+ * - Enhanced console logging for debugging
  */
 export default function ConversacionScreen() {
   const router = useRouter();
@@ -114,12 +116,15 @@ export default function ConversacionScreen() {
     }
   }, []);
 
-  // ✅ FIX v298.0: Detect keyboard height dynamically WITHOUT extra offset for compact layout
+  // ✅ FIX v299.0: Detect keyboard height dynamically WITHOUT extra offset for compact layout
   useEffect(() => {
+    console.log('[Conversacion v299.0] 🎹 Setting up keyboard listeners for Android fix');
+    
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[Conversacion v298.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[Conversacion v299.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[Conversacion v299.0] 📱 Platform:', Platform.OS);
         // ✅ NO extra offset - input sits directly above keyboard for compact layout
         setKeyboardHeight(e.endCoordinates.height);
         setKeyboardVisible(true);
@@ -129,13 +134,14 @@ export default function ConversacionScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[Conversacion v298.0] ⌨️ Keyboard hidden');
+        console.log('[Conversacion v299.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
         setKeyboardVisible(false);
       }
     );
 
     return () => {
+      console.log('[Conversacion v299.0] 🧹 Cleaning up keyboard listeners');
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
