@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { useAuth } from './AuthContext';
+import { useAuthStore } from '@/src/store/useAuthStore';
 import { useImpersonation } from './ImpersonationContext';
 import { supabase } from '@/utils/supabase';
 import { isAdminUser } from '@/utils/adminAccess';
@@ -58,7 +58,8 @@ const ACTIVE_PROFILE_TYPE_STORAGE_KEY = '@barlive_active_profile_type';
  */
 
 export function ModeProvider({ children }: { children: ReactNode }) {
-  const { user: authUser } = useAuth();
+  // ✅ v3.2: Use useAuthStore directly instead of useAuth
+  const authUser = useAuthStore(state => state.user);
   const { isImpersonating, impersonatedUser, effectiveUser, adminUser } = useImpersonation();
   
   // ✅ CRITICAL FIX: Use effectiveUser for data queries, but adminUser for permission checks
