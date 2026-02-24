@@ -90,25 +90,36 @@ import { Swipeable } from 'react-native-gesture-handler';
  */
 
 type NotificationType = 
+  // Interacciones
   | 'like' 
   | 'comment' 
-  | 'follow' 
-  | 'mention' 
-  | 'event' 
-  | 'message' 
-  | 'cheers'
-  | 'plan_purchase'
-  | 'plan_renewal'
-  | 'featured_local_reminder'
-  | 'urgent'
-  | 'promo'
   | 'comentario'
+  | 'follow' 
   | 'seguidor'
+  | 'mention' 
   | 'mencion'
-  | 'evento'
+  // Comunicación
+  | 'message' 
   | 'mensaje'
   | 'mensaje_privado'
-  | 'sistema';
+  | 'cheers'
+  | 'saludos'
+  // Transacciones
+  | 'plan_purchase'
+  | 'compra_plan'
+  | 'plan_renewal'
+  | 'renovacion_plan'
+  // Sistema y Alertas
+  | 'event'
+  | 'evento'
+  | 'featured_local_reminder'
+  | 'recordatorio_local'
+  | 'urgent'
+  | 'urgente'
+  | 'sistema'
+  | 'promo'
+  | 'promocion'
+  | 'reminder';
 
 interface NotificationItem {
   id: string;
@@ -1194,12 +1205,12 @@ export default function NotificacionesScreen() {
 
   /**
    * Get icon for notification type (handles both English and Spanish types)
-   * v7.1 - EXHAUSTIVO: Todos los tipos tienen un icono específico
+   * v7.2 - EXHAUSTIVO: Todos los tipos tienen un icono específico (14 categorías)
    */
   const getNotificationIcon = (notification: NotificationItem): string => {
     const type = (notification.type || notification.tipo || '').toLowerCase();
     const iconMap: Record<string, string> = {
-      // Social interactions
+      // Interacciones (4)
       like: '❤️',
       comment: '💬',
       comentario: '💬',
@@ -1208,23 +1219,30 @@ export default function NotificacionesScreen() {
       mention: '@',
       mencion: '@',
       
-      // Events & Activities
-      event: '📅',
-      evento: '📅',
+      // Comunicación (2)
       message: '✉️',
       mensaje: '✉️',
       mensaje_privado: '✉️',
       cheers: '🍻',
+      saludos: '🍻',
       
-      // Business & Subscriptions
+      // Transacciones (2)
       plan_purchase: '💳',
+      compra_plan: '💳',
       plan_renewal: '🔄',
-      featured_local_reminder: '⭐',
+      renovacion_plan: '🔄',
       
-      // System notifications
+      // Sistema y Alertas (6)
+      event: '📅',
+      evento: '📅',
+      featured_local_reminder: '⭐',
+      recordatorio_local: '⭐',
       urgent: '🚨',
+      urgente: '🚨',
       sistema: '🔔',
       promo: '🎁',
+      promocion: '🎁',
+      reminder: '⏰',
     };
     return iconMap[type] || '🔔';
   };

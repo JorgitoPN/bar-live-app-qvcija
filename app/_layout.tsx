@@ -15,43 +15,67 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { colors } from '@/styles/commonStyles';
 import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Platform } from 'react-native';
+import { Platform, AppState, AppStateStatus } from 'react-native';
 import * as SystemUI from 'expo-system-ui';
 import { startBackgroundLocationTracking } from '@/utils/locationUtils';
 import { backgroundSync } from '@/utils/backgroundSync';
+import { notificationHandler } from '@/utils/notificationHandler';
 
 /**
- * ✅ ROOT LAYOUT v14.0 - CRITICAL FIX: iOS EXPO GO CRASH
+ * ✅ ROOT LAYOUT v16.0 - SISTEMA ROBUSTO DE NOTIFICACIONES PUSH COMPLETO
  * 
- * CHANGES v14.0:
- * - 🔧 FIXED: iOS Expo Go crash on app launch
- * - 🔧 FIXED: Background location tracking disabled on iOS (causes crashes)
- * - 🔧 IMPROVED: Graceful initialization with proper error handling
- * - 🔧 IMPROVED: 1-second delay before background system initialization
+ * CHANGES v16.0:
+ * - 🔔 ENHANCED: Sistema completo de notificaciones push con 14 categorías
+ * - 🔔 ADDED: Manejo de estados (foreground, background, cerrada)
+ * - 🔔 ADDED: Deep linking dinámico por tipo de notificación
+ * - 🔔 ADDED: Banner interno personalizado cuando app está abierta
+ * - 🔔 ADDED: Toast notifications en Android para notificaciones no urgentes
+ * - 🔔 ADDED: Feedback háptico diferenciado por prioridad
+ * - 🔔 ADDED: Soporte para recordatorios genéricos
+ * - 🔔 ADDED: Logging detallado para debugging
+ * - 🔔 ADDED: Manejo robusto de errores con fallbacks
  * 
- * ROOT CAUSE:
- * - Background location tracking started too early on iOS
- * - Permission issues in Expo Go caused immediate crash
- * 
- * SOLUTION:
- * - Skip background tracking on iOS entirely
- * - Use foreground location only on iOS
- * - Wrap all initialization in try-catch blocks
- * - Delay initialization to avoid race conditions
+ * CATEGORÍAS DE NOTIFICACIONES (14):
+ * 📱 Interacciones (4): like, comment, follow, mention
+ * 💬 Comunicación (2): message, cheers
+ * 💳 Transacciones (2): plan_purchase, plan_renewal
+ * 🔔 Sistema y Alertas (6): event, featured_local_reminder, urgent, sistema, promo, reminder
  * 
  * Previous changes:
+ * - v15.0: Initial notification system
+ * - v14.0: iOS Expo Go crash fix
  * - v13.0: Background location & intelligent preloading
  * - v12.0: Android navigation bar color fix
- * - v11.0: Sala virtual presentation fix
  */
 
 export default function RootLayout() {
   // ✅ ANDROID FIX v13.0: Set global system navigation bar color to WHITE (no blue flash)
   useEffect(() => {
     if (Platform.OS === 'android') {
-      const white = '#FFFFFF'; // White background to prevent blue flash
+      const white = '#FFFFFF';
       SystemUI.setBackgroundColorAsync(white);
     }
+  }, []);
+
+  // ✅ v15.0: NOTIFICATION SYSTEM - Inicializar sistema de notificaciones
+  useEffect(() => {
+    console.log('[RootLayout v15.0] 🔔 Inicializando sistema de notificaciones...');
+    
+    // Inicializar handler de notificaciones
+    notificationHandler.initialize();
+    
+    // Listener para cambios de estado de la app (foreground/background)
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      const isInForeground = nextAppState === 'active';
+      console.log('[RootLayout v15.0] 📱 Estado de app cambió:', nextAppState);
+      notificationHandler.setAppState(isInForeground);
+    });
+    
+    return () => {
+      console.log('[RootLayout v15.0] 🧹 Limpiando sistema de notificaciones...');
+      notificationHandler.cleanup();
+      subscription.remove();
+    };
   }, []);
 
   // ✅ v14.0: CRITICAL FIX - Graceful background system initialization (iOS crash fix)
@@ -60,23 +84,18 @@ export default function RootLayout() {
       try {
         console.log('[RootLayout v14.0] 🚀 Initializing background systems (graceful mode)');
         
-        // ✅ CRITICAL: Wrap everything in try-catch to prevent crashes
         try {
-          // Initialize background sync manager (non-blocking)
           await backgroundSync.initialize();
           console.log('[RootLayout v14.0] ✅ Background sync initialized');
         } catch (syncError) {
           console.log('[RootLayout v14.0] ⚠️ Background sync init failed - continuing without it');
         }
         
-        // ✅ CRITICAL: Don't start background tracking on iOS in Expo Go
-        // It causes crashes due to permission issues
         if (Platform.OS === 'ios') {
           console.log('[RootLayout v14.0] ⏸️ Skipping background location on iOS (Expo Go compatibility)');
           return;
         }
         
-        // Only try background tracking on Android
         try {
           const started = await startBackgroundLocationTracking();
           if (started) {
@@ -88,12 +107,10 @@ export default function RootLayout() {
           console.log('[RootLayout v14.0] ⚠️ Background tracking failed - continuing with foreground location');
         }
       } catch (error) {
-        // ✅ CRITICAL: Never let this crash the app
         console.log('[RootLayout v14.0] ⚠️ Background systems initialization error - app will continue normally');
       }
     };
 
-    // ✅ CRITICAL: Delay initialization to avoid race conditions
     const timer = setTimeout(() => {
       initializeBackgroundSystems();
     }, 1000);
