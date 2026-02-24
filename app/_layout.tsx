@@ -160,22 +160,25 @@ const persister = createAsyncStoragePersister({
 
 console.log('[TanStack Query] ✅ Async cache persister initialized successfully');
 
-// ✅ PASO 5: EMERGENCY OPTIMIZATION - Limit image cache globally to prevent SQLITE_FULL
-// This prevents the "Code 13: SQLITE_FULL" error by limiting memory history
-console.log('[Image Cache] 🛡️ Setting memory history limit to prevent SQLITE_FULL errors');
-Image.setMemoryHistoryEnabled(true);
-console.log('[Image Cache] ✅ Memory history enabled with automatic limits');
-
 export default function RootLayout() {
-  // ✅ PASO 5: EMERGENCY MAINTENANCE - Clear disk cache on startup to prevent SQLITE_FULL
+  // ✅ PASO 5: EMERGENCY MAINTENANCE - Clear disk and memory cache on startup to prevent SQLITE_FULL
+  // This frees up space for SQLite by clearing expo-image cache
   useEffect(() => {
     const maintenance = async () => {
       try {
-        console.log('[Maintenance] 🧹 Starting emergency disk cache cleanup...');
+        console.log('[Storage] 🧹 Starting disk and memory cache cleanup...');
+        
+        // ✅ PASO 1: Clear disk cache (frees up disk space for SQLite)
         await Image.clearDiskCache();
-        console.log('[Maintenance] ✅ Disco purgado para evitar SQLITE_FULL');
-      } catch (error) {
-        console.log('[Maintenance] ⚠️ Cache cleanup failed (non-critical):', error);
+        console.log('[Storage] ✅ Disk cache cleared');
+        
+        // ✅ PASO 2: Clear memory cache (prevents lag during scrolling)
+        await Image.clearMemoryCache();
+        console.log('[Storage] ✅ Memory cache cleared');
+        
+        console.log('[Storage] 🧹 Disco y memoria purgados. SQLite ahora tiene espacio.');
+      } catch (e) {
+        console.error('[Storage] Error en mantenimiento:', e);
       }
     };
     maintenance();
