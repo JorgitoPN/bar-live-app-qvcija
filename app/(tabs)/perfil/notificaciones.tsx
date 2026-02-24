@@ -8,10 +8,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+import type { NotificationType } from '@/app/integrations/supabase/types';
 
 interface Notification {
   id: string;
-  type: 'like' | 'comment' | 'follow' | 'mention' | 'event' | 'message' | 'cheers';
+  type: NotificationType;
   title: string;
   body: string;
   read: boolean;
@@ -20,20 +21,21 @@ interface Notification {
 }
 
 /**
- * ✅ NOTIFICACIONES SCREEN v3.0 - SIMPLIFIED & CLEAN
+ * ✅ NOTIFICACIONES SCREEN v3.1 - EXTENDED NOTIFICATION TYPES
  * 
- * NEW CHANGES v3.0:
+ * NEW CHANGES v3.1:
+ * - ✅ ADDED: Support for new notification types:
+ *   - plan_purchase: Compras de planes
+ *   - plan_renewal: Renovaciones automáticas de planes
+ *   - featured_local_reminder: Tiempo restante de locales destacados
+ * - ✅ IMPROVED: Icon mapping for all notification types
+ * - ✅ IMPROVED: Better visual distinction for business notifications
+ * 
+ * PREVIOUS v3.0:
  * - ✅ REMOVED: "Configuración" tab - simplified to single notifications view
  * - ✅ IMPROVED: Automatic badge clearing when viewing notifications
  * - ✅ REMOVED: System status message for cleaner UI
  * - ✅ IMPROVED: Streamlined interface focused on notifications only
- * 
- * PREVIOUS v2.0:
- * - ✅ REDESIGNED: Applied Barlive color palette with gradient headers
- * - ✅ IMPROVED: Modern card-based design with proper spacing
- * - ✅ IMPROVED: Visual hierarchy with gradient accents
- * - ✅ IMPROVED: Better contrast and readability
- * - ✅ IMPROVED: Consistent with app's visual identity
  */
 
 export default function Notificaciones() {
@@ -50,7 +52,7 @@ export default function Notificaciones() {
     }
 
     try {
-      console.log('[Notificaciones v2.0] Cargando notificaciones del usuario...');
+      console.log('[Notificaciones v3.1] Cargando notificaciones del usuario...');
       
       // Load from the notifications table
       const { data, error } = await supabase
@@ -61,14 +63,14 @@ export default function Notificaciones() {
         .limit(50);
 
       if (error) {
-        console.error('[Notificaciones v2.0] Error cargando notificaciones:', error);
+        console.error('[Notificaciones v3.1] Error cargando notificaciones:', error);
         setNotifications([]);
       } else {
-        console.log('[Notificaciones v2.0] Notificaciones cargadas:', data?.length || 0);
+        console.log('[Notificaciones v3.1] Notificaciones cargadas:', data?.length || 0);
         setNotifications(data || []);
       }
     } catch (error) {
-      console.error('[Notificaciones v2.0] Error en loadNotifications:', error);
+      console.error('[Notificaciones v3.1] Error en loadNotifications:', error);
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -81,9 +83,9 @@ export default function Notificaciones() {
     try {
       const { setBadgeCountAsync } = await import('expo-notifications');
       await setBadgeCountAsync(0);
-      console.log('[Notificaciones v2.0] Badge count cleared');
+      console.log('[Notificaciones v3.1] Badge count cleared');
     } catch (error) {
-      console.error('[Notificaciones v2.0] Error clearing badge:', error);
+      console.error('[Notificaciones v3.1] Error clearing badge:', error);
     }
   }, []);
 
@@ -116,7 +118,7 @@ export default function Notificaciones() {
         );
       }
     } catch (error) {
-      console.error('[Notificaciones v2.0] Error marcando como leída:', error);
+      console.error('[Notificaciones v3.1] Error marcando como leída:', error);
     }
   };
 
@@ -137,7 +139,7 @@ export default function Notificaciones() {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       }
     } catch (error) {
-      console.error('[Notificaciones v2.0] Error marcando todas como leídas:', error);
+      console.error('[Notificaciones v3.1] Error marcando todas como leídas:', error);
     }
   };
 
@@ -155,12 +157,12 @@ export default function Notificaciones() {
         setNotifications(prev => prev.filter(n => n.id !== notificationId));
       }
     } catch (error) {
-      console.error('[Notificaciones v2.0] Error eliminando notificación:', error);
+      console.error('[Notificaciones v3.1] Error eliminando notificación:', error);
     }
   };
 
-  const getNotificationIcon = (type: string): string => {
-    const iconMap: Record<string, string> = {
+  const getNotificationIcon = (type: NotificationType): string => {
+    const iconMap: Record<NotificationType, string> = {
       like: '❤️',
       comment: '💬',
       follow: '👥',
@@ -168,6 +170,11 @@ export default function Notificaciones() {
       event: '📅',
       message: '✉️',
       cheers: '🍻',
+      plan_purchase: '💳',
+      plan_renewal: '🔄',
+      featured_local_reminder: '⭐',
+      urgent: '🚨',
+      promo: '🎁',
     };
     return iconMap[type] || '🔔';
   };
@@ -186,8 +193,6 @@ export default function Notificaciones() {
     if (diffDays < 7) return `Hace ${diffDays}d`;
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   };
-
-
 
   const backIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
   const infoIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
@@ -404,8 +409,6 @@ export default function Notificaciones() {
       </ScrollView>
     );
   };
-
-
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

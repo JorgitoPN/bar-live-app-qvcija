@@ -1,3 +1,4 @@
+
 export type Json =
   | string
   | number
@@ -136,3 +137,54 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * NOTIFICATION TYPES - EXTENDED v2.0
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * 🎯 NOTIFICATION CATEGORIES:
+ * 
+ * SOCIAL INTERACTIONS:
+ * - like: Me gusta en publicaciones
+ * - comment: Comentarios en publicaciones
+ * - follow: Nuevos seguidores
+ * - mention: Menciones en publicaciones
+ * 
+ * EVENTS & ACTIVITIES:
+ * - event: Recordatorios de eventos
+ * - message: Mensajes privados
+ * - cheers: Brindis en salas virtuales
+ * 
+ * BUSINESS & SUBSCRIPTIONS:
+ * - plan_purchase: Compras de planes
+ * - plan_renewal: Renovaciones automáticas de planes
+ * - featured_local_reminder: Tiempo restante de locales destacados (aviso al propietario)
+ * 
+ * SYSTEM:
+ * - urgent: Notificaciones urgentes del sistema
+ * - promo: Promociones y ofertas especiales
+ */
+export type NotificationType =
+  | 'like'
+  | 'comment'
+  | 'follow'
+  | 'mention'
+  | 'event'
+  | 'message'
+  | 'cheers'
+  | 'plan_purchase'
+  | 'plan_renewal'
+  | 'featured_local_reminder'
+  | 'urgent'
+  | 'promo';
+
+/**
+ * Device data for push token management
+ */
+export interface DeviceData {
+  deviceId: string;
+  deviceName?: string;
+  osVersion?: string;
+  appVersion?: string;
+}

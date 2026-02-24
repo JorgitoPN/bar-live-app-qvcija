@@ -1,7 +1,7 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * SISTEMA DE NOTIFICACIONES PUSH - PRODUCCIÓN COMPLETA v1.0
+ * SISTEMA DE NOTIFICACIONES PUSH - PRODUCCIÓN COMPLETA v1.1
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * 🎯 CARACTERÍSTICAS:
@@ -26,6 +26,11 @@
  * - Cliente: Registro y manejo de notificaciones
  * - Servidor: Edge Functions para envío (Supabase)
  * - Base de datos: Tabla push_tokens para gestión
+ * 
+ * 🆕 CAMBIOS v1.1:
+ * - ✅ FIXED: Removed call to non-existent isSupabaseConfigured function
+ * - ✅ IMPROVED: Direct null check on supabase client
+ * - ✅ ADDED: Support for new notification types (plan_purchase, plan_renewal, featured_local_reminder)
  */
 
 import { Platform, Alert, Linking } from 'react-native';
@@ -34,6 +39,7 @@ import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { NotificationType, DeviceData } from '@/app/integrations/supabase/types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS & CONFIGURATION
@@ -85,12 +91,15 @@ Notifications.setNotificationHandler({
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface NotificationData {
-  type: 'like' | 'comment' | 'follow' | 'mention' | 'event' | 'message' | 'cheers' | 'urgent' | 'promo';
+  type: NotificationType;
   userId?: string;
   postId?: string;
   eventId?: string;
   localId?: string;
   conversationId?: string;
+  planId?: string;
+  subscriptionId?: string;
+  daysRemaining?: number;
   title: string;
   body: string;
   deepLink?: string; // Para deep linking
@@ -317,6 +326,19 @@ const configureAndroidChannels = async (): Promise<void> => {
       description: 'Ofertas y promociones especiales',
     });
 
+    // Canal para notificaciones de planes y suscripciones
+    await Notifications.setNotificationChannelAsync('subscriptions', {
+      name: 'Planes y Suscripciones',
+      importance: Notifications.AndroidImportance?.HIGH ?? 4,
+      vibrationPattern: [0, 300, 150, 300],
+      lightColor: '#10B981',
+      sound: 'default',
+      enableVibrate: true,
+      enableLights: true,
+      showBadge: true,
+      description: 'Compras, renovaciones y recordatorios de planes',
+    });
+
     // Canal para notificaciones silenciosas
     await Notifications.setNotificationChannelAsync('silent', {
       name: 'Silenciosas',
@@ -343,21 +365,21 @@ const configureAndroidChannels = async (): Promise<void> => {
  * Guardar token de push en base de datos
  * Incluye información del dispositivo para gestión
  */
-export const savePushToken = async (userId: string, token: string): Promise<void> => {
+export const savePushToken = async (userId: string, token: string, deviceData?: DeviceData): Promise<void> => {
   try {
     console.log('[Notifications] 💾 Guardando push token...');
     
+    // Check if Supabase is configured
     if (!isSupabaseConfigured()) {
       console.log('[Notifications] ⚠️ Supabase no configurado');
       return;
     }
 
-    // Obtener información del dispositivo
-    const deviceInfo = {
+    // Obtener información del dispositivo si no se proporciona
+    const finalDeviceData = deviceData || {
       deviceId: Constants.deviceId || 'unknown',
       deviceName: Constants.deviceName || 'unknown',
-      platform: Platform.OS,
-      osVersion: Platform.Version,
+      osVersion: String(Platform.Version),
       appVersion: Constants.expoConfig?.version || '1.0.0',
     };
 
@@ -367,10 +389,10 @@ export const savePushToken = async (userId: string, token: string): Promise<void
         user_id: userId,
         token,
         platform: Platform.OS,
-        device_id: deviceInfo.deviceId,
-        device_name: deviceInfo.deviceName,
-        os_version: String(deviceInfo.osVersion),
-        app_version: deviceInfo.appVersion,
+        device_id: finalDeviceData.deviceId,
+        device_name: finalDeviceData.deviceName,
+        os_version: finalDeviceData.osVersion,
+        app_version: finalDeviceData.appVersion,
         updated_at: new Date().toISOString(),
         active: true,
       }, {
@@ -506,12 +528,15 @@ export const sendLocalNotification = async (data: NotificationData): Promise<voi
 /**
  * Obtener canal apropiado según tipo de notificación
  */
-const getChannelForType = (type: string): string => {
+const getChannelForType = (type: NotificationType): string => {
   const channelMap: Record<string, string> = {
     'message': 'messages',
     'event': 'events',
     'cheers': 'cheers',
     'promo': 'promos',
+    'plan_purchase': 'subscriptions',
+    'plan_renewal': 'subscriptions',
+    'featured_local_reminder': 'subscriptions',
     'urgent': 'default',
   };
   
@@ -720,6 +745,17 @@ const handleNotificationNavigation = (data: NotificationData): void => {
       case 'cheers':
         if (data.localId) {
           deepLink = `barlive://detalle/sala-virtual-enhanced?localId=${data.localId}`;
+        }
+        break;
+      
+      case 'plan_purchase':
+      case 'plan_renewal':
+        deepLink = 'barlive://gestion/mi-suscripcion';
+        break;
+      
+      case 'featured_local_reminder':
+        if (data.localId) {
+          deepLink = `barlive://gestion/mis-locales?localId=${data.localId}`;
         }
         break;
       
