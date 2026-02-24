@@ -4,10 +4,10 @@
     "slug": "BarLive",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/final_quest_240x240.png",
+    "icon": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/final_quest_240x240.png",
+      "image": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -20,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/final_quest_240x240.png",
+        "foregroundImage": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.barlive.app",
