@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { MMKVStorageAdapter } from '@/src/lib/supabaseStorage';
+import { supabaseStorage } from '@/src/lib/supabaseStorage';
 
 // Use environment variables with fallback to hardcoded values
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
@@ -11,11 +11,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-console.log('[Supabase] Initializing client with MMKV storage...');
+console.log('[Supabase] Initializing client with platform-aware storage (MMKV on native, AsyncStorage on Web)...');
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: MMKVStorageAdapter,
+    storage: supabaseStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
