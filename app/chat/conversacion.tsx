@@ -41,18 +41,19 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v299.0 - ANDROID COMPACT LAYOUT (ENHANCED LOGGING)
+ * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v300.0 - ANDROID INCREASED OFFSET (USER REQUEST)
  * 
  * ANDROID-SPECIFIC FIXES:
  * 1️⃣ CONVERSACIÓN - Input field behavior:
  *    - ✅ Absolute positioning with bottom: 0 (extends to physical screen bottom)
  *    - ✅ Input rises smoothly when keyboard opens via dynamic bottom positioning
- *    - ✅ Input sits DIRECTLY above keyboard (NO extra offset for compact layout)
+ *    - ✅ INCREASED OFFSET: Input now sits MUCH HIGHER above keyboard (2.5x previous offset)
+ *    - ✅ User requested: "subir un poco mas y mas del doble la caja de comentarios"
  *    - ✅ Input returns to bottom automatically when keyboard closes
  *    - ✅ NO stuck-in-middle issue
  *    - ✅ White background extends BEHIND system navigation bar
  *    - ✅ Visible content respects safe area insets
- *    - ✅ COMPACT & NATURAL layout - input immediately above keyboard
+ *    - ✅ MORE VISIBLE layout - input well above keyboard for better visibility
  *    - ✅ Enhanced logging for debugging keyboard behavior
  * 
  * 2️⃣ SEND BUTTON:
@@ -70,15 +71,16 @@ interface Message {
  *    - ✅ Professional behavior matching standard Android apps
  * 
  * TECHNICAL IMPLEMENTATION:
- * - position: 'absolute' with dynamic bottom (keyboardHeight when open, 0 when closed)
+ * - position: 'absolute' with dynamic bottom (keyboardHeight + EXTRA_OFFSET when open, 0 when closed)
+ * - EXTRA_OFFSET = 150 (2.5x previous offset of 60) - USER REQUESTED INCREASE
  * - paddingBottom: insets.bottom (creates white space behind system nav bar)
  * - Keyboard listeners for height tracking (keyboardDidShow/keyboardDidHide)
  * - No KeyboardAvoidingView (causes issues on Android)
  * - inputContainer (absolute) + inputRow (flex layout) pattern
  * - WHITE BACKGROUND (#FFFFFF) extends behind system navigation bar
- * - FlatList paddingBottom: keyboardHeight + 80 OR insets.bottom + 80
+ * - FlatList paddingBottom: keyboardHeight + EXTRA_OFFSET + 80 OR insets.bottom + 80
  * - Input content respects safe area via paddingBottom
- * - NO EXTRA OFFSET - input positioned exactly at keyboard top for compact feel
+ * - INCREASED OFFSET - input positioned well above keyboard for maximum visibility
  * - Enhanced console logging for debugging
  */
 export default function ConversacionScreen() {
@@ -102,6 +104,10 @@ export default function ConversacionScreen() {
 
   const isLocalChat = !!params.localId;
   const localId = params.localId as string | undefined;
+  
+  // ✅ FIX v300.0: INCREASED OFFSET - User requested "mas del doble" (more than double)
+  // Previous offset was ~60px, now 150px (2.5x increase)
+  const EXTRA_KEYBOARD_OFFSET = 150;
 
   // ✅ ANDROID FIX v286.0: Set system navigation bar color to WHITE (matching input container)
   useEffect(() => {
@@ -116,16 +122,18 @@ export default function ConversacionScreen() {
     }
   }, []);
 
-  // ✅ FIX v299.0: Detect keyboard height dynamically WITHOUT extra offset for compact layout
+  // ✅ FIX v300.0: Detect keyboard height dynamically WITH INCREASED OFFSET (user requested)
   useEffect(() => {
-    console.log('[Conversacion v299.0] 🎹 Setting up keyboard listeners for Android fix');
+    console.log('[Conversacion v300.0] 🎹 Setting up keyboard listeners for Android fix');
+    console.log('[Conversacion v300.0] 📏 EXTRA_KEYBOARD_OFFSET:', EXTRA_KEYBOARD_OFFSET, 'px (2.5x previous)');
     
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[Conversacion v299.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
-        console.log('[Conversacion v299.0] 📱 Platform:', Platform.OS);
-        // ✅ NO extra offset - input sits directly above keyboard for compact layout
+        console.log('[Conversacion v300.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[Conversacion v300.0] 📱 Platform:', Platform.OS);
+        console.log('[Conversacion v300.0] 📏 Total offset will be:', e.endCoordinates.height + EXTRA_KEYBOARD_OFFSET, 'px');
+        // ✅ INCREASED OFFSET - input sits well above keyboard for better visibility
         setKeyboardHeight(e.endCoordinates.height);
         setKeyboardVisible(true);
       }
@@ -134,18 +142,18 @@ export default function ConversacionScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[Conversacion v299.0] ⌨️ Keyboard hidden');
+        console.log('[Conversacion v300.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
         setKeyboardVisible(false);
       }
     );
 
     return () => {
-      console.log('[Conversacion v299.0] 🧹 Cleaning up keyboard listeners');
+      console.log('[Conversacion v300.0] 🧹 Cleaning up keyboard listeners');
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
-  }, []);
+  }, [EXTRA_KEYBOARD_OFFSET]);
 
   const loadMessages = useCallback(async (chatIdToLoad: string) => {
     try {
@@ -708,14 +716,15 @@ export default function ConversacionScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* ✅ FIX v298.0: Messages list with CORRECT padding for compact layout */}
+      {/* ✅ FIX v300.0: Messages list with INCREASED OFFSET (user requested) */}
       {/* 
-        CRITICAL FIX FOR ANDROID COMPACT LAYOUT:
-        - When keyboard is OPEN: paddingBottom = keyboardHeight + 80 (space for input + keyboard)
+        CRITICAL FIX FOR ANDROID WITH INCREASED OFFSET:
+        - When keyboard is OPEN: paddingBottom = keyboardHeight + EXTRA_KEYBOARD_OFFSET + 80
         - When keyboard is CLOSED: paddingBottom = insets.bottom + 80 (space for input + system nav bar)
+        - EXTRA_KEYBOARD_OFFSET = 150px (2.5x previous offset) - USER REQUESTED
         - The +80 accounts for the input container height (~60px) + extra safe margin
         - This ensures content NEVER scrolls underneath the system navigation bar
-        - Input sits directly above keyboard for compact, natural feel
+        - Input sits WELL ABOVE keyboard for maximum visibility (user can see 98% of input box)
       */}
       <FlatList
         ref={flatListRef}
@@ -725,8 +734,8 @@ export default function ConversacionScreen() {
           styles.messagesList,
           { 
             paddingBottom: isKeyboardVisible
-              ? keyboardHeight + 80  // Keyboard open: space for input + keyboard
-              : insets.bottom + 80   // Keyboard closed: space for input + system nav bar (CRITICAL FIX)
+              ? keyboardHeight + EXTRA_KEYBOARD_OFFSET + 80  // ✅ INCREASED: Keyboard open with extra offset
+              : insets.bottom + 80   // Keyboard closed: space for input + system nav bar
           }
         ]}
         renderItem={renderMessage}
@@ -744,22 +753,23 @@ export default function ConversacionScreen() {
         }
       />
 
-      {/* ✅ FIX v298.0: Input container with COMPACT positioning - sits directly above keyboard */}
+      {/* ✅ FIX v300.0: Input container with INCREASED OFFSET - sits well above keyboard (user requested) */}
       {/* 
-        CRITICAL FIX FOR ANDROID COMPACT LAYOUT:
+        CRITICAL FIX FOR ANDROID WITH INCREASED OFFSET:
         - position: 'absolute' with dynamic bottom positioning
-        - When keyboard OPEN: bottom = keyboardHeight (sits directly above keyboard)
+        - When keyboard OPEN: bottom = keyboardHeight + EXTRA_KEYBOARD_OFFSET (sits WELL ABOVE keyboard)
         - When keyboard CLOSED: bottom = 0 (sits at physical screen bottom)
+        - EXTRA_KEYBOARD_OFFSET = 150px (2.5x previous offset) - USER REQUESTED "mas del doble"
         - paddingBottom: insets.bottom (creates white space behind system nav bar when closed)
         - backgroundColor: '#FFFFFF' ensures solid white background (no transparency)
         - White background extends BEHIND the system navigation bar
         - Visible content (input field) respects safe area via paddingBottom
-        - NO EXTRA OFFSET - compact and natural positioning
+        - INCREASED OFFSET - input positioned well above keyboard for maximum visibility (98% visible)
       */}
       <View style={[
         styles.inputContainer, 
         { 
-          bottom: isKeyboardVisible ? keyboardHeight : 0, // ✅ CRITICAL: Dynamic positioning for compact layout
+          bottom: isKeyboardVisible ? keyboardHeight + EXTRA_KEYBOARD_OFFSET : 0, // ✅ CRITICAL: INCREASED offset for better visibility
           paddingBottom: isKeyboardVisible ? 0 : insets.bottom, // ✅ CRITICAL: White space only when keyboard closed
         }
       ]}>

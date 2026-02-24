@@ -21,9 +21,17 @@ interface Notification {
 }
 
 /**
- * ✅ NOTIFICACIONES SCREEN v3.4 - REAL-TIME CONNECTION FIX
+ * ✅ NOTIFICACIONES SCREEN v3.5 - TABLE NAME FIX & ENHANCED DEBUGGING
  * 
- * NEW CHANGES v3.4:
+ * NEW CHANGES v3.5:
+ * - ✅ FIXED: Notifications not loading - now tries BOTH table names (notifications & notificaciones)
+ * - ✅ FIXED: Real-time subscription - subscribes to BOTH possible table names
+ * - ✅ ADDED: Enhanced logging to debug why notifications show 0 despite badge count
+ * - ✅ ADDED: Detailed error logging with JSON output for troubleshooting
+ * - ✅ IMPROVED: Automatic fallback between English and Spanish table names
+ * - ✅ IMPROVED: Better diagnostics for CHANNEL_ERROR issues
+ * 
+ * PREVIOUS v3.4:
  * - ✅ FIXED: Real-time subscription connection errors (CHANNEL_ERROR)
  * - ✅ ADDED: Unique channel names per user to prevent conflicts
  * - ✅ ADDED: Automatic retry on connection failure
@@ -65,21 +73,52 @@ export default function Notificaciones() {
     }
 
     try {
-      console.log('[Notificaciones v3.3] Cargando notificaciones del usuario...');
+      console.log('[Notificaciones v3.5] 🔍 Cargando notificaciones del usuario:', user.id);
+      console.log('[Notificaciones v3.5] 📊 Intentando cargar desde tabla: notifications');
       
-      // Load from the notifications table
-      const { data, error } = await supabase
+      // ✅ FIX v3.5: Try both possible table names (notifications vs notificaciones)
+      let data = null;
+      let error = null;
+      
+      // First try 'notifications' table
+      const result1 = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
+      
+      if (result1.error) {
+        console.log('[Notificaciones v3.5] ⚠️ Error con tabla "notifications":', result1.error.message);
+        console.log('[Notificaciones v3.5] 🔄 Intentando con tabla "notificaciones"...');
+        
+        // Try 'notificaciones' table (Spanish)
+        const result2 = await supabase
+          .from('notificaciones')
+          .select('*')
+          .eq('usuario_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        
+        data = result2.data;
+        error = result2.error;
+        
+        if (!error) {
+          console.log('[Notificaciones v3.5] ✅ Usando tabla "notificaciones" (español)');
+        }
+      } else {
+        data = result1.data;
+        error = result1.error;
+        console.log('[Notificaciones v3.5] ✅ Usando tabla "notifications" (inglés)');
+      }
 
       if (error) {
-        console.error('[Notificaciones v3.3] Error cargando notificaciones:', error);
+        console.error('[Notificaciones v3.5] ❌ Error cargando notificaciones:', error);
+        console.error('[Notificaciones v3.5] Error details:', JSON.stringify(error, null, 2));
         setNotifications([]);
       } else {
-        console.log('[Notificaciones v3.3] Notificaciones cargadas:', data?.length || 0);
+        console.log('[Notificaciones v3.5] 📦 Notificaciones cargadas (raw):', data?.length || 0);
+        console.log('[Notificaciones v3.5] 📋 Primera notificación (sample):', data?.[0] ? JSON.stringify(data[0], null, 2) : 'N/A');
         
         // ✅ v3.3: Filter out welcome notification
         const filteredNotifications = (data || []).filter(notification => {
@@ -90,17 +129,17 @@ export default function Notificaciones() {
             notification.body?.includes('funcionando correctamente');
           
           if (isWelcomeNotification) {
-            console.log('[Notificaciones v3.3] 🚫 Filtering out welcome notification:', notification.id);
+            console.log('[Notificaciones v3.5] 🚫 Filtering out welcome notification:', notification.id);
           }
           
           return !isWelcomeNotification;
         });
         
-        console.log('[Notificaciones v3.3] ✅ Filtered notifications:', filteredNotifications.length);
+        console.log('[Notificaciones v3.5] ✅ Filtered notifications:', filteredNotifications.length);
         setNotifications(filteredNotifications);
       }
     } catch (error) {
-      console.error('[Notificaciones v3.3] Error en loadNotifications:', error);
+      console.error('[Notificaciones v3.5] ❌ Exception en loadNotifications:', error);
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -126,15 +165,14 @@ export default function Notificaciones() {
     // ✅ REAL-TIME NOTIFICATIONS: Subscribe to new notifications
     if (!user) return;
     
-    console.log('[Notificaciones v3.4] 🔔 Subscribing to real-time notifications for user:', user.id);
+    console.log('[Notificaciones v3.5] 🔔 Subscribing to real-time notifications for user:', user.id);
+    
+    // ✅ FIX v3.5: Subscribe to BOTH possible table names
+    const channelName = `notifications-realtime-${user.id}-${Date.now()}`;
+    console.log('[Notificaciones v3.5] 📡 Creating channel:', channelName);
     
     const channel = supabase
-      .channel(`notifications-realtime-${user.id}`, {
-        config: {
-          broadcast: { self: true },
-          presence: { key: user.id },
-        },
-      })
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -144,7 +182,7 @@ export default function Notificaciones() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('[Notificaciones v3.4] 🔔 New notification received:', payload.new);
+          console.log('[Notificaciones v3.5] 🔔 New notification received (notifications table):', payload.new);
           
           const newNotification = payload.new as Notification;
           
@@ -156,7 +194,41 @@ export default function Notificaciones() {
             newNotification.body?.includes('funcionando correctamente');
           
           if (isWelcomeNotification) {
-            console.log('[Notificaciones v3.4] 🚫 Filtering out welcome notification in real-time');
+            console.log('[Notificaciones v3.5] 🚫 Filtering out welcome notification in real-time');
+            return;
+          }
+          
+          // Add new notification to the top of the list
+          setNotifications((prev) => [newNotification, ...prev]);
+          
+          // Show a subtle haptic feedback
+          import('expo-haptics').then(Haptics => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notificaciones',
+          filter: `usuario_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('[Notificaciones v3.5] 🔔 New notification received (notificaciones table):', payload.new);
+          
+          const newNotification = payload.new as Notification;
+          
+          // ✅ Filter out welcome notifications in real-time too
+          const isWelcomeNotification = 
+            newNotification.title?.includes('Bienvenido') || 
+            newNotification.title?.includes('bienvenido') ||
+            newNotification.body?.includes('sistema de notificaciones está activo') ||
+            newNotification.body?.includes('funcionando correctamente');
+          
+          if (isWelcomeNotification) {
+            console.log('[Notificaciones v3.5] 🚫 Filtering out welcome notification in real-time');
             return;
           }
           
@@ -170,28 +242,29 @@ export default function Notificaciones() {
         }
       )
       .subscribe((status) => {
-        console.log('[Notificaciones v3.4] 📡 Subscription status:', status);
+        console.log('[Notificaciones v3.5] 📡 Subscription status:', status);
         
         if (status === 'SUBSCRIBED') {
-          console.log('[Notificaciones v3.4] ✅ Successfully subscribed to real-time notifications');
+          console.log('[Notificaciones v3.5] ✅ Successfully subscribed to real-time notifications');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('[Notificaciones v3.4] ❌ Channel error - retrying connection...');
+          console.error('[Notificaciones v3.5] ❌ Channel error - retrying connection...');
+          console.error('[Notificaciones v3.5] 💡 Tip: Check if Realtime is enabled in Supabase dashboard');
           // Retry connection after 3 seconds
           setTimeout(() => {
-            console.log('[Notificaciones v3.4] 🔄 Retrying subscription...');
+            console.log('[Notificaciones v3.5] 🔄 Retrying subscription...');
             loadNotifications();
           }, 3000);
         } else if (status === 'TIMED_OUT') {
-          console.error('[Notificaciones v3.4] ⏱️ Connection timed out');
+          console.error('[Notificaciones v3.5] ⏱️ Connection timed out');
         } else if (status === 'CLOSED') {
-          console.log('[Notificaciones v3.4] 🔌 Connection closed');
+          console.log('[Notificaciones v3.5] 🔌 Connection closed');
         }
       });
     
-    console.log('[Notificaciones v3.4] ✅ Real-time subscription initiated');
+    console.log('[Notificaciones v3.5] ✅ Real-time subscription initiated for both tables');
     
     return () => {
-      console.log('[Notificaciones v3.4] 🔕 Unsubscribing from real-time notifications');
+      console.log('[Notificaciones v3.5] 🔕 Unsubscribing from real-time notifications');
       supabase.removeChannel(channel);
     };
   }, [loadNotifications, clearBadgeCount, user]);
