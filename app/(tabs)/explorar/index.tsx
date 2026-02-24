@@ -1,21 +1,22 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - SCROLL INFINITO INTELIGENTE v603.0
+ * EXPLORAR SCREEN - SCROLL INFINITO INTELIGENTE v604.0
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 OBJETIVO: Scroll infinito sin tiempos de espera + Rendimiento profesional
+ * 🎯 OBJETIVO: Scroll infinito sin tiempos de espera + Búsqueda predictiva
  * 
- * ✅ OPTIMIZACIONES v603.0:
- * 1️⃣ PRECARGA INTELIGENTE: Carga anticipada al 50% del bloque actual (10/20 items)
- * 2️⃣ CARGA EN BACKGROUND: requestAnimationFrame para no bloquear UI
- * 3️⃣ PREVENCIÓN DE DUPLICADOS: Sistema de locks para evitar llamadas múltiples
- * 4️⃣ THROTTLING OPTIMIZADO: Scroll handler con throttle de 16ms (60fps)
- * 5️⃣ VIRTUALIZACIÓN AGRESIVA: windowSize reducido, getItemLayout implementado
- * 6️⃣ CONDICIONES DE CARRERA: Refs para prevenir race conditions
- * 7️⃣ ESCALABILIDAD: Preparado para miles de registros sin degradación
+ * ✅ OPTIMIZACIONES v604.0:
+ * 1️⃣ BÚSQUEDA PREDICTIVA: Backend ILIKE para búsqueda parcial case-insensitive
+ * 2️⃣ PRECARGA INTELIGENTE: Carga anticipada al 50% del bloque actual (10/20 items)
+ * 3️⃣ CARGA EN BACKGROUND: requestAnimationFrame para no bloquear UI
+ * 4️⃣ PREVENCIÓN DE DUPLICADOS: Sistema de locks para evitar llamadas múltiples
+ * 5️⃣ THROTTLING OPTIMIZADO: Scroll handler con throttle de 16ms (60fps)
+ * 6️⃣ VIRTUALIZACIÓN AGRESIVA: windowSize reducido, getItemLayout implementado
+ * 7️⃣ CONDICIONES DE CARRERA: Refs para prevenir race conditions
+ * 8️⃣ ESCALABILIDAD: Preparado para miles de registros sin degradación
  * 
- * 🚀 RESULTADO: Experiencia completamente fluida, sin tiempos de espera visibles
+ * 🚀 RESULTADO: Experiencia completamente fluida con búsqueda predictiva
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -259,9 +260,10 @@ export default function ExplorarScreen() {
     }
     
     try {
-      console.log('[ExplorarScreen v600.0] 🔍 Cargando locales - Página:', pageNum);
-      console.log('[ExplorarScreen v600.0] 🔍 Selected category:', selectedCategory);
-      console.log('[ExplorarScreen v600.0] 🔍 Selected category type:', typeof selectedCategory);
+      console.log('[ExplorarScreen v604.0] 🔍 Cargando locales - Página:', pageNum);
+      console.log('[ExplorarScreen v604.0] 🔍 Selected category:', selectedCategory);
+      console.log('[ExplorarScreen v604.0] 🔍 Selected category type:', typeof selectedCategory);
+      console.log('[ExplorarScreen v604.0] 🔍 Search query:', debouncedQuery);
       
       // ✅ FIX 1: Usar selectedCategory correctamente - ULTRA FIXED LOGIC
       // CRITICAL: selectedCategory can be null, 'todos', or a category name like 'discotecas'
@@ -293,6 +295,7 @@ export default function ExplorarScreen() {
         willFilterByCategory: categoryFilter !== null
       });
       
+      // ✅ NEW: Pass search query to backend for predictive search
       const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity', {
         p_user_lat: userLocation?.latitude || 40.4168,
         p_user_lng: userLocation?.longitude || -3.7038,
@@ -305,6 +308,7 @@ export default function ExplorarScreen() {
         p_comunidad_filter: globalFiltros.comunidad || null,
         p_provincia_filter: globalFiltros.provincia || null,
         p_max_distance_km: globalFiltros.distancia || null,
+        p_search_query: debouncedQuery || null,  // ✅ NEW: Predictive search parameter
       });
       
       if (error) {
@@ -394,7 +398,7 @@ export default function ExplorarScreen() {
   
   useEffect(() => {
     if (locationReady) {
-      console.log('[ExplorarScreen v600.0] 🔄 Recargando por cambio de filtros...');
+      console.log('[ExplorarScreen v604.0] 🔄 Recargando por cambio de filtros o búsqueda...');
       dataCache.clear(cacheKey);
       setPage(1);
       setHasMore(true);
@@ -422,15 +426,9 @@ export default function ExplorarScreen() {
   // FILTER MANAGEMENT
   // ═══════════════════════════════════════════════════════════════════════════
   
-  const filteredVenues = useMemo(() => {
-    if (!debouncedQuery) return allVenues;
-    
-    const query = debouncedQuery.toLowerCase();
-    return allVenues.filter(venue => 
-      venue.nombre.toLowerCase().includes(query) ||
-      venue.direccion?.toLowerCase().includes(query)
-    );
-  }, [allVenues, debouncedQuery]);
+  // ✅ REMOVED: Frontend filtering is no longer needed - backend handles search
+  // The backend now performs predictive search with ILIKE for better performance
+  const filteredVenues = allVenues;
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
