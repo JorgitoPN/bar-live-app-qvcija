@@ -102,24 +102,24 @@ export default function NotificacionesInfo() {
         {Platform.OS === 'android' && isExpoGo && !pushAvailable ? (
           <>
             <InfoSection
-              icon="⚠️"
-              title="Notificaciones Push No Disponibles"
-              description="Las notificaciones push (remotas) no están disponibles en Expo Go para Android con SDK 53+. Esto es una limitación de Expo Go, no de la app."
-              color={colors.warning}
-            />
-
-            <InfoSection
               icon="✅"
-              title="La App Funciona Normalmente"
-              description="Todas las demás funciones de la app funcionan perfectamente. Solo las notificaciones push están deshabilitadas en Expo Go."
+              title="Notificaciones en la App Activas"
+              description="Las notificaciones dentro de la app están funcionando perfectamente. Verás todas tus actualizaciones cuando uses BarLive."
               color={colors.success}
             />
 
             <InfoSection
               icon="🔔"
-              title="Notificaciones Locales Disponibles"
-              description="Las notificaciones locales (dentro de la app) siguen funcionando normalmente. Verás actualizaciones cuando uses la app."
+              title="Sistema de Notificaciones Completo"
+              description="Recibirás notificaciones de me gusta, comentarios, seguidores, menciones, eventos, mensajes y brindis directamente en la app."
               color={colors.primary}
+            />
+
+            <InfoSection
+              icon="📱"
+              title="Notificaciones Push Remotas"
+              description="Para recibir notificaciones cuando la app esté cerrada, puedes crear un development build. Esto es opcional y la app funciona perfectamente sin ello."
+              color={colors.info}
             />
 
             {/* How to Enable Push Notifications */}

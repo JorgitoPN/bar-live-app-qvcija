@@ -1,8 +1,7 @@
-
 {
   "expo": {
     "name": "BarLive",
-    "slug": "bar-live-app-qvcija",
+    "slug": "BarLive",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/final_quest_240x240.png",
@@ -44,7 +43,8 @@
         {
           "icon": "./assets/images/final_quest_240x240.png",
           "color": "#ffffff",
-          "androidMode": "collapse",
+          "mode": "production",
+          "androidMode": "default",
           "androidCollapsedTitle": "BarLive"
         }
       ]
@@ -56,6 +56,7 @@
       "eas": {
         "projectId": "a12429e7-cd75-4813-8907-593212e8d7ca"
       }
-    }
+    },
+    "scheme": "BarLive"
   }
 }

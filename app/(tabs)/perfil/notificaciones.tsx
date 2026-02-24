@@ -74,6 +74,7 @@ export default function Notificaciones() {
     try {
       console.log('[Notificaciones v2.0] Cargando notificaciones del usuario...');
       
+      // Load from the notifications table
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -83,12 +84,14 @@ export default function Notificaciones() {
 
       if (error) {
         console.error('[Notificaciones v2.0] Error cargando notificaciones:', error);
+        setNotifications([]);
       } else {
         console.log('[Notificaciones v2.0] Notificaciones cargadas:', data?.length || 0);
         setNotifications(data || []);
       }
     } catch (error) {
       console.error('[Notificaciones v2.0] Error en loadNotifications:', error);
+      setNotifications([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -155,7 +158,10 @@ export default function Notificaciones() {
     try {
       const { error } = await supabase
         .from('notifications')
-        .update({ read: true })
+        .update({ 
+          read: true,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', notificationId)
         .eq('user_id', user.id);
 
@@ -175,7 +181,10 @@ export default function Notificaciones() {
     try {
       const { error } = await supabase
         .from('notifications')
-        .update({ read: true })
+        .update({ 
+          read: true,
+          updated_at: new Date().toISOString()
+        })
         .eq('user_id', user.id)
         .eq('read', false);
 
@@ -564,15 +573,15 @@ export default function Notificaciones() {
           <TouchableOpacity
             onPress={() => router.push('/perfil/notificaciones-info')}
             style={{
-              backgroundColor: colors.warning + '15',
+              backgroundColor: colors.info + '15',
               borderRadius: 16,
               padding: 18,
               marginBottom: 24,
               borderWidth: 1,
-              borderColor: colors.warning + '40',
+              borderColor: colors.info + '40',
               ...Platform.select({
                 ios: {
-                  shadowColor: colors.warning,
+                  shadowColor: colors.info,
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.1,
                   shadowRadius: 4,
@@ -585,10 +594,10 @@ export default function Notificaciones() {
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
               <IconSymbol
-                ios_icon_name="exclamationmark.triangle.fill"
-                android_material_icon_name="warning"
+                ios_icon_name="info.circle.fill"
+                android_material_icon_name="info"
                 size={warningIconSize}
-                color={colors.warning}
+                color={colors.info}
               />
               <Text style={{
                 fontSize: scaleFontSize(15),
@@ -597,7 +606,7 @@ export default function Notificaciones() {
                 marginLeft: 10,
                 flex: 1,
               }}>
-                Notificaciones Push No Disponibles
+                Notificaciones en la App
               </Text>
               <IconSymbol
                 ios_icon_name="chevron.right"
@@ -607,8 +616,8 @@ export default function Notificaciones() {
               />
             </View>
             <Text style={{ fontSize: scaleFontSize(13), color: colors.textSecondary, lineHeight: 19 }}>
-              Las notificaciones push requieren un development build en Android. 
-              Toca para más información.
+              Las notificaciones dentro de la app están activas. Para notificaciones push remotas, 
+              toca para más información.
             </Text>
           </TouchableOpacity>
         )}
