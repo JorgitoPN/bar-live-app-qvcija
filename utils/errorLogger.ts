@@ -88,13 +88,6 @@ const getLogServerUrl = (): string | null => {
   return cachedLogServerUrl;
 };
 
-// Capture original console methods at module load time
-// This ensures we always have a reference to the native console methods,
-// even if they are later intercepted or wrapped by other parts of the application
-const _originalConsoleLog = console.log;
-const _originalConsoleError = console.error;
-const _originalConsoleWarn = console.warn;
-
 // Track if we've logged fetch errors to avoid spam
 let fetchErrorLogged = false;
 
@@ -122,8 +115,10 @@ const flushLogs = async () => {
         // Log fetch errors only once to avoid spam
         if (!fetchErrorLogged) {
           fetchErrorLogged = true;
-          // Use the captured original console.error to avoid recursion
-          _originalConsoleError.call(console, '[Natively] Fetch error (will not repeat):', e.message || e);
+          // Use a different method to avoid recursion - write directly without going through our intercept
+          if (typeof window !== 'undefined' && window.console) {
+            (window.console as any).__proto__.log.call(console, '[Natively] Fetch error (will not repeat):', e.message || e);
+          }
         }
       });
     } catch (e) {

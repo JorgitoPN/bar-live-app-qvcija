@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "BarLive",
@@ -16,7 +17,9 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.barlive.app"
+      "bundleIdentifier": "com.barlive.app",
+      "jsEngine": "hermes",
+      "newArchEnabled": true
     },
     "android": {
       "adaptiveIcon": {
@@ -31,7 +34,9 @@
         "ACCESS_COARSE_LOCATION",
         "FOREGROUND_SERVICE"
       ],
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "jsEngine": "hermes",
+      "newArchEnabled": true
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -57,6 +62,9 @@
         "projectId": "a12429e7-cd75-4813-8907-593212e8d7ca"
       }
     },
-    "scheme": "BarLive"
+    "scheme": "barlive",
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
