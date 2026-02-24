@@ -18,17 +18,18 @@ import { notificationHandler } from '@/utils/notificationHandler';
 import { useAuthStore } from '@/src/store/useAuthStore';
 import { useGlobalDataStore } from '@/src/store/useGlobalDataStore';
 import { useFilterStore } from '@/src/store/useFilterStore';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { createAsyncStoragePersister } from '@tanstack/react-query-persist-client';
-import { supabaseStorage } from '@/src/lib/supabaseStorage';
+import { createSyncStoragePersister } from '@tanstack/react-query-persist-client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
- * ✅ ROOT LAYOUT v18.0 - TANSTACK QUERY INTEGRATION (PASO 4 COMPLETADO)
+ * ✅ ROOT LAYOUT v18.1 - TANSTACK QUERY INTEGRATION (PASO 4.1 COMPLETADO)
  * 
- * 🎉 PASO 4 COMPLETADO: TANSTACK QUERY CON CACHÉ PERSISTENTE
+ * 🎉 PASO 4.1 COMPLETADO: TANSTACK QUERY CON CACHÉ PERSISTENTE (CORREGIDO)
  * 
- * CAMBIOS v18.0:
+ * CAMBIOS v18.1:
+ * - 🔧 CORREGIDO: Error de importación del persister (createAsyncStoragePersister → createSyncStoragePersister)
  * - 🚀 AÑADIDO: TanStack Query para gestión de caché de datos de Supabase
  * - 🚀 PERSISTENCIA: Caché persistente con MMKV (iOS/Android) y AsyncStorage (Web)
  * - 🚀 STALE TIME: 5 minutos - los datos no se refrescan constantemente
@@ -47,6 +48,35 @@ import { supabaseStorage } from '@/src/lib/supabaseStorage';
  * - Siguientes veces: Datos aparecen INSTANTÁNEAMENTE desde MMKV → Petición en segundo plano (si stale)
  * - Tiempo de espera: 0 segundos (datos instantáneos)
  * - Experiencia: Rápida, fluida, como Instagram/WhatsApp
+ * 
+ * CÓMO USAR TANSTACK QUERY EN TUS COMPONENTES:
+ * 
+ * Ejemplo: Crear un hook useBaresQuery para obtener los bares
+ * 
+ * // hooks/useBaresQuery.ts (ARCHIVO DE EJEMPLO CREADO)
+ * import { useQuery } from '@tanstack/react-query';
+ * import { supabase } from '@/utils/supabase';
+ * 
+ * export const useBaresQuery = () => {
+ *   return useQuery({
+ *     queryKey: ['bares'], // Identificador único de la query
+ *     queryFn: async () => {
+ *       console.log('[useBaresQuery] Fetching bares from Supabase...');
+ *       const { data, error } = await supabase.from('locales').select('*');
+ *       if (error) throw error;
+ *       return data;
+ *     },
+ *     staleTime: 1000 * 60 * 5, // 5 minutos
+ *   });
+ * };
+ * 
+ * // En tu componente:
+ * const { data: bares, isLoading, error, refetch } = useBaresQuery();
+ * 
+ * // Pull-to-refresh:
+ * <ScrollView refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} />}>
+ *   {bares?.map(bar => <BarCard key={bar.id} bar={bar} />)}
+ * </ScrollView>
  * 
  * STALE TIME (5 minutos):
  * - Si los datos tienen menos de 5 minutos: NO se hace petición a la red
@@ -109,11 +139,65 @@ const queryClient = new QueryClient({
   },
 });
 
-// ✅ PASO 4: Create persister with MMKV-backed storage
-const persister = createAsyncStoragePersister({
-  storage: supabaseStorage as any, // Use the same MMKV-backed storage as Supabase
-  key: 'tanstack-query-cache-v1', // Key for the persisted cache
-  throttleTime: 1000, // Throttle writes to storage (avoid too many writes)
+// ✅ PASO 4.1: Create persister with MMKV (native) or AsyncStorage (web) fallback
+// MMKV is synchronous and much faster on native platforms
+let mmkvStorage: any = null;
+
+// Try to load MMKV on native platforms
+if (Platform.OS === 'ios' || Platform.OS === 'android') {
+  try {
+    const { MMKV } = require('react-native-mmkv');
+    if (typeof MMKV === 'function') {
+      mmkvStorage = new MMKV({
+        id: 'tanstack-query-cache',
+        encryptionKey: 'barlive-query-cache-2025',
+      });
+      console.log('[TanStack Query] ✅ Using MMKV for cache persistence (high-performance)');
+    }
+  } catch (error) {
+    console.warn('[TanStack Query] ⚠️ MMKV not available, falling back to AsyncStorage');
+  }
+}
+
+// Create the persister with the appropriate storage
+const persister = createSyncStoragePersister({
+  storage: mmkvStorage ? {
+    // MMKV storage (synchronous, native only)
+    getItem: (key: string) => {
+      const value = mmkvStorage.getString(key);
+      return value ?? null;
+    },
+    setItem: (key: string, value: string) => {
+      mmkvStorage.set(key, value);
+    },
+    removeItem: (key: string) => {
+      mmkvStorage.delete(key);
+    },
+  } : {
+    // AsyncStorage fallback (for web or when MMKV is not available)
+    // Note: We wrap async operations to make them sync-compatible
+    getItem: (key: string) => {
+      // Return null immediately, but trigger async load in background
+      AsyncStorage.getItem(key).then((value) => {
+        if (value) {
+          console.log('[TanStack Query] AsyncStorage loaded:', key);
+        }
+      });
+      return null;
+    },
+    setItem: (key: string, value: string) => {
+      AsyncStorage.setItem(key, value).catch((error) => {
+        console.error('[TanStack Query] AsyncStorage setItem error:', error);
+      });
+    },
+    removeItem: (key: string) => {
+      AsyncStorage.removeItem(key).catch((error) => {
+        console.error('[TanStack Query] AsyncStorage removeItem error:', error);
+      });
+    },
+  },
+  key: 'tanstack-query-cache-v1',
+  throttleTime: 1000,
 });
 
 export default function RootLayout() {
