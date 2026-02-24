@@ -288,7 +288,24 @@ export default function ComentariosScreen() {
       return;
     }
 
-    const text = commentText.trim();
+    // ✅ CRITICAL FIX: Ensure we're working with a plain string, not an array
+    // Convert to string first, then trim to remove whitespace
+    let text = commentText;
+    
+    // If somehow commentText is an array, join it into a string
+    if (Array.isArray(text)) {
+      console.warn('[ComentariosScreen v327.0] ⚠️ commentText is an array, converting to string');
+      text = text.join(' ');
+    }
+    
+    // Ensure it's a string and trim it
+    text = String(text).trim();
+    
+    if (!text) {
+      console.warn('[ComentariosScreen v327.0] ⚠️ Comment text is empty after trimming');
+      return;
+    }
+    
     setCommentText('');
     setSending(true);
 
@@ -319,7 +336,7 @@ export default function ComentariosScreen() {
         // ✅ Ensure texto is a string, not an array
         const { error } = await supabase
           .from('comentarios')
-          .update({ texto: String(text).trim() })
+          .update({ texto: text })
           .eq('id', editingComment.id);
 
         if (error) throw error;
@@ -327,12 +344,12 @@ export default function ComentariosScreen() {
         setEditingComment(null);
         await loadComments();
       } else {
-        // ✅ CRITICAL FIX: Ensure texto is explicitly a string, not an array
+        // ✅ CRITICAL FIX: Build comment data with guaranteed string type for texto
         // This prevents PostgreSQL error 42883: function pg_catalog.substring(text[], integer) does not exist
         const commentData: any = {
           post_id: postId,
           autor_id: validSession.user.id,
-          texto: String(text).trim(), // ✅ Explicitly convert to string and trim
+          texto: text, // Already ensured to be a trimmed string above
           parent_comment_id: replyingTo?.id || null,
         };
         
@@ -345,6 +362,7 @@ export default function ComentariosScreen() {
 
         console.log('[ComentariosScreen v327.0] 📝 Inserting comment with data:', commentData);
         console.log('[ComentariosScreen v327.0] 🔍 texto type:', typeof commentData.texto, 'value:', commentData.texto);
+        console.log('[ComentariosScreen v327.0] 🔍 texto is array?', Array.isArray(commentData.texto));
 
         const { data: newComment, error } = await supabase
           .from('comentarios')
@@ -391,6 +409,9 @@ export default function ComentariosScreen() {
       
       if (error?.code === '42501') {
         errorMessage = 'Error de autenticación. Tu sesión ha expirado o no tienes permisos. Por favor inicia sesión de nuevo.';
+      } else if (error?.code === '42883') {
+        errorMessage = 'Error de formato de datos. Por favor intenta de nuevo.';
+        console.error('[ComentariosScreen v327.0] ❌ PostgreSQL substring error - data type mismatch');
       } else if (error?.message) {
         errorMessage = error.message;
       }
