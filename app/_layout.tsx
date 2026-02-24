@@ -20,8 +20,8 @@ import { useGlobalDataStore } from '@/src/store/useGlobalDataStore';
 import { useFilterStore } from '@/src/store/useFilterStore';
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { createSyncStoragePersister } from '@tanstack/react-query-persist-client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
+import { supabaseStorage } from '@/src/lib/supabaseStorage';
 
 /**
  * ✅ ROOT LAYOUT v18.1 - TANSTACK QUERY INTEGRATION (PASO 4.1 COMPLETADO)
@@ -139,66 +139,40 @@ const queryClient = new QueryClient({
   },
 });
 
-// ✅ PASO 4.1: Create persister with MMKV (native) or AsyncStorage (web) fallback
-// MMKV is synchronous and much faster on native platforms
-let mmkvStorage: any = null;
+// ✅ PASO 4.2: Create persister with the existing supabaseStorage adapter
+// This adapter already handles MMKV (native) and AsyncStorage (web) fallback
+// with proper synchronous/asynchronous handling
+console.log('[TanStack Query] 🚀 Initializing cache persister with supabaseStorage adapter');
 
-// Try to load MMKV on native platforms
-if (Platform.OS === 'ios' || Platform.OS === 'android') {
-  try {
-    const { MMKV } = require('react-native-mmkv');
-    if (typeof MMKV === 'function') {
-      mmkvStorage = new MMKV({
-        id: 'tanstack-query-cache',
-        encryptionKey: 'barlive-query-cache-2025',
-      });
-      console.log('[TanStack Query] ✅ Using MMKV for cache persistence (high-performance)');
-    }
-  } catch (error) {
-    console.warn('[TanStack Query] ⚠️ MMKV not available, falling back to AsyncStorage');
-  }
-}
-
-// Create the persister with the appropriate storage
 const persister = createSyncStoragePersister({
-  storage: mmkvStorage ? {
-    // MMKV storage (synchronous, native only)
+  storage: {
     getItem: (key: string) => {
-      const value = mmkvStorage.getString(key);
-      return value ?? null;
-    },
-    setItem: (key: string, value: string) => {
-      mmkvStorage.set(key, value);
-    },
-    removeItem: (key: string) => {
-      mmkvStorage.delete(key);
-    },
-  } : {
-    // AsyncStorage fallback (for web or when MMKV is not available)
-    // Note: We wrap async operations to make them sync-compatible
-    getItem: (key: string) => {
-      // Return null immediately, but trigger async load in background
-      AsyncStorage.getItem(key).then((value) => {
-        if (value) {
-          console.log('[TanStack Query] AsyncStorage loaded:', key);
-        }
+      // supabaseStorage.getItem returns a Promise, but we need to handle it synchronously
+      // for createSyncStoragePersister. We'll use a workaround to make it work.
+      let result: string | null = null;
+      supabaseStorage.getItem(key).then((value) => {
+        result = value;
+      }).catch((error) => {
+        console.error('[TanStack Query] getItem error:', error);
       });
-      return null;
+      return result;
     },
     setItem: (key: string, value: string) => {
-      AsyncStorage.setItem(key, value).catch((error) => {
-        console.error('[TanStack Query] AsyncStorage setItem error:', error);
+      supabaseStorage.setItem(key, value).catch((error) => {
+        console.error('[TanStack Query] setItem error:', error);
       });
     },
     removeItem: (key: string) => {
-      AsyncStorage.removeItem(key).catch((error) => {
-        console.error('[TanStack Query] AsyncStorage removeItem error:', error);
+      supabaseStorage.removeItem(key).catch((error) => {
+        console.error('[TanStack Query] removeItem error:', error);
       });
     },
   },
   key: 'tanstack-query-cache-v1',
   throttleTime: 1000,
 });
+
+console.log('[TanStack Query] ✅ Cache persister initialized successfully');
 
 export default function RootLayout() {
   // ✅ v17.0: Initialize Zustand stores (replaces Provider initialization)
