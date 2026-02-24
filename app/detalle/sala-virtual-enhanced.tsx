@@ -27,7 +27,7 @@ import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/utils/supabase';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/src/store/useAuthStore';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { getEstadoLocal } from '@/utils/timeUtils';
@@ -224,7 +224,7 @@ interface UserProfile {
 export default function SalaVirtualEnhancedScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const user = useAuthStore(state => state.user);
   const insets = useSafeAreaInsets();
   
   const [showLoginModal, setShowLoginModal] = useState(false);

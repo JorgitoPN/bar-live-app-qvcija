@@ -29,7 +29,7 @@ import ImageGalleryModal from '../../components/detalle/ImageGalleryModal';
 import { CATEGORIAS_EXCLUIDAS } from '../../utils/constants';
 import { getEstadoLocal } from '../../utils/timeUtils';
 import { useEffectiveUser } from '../../hooks/useEffectiveUser';
-import { useFavorites } from '../../contexts/FavoritesContext';
+import { useFavoritesStore } from '@/src/store/useFavoritesStore';
 import { useMode } from '../../contexts/ModeContext';
 import { calcularDistancia, getOptimizedUserLocation, getCachedLocation } from '../../utils/locationUtils';
 import ParsedText from '../../components/social/ParsedText';
@@ -336,7 +336,9 @@ export default function DetalleLocalScreen() {
   const router = useRouter();
   const { user } = useEffectiveUser();
   const { currentMode, activeProfileType } = useMode();
-  const { isFavorite, toggleFavorite, loading: loadingFavorite } = useFavorites();
+  const isFavorite = useFavoritesStore(state => state.isFavorite);
+  const toggleFavorite = useFavoritesStore(state => state.toggleFavorite);
+  const loadingFavorite = useFavoritesStore(state => state.loading);
 
   const [local, setLocal] = useState<Local | null>(null);
   const [loading, setLoading] = useState(true);

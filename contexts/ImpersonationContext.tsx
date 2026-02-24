@@ -24,7 +24,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/utils/supabase';
-import { useAuth } from './AuthContext';
+import { useAuthStore } from '@/src/store/useAuthStore';
 
 interface ImpersonationSession {
   id: string;
@@ -65,7 +65,7 @@ const ImpersonationContext = createContext<ImpersonationContextType | undefined>
 const IMPERSONATION_KEY = '@barlive_impersonation_session';
 
 export function ImpersonationProvider({ children }: { children: ReactNode }) {
-  const { user: authUser } = useAuth();
+  const authUser = useAuthStore(state => state.user);
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [impersonationSession, setImpersonationSession] = useState<ImpersonationSession | null>(null);
   const [impersonatedUser, setImpersonatedUser] = useState<ImpersonatedUser | null>(null);

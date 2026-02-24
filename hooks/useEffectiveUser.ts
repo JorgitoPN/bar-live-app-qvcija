@@ -1,5 +1,5 @@
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/src/store/useAuthStore';
 import { useImpersonation } from '@/contexts/ImpersonationContext';
 
 /**
@@ -11,7 +11,7 @@ import { useImpersonation } from '@/contexts/ImpersonationContext';
  * to ensure impersonation works correctly across the entire app
  */
 export function useEffectiveUser() {
-  const { user: currentUser } = useAuth();
+  const currentUser = useAuthStore(state => state.user);
   const { isImpersonating, impersonatedUser, effectiveUserId, effectiveUser } = useImpersonation();
 
   return {
