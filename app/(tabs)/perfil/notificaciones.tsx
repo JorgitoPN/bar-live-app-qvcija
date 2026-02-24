@@ -1,29 +1,13 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch, Platform, Alert, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Platform, Alert, RefreshControl, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
-import {
-  registerForPushNotifications,
-  savePushToken,
-  arePushNotificationsAvailable,
-  scheduleTestNotification,
-} from '@/utils/notifications';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
-
-interface NotificationSettings {
-  likes: boolean;
-  comments: boolean;
-  follows: boolean;
-  mentions: boolean;
-  events: boolean;
-  messages: boolean;
-  cheers: boolean;
-}
 
 interface Notification {
   id: string;
@@ -36,9 +20,15 @@ interface Notification {
 }
 
 /**
- * ✅ NOTIFICACIONES SCREEN v2.0 - BARLIVE DESIGN SYSTEM
+ * ✅ NOTIFICACIONES SCREEN v3.0 - SIMPLIFIED & CLEAN
  * 
- * NEW CHANGES v2.0:
+ * NEW CHANGES v3.0:
+ * - ✅ REMOVED: "Configuración" tab - simplified to single notifications view
+ * - ✅ IMPROVED: Automatic badge clearing when viewing notifications
+ * - ✅ REMOVED: System status message for cleaner UI
+ * - ✅ IMPROVED: Streamlined interface focused on notifications only
+ * 
+ * PREVIOUS v2.0:
  * - ✅ REDESIGNED: Applied Barlive color palette with gradient headers
  * - ✅ IMPROVED: Modern card-based design with proper spacing
  * - ✅ IMPROVED: Visual hierarchy with gradient accents
@@ -49,21 +39,9 @@ interface Notification {
 export default function Notificaciones() {
   const router = useRouter();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'notifications' | 'settings'>('notifications');
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [settings, setSettings] = useState<NotificationSettings>({
-    likes: true,
-    comments: true,
-    follows: true,
-    mentions: true,
-    events: true,
-    messages: true,
-    cheers: true,
-  });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [pushToken, setPushToken] = useState<string | null>(null);
-  const pushAvailable = arePushNotificationsAvailable();
 
   const loadNotifications = useCallback(async () => {
     if (!user) {
@@ -98,54 +76,21 @@ export default function Notificaciones() {
     }
   }, [user]);
 
-  const loadSettings = useCallback(async () => {
-    if (!user) return;
-
+  // Clear badge count when viewing notifications
+  const clearBadgeCount = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('notification_settings')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (data && !error) {
-        setSettings({
-          likes: data.likes ?? true,
-          comments: data.comments ?? true,
-          follows: data.follows ?? true,
-          mentions: data.mentions ?? true,
-          events: data.events ?? true,
-          messages: data.messages ?? true,
-          cheers: data.cheers ?? true,
-        });
-      }
+      const { setBadgeCountAsync } = await import('expo-notifications');
+      await setBadgeCountAsync(0);
+      console.log('[Notificaciones v2.0] Badge count cleared');
     } catch (error) {
-      console.error('[Notificaciones v2.0] Error cargando configuración:', error);
+      console.error('[Notificaciones v2.0] Error clearing badge:', error);
     }
-  }, [user]);
-
-  const setupPushNotifications = useCallback(async () => {
-    if (!user || !pushAvailable) {
-      console.log('[Notificaciones v2.0] Push notifications no disponibles');
-      return;
-    }
-
-    try {
-      const token = await registerForPushNotifications();
-      if (token) {
-        setPushToken(token);
-        await savePushToken(user.id, token);
-      }
-    } catch (error) {
-      console.error('Error configurando push notifications:', error);
-    }
-  }, [user, pushAvailable]);
+  }, []);
 
   useEffect(() => {
     loadNotifications();
-    loadSettings();
-    setupPushNotifications();
-  }, [loadNotifications, loadSettings, setupPushNotifications]);
+    clearBadgeCount();
+  }, [loadNotifications, clearBadgeCount]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -242,116 +187,10 @@ export default function Notificaciones() {
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   };
 
-  const updateSetting = async (key: keyof NotificationSettings, value: boolean) => {
-    if (!user) return;
 
-    const newSettings = { ...settings, [key]: value };
-    setSettings(newSettings);
-
-    try {
-      const { error } = await supabase
-        .from('notification_settings')
-        .upsert({
-          user_id: user.id,
-          ...newSettings,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id',
-        });
-
-      if (error) {
-        console.error('Error guardando configuración:', error);
-        Alert.alert('Error', 'No se pudo guardar la configuración');
-        setSettings(settings);
-      }
-    } catch (error) {
-      console.error('Error en updateSetting:', error);
-      Alert.alert('Error', 'No se pudo guardar la configuración');
-      setSettings(settings);
-    }
-  };
-
-  const testNotification = async () => {
-    try {
-      await scheduleTestNotification();
-      Alert.alert(
-        '✅ Notificación Programada',
-        'Recibirás una notificación de prueba en 2 segundos',
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      console.error('Error enviando notificación de prueba:', error);
-      Alert.alert('Error', 'No se pudo enviar la notificación de prueba');
-    }
-  };
 
   const backIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
   const infoIconSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
-  const warningIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
-  const chevronIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
-  const checkIconSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
-
-  const NotificationToggle = ({
-    icon,
-    title,
-    description,
-    value,
-    onValueChange,
-  }: {
-    icon: string;
-    title: string;
-    description: string;
-    value: boolean;
-    onValueChange: (value: boolean) => void;
-  }) => (
-    <View style={{
-      backgroundColor: colors.cardBackground,
-      borderRadius: 16,
-      padding: 18,
-      marginBottom: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-      ...Platform.select({
-        ios: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.05,
-          shadowRadius: 4,
-        },
-        android: {
-          elevation: 1,
-        },
-      }),
-    }}>
-      <View style={{
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: colors.primary + '15',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 14,
-      }}>
-        <Text style={{ fontSize: scaleFontSize(22) }}>{icon}</Text>
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: scaleFontSize(16), fontWeight: '600', color: colors.text, marginBottom: 4 }}>
-          {title}
-        </Text>
-        <Text style={{ fontSize: scaleFontSize(13), color: colors.textSecondary, lineHeight: 18 }}>
-          {description}
-        </Text>
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: colors.cardBorder, true: colors.primary + '60' }}
-        thumbColor={value ? colors.primary : colors.textSecondary}
-      />
-    </View>
-  );
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -566,197 +405,7 @@ export default function Notificaciones() {
     );
   };
 
-  const renderSettingsTab = () => {
-    return (
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-        {!pushAvailable && Platform.OS === 'android' && (
-          <TouchableOpacity
-            onPress={() => router.push('/perfil/notificaciones-info')}
-            style={{
-              backgroundColor: colors.info + '15',
-              borderRadius: 16,
-              padding: 18,
-              marginBottom: 24,
-              borderWidth: 1,
-              borderColor: colors.info + '40',
-              ...Platform.select({
-                ios: {
-                  shadowColor: colors.info,
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                },
-                android: {
-                  elevation: 1,
-                },
-              }),
-            }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-              <IconSymbol
-                ios_icon_name="info.circle.fill"
-                android_material_icon_name="info"
-                size={warningIconSize}
-                color={colors.info}
-              />
-              <Text style={{
-                fontSize: scaleFontSize(15),
-                fontWeight: '700',
-                color: colors.text,
-                marginLeft: 10,
-                flex: 1,
-              }}>
-                Notificaciones en la App
-              </Text>
-              <IconSymbol
-                ios_icon_name="chevron.right"
-                android_material_icon_name="chevron_right"
-                size={chevronIconSize}
-                color={colors.textSecondary}
-              />
-            </View>
-            <Text style={{ fontSize: scaleFontSize(13), color: colors.textSecondary, lineHeight: 19 }}>
-              Las notificaciones dentro de la app están activas. Para notificaciones push remotas, 
-              toca para más información.
-            </Text>
-          </TouchableOpacity>
-        )}
 
-        {pushAvailable && (
-          <TouchableOpacity
-            onPress={testNotification}
-            style={{
-              borderRadius: 14,
-              padding: 16,
-              alignItems: 'center',
-              marginBottom: 24,
-              overflow: 'hidden',
-            }}
-          >
-            <LinearGradient
-              colors={[colors.primary, colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-              }}
-            />
-            <Text style={{ fontSize: scaleFontSize(16), fontWeight: '700', color: '#FFFFFF' }}>
-              🔔 Probar Notificación
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        <Text style={{
-          fontSize: scaleFontSize(20),
-          fontWeight: '700',
-          color: colors.text,
-          marginBottom: 18,
-        }}>
-          Preferencias de Notificaciones
-        </Text>
-
-        <NotificationToggle
-          icon="❤️"
-          title="Me gusta"
-          description="Cuando alguien le da me gusta a tu publicación"
-          value={settings.likes}
-          onValueChange={(value) => updateSetting('likes', value)}
-        />
-
-        <NotificationToggle
-          icon="💬"
-          title="Comentarios"
-          description="Cuando alguien comenta en tu publicación"
-          value={settings.comments}
-          onValueChange={(value) => updateSetting('comments', value)}
-        />
-
-        <NotificationToggle
-          icon="👥"
-          title="Nuevos seguidores"
-          description="Cuando alguien empieza a seguirte"
-          value={settings.follows}
-          onValueChange={(value) => updateSetting('follows', value)}
-        />
-
-        <NotificationToggle
-          icon="@"
-          title="Menciones"
-          description="Cuando alguien te menciona en una publicación"
-          value={settings.mentions}
-          onValueChange={(value) => updateSetting('mentions', value)}
-        />
-
-        <NotificationToggle
-          icon="📅"
-          title="Eventos"
-          description="Recordatorios de eventos y actualizaciones"
-          value={settings.events}
-          onValueChange={(value) => updateSetting('events', value)}
-        />
-
-        <NotificationToggle
-          icon="✉️"
-          title="Mensajes"
-          description="Cuando recibes un nuevo mensaje"
-          value={settings.messages}
-          onValueChange={(value) => updateSetting('messages', value)}
-        />
-
-        <NotificationToggle
-          icon="🍻"
-          title="Brindis"
-          description="Cuando alguien te envía un brindis"
-          value={settings.cheers}
-          onValueChange={(value) => updateSetting('cheers', value)}
-        />
-
-        {pushToken && (
-          <View style={{
-            backgroundColor: colors.success + '15',
-            borderRadius: 16,
-            padding: 18,
-            marginTop: 24,
-            borderWidth: 1,
-            borderColor: colors.success + '40',
-            ...Platform.select({
-              ios: {
-                shadowColor: colors.success,
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-              },
-              android: {
-                elevation: 1,
-              },
-            }),
-          }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <IconSymbol
-                ios_icon_name="checkmark.circle.fill"
-                android_material_icon_name="check_circle"
-                size={checkIconSize}
-                color={colors.success}
-              />
-              <Text style={{
-                fontSize: scaleFontSize(15),
-                fontWeight: '700',
-                color: colors.text,
-                marginLeft: 10,
-              }}>
-                Notificaciones Push Activas
-              </Text>
-            </View>
-          </View>
-        )}
-      </ScrollView>
-    );
-  };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -773,7 +422,6 @@ export default function Notificaciones() {
           flexDirection: 'row',
           alignItems: 'center',
           paddingHorizontal: 16,
-          marginBottom: 16,
         }}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -787,7 +435,7 @@ export default function Notificaciones() {
             />
           </TouchableOpacity>
           <Text style={{ fontSize: scaleFontSize(24), fontWeight: '700', color: colors.headerText, flex: 1 }}>
-            Notificaciones
+            Notificaciones {unreadCount > 0 && `(${unreadCount})`}
           </Text>
           <TouchableOpacity
             onPress={() => router.push('/perfil/notificaciones-info')}
@@ -800,52 +448,9 @@ export default function Notificaciones() {
             />
           </TouchableOpacity>
         </View>
-
-        <View style={{
-          flexDirection: 'row',
-          paddingHorizontal: 16,
-          gap: 8,
-        }}>
-          <TouchableOpacity
-            onPress={() => setActiveTab('notifications')}
-            style={{
-              flex: 1,
-              paddingVertical: 12,
-              borderRadius: 12,
-              backgroundColor: activeTab === 'notifications' ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{
-              fontSize: scaleFontSize(15),
-              fontWeight: activeTab === 'notifications' ? '700' : '500',
-              color: colors.headerText,
-            }}>
-              Notificaciones {unreadCount > 0 && `(${unreadCount})`}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setActiveTab('settings')}
-            style={{
-              flex: 1,
-              paddingVertical: 12,
-              borderRadius: 12,
-              backgroundColor: activeTab === 'settings' ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{
-              fontSize: scaleFontSize(15),
-              fontWeight: activeTab === 'settings' ? '700' : '500',
-              color: colors.headerText,
-            }}>
-              Configuración
-            </Text>
-          </TouchableOpacity>
-        </View>
       </LinearGradient>
 
-      {activeTab === 'notifications' ? renderNotificationsTab() : renderSettingsTab()}
+      {renderNotificationsTab()}
     </View>
   );
 }
