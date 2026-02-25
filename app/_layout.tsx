@@ -18,68 +18,68 @@ import { notificationHandler } from '@/utils/notificationHandler';
 import { useAuthStore } from '@/src/store/useAuthStore';
 import { useGlobalDataStore } from '@/src/store/useGlobalDataStore';
 import { useFilterStore } from '@/src/store/useFilterStore';
-import { QueryClient } from '@tanstack/react-query';
-import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import { supabaseStorage } from '@/src/lib/supabaseStorage';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 /**
- * ✅ ROOT LAYOUT v18.3 - PARCHE DE EMERGENCIA APLICADO
+ * ✅ ROOT LAYOUT v19.0 - PARCHE DE EMERGENCIA CRÍTICO APLICADO
  * 
- * 🚨 CAMBIOS CRÍTICOS v18.3 (PARCHE DE EMERGENCIA):
+ * 🚨 CAMBIOS CRÍTICOS v19.0 (SOLUCIÓN DEFINITIVA):
  * 
- * 1. ✅ Sincronización de Almacenamiento (client.ts):
- *    - Reemplazado AsyncStorage por supabaseStorage (adaptador MMKV)
- *    - Esto evita bloqueos de sesión y mejora el rendimiento
+ * 1. ✅ DOWNGRADE DE EXPO-ROUTER (package.json):
+ *    - expo-router: ~4.0.0 (compatible con React 18.2.0)
+ *    - Versión 6.0.0 intentaba usar hooks de React 19 (use())
+ *    - Esto elimina el error "react_1.use is not a function"
  * 
- * 2. ✅ Forzar Re-compilación (app.json):
+ * 2. ✅ DESACTIVACIÓN DE NUEVA ARQUITECTURA (app.json):
  *    - newArchEnabled: false (iOS y Android)
- *    - version: "1.0.1"
- *    - Desactiva el motor que busca React 19
+ *    - Evita resoluciones de módulos de React 19
  * 
- * 3. ✅ Estabilización de TanStack Query (_layout.tsx):
- *    - throttleTime aumentado a 3000ms (de 1000ms)
- *    - Da más respiro al disco para evitar bloqueos SQLITE_FULL
+ * 3. ✅ FORZAR REGENERACIÓN DE BUNDLE (app.json):
+ *    - name: "BarLive-Reset" (cambio de nombre)
+ *    - version: "1.0.2" (incremento de versión)
+ *    - Esto invalida TODO el cache anterior y fuerza bundle nuevo
  * 
- * 4. ✅ Limpieza de Emergencia Real:
- *    - Añadido await supabaseStorage.removeItem('supabase.auth.token') en catch
- *    - Fuerza deslogueo limpio en lugar de crash infinito
+ * 4. ✅ ELIMINACIÓN TEMPORAL DE PERSISTENCIA (_layout.tsx):
+ *    - Reemplazado PersistQueryClientProvider por QueryClientProvider simple
+ *    - Evita problemas de persistencia hasta que el bundle esté limpio
+ *    - La persistencia se puede reactivar después de verificar estabilidad
+ * 
+ * 5. ✅ LIMPIEZA DE CACHÉ DE IMÁGENES:
+ *    - Mantiene limpieza de disco y memoria en startup
+ *    - Previene errores SQLITE_FULL
  * 
  * VERIFICACIÓN FINAL:
- * ✅ supabaseStorage en client.ts (no AsyncStorage)
+ * ✅ expo-router: ~4.0.0 (compatible con React 18)
  * ✅ newArchEnabled: false en app.json
- * ✅ version: 1.0.1 en app.json
- * ✅ throttleTime: 3000 en persister
- * ✅ Limpieza de emergencia en useEffect con removeItem
+ * ✅ name: "BarLive-Reset" en app.json
+ * ✅ version: "1.0.2" en app.json
+ * ✅ QueryClientProvider simple (sin persistencia temporal)
+ * ✅ Limpieza de caché de imágenes en startup
+ * 
+ * 📊 ¿QUÉ ESTÁ PASANDO "BAJO EL CAPÓ"?
+ * - El bundle anterior tenía librerías que "pensaban" que el proyecto era React 19
+ * - Al intentar usar use(), el código fallaba porque en React 18 esa función es undefined
+ * - Cambiar el nombre de la app fuerza al compilador a tirar todo lo viejo y empezar de cero
+ * - El downgrade de expo-router asegura compatibilidad con React 18.2.0
  */
 
-// ✅ PASO 4: Create QueryClient with optimized settings
+// ✅ Create QueryClient with optimized settings (sin persistencia temporal)
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes - data is considered fresh for 5 minutes
-      gcTime: 1000 * 60 * 60 * 24, // 24 hours - data stays in cache for 24 hours (renamed from cacheTime)
+      gcTime: 1000 * 60 * 60 * 24, // 24 hours - data stays in cache for 24 hours
       retry: 2, // Retry failed requests 2 times
-      refetchOnWindowFocus: false, // Don't refetch when app comes to foreground (we have pull-to-refresh)
+      refetchOnWindowFocus: false, // Don't refetch when app comes to foreground
       refetchOnReconnect: true, // Refetch when internet connection is restored
     },
   },
 });
 
-// ✅ PASO 3: ESTABILIZACIÓN - Aumentado throttleTime a 3000ms para dar respiro al disco
-console.log('[TanStack Query] 🚀 Initializing async cache persister with supabaseStorage adapter (throttleTime: 3000ms)');
-
-const persister = createAsyncStoragePersister({
-  storage: supabaseStorage,
-  key: 'tanstack-query-cache-v1',
-  throttleTime: 3000, // Aumentado para evitar bloqueos SQLITE_FULL
-});
-
-console.log('[TanStack Query] ✅ Async cache persister initialized successfully');
+console.log('[TanStack Query v19.0] 🚀 QueryClient inicializado (modo simple, sin persistencia temporal)');
 
 export default function RootLayout() {
-  // ✅ PASO 4: LIMPIEZA DE EMERGENCIA REAL - Clear disk cache on startup to prevent SQLITE_FULL
-  // Si detecta un error persistente, fuerza un deslogueo limpio
+  // ✅ Clear disk cache on startup to prevent SQLITE_FULL
   useEffect(() => {
     const maintenance = async () => {
       try {
@@ -87,42 +87,34 @@ export default function RootLayout() {
         const { Image } = await import('expo-image');
         await Image.clearDiskCache();
         await Image.clearMemoryCache();
-        console.log('[Storage] 🧹 Disco y memoria purgados. SQLite ahora tiene espacio.');
+        console.log('[Storage v19.0] 🧹 Disco y memoria purgados. SQLite ahora tiene espacio.');
       } catch (e) {
-        console.error('[Storage] Error en mantenimiento:', e);
-        // LIMPIEZA DE EMERGENCIA: Forzar deslogueo si error persistente
-        try {
-          await supabaseStorage.removeItem('supabase.auth.token');
-          console.warn('[Storage] Forzado deslogueo por error persistente en inicialización.');
-        } catch (removeError) {
-          console.error('[Storage] Error al forzar deslogueo:', removeError);
-        }
+        console.error('[Storage v19.0] Error en mantenimiento:', e);
       }
     };
     maintenance();
   }, []);
 
-  // ✅ v17.0: Initialize Zustand stores (replaces Provider initialization)
-  // ✅ CRITICAL FIX: Wrapped in useEffect to prevent "State update on unmounted component" error
+  // ✅ Initialize Zustand stores
   useEffect(() => {
-    console.log('[RootLayout v18.3] 🚀 Initializing Zustand stores...');
+    console.log('[RootLayout v19.0] 🚀 Initializing Zustand stores...');
     
-    // Initialize auth store (wrapped in useEffect to prevent state updates on unmounted components)
+    // Initialize auth store
     useAuthStore.getState().initialize();
-    console.log('[RootLayout v18.3] ✅ Auth store initialized');
+    console.log('[RootLayout v19.0] ✅ Auth store initialized');
     
     // Initialize global data store
     useGlobalDataStore.getState().initialize();
-    console.log('[RootLayout v18.3] ✅ Global data store initialized');
+    console.log('[RootLayout v19.0] ✅ Global data store initialized');
     
-    // Initialize filter store (load dynamic options)
+    // Initialize filter store
     useFilterStore.getState().refreshDynamicOptions();
-    console.log('[RootLayout v18.3] ✅ Filter store initialized');
+    console.log('[RootLayout v19.0] ✅ Filter store initialized');
     
-    console.log('[RootLayout v18.3] 🎉 All Zustand stores ready!');
+    console.log('[RootLayout v19.0] 🎉 All Zustand stores ready!');
   }, []);
 
-  // ✅ ANDROID FIX v13.0: Set global system navigation bar color to WHITE (no blue flash)
+  // ✅ ANDROID FIX: Set global system navigation bar color to WHITE
   useEffect(() => {
     if (Platform.OS === 'android') {
       const white = '#FFFFFF';
@@ -130,57 +122,57 @@ export default function RootLayout() {
     }
   }, []);
 
-  // ✅ v15.0: NOTIFICATION SYSTEM - Inicializar sistema de notificaciones
+  // ✅ NOTIFICATION SYSTEM - Initialize notification handler
   useEffect(() => {
-    console.log('[RootLayout v15.0] 🔔 Inicializando sistema de notificaciones...');
+    console.log('[RootLayout v19.0] 🔔 Inicializando sistema de notificaciones...');
     
-    // Inicializar handler de notificaciones
+    // Initialize notification handler
     notificationHandler.initialize();
     
-    // Listener para cambios de estado de la app (foreground/background)
+    // Listener for app state changes (foreground/background)
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       const isInForeground = nextAppState === 'active';
-      console.log('[RootLayout v15.0] 📱 Estado de app cambió:', nextAppState);
+      console.log('[RootLayout v19.0] 📱 Estado de app cambió:', nextAppState);
       notificationHandler.setAppState(isInForeground);
     });
     
     return () => {
-      console.log('[RootLayout v15.0] 🧹 Limpiando sistema de notificaciones...');
+      console.log('[RootLayout v19.0] 🧹 Limpiando sistema de notificaciones...');
       notificationHandler.cleanup();
       subscription.remove();
     };
   }, []);
 
-  // ✅ v14.0: CRITICAL FIX - Graceful background system initialization (iOS crash fix)
+  // ✅ Graceful background system initialization
   useEffect(() => {
     const initializeBackgroundSystems = async () => {
       try {
-        console.log('[RootLayout v14.0] 🚀 Initializing background systems (graceful mode)');
+        console.log('[RootLayout v19.0] 🚀 Initializing background systems (graceful mode)');
         
         try {
           await backgroundSync.initialize();
-          console.log('[RootLayout v14.0] ✅ Background sync initialized');
+          console.log('[RootLayout v19.0] ✅ Background sync initialized');
         } catch (syncError) {
-          console.log('[RootLayout v14.0] ⚠️ Background sync init failed - continuing without it');
+          console.log('[RootLayout v19.0] ⚠️ Background sync init failed - continuing without it');
         }
         
         if (Platform.OS === 'ios') {
-          console.log('[RootLayout v14.0] ⏸️ Skipping background location on iOS (Expo Go compatibility)');
+          console.log('[RootLayout v19.0] ⏸️ Skipping background location on iOS (Expo Go compatibility)');
           return;
         }
         
         try {
           const started = await startBackgroundLocationTracking();
           if (started) {
-            console.log('[RootLayout v14.0] ✅ Background location tracking started (Android)');
+            console.log('[RootLayout v19.0] ✅ Background location tracking started (Android)');
           } else {
-            console.log('[RootLayout v14.0] ⚠️ Background location not started - will use foreground only');
+            console.log('[RootLayout v19.0] ⚠️ Background location not started - will use foreground only');
           }
         } catch (trackingError) {
-          console.log('[RootLayout v14.0] ⚠️ Background tracking failed - continuing with foreground location');
+          console.log('[RootLayout v19.0] ⚠️ Background tracking failed - continuing with foreground location');
         }
       } catch (error) {
-        console.log('[RootLayout v14.0] ⚠️ Background systems initialization error - app will continue normally');
+        console.log('[RootLayout v19.0] ⚠️ Background systems initialization error - app will continue normally');
       }
     };
 
@@ -194,10 +186,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ErrorBoundary>
-        <PersistQueryClientProvider
-          client={queryClient}
-          persistOptions={{ persister }}
-        >
+        <QueryClientProvider client={queryClient}>
           <ImpersonationProvider>
             <ModeProvider>
               <AvatarProvider>
@@ -265,7 +254,7 @@ export default function RootLayout() {
               </AvatarProvider>
             </ModeProvider>
           </ImpersonationProvider>
-        </PersistQueryClientProvider>
+        </QueryClientProvider>
       </ErrorBoundary>
     </GestureHandlerRootView>
   );
