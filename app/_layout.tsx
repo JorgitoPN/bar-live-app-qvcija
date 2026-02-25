@@ -22,116 +22,35 @@ import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { supabaseStorage } from '@/src/lib/supabaseStorage';
-// Image import removed - now using dynamic import in useEffect
 
 /**
- * ✅ ROOT LAYOUT v18.2 - TANSTACK QUERY ASYNC PERSISTER (PASO 4.2 COMPLETADO)
+ * ✅ ROOT LAYOUT v18.3 - PARCHE DE EMERGENCIA APLICADO
  * 
- * 🎉 PASO 4.2 COMPLETADO: TANSTACK QUERY CON PERSISTENCIA ASÍNCRONA CORRECTA
+ * 🚨 CAMBIOS CRÍTICOS v18.3 (PARCHE DE EMERGENCIA):
  * 
- * CAMBIOS v18.2:
- * - 🔧 CORREGIDO: Migración a createAsyncStoragePersister (compatible con supabaseStorage asíncrono)
- * - 🚀 AÑADIDO: TanStack Query para gestión de caché de datos de Supabase
- * - 🚀 PERSISTENCIA: Caché persistente con MMKV (iOS/Android) y AsyncStorage (Web)
- * - 🚀 STALE TIME: 5 minutos - los datos no se refrescan constantemente
- * - 🚀 CACHE TIME: 24 horas - los datos persisten incluso después de cerrar la app
- * - 🚀 INSTANT UI: Los bares aparecen instantáneamente al abrir la app (desde caché)
+ * 1. ✅ Sincronización de Almacenamiento (client.ts):
+ *    - Reemplazado AsyncStorage por supabaseStorage (adaptador MMKV)
+ *    - Esto evita bloqueos de sesión y mejora el rendimiento
  * 
- * CÓMO FUNCIONA LA CACHÉ DE TANSTACK QUERY:
+ * 2. ✅ Forzar Re-compilación (app.json):
+ *    - newArchEnabled: false (iOS y Android)
+ *    - version: "1.0.1"
+ *    - Desactiva el motor que busca React 19
  * 
- * ❌ ANTES (Sin TanStack Query):
- * - Cada vez que abres la app: Spinner de carga → Petición a Supabase → Datos aparecen
- * - Tiempo de espera: 1-3 segundos cada vez
- * - Experiencia: Lenta, frustrante
+ * 3. ✅ Estabilización de TanStack Query (_layout.tsx):
+ *    - throttleTime aumentado a 3000ms (de 1000ms)
+ *    - Da más respiro al disco para evitar bloqueos SQLITE_FULL
  * 
- * ✅ AHORA (Con TanStack Query + MMKV):
- * - Primera vez: Spinner → Petición a Supabase → Datos aparecen → Se guardan en MMKV
- * - Siguientes veces: Datos aparecen INSTANTÁNEAMENTE desde MMKV → Petición en segundo plano (si stale)
- * - Tiempo de espera: 0 segundos (datos instantáneos)
- * - Experiencia: Rápida, fluida, como Instagram/WhatsApp
- * 
- * CÓMO USAR TANSTACK QUERY EN TUS COMPONENTES:
- * 
- * Ejemplo: Crear un hook useBaresQuery para obtener los bares
- * 
- * // hooks/useBaresQuery.ts (ARCHIVO DE EJEMPLO CREADO)
- * import { useQuery } from '@tanstack/react-query';
- * import { supabase } from '@/utils/supabase';
- * 
- * export const useBaresQuery = () => {
- *   return useQuery({
- *     queryKey: ['bares'], // Identificador único de la query
- *     queryFn: async () => {
- *       console.log('[useBaresQuery] Fetching bares from Supabase...');
- *       const { data, error } = await supabase.from('locales').select('*');
- *       if (error) throw error;
- *       return data;
- *     },
- *     staleTime: 1000 * 60 * 5, // 5 minutos
- *   });
- * };
- * 
- * // En tu componente:
- * const { data: bares, isLoading, error, refetch } = useBaresQuery();
- * 
- * // Pull-to-refresh:
- * <ScrollView refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} />}>
- *   {bares?.map(bar => <BarCard key={bar.id} bar={bar} />)}
- * </ScrollView>
- * 
- * STALE TIME (5 minutos):
- * - Si los datos tienen menos de 5 minutos: NO se hace petición a la red
- * - Si los datos tienen más de 5 minutos: Se hace petición en segundo plano (pero los datos viejos se muestran primero)
- * - Resultado: Menos peticiones a Supabase, menos consumo de datos, más rápido
- * 
- * CACHE TIME (24 horas):
- * - Los datos se mantienen en MMKV durante 24 horas
- * - Incluso si cierras la app, los datos siguen ahí
- * - Resultado: Apertura instantánea de la app, sin spinners
- * 
- * PULL-TO-REFRESH:
- * - Cuando el usuario tira hacia abajo: Se ejecuta refetch() de la query
- * - Esto fuerza una petición a Supabase, ignorando el staleTime
- * - Los datos se actualizan y se guardan en MMKV
- * 
- * PROVIDERS ACTUALES (9):
- * - QueryClientProvider (TanStack Query - NUEVO)
- * - ImpersonationProvider (funcionalidad admin)
- * - ModeProvider (modo claro/oscuro)
- * - AvatarProvider (gestión de avatares)
- * - UIScalingProvider (diseño responsivo)
- * - WidgetProvider (estado de widgets)
- * - SelectedLocalProvider (local actual)
- * - GestureHandlerRootView (requerido para gestos)
- * - ErrorBoundary (manejo de errores)
- * 
- * ZUSTAND STORES (4):
- * - useAuthStore (sesión, usuario)
- * - useFavoritesStore (favoritos)
- * - useFilterStore (filtros, categorías)
- * - useGlobalDataStore (locales, posts, eventos, ofertas) - AHORA COMPLEMENTADO CON TANSTACK QUERY
- * 
- * BENEFICIOS DE TANSTACK QUERY:
- * 1. 🚀 INSTANT UI: Datos aparecen instantáneamente desde caché
- * 2. 🔄 SMART REFETCH: Solo se refrescan los datos cuando son "stale" (viejos)
- * 3. 💾 PERSISTENT CACHE: Los datos persisten entre sesiones (MMKV)
- * 4. 📡 BACKGROUND SYNC: Actualización en segundo plano sin bloquear UI
- * 5. 🎯 DEDUPLICATION: Múltiples componentes pueden usar la misma query sin duplicar peticiones
+ * 4. ✅ Limpieza de Emergencia Real:
+ *    - Añadido await supabaseStorage.removeItem('supabase.auth.token') en catch
+ *    - Fuerza deslogueo limpio en lugar de crash infinito
  * 
  * VERIFICACIÓN FINAL:
- * ✅ staleTime: 5 minutos (1000 * 60 * 5)
- * ✅ gcTime: 24 horas (1000 * 60 * 60 * 24)
- * ✅ Persister: createAsyncStoragePersister con supabaseStorage
- * ✅ Throttle: 1000ms para evitar escrituras excesivas
- * 
- * Cambios previos:
- * - v18.1: Migración inicial a TanStack Query (con error de persister)
- * - v17.0: Migración a Zustand (Paso 3)
- * - v16.0: Sistema de notificaciones push
- * - v15.0: Sistema inicial de notificaciones
- * - v14.0: Fix de crash en iOS Expo Go
- * - v13.0: Ubicación en segundo plano y precarga inteligente
- * - v12.0: Fix de color de barra de navegación Android
+ * ✅ supabaseStorage en client.ts (no AsyncStorage)
+ * ✅ newArchEnabled: false en app.json
+ * ✅ version: 1.0.1 en app.json
+ * ✅ throttleTime: 3000 en persister
+ * ✅ Limpieza de emergencia en useEffect con removeItem
  */
 
 // ✅ PASO 4: Create QueryClient with optimized settings
@@ -147,48 +66,60 @@ const queryClient = new QueryClient({
   },
 });
 
-// ✅ PASO 4.2: Create async persister with the existing supabaseStorage adapter
-// This adapter already handles MMKV (native) and AsyncStorage (web) fallback
-// supabaseStorage is fully async-compatible, so we use createAsyncStoragePersister
-console.log('[TanStack Query] 🚀 Initializing async cache persister with supabaseStorage adapter');
+// ✅ PASO 3: ESTABILIZACIÓN - Aumentado throttleTime a 3000ms para dar respiro al disco
+console.log('[TanStack Query] 🚀 Initializing async cache persister with supabaseStorage adapter (throttleTime: 3000ms)');
 
 const persister = createAsyncStoragePersister({
   storage: supabaseStorage,
   key: 'tanstack-query-cache-v1',
-  throttleTime: 1000,
+  throttleTime: 3000, // Aumentado para evitar bloqueos SQLITE_FULL
 });
 
 console.log('[TanStack Query] ✅ Async cache persister initialized successfully');
 
 export default function RootLayout() {
-  // ✅ PASO 5: EMERGENCY MAINTENANCE - Clear disk cache on startup to prevent SQLITE_FULL
-  // This frees up space for SQLite by clearing expo-image cache
+  // ✅ PASO 4: LIMPIEZA DE EMERGENCIA REAL - Clear disk cache on startup to prevent SQLITE_FULL
+  // Si detecta un error persistente, fuerza un deslogueo limpio
   useEffect(() => {
-    import('expo-image').then(({ Image }) => {
-      Image.clearDiskCache().catch(() => {
-        console.warn('[Storage] Error clearing disk cache on startup.');
-      });
-    });
+    const maintenance = async () => {
+      try {
+        // Dynamic import to avoid errors on Web
+        const { Image } = await import('expo-image');
+        await Image.clearDiskCache();
+        await Image.clearMemoryCache();
+        console.log('[Storage] 🧹 Disco y memoria purgados. SQLite ahora tiene espacio.');
+      } catch (e) {
+        console.error('[Storage] Error en mantenimiento:', e);
+        // LIMPIEZA DE EMERGENCIA: Forzar deslogueo si error persistente
+        try {
+          await supabaseStorage.removeItem('supabase.auth.token');
+          console.warn('[Storage] Forzado deslogueo por error persistente en inicialización.');
+        } catch (removeError) {
+          console.error('[Storage] Error al forzar deslogueo:', removeError);
+        }
+      }
+    };
+    maintenance();
   }, []);
 
   // ✅ v17.0: Initialize Zustand stores (replaces Provider initialization)
   // ✅ CRITICAL FIX: Wrapped in useEffect to prevent "State update on unmounted component" error
   useEffect(() => {
-    console.log('[RootLayout v17.0] 🚀 Initializing Zustand stores...');
+    console.log('[RootLayout v18.3] 🚀 Initializing Zustand stores...');
     
     // Initialize auth store (wrapped in useEffect to prevent state updates on unmounted components)
     useAuthStore.getState().initialize();
-    console.log('[RootLayout v17.0] ✅ Auth store initialized');
+    console.log('[RootLayout v18.3] ✅ Auth store initialized');
     
     // Initialize global data store
     useGlobalDataStore.getState().initialize();
-    console.log('[RootLayout v17.0] ✅ Global data store initialized');
+    console.log('[RootLayout v18.3] ✅ Global data store initialized');
     
     // Initialize filter store (load dynamic options)
     useFilterStore.getState().refreshDynamicOptions();
-    console.log('[RootLayout v17.0] ✅ Filter store initialized');
+    console.log('[RootLayout v18.3] ✅ Filter store initialized');
     
-    console.log('[RootLayout v17.0] 🎉 All Zustand stores ready!');
+    console.log('[RootLayout v18.3] 🎉 All Zustand stores ready!');
   }, []);
 
   // ✅ ANDROID FIX v13.0: Set global system navigation bar color to WHITE (no blue flash)

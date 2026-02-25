@@ -1,8 +1,9 @@
+
 {
   "expo": {
     "name": "BarLive",
     "slug": "BarLive",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
     "userInterfaceStyle": "automatic",
@@ -18,7 +19,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.barlive.app",
       "jsEngine": "hermes",
-      "newArchEnabled": true
+      "newArchEnabled": false
     },
     "android": {
       "adaptiveIcon": {
@@ -35,8 +36,8 @@
       ],
       "googleServicesFile": "./google-services.json",
       "jsEngine": "hermes",
-      "newArchEnabled": true,
-      "softwareKeyboardLayoutMode": "adjustResize"
+      "newArchEnabled": false,
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -62,7 +63,7 @@
         "projectId": "a12429e7-cd75-4813-8907-593212e8d7ca"
       }
     },
-    "scheme": "BarLive",
+    "scheme": "barlive",
     "experiments": {
       "typedRoutes": true
     }
