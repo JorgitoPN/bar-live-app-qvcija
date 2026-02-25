@@ -1,9 +1,9 @@
 
 {
   "expo": {
-    "name": "BarLive-Reset",
+    "name": "BarLive-Fixed",
     "slug": "BarLive",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
     "userInterfaceStyle": "automatic",
