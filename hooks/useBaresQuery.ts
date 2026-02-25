@@ -96,7 +96,7 @@ export const useBaresQuery = (
       // AFTER: select('id, nombre, ...') → Only 10 essential fields
       let query = supabase
         .from('locales')
-        .select('id, nombre, direccion, imagen_url, imagenes, latitud, longitud, destacado, horarios_completos')
+        .select('id, nombre, direccion, imagen_url, latitud, longitud, destacado, horarios_completos')
         .eq('activo', true);
 
       // Apply filters dynamically
@@ -136,17 +136,13 @@ export const useBaresQuery = (
         
         // ✅ v607: OPTIMIZE IMAGES - Transform URLs using Supabase server-side rendering
         const optimizedImageUrl = getOptimizedImageUrl(local.imagen_url, 400, 70);
-        const optimizedFirstImage = local.imagenes?.[0] 
-          ? getOptimizedImageUrl(local.imagenes[0], 400, 70)
-          : undefined;
         
         return {
           ...local,
           estaAbierto: estado.estaAbierto,
           distancia,
-          // ✅ Replace original URLs with optimized versions
+          // ✅ Replace original URL with optimized version
           imagen_url: optimizedImageUrl,
-          imagenes: optimizedFirstImage ? [optimizedFirstImage] : local.imagenes,
         };
       });
 

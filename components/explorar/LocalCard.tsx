@@ -19,7 +19,6 @@ interface LocalData {
   id: string;
   nombre: string;
   direccion: string;
-  imagenes?: string[];
   imagen_url?: string;
   estadoCompleto?: {
     estaAbierto: boolean;
@@ -92,7 +91,7 @@ const LocalCard = memo<LocalCardProps>(({
   index,
 }) => {
   // ✅ v607: Image URL is already optimized by useBaresQuery - no client-side transformation needed
-  const imagenPrincipal = local.imagenes?.[0] || local.imagen_url;
+  const imagenPrincipal = local.imagen_url;
 
   const shouldDimImage = () => {
     if (local.estadoCompleto) {
