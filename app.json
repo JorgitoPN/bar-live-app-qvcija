@@ -1,14 +1,13 @@
 
 {
   "expo": {
-    "name": "BarLive-Clean",
+    "name": "BarLive-v22",
     "slug": "bar-live-app-qvcija",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/natively-dark.png",
     "scheme": "barlive",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "splash": {
       "image": "./assets/images/natively-dark.png",
       "resizeMode": "contain",
@@ -17,7 +16,6 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.barlive.app",
-      "newArchEnabled": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "BarLive necesita tu ubicación para mostrarte locales cercanos",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "BarLive necesita tu ubicación para mostrarte locales cercanos incluso cuando la app está en segundo plano",
@@ -39,7 +37,6 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.barlive.app",
-      "newArchEnabled": false,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",

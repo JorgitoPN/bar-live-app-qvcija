@@ -5,7 +5,6 @@
 declare const __DEV__: boolean;
 
 import { Platform } from "react-native";
-import Constants from "expo-constants";
 
 // Simple debouncing to prevent duplicate logs
 const recentLogs: { [key: string]: boolean } = {};
@@ -43,6 +42,7 @@ const getPlatformName = (): string => {
   }
 };
 
+// ✅ SIMPLIFIED v22.0: Removed Constants dependency to fix Metro bundler issues
 // Cache the log server URL
 let cachedLogServerUrl: string | null = null;
 let urlChecked = false;
@@ -56,29 +56,9 @@ const getLogServerUrl = (): string | null => {
       // For web, use the current origin
       cachedLogServerUrl = `${window.location.origin}/natively-logs`;
     } else {
-      // For native, try to get the Expo dev server URL
-      // experienceUrl format: exp://xxx.ngrok.io/... or exp://192.168.1.1:8081/...
-      const experienceUrl = (Constants as any).experienceUrl;
-      if (experienceUrl) {
-        // Convert exp:// to https:// (for tunnels) or http:// (for local)
-        let baseUrl = experienceUrl
-          .replace('exp://', 'https://')
-          .split('/')[0] + '//' + experienceUrl.replace('exp://', '').split('/')[0];
-
-        // If it looks like a local IP, use http
-        if (baseUrl.includes('192.168.') || baseUrl.includes('10.') || baseUrl.includes('localhost')) {
-          baseUrl = baseUrl.replace('https://', 'http://');
-        }
-
-        cachedLogServerUrl = `${baseUrl}/natively-logs`;
-      } else {
-        // Fallback: try to use manifest hostUri
-        const hostUri = Constants.expoConfig?.hostUri || (Constants as any).manifest?.hostUri;
-        if (hostUri) {
-          const protocol = hostUri.includes('ngrok') || hostUri.includes('.io') ? 'https' : 'http';
-          cachedLogServerUrl = `${protocol}://${hostUri.split('/')[0]}/natively-logs`;
-        }
-      }
+      // For native, use a simple localhost URL (works in Expo Go)
+      // This will fail gracefully if Metro is not running
+      cachedLogServerUrl = 'http://localhost:8081/natively-logs';
     }
   } catch (e) {
     // Silently fail

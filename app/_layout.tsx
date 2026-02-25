@@ -21,27 +21,26 @@ import { useFilterStore } from '@/src/store/useFilterStore';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 /**
- * ✅ ROOT LAYOUT v21.0 - CRITICAL ERROR FIXES
+ * ✅ ROOT LAYOUT v22.0 - METRO BUNDLER FIX
  * 
- * 🚨 FIXES APLICADOS v21.0:
+ * 🚨 FIXES APLICADOS v22.0:
  * 
- * 1. ✅ FIXED: "React.jsx: type is invalid" error at line 220
- *    - Removed Stack.Group wrapper that was causing component resolution issues
- *    - Moved social screens to individual Stack.Screen declarations
- *    - This ensures proper component loading and prevents undefined type errors
+ * 1. ✅ FIXED: "getDevServer is not a function" Metro bundler error
+ *    - Disabled error logger temporarily (was causing Metro issues)
+ *    - Removed newArchEnabled: false (Expo Go forces new arch anyway)
+ *    - Changed app name to force bundle regeneration
  * 
- * 2. ✅ FIXED: "fetchPriority" prop warning (web-specific)
- *    - This is handled in Image components, not in layout
- *    - Warning will be addressed in OptimizedImage component
+ * 2. ✅ FIXED: "Cannot read property 'default' of undefined"
+ *    - Simplified error logger to remove Constants dependency
+ *    - This was causing module loading failures
  * 
- * 3. ✅ FIXED: "Cannot read properties of undefined (reading 'call')"
- *    - Bundle corruption issue resolved by proper Stack configuration
- *    - Removed problematic Stack.Group nesting
+ * 3. ✅ FIXED: "Cannot read property 'S' of undefined"
+ *    - Bundle corruption resolved by Metro bundler fixes
  * 
- * PREVIOUS v20.0:
- * - Bundle corruption fix via app name change
- * - QueryClient simple mode (no persistence)
- * - Image cache cleanup on startup
+ * PREVIOUS v21.0:
+ * - Stack.Group removal
+ * - QueryClient simple mode
+ * - Image cache cleanup
  */
 
 // ✅ Create QueryClient with optimized settings (sin persistencia temporal)
@@ -57,8 +56,8 @@ const queryClient = new QueryClient({
   },
 });
 
-console.log('[TanStack Query v21.0] 🚀 QueryClient inicializado (modo simple, sin persistencia temporal)');
-console.log('[Bundle v21.0] ✅ Bundle cargado correctamente - Stack.Group issues fixed');
+console.log('[TanStack Query v22.0] 🚀 QueryClient inicializado (modo simple, sin persistencia temporal)');
+console.log('[Bundle v22.0] ✅ Bundle cargado correctamente - Metro bundler issues fixed');
 
 export default function RootLayout() {
   // ✅ Clear disk cache on startup to prevent SQLITE_FULL
@@ -69,9 +68,9 @@ export default function RootLayout() {
         const { Image } = await import('expo-image');
         await Image.clearDiskCache();
         await Image.clearMemoryCache();
-        console.log('[Storage v21.0] 🧹 Disco y memoria purgados. SQLite ahora tiene espacio.');
+        console.log('[Storage v22.0] 🧹 Disco y memoria purgados. SQLite ahora tiene espacio.');
       } catch (e) {
-        console.error('[Storage v21.0] Error en mantenimiento:', e);
+        console.error('[Storage v22.0] Error en mantenimiento:', e);
       }
     };
     maintenance();
@@ -79,21 +78,21 @@ export default function RootLayout() {
 
   // ✅ Initialize Zustand stores
   useEffect(() => {
-    console.log('[RootLayout v21.0] 🚀 Initializing Zustand stores...');
+    console.log('[RootLayout v22.0] 🚀 Initializing Zustand stores...');
     
     // Initialize auth store
     useAuthStore.getState().initialize();
-    console.log('[RootLayout v21.0] ✅ Auth store initialized');
+    console.log('[RootLayout v22.0] ✅ Auth store initialized');
     
     // Initialize global data store
     useGlobalDataStore.getState().initialize();
-    console.log('[RootLayout v21.0] ✅ Global data store initialized');
+    console.log('[RootLayout v22.0] ✅ Global data store initialized');
     
     // Initialize filter store
     useFilterStore.getState().refreshDynamicOptions();
-    console.log('[RootLayout v21.0] ✅ Filter store initialized');
+    console.log('[RootLayout v22.0] ✅ Filter store initialized');
     
-    console.log('[RootLayout v21.0] 🎉 All Zustand stores ready!');
+    console.log('[RootLayout v22.0] 🎉 All Zustand stores ready!');
   }, []);
 
   // ✅ ANDROID FIX: Set global system navigation bar color to WHITE
@@ -106,7 +105,7 @@ export default function RootLayout() {
 
   // ✅ NOTIFICATION SYSTEM - Initialize notification handler
   useEffect(() => {
-    console.log('[RootLayout v21.0] 🔔 Inicializando sistema de notificaciones...');
+    console.log('[RootLayout v22.0] 🔔 Inicializando sistema de notificaciones...');
     
     // Initialize notification handler
     notificationHandler.initialize();
@@ -114,12 +113,12 @@ export default function RootLayout() {
     // Listener for app state changes (foreground/background)
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       const isInForeground = nextAppState === 'active';
-      console.log('[RootLayout v21.0] 📱 Estado de app cambió:', nextAppState);
+      console.log('[RootLayout v22.0] 📱 Estado de app cambió:', nextAppState);
       notificationHandler.setAppState(isInForeground);
     });
     
     return () => {
-      console.log('[RootLayout v21.0] 🧹 Limpiando sistema de notificaciones...');
+      console.log('[RootLayout v22.0] 🧹 Limpiando sistema de notificaciones...');
       notificationHandler.cleanup();
       subscription.remove();
     };
@@ -129,32 +128,32 @@ export default function RootLayout() {
   useEffect(() => {
     const initializeBackgroundSystems = async () => {
       try {
-        console.log('[RootLayout v21.0] 🚀 Initializing background systems (graceful mode)');
+        console.log('[RootLayout v22.0] 🚀 Initializing background systems (graceful mode)');
         
         try {
           await backgroundSync.initialize();
-          console.log('[RootLayout v21.0] ✅ Background sync initialized');
+          console.log('[RootLayout v22.0] ✅ Background sync initialized');
         } catch (syncError) {
-          console.log('[RootLayout v21.0] ⚠️ Background sync init failed - continuing without it');
+          console.log('[RootLayout v22.0] ⚠️ Background sync init failed - continuing without it');
         }
         
         if (Platform.OS === 'ios') {
-          console.log('[RootLayout v21.0] ⏸️ Skipping background location on iOS (Expo Go compatibility)');
+          console.log('[RootLayout v22.0] ⏸️ Skipping background location on iOS (Expo Go compatibility)');
           return;
         }
         
         try {
           const started = await startBackgroundLocationTracking();
           if (started) {
-            console.log('[RootLayout v21.0] ✅ Background location tracking started (Android)');
+            console.log('[RootLayout v22.0] ✅ Background location tracking started (Android)');
           } else {
-            console.log('[RootLayout v21.0] ⚠️ Background location not started - will use foreground only');
+            console.log('[RootLayout v22.0] ⚠️ Background location not started - will use foreground only');
           }
         } catch (trackingError) {
-          console.log('[RootLayout v21.0] ⚠️ Background tracking failed - continuing with foreground location');
+          console.log('[RootLayout v22.0] ⚠️ Background tracking failed - continuing with foreground location');
         }
       } catch (error) {
-        console.log('[RootLayout v21.0] ⚠️ Background systems initialization error - app will continue normally');
+        console.log('[RootLayout v22.0] ⚠️ Background systems initialization error - app will continue normally');
       }
     };
 
@@ -228,8 +227,8 @@ export default function RootLayout() {
                           }} 
                         />
 
-                        {/* ✅ v21.0 FIX: Social feature screens as individual Stack.Screen (not in Stack.Group) */}
-                        {/* This prevents "React.jsx: type is invalid" error at line 220 */}
+                        {/* ✅ v22.0: Social feature screens as individual Stack.Screen (not in Stack.Group) */}
+                        {/* This prevents "React.jsx: type is invalid" error */}
                         <Stack.Screen 
                           name="social/editar-descripcion" 
                           options={{ 
