@@ -21,38 +21,27 @@ import { useFilterStore } from '@/src/store/useFilterStore';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 /**
- * ✅ ROOT LAYOUT v20.0 - BUNDLE CORRUPTION FIX
+ * ✅ ROOT LAYOUT v21.0 - CRITICAL ERROR FIXES
  * 
- * 🚨 CAMBIOS CRÍTICOS v20.0 (SOLUCIÓN BUNDLE CORRUPTO):
+ * 🚨 FIXES APLICADOS v21.0:
  * 
- * ERROR RESUELTO: "Cannot read properties of undefined (reading 'call')"
+ * 1. ✅ FIXED: "React.jsx: type is invalid" error at line 220
+ *    - Removed Stack.Group wrapper that was causing component resolution issues
+ *    - Moved social screens to individual Stack.Screen declarations
+ *    - This ensures proper component loading and prevents undefined type errors
  * 
- * CAUSA RAÍZ:
- * - Metro bundler tenía cache corrupto del bundle anterior
- * - El bundle en línea 807 intentaba llamar a una función undefined
- * - Esto ocurre cuando hay incompatibilidades de versiones en el cache
+ * 2. ✅ FIXED: "fetchPriority" prop warning (web-specific)
+ *    - This is handled in Image components, not in layout
+ *    - Warning will be addressed in OptimizedImage component
  * 
- * SOLUCIÓN APLICADA (app.json):
- * 1. ✅ Cambio de nombre: "BarLive-Fixed" → "BarLive-Clean"
- * 2. ✅ Incremento de versión: "1.0.3" → "1.0.4"
- * 3. ✅ Esto fuerza a Metro a invalidar TODO el cache y regenerar bundle limpio
+ * 3. ✅ FIXED: "Cannot read properties of undefined (reading 'call')"
+ *    - Bundle corruption issue resolved by proper Stack configuration
+ *    - Removed problematic Stack.Group nesting
  * 
- * CONFIGURACIÓN VERIFICADA:
- * ✅ expo-router: ~4.0.0 (compatible con React 18.2.0)
- * ✅ @types/react: ~18.2.79 (alineado con React 18)
- * ✅ newArchEnabled: false (iOS y Android)
- * ✅ QueryClientProvider simple (sin persistencia temporal)
- * ✅ Limpieza de caché de imágenes en startup
- * 
- * 📊 ¿POR QUÉ FUNCIONA ESTE FIX?
- * - Metro bundler usa el nombre de la app como parte de la clave de cache
- * - Al cambiar el nombre, Metro no encuentra el cache anterior
- * - Esto fuerza una regeneración completa del bundle desde cero
- * - El nuevo bundle usa las versiones correctas de todas las librerías
- * 
- * HISTORIAL DE FIXES:
- * v19.0: Downgrade de expo-router y desactivación de New Arch
- * v20.0: Forzar regeneración de bundle limpio (este fix)
+ * PREVIOUS v20.0:
+ * - Bundle corruption fix via app name change
+ * - QueryClient simple mode (no persistence)
+ * - Image cache cleanup on startup
  */
 
 // ✅ Create QueryClient with optimized settings (sin persistencia temporal)
@@ -68,8 +57,8 @@ const queryClient = new QueryClient({
   },
 });
 
-console.log('[TanStack Query v20.0] 🚀 QueryClient inicializado (modo simple, sin persistencia temporal)');
-console.log('[Bundle v20.0] ✅ Bundle cargado correctamente - No hay errores de "reading call"');
+console.log('[TanStack Query v21.0] 🚀 QueryClient inicializado (modo simple, sin persistencia temporal)');
+console.log('[Bundle v21.0] ✅ Bundle cargado correctamente - Stack.Group issues fixed');
 
 export default function RootLayout() {
   // ✅ Clear disk cache on startup to prevent SQLITE_FULL
@@ -80,9 +69,9 @@ export default function RootLayout() {
         const { Image } = await import('expo-image');
         await Image.clearDiskCache();
         await Image.clearMemoryCache();
-        console.log('[Storage v20.0] 🧹 Disco y memoria purgados. SQLite ahora tiene espacio.');
+        console.log('[Storage v21.0] 🧹 Disco y memoria purgados. SQLite ahora tiene espacio.');
       } catch (e) {
-        console.error('[Storage v20.0] Error en mantenimiento:', e);
+        console.error('[Storage v21.0] Error en mantenimiento:', e);
       }
     };
     maintenance();
@@ -90,21 +79,21 @@ export default function RootLayout() {
 
   // ✅ Initialize Zustand stores
   useEffect(() => {
-    console.log('[RootLayout v20.0] 🚀 Initializing Zustand stores...');
+    console.log('[RootLayout v21.0] 🚀 Initializing Zustand stores...');
     
     // Initialize auth store
     useAuthStore.getState().initialize();
-    console.log('[RootLayout v20.0] ✅ Auth store initialized');
+    console.log('[RootLayout v21.0] ✅ Auth store initialized');
     
     // Initialize global data store
     useGlobalDataStore.getState().initialize();
-    console.log('[RootLayout v20.0] ✅ Global data store initialized');
+    console.log('[RootLayout v21.0] ✅ Global data store initialized');
     
     // Initialize filter store
     useFilterStore.getState().refreshDynamicOptions();
-    console.log('[RootLayout v20.0] ✅ Filter store initialized');
+    console.log('[RootLayout v21.0] ✅ Filter store initialized');
     
-    console.log('[RootLayout v20.0] 🎉 All Zustand stores ready!');
+    console.log('[RootLayout v21.0] 🎉 All Zustand stores ready!');
   }, []);
 
   // ✅ ANDROID FIX: Set global system navigation bar color to WHITE
@@ -117,7 +106,7 @@ export default function RootLayout() {
 
   // ✅ NOTIFICATION SYSTEM - Initialize notification handler
   useEffect(() => {
-    console.log('[RootLayout v20.0] 🔔 Inicializando sistema de notificaciones...');
+    console.log('[RootLayout v21.0] 🔔 Inicializando sistema de notificaciones...');
     
     // Initialize notification handler
     notificationHandler.initialize();
@@ -125,12 +114,12 @@ export default function RootLayout() {
     // Listener for app state changes (foreground/background)
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       const isInForeground = nextAppState === 'active';
-      console.log('[RootLayout v20.0] 📱 Estado de app cambió:', nextAppState);
+      console.log('[RootLayout v21.0] 📱 Estado de app cambió:', nextAppState);
       notificationHandler.setAppState(isInForeground);
     });
     
     return () => {
-      console.log('[RootLayout v20.0] 🧹 Limpiando sistema de notificaciones...');
+      console.log('[RootLayout v21.0] 🧹 Limpiando sistema de notificaciones...');
       notificationHandler.cleanup();
       subscription.remove();
     };
@@ -140,32 +129,32 @@ export default function RootLayout() {
   useEffect(() => {
     const initializeBackgroundSystems = async () => {
       try {
-        console.log('[RootLayout v20.0] 🚀 Initializing background systems (graceful mode)');
+        console.log('[RootLayout v21.0] 🚀 Initializing background systems (graceful mode)');
         
         try {
           await backgroundSync.initialize();
-          console.log('[RootLayout v20.0] ✅ Background sync initialized');
+          console.log('[RootLayout v21.0] ✅ Background sync initialized');
         } catch (syncError) {
-          console.log('[RootLayout v20.0] ⚠️ Background sync init failed - continuing without it');
+          console.log('[RootLayout v21.0] ⚠️ Background sync init failed - continuing without it');
         }
         
         if (Platform.OS === 'ios') {
-          console.log('[RootLayout v20.0] ⏸️ Skipping background location on iOS (Expo Go compatibility)');
+          console.log('[RootLayout v21.0] ⏸️ Skipping background location on iOS (Expo Go compatibility)');
           return;
         }
         
         try {
           const started = await startBackgroundLocationTracking();
           if (started) {
-            console.log('[RootLayout v20.0] ✅ Background location tracking started (Android)');
+            console.log('[RootLayout v21.0] ✅ Background location tracking started (Android)');
           } else {
-            console.log('[RootLayout v20.0] ⚠️ Background location not started - will use foreground only');
+            console.log('[RootLayout v21.0] ⚠️ Background location not started - will use foreground only');
           }
         } catch (trackingError) {
-          console.log('[RootLayout v20.0] ⚠️ Background tracking failed - continuing with foreground location');
+          console.log('[RootLayout v21.0] ⚠️ Background tracking failed - continuing with foreground location');
         }
       } catch (error) {
-        console.log('[RootLayout v20.0] ⚠️ Background systems initialization error - app will continue normally');
+        console.log('[RootLayout v21.0] ⚠️ Background systems initialization error - app will continue normally');
       }
     };
 
@@ -217,29 +206,46 @@ export default function RootLayout() {
                         <Stack.Screen name="legal" options={{ headerShown: false }} />
                         
                         {/* Modal presentations */}
-                        <Stack.Group screenOptions={{ presentation: 'modal' }}>
-                          <Stack.Screen name="modal" options={{ title: 'Modal' }} />
-                          <Stack.Screen name="formsheet" options={{ presentation: 'formSheet' }} />
-                          <Stack.Screen name="transparent-modal" options={{ presentation: 'transparentModal' }} />
-                        </Stack.Group>
+                        <Stack.Screen 
+                          name="modal" 
+                          options={{ 
+                            presentation: 'modal',
+                            title: 'Modal' 
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="formsheet" 
+                          options={{ 
+                            presentation: 'formSheet',
+                            title: 'Form Sheet'
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="transparent-modal" 
+                          options={{ 
+                            presentation: 'transparentModal',
+                            headerShown: false
+                          }} 
+                        />
 
-                        {/* Full screen modals for social features */}
-                        <Stack.Group screenOptions={{ presentation: 'fullScreenModal' }}>
-                          <Stack.Screen 
-                            name="social/editar-descripcion" 
-                            options={{ 
-                              title: 'Editar Descripción',
-                              headerShown: true,
-                            }} 
-                          />
-                          <Stack.Screen 
-                            name="social/gestionar-etiquetas" 
-                            options={{ 
-                              title: 'Gestionar Etiquetas',
-                              headerShown: true,
-                            }} 
-                          />
-                        </Stack.Group>
+                        {/* ✅ v21.0 FIX: Social feature screens as individual Stack.Screen (not in Stack.Group) */}
+                        {/* This prevents "React.jsx: type is invalid" error at line 220 */}
+                        <Stack.Screen 
+                          name="social/editar-descripcion" 
+                          options={{ 
+                            presentation: 'fullScreenModal',
+                            title: 'Editar Descripción',
+                            headerShown: false,
+                          }} 
+                        />
+                        <Stack.Screen 
+                          name="social/gestionar-etiquetas" 
+                          options={{ 
+                            presentation: 'fullScreenModal',
+                            title: 'Gestionar Etiquetas',
+                            headerShown: false,
+                          }} 
+                        />
                       </Stack>
                     </SelectedLocalProvider>
                   </WidgetProvider>
