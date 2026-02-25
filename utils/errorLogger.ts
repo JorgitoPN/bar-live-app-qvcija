@@ -115,12 +115,9 @@ const flushLogs = async () => {
         // Log fetch errors only once to avoid spam
         if (!fetchErrorLogged) {
           fetchErrorLogged = true;
-          // Use console.error directly as a more robust way to log without relying on __proto__
-          // This avoids the "Cannot read properties of undefined (reading 'call')" error
-          try {
-            console.error('[Natively] Fetch error (will not repeat):', e.message || e);
-          } catch (logError) {
-            // Silently fail if even console.error doesn't work
+          // Use a different method to avoid recursion - write directly without going through our intercept
+          if (typeof window !== 'undefined' && window.console) {
+            (window.console as any).__proto__.log.call(console, '[Natively] Fetch error (will not repeat):', e.message || e);
           }
         }
       });
