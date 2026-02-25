@@ -1,18 +1,11 @@
 
 import { StyleSheet, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getHeaderTitleSize, getHeaderIconSize } from '@/utils/androidScaling';
 
 /**
- * ✅ COMMON STYLES v285.0 - DYNAMIC SAFE AREA INSETS
+ * ✅ COMMON STYLES v284.0 - ANDROID FONT SIZE INCREASE (+2 POINTS)
  * 
- * CRITICAL FIXES v285.0:
- * - ✅ DYNAMIC paddingTop using useSafeAreaInsets() hook
- * - ✅ Respects device-specific safe areas (notch, status bar, Android buttons)
- * - ✅ No more static padding values
- * - ✅ Proper keyboard handling with adjustResize
- * 
- * Previous fixes maintained (v284.0):
+ * CRITICAL FIXES v284.0 (ANDROID ONLY):
  * - ✅ INCREASED all Android font sizes by exactly 2 points
  * - ✅ Title: 22sp (increased from 20)
  * - ✅ Subtitle: 18sp (increased from 16)
@@ -22,11 +15,15 @@ import { getHeaderTitleSize, getHeaderIconSize } from '@/utils/androidScaling';
  * - ✅ Uniform scaling across all text elements
  * - ✅ iOS design remains unchanged (reference design)
  * 
- * USAGE:
- * Instead of using commonStyles directly, use the useCommonStyles hook:
- * 
- * const styles = useCommonStyles();
- * <View style={styles.container}>...</View>
+ * Previous fixes maintained (v144.0):
+ * - ✅ COMPACT header title size across ALL pages (now 22sp on Android)
+ * - ✅ COMPACT header icon size across ALL pages (now 22dp on Android)
+ * - ✅ Headers take less vertical space on Android
+ * - ✅ All text sizes properly scaled for Android
+ * - ✅ Consistent colors across all platforms
+ * - ✅ Proper safe area handling
+ * - ✅ Platform-specific adjustments for optimal UX
+ * - ✅ Unified design system
  */
 
 // Header gradient colors - abc
@@ -86,42 +83,18 @@ export const colors = {
   borderDark: '#D1D5DB',
 };
 
-/**
- * ✅ DYNAMIC STYLES HOOK - Use this instead of commonStyles directly
- * This hook provides dynamic safe area padding for container and headerGradient
- */
-export const useCommonStyles = () => {
-  const insets = useSafeAreaInsets();
-  
-  return StyleSheet.create({
-    // ✅ DYNAMIC SAFE AREA: Container with dynamic paddingTop
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-      paddingTop: insets.top, // Dynamic padding based on device safe area
-    },
-    
-    // ✅ DYNAMIC SAFE AREA: Header gradient with dynamic paddingTop
-    headerGradient: {
-      paddingTop: insets.top + (Platform.OS === 'ios' ? 10 : 8), // Dynamic + extra spacing
-      paddingBottom: Platform.OS === 'ios' ? 16 : 10,
-      paddingHorizontal: 20,
-    },
-  });
-};
-
 export const commonStyles = StyleSheet.create({
-  // ✅ STATIC CONTAINER (for components that don't need dynamic safe area)
+  // ✅ ANDROID FIX v143.0: Container with proper padding matching iOS
   container: {
     flex: 1,
     backgroundColor: colors.background,
     paddingTop: 0,
   },
   
-  // ✅ STATIC HEADER GRADIENT (for components that don't need dynamic safe area)
+  // ✅ ANDROID FIX v143.0: Header gradient with significantly reduced padding on Android
   headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 36,
-    paddingBottom: Platform.OS === 'ios' ? 16 : 10,
+    paddingTop: Platform.OS === 'ios' ? 50 : 36, // Reduced from 40 to 36 on Android
+    paddingBottom: Platform.OS === 'ios' ? 16 : 10, // Reduced from 12 to 10 on Android
     paddingHorizontal: 20,
   },
   

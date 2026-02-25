@@ -17,15 +17,7 @@ interface BarraFiltrosInteractivaProps {
   onMasFiltrosPress: () => void;
 }
 
-/**
- * ✅ PERFORMANCE OPTIMIZATION: React.memo() wrapper
- * 
- * This prevents the entire filter bar from re-rendering when the results list updates.
- * The component will only re-render when filtros, onFiltroPress, or onMasFiltrosPress change.
- * 
- * RESULT: Smoother scrolling and instant filter response on mobile
- */
-const BarraFiltrosInteractiva = React.memo(function BarraFiltrosInteractiva({
+export default function BarraFiltrosInteractiva({
   filtros,
   onFiltroPress,
   onMasFiltrosPress,
@@ -74,9 +66,7 @@ const BarraFiltrosInteractiva = React.memo(function BarraFiltrosInteractiva({
       </ScrollView>
     </View>
   );
-});
-
-export default BarraFiltrosInteractiva;
+}
 
 const styles = StyleSheet.create({
   container: {

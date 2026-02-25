@@ -2,7 +2,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/utils/supabase';
 import { getEstadoLocal } from '@/utils/timeUtils';
-import { useFilterStore } from '@/src/store/useFilterStore';
 
 /**
  * ✅ HAVERSINE FORMULA - Distance calculation between two coordinates
@@ -48,62 +47,66 @@ const sortLocales = (locales: any[]) => {
 };
 
 /**
- * ✅ useBaresQuery - THE BRAIN 🧠 - ATOMIC FILTERING WITH ZUSTAND (v3.0)
- * 
- * 🚀 CRITICAL OPTIMIZATION v3.0:
- * - ✅ STATIC queryKey: ['bares', 'all'] - NEVER changes
- * - ✅ FILTERS FROM STORE: Accesses useFilterStore internally
- * - ✅ NO NETWORK REQUESTS: Filter changes don't trigger refetch
- * - ✅ INSTANT FILTERING: 0ms latency, 60 FPS on mobile
- * - ✅ ATOMIC UPDATES: Only components using filters re-render
+ * ✅ useBaresQuery - THE BRAIN 🧠
  * 
  * UNIFIED BUSINESS LOGIC:
- * - Fetches ALL active locales from Supabase (once)
+ * - Fetches locales from Supabase
+ * - Applies filters (tipo, provincia, destacado)
  * - Calculates distance using Haversine formula
  * - Determines open/closed status
- * - Applies filters in memory (servicios, ambiente, clientela, tipo, provincia)
  * - Applies master sorting (open+featured → open+proximity → closed)
  * 
  * CACHE STRATEGY:
- * - queryKey: ['bares', 'all'] - static, no filter dependencies
+ * - queryKey includes [filtros, !!userLocation] for proper cache invalidation
  * - staleTime: 5 minutes (data considered fresh)
  * - gcTime: 24 hours (cache retention)
  * 
- * REGLA DE ORO:
- * - La queryKey SIEMPRE es ['bares', 'all']
- * - Los filtros se aplican en el select, NO en la queryFn
- * - Cambiar filtros NO dispara peticiones de red
- * 
  * @param userLocation - User's current location { latitude, longitude }
+ * @param filtros - Active filters { tipo, provincia, destacado, abierto, precioMedio }
  * @returns TanStack Query result with sorted and processed locales
  */
 export const useBaresQuery = (
-  userLocation: { latitude: number; longitude: number } | null
+  userLocation: { latitude: number; longitude: number } | null,
+  filtros: {
+    tipo: string;
+    provincia: string;
+    destacado: boolean;
+    abierto: boolean;
+    precioMedio: string;
+  }
 ) => {
-  // ✅ ATOMIC STATE: Get filters from Zustand store
-  const filtros = useFilterStore(state => state.filtros);
   return useQuery({
-    // 🚀 CRITICAL OPTIMIZATION: Static queryKey - NO filter dependencies
-    // This ensures TanStack Query NEVER refetches on filter changes
-    queryKey: ['bares', 'all'],
+    // ✅ CRITICAL: queryKey includes filters and userLocation presence for cache invalidation
+    queryKey: ['bares', filtros, !!userLocation],
     
     queryFn: async () => {
-      console.log('[useBaresQuery v3.0] 📡 Fetching ALL active bares from Supabase (once)...');
-      console.log('[useBaresQuery v3.0] 📍 User location:', userLocation ? 'Available' : 'Not available');
+      console.log('[useBaresQuery] 📡 Fetching bares from Supabase...');
+      console.log('[useBaresQuery] 🔍 Filters:', filtros);
+      console.log('[useBaresQuery] 📍 User location:', userLocation ? 'Available' : 'Not available');
       
-      // 🚀 OPTIMIZATION: Fetch ALL active locales without any filters
-      // Filters will be applied client-side in the select function below
-      const query = supabase.from('locales').select('*').eq('activo', true);
+      // ✅ Build query with filters
+      let query = supabase.from('locales').select('*').eq('activo', true);
+
+      // Apply filters dynamically
+      if (filtros.tipo && filtros.tipo !== 'todos') {
+        query = query.eq('tipo', filtros.tipo);
+      }
+      if (filtros.provincia && filtros.provincia !== 'todos') {
+        query = query.eq('provincia', filtros.provincia);
+      }
+      if (filtros.destacado) {
+        query = query.eq('destacado', true);
+      }
 
       const { data, error } = await query;
       if (error) {
-        console.error('[useBaresQuery v3.0] ❌ Error fetching data:', error);
+        console.error('[useBaresQuery] ❌ Error fetching data:', error);
         throw error;
       }
 
-      console.log('[useBaresQuery v3.0] ✅ Fetched', data?.length || 0, 'locales (ALL active)');
+      console.log('[useBaresQuery] ✅ Fetched', data?.length || 0, 'locales');
 
-      // ✅ PROCESS DATA: Calculate open status and distance for ALL locales
+      // ✅ PROCESS DATA: Calculate open status and distance
       const procesados = data.map(local => {
         // Determine if local is open/closed
         const estado = getEstadoLocal(local);
@@ -126,83 +129,11 @@ export const useBaresQuery = (
         };
       });
 
-      console.log('[useBaresQuery v3.0] 🎯 Processed', procesados.length, 'locales with distance & status');
-
-      return procesados;
-    },
-    
-    // 🚀 CLIENT-SIDE FILTERING: Apply filters in memory using select
-    // This runs INSTANTLY without network requests
-    select: (data) => {
-      console.log('[useBaresQuery v3.0] 🔍 Applying client-side filters:', filtros);
+      // ✅ APPLY MASTER SORTING LOGIC
+      const sorted = sortLocales(procesados);
       
-      // ✅ STEP 1: Apply ALL filters in memory
-      let filtered = data;
-      
-      // Filter by tipo (category)
-      if (filtros.tipo && filtros.tipo !== 'todos') {
-        filtered = filtered.filter(local => local.tipo === filtros.tipo);
-        console.log('[useBaresQuery v3.0] 🏷️ Filtered by tipo:', filtros.tipo, '→', filtered.length, 'locales');
-      }
-      
-      // Filter by provincia
-      if (filtros.provincia && filtros.provincia !== 'todos') {
-        filtered = filtered.filter(local => local.provincia === filtros.provincia);
-        console.log('[useBaresQuery v3.0] 📍 Filtered by provincia:', filtros.provincia, '→', filtered.length, 'locales');
-      }
-      
-      // Filter by servicios (services)
-      if (filtros.servicios && filtros.servicios.length > 0) {
-        filtered = filtered.filter(local => {
-          if (!local.servicios_disponibles) return false;
-          return filtros.servicios!.every(servicio => 
-            local.servicios_disponibles[servicio] === true
-          );
-        });
-        console.log('[useBaresQuery v3.0] 🛠️ Filtered by servicios:', filtros.servicios, '→', filtered.length, 'locales');
-      }
-      
-      // Filter by ambiente (atmosphere)
-      if (filtros.ambiente && filtros.ambiente.length > 0) {
-        filtered = filtered.filter(local => {
-          if (!local.ambiente_completo) return false;
-          return filtros.ambiente!.some(amb => 
-            local.ambiente_completo[amb] === true
-          );
-        });
-        console.log('[useBaresQuery v3.0] 🎭 Filtered by ambiente:', filtros.ambiente, '→', filtered.length, 'locales');
-      }
-      
-      // Filter by clientela (clientele)
-      if (filtros.clientela && filtros.clientela.length > 0) {
-        filtered = filtered.filter(local => {
-          if (!local.clientela) return false;
-          return filtros.clientela!.some(cli => 
-            local.clientela[cli] === true
-          );
-        });
-        console.log('[useBaresQuery v3.0] 👥 Filtered by clientela:', filtros.clientela, '→', filtered.length, 'locales');
-      }
-      
-      // Filter by destacado (featured)
-      if (filtros.destacado) {
-        filtered = filtered.filter(local => local.destacado === true);
-        console.log('[useBaresQuery v3.0] ⭐ Filtered by destacado → ', filtered.length, 'locales');
-      }
-      
-      // Filter by abierto (open now)
-      if (filtros.abierto) {
-        filtered = filtered.filter(local => local.estaAbierto === true);
-        console.log('[useBaresQuery v3.0] 🕐 Filtered by abierto → ', filtered.length, 'locales');
-      }
-      
-      console.log('[useBaresQuery v3.0] ✅ Total filtered:', filtered.length, 'locales (from', data.length, 'total)');
-      
-      // ✅ STEP 2: Apply master sorting logic
-      const sorted = sortLocales(filtered);
-      
-      console.log('[useBaresQuery v3.0] 🎯 Sorted', sorted.length, 'locales');
-      console.log('[useBaresQuery v3.0] 📊 First 3:', sorted.slice(0, 3).map(l => ({
+      console.log('[useBaresQuery] 🎯 Sorted', sorted.length, 'locales');
+      console.log('[useBaresQuery] 📊 First 3:', sorted.slice(0, 3).map(l => ({
         nombre: l.nombre,
         abierto: l.estaAbierto,
         destacado: l.destacado,

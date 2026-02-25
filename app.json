@@ -1,101 +1,70 @@
 
 {
   "expo": {
-    "name": "BarLive-v22",
-    "slug": "bar-live-app-qvcija",
-    "version": "1.0.6",
+    "name": "BarLive",
+    "slug": "BarLive",
+    "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/natively-dark.png",
-    "scheme": "barlive",
+    "icon": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/natively-dark.png",
+      "image": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.barlive.app",
-      "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "BarLive necesita tu ubicación para mostrarte locales cercanos",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "BarLive necesita tu ubicación para mostrarte locales cercanos incluso cuando la app está en segundo plano",
-        "NSLocationAlwaysUsageDescription": "BarLive necesita tu ubicación para mostrarte locales cercanos incluso cuando la app está en segundo plano",
-        "NSCameraUsageDescription": "BarLive necesita acceso a tu cámara para tomar fotos",
-        "NSPhotoLibraryUsageDescription": "BarLive necesita acceso a tu galería para seleccionar fotos",
-        "NSMicrophoneUsageDescription": "BarLive necesita acceso a tu micrófono para grabar audio",
-        "NSFaceIDUsageDescription": "BarLive usa Face ID para autenticación segura",
-        "UIBackgroundModes": [
-          "location",
-          "fetch",
-          "remote-notification"
-        ]
-      }
+      "jsEngine": "hermes",
+      "newArchEnabled": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/natively-dark.png",
+        "foregroundImage": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.barlive.app",
       "permissions": [
-        "ACCESS_COARSE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION",
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "RECORD_AUDIO"
-      ]
+        "ACCESS_COARSE_LOCATION",
+        "FOREGROUND_SERVICE"
+      ],
+      "googleServicesFile": "./google-services.json",
+      "jsEngine": "hermes",
+      "newArchEnabled": true
     },
     "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/natively-dark.png"
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
       [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "BarLive necesita tu ubicación para mostrarte locales cercanos.",
-          "locationAlwaysPermission": "BarLive necesita tu ubicación para mostrarte locales cercanos incluso cuando la app está en segundo plano.",
-          "locationWhenInUsePermission": "BarLive necesita tu ubicación para mostrarte locales cercanos."
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "BarLive necesita acceso a tu galería para seleccionar fotos.",
-          "cameraPermission": "BarLive necesita acceso a tu cámara para tomar fotos."
-        }
-      ],
-      [
         "expo-notifications",
         {
-          "icon": "./assets/images/natively-dark.png",
+          "icon": "./assets/images/final_quest_240x240.png",
           "color": "#ffffff",
-          "sounds": []
-        }
-      ],
-      "expo-secure-store",
-      "expo-font",
-      [
-        "expo-local-authentication",
-        {
-          "faceIDPermission": "BarLive usa Face ID para autenticación segura."
+          "mode": "production",
+          "androidMode": "default",
+          "androidCollapsedTitle": "BarLive"
         }
       ]
     ],
-    "experiments": {
-      "typedRoutes": true
-    },
     "extra": {
       "router": {
         "origin": false
       },
       "eas": {
-        "projectId": "your-project-id"
+        "projectId": "a12429e7-cd75-4813-8907-593212e8d7ca"
       }
+    },
+    "scheme": "barlive",
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }

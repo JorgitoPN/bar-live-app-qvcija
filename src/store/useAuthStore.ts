@@ -175,12 +175,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               }
             });
           }, 100);
-        } else {
-          // ✅ PASO 4: SQLITE_FULL FIX - Clear disk cache when no session
-          console.log('[AuthStore] No active session detected. Clearing image disk cache to free space.');
-          import('expo-image').then(({ Image }) => {
-            Image.clearDiskCache().catch(e => console.error('[AuthStore] Error clearing disk cache:', e));
-          });
         }
         
         set({ loading: false });
@@ -214,12 +208,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               .catch(() => {});
           }, 10000);
         }
-      } else {
-        // ✅ PASO 4: SQLITE_FULL FIX - Clear disk cache when no session
-        console.log('[AuthStore] No active session detected. Clearing image disk cache to free space.');
-        import('expo-image').then(({ Image }) => {
-          Image.clearDiskCache().catch(e => console.error('[AuthStore] Error clearing disk cache:', e));
-        });
       }
     } catch (err) {
       // Silent error

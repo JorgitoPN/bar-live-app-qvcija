@@ -1,47 +1,44 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - CLIENT-SIDE FILTERING OPTIMIZATION v606.0 (0ms FILTERS)
+ * EXPLORAR SCREEN - FLASHLIST OPTIMIZATION v605.0 (60 FPS)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 OBJETIVO: Filtros instantáneos (0ms) en móvil + 60 FPS scroll
+ * 🎯 OBJETIVO: Scroll infinito sin tiempos de espera + Búsqueda predictiva + 60 FPS
  * 
- * ✅ OPTIMIZACIONES v606.0 (CLIENT-SIDE FILTERING):
- * 1️⃣ STATIC QUERY KEY: ['bares', 'all'] - NO network requests on filter changes
- * 2️⃣ CLIENT-SIDE FILTERING: All filtering in memory using TanStack Query's select
- * 3️⃣ SINGLE FETCH: Fetch all active locales once, filter locally
- * 4️⃣ INSTANT RESPONSE: 0ms filter changes, 60 FPS on mobile
- * 5️⃣ REACT.MEMO: BarraFiltrosInteractiva wrapped to prevent unnecessary re-renders
- * 6️⃣ USECALLBACK: All handler functions wrapped for stable references
- * 7️⃣ STABLE RENDERITEM: FlashList renderItem function is stable with useCallback
- * 
- * Previous optimizations maintained (v605.0):
+ * ✅ OPTIMIZACIONES v605.0 (FLASHLIST):
  * 1️⃣ FLASHLIST: Reemplazo de FlatList por FlashList para mejor reciclaje de celdas
  * 2️⃣ ESTIMATEDITEMSIZE: 400px para cálculo instantáneo de layouts
  * 3️⃣ MEMORY EFFICIENCY: ~10x menos memoria que FlatList
  * 4️⃣ SCROLL PERFORMANCE: 60 FPS constantes incluso con imágenes pesadas
- * 5️⃣ BÚSQUEDA PREDICTIVA: Backend ILIKE para búsqueda parcial case-insensitive
- * 6️⃣ PRECARGA INTELIGENTE: Carga anticipada al 50% del bloque actual (10/20 items)
- * 7️⃣ THROTTLING OPTIMIZADO: Scroll handler con throttle de 16ms (60fps)
  * 
- * 🚀 RESULTADO: Filtros instantáneos (0ms) + 60 FPS scroll + búsqueda predictiva
+ * Previous optimizations maintained (v604.0):
+ * 1️⃣ BÚSQUEDA PREDICTIVA: Backend ILIKE para búsqueda parcial case-insensitive
+ * 2️⃣ PRECARGA INTELIGENTE: Carga anticipada al 50% del bloque actual (10/20 items)
+ * 3️⃣ CARGA EN BACKGROUND: requestAnimationFrame para no bloquear UI
+ * 4️⃣ PREVENCIÓN DE DUPLICADOS: Sistema de locks para evitar llamadas múltiples
+ * 5️⃣ THROTTLING OPTIMIZADO: Scroll handler con throttle de 16ms (60fps)
+ * 6️⃣ CONDICIONES DE CARRERA: Refs para prevenir race conditions
+ * 7️⃣ ESCALABILIDAD: Preparado para miles de registros sin degradación
  * 
- * WHY CLIENT-SIDE FILTERING IS SUPERIOR:
- * 1. ZERO NETWORK LATENCY: No API calls on filter changes
- *    - Before: 200-500ms per filter change (network + DB query)
- *    - After: 0ms (instant memory filtering)
+ * 🚀 RESULTADO: Experiencia completamente fluida con búsqueda predictiva + 60 FPS
  * 
- * 2. TANSTACK QUERY CACHE: Data stays in cache, filters applied via select
- *    - Before: New query on every filter change
- *    - After: Single query, filters in memory
+ * WHY FLASHLIST IS SUPERIOR TO FLATLIST:
+ * 1. CELL RECYCLING: FlashList recycles cells more efficiently by using a "blank space" strategy
+ *    - FlatList: Creates new cells as you scroll, leading to memory spikes
+ *    - FlashList: Reuses existing cells, keeping memory constant
  * 
- * 3. MOBILE PERFORMANCE: 60 FPS maintained during filtering
- *    - Before: UI freezes during network requests
- *    - After: Instant UI updates, no freezes
+ * 2. MEMORY MANAGEMENT: FlashList uses ~10x less memory than FlatList
+ *    - FlatList: Keeps all rendered items in memory
+ *    - FlashList: Only keeps visible items + small buffer
  * 
- * 4. SCALABILITY: Works efficiently with thousands of records
- *    - Modern devices can filter 10k+ items in <10ms
- *    - Network requests would take 200-500ms each
+ * 3. SCROLL PERFORMANCE: FlashList maintains 60 FPS even with complex items
+ *    - FlatList: Drops frames with heavy items (images, gradients)
+ *    - FlashList: Optimized rendering pipeline prevents frame drops
+ * 
+ * 4. LAYOUT CALCULATION: FlashList calculates layouts more efficiently
+ *    - FlatList: Measures each item individually
+ *    - FlashList: Uses estimatedItemSize for instant layout
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -462,11 +459,10 @@ export default function ExplorarScreen() {
     return count;
   }, [selectedCategory, debouncedQuery]);
 
-  // 🚀 PERFORMANCE: useCallback wrapper for stable function reference
   const handleCategoryChange = useCallback((categoryId: string) => {
-    console.log('[ExplorarScreen v606.0] 🏷️ Cambiando categoría a:', categoryId);
-    console.log('[ExplorarScreen v606.0] 🏷️ Category ID received:', categoryId);
-    console.log('[ExplorarScreen v606.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
+    console.log('[ExplorarScreen v600.0] 🏷️ Cambiando categoría a:', categoryId);
+    console.log('[ExplorarScreen v600.0] 🏷️ Category ID received:', categoryId);
+    console.log('[ExplorarScreen v600.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
     
     // ✅ FIX: Actualizar categoría seleccionada PRIMERO
     const newCategory = categoryId === 'todos' ? null : categoryId;
@@ -484,12 +480,11 @@ export default function ExplorarScreen() {
     // ✅ FIX: Scroll to top
     flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
     
-    console.log('[ExplorarScreen v606.0] ✅ Category changed successfully');
+    console.log('[ExplorarScreen v600.0] ✅ Category changed successfully');
   }, [setSelectedCategory, globalFiltros, debouncedQuery]);
 
-  // 🚀 PERFORMANCE: useCallback wrapper for stable function reference
   const clearFilters = useCallback(() => {
-    console.log('[ExplorarScreen v606.0] 🧹 Limpiando filtros...');
+    console.log('[ExplorarScreen v605.0] 🧹 Limpiando filtros...');
     setSearchQuery('');
     setSelectedCategory(null);
     flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -554,20 +549,18 @@ export default function ExplorarScreen() {
     router.push('/solicitudes/solicitar-propiedad-v2');
   }, [user, router]);
 
-  // 🚀 PERFORMANCE: useCallback wrapper for stable function reference
+  // ✅ FIX 3 v602: Apertura instantánea del modal - ULTRA OPTIMIZED
   const handleOpenAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v606.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
+    console.log('[ExplorarScreen v602.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
     
-    // ✅ v606: Respuesta INMEDIATA - sin requestAnimationFrame
+    // ✅ v602: Respuesta INMEDIATA - sin requestAnimationFrame
     setShowAdvancedFilters(true);
   }, []);
 
-  // 🚀 PERFORMANCE: useCallback wrapper for stable function reference
   const handleCloseAdvancedFilters = useCallback(() => {
     setShowAdvancedFilters(false);
   }, []);
 
-  // 🚀 PERFORMANCE: useCallback wrapper for stable function reference
   const handleClearAdvancedFilters = useCallback(() => {
     limpiarFiltros();
   }, [limpiarFiltros]);
@@ -592,8 +585,6 @@ export default function ExplorarScreen() {
   // RENDER FUNCTIONS
   // ═══════════════════════════════════════════════════════════════════════════
   
-  // 🚀 PERFORMANCE: Stable renderItem function with useCallback
-  // This prevents FlashList from re-creating the render function on every render
   const renderVenueCard = useCallback(({ item, index }: { item: Venue; index: number }) => {
     return (
       <LocalCardOptimized
