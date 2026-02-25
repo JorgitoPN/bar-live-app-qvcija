@@ -172,10 +172,11 @@ export default function RootLayout() {
   }, []);
 
   // ✅ v17.0: Initialize Zustand stores (replaces Provider initialization)
+  // ✅ CRITICAL FIX: Wrapped in useEffect to prevent "State update on unmounted component" error
   useEffect(() => {
     console.log('[RootLayout v17.0] 🚀 Initializing Zustand stores...');
     
-    // Initialize auth store
+    // Initialize auth store (wrapped in useEffect to prevent state updates on unmounted components)
     useAuthStore.getState().initialize();
     console.log('[RootLayout v17.0] ✅ Auth store initialized');
     
