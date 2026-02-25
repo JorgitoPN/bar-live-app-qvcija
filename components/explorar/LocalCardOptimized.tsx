@@ -1,6 +1,6 @@
 
 /**
- * ✅ LOCAL CARD OPTIMIZED v1.0 - INSTAGRAM-LEVEL PERFORMANCE
+ * ✅ LOCAL CARD OPTIMIZED v2.0 - ULTRA PERFORMANCE + SERVER-SIDE OPTIMIZATION
  * 
  * Optimizaciones implementadas:
  * - ✅ Optimistic UI: Favoritos instantáneos
@@ -8,8 +8,12 @@
  * - ✅ Image Prefetching: Precarga automática
  * - ✅ Memoization: Previene re-renders
  * - ✅ Lazy Loading: Datos bajo demanda
+ * - ✅ Priority Loading: Primeras 4 tarjetas con prioridad alta (v2.0)
+ * - ✅ Memory-Disk Cache: Caché agresivo para evitar peticiones repetidas (v2.0)
+ * - ✅ Smooth Transitions: Fade de 200ms para evitar saltos visuales (v2.0)
+ * - ✅ Blurhash Placeholder: Placeholder visual mientras carga (v2.0)
  * 
- * RESULTADO: Scroll fluido, interacciones instantáneas
+ * RESULTADO: Scroll fluido, interacciones instantáneas, carga ultra-rápida
  */
 
 import React, { useState, useCallback, memo, useEffect } from 'react';
@@ -18,10 +22,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -52,10 +56,17 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   const [imageLoaded, setImageLoaded] = useState(false);
   const [localIsFavorite, setLocalIsFavorite] = useState(isFavorite(local.id));
 
+  // ✅ v2.0: Las imágenes ya vienen optimizadas desde el backend
   const imagenPrincipal = local.imagenes?.[0] || local.imagen_url;
   const isDestacado = local.destacado;
   const hasSocialProfile = socialProfiles.get(local.id) || false;
   const activeEvent = activeEvents.get(local.id);
+
+  // ✅ v2.0: PRIORITY LOADING - Primeras 4 tarjetas con prioridad alta
+  const imagePriority = index < 4 ? 'high' : 'low';
+  
+  // ✅ v2.0: Blurhash placeholder (puedes personalizar esto por local si tienes blurhash en BD)
+  const blurhash = 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH';
 
   // ✅ PREFETCH: Precargar imagen cuando el componente se monta
   useEffect(() => {
@@ -218,7 +229,11 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
           <Image
             source={{ uri: imagenPrincipal }}
             style={[styles.image, !imageLoaded && styles.imageHidden]}
-            resizeMode="cover"
+            contentFit="cover"
+            priority={imagePriority}
+            cachePolicy="memory-disk"
+            transition={200}
+            placeholder={blurhash}
             onLoad={() => setImageLoaded(true)}
           />
         ) : (
