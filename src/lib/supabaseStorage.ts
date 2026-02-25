@@ -70,32 +70,60 @@ const inMemoryAdapter: StorageAdapter = {
   },
 };
 
+// Check if we're in a browser environment
+const isBrowser = typeof window !== 'undefined' && typeof window.document !== 'undefined';
+
 // AsyncStorage adapter (for Web and fallback)
 const asyncStorageAdapter: StorageAdapter = {
   getItem: async (key: string): Promise<string | null> => {
+    // If not in browser, use in-memory storage
+    if (!isBrowser) {
+      console.log('[AsyncStorage] Not in browser, using in-memory storage');
+      return inMemoryAdapter.getItem(key);
+    }
+    
     try {
       const value = await AsyncStorage.getItem(key);
       console.log('[AsyncStorage] getItem:', key, value ? '✓ found' : '✗ not found');
       return value;
     } catch (error) {
       console.error('[AsyncStorage] getItem error:', error);
-      return null;
+      // Fallback to in-memory storage
+      return inMemoryAdapter.getItem(key);
     }
   },
   setItem: async (key: string, value: string): Promise<void> => {
+    // If not in browser, use in-memory storage
+    if (!isBrowser) {
+      console.log('[AsyncStorage] Not in browser, using in-memory storage');
+      inMemoryAdapter.setItem(key, value);
+      return;
+    }
+    
     try {
       console.log('[AsyncStorage] setItem:', key, `(${value.length} chars)`);
       await AsyncStorage.setItem(key, value);
     } catch (error) {
       console.error('[AsyncStorage] setItem error:', error);
+      // Fallback to in-memory storage
+      inMemoryAdapter.setItem(key, value);
     }
   },
   removeItem: async (key: string): Promise<void> => {
+    // If not in browser, use in-memory storage
+    if (!isBrowser) {
+      console.log('[AsyncStorage] Not in browser, using in-memory storage');
+      inMemoryAdapter.removeItem(key);
+      return;
+    }
+    
     try {
       console.log('[AsyncStorage] removeItem:', key);
       await AsyncStorage.removeItem(key);
     } catch (error) {
       console.error('[AsyncStorage] removeItem error:', error);
+      // Fallback to in-memory storage
+      inMemoryAdapter.removeItem(key);
     }
   },
 };
