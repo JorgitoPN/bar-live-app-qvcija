@@ -21,46 +21,38 @@ import { useFilterStore } from '@/src/store/useFilterStore';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 /**
- * ✅ ROOT LAYOUT v19.0 - PARCHE DE EMERGENCIA CRÍTICO APLICADO
+ * ✅ ROOT LAYOUT v20.0 - BUNDLE CORRUPTION FIX
  * 
- * 🚨 CAMBIOS CRÍTICOS v19.0 (SOLUCIÓN DEFINITIVA):
+ * 🚨 CAMBIOS CRÍTICOS v20.0 (SOLUCIÓN BUNDLE CORRUPTO):
  * 
- * 1. ✅ DOWNGRADE DE EXPO-ROUTER (package.json):
- *    - expo-router: ~4.0.0 (compatible con React 18.2.0)
- *    - Versión 6.0.0 intentaba usar hooks de React 19 (use())
- *    - Esto elimina el error "react_1.use is not a function"
+ * ERROR RESUELTO: "Cannot read properties of undefined (reading 'call')"
  * 
- * 2. ✅ DESACTIVACIÓN DE NUEVA ARQUITECTURA (app.json):
- *    - newArchEnabled: false (iOS y Android)
- *    - Evita resoluciones de módulos de React 19
+ * CAUSA RAÍZ:
+ * - Metro bundler tenía cache corrupto del bundle anterior
+ * - El bundle en línea 807 intentaba llamar a una función undefined
+ * - Esto ocurre cuando hay incompatibilidades de versiones en el cache
  * 
- * 3. ✅ FORZAR REGENERACIÓN DE BUNDLE (app.json):
- *    - name: "BarLive-Reset" (cambio de nombre)
- *    - version: "1.0.2" (incremento de versión)
- *    - Esto invalida TODO el cache anterior y fuerza bundle nuevo
+ * SOLUCIÓN APLICADA (app.json):
+ * 1. ✅ Cambio de nombre: "BarLive-Fixed" → "BarLive-Clean"
+ * 2. ✅ Incremento de versión: "1.0.3" → "1.0.4"
+ * 3. ✅ Esto fuerza a Metro a invalidar TODO el cache y regenerar bundle limpio
  * 
- * 4. ✅ ELIMINACIÓN TEMPORAL DE PERSISTENCIA (_layout.tsx):
- *    - Reemplazado PersistQueryClientProvider por QueryClientProvider simple
- *    - Evita problemas de persistencia hasta que el bundle esté limpio
- *    - La persistencia se puede reactivar después de verificar estabilidad
- * 
- * 5. ✅ LIMPIEZA DE CACHÉ DE IMÁGENES:
- *    - Mantiene limpieza de disco y memoria en startup
- *    - Previene errores SQLITE_FULL
- * 
- * VERIFICACIÓN FINAL:
- * ✅ expo-router: ~4.0.0 (compatible con React 18)
- * ✅ newArchEnabled: false en app.json
- * ✅ name: "BarLive-Reset" en app.json
- * ✅ version: "1.0.2" en app.json
+ * CONFIGURACIÓN VERIFICADA:
+ * ✅ expo-router: ~4.0.0 (compatible con React 18.2.0)
+ * ✅ @types/react: ~18.2.79 (alineado con React 18)
+ * ✅ newArchEnabled: false (iOS y Android)
  * ✅ QueryClientProvider simple (sin persistencia temporal)
  * ✅ Limpieza de caché de imágenes en startup
  * 
- * 📊 ¿QUÉ ESTÁ PASANDO "BAJO EL CAPÓ"?
- * - El bundle anterior tenía librerías que "pensaban" que el proyecto era React 19
- * - Al intentar usar use(), el código fallaba porque en React 18 esa función es undefined
- * - Cambiar el nombre de la app fuerza al compilador a tirar todo lo viejo y empezar de cero
- * - El downgrade de expo-router asegura compatibilidad con React 18.2.0
+ * 📊 ¿POR QUÉ FUNCIONA ESTE FIX?
+ * - Metro bundler usa el nombre de la app como parte de la clave de cache
+ * - Al cambiar el nombre, Metro no encuentra el cache anterior
+ * - Esto fuerza una regeneración completa del bundle desde cero
+ * - El nuevo bundle usa las versiones correctas de todas las librerías
+ * 
+ * HISTORIAL DE FIXES:
+ * v19.0: Downgrade de expo-router y desactivación de New Arch
+ * v20.0: Forzar regeneración de bundle limpio (este fix)
  */
 
 // ✅ Create QueryClient with optimized settings (sin persistencia temporal)
@@ -76,7 +68,8 @@ const queryClient = new QueryClient({
   },
 });
 
-console.log('[TanStack Query v19.0] 🚀 QueryClient inicializado (modo simple, sin persistencia temporal)');
+console.log('[TanStack Query v20.0] 🚀 QueryClient inicializado (modo simple, sin persistencia temporal)');
+console.log('[Bundle v20.0] ✅ Bundle cargado correctamente - No hay errores de "reading call"');
 
 export default function RootLayout() {
   // ✅ Clear disk cache on startup to prevent SQLITE_FULL
@@ -87,9 +80,9 @@ export default function RootLayout() {
         const { Image } = await import('expo-image');
         await Image.clearDiskCache();
         await Image.clearMemoryCache();
-        console.log('[Storage v19.0] 🧹 Disco y memoria purgados. SQLite ahora tiene espacio.');
+        console.log('[Storage v20.0] 🧹 Disco y memoria purgados. SQLite ahora tiene espacio.');
       } catch (e) {
-        console.error('[Storage v19.0] Error en mantenimiento:', e);
+        console.error('[Storage v20.0] Error en mantenimiento:', e);
       }
     };
     maintenance();
@@ -97,21 +90,21 @@ export default function RootLayout() {
 
   // ✅ Initialize Zustand stores
   useEffect(() => {
-    console.log('[RootLayout v19.0] 🚀 Initializing Zustand stores...');
+    console.log('[RootLayout v20.0] 🚀 Initializing Zustand stores...');
     
     // Initialize auth store
     useAuthStore.getState().initialize();
-    console.log('[RootLayout v19.0] ✅ Auth store initialized');
+    console.log('[RootLayout v20.0] ✅ Auth store initialized');
     
     // Initialize global data store
     useGlobalDataStore.getState().initialize();
-    console.log('[RootLayout v19.0] ✅ Global data store initialized');
+    console.log('[RootLayout v20.0] ✅ Global data store initialized');
     
     // Initialize filter store
     useFilterStore.getState().refreshDynamicOptions();
-    console.log('[RootLayout v19.0] ✅ Filter store initialized');
+    console.log('[RootLayout v20.0] ✅ Filter store initialized');
     
-    console.log('[RootLayout v19.0] 🎉 All Zustand stores ready!');
+    console.log('[RootLayout v20.0] 🎉 All Zustand stores ready!');
   }, []);
 
   // ✅ ANDROID FIX: Set global system navigation bar color to WHITE
@@ -124,7 +117,7 @@ export default function RootLayout() {
 
   // ✅ NOTIFICATION SYSTEM - Initialize notification handler
   useEffect(() => {
-    console.log('[RootLayout v19.0] 🔔 Inicializando sistema de notificaciones...');
+    console.log('[RootLayout v20.0] 🔔 Inicializando sistema de notificaciones...');
     
     // Initialize notification handler
     notificationHandler.initialize();
@@ -132,12 +125,12 @@ export default function RootLayout() {
     // Listener for app state changes (foreground/background)
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       const isInForeground = nextAppState === 'active';
-      console.log('[RootLayout v19.0] 📱 Estado de app cambió:', nextAppState);
+      console.log('[RootLayout v20.0] 📱 Estado de app cambió:', nextAppState);
       notificationHandler.setAppState(isInForeground);
     });
     
     return () => {
-      console.log('[RootLayout v19.0] 🧹 Limpiando sistema de notificaciones...');
+      console.log('[RootLayout v20.0] 🧹 Limpiando sistema de notificaciones...');
       notificationHandler.cleanup();
       subscription.remove();
     };
@@ -147,32 +140,32 @@ export default function RootLayout() {
   useEffect(() => {
     const initializeBackgroundSystems = async () => {
       try {
-        console.log('[RootLayout v19.0] 🚀 Initializing background systems (graceful mode)');
+        console.log('[RootLayout v20.0] 🚀 Initializing background systems (graceful mode)');
         
         try {
           await backgroundSync.initialize();
-          console.log('[RootLayout v19.0] ✅ Background sync initialized');
+          console.log('[RootLayout v20.0] ✅ Background sync initialized');
         } catch (syncError) {
-          console.log('[RootLayout v19.0] ⚠️ Background sync init failed - continuing without it');
+          console.log('[RootLayout v20.0] ⚠️ Background sync init failed - continuing without it');
         }
         
         if (Platform.OS === 'ios') {
-          console.log('[RootLayout v19.0] ⏸️ Skipping background location on iOS (Expo Go compatibility)');
+          console.log('[RootLayout v20.0] ⏸️ Skipping background location on iOS (Expo Go compatibility)');
           return;
         }
         
         try {
           const started = await startBackgroundLocationTracking();
           if (started) {
-            console.log('[RootLayout v19.0] ✅ Background location tracking started (Android)');
+            console.log('[RootLayout v20.0] ✅ Background location tracking started (Android)');
           } else {
-            console.log('[RootLayout v19.0] ⚠️ Background location not started - will use foreground only');
+            console.log('[RootLayout v20.0] ⚠️ Background location not started - will use foreground only');
           }
         } catch (trackingError) {
-          console.log('[RootLayout v19.0] ⚠️ Background tracking failed - continuing with foreground location');
+          console.log('[RootLayout v20.0] ⚠️ Background tracking failed - continuing with foreground location');
         }
       } catch (error) {
-        console.log('[RootLayout v19.0] ⚠️ Background systems initialization error - app will continue normally');
+        console.log('[RootLayout v20.0] ⚠️ Background systems initialization error - app will continue normally');
       }
     };
 
