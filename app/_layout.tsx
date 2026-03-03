@@ -25,113 +25,25 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import { supabaseStorage } from '@/src/lib/supabaseStorage';
 
 /**
- * ✅ ROOT LAYOUT v18.2 - TANSTACK QUERY ASYNC PERSISTER (PASO 4.2 COMPLETADO)
+ * ✅ ROOT LAYOUT v18.3 - LOCATION PROVIDER WRAPPING STACK (CORRECCIÓN 1)
  * 
- * 🎉 PASO 4.2 COMPLETADO: TANSTACK QUERY CON PERSISTENCIA ASÍNCRONA CORRECTA
+ * 🎯 CORRECCIÓN 1: Protección contra el Crash de Ubicación
+ * - ✅ LocationProvider envuelve el Stack (no solo dentro de PersistQueryClientProvider)
+ * - ✅ Esto asegura que el contexto de ubicación esté disponible ANTES de que se renderice cualquier pantalla
+ * - ✅ Previene crashes por acceso a useLocation() antes de que el provider esté montado
  * 
- * CAMBIOS v18.2:
- * - 🔧 CORREGIDO: Migración a createAsyncStoragePersister (compatible con supabaseStorage asíncrono)
- * - 🚀 AÑADIDO: TanStack Query para gestión de caché de datos de Supabase
- * - 🚀 PERSISTENCIA: Caché persistente con MMKV (iOS/Android) y AsyncStorage (Web)
- * - 🚀 STALE TIME: 5 minutos - los datos no se refrescan constantemente
- * - 🚀 CACHE TIME: 24 horas - los datos persisten incluso después de cerrar la app
- * - 🚀 INSTANT UI: Los bares aparecen instantáneamente al abrir la app (desde caché)
- * 
- * CÓMO FUNCIONA LA CACHÉ DE TANSTACK QUERY:
- * 
- * ❌ ANTES (Sin TanStack Query):
- * - Cada vez que abres la app: Spinner de carga → Petición a Supabase → Datos aparecen
- * - Tiempo de espera: 1-3 segundos cada vez
- * - Experiencia: Lenta, frustrante
- * 
- * ✅ AHORA (Con TanStack Query + MMKV):
- * - Primera vez: Spinner → Petición a Supabase → Datos aparecen → Se guardan en MMKV
- * - Siguientes veces: Datos aparecen INSTANTÁNEAMENTE desde MMKV → Petición en segundo plano (si stale)
- * - Tiempo de espera: 0 segundos (datos instantáneos)
- * - Experiencia: Rápida, fluida, como Instagram/WhatsApp
- * 
- * CÓMO USAR TANSTACK QUERY EN TUS COMPONENTES:
- * 
- * Ejemplo: Crear un hook useBaresQuery para obtener los bares
- * 
- * // hooks/useBaresQuery.ts (ARCHIVO DE EJEMPLO CREADO)
- * import { useQuery } from '@tanstack/react-query';
- * import { supabase } from '@/utils/supabase';
- * 
- * export const useBaresQuery = () => {
- *   return useQuery({
- *     queryKey: ['bares'], // Identificador único de la query
- *     queryFn: async () => {
- *       console.log('[useBaresQuery] Fetching bares from Supabase...');
- *       const { data, error } = await supabase.from('locales').select('*');
- *       if (error) throw error;
- *       return data;
- *     },
- *     staleTime: 1000 * 60 * 5, // 5 minutos
- *   });
- * };
- * 
- * // En tu componente:
- * const { data: bares, isLoading, error, refetch } = useBaresQuery();
- * 
- * // Pull-to-refresh:
- * <ScrollView refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} />}>
- *   {bares?.map(bar => <BarCard key={bar.id} bar={bar} />)}
- * </ScrollView>
- * 
- * STALE TIME (5 minutos):
- * - Si los datos tienen menos de 5 minutos: NO se hace petición a la red
- * - Si los datos tienen más de 5 minutos: Se hace petición en segundo plano (pero los datos viejos se muestran primero)
- * - Resultado: Menos peticiones a Supabase, menos consumo de datos, más rápido
- * 
- * CACHE TIME (24 horas):
- * - Los datos se mantienen en MMKV durante 24 horas
- * - Incluso si cierras la app, los datos siguen ahí
- * - Resultado: Apertura instantánea de la app, sin spinners
- * 
- * PULL-TO-REFRESH:
- * - Cuando el usuario tira hacia abajo: Se ejecuta refetch() de la query
- * - Esto fuerza una petición a Supabase, ignorando el staleTime
- * - Los datos se actualizan y se guardan en MMKV
- * 
- * PROVIDERS ACTUALES (9):
- * - QueryClientProvider (TanStack Query - NUEVO)
- * - ImpersonationProvider (funcionalidad admin)
- * - ModeProvider (modo claro/oscuro)
- * - AvatarProvider (gestión de avatares)
- * - UIScalingProvider (diseño responsivo)
- * - WidgetProvider (estado de widgets)
- * - SelectedLocalProvider (local actual)
- * - GestureHandlerRootView (requerido para gestos)
- * - ErrorBoundary (manejo de errores)
- * 
- * ZUSTAND STORES (4):
- * - useAuthStore (sesión, usuario)
- * - useFavoritesStore (favoritos)
- * - useFilterStore (filtros, categorías)
- * - useGlobalDataStore (locales, posts, eventos, ofertas) - AHORA COMPLEMENTADO CON TANSTACK QUERY
- * 
- * BENEFICIOS DE TANSTACK QUERY:
- * 1. 🚀 INSTANT UI: Datos aparecen instantáneamente desde caché
- * 2. 🔄 SMART REFETCH: Solo se refrescan los datos cuando son "stale" (viejos)
- * 3. 💾 PERSISTENT CACHE: Los datos persisten entre sesiones (MMKV)
- * 4. 📡 BACKGROUND SYNC: Actualización en segundo plano sin bloquear UI
- * 5. 🎯 DEDUPLICATION: Múltiples componentes pueden usar la misma query sin duplicar peticiones
- * 
- * VERIFICACIÓN FINAL:
- * ✅ staleTime: 5 minutos (1000 * 60 * 5)
- * ✅ gcTime: 24 horas (1000 * 60 * 60 * 24)
- * ✅ Persister: createAsyncStoragePersister con supabaseStorage
- * ✅ Throttle: 1000ms para evitar escrituras excesivas
- * 
- * Cambios previos:
- * - v18.1: Migración inicial a TanStack Query (con error de persister)
- * - v17.0: Migración a Zustand (Paso 3)
- * - v16.0: Sistema de notificaciones push
- * - v15.0: Sistema inicial de notificaciones
- * - v14.0: Fix de crash en iOS Expo Go
- * - v13.0: Ubicación en segundo plano y precarga inteligente
- * - v12.0: Fix de color de barra de navegación Android
+ * ORDEN DE PROVIDERS (CRÍTICO):
+ * 1. GestureHandlerRootView (gestos)
+ * 2. ErrorBoundary (manejo de errores)
+ * 3. PersistQueryClientProvider (caché de TanStack Query)
+ * 4. LocationProvider (ubicación - AHORA ENVUELVE EL STACK) ✅ NUEVO
+ * 5. ImpersonationProvider (admin)
+ * 6. ModeProvider (modo claro/oscuro)
+ * 7. AvatarProvider (avatares)
+ * 8. UIScalingProvider (diseño responsivo)
+ * 9. WidgetProvider (widgets)
+ * 10. SelectedLocalProvider (local actual)
+ * 11. Stack (navegación)
  */
 
 // ✅ PASO 4: Create QueryClient with optimized settings
@@ -148,8 +60,6 @@ const queryClient = new QueryClient({
 });
 
 // ✅ PASO 4.2: Create async persister with the existing supabaseStorage adapter
-// This adapter already handles MMKV (native) and AsyncStorage (web) fallback
-// supabaseStorage is fully async-compatible, so we use createAsyncStoragePersister
 console.log('[TanStack Query] 🚀 Initializing async cache persister with supabaseStorage adapter');
 
 const persister = createAsyncStoragePersister({
@@ -163,21 +73,21 @@ console.log('[TanStack Query] ✅ Async cache persister initialized successfully
 export default function RootLayout() {
   // ✅ v17.0: Initialize Zustand stores (replaces Provider initialization)
   useEffect(() => {
-    console.log('[RootLayout v17.0] 🚀 Initializing Zustand stores...');
+    console.log('[RootLayout v18.3] 🚀 Initializing Zustand stores...');
     
     // Initialize auth store
     useAuthStore.getState().initialize();
-    console.log('[RootLayout v17.0] ✅ Auth store initialized');
+    console.log('[RootLayout v18.3] ✅ Auth store initialized');
     
     // Initialize global data store
     useGlobalDataStore.getState().initialize();
-    console.log('[RootLayout v17.0] ✅ Global data store initialized');
+    console.log('[RootLayout v18.3] ✅ Global data store initialized');
     
     // Initialize filter store (load dynamic options)
     useFilterStore.getState().refreshDynamicOptions();
-    console.log('[RootLayout v17.0] ✅ Filter store initialized');
+    console.log('[RootLayout v18.3] ✅ Filter store initialized');
     
-    console.log('[RootLayout v17.0] 🎉 All Zustand stores ready!');
+    console.log('[RootLayout v18.3] 🎉 All Zustand stores ready!');
   }, []);
 
   // ✅ ANDROID FIX v13.0: Set global system navigation bar color to WHITE (no blue flash)
@@ -190,7 +100,7 @@ export default function RootLayout() {
 
   // ✅ v15.0: NOTIFICATION SYSTEM - Inicializar sistema de notificaciones
   useEffect(() => {
-    console.log('[RootLayout v15.0] 🔔 Inicializando sistema de notificaciones...');
+    console.log('[RootLayout v18.3] 🔔 Inicializando sistema de notificaciones...');
     
     // Inicializar handler de notificaciones
     notificationHandler.initialize();
@@ -198,12 +108,12 @@ export default function RootLayout() {
     // Listener para cambios de estado de la app (foreground/background)
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       const isInForeground = nextAppState === 'active';
-      console.log('[RootLayout v15.0] 📱 Estado de app cambió:', nextAppState);
+      console.log('[RootLayout v18.3] 📱 Estado de app cambió:', nextAppState);
       notificationHandler.setAppState(isInForeground);
     });
     
     return () => {
-      console.log('[RootLayout v15.0] 🧹 Limpiando sistema de notificaciones...');
+      console.log('[RootLayout v18.3] 🧹 Limpiando sistema de notificaciones...');
       notificationHandler.cleanup();
       subscription.remove();
     };
@@ -213,32 +123,32 @@ export default function RootLayout() {
   useEffect(() => {
     const initializeBackgroundSystems = async () => {
       try {
-        console.log('[RootLayout v14.0] 🚀 Initializing background systems (graceful mode)');
+        console.log('[RootLayout v18.3] 🚀 Initializing background systems (graceful mode)');
         
         try {
           await backgroundSync.initialize();
-          console.log('[RootLayout v14.0] ✅ Background sync initialized');
+          console.log('[RootLayout v18.3] ✅ Background sync initialized');
         } catch (syncError) {
-          console.log('[RootLayout v14.0] ⚠️ Background sync init failed - continuing without it');
+          console.log('[RootLayout v18.3] ⚠️ Background sync init failed - continuing without it');
         }
         
         if (Platform.OS === 'ios') {
-          console.log('[RootLayout v14.0] ⏸️ Skipping background location on iOS (Expo Go compatibility)');
+          console.log('[RootLayout v18.3] ⏸️ Skipping background location on iOS (Expo Go compatibility)');
           return;
         }
         
         try {
           const started = await startBackgroundLocationTracking();
           if (started) {
-            console.log('[RootLayout v14.0] ✅ Background location tracking started (Android)');
+            console.log('[RootLayout v18.3] ✅ Background location tracking started (Android)');
           } else {
-            console.log('[RootLayout v14.0] ⚠️ Background location not started - will use foreground only');
+            console.log('[RootLayout v18.3] ⚠️ Background location not started - will use foreground only');
           }
         } catch (trackingError) {
-          console.log('[RootLayout v14.0] ⚠️ Background tracking failed - continuing with foreground location');
+          console.log('[RootLayout v18.3] ⚠️ Background tracking failed - continuing with foreground location');
         }
       } catch (error) {
-        console.log('[RootLayout v14.0] ⚠️ Background systems initialization error - app will continue normally');
+        console.log('[RootLayout v18.3] ⚠️ Background systems initialization error - app will continue normally');
       }
     };
 
@@ -256,6 +166,7 @@ export default function RootLayout() {
           client={queryClient}
           persistOptions={{ persister }}
         >
+          {/* ✅ CORRECCIÓN 1: LocationProvider envuelve el Stack */}
           <LocationProvider>
             <ImpersonationProvider>
               <ModeProvider>
