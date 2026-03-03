@@ -3,9 +3,15 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ useBaresQuery v4.0 - INTELLIGENT LOCATION-BASED CACHING 🚀
+ * ✅ useBaresQuery v4.1 - STATUS-BASED SORTING + INTELLIGENT CACHING 🚀
  * 
- * NEW IN v4.0:
+ * NEW IN v4.1:
+ * - ✅ STATUS-BASED SORTING: Open venues first, then closed, then no info
+ * - ✅ SORTING PRIORITY: 1) Open now → 2) Closed now → 3) No schedule info
+ * - ✅ WITHIN GROUPS: Featured first, then by proximity
+ * - ✅ EXAMPLE: Open venues appear before closed ones, regardless of distance
+ * 
+ * FEATURES FROM v4.0:
  * - ✅ INTELLIGENT CACHING: queryKey includes rounded lat/lng
  * - ✅ CACHE REUSE: Minor location changes (10m) use same cache
  * - ✅ CACHE INVALIDATION: Major location changes (city) fetch new data
@@ -24,6 +30,7 @@ import { supabase } from '@/utils/supabase';
  * - ✅ ADDED: Server-side processing via get_sorted_locales_by_proximity RPC
  * - ✅ ADDED: PostGIS ST_Distance with GIST indexes
  * - ✅ ADDED: Pre-calculated estadoCompleto JSONB object
+ * - ✅ ADDED: Status-based primary sorting (Open > Closed > No Info)
  * 
  * RESULT:
  * - Load time: ~1.5s → <300ms ⚡
@@ -31,6 +38,7 @@ import { supabase } from '@/utils/supabase';
  * - Frontend processing: Heavy → Zero 🎉
  * - Navigation: Data loss → Instant restore from cache 💾
  * - Location changes: Always refetch → Smart cache reuse 🧠
+ * - Sorting: Open venues always appear first 🎯
  * 
  * CACHE STRATEGY:
  * - queryKey includes rounded lat/lng for intelligent caching
@@ -67,9 +75,10 @@ export const useBaresQuery = ({
   const roundedLng = userLocation ? Math.round(userLocation.longitude) : null;
   
   return useInfiniteQuery({
-    // ✅ v4.0: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
+    // ✅ v4.1: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
+    // Version bumped to v4.1 to force cache refresh with new status-based sorting
     queryKey: [
-      'bares_infinite_v4',
+      'bares_infinite_v4.1',
       roundedLat,
       roundedLng,
       selectedCategory,
@@ -78,10 +87,10 @@ export const useBaresQuery = ({
     ],
     
     queryFn: async ({ pageParam = 0 }) => {
-      console.log('[useBaresQuery v4.0] 📡 Fetching page:', pageParam / pageSize + 1);
-      console.log('[useBaresQuery v4.0] 🔍 Category:', selectedCategory);
-      console.log('[useBaresQuery v4.0] 🔍 Search:', searchQuery);
-      console.log('[useBaresQuery v4.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
+      console.log('[useBaresQuery v4.1] 📡 Fetching page:', pageParam / pageSize + 1);
+      console.log('[useBaresQuery v4.1] 🔍 Category:', selectedCategory);
+      console.log('[useBaresQuery v4.1] 🔍 Search:', searchQuery);
+      console.log('[useBaresQuery v4.1] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
       
       const startTime = performance.now();
       
@@ -119,12 +128,20 @@ export const useBaresQuery = ({
       const loadTime = endTime - startTime;
 
       if (error) {
-        console.error('[useBaresQuery v4.0] ❌ Error calling RPC:', error);
+        console.error('[useBaresQuery v4.1] ❌ Error calling RPC:', error);
         throw error;
       }
 
       const venues = data || [];
-      console.log('[useBaresQuery v4.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
+      console.log('[useBaresQuery v4.1] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
+      
+      // ✅ v4.1: Debug sorting - log first 5 venues to verify status-based sorting
+      if (venues.length > 0) {
+        console.log('[useBaresQuery v4.1] 📊 First 5 venues (sorted by status):');
+        venues.slice(0, 5).forEach((venue: any, idx: number) => {
+          console.log(`  ${idx + 1}. ${venue.nombre} - esta_abierto: ${venue.esta_abierto}, destacado: ${venue.destacado}`);
+        });
+      }
       
       // ✅ v4.1: Map backend response (snake_case) to frontend format
       // Backend returns: esta_abierto (boolean), horarios_completos (jsonb)
