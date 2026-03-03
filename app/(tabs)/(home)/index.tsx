@@ -134,20 +134,7 @@ export default function HomeScreen() {
     pageSize: 20,
   });
 
-  // ✅ v107.0: GUARD CLAUSE - Prevent crash if LocationContext not detected
-  // This is AFTER all hooks are called
-  if (locationContext === null) {
-    console.warn('[HomeScreen v107.0] ⚠️ LocationContext no detectado. Revisa el RootLayout.');
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>
-          Inicializando ubicación...
-        </Text>
-      </View>
-    );
-  }
-
+  // ✅ ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE],
     outputRange: [0, -HEADER_SCROLL_DISTANCE],
@@ -265,6 +252,20 @@ export default function HomeScreen() {
       },
     }
   );
+
+  // ✅ v107.0: GUARD CLAUSE - Prevent crash if LocationContext not detected
+  // This is AFTER all hooks are called
+  if (locationContext === null) {
+    console.warn('[HomeScreen v107.0] ⚠️ LocationContext no detectado. Revisa el RootLayout.');
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>
+          Inicializando ubicación...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

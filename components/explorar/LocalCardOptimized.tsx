@@ -131,6 +131,16 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
    * This eliminates ALL client-side time calculations for instant rendering
    */
   const getBadgeInfo = () => {
+    // Debug: Log what we received for this local
+    if (index === 0) {
+      console.log('[LocalCardOptimized v2.0] 🔍 Badge data for first card:', {
+        nombre: local.nombre,
+        estadoCompleto: local.estadoCompleto,
+        estaAbierto: local.estaAbierto,
+        hasEstadoCompleto: !!local.estadoCompleto,
+      });
+    }
+    
     // ✅ PRIORITY 1: Use server-calculated estadoCompleto (from get_locales_v2)
     if (local.estadoCompleto) {
       const estado = local.estadoCompleto;
@@ -145,12 +155,6 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
       
       const badgeColor = colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF';
       
-      console.log('[LocalCardOptimized v2.0] ✅ Using server estadoCompleto:', {
-        nombre: local.nombre,
-        badge: estado.badge,
-        estaAbierto: estado.estaAbierto,
-      });
-      
       return {
         text: estado.badge,
         color: badgeColor,
@@ -158,10 +162,9 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
     }
     
     // ✅ FALLBACK: Use simple estaAbierto boolean (legacy support)
-    console.log('[LocalCardOptimized v2.0] ⚠️ Fallback to estaAbierto boolean:', {
-      nombre: local.nombre,
-      estaAbierto: local.estaAbierto,
-    });
+    if (index === 0) {
+      console.log('[LocalCardOptimized v2.0] ⚠️ No estadoCompleto, using fallback for:', local.nombre);
+    }
     
     if (local.estaAbierto === true) {
       return {

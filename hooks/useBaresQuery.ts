@@ -127,12 +127,30 @@ export const useBaresQuery = ({
       console.log('[useBaresQuery v4.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
       
       // ✅ Enrich with estadoCompleto (already calculated by backend)
-      const enrichedVenues = venues.map((venue: any) => ({
-        ...venue,
-        estadoCompleto: venue.estadoCompleto || null,
-        distancia: venue.distance_km,
-        coordenadas: { lat: venue.latitud || 0, lng: venue.longitud || 0 },
-      }));
+      // CRITICAL: PostgreSQL returns snake_case, we need to map to camelCase
+      const enrichedVenues = venues.map((venue: any) => {
+        const estadoCompleto = venue.estadocompleto || venue.estadoCompleto || null;
+        const estaAbierto = venue.estaabierto !== undefined ? venue.estaabierto : venue.estaAbierto;
+        
+        // Debug log for first venue to verify mapping
+        if (venues.indexOf(venue) === 0) {
+          console.log('[useBaresQuery v4.0] 🔍 First venue mapping:', {
+            nombre: venue.nombre,
+            estadocompleto_raw: venue.estadocompleto,
+            estadoCompleto_mapped: estadoCompleto,
+            estaabierto_raw: venue.estaabierto,
+            estaAbierto_mapped: estaAbierto,
+          });
+        }
+        
+        return {
+          ...venue,
+          estadoCompleto,
+          estaAbierto,
+          distancia: venue.distance_km,
+          coordenadas: { lat: venue.latitud || 0, lng: venue.longitud || 0 },
+        };
+      });
 
       return {
         venues: enrichedVenues,
