@@ -1,53 +1,27 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - REACT QUERY + FLASHLIST v7.0.0 (STRICT 5-TIER + 60 FPS)
+ * EXPLORAR SCREEN - REACT QUERY + FLASHLIST v7.1.0 (SCROLL RESET + FILTER SYNC)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 OBJETIVO: Ordenamiento estricto por estado + Caché global + Scroll infinito + 60 FPS
+ * 🎯 NEW IN v7.1.0 (SCROLL & FILTER FIXES):
+ * 1️⃣ SCROLL RESET: Auto-scroll to top when filters change
+ * 2️⃣ FILTER SYNC: Advanced filters use same useFilterStore as category bar
+ * 3️⃣ TAB BEHAVIOR: Tap "Explorar" tab → scroll to top + refetch
+ * 4️⃣ STRICT 5-TIER: Maintains v7.0.0 sorting logic
  * 
- * ✅ NEW IN v7.0.0 (STRICT 5-TIER SORTING - STATUS-BASED HIERARCHY):
+ * ✅ SORTING LOGIC (v7.0.0 - MAINTAINED):
  * 1️⃣ TIER 1: Destacados Abiertos (< 50km) - HIGHEST PRIORITY
  * 2️⃣ TIER 2: Locales Abiertos (Estándar) - SECOND PRIORITY
  * 3️⃣ TIER 3: Sin Información de Horario - THIRD PRIORITY
  * 4️⃣ TIER 4: Destacados Cerrados (< 50km) - FOURTH PRIORITY
  * 5️⃣ TIER 5: Locales Cerrados (Estándar) - LOWEST PRIORITY
  * 
- * 🚀 RESULTADO v7.0.0:
- * - Prioridad ESTRICTA por estado: Abiertos → Sin info → Cerrados
- * - Los locales "Sin información" SIEMPRE aparecen antes que los cerrados
- * - Destacados > 50km pierden su prioridad y se ordenan como locales comunes
- * - Dentro de cada tier, ordenamiento por cercanía
- * 
- * ✅ OPTIMIZACIONES v606.0 (REACT QUERY + GLOBAL CACHE):
- * 1️⃣ REACT QUERY: Caché global con TanStack Query - datos persisten al navegar
- * 2️⃣ STALE-WHILE-REVALIDATE: Muestra datos en caché instantáneamente, actualiza en segundo plano
- * 3️⃣ INFINITE SCROLL: useInfiniteQuery para paginación sin interrupciones
- * 4️⃣ PREDICTIVE LOADING: Carga siguiente página al 50% del scroll (onEndReachedThreshold={0.5})
- * 5️⃣ SCROLL PERSISTENCE: Mantiene posición al volver de detalle de local
- * 6️⃣ SMART LOADING: ActivityIndicator solo cuando carga MÁS páginas, no en carga inicial con caché
- * 
- * ✅ OPTIMIZACIONES v605.0 (FLASHLIST - MANTENIDAS):
- * 1️⃣ FLASHLIST: Reemplazo de FlatList por FlashList para mejor reciclaje de celdas
- * 2️⃣ ESTIMATEDITEMSIZE: 450px para cálculo instantáneo de layouts
- * 3️⃣ MEMORY EFFICIENCY: ~10x menos memoria que FlatList
- * 4️⃣ SCROLL PERFORMANCE: 60 FPS constantes incluso con imágenes pesadas
- * 5️⃣ INITIALNUM TORENDER: 10 items para cubrir primeras pantallas
- * 
- * Previous optimizations maintained (v604.0):
- * 1️⃣ BÚSQUEDA PREDICTIVA: Backend ILIKE para búsqueda parcial case-insensitive
- * 2️⃣ BACKEND PROCESSING: get_sorted_locales_by_proximity con PostGIS + estadoCompleto
- * 3️⃣ ZERO CLIENT PROCESSING: Sin cálculos de distancia ni estado en frontend
- * 4️⃣ THROTTLING OPTIMIZADO: Scroll handler con throttle de 16ms (60fps)
- * 
- * 🚀 RESULTADO v607.0:
- * - Ordenamiento: Abiertos primero, cerrados al final, sin info en medio 🎯
- * - Prioridad: Destacados abiertos tienen máxima prioridad ⭐
- * - Navegación: Pérdida de datos → Restauración instantánea desde caché 💾
- * - Carga inicial: Spinner → Datos instantáneos (si hay caché) ⚡
- * - Scroll: 4 locales → Infinito sin interrupciones 🔄
- * - Performance: 60 FPS constantes 🎯
- * - UX: Spinner solo cuando carga MÁS páginas, no en inicial con caché ✨
+ * 🚀 RESULTADO v7.1.0:
+ * - Filtros cambian → Scroll automático al inicio ✅
+ * - Filtros avanzados → Sincronizados con categorías ✅
+ * - Tap en tab "Explorar" → Scroll + refetch ✅
+ * - Ordenamiento: Abiertos → Sin info → Cerrados 🎯
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -73,12 +47,13 @@ import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/a
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
-import { useFilters } from '@/contexts/FilterContext';
+import { useFilterStore } from '@/src/store/useFilterStore';
 import { getOptimizedUserLocation } from '@/utils/locationUtils';
 import LocalCardOptimized from '@/components/explorar/LocalCardOptimized';
 import { intelligentPreloader } from '@/utils/intelligentPreloader';
 import { useBaresQuery } from '@/hooks/useBaresQuery';
 import { getEstadoLocal } from '@/utils/timeUtils';
+import { useScrollToTop } from '@react-navigation/native';
 
 // ✅ FIX: Wrap FlashList with Animated for native scroll events
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
@@ -125,8 +100,8 @@ interface Category {
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 240;
 const HEADER_MIN_HEIGHT = 0;
 const ITEMS_PER_PAGE = 20;
-const PRELOAD_THRESHOLD = 0.5; // ✅ v606: Precargar cuando quedan 10 items (50% de 20)
-const SCROLL_THROTTLE = 16; // 60fps para scroll suave
+const PRELOAD_THRESHOLD = 0.5;
+const SCROLL_THROTTLE = 16;
 
 const CATEGORIAS: Category[] = [
   { id: 'todos', nombre: 'Todos', iosIcon: 'square.grid.2x2', androidIcon: 'apps' },
@@ -168,13 +143,13 @@ export default function ExplorarScreen() {
   const { user } = useAuth();
   const { currentMode } = useMode();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { 
-    filtros: globalFiltros, 
-    limpiarFiltros, 
-    hasActiveFilters,
-    selectedCategory: contextCategory,
-    setSelectedCategory: setContextCategory,
-  } = useFilters();
+  
+  // ✅ FIX 2: Use Zustand store directly for filter synchronization
+  const filtros = useFilterStore(state => state.filtros);
+  const selectedCategory = useFilterStore(state => state.selectedCategory);
+  const setSelectedCategory = useFilterStore(state => state.setSelectedCategory);
+  const limpiarFiltros = useFilterStore(state => state.limpiarFiltros);
+  const hasActiveFilters = useFilterStore(state => state.hasActiveFilters);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // STATE MANAGEMENT
@@ -187,12 +162,11 @@ export default function ExplorarScreen() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locationReady, setLocationReady] = useState(false);
   
-  // ✅ FIX 1: Usar selectedCategory del contexto (single source of truth)
-  const selectedCategory = contextCategory || 'todos';
-  const setSelectedCategory = setContextCategory;
-  
   const flashListRef = useRef<FlashList<Venue>>(null);
   const debouncedQuery = useDebounce(searchQuery, 500);
+  
+  // ✅ FIX 3: useScrollToTop for tab navigation behavior
+  useScrollToTop(flashListRef as any);
   
   // ✅ v606.0: REACT QUERY - Global cache with infinite scroll
   const {
@@ -208,7 +182,7 @@ export default function ExplorarScreen() {
     userLocation,
     selectedCategory,
     searchQuery: debouncedQuery,
-    globalFiltros,
+    globalFiltros: filtros,
     pageSize: ITEMS_PER_PAGE,
   });
   
@@ -242,7 +216,7 @@ export default function ExplorarScreen() {
     
     const fetchLocation = async () => {
       try {
-        console.log('[ExplorarScreen v601.0] 📍 Obteniendo ubicación del usuario...');
+        console.log('[ExplorarScreen v7.1.0] 📍 Obteniendo ubicación del usuario...');
         const location = await getOptimizedUserLocation();
         
         if (isMounted && location) {
@@ -252,17 +226,17 @@ export default function ExplorarScreen() {
           });
           setLocationReady(true);
           setLocationError(null);
-          console.log('[ExplorarScreen v600.0] ✅ Ubicación obtenida:', location.coords);
+          console.log('[ExplorarScreen v7.1.0] ✅ Ubicación obtenida:', location.coords);
         } else if (isMounted) {
           setLocationError('No se pudo obtener tu ubicación');
           setLocationReady(true);
-          console.warn('[ExplorarScreen v600.0] ⚠️ No se pudo obtener ubicación');
+          console.warn('[ExplorarScreen v7.1.0] ⚠️ No se pudo obtener ubicación');
         }
       } catch (error) {
         if (isMounted) {
           setLocationError('Error al obtener ubicación');
           setLocationReady(true);
-          console.error('[ExplorarScreen v600.0] ❌ Error obteniendo ubicación:', error);
+          console.error('[ExplorarScreen v7.1.0] ❌ Error obteniendo ubicación:', error);
         }
       }
     };
@@ -275,21 +249,39 @@ export default function ExplorarScreen() {
   }, []);
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // ✅ FIX 1: SCROLL RESET ON FILTER CHANGE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  useEffect(() => {
+    console.log('[ExplorarScreen v7.1.0] 🔄 Filters changed - Scrolling to top');
+    console.log('[ExplorarScreen v7.1.0] 📊 Active filters:', {
+      category: selectedCategory,
+      hasAdvancedFilters: hasActiveFilters,
+      searchQuery: debouncedQuery,
+    });
+    
+    // ✅ Scroll to top when filters change
+    if (flashListRef.current) {
+      flashListRef.current.scrollToOffset({ offset: 0, animated: true });
+    }
+  }, [selectedCategory, filtros, debouncedQuery, hasActiveFilters]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // DATA LOADING - v606.0 REACT QUERY (SIMPLIFIED)
   // ═══════════════════════════════════════════════════════════════════════════
   
   // ✅ v7.0.0: INTELLIGENT PRELOAD - Fetch next page predictively
   const loadMoreVenues = useCallback(() => {
     if (!isFetchingNextPage && hasNextPage && allVenues.length >= ITEMS_PER_PAGE) {
-      console.log('[ExplorarScreen v7.0.0] 🚀 PRECARGA INTELIGENTE - Fetching next page');
-      console.log('[ExplorarScreen v7.0.0] 📊 Items actuales:', allVenues.length);
+      console.log('[ExplorarScreen v7.1.0] 🚀 PRECARGA INTELIGENTE - Fetching next page');
+      console.log('[ExplorarScreen v7.1.0] 📊 Items actuales:', allVenues.length);
       fetchNextPage();
     }
   }, [isFetchingNextPage, hasNextPage, allVenues.length, fetchNextPage]);
 
-  // ✅ v7.0.0: PULL-TO-REFRESH - Force refetch from server
+  // ✅ v7.1.0: PULL-TO-REFRESH - Force refetch from server
   const onRefresh = useCallback(() => {
-    console.log('[ExplorarScreen v7.0.0] 🔄 Pull-to-refresh - Refetching from server...');
+    console.log('[ExplorarScreen v7.1.0] 🔄 Pull-to-refresh - Refetching from server...');
     refetch();
   }, [refetch]);
 
@@ -307,13 +299,13 @@ export default function ExplorarScreen() {
     }
   }, [allVenues]);
 
-  // ✅ v7.0.0: Scroll position persistence - React Query maintains data across navigation
+  // ✅ v7.1.0: Scroll position persistence - React Query maintains data across navigation
   useFocusEffect(
     useCallback(() => {
-      console.log('[ExplorarScreen v7.0.0] 👁️ Pantalla enfocada - Datos desde caché:', allVenues.length);
+      console.log('[ExplorarScreen v7.1.0] 👁️ Pantalla enfocada - Datos desde caché:', allVenues.length);
       
       return () => {
-        console.log('[ExplorarScreen v7.0.0] 👁️ Pantalla desenfocada - Datos persisten en caché');
+        console.log('[ExplorarScreen v7.1.0] 👁️ Pantalla desenfocada - Datos persisten en caché');
       };
     }, [allVenues.length])
   );
@@ -328,32 +320,28 @@ export default function ExplorarScreen() {
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (selectedCategory !== 'todos') count++;
+    if (selectedCategory !== 'todos' && selectedCategory !== null) count++;
     if (debouncedQuery) count++;
     return count;
   }, [selectedCategory, debouncedQuery]);
 
   const handleCategoryChange = useCallback((categoryId: string) => {
-    console.log('[ExplorarScreen v7.0.0] 🏷️ Cambiando categoría a:', categoryId);
-    console.log('[ExplorarScreen v7.0.0] 🏷️ Category ID received:', categoryId);
-    console.log('[ExplorarScreen v7.0.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
+    console.log('[ExplorarScreen v7.1.0] 🏷️ Cambiando categoría a:', categoryId);
+    console.log('[ExplorarScreen v7.1.0] 🏷️ Category ID received:', categoryId);
+    console.log('[ExplorarScreen v7.1.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
     
-    // ✅ v7.0.0: Update category - React Query will handle cache invalidation automatically
+    // ✅ v7.1.0: Update category - React Query will handle cache invalidation automatically
     const newCategory = categoryId === 'todos' ? null : categoryId;
     setSelectedCategory(newCategory);
     
-    // ✅ v7.0.0: Scroll to top
-    flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    
-    console.log('[ExplorarScreen v7.0.0] ✅ Category changed - React Query will refetch automatically');
+    console.log('[ExplorarScreen v7.1.0] ✅ Category changed - React Query will refetch automatically');
   }, [setSelectedCategory]);
 
   const clearFilters = useCallback(() => {
-    console.log('[ExplorarScreen v7.0.0] 🧹 Limpiando filtros...');
+    console.log('[ExplorarScreen v7.1.0] 🧹 Limpiando filtros...');
     setSearchQuery('');
-    setSelectedCategory(null);
-    flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
-  }, [setSelectedCategory]);
+    limpiarFiltros();
+  }, [limpiarFiltros]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // BADGE CALCULATION
@@ -416,17 +404,19 @@ export default function ExplorarScreen() {
 
   // ✅ FIX 3 v602: Apertura instantánea del modal - ULTRA OPTIMIZED
   const handleOpenAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v602.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
+    console.log('[ExplorarScreen v7.1.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
     
     // ✅ v602: Respuesta INMEDIATA - sin requestAnimationFrame
     setShowAdvancedFilters(true);
   }, []);
 
   const handleCloseAdvancedFilters = useCallback(() => {
+    console.log('[ExplorarScreen v7.1.0] 🔒 Cerrando filtros avanzados');
     setShowAdvancedFilters(false);
   }, []);
 
   const handleClearAdvancedFilters = useCallback(() => {
+    console.log('[ExplorarScreen v7.1.0] 🧹 Limpiando filtros avanzados');
     limpiarFiltros();
   }, [limpiarFiltros]);
 
@@ -792,42 +782,46 @@ export default function ExplorarScreen() {
             contentContainerStyle={styles.categoriesContent}
             keyboardShouldPersistTaps="handled"
           >
-            {CATEGORIAS.map((categoria) => (
-              <TouchableOpacity
-                key={categoria.id}
-                style={styles.categoriaButtonCompact}
-                onPress={() => handleCategoryChange(categoria.id)}
-                activeOpacity={0.7}
-              >
-                <View
-                  style={[
-                    styles.categoriaIconContainerCompact,
-                    selectedCategory === categoria.id && styles.categoriaIconContainerActive,
-                  ]}
+            {CATEGORIAS.map((categoria) => {
+              const isSelected = (categoria.id === 'todos' && !selectedCategory) || selectedCategory === categoria.id;
+              
+              return (
+                <TouchableOpacity
+                  key={categoria.id}
+                  style={styles.categoriaButtonCompact}
+                  onPress={() => handleCategoryChange(categoria.id)}
+                  activeOpacity={0.7}
                 >
-                  <IconSymbol
-                    ios_icon_name={categoria.iosIcon}
-                    android_material_icon_name={categoria.androidIcon}
-                    size={Platform.OS === 'android' ? 16 : 18}
-                    color={selectedCategory === categoria.id ? colors.primary : colors.white}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.categoriaLabelCompact,
-                    selectedCategory === categoria.id && styles.categoriaLabelActive,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {categoria.nombre}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <View
+                    style={[
+                      styles.categoriaIconContainerCompact,
+                      isSelected && styles.categoriaIconContainerActive,
+                    ]}
+                  >
+                    <IconSymbol
+                      ios_icon_name={categoria.iosIcon}
+                      android_material_icon_name={categoria.androidIcon}
+                      size={Platform.OS === 'android' ? 16 : 18}
+                      color={isSelected ? colors.primary : colors.white}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.categoriaLabelCompact,
+                      isSelected && styles.categoriaLabelActive,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {categoria.nombre}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </LinearGradient>
       </Animated.View>
 
-      {/* ✅ v7.0.0: FLASHLIST + REACT QUERY + STRICT 5-TIER SORTING - Status-based hierarchy + 60 FPS + Global Cache */}
+      {/* ✅ v7.1.0: FLASHLIST + REACT QUERY + STRICT 5-TIER SORTING - Status-based hierarchy + 60 FPS + Global Cache */}
       <AnimatedFlashList
         ref={flashListRef}
         data={filteredVenues}
@@ -862,7 +856,7 @@ export default function ExplorarScreen() {
         extraData={selectedCategory}
       />
 
-      {/* ✅ FIX 3: ADVANCED FILTERS SHEET */}
+      {/* ✅ FIX 2: ADVANCED FILTERS SHEET - Synchronized with Zustand store */}
       <FiltrosAvanzadosSheet
         visible={showAdvancedFilters}
         onClose={handleCloseAdvancedFilters}
