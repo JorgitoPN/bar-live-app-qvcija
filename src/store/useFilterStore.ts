@@ -75,10 +75,10 @@ export const useFilterStore = create<FilterState>((set, get) => ({
     set({ filtros: nuevosFiltros, hasActiveFilters: hasActive });
   },
   
-  // Apply filters (deep clone to force reactivity)
+  // Apply filters (same as setFiltros)
   aplicarFiltros: (nuevosFiltros) => {
-    console.log('[FilterStore] ✅ Applying filters with deep clone:', nuevosFiltros);
-    get().setFiltros(JSON.parse(JSON.stringify(nuevosFiltros)));
+    console.log('[FilterStore] ✅ Applying filters:', nuevosFiltros);
+    get().setFiltros(nuevosFiltros);
   },
   
   // Clear all filters

@@ -1,27 +1,19 @@
 
 /**
- * ✅ LOCAL CARD OPTIMIZED v2.1 - PASO 3 FINAL - COLORES RESTAURADOS 🎨
+ * ✅ LOCAL CARD OPTIMIZED v2.0 - ULTRA PERFORMANCE + SERVER-SIDE OPTIMIZATION
  * 
- * CORRECCIONES CRÍTICAS v2.1:
- * - ✅ COLORES HEXADECIMALES EXACTOS restaurados en getBadgeInfo()
- *   - Abierto: #22C55E (Verde)
- *   - Cerrado: #EF4444 (Rojo)
- *   - Cierra pronto: #F97316 (Naranja)
- *   - Abre pronto: #EAB308 (Amarillo)
- *   - Sin info: #9CA3AF (Gris)
- * 
- * Optimizaciones v2.0:
- * - ✅ Server-side status calculation: estadoCompleto from get_locales_v2
- * - ✅ Zero client-side time calculations during scroll
- * - ✅ Pre-calculated badge, estaAbierto, claseBg from database
- * - ✅ Instant rendering without timeUtils.ts processing
- * 
- * Optimizaciones v1.0:
+ * Optimizaciones implementadas:
  * - ✅ Optimistic UI: Favoritos instantáneos
  * - ✅ Skeleton Loader: Placeholder mientras carga imagen
  * - ✅ Image Prefetching: Precarga automática
  * - ✅ Memoization: Previene re-renders
  * - ✅ Lazy Loading: Datos bajo demanda
+ * - ✅ Priority Loading: Primeras 4 tarjetas con prioridad alta (v2.0)
+ * - ✅ Memory-Disk Cache: Caché agresivo para evitar peticiones repetidas (v2.0)
+ * - ✅ Smooth Transitions: Fade de 200ms para evitar saltos visuales (v2.0)
+ * - ✅ Blurhash Placeholder: Placeholder visual mientras carga (v2.0)
+ * 
+ * RESULTADO: Scroll fluido, interacciones instantáneas, carga ultra-rápida
  */
 
 import React, { useState, useCallback, memo, useEffect } from 'react';
@@ -30,10 +22,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -44,6 +36,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { optimisticUI } from '@/utils/optimisticUI';
 import { intelligentPreloader } from '@/utils/intelligentPreloader';
 import { Skeleton } from '@/components/common/SkeletonLoader';
+
+// ✅ Necesario para Linking
 import { Linking } from 'react-native';
 
 interface LocalCardOptimizedProps {
@@ -62,16 +56,25 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   const [imageLoaded, setImageLoaded] = useState(false);
   const [localIsFavorite, setLocalIsFavorite] = useState(isFavorite(local.id));
 
+  // ✅ v2.0: Las imágenes ya vienen optimizadas desde el backend
   const imagenPrincipal = local.imagenes?.[0] || local.imagen_url;
   const isDestacado = local.destacado;
   const hasSocialProfile = socialProfiles.get(local.id) || false;
   const activeEvent = activeEvents.get(local.id);
 
+  // ✅ v2.0: PRIORITY LOADING - Primeras 4 tarjetas con prioridad alta
+  const imagePriority = index < 4 ? 'high' : 'low';
+  
+  // ✅ v2.0: Blurhash placeholder (puedes personalizar esto por local si tienes blurhash en BD)
+  const blurhash = 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH';
+
+  // ✅ PREFETCH: Precargar imagen cuando el componente se monta
   useEffect(() => {
     if (imagenPrincipal) {
       intelligentPreloader.prefetchImages([imagenPrincipal], 'MEDIUM');
     }
     
+    // ✅ Precargar galería en segundo plano
     if (local.imagenes && local.imagenes.length > 1) {
       requestAnimationFrame(() => {
         intelligentPreloader.prefetchImages(local.imagenes.slice(1, 3), 'LOW');
@@ -79,10 +82,14 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
     }
   }, [imagenPrincipal, local.imagenes]);
 
+  // ✅ Sincronizar estado de favorito
   useEffect(() => {
     setLocalIsFavorite(isFavorite(local.id));
   }, [isFavorite, local.id]);
 
+  /**
+   * ✅ OPTIMISTIC FAVORITE - Respuesta instantánea
+   */
   const handleToggleFavorito = useCallback(async (e: any) => {
     e.stopPropagation();
     
@@ -93,15 +100,18 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
 
     if (!local.id) return;
 
-    console.log('[LocalCardOptimized v2.1 PASO 3 FINAL] ⭐ INSTANT favorite toggle');
+    console.log('[LocalCardOptimized] ⭐ INSTANT favorite toggle');
 
+    // ✅ Actualización INSTANTÁNEA de UI
     const newFavoriteState = !localIsFavorite;
     setLocalIsFavorite(newFavoriteState);
 
+    // ✅ Sincronización en segundo plano
     try {
       await toggleFavorite(local.id);
     } catch (error) {
-      console.log('[LocalCardOptimized v2.1 PASO 3 FINAL] 🔄 Rolling back favorite');
+      // ✅ Rollback en caso de error
+      console.log('[LocalCardOptimized] 🔄 Rolling back favorite');
       setLocalIsFavorite(!newFavoriteState);
     }
   }, [user, router, local.id, localIsFavorite, toggleFavorite]);
@@ -118,53 +128,19 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
     router.push(`/perfil/local?localId=${local.id}`);
   }, [router, local.id]);
 
-  /**
-   * ✅ CRITICAL FIX v2.3 FINAL: COLORES HEXADECIMALES EXACTOS + TEXTOS EN ESPAÑOL
-   * 
-   * VERIFICADO: Mapeo de colores corregido (incluye clases Tailwind Y textos en español):
-   * - 'bg-green-500' / 'abierto' → #22C55E (Verde - Abierto)
-   * - 'bg-red-500' / 'cerrado' → #EF4444 (Rojo - Cerrado)
-   * - 'bg-orange-500' / 'cierra_pronto' → #F97316 (Naranja - Cierra pronto)
-   * - 'bg-yellow-500' / 'abre_pronto' → #EAB308 (Amarillo - Abre pronto)
-   * - 'bg-gray-400' / 'sin_info' → #9CA3AF (Gris - Sin info)
-   */
   const getBadgeInfo = () => {
-    if (index === 0) {
-      console.log('[LocalCardOptimized v2.3 FINAL] 🎨 Badge data for first card:', {
-        nombre: local.nombre,
-        estadoCompleto: local.estadoCompleto,
-        estaAbierto: local.estaAbierto,
-        hasEstadoCompleto: !!local.estadoCompleto,
-      });
-    }
-    
     if (local.estadoCompleto) {
       const estado = local.estadoCompleto;
       
-      // ✅ COLORES HEXADECIMALES EXACTOS - VERIFICADO
-      // Incluye tanto clases Tailwind como textos en español
       const colorMap: Record<string, string> = {
         'bg-green-500': '#22C55E',
-        'abierto': '#22C55E',
-        'bg-red-500': '#EF4444',
-        'cerrado': '#EF4444',
         'bg-orange-500': '#F97316',
-        'cierra_pronto': '#F97316',
         'bg-yellow-500': '#EAB308',
-        'abre_pronto': '#EAB308',
+        'bg-red-500': '#EF4444',
         'bg-gray-400': '#9CA3AF',
-        'sin_info': '#9CA3AF',
       };
       
       const badgeColor = colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF';
-      
-      if (index === 0) {
-        console.log('[LocalCardOptimized v2.3 FINAL] 🎨 Color mapping:', {
-          claseBg: estado.claseBg,
-          mappedColor: badgeColor,
-          badge: estado.badge,
-        });
-      }
       
       return {
         text: estado.badge,
@@ -172,24 +148,20 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
       };
     }
     
-    if (index === 0) {
-      console.log('[LocalCardOptimized v2.3 FINAL] ⚠️ No estadoCompleto, using fallback for:', local.nombre);
-    }
-    
     if (local.estaAbierto === true) {
       return {
         text: 'Abierto ahora',
-        color: '#22C55E',  // Verde
+        color: '#22C55E',
       };
     } else if (local.estaAbierto === false) {
       return {
         text: 'Cerrado ahora',
-        color: '#EF4444',  // Rojo
+        color: '#EF4444',
       };
     } else {
       return {
         text: 'Sin info de horario',
-        color: '#9CA3AF',  // Gris
+        color: '#9CA3AF',
       };
     }
   };
@@ -199,7 +171,6 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
       return local.estadoCompleto.estaAbierto === false && 
              !local.estadoCompleto.badge.includes('pronto');
     }
-    
     return local.estaAbierto === false;
   };
 
@@ -258,7 +229,11 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
           <Image
             source={{ uri: imagenPrincipal }}
             style={[styles.image, !imageLoaded && styles.imageHidden]}
-            resizeMode="cover"
+            contentFit="cover"
+            priority={imagePriority}
+            cachePolicy="memory-disk"
+            transition={200}
+            placeholder={blurhash}
             onLoad={() => setImageLoaded(true)}
           />
         ) : (
@@ -283,7 +258,7 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
         {imageLoaded && (
           <View style={[
             styles.badgeEstadoSuperior, 
-            { backgroundColor: badgeInfo.color },
+            { backgroundColor: badgeInfo.color + 'E6' },
             isDestacado && styles.badgeEstadoSuperiorConDestacado
           ]}>
             <Text style={[styles.badgeEstadoSuperiorText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>

@@ -45,18 +45,25 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ FILTROS AVANZADOS v3.3 - PASO 3 FINAL - REGRESIONES FULMINADAS
+ * ✅ CROSS-PLATFORM FILTERS PAGE v3.2 - iOS + ANDROID - SIN LÍMITE DEFAULT
  * 
- * CORRECCIONES CRÍTICAS v3.3:
- * 1. ❌ ELIMINADO: Sección "Tipo de Local" completamente borrada
- * 2. ✅ FIX: handleAplicar con setTimeout(200ms) antes de router.back()
- * 3. ✅ VERIFICADO: useFilters importado correctamente desde FilterContext
- * 
- * Features v3.2:
- * - 🎯 "Sin límite" as default for search range
- * - ⚡ Auto-activate filter when user modifies range
- * - 🔄 Option to return to "Sin límite"
+ * NEW FEATURES v3.2 (iOS FIX):
+ * - 🎯 "Sin límite" as default for search range on BOTH iOS and Android
+ * - ⚡ Auto-activate filter when user modifies range (iOS + Android)
+ * - 🔄 Option to return to "Sin límite" after setting a range (iOS + Android)
  * - ✅ Clear visual feedback for active/inactive distance filter
+ * - 🍎 Verified iOS compatibility with all features
+ * 
+ * Previous features v3.1:
+ * - 🎯 DYNAMIC FILTERS: Only show characteristics with active locales
+ * - ⚡ INSTANT CLEAR: Synchronous UI update, background fetch
+ * - 🎚️ SLIDER: Replaced text input with slider (1-100km range)
+ * - ✅ Real-time value display on slider
+ * - ✅ Smooth UX with no lag on clear
+ * 
+ * Previous fixes v2.0:
+ * - ✅ Safe area insets for Android system buttons
+ * - ✅ Proper padding to avoid hidden buttons
  */
 export default function FiltrosAvanzadosScreen() {
   const router = useRouter();
@@ -78,13 +85,14 @@ export default function FiltrosAvanzadosScreen() {
   const [searchProvincia, setSearchProvincia] = useState('');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     ubicacion: true,
+    tipo: false,
     servicios: false,
     ambiente: false,
     clientela: false,
   });
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados v3.3 PASO 3 FINAL] 🔄 Page opened, loading filters');
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] 🔄 Page opened, loading filters');
     setFiltrosTemp(contextFiltros);
     refreshDynamicOptions();
   }, [contextFiltros, refreshDynamicOptions]);
@@ -96,6 +104,13 @@ export default function FiltrosAvanzadosScreen() {
     }
     return [...arr, item];
   }, []);
+
+  const handleTipoToggle = useCallback((tipoId: string) => {
+    setFiltrosTemp(prev => ({
+      ...prev,
+      tipo: tipoId === 'todos' ? undefined : toggleArrayItem(prev.tipo, tipoId),
+    }));
+  }, [toggleArrayItem]);
 
   const handleServicioToggle = useCallback((servicioId: string) => {
     setFiltrosTemp(prev => ({
@@ -118,36 +133,27 @@ export default function FiltrosAvanzadosScreen() {
     }));
   }, [toggleArrayItem]);
 
-  /**
-   * ✅ CRITICAL FIX v3.5 FINAL: handleAplicar con setTimeout(200ms) para evitar race condition
-   * VERIFICADO: Esta es la implementación correcta que garantiza sincronización
-   */
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.5 FINAL] ✅ Applying filters:', filtrosTemp);
-    
-    // ✅ PASO 1: Aplicar filtros al contexto con nueva referencia (fuerza reactividad)
-    contextAplicarFiltros({ ...filtrosTemp });
-    
-    // ✅ PASO 2: Esperar 200ms antes de navegar (evita race condition)
-    setTimeout(() => {
-      console.log('[FiltrosAvanzados v3.5 FINAL] 🔙 Navigating back after 200ms delay');
-      router.back();
-    }, 200);
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] ✅ Applying filters:', filtrosTemp);
+    contextAplicarFiltros(filtrosTemp);
+    router.back();
   }, [filtrosTemp, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.3 PASO 3 FINAL] 🧹 Clearing all filters - INSTANT UI UPDATE');
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] 🧹 Clearing all filters - INSTANT UI UPDATE');
     
+    // ✅ PASO 1: Actualizar UI INMEDIATAMENTE (síncrono)
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     
+    // ✅ PASO 2: Actualizar contexto en background (asíncrono)
     setTimeout(() => {
       contextLimpiarFiltros();
     }, 0);
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v3.3 PASO 3 FINAL] 📍 Selected comunidad:', selectedComunidad);
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] 📍 Selected comunidad:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -171,7 +177,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v3.3 PASO 3 FINAL] 📍 Selected provincia:', provincia);
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] 📍 Selected provincia:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -180,24 +186,27 @@ export default function FiltrosAvanzadosScreen() {
     setSearchProvincia('');
   }, []);
 
+  // ✅ v3.2 iOS FIX: Auto-activate distance filter when user changes slider
   const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados v3.3 PASO 3 FINAL] 📏 Radius changed to:', value, 'km - Auto-activating filter');
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] 📏 Radius changed to:', value, 'km - Auto-activating filter');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: value,
     }));
   }, []);
 
+  // ✅ v3.2 iOS FIX: Activate distance filter with default value
   const activateDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.3 PASO 3 FINAL] 🎯 Activating search range filter with default 50km');
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] 🎯 Activating search range filter with default 50km');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: 50,
     }));
   }, []);
 
+  // ✅ v3.2 iOS FIX: Reset distance filter to "Sin límite"
   const resetDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.3 PASO 3 FINAL] 🔄 Resetting search range to "Sin límite"');
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] 🔄 Resetting search range to "Sin límite"');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: undefined,
@@ -245,6 +254,34 @@ export default function FiltrosAvanzadosScreen() {
       p.toLowerCase().includes(query)
     );
   }, [availableProvincias, searchProvincia]);
+
+  const tiposLocales = useMemo(() => {
+    const tipos = [{ id: 'todos', label: 'Todos', icon: '🏪' }];
+    
+    const filteredTipos = dynamicOptions.tipos.filter(tipo => 
+      tipo !== 'lounge' && tipo !== 'sala_conciertos'
+    );
+    
+    filteredTipos.forEach(tipo => {
+      let icon = '📍';
+      if (tipo === 'cafe') icon = '☕';
+      else if (tipo === 'bar') icon = '🍷';
+      else if (tipo === 'restaurante') icon = '🍽️';
+      else if (tipo === 'pub') icon = '🍺';
+      else if (tipo === 'cocteleria') icon = '🍹';
+      else if (tipo === 'discoteca') icon = '🎵';
+      else if (tipo === 'terraza') icon = '☀️';
+      else if (tipo === 'rooftop') icon = '🏢';
+      
+      tipos.push({
+        id: tipo,
+        label: tipo.charAt(0).toUpperCase() + tipo.slice(1),
+        icon: icon,
+      });
+    });
+    
+    return tipos;
+  }, [dynamicOptions.tipos]);
 
   const serviciosDisponibles = useMemo(() => {
     return dynamicOptions.servicios.map(servicio => {
@@ -304,20 +341,25 @@ export default function FiltrosAvanzadosScreen() {
     return clientela;
   }, [dynamicOptions.clientela]);
 
+  // ✅ v3.2 iOS FIX: Only count distance filter when it's actually set (not "Sin límite")
   const activeFiltersCount = useMemo(() => {
     let count = 0;
+    if (filtrosTemp.tipo && filtrosTemp.tipo.length > 0) count++;
     if (filtrosTemp.servicios && filtrosTemp.servicios.length > 0) count++;
     if (filtrosTemp.ambiente && filtrosTemp.ambiente.length > 0) count++;
     if (filtrosTemp.clientela && filtrosTemp.clientela.length > 0) count++;
     if (filtrosTemp.comunidad) count++;
     if (filtrosTemp.provincia) count++;
+    // ✅ Only count distance if it's defined (not "Sin límite")
     if (filtrosTemp.distancia !== undefined && filtrosTemp.distancia !== null) count++;
     return count;
   }, [filtrosTemp]);
 
+  // ✅ CRITICAL FIX v2.0: Calculate proper bottom padding for Android system buttons
   const footerPaddingBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 20) : 20;
   const scrollContentPaddingBottom = Platform.OS === 'android' ? 120 + insets.bottom : 120;
 
+  // ✅ v3.2 iOS FIX: Check if distance filter is active
   const isDistanceFilterActive = filtrosTemp.distancia !== undefined && filtrosTemp.distancia !== null;
 
   return (
@@ -388,7 +430,7 @@ export default function FiltrosAvanzadosScreen() {
                 <TouchableOpacity
                   style={styles.locationButton}
                   onPress={() => {
-                    console.log('[FiltrosAvanzados v3.3 PASO 3 FINAL] 🔍 Opening comunidad modal');
+                    console.log('[FiltrosAvanzados v3.2 iOS+Android] 🔍 Opening comunidad modal');
                     setShowComunidadModal(true);
                   }}
                 >
@@ -406,7 +448,7 @@ export default function FiltrosAvanzadosScreen() {
                   ]}
                   onPress={() => {
                     if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
-                      console.log('[FiltrosAvanzados v3.3 PASO 3 FINAL] 🔍 Opening provincia modal');
+                      console.log('[FiltrosAvanzados v3.2 iOS+Android] 🔍 Opening provincia modal');
                       setShowProvinciaModal(true);
                     }
                   }}
@@ -420,6 +462,7 @@ export default function FiltrosAvanzadosScreen() {
                 </TouchableOpacity>
               </View>
 
+              {/* ✅ v3.2 iOS FIX: Distance filter with "Sin límite" default */}
               <View style={styles.distanceContainer}>
                 <View style={styles.distanceHeader}>
                   <View style={styles.distanceLabelRow}>
@@ -440,6 +483,7 @@ export default function FiltrosAvanzadosScreen() {
                   </View>
                 </View>
                 
+                {/* ✅ v3.2 iOS FIX: Show slider only when filter is active */}
                 {isDistanceFilterActive && (
                   <>
                     <Slider
@@ -461,6 +505,7 @@ export default function FiltrosAvanzadosScreen() {
                   </>
                 )}
                 
+                {/* ✅ v3.2 iOS FIX: Show activate button when filter is inactive */}
                 {!isDistanceFilterActive ? (
                   <TouchableOpacity 
                     style={styles.activateRangeButton}
@@ -473,6 +518,7 @@ export default function FiltrosAvanzadosScreen() {
                     </Text>
                   </TouchableOpacity>
                 ) : (
+                  /* ✅ v3.2 iOS FIX: Show reset button when filter is active */
                   <TouchableOpacity 
                     style={styles.resetRangeButton}
                     onPress={resetDistanceFilter}
@@ -488,6 +534,59 @@ export default function FiltrosAvanzadosScreen() {
             </View>
           )}
         </View>
+
+        {/* TIPO DE LOCAL SECTION */}
+        {tiposLocales.length > 1 && (
+          <View style={styles.section}>
+            <TouchableOpacity 
+              style={styles.sectionHeader}
+              onPress={() => toggleSection('tipo')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.sectionHeaderLeft}>
+                <View style={styles.sectionIconContainer}>
+                  <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={scaleIconSize(16)} color={colors.primary} />
+                </View>
+                <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Tipo de Local</Text>
+                <Text style={[styles.sectionCount, { fontSize: scaleFontSize(11) }]}>({tiposLocales.length - 1})</Text>
+              </View>
+              <IconSymbol 
+                ios_icon_name={expandedSections.tipo ? "chevron.up" : "chevron.down"} 
+                android_material_icon_name={expandedSections.tipo ? "expand_less" : "expand_more"} 
+                size={scaleIconSize(18)} 
+                color={colors.textSecondary} 
+              />
+            </TouchableOpacity>
+            
+            {expandedSections.tipo && (
+              <View style={styles.sectionContent}>
+                <View style={styles.chipContainer}>
+                  {tiposLocales.map((tipo) => {
+                    const isSelected = tipo.id === 'todos' 
+                      ? !filtrosTemp.tipo || filtrosTemp.tipo.length === 0
+                      : filtrosTemp.tipo?.includes(tipo.id);
+                    
+                    return (
+                      <TouchableOpacity
+                        key={tipo.id}
+                        style={[
+                          styles.chip,
+                          isSelected && styles.chipActive,
+                        ]}
+                        onPress={() => handleTipoToggle(tipo.id)}
+                      >
+                        <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>{tipo.icon}</Text>
+                        <Text style={[styles.chipText, { fontSize: scaleFontSize(11) }, isSelected && styles.chipTextActive]}>
+                          {tipo.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* SERVICIOS SECTION */}
         {serviciosDisponibles.length > 0 && (
@@ -646,7 +745,7 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         )}
 
-        {(serviciosDisponibles.length === 0 && ambientesDisponibles.length === 1 && clientelaDisponible.length === 1) && !isLoadingOptions && (
+        {(tiposLocales.length === 1 && serviciosDisponibles.length === 0 && ambientesDisponibles.length === 1 && clientelaDisponible.length === 1) && !isLoadingOptions && (
           <View style={styles.emptyState}>
             <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="warning" size={scaleIconSize(48)} color={colors.textSecondary} />
             <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(14) }]}>
@@ -667,6 +766,7 @@ export default function FiltrosAvanzadosScreen() {
         )}
       </ScrollView>
 
+      {/* ✅ CRITICAL FIX v2.0: Footer with proper padding for Android system buttons */}
       <View style={[styles.footer, { paddingBottom: footerPaddingBottom }]}>
         <TouchableOpacity style={styles.aplicarButton} onPress={handleAplicar}>
           <LinearGradient
