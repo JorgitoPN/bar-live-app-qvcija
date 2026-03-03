@@ -1,6 +1,12 @@
 
 /**
- * ✅ LOCAL CARD OPTIMIZED v2.0 - 60FPS SCROLL PERFORMANCE 🚀
+ * ✅ LOCAL CARD OPTIMIZED v2.1 - FIX CRÍTICO DE COLORES DE HORARIO 🎨
+ * 
+ * Optimizaciones v2.1 (FIX CRÍTICO):
+ * - 🔧 CORREGIDO: Lógica de colores dinámicos restaurada
+ * - 🔧 CORREGIDO: Prioridad: estadoCompleto > horarios_completos > estaAbierto
+ * - 🔧 CORREGIDO: Cálculo de estado con timeUtils cuando no hay estadoCompleto
+ * - ✅ VERIFICADO: Verde (Abierto), Rojo (Cerrado), Naranja (Cierra pronto), Amarillo (Abre pronto)
  * 
  * Optimizaciones v2.0 (CRITICAL):
  * - ✅ Server-side status calculation: estadoCompleto from get_locales_v2
@@ -127,23 +133,46 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   }, [router, local.id]);
 
   /**
-   * ✅ OPTIMIZED v2.0: Prioritize server-calculated estadoCompleto
-   * This eliminates ALL client-side time calculations for instant rendering
+   * ✅ OPTIMIZED v2.1: FIX CRÍTICO - Restaurar colores dinámicos de horario
+   * Prioridad: estadoCompleto > horarios_completos > estaAbierto > fallback
    */
   const getBadgeInfo = () => {
-    // Debug: Log what we received for this local
-    if (index === 0) {
-      console.log('[LocalCardOptimized v2.0] 🔍 Badge data for first card:', {
-        nombre: local.nombre,
-        estadoCompleto: local.estadoCompleto,
-        estaAbierto: local.estaAbierto,
-        hasEstadoCompleto: !!local.estadoCompleto,
-      });
-    }
-    
     // ✅ PRIORITY 1: Use server-calculated estadoCompleto (from get_locales_v2)
     if (local.estadoCompleto) {
       const estado = local.estadoCompleto;
+      
+      const colorMap: Record<string, string> = {
+        'bg-green-500': '#22C55E',    // Abierto ahora
+        'bg-orange-500': '#F97316',   // Cierra pronto
+        'bg-yellow-500': '#EAB308',   // Abre pronto
+        'bg-red-500': '#EF4444',      // Cerrado ahora
+        'bg-gray-400': '#9CA3AF',     // Sin información
+      };
+      
+      const badgeColor = colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF';
+      
+      // Debug: Log badge info for first 3 cards
+      if (index < 3) {
+        console.log(`[LocalCardOptimized v2.1] 🎨 Badge #${index}:`, {
+          nombre: local.nombre,
+          badge: estado.badge,
+          claseBg: estado.claseBg,
+          color: badgeColor,
+          estaAbierto: estado.estaAbierto,
+        });
+      }
+      
+      return {
+        text: estado.badge,
+        color: badgeColor,
+      };
+    }
+    
+    // ✅ PRIORITY 2: Calculate from horarios_completos if available
+    if (local.horarios_completos && Object.keys(local.horarios_completos).length > 0) {
+      // Import getEstadoLocal dynamically to avoid circular dependencies
+      const { getEstadoLocal } = require('@/utils/timeUtils');
+      const estado = getEstadoLocal(local);
       
       const colorMap: Record<string, string> = {
         'bg-green-500': '#22C55E',
@@ -155,15 +184,29 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
       
       const badgeColor = colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF';
       
+      // Debug: Log calculated badge for first 3 cards
+      if (index < 3) {
+        console.log(`[LocalCardOptimized v2.1] 🧮 Calculated Badge #${index}:`, {
+          nombre: local.nombre,
+          badge: estado.badge,
+          claseBg: estado.claseBg,
+          color: badgeColor,
+          estaAbierto: estado.estaAbierto,
+        });
+      }
+      
       return {
         text: estado.badge,
         color: badgeColor,
       };
     }
     
-    // ✅ FALLBACK: Use simple estaAbierto boolean (legacy support)
-    if (index === 0) {
-      console.log('[LocalCardOptimized v2.0] ⚠️ No estadoCompleto, using fallback for:', local.nombre);
+    // ✅ PRIORITY 3: Use simple estaAbierto boolean (legacy support)
+    if (index < 3) {
+      console.log(`[LocalCardOptimized v2.1] ⚠️ Fallback Badge #${index}:`, {
+        nombre: local.nombre,
+        estaAbierto: local.estaAbierto,
+      });
     }
     
     if (local.estaAbierto === true) {

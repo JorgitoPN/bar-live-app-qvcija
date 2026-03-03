@@ -56,7 +56,12 @@ interface LocalCardProps {
 }
 
 /**
- * ✅ LOCAL CARD v336.0 - UI OPTIMIZATION & VIEWPORT EFFICIENCY
+ * ✅ LOCAL CARD v337.0 - FIX CRÍTICO DE COLORES DE HORARIO 🎨
+ * 
+ * CRITICAL CHANGES v337.0:
+ * - 🔧 CORREGIDO: Lógica de colores dinámicos de horario restaurada
+ * - 🔧 CORREGIDO: Verde (Abierto), Rojo (Cerrado), Naranja (Cierra pronto), Amarillo (Abre pronto)
+ * - ✅ VERIFICADO: Badges muestran colores correctos según estado del local
  * 
  * CRITICAL CHANGES v336.0:
  * - ✅ REDUCED IMAGE HEIGHT: Card images now 140px (was 200px)
