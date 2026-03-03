@@ -3,13 +3,19 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ useBaresQuery v9.0.0 - FIXED STRING SCHEDULE FORMAT 🚀
+ * ✅ useBaresQuery v10.0.0 - FIXED "CERRADO" STRING HANDLING 🚀
  * 
- * NEW IN v9.0.0 (CRITICAL FIX):
- * - ✅ FIXED: Backend now handles BOTH schedule formats:
+ * NEW IN v10.0.0 (CRITICAL FIX):
+ * - ✅ FIXED: Backend now properly handles "Cerrado" string in schedules
+ * - ✅ FIXED: Venues with "Cerrado" in their schedule are now correctly marked as closed
+ * - ✅ RESULT: "Picadilly", "cafe bar Camboño", "POPA" now correctly identified as CLOSED
+ * - ✅ RESULT: Proper sorting - Open venues no longer mixed with closed venues
+ * 
+ * MAINTAINED FROM v9.0.0:
+ * - ✅ FIXED: Backend handles BOTH schedule formats:
  *   - String format: ["16:00–04:00"] (used by "Pub Momo" and others)
  *   - Object format: [{"apertura": "16:00", "cierre": "04:00"}]
- * - ✅ RESULT: "Pub Momo" now correctly identified as OPEN and DESTACADO (Tier 1)
+ * - ✅ RESULT: "Pub Momo" correctly identified as OPEN and DESTACADO (Tier 1)
  * - ✅ RESULT: Proper sorting - Featured Open > Open > Sin info > Closed
  * 
  * MAINTAINED FROM v8.0.0:
@@ -88,10 +94,10 @@ export const useBaresQuery = ({
   const roundedLng = userLocation ? Math.round(userLocation.longitude) : null;
   
   return useInfiniteQuery({
-    // ✅ v9.0.0: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
-    // Version bumped to v9.0.0 to force cache refresh with fixed string schedule format parsing
+    // ✅ v10.0.0: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
+    // Version bumped to v10.0.0 to force cache refresh with fixed "Cerrado" string handling
     queryKey: [
-      'bares_infinite_v9.0.0',
+      'bares_infinite_v10.0.0',
       roundedLat,
       roundedLng,
       selectedCategory,
@@ -100,10 +106,11 @@ export const useBaresQuery = ({
     ],
     
     queryFn: async ({ pageParam = 0 }) => {
-      console.log('[useBaresQuery v9.0.0] 📡 Fetching page:', pageParam / pageSize + 1);
-      console.log('[useBaresQuery v9.0.0] 🔍 Category:', selectedCategory);
-      console.log('[useBaresQuery v9.0.0] 🔍 Search:', searchQuery);
-      console.log('[useBaresQuery v9.0.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
+      console.log('[useBaresQuery v10.0.0] 📡 Fetching page:', pageParam / pageSize + 1);
+      console.log('[useBaresQuery v10.0.0] 🔍 Category:', selectedCategory);
+      console.log('[useBaresQuery v10.0.0] 🔍 Search:', searchQuery);
+      console.log('[useBaresQuery v10.0.0] 🔍 Advanced Filters:', globalFiltros);
+      console.log('[useBaresQuery v10.0.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
       
       const startTime = performance.now();
       
@@ -146,11 +153,11 @@ export const useBaresQuery = ({
       }
 
       const venues = data || [];
-      console.log('[useBaresQuery v9.0.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
+      console.log('[useBaresQuery v10.0.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
       
-      // ✅ v9.0.0: Debug sorting - log first 10 venues to verify fixed string schedule format parsing
+      // ✅ v10.0.0: Debug sorting - log first 10 venues to verify fixed "Cerrado" string handling
       if (venues.length > 0) {
-        console.log('[useBaresQuery v9.0.0] 📊 First 10 venues (fixed string schedule format):');
+        console.log('[useBaresQuery v10.0.0] 📊 First 10 venues (fixed "Cerrado" handling):');
         venues.slice(0, 10).forEach((venue: any, idx: number) => {
           const tierLabel = venue.sorting_tier === 1 ? 'T1:Featured Open <50km' :
                            venue.sorting_tier === 2 ? 'T2:Open (Standard)' :
@@ -175,7 +182,7 @@ export const useBaresQuery = ({
         
         // Debug log for first venue to verify mapping
         if (venues.indexOf(venue) === 0) {
-          console.log('[useBaresQuery v9.0.0] 🔍 First venue mapping:', {
+          console.log('[useBaresQuery v10.0.0] 🔍 First venue mapping:', {
             nombre: venue.nombre,
             destacado: venue.destacado,
             esta_abierto_raw: venue.esta_abierto,

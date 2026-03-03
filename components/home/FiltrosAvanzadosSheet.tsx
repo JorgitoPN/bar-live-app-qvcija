@@ -17,7 +17,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Filtros } from '@/types';
-import { useFilters } from '@/contexts/FilterContext';
+import { useFilterStore } from '@/src/store/useFilterStore';
 
 interface FiltrosAvanzadosSheetProps {
   visible: boolean;
@@ -49,9 +49,14 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ADVANCED FILTERS SHEET v41.0 - CROSS-PLATFORM "SIN LÍMITE" FIX
+ * ✅ ADVANCED FILTERS SHEET v42.0 - ZUSTAND SYNC FIX
  * 
- * CRITICAL FIXES v41.0:
+ * CRITICAL FIXES v42.0:
+ * - 🔥 ZUSTAND SYNC: Now uses useFilterStore instead of FilterContext
+ * - ✅ FILTER UPDATES: Advanced filters now properly update the venue list
+ * - 🎯 SINGLE SOURCE OF TRUTH: Same store as useBaresQuery hook
+ * 
+ * Previous features v41.0:
  * - 🎯 "Sin límite" as default for search range on ALL PLATFORMS (iOS, Android, Web)
  * - ⚡ Auto-activate filter when user modifies range
  * - 🔄 Option to return to "Sin límite" after setting a range
@@ -71,14 +76,15 @@ export default function FiltrosAvanzadosSheet({
   filtros: propFiltros,
   onAplicarFiltros: propOnAplicarFiltros,
 }: FiltrosAvanzadosSheetProps) {
-  const { 
-    filtros: contextFiltros, 
-    aplicarFiltros: contextAplicarFiltros, 
-    limpiarFiltros: contextLimpiarFiltros,
-    dynamicOptions,
-    refreshDynamicOptions,
-    isLoadingOptions,
-  } = useFilters();
+  // ✅ v42.0 FIX: Use Zustand store instead of FilterContext for proper synchronization
+  const filtros = useFilterStore(state => state.filtros);
+  const setFiltros = useFilterStore(state => state.setFiltros);
+  const limpiarFiltros = useFilterStore(state => state.limpiarFiltros);
+  const dynamicOptions = useFilterStore(state => state.dynamicOptions);
+  const refreshDynamicOptions = useFilterStore(state => state.refreshDynamicOptions);
+  const isLoadingOptions = useFilterStore(state => state.isLoadingOptions);
+  
+  const contextFiltros = propFiltros || filtros;
   
   const initialFiltros = propFiltros || contextFiltros;
   
@@ -97,17 +103,17 @@ export default function FiltrosAvanzadosSheet({
 
   useEffect(() => {
     if (visible) {
-      console.log('[FiltrosAvanzados v41.0 CROSS-PLATFORM] 🔄 Modal opened - INSTANT UI');
+      console.log('[FiltrosAvanzados v42.0] 🔄 Modal opened - Loading current filters from Zustand');
       
-      // ✅ INSTANT: Actualizar UI inmediatamente
-      setFiltrosTemp(initialFiltros);
+      // ✅ v42.0 FIX: Load current filters from Zustand store
+      setFiltrosTemp(contextFiltros);
       
       // ✅ BACKGROUND: Refrescar opciones en segundo plano
       requestAnimationFrame(() => {
         refreshDynamicOptions();
       });
     }
-  }, [visible, initialFiltros, refreshDynamicOptions]);
+  }, [visible, contextFiltros, refreshDynamicOptions]);
 
   const toggleArrayItem = useCallback((array: string[] | undefined, item: string): string[] => {
     const arr = array || [];
@@ -157,24 +163,30 @@ export default function FiltrosAvanzadosSheet({
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v41.0] ✅ Applying filters:', filtrosTemp);
-    contextAplicarFiltros(filtrosTemp);
+    console.log('[FiltrosAvanzados v42.0] ✅ Applying filters:', filtrosTemp);
+    
+    // ✅ v42.0 FIX: Update Zustand store directly
+    setFiltros(filtrosTemp);
+    
+    // Also call prop callback if provided
     if (propOnAplicarFiltros) {
       propOnAplicarFiltros(filtrosTemp);
     }
+    
     onClose();
-  }, [filtrosTemp, contextAplicarFiltros, propOnAplicarFiltros, onClose]);
+  }, [filtrosTemp, setFiltros, propOnAplicarFiltros, onClose]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v41.0] 🧹 Clearing all filters - INSTANT UI UPDATE');
+    console.log('[FiltrosAvanzados v42.0] 🧹 Clearing all filters - INSTANT UI UPDATE');
     
+    // ✅ v42.0 FIX: Clear both local state and Zustand store
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     
     setTimeout(() => {
-      contextLimpiarFiltros();
+      limpiarFiltros();
     }, 0);
-  }, [contextLimpiarFiltros]);
+  }, [limpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
     console.log('[FiltrosAvanzados v41.0] 📍 Selected comunidad:', selectedComunidad);

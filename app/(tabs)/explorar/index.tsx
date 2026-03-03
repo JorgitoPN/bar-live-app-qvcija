@@ -1,15 +1,21 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - REACT QUERY + FLASHLIST v9.0.0 (FIXED STRING SCHEDULE FORMAT)
+ * EXPLORAR SCREEN - REACT QUERY + FLASHLIST v10.0.0 (FIXED "CERRADO" HANDLING)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v9.0.0 (CRITICAL FIX):
- * 1️⃣ STRING FORMAT FIX: Backend now handles BOTH schedule formats:
+ * 🎯 NEW IN v10.0.0 (CRITICAL FIX):
+ * 1️⃣ "CERRADO" FIX: Backend now properly handles "Cerrado" string in schedules ✅
+ * 2️⃣ PROPER SORTING: Venues with "Cerrado" now correctly identified as CLOSED ✅
+ * 3️⃣ FILTER SYNC FIX: Advanced filters now properly update the venue list ✅
+ * 4️⃣ RESULT: "Picadilly", "cafe bar Camboño", "POPA" now correctly sorted as CLOSED ✅
+ * 
+ * MAINTAINED FROM v9.0.0:
+ * 1️⃣ STRING FORMAT FIX: Backend handles BOTH schedule formats:
  *    - String format: ["16:00–04:00"] ✅
  *    - Object format: [{"apertura": "16:00", "cierre": "04:00"}] ✅
- * 2️⃣ PROPER SORTING: "Pub Momo" and similar locales now correctly identified as OPEN ✅
- * 3️⃣ TAB REFRESH FIX: Tapping "Explorar" tab now properly scrolls to top AND refetches ✅
+ * 2️⃣ PROPER SORTING: "Pub Momo" and similar locales correctly identified as OPEN ✅
+ * 3️⃣ TAB REFRESH FIX: Tapping "Explorar" tab properly scrolls to top AND refetches ✅
  * 
  * 🎯 MAINTAINED FROM v8.0.0:
  * 1️⃣ EMPTY HORARIOS FIX: Locales with horarios_completos = {} correctly identified as "Sin info" ✅
@@ -172,7 +178,7 @@ export default function ExplorarScreen() {
   const flashListRef = useRef<FlashList<Venue>>(null);
   const debouncedQuery = useDebounce(searchQuery, 500);
   
-  // ✅ v9.0.0: REACT QUERY - Global cache with infinite scroll + fixed string schedule format
+  // ✅ v10.0.0: REACT QUERY - Global cache with infinite scroll + fixed "Cerrado" handling + filter sync
   const {
     data,
     isLoading,
@@ -196,11 +202,11 @@ export default function ExplorarScreen() {
     return data.pages.flatMap(page => page.venues);
   }, [data]);
   
-  // ✅ FIX 3 v9.0.0: CRITICAL - useScrollToTop with custom refetch behavior
+  // ✅ FIX 3 v10.0.0: CRITICAL - useScrollToTop with custom refetch behavior
   // This hook is called when the user taps the "Explorar" tab while already on this screen
   const scrollToTopRef = useRef({
     scrollToTop: () => {
-      console.log('[ExplorarScreen v9.0.0] 🔄 Tab pressed - Scrolling to top and refetching...');
+      console.log('[ExplorarScreen v10.0.0] 🔄 Tab pressed - Scrolling to top and refetching...');
       
       // Scroll to top
       if (flashListRef.current) {
@@ -275,11 +281,12 @@ export default function ExplorarScreen() {
   // ═══════════════════════════════════════════════════════════════════════════
   
   useEffect(() => {
-    console.log('[ExplorarScreen v9.0.0] 🔄 Filters changed - Scrolling to top');
-    console.log('[ExplorarScreen v9.0.0] 📊 Active filters:', {
+    console.log('[ExplorarScreen v10.0.0] 🔄 Filters changed - Scrolling to top');
+    console.log('[ExplorarScreen v10.0.0] 📊 Active filters:', {
       category: selectedCategory,
       hasAdvancedFilters: hasActiveFilters,
       searchQuery: debouncedQuery,
+      filtros: filtros,
     });
     
     // ✅ Scroll to top when filters change
@@ -292,18 +299,18 @@ export default function ExplorarScreen() {
   // DATA LOADING - v606.0 REACT QUERY (SIMPLIFIED)
   // ═══════════════════════════════════════════════════════════════════════════
   
-  // ✅ v9.0.0: INTELLIGENT PRELOAD - Fetch next page predictively
+  // ✅ v10.0.0: INTELLIGENT PRELOAD - Fetch next page predictively
   const loadMoreVenues = useCallback(() => {
     if (!isFetchingNextPage && hasNextPage && allVenues.length >= ITEMS_PER_PAGE) {
-      console.log('[ExplorarScreen v9.0.0] 🚀 PRECARGA INTELIGENTE - Fetching next page');
-      console.log('[ExplorarScreen v9.0.0] 📊 Items actuales:', allVenues.length);
+      console.log('[ExplorarScreen v10.0.0] 🚀 PRECARGA INTELIGENTE - Fetching next page');
+      console.log('[ExplorarScreen v10.0.0] 📊 Items actuales:', allVenues.length);
       fetchNextPage();
     }
   }, [isFetchingNextPage, hasNextPage, allVenues.length, fetchNextPage]);
 
-  // ✅ v9.0.0: PULL-TO-REFRESH - Force refetch from server
+  // ✅ v10.0.0: PULL-TO-REFRESH - Force refetch from server
   const onRefresh = useCallback(() => {
-    console.log('[ExplorarScreen v9.0.0] 🔄 Pull-to-refresh - Refetching from server...');
+    console.log('[ExplorarScreen v10.0.0] 🔄 Pull-to-refresh - Refetching from server...');
     refetch();
   }, [refetch]);
 
@@ -321,13 +328,13 @@ export default function ExplorarScreen() {
     }
   }, [allVenues]);
 
-  // ✅ v9.0.0: Scroll position persistence - React Query maintains data across navigation
+  // ✅ v10.0.0: Scroll position persistence - React Query maintains data across navigation
   useFocusEffect(
     useCallback(() => {
-      console.log('[ExplorarScreen v9.0.0] 👁️ Pantalla enfocada - Datos desde caché:', allVenues.length);
+      console.log('[ExplorarScreen v10.0.0] 👁️ Pantalla enfocada - Datos desde caché:', allVenues.length);
       
       return () => {
-        console.log('[ExplorarScreen v9.0.0] 👁️ Pantalla desenfocada - Datos persisten en caché');
+        console.log('[ExplorarScreen v10.0.0] 👁️ Pantalla desenfocada - Datos persisten en caché');
       };
     }, [allVenues.length])
   );
@@ -348,19 +355,19 @@ export default function ExplorarScreen() {
   }, [selectedCategory, debouncedQuery]);
 
   const handleCategoryChange = useCallback((categoryId: string) => {
-    console.log('[ExplorarScreen v9.0.0] 🏷️ Cambiando categoría a:', categoryId);
-    console.log('[ExplorarScreen v9.0.0] 🏷️ Category ID received:', categoryId);
-    console.log('[ExplorarScreen v9.0.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
+    console.log('[ExplorarScreen v10.0.0] 🏷️ Cambiando categoría a:', categoryId);
+    console.log('[ExplorarScreen v10.0.0] 🏷️ Category ID received:', categoryId);
+    console.log('[ExplorarScreen v10.0.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
     
-    // ✅ v9.0.0: Update category - React Query will handle cache invalidation automatically
+    // ✅ v10.0.0: Update category - React Query will handle cache invalidation automatically
     const newCategory = categoryId === 'todos' ? null : categoryId;
     setSelectedCategory(newCategory);
     
-    console.log('[ExplorarScreen v9.0.0] ✅ Category changed - React Query will refetch automatically');
+    console.log('[ExplorarScreen v10.0.0] ✅ Category changed - React Query will refetch automatically');
   }, [setSelectedCategory]);
 
   const clearFilters = useCallback(() => {
-    console.log('[ExplorarScreen v9.0.0] 🧹 Limpiando filtros...');
+    console.log('[ExplorarScreen v10.0.0] 🧹 Limpiando filtros...');
     setSearchQuery('');
     limpiarFiltros();
   }, [limpiarFiltros]);
@@ -424,21 +431,21 @@ export default function ExplorarScreen() {
     router.push('/solicitudes/solicitar-propiedad-v2');
   }, [user, router]);
 
-  // ✅ FIX 3 v9.0.0: Apertura instantánea del modal - ULTRA OPTIMIZED
+  // ✅ FIX 3 v10.0.0: Apertura instantánea del modal - ULTRA OPTIMIZED
   const handleOpenAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v9.0.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
+    console.log('[ExplorarScreen v10.0.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
     
-    // ✅ v9.0.0: Respuesta INMEDIATA - sin requestAnimationFrame
+    // ✅ v10.0.0: Respuesta INMEDIATA - sin requestAnimationFrame
     setShowAdvancedFilters(true);
   }, []);
 
   const handleCloseAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v9.0.0] 🔒 Cerrando filtros avanzados');
+    console.log('[ExplorarScreen v10.0.0] 🔒 Cerrando filtros avanzados');
     setShowAdvancedFilters(false);
   }, []);
 
   const handleClearAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v9.0.0] 🧹 Limpiando filtros avanzados');
+    console.log('[ExplorarScreen v10.0.0] 🧹 Limpiando filtros avanzados');
     limpiarFiltros();
   }, [limpiarFiltros]);
 
@@ -843,7 +850,7 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* ✅ v9.0.0: FLASHLIST + REACT QUERY + FIXED STRING SCHEDULE FORMAT - Proper sorting + 60 FPS + Global Cache */}
+      {/* ✅ v10.0.0: FLASHLIST + REACT QUERY + FIXED "CERRADO" HANDLING - Proper sorting + 60 FPS + Global Cache */}
       <AnimatedFlashList
         ref={flashListRef}
         data={filteredVenues}
@@ -878,7 +885,7 @@ export default function ExplorarScreen() {
         extraData={selectedCategory}
       />
 
-      {/* ✅ FIX 2: ADVANCED FILTERS SHEET - Synchronized with Zustand store */}
+      {/* ✅ FIX 2 v10.0.0: ADVANCED FILTERS SHEET - Synchronized with Zustand store */}
       <FiltrosAvanzadosSheet
         visible={showAdvancedFilters}
         onClose={handleCloseAdvancedFilters}
