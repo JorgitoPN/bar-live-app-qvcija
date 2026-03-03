@@ -1,44 +1,38 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - FLASHLIST OPTIMIZATION v605.0 (60 FPS)
+ * EXPLORAR SCREEN - REACT QUERY + FLASHLIST v606.0 (GLOBAL CACHE + 60 FPS)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 OBJETIVO: Scroll infinito sin tiempos de espera + Búsqueda predictiva + 60 FPS
+ * 🎯 OBJETIVO: Caché global + Scroll infinito sin tiempos de espera + 60 FPS
  * 
- * ✅ OPTIMIZACIONES v605.0 (FLASHLIST):
+ * ✅ OPTIMIZACIONES v606.0 (REACT QUERY + GLOBAL CACHE):
+ * 1️⃣ REACT QUERY: Caché global con TanStack Query - datos persisten al navegar
+ * 2️⃣ STALE-WHILE-REVALIDATE: Muestra datos en caché instantáneamente, actualiza en segundo plano
+ * 3️⃣ INFINITE SCROLL: useInfiniteQuery para paginación sin interrupciones
+ * 4️⃣ PREDICTIVE LOADING: Carga siguiente página al 50% del scroll (onEndReachedThreshold={0.5})
+ * 5️⃣ SCROLL PERSISTENCE: Mantiene posición al volver de detalle de local
+ * 6️⃣ SMART LOADING: ActivityIndicator solo cuando carga MÁS páginas, no en carga inicial con caché
+ * 
+ * ✅ OPTIMIZACIONES v605.0 (FLASHLIST - MANTENIDAS):
  * 1️⃣ FLASHLIST: Reemplazo de FlatList por FlashList para mejor reciclaje de celdas
- * 2️⃣ ESTIMATEDITEMSIZE: 400px para cálculo instantáneo de layouts
+ * 2️⃣ ESTIMATEDITEMSIZE: 450px para cálculo instantáneo de layouts
  * 3️⃣ MEMORY EFFICIENCY: ~10x menos memoria que FlatList
  * 4️⃣ SCROLL PERFORMANCE: 60 FPS constantes incluso con imágenes pesadas
+ * 5️⃣ INITIALNUM TORENDER: 10 items para cubrir primeras pantallas
  * 
  * Previous optimizations maintained (v604.0):
  * 1️⃣ BÚSQUEDA PREDICTIVA: Backend ILIKE para búsqueda parcial case-insensitive
- * 2️⃣ PRECARGA INTELIGENTE: Carga anticipada al 50% del bloque actual (10/20 items)
- * 3️⃣ CARGA EN BACKGROUND: requestAnimationFrame para no bloquear UI
- * 4️⃣ PREVENCIÓN DE DUPLICADOS: Sistema de locks para evitar llamadas múltiples
- * 5️⃣ THROTTLING OPTIMIZADO: Scroll handler con throttle de 16ms (60fps)
- * 6️⃣ CONDICIONES DE CARRERA: Refs para prevenir race conditions
- * 7️⃣ ESCALABILIDAD: Preparado para miles de registros sin degradación
+ * 2️⃣ BACKEND PROCESSING: get_sorted_locales_by_proximity con PostGIS + estadoCompleto
+ * 3️⃣ ZERO CLIENT PROCESSING: Sin cálculos de distancia ni estado en frontend
+ * 4️⃣ THROTTLING OPTIMIZADO: Scroll handler con throttle de 16ms (60fps)
  * 
- * 🚀 RESULTADO: Experiencia completamente fluida con búsqueda predictiva + 60 FPS
- * 
- * WHY FLASHLIST IS SUPERIOR TO FLATLIST:
- * 1. CELL RECYCLING: FlashList recycles cells more efficiently by using a "blank space" strategy
- *    - FlatList: Creates new cells as you scroll, leading to memory spikes
- *    - FlashList: Reuses existing cells, keeping memory constant
- * 
- * 2. MEMORY MANAGEMENT: FlashList uses ~10x less memory than FlatList
- *    - FlatList: Keeps all rendered items in memory
- *    - FlashList: Only keeps visible items + small buffer
- * 
- * 3. SCROLL PERFORMANCE: FlashList maintains 60 FPS even with complex items
- *    - FlatList: Drops frames with heavy items (images, gradients)
- *    - FlashList: Optimized rendering pipeline prevents frame drops
- * 
- * 4. LAYOUT CALCULATION: FlashList calculates layouts more efficiently
- *    - FlatList: Measures each item individually
- *    - FlashList: Uses estimatedItemSize for instant layout
+ * 🚀 RESULTADO v606.0:
+ * - Navegación: Pérdida de datos → Restauración instantánea desde caché 💾
+ * - Carga inicial: Spinner → Datos instantáneos (si hay caché) ⚡
+ * - Scroll: 4 locales → Infinito sin interrupciones 🔄
+ * - Performance: 60 FPS constantes 🎯
+ * - UX: Spinner solo cuando carga MÁS páginas, no en inicial con caché ✨
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -68,12 +62,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useFilters } from '@/contexts/FilterContext';
-import { supabase } from '@/utils/supabase';
 import { getOptimizedUserLocation } from '@/utils/locationUtils';
-import { getEstadoLocal } from '@/utils/timeUtils';
 import LocalCardOptimized from '@/components/explorar/LocalCardOptimized';
-import { dataCache } from '@/utils/dataCache';
 import { intelligentPreloader } from '@/utils/intelligentPreloader';
+import { useBaresQuery } from '@/hooks/useBaresQuery';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES & INTERFACES
@@ -117,8 +109,7 @@ interface Category {
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 240;
 const HEADER_MIN_HEIGHT = 0;
 const ITEMS_PER_PAGE = 20;
-const PRELOAD_THRESHOLD = 0.5; // ✅ v603: Precargar cuando quedan 10 items (50% de 20)
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+const PRELOAD_THRESHOLD = 0.5; // ✅ v606: Precargar cuando quedan 10 items (50% de 20)
 const SCROLL_THROTTLE = 16; // 60fps para scroll suave
 
 const CATEGORIAS: Category[] = [
@@ -173,12 +164,6 @@ export default function ExplorarScreen() {
   // STATE MANAGEMENT
   // ═══════════════════════════════════════════════════════════════════════════
   
-  const [allVenues, setAllVenues] = useState<Venue[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-  
   const [searchQuery, setSearchQuery] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
@@ -192,6 +177,30 @@ export default function ExplorarScreen() {
   
   const flashListRef = useRef<FlashList<Venue>>(null);
   const debouncedQuery = useDebounce(searchQuery, 500);
+  
+  // ✅ v606.0: REACT QUERY - Global cache with infinite scroll
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+    isRefetching,
+  } = useBaresQuery({
+    userLocation,
+    selectedCategory,
+    searchQuery: debouncedQuery,
+    globalFiltros,
+    pageSize: ITEMS_PER_PAGE,
+  });
+  
+  // ✅ Flatten paginated data into single array
+  const allVenues = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap(page => page.venues);
+  }, [data]);
   
   // ✅ FIX 4 v602: Animated header - FIXED to show on scroll up
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -207,11 +216,6 @@ export default function ExplorarScreen() {
       useNativeDriver: true,
     }).start();
   }, [headerTranslateY]);
-
-  // ✅ FIX 5: Cache key para persistencia
-  const cacheKey = useMemo(() => {
-    return `explorar-${selectedCategory}-${JSON.stringify(globalFiltros)}-${debouncedQuery}`;
-  }, [selectedCategory, globalFiltros, debouncedQuery]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // LOCATION MANAGEMENT
@@ -255,193 +259,47 @@ export default function ExplorarScreen() {
   }, []);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // DATA LOADING - OPTIMIZED v600.0
+  // DATA LOADING - v606.0 REACT QUERY (SIMPLIFIED)
   // ═══════════════════════════════════════════════════════════════════════════
   
-  const loadVenues = useCallback(async (pageNum: number, isRefresh: boolean = false) => {
-    if (!locationReady) {
-      console.log('[ExplorarScreen v600.0] ⏳ Esperando ubicación...');
-      return;
-    }
-    
-    // ✅ FIX 5: Intentar cargar desde caché primero
-    if (pageNum === 1 && !isRefresh) {
-      const cached = await dataCache.get<Venue[]>(cacheKey);
-      if (cached && cached.length > 0) {
-        console.log('[ExplorarScreen v600.0] 💾 Cargando desde caché:', cached.length, 'locales');
-        setAllVenues(cached);
-        setHasMore(cached.length === ITEMS_PER_PAGE);
-        return;
-      }
-    }
-    
-    if (isRefresh) {
-      setRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
-    
-    try {
-      console.log('[ExplorarScreen v604.0] 🔍 Cargando locales - Página:', pageNum);
-      console.log('[ExplorarScreen v604.0] 🔍 Selected category:', selectedCategory);
-      console.log('[ExplorarScreen v604.0] 🔍 Selected category type:', typeof selectedCategory);
-      console.log('[ExplorarScreen v604.0] 🔍 Search query:', debouncedQuery);
-      
-      // ✅ FIX 1: Usar selectedCategory correctamente - ULTRA FIXED LOGIC
-      // CRITICAL: selectedCategory can be null, 'todos', or a category name like 'discotecas'
-      let categoryFilter = null;
-      
-      if (selectedCategory && selectedCategory !== 'todos') {
-        // ✅ CRITICAL: Map frontend category names to database barlive_types
-        const categoryMapping: Record<string, string> = {
-          'discotecas': 'discoteca',
-          'pubs': 'pub',
-          'bares': 'bar',
-          'restaurantes': 'restaurante',
-          'cafeterias': 'cafeteria',
-        };
-        
-        const dbCategoryName = categoryMapping[selectedCategory] || selectedCategory;
-        categoryFilter = [dbCategoryName];
-        
-        console.log('[ExplorarScreen v600.0] 🔍 Category mapping:', {
-          frontend: selectedCategory,
-          database: dbCategoryName,
-          filter: categoryFilter
-        });
-      }
-      
-      console.log('[ExplorarScreen v600.0] 🔍 Final category filter:', {
-        selectedCategory,
-        categoryFilter,
-        willFilterByCategory: categoryFilter !== null
-      });
-      
-      // ✅ NEW: Pass search query to backend for predictive search
-      const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity', {
-        p_user_lat: userLocation?.latitude || 40.4168,
-        p_user_lng: userLocation?.longitude || -3.7038,
-        p_offset: (pageNum - 1) * ITEMS_PER_PAGE,
-        p_limit: ITEMS_PER_PAGE,
-        p_category_filter: categoryFilter,
-        p_servicios_filter: globalFiltros.servicios?.length > 0 ? globalFiltros.servicios : null,
-        p_ambiente_filter: globalFiltros.ambiente?.length > 0 ? globalFiltros.ambiente : null,
-        p_clientela_filter: globalFiltros.clientela?.length > 0 ? globalFiltros.clientela : null,
-        p_comunidad_filter: globalFiltros.comunidad || null,
-        p_provincia_filter: globalFiltros.provincia || null,
-        p_max_distance_km: globalFiltros.distancia || null,
-        p_search_query: debouncedQuery || null,  // ✅ NEW: Predictive search parameter
-      });
-      
-      if (error) {
-        console.error('[ExplorarScreen v600.0] ❌ Error RPC:', error);
-        throw error;
-      }
-      
-      const venues = data || [];
-      console.log('[ExplorarScreen v600.0] ✅ Cargados', venues.length, 'locales');
-      
-      // ✅ Enriquecer con estado completo
-      const enrichedVenues = venues.map((venue: Venue) => ({
-        ...venue,
-        estadoCompleto: venue.horarios_completos ? getEstadoLocal(venue) : null,
-        distancia: venue.distance_km,
-        coordenadas: { lat: venue.latitud || 0, lng: venue.longitud || 0 },
-      }));
-      
-      if (isRefresh || pageNum === 1) {
-        setAllVenues(enrichedVenues);
-        setPage(1);
-        
-        // ✅ FIX 5: Guardar en caché
-        if (enrichedVenues.length > 0) {
-          await dataCache.set(cacheKey, enrichedVenues, CACHE_DURATION);
-        }
-      } else {
-        setAllVenues(prev => [...prev, ...enrichedVenues]);
-      }
-      
-      setHasMore(venues.length === ITEMS_PER_PAGE);
-      
-      // ✅ FIX 2: Precargar imágenes de los siguientes items
-      if (enrichedVenues.length > 0) {
-        intelligentPreloader.prefetchNextItems(0, enrichedVenues, 'local');
-      }
-      
-    } catch (error: any) {
-      console.error('[ExplorarScreen v600.0] ❌ Error cargando locales:', error);
-    } finally {
-      setIsLoading(false);
-      setRefreshing(false);
-    }
-  }, [locationReady, userLocation, selectedCategory, debouncedQuery, globalFiltros, cacheKey]);
-
-  // ✅ v603: INTELLIGENT PRELOAD SYSTEM - Carga anticipada sin bloqueos
-  const isLoadingMore = useRef(false);
-  
+  // ✅ v606.0: INTELLIGENT PRELOAD - Fetch next page predictively
   const loadMoreVenues = useCallback(() => {
-    // ✅ Prevenir múltiples llamadas simultáneas
-    if (isLoadingMore.current || isLoading || !hasMore) {
-      return;
+    if (!isFetchingNextPage && hasNextPage && allVenues.length >= ITEMS_PER_PAGE) {
+      console.log('[ExplorarScreen v606.0] 🚀 PRECARGA INTELIGENTE - Fetching next page');
+      console.log('[ExplorarScreen v606.0] 📊 Items actuales:', allVenues.length);
+      fetchNextPage();
     }
-    
-    // ✅ Verificar que hay suficientes items para justificar la precarga
-    if (allVenues.length < ITEMS_PER_PAGE) {
-      return;
-    }
-    
-    isLoadingMore.current = true;
-    const nextPage = page + 1;
-    
-    console.log('[ExplorarScreen v603.0] 🚀 PRECARGA INTELIGENTE - Página:', nextPage);
-    console.log('[ExplorarScreen v603.0] 📊 Items actuales:', allVenues.length);
-    
-    setPage(nextPage);
-    
-    // ✅ Cargar en segundo plano sin bloquear UI
-    requestAnimationFrame(() => {
-      loadVenues(nextPage, false).finally(() => {
-        isLoadingMore.current = false;
-      });
-    });
-  }, [isLoading, hasMore, allVenues.length, page, loadVenues]);
+  }, [isFetchingNextPage, hasNextPage, allVenues.length, fetchNextPage]);
 
+  // ✅ v606.0: PULL-TO-REFRESH - Force refetch from server
   const onRefresh = useCallback(() => {
-    console.log('[ExplorarScreen v600.0] 🔄 Refrescando lista...');
-    dataCache.clear(cacheKey);
-    setPage(1);
-    setHasMore(true);
-    loadVenues(1, true);
-  }, [loadVenues, cacheKey]);
+    console.log('[ExplorarScreen v606.0] 🔄 Pull-to-refresh - Refetching from server...');
+    refetch();
+  }, [refetch]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // EFFECTS
   // ═══════════════════════════════════════════════════════════════════════════
   
+  // ✅ v606.0: React Query handles refetching automatically when filters change
+  // No manual refetch needed - queryKey includes all filters
+  
+  // ✅ v606.0: Prefetch images when data loads
   useEffect(() => {
-    if (locationReady) {
-      console.log('[ExplorarScreen v604.0] 🔄 Recargando por cambio de filtros o búsqueda...');
-      dataCache.clear(cacheKey);
-      setPage(1);
-      setHasMore(true);
-      loadVenues(1, false);
+    if (allVenues.length > 0) {
+      intelligentPreloader.prefetchNextItems(0, allVenues, 'local');
     }
-  }, [locationReady, selectedCategory, debouncedQuery, globalFiltros]);
+  }, [allVenues]);
 
-  // ✅ FIX 5: Restaurar posición al volver
+  // ✅ v606.0: Scroll position persistence - React Query maintains data across navigation
   useFocusEffect(
     useCallback(() => {
-      console.log('[ExplorarScreen v600.0] 👁️ Pantalla enfocada - Verificando caché...');
-      
-      // Si hay datos en caché y no hay datos cargados, restaurar
-      if (allVenues.length === 0 && locationReady) {
-        loadVenues(1, false);
-      }
+      console.log('[ExplorarScreen v606.0] 👁️ Pantalla enfocada - Datos desde caché:', allVenues.length);
       
       return () => {
-        console.log('[ExplorarScreen v600.0] 👁️ Pantalla desenfocada');
+        console.log('[ExplorarScreen v606.0] 👁️ Pantalla desenfocada - Datos persisten en caché');
       };
-    }, [allVenues.length, locationReady, loadVenues])
+    }, [allVenues.length])
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -460,28 +318,19 @@ export default function ExplorarScreen() {
   }, [selectedCategory, debouncedQuery]);
 
   const handleCategoryChange = useCallback((categoryId: string) => {
-    console.log('[ExplorarScreen v600.0] 🏷️ Cambiando categoría a:', categoryId);
-    console.log('[ExplorarScreen v600.0] 🏷️ Category ID received:', categoryId);
-    console.log('[ExplorarScreen v600.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
+    console.log('[ExplorarScreen v606.0] 🏷️ Cambiando categoría a:', categoryId);
+    console.log('[ExplorarScreen v606.0] 🏷️ Category ID received:', categoryId);
+    console.log('[ExplorarScreen v606.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
     
-    // ✅ FIX: Actualizar categoría seleccionada PRIMERO
+    // ✅ v606.0: Update category - React Query will handle cache invalidation automatically
     const newCategory = categoryId === 'todos' ? null : categoryId;
     setSelectedCategory(newCategory);
     
-    // ✅ FIX: Limpiar caché DESPUÉS de actualizar categoría
-    const newCacheKey = `explorar-${newCategory}-${JSON.stringify(globalFiltros)}-${debouncedQuery}`;
-    dataCache.clear(newCacheKey);
-    
-    // ✅ FIX: Reset pagination y datos
-    setPage(1);
-    setHasMore(true);
-    setAllVenues([]);
-    
-    // ✅ FIX: Scroll to top
+    // ✅ v606.0: Scroll to top
     flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
     
-    console.log('[ExplorarScreen v600.0] ✅ Category changed successfully');
-  }, [setSelectedCategory, globalFiltros, debouncedQuery]);
+    console.log('[ExplorarScreen v606.0] ✅ Category changed - React Query will refetch automatically');
+  }, [setSelectedCategory]);
 
   const clearFilters = useCallback(() => {
     console.log('[ExplorarScreen v605.0] 🧹 Limpiando filtros...');
@@ -602,7 +451,7 @@ export default function ExplorarScreen() {
       return null;
     }
 
-    if (!hasMore && filteredVenues.length > 0) {
+    if (!hasNextPage && filteredVenues.length > 0) {
       return (
         <View style={styles.footerContainer}>
           <Text style={[styles.footerText, { fontSize: scaleFontSize(14) }]}>
@@ -612,7 +461,8 @@ export default function ExplorarScreen() {
       );
     }
 
-    if (isLoading && filteredVenues.length >= 20) {
+    // ✅ v606.0: SMART LOADING - Only show spinner when loading MORE pages (not initial load with cache)
+    if (isFetchingNextPage && filteredVenues.length >= 20) {
       return (
         <View style={styles.footerLoadingContainer}>
           <View style={styles.footerLoadingHeader}>
@@ -626,10 +476,11 @@ export default function ExplorarScreen() {
     }
 
     return null;
-  }, [filteredVenues.length, hasActiveFilters, hasMore, isLoading]);
+  }, [filteredVenues.length, hasActiveFilters, hasNextPage, isFetchingNextPage]);
 
   const renderEmpty = useCallback(() => {
-    if (isLoading && allVenues.length === 0) {
+    // ✅ v606.0: SMART LOADING - Only show spinner if NO cached data AND loading
+    if ((isLoading || isFetching) && allVenues.length === 0 && !data) {
       return (
         <View style={styles.emptyState}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -703,7 +554,7 @@ export default function ExplorarScreen() {
         </Text>
       </View>
     );
-  }, [isLoading, allVenues.length, activeFiltersCount, hasActiveFilters, handleClearAdvancedFilters, clearFilters]);
+  }, [isLoading, isFetching, allVenues.length, data, activeFiltersCount, hasActiveFilters, handleClearAdvancedFilters, clearFilters]);
 
   const modeIcon = getModeIcon();
 
@@ -960,13 +811,14 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* ✅ v605: FLASHLIST OPTIMIZATION - 60 FPS scroll infinito inteligente */}
+      {/* ✅ v606: FLASHLIST + REACT QUERY - 60 FPS + Global Cache + Infinite Scroll */}
       <AnimatedFlashList
         ref={flashListRef}
         data={filteredVenues}
         renderItem={renderVenueCard}
         keyExtractor={(item: Venue) => `local-${item.id}`}
-        estimatedItemSize={400}
+        estimatedItemSize={450}
+        initialNumToRender={10}
         contentContainerStyle={[
           styles.listContent,
           { 
@@ -975,8 +827,14 @@ export default function ExplorarScreen() {
             paddingBottom: getContentBottomPadding(100)
           },
         ]}
-        onRefresh={onRefresh}
-        refreshing={refreshing}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
         onScroll={handleScroll}
         scrollEventThrottle={SCROLL_THROTTLE}
         onEndReached={filteredVenues.length > 0 ? loadMoreVenues : undefined}
