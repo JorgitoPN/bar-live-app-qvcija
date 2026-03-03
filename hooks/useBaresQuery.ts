@@ -48,24 +48,25 @@ const sortLocales = (locales: any[]) => {
 };
 
 /**
- * ✅ useBaresQuery v610.0 - ENHANCED LOGGING & ERROR HANDLING
+ * ✅ useBaresQuery v611.0 - FIXED IMAGE URL DUPLICATION
  * 
  * UNIFIED BUSINESS LOGIC:
  * - Fetches locales from Supabase with SPECIFIC FIELDS (reduced payload)
  * - ✅ FIXED v609: Removed 'imagenes' array field (column doesn't exist in DB)
  * - ✅ FIXED v610: Enhanced logging to debug image URL optimization
+ * - ✅ FIXED v611: Prevent duplicate 'render/image' path in URLs
  * - Applies filters (tipo, provincia, destacado)
  * - Calculates distance using Haversine formula
  * - Determines open/closed status
  * - Applies master sorting (open+featured → open+proximity → closed)
- * - ✅ v610: Optimizes ONLY imagen_url using Supabase transformation with detailed logging
+ * - ✅ v611: Optimizes ONLY imagen_url using Supabase transformation (no duplication)
  * 
- * OPTIMIZATIONS v610.0:
+ * OPTIMIZATIONS v611.0:
  * 1️⃣ REDUCED PAYLOAD: Select only necessary fields (not select('*'))
- * 2️⃣ IMAGE OPTIMIZATION: Transform imagen_url using getOptimizedImageUrl
+ * 2️⃣ IMAGE OPTIMIZATION: Transform imagen_url using getOptimizedImageUrl (fixed duplication)
  * 3️⃣ MEMOIZATION: Lightweight distance and status calculations
  * 4️⃣ ✅ FIXED: Only use imagen_url field (the actual column that exists)
- * 5️⃣ ✅ NEW: Enhanced logging to track image URL transformation
+ * 5️⃣ ✅ FIXED: Skip transformation if URL already optimized
  * 
  * CACHE STRATEGY:
  * - queryKey includes [filtros, !!userLocation] for proper cache invalidation
@@ -91,9 +92,9 @@ export const useBaresQuery = (
     queryKey: ['bares', filtros, !!userLocation],
     
     queryFn: async () => {
-      console.log('[useBaresQuery v610.0] 📡 Fetching bares from Supabase...');
-      console.log('[useBaresQuery v610.0] 🔍 Filters:', filtros);
-      console.log('[useBaresQuery v610.0] 📍 User location:', userLocation ? 'Available' : 'Not available');
+      console.log('[useBaresQuery v611.0] 📡 Fetching bares from Supabase...');
+      console.log('[useBaresQuery v611.0] 🔍 Filters:', filtros);
+      console.log('[useBaresQuery v611.0] 📍 User location:', userLocation ? 'Available' : 'Not available');
       
       // ✅ v610: FIXED - Removed 'imagenes' field (doesn't exist in DB)
       // Only fetch imagen_url which is the actual column name
@@ -115,11 +116,11 @@ export const useBaresQuery = (
 
       const { data, error } = await query;
       if (error) {
-        console.error('[useBaresQuery v610.0] ❌ Error fetching data:', error);
+        console.error('[useBaresQuery v611.0] ❌ Error fetching data:', error);
         throw error;
       }
 
-      console.log('[useBaresQuery v610.0] ✅ Fetched', data?.length || 0, 'locales');
+      console.log('[useBaresQuery v611.0] ✅ Fetched', data?.length || 0, 'locales');
 
       // ✅ v610: PROCESS DATA - Calculate open status, distance, and OPTIMIZE IMAGES
       const procesados = data.map(local => {
@@ -157,8 +158,8 @@ export const useBaresQuery = (
       // ✅ APPLY MASTER SORTING LOGIC
       const sorted = sortLocales(procesados);
       
-      console.log('[useBaresQuery v610.0] 🎯 Sorted', sorted.length, 'locales');
-      console.log('[useBaresQuery v610.0] 📊 First 3 with images:', sorted.slice(0, 3).map(l => ({
+      console.log('[useBaresQuery v611.0] 🎯 Sorted', sorted.length, 'locales');
+      console.log('[useBaresQuery v611.0] 📊 First 3 with images:', sorted.slice(0, 3).map(l => ({
         nombre: l.nombre,
         abierto: l.estaAbierto,
         destacado: l.destacado,

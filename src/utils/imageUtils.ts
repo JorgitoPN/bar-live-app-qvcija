@@ -46,7 +46,7 @@ export function getOptimizedImageUrl(
 ): string | undefined {
   // ✅ Validación de entrada
   if (!url || typeof url !== 'string') {
-    console.log('[imageUtils v610] ⚠️ Invalid URL input:', url);
+    console.log('[imageUtils v611] ⚠️ Invalid URL input:', url);
     return undefined;
   }
 
@@ -55,11 +55,18 @@ export function getOptimizedImageUrl(
   
   if (!isSupabaseUrl) {
     // ✅ URL externa - devolver sin cambios
-    console.log('[imageUtils v610] 🌐 External URL (no optimization):', url.substring(0, 50) + '...');
+    console.log('[imageUtils v611] 🌐 External URL (no optimization):', url.substring(0, 50) + '...');
     return url;
   }
 
   try {
+    // ✅ FIXED v611: Evitar duplicación de path si ya está optimizada
+    // Si la URL ya contiene 'render/image', devolverla sin cambios
+    if (url.includes('/storage/v1/render/image/')) {
+      console.log('[imageUtils v611] ℹ️ URL already optimized, skipping transformation');
+      return url;
+    }
+    
     // ✅ Transformar URL de Supabase para usar el endpoint de renderizado
     // Formato original: /storage/v1/object/public/bucket/path/file.jpg
     // Formato optimizado: /storage/v1/render/image/public/bucket/path/file.jpg?width=400&quality=70&resize=contain
@@ -74,7 +81,7 @@ export function getOptimizedImageUrl(
     const params = `width=${width}&quality=${quality}&resize=contain`;
     
     const finalUrl = `${optimizedUrl}${separator}${params}`;
-    console.log('[imageUtils v610] ✅ Optimized Supabase URL:', {
+    console.log('[imageUtils v611] ✅ Optimized Supabase URL:', {
       original: url.substring(0, 80) + '...',
       optimized: finalUrl.substring(0, 80) + '...',
       hasRenderPath: finalUrl.includes('render/image')
@@ -82,7 +89,7 @@ export function getOptimizedImageUrl(
     
     return finalUrl;
   } catch (error) {
-    console.error('[imageUtils v610] ❌ Error optimizing URL:', error);
+    console.error('[imageUtils v611] ❌ Error optimizing URL:', error);
     // ✅ Fallback seguro - devolver URL original
     return url;
   }
