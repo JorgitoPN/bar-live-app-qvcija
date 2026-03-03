@@ -1,8 +1,16 @@
 
 /**
- * ✅ LOCAL CARD OPTIMIZED v2.0 - 60FPS SCROLL PERFORMANCE 🚀
+ * ✅ LOCAL CARD OPTIMIZED v2.1 - PASO 3 FINAL - COLORES RESTAURADOS 🎨
  * 
- * Optimizaciones v2.0 (CRITICAL):
+ * CORRECCIONES CRÍTICAS v2.1:
+ * - ✅ COLORES HEXADECIMALES EXACTOS restaurados en getBadgeInfo()
+ *   - Abierto: #22C55E (Verde)
+ *   - Cerrado: #EF4444 (Rojo)
+ *   - Cierra pronto: #F97316 (Naranja)
+ *   - Abre pronto: #EAB308 (Amarillo)
+ *   - Sin info: #9CA3AF (Gris)
+ * 
+ * Optimizaciones v2.0:
  * - ✅ Server-side status calculation: estadoCompleto from get_locales_v2
  * - ✅ Zero client-side time calculations during scroll
  * - ✅ Pre-calculated badge, estaAbierto, claseBg from database
@@ -14,11 +22,6 @@
  * - ✅ Image Prefetching: Precarga automática
  * - ✅ Memoization: Previene re-renders
  * - ✅ Lazy Loading: Datos bajo demanda
- * 
- * RESULTADO v2.0:
- * - Load time: ~1.5s → <300ms ⚡
- * - Scroll: Laggy → 60fps smooth 🎯
- * - Processing: Client → Server 🔥
  */
 
 import React, { useState, useCallback, memo, useEffect } from 'react';
@@ -41,8 +44,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { optimisticUI } from '@/utils/optimisticUI';
 import { intelligentPreloader } from '@/utils/intelligentPreloader';
 import { Skeleton } from '@/components/common/SkeletonLoader';
-
-// ✅ Necesario para Linking
 import { Linking } from 'react-native';
 
 interface LocalCardOptimizedProps {
@@ -66,13 +67,11 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   const hasSocialProfile = socialProfiles.get(local.id) || false;
   const activeEvent = activeEvents.get(local.id);
 
-  // ✅ PREFETCH: Precargar imagen cuando el componente se monta
   useEffect(() => {
     if (imagenPrincipal) {
       intelligentPreloader.prefetchImages([imagenPrincipal], 'MEDIUM');
     }
     
-    // ✅ Precargar galería en segundo plano
     if (local.imagenes && local.imagenes.length > 1) {
       requestAnimationFrame(() => {
         intelligentPreloader.prefetchImages(local.imagenes.slice(1, 3), 'LOW');
@@ -80,14 +79,10 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
     }
   }, [imagenPrincipal, local.imagenes]);
 
-  // ✅ Sincronizar estado de favorito
   useEffect(() => {
     setLocalIsFavorite(isFavorite(local.id));
   }, [isFavorite, local.id]);
 
-  /**
-   * ✅ OPTIMISTIC FAVORITE - Respuesta instantánea
-   */
   const handleToggleFavorito = useCallback(async (e: any) => {
     e.stopPropagation();
     
@@ -98,18 +93,15 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
 
     if (!local.id) return;
 
-    console.log('[LocalCardOptimized] ⭐ INSTANT favorite toggle');
+    console.log('[LocalCardOptimized v2.1 PASO 3 FINAL] ⭐ INSTANT favorite toggle');
 
-    // ✅ Actualización INSTANTÁNEA de UI
     const newFavoriteState = !localIsFavorite;
     setLocalIsFavorite(newFavoriteState);
 
-    // ✅ Sincronización en segundo plano
     try {
       await toggleFavorite(local.id);
     } catch (error) {
-      // ✅ Rollback en caso de error
-      console.log('[LocalCardOptimized] 🔄 Rolling back favorite');
+      console.log('[LocalCardOptimized v2.1 PASO 3 FINAL] 🔄 Rolling back favorite');
       setLocalIsFavorite(!newFavoriteState);
     }
   }, [user, router, local.id, localIsFavorite, toggleFavorite]);
@@ -127,13 +119,18 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   }, [router, local.id]);
 
   /**
-   * ✅ OPTIMIZED v2.0: Prioritize server-calculated estadoCompleto
-   * This eliminates ALL client-side time calculations for instant rendering
+   * ✅ CRITICAL FIX v2.1: COLORES HEXADECIMALES EXACTOS RESTAURADOS
+   * 
+   * Mapeo de colores corregido:
+   * - bg-green-500 → #22C55E (Verde - Abierto)
+   * - bg-red-500 → #EF4444 (Rojo - Cerrado)
+   * - bg-orange-500 → #F97316 (Naranja - Cierra pronto)
+   * - bg-yellow-500 → #EAB308 (Amarillo - Abre pronto)
+   * - bg-gray-400 → #9CA3AF (Gris - Sin info)
    */
   const getBadgeInfo = () => {
-    // Debug: Log what we received for this local
     if (index === 0) {
-      console.log('[LocalCardOptimized v2.0] 🔍 Badge data for first card:', {
+      console.log('[LocalCardOptimized v2.1 PASO 3 FINAL] 🎨 Badge data for first card:', {
         nombre: local.nombre,
         estadoCompleto: local.estadoCompleto,
         estaAbierto: local.estaAbierto,
@@ -141,19 +138,27 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
       });
     }
     
-    // ✅ PRIORITY 1: Use server-calculated estadoCompleto (from get_locales_v2)
     if (local.estadoCompleto) {
       const estado = local.estadoCompleto;
       
+      // ✅ COLORES HEXADECIMALES EXACTOS - PASO 3 FINAL
       const colorMap: Record<string, string> = {
-        'bg-green-500': '#22C55E',
-        'bg-orange-500': '#F97316',
-        'bg-yellow-500': '#EAB308',
-        'bg-red-500': '#EF4444',
-        'bg-gray-400': '#9CA3AF',
+        'bg-green-500': '#22C55E',    // Verde - Abierto
+        'bg-red-500': '#EF4444',      // Rojo - Cerrado
+        'bg-orange-500': '#F97316',   // Naranja - Cierra pronto
+        'bg-yellow-500': '#EAB308',   // Amarillo - Abre pronto
+        'bg-gray-400': '#9CA3AF',     // Gris - Sin info
       };
       
       const badgeColor = colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF';
+      
+      if (index === 0) {
+        console.log('[LocalCardOptimized v2.1 PASO 3 FINAL] 🎨 Color mapping:', {
+          claseBg: estado.claseBg,
+          mappedColor: badgeColor,
+          badge: estado.badge,
+        });
+      }
       
       return {
         text: estado.badge,
@@ -161,40 +166,34 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
       };
     }
     
-    // ✅ FALLBACK: Use simple estaAbierto boolean (legacy support)
     if (index === 0) {
-      console.log('[LocalCardOptimized v2.0] ⚠️ No estadoCompleto, using fallback for:', local.nombre);
+      console.log('[LocalCardOptimized v2.1 PASO 3 FINAL] ⚠️ No estadoCompleto, using fallback for:', local.nombre);
     }
     
     if (local.estaAbierto === true) {
       return {
         text: 'Abierto ahora',
-        color: '#22C55E',
+        color: '#22C55E',  // Verde
       };
     } else if (local.estaAbierto === false) {
       return {
         text: 'Cerrado ahora',
-        color: '#EF4444',
+        color: '#EF4444',  // Rojo
       };
     } else {
       return {
         text: 'Sin info de horario',
-        color: '#9CA3AF',
+        color: '#9CA3AF',  // Gris
       };
     }
   };
 
-  /**
-   * ✅ OPTIMIZED v2.0: Use server estadoCompleto for dimming logic
-   */
   const getShouldDimImage = () => {
-    // ✅ PRIORITY 1: Use server-calculated estadoCompleto
     if (local.estadoCompleto) {
       return local.estadoCompleto.estaAbierto === false && 
              !local.estadoCompleto.badge.includes('pronto');
     }
     
-    // ✅ FALLBACK: Use simple estaAbierto boolean
     return local.estaAbierto === false;
   };
 
