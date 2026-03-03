@@ -1,10 +1,17 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - REACT QUERY + FLASHLIST v606.0 (GLOBAL CACHE + 60 FPS)
+ * EXPLORAR SCREEN - REACT QUERY + FLASHLIST v607.0 (5-TIER SORTING + 60 FPS)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 OBJETIVO: Caché global + Scroll infinito sin tiempos de espera + 60 FPS
+ * 🎯 OBJETIVO: Ordenamiento profesional + Caché global + Scroll infinito + 60 FPS
+ * 
+ * ✅ NEW IN v607.0 (5-TIER PROFESSIONAL SORTING):
+ * 1️⃣ TIER 1: Destacados Abiertos (< 50km) - Ordenados por distancia
+ * 2️⃣ TIER 2: Locales Abiertos (Standard) - Ordenados por distancia
+ * 3️⃣ TIER 3: Sin Información de Horario - Ordenados por distancia
+ * 4️⃣ TIER 4: Destacados Cerrados (< 50km) - Ordenados por distancia
+ * 5️⃣ TIER 5: Locales Cerrados (Standard) - Ordenados por distancia
  * 
  * ✅ OPTIMIZACIONES v606.0 (REACT QUERY + GLOBAL CACHE):
  * 1️⃣ REACT QUERY: Caché global con TanStack Query - datos persisten al navegar
@@ -27,7 +34,9 @@
  * 3️⃣ ZERO CLIENT PROCESSING: Sin cálculos de distancia ni estado en frontend
  * 4️⃣ THROTTLING OPTIMIZADO: Scroll handler con throttle de 16ms (60fps)
  * 
- * 🚀 RESULTADO v606.0:
+ * 🚀 RESULTADO v607.0:
+ * - Ordenamiento: Abiertos primero, cerrados al final, sin info en medio 🎯
+ * - Prioridad: Destacados abiertos tienen máxima prioridad ⭐
  * - Navegación: Pérdida de datos → Restauración instantánea desde caché 💾
  * - Carga inicial: Spinner → Datos instantáneos (si hay caché) ⚡
  * - Scroll: 4 locales → Infinito sin interrupciones 🔄
@@ -263,18 +272,18 @@ export default function ExplorarScreen() {
   // DATA LOADING - v606.0 REACT QUERY (SIMPLIFIED)
   // ═══════════════════════════════════════════════════════════════════════════
   
-  // ✅ v606.0: INTELLIGENT PRELOAD - Fetch next page predictively
+  // ✅ v607.0: INTELLIGENT PRELOAD - Fetch next page predictively
   const loadMoreVenues = useCallback(() => {
     if (!isFetchingNextPage && hasNextPage && allVenues.length >= ITEMS_PER_PAGE) {
-      console.log('[ExplorarScreen v606.0] 🚀 PRECARGA INTELIGENTE - Fetching next page');
-      console.log('[ExplorarScreen v606.0] 📊 Items actuales:', allVenues.length);
+      console.log('[ExplorarScreen v607.0] 🚀 PRECARGA INTELIGENTE - Fetching next page');
+      console.log('[ExplorarScreen v607.0] 📊 Items actuales:', allVenues.length);
       fetchNextPage();
     }
   }, [isFetchingNextPage, hasNextPage, allVenues.length, fetchNextPage]);
 
-  // ✅ v606.0: PULL-TO-REFRESH - Force refetch from server
+  // ✅ v607.0: PULL-TO-REFRESH - Force refetch from server
   const onRefresh = useCallback(() => {
-    console.log('[ExplorarScreen v606.0] 🔄 Pull-to-refresh - Refetching from server...');
+    console.log('[ExplorarScreen v607.0] 🔄 Pull-to-refresh - Refetching from server...');
     refetch();
   }, [refetch]);
 
@@ -282,23 +291,23 @@ export default function ExplorarScreen() {
   // EFFECTS
   // ═══════════════════════════════════════════════════════════════════════════
   
-  // ✅ v606.0: React Query handles refetching automatically when filters change
+  // ✅ v607.0: React Query handles refetching automatically when filters change
   // No manual refetch needed - queryKey includes all filters
   
-  // ✅ v606.0: Prefetch images when data loads
+  // ✅ v607.0: Prefetch images when data loads
   useEffect(() => {
     if (allVenues.length > 0) {
       intelligentPreloader.prefetchNextItems(0, allVenues, 'local');
     }
   }, [allVenues]);
 
-  // ✅ v606.0: Scroll position persistence - React Query maintains data across navigation
+  // ✅ v607.0: Scroll position persistence - React Query maintains data across navigation
   useFocusEffect(
     useCallback(() => {
-      console.log('[ExplorarScreen v606.0] 👁️ Pantalla enfocada - Datos desde caché:', allVenues.length);
+      console.log('[ExplorarScreen v607.0] 👁️ Pantalla enfocada - Datos desde caché:', allVenues.length);
       
       return () => {
-        console.log('[ExplorarScreen v606.0] 👁️ Pantalla desenfocada - Datos persisten en caché');
+        console.log('[ExplorarScreen v607.0] 👁️ Pantalla desenfocada - Datos persisten en caché');
       };
     }, [allVenues.length])
   );
@@ -319,22 +328,22 @@ export default function ExplorarScreen() {
   }, [selectedCategory, debouncedQuery]);
 
   const handleCategoryChange = useCallback((categoryId: string) => {
-    console.log('[ExplorarScreen v606.0] 🏷️ Cambiando categoría a:', categoryId);
-    console.log('[ExplorarScreen v606.0] 🏷️ Category ID received:', categoryId);
-    console.log('[ExplorarScreen v606.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
+    console.log('[ExplorarScreen v607.0] 🏷️ Cambiando categoría a:', categoryId);
+    console.log('[ExplorarScreen v607.0] 🏷️ Category ID received:', categoryId);
+    console.log('[ExplorarScreen v607.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
     
-    // ✅ v606.0: Update category - React Query will handle cache invalidation automatically
+    // ✅ v607.0: Update category - React Query will handle cache invalidation automatically
     const newCategory = categoryId === 'todos' ? null : categoryId;
     setSelectedCategory(newCategory);
     
-    // ✅ v606.0: Scroll to top
+    // ✅ v607.0: Scroll to top
     flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
     
-    console.log('[ExplorarScreen v606.0] ✅ Category changed - React Query will refetch automatically');
+    console.log('[ExplorarScreen v607.0] ✅ Category changed - React Query will refetch automatically');
   }, [setSelectedCategory]);
 
   const clearFilters = useCallback(() => {
-    console.log('[ExplorarScreen v605.0] 🧹 Limpiando filtros...');
+    console.log('[ExplorarScreen v607.0] 🧹 Limpiando filtros...');
     setSearchQuery('');
     setSelectedCategory(null);
     flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -480,7 +489,7 @@ export default function ExplorarScreen() {
   }, [filteredVenues.length, hasActiveFilters, hasNextPage, isFetchingNextPage]);
 
   const renderEmpty = useCallback(() => {
-    // ✅ v606.0: SMART LOADING - Only show spinner if NO cached data AND loading
+    // ✅ v607.0: SMART LOADING - Only show spinner if NO cached data AND loading
     if ((isLoading || isFetching) && allVenues.length === 0 && !data) {
       return (
         <View style={styles.emptyState}>
@@ -812,7 +821,7 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* ✅ v606: FLASHLIST + REACT QUERY - 60 FPS + Global Cache + Infinite Scroll */}
+      {/* ✅ v607: FLASHLIST + REACT QUERY + 5-TIER SORTING - Professional ordering + 60 FPS + Global Cache */}
       <AnimatedFlashList
         ref={flashListRef}
         data={filteredVenues}
