@@ -4,13 +4,7 @@ import { Filtros } from '@/types';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ FILTER STORE v2.0 - ZUSTAND ATOMIC STATE MANAGEMENT (CORRECCIÓN 2)
- * 
- * 🎯 CORRECCIÓN 2: Sincronización de Filtros (Zustand + Supabase)
- * - ✅ SINGLE SOURCE OF TRUTH: Tanto la barra de categorías como el modal de Filtros Avanzados leen y escriben en el mismo store
- * - ✅ ATOMIC UPDATES: Solo los componentes que usan filtros se re-renderizan
- * - ✅ DYNAMIC OPTIONS: Opciones de filtro en tiempo real desde la base de datos
- * - ✅ NO PROVIDER: Importación directa y uso
+ * ✅ FILTER STORE v1.0 - ZUSTAND ATOMIC STATE MANAGEMENT
  * 
  * BENEFITS:
  * - ✅ ATOMIC UPDATES: Only filter-using components re-render
@@ -66,7 +60,7 @@ export const useFilterStore = create<FilterState>((set, get) => ({
   
   // Set filters
   setFiltros: (nuevosFiltros) => {
-    console.log('[FilterStore v2.0] 🔄 Setting filters:', nuevosFiltros);
+    console.log('[FilterStore] 🔄 Setting filters:', nuevosFiltros);
     
     // Calculate if any filters are active
     const hasActive = !!(
@@ -83,13 +77,13 @@ export const useFilterStore = create<FilterState>((set, get) => ({
   
   // Apply filters (same as setFiltros)
   aplicarFiltros: (nuevosFiltros) => {
-    console.log('[FilterStore v2.0] ✅ Applying filters:', nuevosFiltros);
+    console.log('[FilterStore] ✅ Applying filters:', nuevosFiltros);
     get().setFiltros(nuevosFiltros);
   },
   
   // Clear all filters
   limpiarFiltros: () => {
-    console.log('[FilterStore v2.0] 🧹 Clearing all filters');
+    console.log('[FilterStore] 🧹 Clearing all filters');
     set({ 
       filtros: {}, 
       selectedCategory: null,
@@ -99,13 +93,13 @@ export const useFilterStore = create<FilterState>((set, get) => ({
   
   // Set selected category
   setSelectedCategory: (category) => {
-    console.log('[FilterStore v2.0] 🏷️ Setting category:', category);
+    console.log('[FilterStore] 🏷️ Setting category:', category);
     set({ selectedCategory: category });
   },
   
   // Refresh dynamic filter options from database
   refreshDynamicOptions: async () => {
-    console.log('[FilterStore v2.0] 🔍 Loading dynamic filter options...');
+    console.log('[FilterStore] 🔍 Loading dynamic filter options...');
     
     set({ isLoadingOptions: true });
     
@@ -116,13 +110,13 @@ export const useFilterStore = create<FilterState>((set, get) => ({
         .eq('activo', true);
 
       if (error) {
-        console.error('[FilterStore v2.0] ❌ Error loading dynamic options:', error);
+        console.error('[FilterStore] ❌ Error loading dynamic options:', error);
         set({ isLoadingOptions: false });
         return;
       }
 
       if (!locales || locales.length === 0) {
-        console.log('[FilterStore v2.0] ⚠️ No active locals found');
+        console.log('[FilterStore] ⚠️ No active locals found');
         set({ 
           dynamicOptions: {
             tipos: [],
@@ -137,7 +131,7 @@ export const useFilterStore = create<FilterState>((set, get) => ({
         return;
       }
 
-      console.log('[FilterStore v2.0] 📊 Processing', locales.length, 'active locals...');
+      console.log('[FilterStore] 📊 Processing', locales.length, 'active locals...');
 
       // Extract unique tipos
       const tiposSet = new Set<string>();
@@ -212,7 +206,7 @@ export const useFilterStore = create<FilterState>((set, get) => ({
         provincias: Array.from(provinciasSet).sort(),
       };
 
-      console.log('[FilterStore v2.0] ✅ Dynamic options loaded:', {
+      console.log('[FilterStore] ✅ Dynamic options loaded:', {
         tipos: newOptions.tipos.length,
         servicios: newOptions.servicios.length,
         ambientes: newOptions.ambientes.length,
@@ -223,7 +217,7 @@ export const useFilterStore = create<FilterState>((set, get) => ({
 
       set({ dynamicOptions: newOptions, isLoadingOptions: false });
     } catch (error) {
-      console.error('[FilterStore v2.0] ❌ Error refreshing dynamic options:', error);
+      console.error('[FilterStore] ❌ Error refreshing dynamic options:', error);
       set({ isLoadingOptions: false });
     }
   },

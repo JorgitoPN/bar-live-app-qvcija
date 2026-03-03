@@ -3,14 +3,9 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ useBaresQuery v458.0 - CORRECCIÓN 4: Integración con Backend (get_locales_v2)
+ * ✅ useBaresQuery v457.0 - FIXED "Sin info de horario" BUG 🐛→✅
  * 
- * NEW IN v458.0:
- * - ✅ CORRECCIÓN 4: Asegura que la función SQL reciba los parámetros de useFilterStore
- * - ✅ CORRECCIÓN 4: La función devuelve el objeto estadoCompleto calculado en SQL
- * - ✅ CORRECCIÓN 4: El frontend no procesa nada - todo viene pre-calculado del backend
- * 
- * FEATURES FROM v457.0:
+ * NEW IN v457.0:
  * - ✅ CRITICAL FIX: Proper snake_case to camelCase mapping for estadocompleto
  * - ✅ FIXED: "Sin info de horario" appearing for open venues (Pub momo, Vinoteca Raquel)
  * - ✅ Backend now returns pre-calculated estadocompleto JSONB with badge, color, status
@@ -43,7 +38,6 @@ import { supabase } from '@/utils/supabase';
  * - Navigation: Data loss → Instant restore from cache 💾
  * - Location changes: Always refetch → Smart cache reuse 🧠
  * - Status badges: "Sin info de horario" bug → Correct "Abierto ahora" ✅
- * - Backend integration: ✅ Recibe todos los parámetros de useFilterStore
  * 
  * CACHE STRATEGY:
  * - queryKey includes rounded lat/lng for intelligent caching
@@ -52,7 +46,7 @@ import { supabase } from '@/utils/supabase';
  * - Automatic background refetch when stale
  * 
  * @param userLocation - User's current location { latitude, longitude }
- * @param filters - Active filters from useFilterStore
+ * @param filters - Active filters
  * @param searchQuery - Search query for predictive search
  * @param pageSize - Number of items per page (default: 20)
  * @returns TanStack Query infinite result with pre-processed locales from database
@@ -80,10 +74,10 @@ export const useBaresQuery = ({
   const roundedLng = userLocation ? Math.round(userLocation.longitude) : null;
   
   return useInfiniteQuery({
-    // ✅ v458.0: CORRECCIÓN 4: queryKey includes ROUNDED lat/lng + ALL filters from useFilterStore
-    // Version bumped to v458 to force cache refresh with new filter integration
+    // ✅ v457.0: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
+    // Version bumped to v457 to force cache refresh with new estadocompleto field
     queryKey: [
-      'bares_infinite_v458',
+      'bares_infinite_v457',
       roundedLat,
       roundedLng,
       selectedCategory,
@@ -92,11 +86,10 @@ export const useBaresQuery = ({
     ],
     
     queryFn: async ({ pageParam = 0 }) => {
-      console.log('[useBaresQuery v458.0] 📡 Fetching page:', pageParam / pageSize + 1);
-      console.log('[useBaresQuery v458.0] 🔍 Category:', selectedCategory);
-      console.log('[useBaresQuery v458.0] 🔍 Search:', searchQuery);
-      console.log('[useBaresQuery v458.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
-      console.log('[useBaresQuery v458.0] 🎯 Filters from useFilterStore:', globalFiltros);
+      console.log('[useBaresQuery v457.0] 📡 Fetching page:', pageParam / pageSize + 1);
+      console.log('[useBaresQuery v457.0] 🔍 Category:', selectedCategory);
+      console.log('[useBaresQuery v457.0] 🔍 Search:', searchQuery);
+      console.log('[useBaresQuery v457.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
       
       const startTime = performance.now();
       
@@ -114,9 +107,7 @@ export const useBaresQuery = ({
         categoryFilter = [dbCategoryName];
       }
       
-      // ✅ CORRECCIÓN 4: Call database function with ALL parameters from useFilterStore
-      // La función SQL recibe lat, lng, categoria_id, radio, etc.
-      // La función devuelve el objeto estadoCompleto (Abierto/Cerrado) calculado en SQL
+      // ✅ OPTIMIZED: Call database function with pagination
       const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity', {
         p_user_lat: userLocation?.latitude || 40.4168,
         p_user_lng: userLocation?.longitude || -3.7038,
@@ -136,28 +127,27 @@ export const useBaresQuery = ({
       const loadTime = endTime - startTime;
 
       if (error) {
-        console.error('[useBaresQuery v458.0] ❌ Error calling RPC:', error);
+        console.error('[useBaresQuery v457.0] ❌ Error calling RPC:', error);
         throw error;
       }
 
       const venues = data || [];
-      console.log('[useBaresQuery v458.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
+      console.log('[useBaresQuery v457.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
       
-      // ✅ CORRECCIÓN 4: CRITICAL FIX - Map snake_case to camelCase for estadocompleto
+      // ✅ v457.0: CRITICAL FIX - Map snake_case to camelCase for estadocompleto
       // PostgreSQL returns snake_case, frontend expects camelCase
-      // La función SQL devuelve el objeto estadoCompleto (Abierto/Cerrado) calculado en SQL
       const enrichedVenues = venues.map((venue: any) => {
         // ✅ CRITICAL: PostgreSQL returns 'estadocompleto' (lowercase), map to 'estadoCompleto'
         const estadoCompleto = venue.estadocompleto || null;
-        const estaAbierto = venue.estaabierto !== undefined ? venue.estaabierto : null;
+        const estaAbierto = venue.esta_abierto !== undefined ? venue.esta_abierto : null;
         
         // Debug log for first 3 venues to verify mapping
         if (venues.indexOf(venue) < 3) {
-          console.log('[useBaresQuery v458.0] 🔍 Venue mapping:', {
+          console.log('[useBaresQuery v457.0] 🔍 Venue mapping:', {
             nombre: venue.nombre,
             estadocompleto_raw: venue.estadocompleto,
             estadoCompleto_mapped: estadoCompleto,
-            estaabierto_raw: venue.estaabierto,
+            esta_abierto_raw: venue.esta_abierto,
             estaAbierto_mapped: estaAbierto,
             badge: estadoCompleto?.badge,
           });
