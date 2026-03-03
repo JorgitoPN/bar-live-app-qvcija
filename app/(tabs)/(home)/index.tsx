@@ -20,9 +20,9 @@ import { useImpersonation } from '@/contexts/ImpersonationContext';
 import TarjetaLocal from '@/components/home/TarjetaLocal';
 import BarraFiltrosInteractiva from '@/components/home/BarraFiltrosInteractiva';
 import { SkeletonLocalCard } from '@/components/common/SkeletonLoader';
-import * as Location from 'expo-location';
 import { scaleFontSize } from '@/utils/androidScaling';
 import { useBaresQuery } from '@/hooks/useBaresQuery';
+import { useLocation } from '@/contexts/LocationContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -61,7 +61,13 @@ interface Filtro {
 }
 
 /**
- * ✅ HOME SCREEN v106.0 - COMPLETE ARCHITECTURE REFACTOR
+ * ✅ HOME SCREEN v107.0 - LOCATION CONTEXT INTEGRATION
+ * 
+ * 🔧 CRITICAL FIX:
+ * - ✅ Migrated to LocationContext for null-safe location access
+ * - ✅ Guard clause prevents crash when context is not ready
+ * - ✅ Skeleton loader shown when location is loading
+ * - ✅ Cached data displayed instantly while location loads
  * 
  * 🧠 THE BRAIN (useBaresQuery hook):
  * - ✅ Unified business logic: fetch, filter, calculate distance, sort
@@ -73,7 +79,6 @@ interface Filtro {
  * - ✅ Pure visual component - no business logic
  * - ✅ Connects to useBaresQuery for data
  * - ✅ Maintained Animated.event for Header
- * - ✅ Maintained obtenerUbicacion function
  * - ✅ FlashList with refetch for pull-to-refresh
  * 
  * 🎯 THE RENDERER (TarjetaLocal):
@@ -86,21 +91,18 @@ interface Filtro {
  * - Instant cache hits (5 min staleTime)
  * - Optimistic UI updates
  * - Memory-efficient image recycling
- * 
- * WHY THIS ARCHITECTURE:
- * 1. SEPARATION OF CONCERNS: Business logic ≠ UI logic
- * 2. SINGLE SOURCE OF TRUTH: All data logic in one hook
- * 3. AUTOMATIC CACHING: TanStack Query handles everything
- * 4. BACKGROUND REFETCHING: Data updates without blocking UI
- * 5. DEDUPLICATION: Multiple components share same query
- * 6. CLEANER CODE: No manual loading states or useEffect chains
  */
 
 export default function HomeScreen() {
   const router = useRouter();
   const { userId, user, isImpersonating } = useEffectiveUser();
   const { impersonationSession } = useImpersonation();
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  
+  // ✅ v107.0: NULL-SAFE LOCATION ACCESS
+  const locationContext = useLocation();
+  const userLocation = locationContext?.userLocation || null;
+  const locationLoading = locationContext?.isLoading || false;
+  
   const [filtros, setFiltros] = useState({
     tipo: 'todos',
     provincia: 'todos',
@@ -113,9 +115,26 @@ export default function HomeScreen() {
   const lastScrollY = useRef(0);
   const scrollDirection = useRef<'up' | 'down'>('down');
 
-  // ✅ USE TANSTACK QUERY HOOK - All business logic unified here
-  const { data: locales, isLoading, refetch } = useBaresQuery(userLocation, filtros);
+  // ✅ CRITICAL: Call ALL hooks BEFORE any conditional returns (React Hooks rules)
+  // We pass null to useBaresQuery when location is not ready - it will handle it gracefully
+  const { data: locales, isLoading, refetch } = useBaresQuery({
+    userLocation,
+    selectedCategory: filtros.tipo === 'todos' ? null : filtros.tipo,
+    searchQuery: '',
+    globalFiltros: {
+      abierto: filtros.abierto,
+      destacado: filtros.destacado,
+      provincia: filtros.provincia === 'todos' ? null : filtros.provincia,
+      servicios: [],
+      ambiente: [],
+      clientela: [],
+      comunidad: null,
+      distancia: null,
+    },
+    pageSize: 20,
+  });
 
+  // ✅ ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE],
     outputRange: [0, -HEADER_SCROLL_DISTANCE],
@@ -161,39 +180,8 @@ export default function HomeScreen() {
     },
   ], [filtros]);
 
-  // ✅ MAINTAINED: obtenerUbicacion function
-  const obtenerUbicacion = useCallback(async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        console.log('[Home v105.0] Permiso de ubicación denegado');
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      setUserLocation({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-
-      console.log('[Home v105.0] ✅ Ubicación obtenida:', {
-        lat: location.coords.latitude,
-        lng: location.coords.longitude,
-      });
-    } catch (error) {
-      console.error('[Home v105.0] Error obteniendo ubicación:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    obtenerUbicacion();
-  }, [obtenerUbicacion]);
-
   const handleFiltroPress = useCallback((filtroId: string) => {
-    console.log('[Home v105.0] Filtro presionado:', filtroId);
+    console.log('[HomeScreen v107.0] Filtro presionado:', filtroId);
     
     if (filtroId === 'todos') {
       setFiltros(prev => ({ ...prev, tipo: 'todos' }));
@@ -207,7 +195,7 @@ export default function HomeScreen() {
   }, []);
 
   const handleMasFiltrosPress = useCallback(() => {
-    console.log('[Home v105.0] Más filtros presionado');
+    console.log('[HomeScreen v107.0] Más filtros presionado');
   }, []);
 
   const renderItem = useCallback(({ item }: { item: Local }) => (
@@ -217,7 +205,8 @@ export default function HomeScreen() {
   const keyExtractor = useCallback((item: Local) => item.id, []);
 
   const renderListEmpty = useCallback(() => {
-    if (isLoading) {
+    // ✅ v107.0: Show skeleton while location is loading AND no cached data
+    if ((locationLoading || isLoading) && (!locales || locales.length === 0)) {
       return (
         <View style={styles.skeletonContainer}>
           <SkeletonLocalCard />
@@ -236,7 +225,7 @@ export default function HomeScreen() {
         </Text>
       </View>
     );
-  }, [isLoading]);
+  }, [locationLoading, isLoading, locales]);
 
   const handleClaimOrCreateLocal = useCallback(() => {
     router.push('/auth/local-ownership-request' as any);
@@ -263,6 +252,20 @@ export default function HomeScreen() {
       },
     }
   );
+
+  // ✅ v107.0: GUARD CLAUSE - Prevent crash if LocationContext not detected
+  // This is AFTER all hooks are called
+  if (locationContext === null) {
+    console.warn('[HomeScreen v107.0] ⚠️ LocationContext no detectado. Revisa el RootLayout.');
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>
+          Inicializando ubicación...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

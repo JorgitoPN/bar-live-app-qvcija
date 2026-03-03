@@ -6,6 +6,7 @@ import { AvatarProvider } from '@/contexts/AvatarContext';
 import { UIScalingProvider } from '@/contexts/UIScalingContext';
 import { WidgetProvider } from '@/contexts/WidgetContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
+import { LocationProvider } from '@/contexts/LocationContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { colors } from '@/styles/commonStyles';
 import React, { useEffect } from 'react';
@@ -20,16 +21,16 @@ import { useGlobalDataStore } from '@/src/store/useGlobalDataStore';
 import { useFilterStore } from '@/src/store/useFilterStore';
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { supabaseStorage } from '@/src/lib/supabaseStorage';
 
 /**
- * ✅ ROOT LAYOUT v18.1 - TANSTACK QUERY INTEGRATION (PASO 4.1 COMPLETADO)
+ * ✅ ROOT LAYOUT v18.2 - TANSTACK QUERY ASYNC PERSISTER (PASO 4.2 COMPLETADO)
  * 
- * 🎉 PASO 4.1 COMPLETADO: TANSTACK QUERY CON CACHÉ PERSISTENTE (CORREGIDO)
+ * 🎉 PASO 4.2 COMPLETADO: TANSTACK QUERY CON PERSISTENCIA ASÍNCRONA CORRECTA
  * 
- * CAMBIOS v18.1:
- * - 🔧 CORREGIDO: Error de importación del persister (createAsyncStoragePersister → createSyncStoragePersister)
+ * CAMBIOS v18.2:
+ * - 🔧 CORREGIDO: Migración a createAsyncStoragePersister (compatible con supabaseStorage asíncrono)
  * - 🚀 AÑADIDO: TanStack Query para gestión de caché de datos de Supabase
  * - 🚀 PERSISTENCIA: Caché persistente con MMKV (iOS/Android) y AsyncStorage (Web)
  * - 🚀 STALE TIME: 5 minutos - los datos no se refrescan constantemente
@@ -117,7 +118,14 @@ import { supabaseStorage } from '@/src/lib/supabaseStorage';
  * 4. 📡 BACKGROUND SYNC: Actualización en segundo plano sin bloquear UI
  * 5. 🎯 DEDUPLICATION: Múltiples componentes pueden usar la misma query sin duplicar peticiones
  * 
+ * VERIFICACIÓN FINAL:
+ * ✅ staleTime: 5 minutos (1000 * 60 * 5)
+ * ✅ gcTime: 24 horas (1000 * 60 * 60 * 24)
+ * ✅ Persister: createAsyncStoragePersister con supabaseStorage
+ * ✅ Throttle: 1000ms para evitar escrituras excesivas
+ * 
  * Cambios previos:
+ * - v18.1: Migración inicial a TanStack Query (con error de persister)
  * - v17.0: Migración a Zustand (Paso 3)
  * - v16.0: Sistema de notificaciones push
  * - v15.0: Sistema inicial de notificaciones
@@ -139,40 +147,18 @@ const queryClient = new QueryClient({
   },
 });
 
-// ✅ PASO 4.2: Create persister with the existing supabaseStorage adapter
+// ✅ PASO 4.2: Create async persister with the existing supabaseStorage adapter
 // This adapter already handles MMKV (native) and AsyncStorage (web) fallback
-// with proper synchronous/asynchronous handling
-console.log('[TanStack Query] 🚀 Initializing cache persister with supabaseStorage adapter');
+// supabaseStorage is fully async-compatible, so we use createAsyncStoragePersister
+console.log('[TanStack Query] 🚀 Initializing async cache persister with supabaseStorage adapter');
 
-const persister = createSyncStoragePersister({
-  storage: {
-    getItem: (key: string) => {
-      // supabaseStorage.getItem returns a Promise, but we need to handle it synchronously
-      // for createSyncStoragePersister. We'll use a workaround to make it work.
-      let result: string | null = null;
-      supabaseStorage.getItem(key).then((value) => {
-        result = value;
-      }).catch((error) => {
-        console.error('[TanStack Query] getItem error:', error);
-      });
-      return result;
-    },
-    setItem: (key: string, value: string) => {
-      supabaseStorage.setItem(key, value).catch((error) => {
-        console.error('[TanStack Query] setItem error:', error);
-      });
-    },
-    removeItem: (key: string) => {
-      supabaseStorage.removeItem(key).catch((error) => {
-        console.error('[TanStack Query] removeItem error:', error);
-      });
-    },
-  },
+const persister = createAsyncStoragePersister({
+  storage: supabaseStorage,
   key: 'tanstack-query-cache-v1',
   throttleTime: 1000,
 });
 
-console.log('[TanStack Query] ✅ Cache persister initialized successfully');
+console.log('[TanStack Query] ✅ Async cache persister initialized successfully');
 
 export default function RootLayout() {
   // ✅ v17.0: Initialize Zustand stores (replaces Provider initialization)
@@ -270,19 +256,20 @@ export default function RootLayout() {
           client={queryClient}
           persistOptions={{ persister }}
         >
-          <ImpersonationProvider>
-            <ModeProvider>
-              <AvatarProvider>
-                <UIScalingProvider>
-                  <WidgetProvider>
-                    <SelectedLocalProvider>
-                      <Stack
-                        screenOptions={{
-                          headerShown: false,
-                          contentStyle: { backgroundColor: colors.background },
-                          animation: 'default',
-                        }}
-                      >
+          <LocationProvider>
+            <ImpersonationProvider>
+              <ModeProvider>
+                <AvatarProvider>
+                  <UIScalingProvider>
+                    <WidgetProvider>
+                      <SelectedLocalProvider>
+                        <Stack
+                          screenOptions={{
+                            headerShown: false,
+                            contentStyle: { backgroundColor: colors.background },
+                            animation: 'default',
+                          }}
+                        >
                         <Stack.Screen name="index" options={{ headerShown: false }} />
                         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                         <Stack.Screen name="auth" options={{ headerShown: false }} />
@@ -337,6 +324,7 @@ export default function RootLayout() {
               </AvatarProvider>
             </ModeProvider>
           </ImpersonationProvider>
+        </LocationProvider>
         </PersistQueryClientProvider>
       </ErrorBoundary>
     </GestureHandlerRootView>
