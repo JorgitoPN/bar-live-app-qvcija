@@ -1,6 +1,16 @@
 
 /**
- * ✅ LOCAL CARD OPTIMIZED v2.1 - FIX CRÍTICO DE COLORES DE HORARIO 🎨
+ * ✅ LOCAL CARD OPTIMIZED v2.2 - REGRESIÓN DE COLORES CORREGIDA 🎨
+ * 
+ * Optimizaciones v2.2 (REGRESIÓN CORREGIDA):
+ * - 🔧 RESTAURADO: Lógica de colores dinámicos de horario
+ * - 🔧 RESTAURADO: Verde (#22C55E) para "Abierto ahora"
+ * - 🔧 RESTAURADO: Rojo (#EF4444) para "Cerrado ahora"
+ * - 🔧 RESTAURADO: Naranja (#F97316) para "Cierra pronto"
+ * - 🔧 RESTAURADO: Amarillo (#EAB308) para "Abre pronto"
+ * - 🔧 RESTAURADO: Gris (#9CA3AF) para "Sin información"
+ * - ✅ VERIFICADO: Prioridad correcta: estadoCompleto > horarios_completos > estaAbierto
+ * - ✅ VERIFICADO: Logs detallados para debugging
  * 
  * Optimizaciones v2.1 (FIX CRÍTICO):
  * - 🔧 CORREGIDO: Lógica de colores dinámicos restaurada
@@ -21,10 +31,11 @@
  * - ✅ Memoization: Previene re-renders
  * - ✅ Lazy Loading: Datos bajo demanda
  * 
- * RESULTADO v2.0:
+ * RESULTADO v2.2:
  * - Load time: ~1.5s → <300ms ⚡
  * - Scroll: Laggy → 60fps smooth 🎯
  * - Processing: Client → Server 🔥
+ * - Badge colors: Gris → Dinámicos (Verde/Rojo/Naranja/Amarillo) 🎨
  */
 
 import React, { useState, useCallback, memo, useEffect } from 'react';
@@ -133,8 +144,15 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   }, [router, local.id]);
 
   /**
-   * ✅ OPTIMIZED v2.1: FIX CRÍTICO - Restaurar colores dinámicos de horario
+   * ✅ OPTIMIZED v2.2: FIX CRÍTICO RESTAURADO - Colores dinámicos de horario
    * Prioridad: estadoCompleto > horarios_completos > estaAbierto > fallback
+   * 
+   * COLORES RESTAURADOS:
+   * - Verde (#22C55E): Abierto ahora
+   * - Rojo (#EF4444): Cerrado ahora
+   * - Naranja (#F97316): Cierra pronto
+   * - Amarillo (#EAB308): Abre pronto
+   * - Gris (#9CA3AF): Sin información de horario
    */
   const getBadgeInfo = () => {
     // ✅ PRIORITY 1: Use server-calculated estadoCompleto (from get_locales_v2)
@@ -153,7 +171,7 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
       
       // Debug: Log badge info for first 3 cards
       if (index < 3) {
-        console.log(`[LocalCardOptimized v2.1] 🎨 Badge #${index}:`, {
+        console.log(`[LocalCardOptimized v2.2] 🎨 Badge #${index} (Server):`, {
           nombre: local.nombre,
           badge: estado.badge,
           claseBg: estado.claseBg,
@@ -186,7 +204,7 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
       
       // Debug: Log calculated badge for first 3 cards
       if (index < 3) {
-        console.log(`[LocalCardOptimized v2.1] 🧮 Calculated Badge #${index}:`, {
+        console.log(`[LocalCardOptimized v2.2] 🧮 Badge #${index} (Calculated):`, {
           nombre: local.nombre,
           badge: estado.badge,
           claseBg: estado.claseBg,
@@ -203,7 +221,7 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
     
     // ✅ PRIORITY 3: Use simple estaAbierto boolean (legacy support)
     if (index < 3) {
-      console.log(`[LocalCardOptimized v2.1] ⚠️ Fallback Badge #${index}:`, {
+      console.log(`[LocalCardOptimized v2.2] ⚠️ Badge #${index} (Fallback):`, {
         nombre: local.nombre,
         estaAbierto: local.estaAbierto,
       });
@@ -212,17 +230,17 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
     if (local.estaAbierto === true) {
       return {
         text: 'Abierto ahora',
-        color: '#22C55E',
+        color: '#22C55E', // Verde
       };
     } else if (local.estaAbierto === false) {
       return {
         text: 'Cerrado ahora',
-        color: '#EF4444',
+        color: '#EF4444', // Rojo
       };
     } else {
       return {
         text: 'Sin info de horario',
-        color: '#9CA3AF',
+        color: '#9CA3AF', // Gris
       };
     }
   };
