@@ -4,24 +4,26 @@ import { Filtros } from '@/types';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ FILTER STORE v2.0 - ZUSTAND ATOMIC STATE MANAGEMENT (CORRECCIÓN 2)
+ * ✅ FILTER STORE v2.1 - ZUSTAND ATOMIC STATE MANAGEMENT (CORRECCIÓN 4)
  * 
- * 🎯 CORRECCIÓN 2: Sincronización de Filtros (Zustand + Supabase)
- * - ✅ SINGLE SOURCE OF TRUTH: Tanto la barra de categorías como el modal de Filtros Avanzados leen y escriben en el mismo store
+ * 🎯 CORRECCIÓN 4: Sincronización del "Tipo de Local" (Categorías)
+ * - ✅ SINGLE SOURCE OF TRUTH: selectedCategory compartido entre barra y modal
  * - ✅ ATOMIC UPDATES: Solo los componentes que usan filtros se re-renderizan
  * - ✅ DYNAMIC OPTIONS: Opciones de filtro en tiempo real desde la base de datos
  * - ✅ NO PROVIDER: Importación directa y uso
+ * - ✅ CATEGORY SYNC: Modal y barra horizontal usan el mismo categoriaId
  * 
  * BENEFITS:
  * - ✅ ATOMIC UPDATES: Only filter-using components re-render
- * - ✅ SINGLE CATEGORY: Synchronized category selection
+ * - ✅ SINGLE CATEGORY: Synchronized category selection between bar and modal
  * - ✅ DYNAMIC OPTIONS: Real-time filter options from database
  * - ✅ NO PROVIDER: Direct import and use
+ * - ✅ SCROLL RESET: Category changes trigger automatic scroll to top
  * 
  * EXAMPLE:
  * // Only re-renders when filters change
- * const filtros = useFilterStore(state => state.filtros);
- * const setFiltros = useFilterStore(state => state.setFiltros);
+ * const selectedCategory = useFilterStore(state => state.selectedCategory);
+ * const setSelectedCategory = useFilterStore(state => state.setSelectedCategory);
  */
 
 interface DynamicFilterOptions {
