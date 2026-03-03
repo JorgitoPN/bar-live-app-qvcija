@@ -119,18 +119,18 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   }, [router, local.id]);
 
   /**
-   * ✅ CRITICAL FIX v2.1: COLORES HEXADECIMALES EXACTOS RESTAURADOS
+   * ✅ CRITICAL FIX v2.2: COLORES HEXADECIMALES EXACTOS + TEXTOS EN ESPAÑOL
    * 
-   * Mapeo de colores corregido:
-   * - bg-green-500 → #22C55E (Verde - Abierto)
-   * - bg-red-500 → #EF4444 (Rojo - Cerrado)
-   * - bg-orange-500 → #F97316 (Naranja - Cierra pronto)
-   * - bg-yellow-500 → #EAB308 (Amarillo - Abre pronto)
-   * - bg-gray-400 → #9CA3AF (Gris - Sin info)
+   * Mapeo de colores corregido (incluye clases Tailwind Y textos en español):
+   * - 'bg-green-500' / 'abierto' → #22C55E (Verde - Abierto)
+   * - 'bg-red-500' / 'cerrado' → #EF4444 (Rojo - Cerrado)
+   * - 'bg-orange-500' / 'cierra_pronto' → #F97316 (Naranja - Cierra pronto)
+   * - 'bg-yellow-500' / 'abre_pronto' → #EAB308 (Amarillo - Abre pronto)
+   * - 'bg-gray-400' → #9CA3AF (Gris - Sin info)
    */
   const getBadgeInfo = () => {
     if (index === 0) {
-      console.log('[LocalCardOptimized v2.1 PASO 3 FINAL] 🎨 Badge data for first card:', {
+      console.log('[LocalCardOptimized v2.2 PASO 3 FINAL] 🎨 Badge data for first card:', {
         nombre: local.nombre,
         estadoCompleto: local.estadoCompleto,
         estaAbierto: local.estaAbierto,
@@ -142,18 +142,23 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
       const estado = local.estadoCompleto;
       
       // ✅ COLORES HEXADECIMALES EXACTOS - PASO 3 FINAL
+      // Incluye tanto clases Tailwind como textos en español
       const colorMap: Record<string, string> = {
-        'bg-green-500': '#22C55E',    // Verde - Abierto
-        'bg-red-500': '#EF4444',      // Rojo - Cerrado
-        'bg-orange-500': '#F97316',   // Naranja - Cierra pronto
-        'bg-yellow-500': '#EAB308',   // Amarillo - Abre pronto
-        'bg-gray-400': '#9CA3AF',     // Gris - Sin info
+        'bg-green-500': '#22C55E',
+        'abierto': '#22C55E',
+        'bg-red-500': '#EF4444',
+        'cerrado': '#EF4444',
+        'bg-orange-500': '#F97316',
+        'cierra_pronto': '#F97316',
+        'bg-yellow-500': '#EAB308',
+        'abre_pronto': '#EAB308',
+        'bg-gray-400': '#9CA3AF',
       };
       
       const badgeColor = colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF';
       
       if (index === 0) {
-        console.log('[LocalCardOptimized v2.1 PASO 3 FINAL] 🎨 Color mapping:', {
+        console.log('[LocalCardOptimized v2.2 PASO 3 FINAL] 🎨 Color mapping:', {
           claseBg: estado.claseBg,
           mappedColor: badgeColor,
           badge: estado.badge,
@@ -167,7 +172,7 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
     }
     
     if (index === 0) {
-      console.log('[LocalCardOptimized v2.1 PASO 3 FINAL] ⚠️ No estadoCompleto, using fallback for:', local.nombre);
+      console.log('[LocalCardOptimized v2.2 PASO 3 FINAL] ⚠️ No estadoCompleto, using fallback for:', local.nombre);
     }
     
     if (local.estaAbierto === true) {
@@ -277,7 +282,7 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
         {imageLoaded && (
           <View style={[
             styles.badgeEstadoSuperior, 
-            { backgroundColor: badgeInfo.color + 'E6' },
+            { backgroundColor: badgeInfo.color },
             isDestacado && styles.badgeEstadoSuperiorConDestacado
           ]}>
             <Text style={[styles.badgeEstadoSuperiorText, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>
