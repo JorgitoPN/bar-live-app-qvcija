@@ -48,22 +48,24 @@ const sortLocales = (locales: any[]) => {
 };
 
 /**
- * ✅ useBaresQuery v609.0 - FIXED IMAGE LOADING (REMOVED NON-EXISTENT COLUMN)
+ * ✅ useBaresQuery v610.0 - ENHANCED LOGGING & ERROR HANDLING
  * 
  * UNIFIED BUSINESS LOGIC:
  * - Fetches locales from Supabase with SPECIFIC FIELDS (reduced payload)
  * - ✅ FIXED v609: Removed 'imagenes' array field (column doesn't exist in DB)
+ * - ✅ FIXED v610: Enhanced logging to debug image URL optimization
  * - Applies filters (tipo, provincia, destacado)
  * - Calculates distance using Haversine formula
  * - Determines open/closed status
  * - Applies master sorting (open+featured → open+proximity → closed)
- * - ✅ v609: Optimizes ONLY imagen_url using Supabase transformation
+ * - ✅ v610: Optimizes ONLY imagen_url using Supabase transformation with detailed logging
  * 
- * OPTIMIZATIONS v609.0:
+ * OPTIMIZATIONS v610.0:
  * 1️⃣ REDUCED PAYLOAD: Select only necessary fields (not select('*'))
  * 2️⃣ IMAGE OPTIMIZATION: Transform imagen_url using getOptimizedImageUrl
  * 3️⃣ MEMOIZATION: Lightweight distance and status calculations
  * 4️⃣ ✅ FIXED: Only use imagen_url field (the actual column that exists)
+ * 5️⃣ ✅ NEW: Enhanced logging to track image URL transformation
  * 
  * CACHE STRATEGY:
  * - queryKey includes [filtros, !!userLocation] for proper cache invalidation
@@ -89,11 +91,11 @@ export const useBaresQuery = (
     queryKey: ['bares', filtros, !!userLocation],
     
     queryFn: async () => {
-      console.log('[useBaresQuery v609.0] 📡 Fetching bares from Supabase...');
-      console.log('[useBaresQuery v609.0] 🔍 Filters:', filtros);
-      console.log('[useBaresQuery v609.0] 📍 User location:', userLocation ? 'Available' : 'Not available');
+      console.log('[useBaresQuery v610.0] 📡 Fetching bares from Supabase...');
+      console.log('[useBaresQuery v610.0] 🔍 Filters:', filtros);
+      console.log('[useBaresQuery v610.0] 📍 User location:', userLocation ? 'Available' : 'Not available');
       
-      // ✅ v609: FIXED - Removed 'imagenes' field (doesn't exist in DB)
+      // ✅ v610: FIXED - Removed 'imagenes' field (doesn't exist in DB)
       // Only fetch imagen_url which is the actual column name
       let query = supabase
         .from('locales')
@@ -113,13 +115,13 @@ export const useBaresQuery = (
 
       const { data, error } = await query;
       if (error) {
-        console.error('[useBaresQuery v609.0] ❌ Error fetching data:', error);
+        console.error('[useBaresQuery v610.0] ❌ Error fetching data:', error);
         throw error;
       }
 
-      console.log('[useBaresQuery v609.0] ✅ Fetched', data?.length || 0, 'locales');
+      console.log('[useBaresQuery v610.0] ✅ Fetched', data?.length || 0, 'locales');
 
-      // ✅ v609: PROCESS DATA - Calculate open status, distance, and OPTIMIZE IMAGES
+      // ✅ v610: PROCESS DATA - Calculate open status, distance, and OPTIMIZE IMAGES
       const procesados = data.map(local => {
         // Determine if local is open/closed
         const estado = getEstadoLocal(local);
@@ -135,7 +137,7 @@ export const useBaresQuery = (
           );
         }
         
-        // ✅ v609: OPTIMIZE IMAGE - Transform URL using Supabase server-side rendering
+        // ✅ v610: OPTIMIZE IMAGE - Transform URL using Supabase server-side rendering
         const optimizedImageUrl = getOptimizedImageUrl(local.imagen_url, 400, 70);
         
         return {
@@ -155,12 +157,13 @@ export const useBaresQuery = (
       // ✅ APPLY MASTER SORTING LOGIC
       const sorted = sortLocales(procesados);
       
-      console.log('[useBaresQuery v609.0] 🎯 Sorted', sorted.length, 'locales');
-      console.log('[useBaresQuery v609.0] 📊 First 3:', sorted.slice(0, 3).map(l => ({
+      console.log('[useBaresQuery v610.0] 🎯 Sorted', sorted.length, 'locales');
+      console.log('[useBaresQuery v610.0] 📊 First 3 with images:', sorted.slice(0, 3).map(l => ({
         nombre: l.nombre,
         abierto: l.estaAbierto,
         destacado: l.destacado,
         distancia: l.distancia === Infinity ? 'N/A' : `${l.distancia.toFixed(1)}km`,
+        imageUrl: l.imagen_url,
         imageOptimized: l.imagen_url?.includes('render/image') ? 'YES' : 'NO',
         hasImage: l.imagen_url ? 'YES' : 'NO'
       })));

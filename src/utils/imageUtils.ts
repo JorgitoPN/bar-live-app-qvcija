@@ -46,6 +46,7 @@ export function getOptimizedImageUrl(
 ): string | undefined {
   // ✅ Validación de entrada
   if (!url || typeof url !== 'string') {
+    console.log('[imageUtils v610] ⚠️ Invalid URL input:', url);
     return undefined;
   }
 
@@ -54,6 +55,7 @@ export function getOptimizedImageUrl(
   
   if (!isSupabaseUrl) {
     // ✅ URL externa - devolver sin cambios
+    console.log('[imageUtils v610] 🌐 External URL (no optimization):', url.substring(0, 50) + '...');
     return url;
   }
 
@@ -71,9 +73,16 @@ export function getOptimizedImageUrl(
     const separator = optimizedUrl.includes('?') ? '&' : '?';
     const params = `width=${width}&quality=${quality}&resize=contain`;
     
-    return `${optimizedUrl}${separator}${params}`;
+    const finalUrl = `${optimizedUrl}${separator}${params}`;
+    console.log('[imageUtils v610] ✅ Optimized Supabase URL:', {
+      original: url.substring(0, 80) + '...',
+      optimized: finalUrl.substring(0, 80) + '...',
+      hasRenderPath: finalUrl.includes('render/image')
+    });
+    
+    return finalUrl;
   } catch (error) {
-    console.error('[imageUtils] Error optimizando URL:', error);
+    console.error('[imageUtils v610] ❌ Error optimizing URL:', error);
     // ✅ Fallback seguro - devolver URL original
     return url;
   }
