@@ -45,11 +45,12 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ FILTROS AVANZADOS v3.3 - ELIMINACIÓN DE "TIPO DE LOCAL"
+ * ✅ FILTROS AVANZADOS v3.4 - ELIMINACIÓN COMPLETA DE "TIPO DE LOCAL"
  * 
- * CAMBIOS v3.3:
- * - ❌ ELIMINADO: Sección completa de "Tipo de Local"
- * - ❌ ELIMINADO: Filtro de tipo de local del estado y lógica
+ * CAMBIOS v3.4:
+ * - ❌ ELIMINADO: Sección completa de "Tipo de Local" (UI + lógica)
+ * - ❌ ELIMINADO: Estado tiposLocales y handleTipoToggle
+ * - ❌ ELIMINADO: Filtro de tipo de local del conteo de filtros activos
  * - ✅ MANTENIDO: Todos los demás filtros (Servicios, Ambiente, Clientela, Ubicación)
  * 
  * Previous features v3.2:

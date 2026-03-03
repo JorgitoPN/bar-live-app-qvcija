@@ -3,12 +3,13 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ useBaresQuery v459.0 - CORRECCIÓN CRÍTICA: Fix Type Mismatch
+ * ✅ useBaresQuery v460.0 - CORRECCIÓN CRÍTICA: Fix Type Mismatch (FINAL)
  * 
- * NEW IN v459.0:
- * - ✅ CRITICAL FIX: Fixed database function type mismatch (numeric -> double precision)
+ * NEW IN v460.0:
+ * - ✅ CRITICAL FIX: Recreated database function with explicit double precision casting
+ * - ✅ CRITICAL FIX: All numeric columns now properly cast to double precision
  * - ✅ CRITICAL FIX: Locales now display correctly in the list
- * - ✅ Version bumped to v459 to force cache refresh
+ * - ✅ Version bumped to v460 to force cache refresh after migration
  * 
  * FEATURES FROM v458.0:
  * - ✅ CORRECCIÓN 4: Asegura que la función SQL reciba los parámetros de useFilterStore
@@ -86,9 +87,9 @@ export const useBaresQuery = ({
   const roundedLng = userLocation ? Math.round(userLocation.longitude) : null;
   
   return useInfiniteQuery({
-    // ✅ v459.0: CRITICAL FIX - Version bumped to force cache refresh after fixing type mismatch
+    // ✅ v460.0: CRITICAL FIX - Version bumped to force cache refresh after migration
     queryKey: [
-      'bares_infinite_v459',
+      'bares_infinite_v460',
       roundedLat,
       roundedLng,
       selectedCategory,
@@ -97,11 +98,11 @@ export const useBaresQuery = ({
     ],
     
     queryFn: async ({ pageParam = 0 }) => {
-      console.log('[useBaresQuery v459.0] 📡 Fetching page:', pageParam / pageSize + 1);
-      console.log('[useBaresQuery v459.0] 🔍 Category:', selectedCategory);
-      console.log('[useBaresQuery v459.0] 🔍 Search:', searchQuery);
-      console.log('[useBaresQuery v459.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
-      console.log('[useBaresQuery v459.0] 🎯 Filters from useFilterStore:', globalFiltros);
+      console.log('[useBaresQuery v460.0] 📡 Fetching page:', pageParam / pageSize + 1);
+      console.log('[useBaresQuery v460.0] 🔍 Category:', selectedCategory);
+      console.log('[useBaresQuery v460.0] 🔍 Search:', searchQuery);
+      console.log('[useBaresQuery v460.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
+      console.log('[useBaresQuery v460.0] 🎯 Filters from useFilterStore:', globalFiltros);
       
       const startTime = performance.now();
       
@@ -119,7 +120,7 @@ export const useBaresQuery = ({
         categoryFilter = [dbCategoryName];
       }
       
-      // ✅ v459.0: Call fixed database function (type mismatch resolved)
+      // ✅ v460.0: Call fixed database function (type mismatch fully resolved)
       const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity', {
         p_user_lat: userLocation?.latitude || 40.4168,
         p_user_lng: userLocation?.longitude || -3.7038,
@@ -139,12 +140,12 @@ export const useBaresQuery = ({
       const loadTime = endTime - startTime;
 
       if (error) {
-        console.error('[useBaresQuery v459.0] ❌ Error calling RPC:', error);
+        console.error('[useBaresQuery v460.0] ❌ Error calling RPC:', error);
         throw error;
       }
 
       const venues = data || [];
-      console.log('[useBaresQuery v459.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
+      console.log('[useBaresQuery v460.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
       
       // ✅ Map snake_case to camelCase for estadocompleto
       const enrichedVenues = venues.map((venue: any) => {
@@ -154,7 +155,7 @@ export const useBaresQuery = ({
         
         // Debug log for first 3 venues to verify mapping
         if (venues.indexOf(venue) < 3) {
-          console.log('[useBaresQuery v459.0] 🔍 Venue mapping:', {
+          console.log('[useBaresQuery v460.0] 🔍 Venue mapping:', {
             nombre: venue.nombre,
             estadocompleto_raw: venue.estadocompleto,
             estadoCompleto_mapped: estadoCompleto,
