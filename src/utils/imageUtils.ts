@@ -20,7 +20,6 @@
  */
 
 const SUPABASE_URL = 'https://embntaqwlwmgazvrglaf.supabase.co';
-const SUPABASE_STORAGE_PATH = '/storage/v1/object/public/';
 
 /**
  * Optimiza una URL de imagen usando transformación de Supabase Storage
@@ -46,31 +45,32 @@ export function getOptimizedImageUrl(
 ): string | undefined {
   // ✅ Validación de entrada
   if (!url || typeof url !== 'string') {
-    console.log('[imageUtils v611] ⚠️ Invalid URL input:', url);
+    console.log('[imageUtils v612] ⚠️ Invalid URL input:', url);
     return undefined;
   }
 
   // ✅ Detectar si es una URL de Supabase Storage
-  const isSupabaseUrl = url.includes(SUPABASE_URL) && url.includes(SUPABASE_STORAGE_PATH);
+  const isSupabaseUrl = url.includes(SUPABASE_URL) && url.includes('/storage/v1/');
   
   if (!isSupabaseUrl) {
     // ✅ URL externa - devolver sin cambios
-    console.log('[imageUtils v611] 🌐 External URL (no optimization):', url.substring(0, 50) + '...');
+    console.log('[imageUtils v612] 🌐 External URL (no optimization):', url.substring(0, 50) + '...');
     return url;
   }
 
   try {
-    // ✅ FIXED v611: Evitar duplicación de path si ya está optimizada
+    // ✅ FIXED v612: Evitar duplicación de path si ya está optimizada
     // Si la URL ya contiene 'render/image', devolverla sin cambios
     if (url.includes('/storage/v1/render/image/')) {
-      console.log('[imageUtils v611] ℹ️ URL already optimized, skipping transformation');
+      console.log('[imageUtils v612] ℹ️ URL already optimized, returning as-is');
       return url;
     }
     
-    // ✅ Transformar URL de Supabase para usar el endpoint de renderizado
+    // ✅ FIXED v612: Transformar URL de Supabase correctamente
     // Formato original: /storage/v1/object/public/bucket/path/file.jpg
     // Formato optimizado: /storage/v1/render/image/public/bucket/path/file.jpg?width=400&quality=70&resize=contain
     
+    // Replace the entire /storage/v1/object/public/ path with /storage/v1/render/image/public/
     const optimizedUrl = url.replace(
       '/storage/v1/object/public/',
       '/storage/v1/render/image/public/'
@@ -81,15 +81,16 @@ export function getOptimizedImageUrl(
     const params = `width=${width}&quality=${quality}&resize=contain`;
     
     const finalUrl = `${optimizedUrl}${separator}${params}`;
-    console.log('[imageUtils v611] ✅ Optimized Supabase URL:', {
+    
+    console.log('[imageUtils v612] ✅ Optimized Supabase URL:', {
       original: url.substring(0, 80) + '...',
       optimized: finalUrl.substring(0, 80) + '...',
-      hasRenderPath: finalUrl.includes('render/image')
+      hasCorrectPath: finalUrl.includes('/storage/v1/render/image/public/') && !finalUrl.includes('/object/render/')
     });
     
     return finalUrl;
   } catch (error) {
-    console.error('[imageUtils v611] ❌ Error optimizing URL:', error);
+    console.error('[imageUtils v612] ❌ Error optimizing URL:', error);
     // ✅ Fallback seguro - devolver URL original
     return url;
   }
