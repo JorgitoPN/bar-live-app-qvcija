@@ -1,17 +1,12 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - REACT QUERY + FLASHLIST v608.0 (FIX CRÍTICO)
+ * EXPLORAR SCREEN - REACT QUERY + FLASHLIST v607.0 (CORRECCIONES FINALES)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 OBJETIVO: Corregir visualización de locales y actualizar versión
+ * 🎯 OBJETIVO: Estabilizar la app y mejorar la navegación en Explorar
  * 
- * ✅ CORRECCIONES v608.0 (FIX CRÍTICO):
- * 1️⃣ VERSIÓN ACTUALIZADA: Usa useBaresQuery v460 con fix de tipos en SQL
- * 2️⃣ LOCALES VISIBLES: Ahora los locales se muestran correctamente en la lista
- * 3️⃣ TIPO DE LOCAL: Filtro eliminado de la página de filtros avanzados
- * 
- * ✅ CORRECCIONES v607.0 (ESTABILIZACIÓN FINAL - MANTENIDAS):
+ * ✅ CORRECCIONES v607.0 (ESTABILIZACIÓN FINAL):
  * 1️⃣ PROTECCIÓN UBICACIÓN: Acceso seguro a useLocation() con null-safe pattern
  * 2️⃣ SINCRONIZACIÓN FILTROS: useFilterStore como single source of truth
  * 3️⃣ EFECTO DE FILTRO: Scroll automático al principio al cambiar filtros
@@ -265,12 +260,12 @@ export default function ExplorarScreen() {
   // ✅ CORRECCIÓN 4: Botón Explorar - Scroll + refetch al pulsar tab activo
   useFocusEffect(
     useCallback(() => {
-      console.log('[ExplorarScreen v608.0] 👁️ Pantalla enfocada - Datos desde caché:', allVenues.length);
+      console.log('[ExplorarScreen v607.0] 👁️ Pantalla enfocada - Datos desde caché:', allVenues.length);
       
       // ✅ CORRECCIÓN 4: Si el usuario pulsa 'Explorar' estando ya en la pestaña
       // Ejecuta scrollToOffset + refetch para refrescar datos
       const handleTabPress = () => {
-        console.log('[ExplorarScreen v608.0] 🔄 Tab Explorar pulsado - Scroll + refetch');
+        console.log('[ExplorarScreen v607.0] 🔄 Tab Explorar pulsado - Scroll + refetch');
         flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
         refetch();
       };
@@ -279,7 +274,7 @@ export default function ExplorarScreen() {
       // Aquí solo documentamos el comportamiento esperado
       
       return () => {
-        console.log('[ExplorarScreen v608.0] 👁️ Pantalla desenfocada - Datos persisten en caché');
+        console.log('[ExplorarScreen v607.0] 👁️ Pantalla desenfocada - Datos persisten en caché');
       };
     }, [allVenues.length, refetch])
   );
@@ -300,9 +295,9 @@ export default function ExplorarScreen() {
   }, [selectedCategory, debouncedQuery]);
 
   const handleCategoryChange = useCallback((categoryId: string) => {
-    console.log('[ExplorarScreen v608.0] 🏷️ Cambiando categoría a:', categoryId);
-    console.log('[ExplorarScreen v608.0] 🏷️ Category ID received:', categoryId);
-    console.log('[ExplorarScreen v608.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
+    console.log('[ExplorarScreen v607.0] 🏷️ Cambiando categoría a:', categoryId);
+    console.log('[ExplorarScreen v607.0] 🏷️ Category ID received:', categoryId);
+    console.log('[ExplorarScreen v607.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
     
     // ✅ CORRECCIÓN 3: Update category - React Query will handle cache invalidation automatically
     const newCategory = categoryId === 'todos' ? null : categoryId;
@@ -311,11 +306,11 @@ export default function ExplorarScreen() {
     // ✅ CORRECCIÓN 3: Scroll automático al principio al cambiar filtros
     flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
     
-    console.log('[ExplorarScreen v608.0] ✅ Category changed - React Query will refetch automatically');
+    console.log('[ExplorarScreen v607.0] ✅ Category changed - React Query will refetch automatically');
   }, [setSelectedCategory]);
 
   const clearFilters = useCallback(() => {
-    console.log('[ExplorarScreen v608.0] 🧹 Limpiando filtros...');
+    console.log('[ExplorarScreen v607.0] 🧹 Limpiando filtros...');
     setSearchQuery('');
     setSelectedCategory(null);
     

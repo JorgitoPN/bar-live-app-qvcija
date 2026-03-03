@@ -1,22 +1,6 @@
 
 /**
- * ✅ LOCAL CARD OPTIMIZED v2.2 - REGRESIÓN DE COLORES CORREGIDA 🎨
- * 
- * Optimizaciones v2.2 (REGRESIÓN CORREGIDA):
- * - 🔧 RESTAURADO: Lógica de colores dinámicos de horario
- * - 🔧 RESTAURADO: Verde (#22C55E) para "Abierto ahora"
- * - 🔧 RESTAURADO: Rojo (#EF4444) para "Cerrado ahora"
- * - 🔧 RESTAURADO: Naranja (#F97316) para "Cierra pronto"
- * - 🔧 RESTAURADO: Amarillo (#EAB308) para "Abre pronto"
- * - 🔧 RESTAURADO: Gris (#9CA3AF) para "Sin información"
- * - ✅ VERIFICADO: Prioridad correcta: estadoCompleto > horarios_completos > estaAbierto
- * - ✅ VERIFICADO: Logs detallados para debugging
- * 
- * Optimizaciones v2.1 (FIX CRÍTICO):
- * - 🔧 CORREGIDO: Lógica de colores dinámicos restaurada
- * - 🔧 CORREGIDO: Prioridad: estadoCompleto > horarios_completos > estaAbierto
- * - 🔧 CORREGIDO: Cálculo de estado con timeUtils cuando no hay estadoCompleto
- * - ✅ VERIFICADO: Verde (Abierto), Rojo (Cerrado), Naranja (Cierra pronto), Amarillo (Abre pronto)
+ * ✅ LOCAL CARD OPTIMIZED v2.0 - 60FPS SCROLL PERFORMANCE 🚀
  * 
  * Optimizaciones v2.0 (CRITICAL):
  * - ✅ Server-side status calculation: estadoCompleto from get_locales_v2
@@ -31,11 +15,10 @@
  * - ✅ Memoization: Previene re-renders
  * - ✅ Lazy Loading: Datos bajo demanda
  * 
- * RESULTADO v2.2:
+ * RESULTADO v2.0:
  * - Load time: ~1.5s → <300ms ⚡
  * - Scroll: Laggy → 60fps smooth 🎯
  * - Processing: Client → Server 🔥
- * - Badge colors: Gris → Dinámicos (Verde/Rojo/Naranja/Amarillo) 🎨
  */
 
 import React, { useState, useCallback, memo, useEffect } from 'react';
@@ -144,53 +127,23 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   }, [router, local.id]);
 
   /**
-   * ✅ OPTIMIZED v2.2: FIX CRÍTICO RESTAURADO - Colores dinámicos de horario
-   * Prioridad: estadoCompleto > horarios_completos > estaAbierto > fallback
-   * 
-   * COLORES RESTAURADOS:
-   * - Verde (#22C55E): Abierto ahora
-   * - Rojo (#EF4444): Cerrado ahora
-   * - Naranja (#F97316): Cierra pronto
-   * - Amarillo (#EAB308): Abre pronto
-   * - Gris (#9CA3AF): Sin información de horario
+   * ✅ OPTIMIZED v2.0: Prioritize server-calculated estadoCompleto
+   * This eliminates ALL client-side time calculations for instant rendering
    */
   const getBadgeInfo = () => {
+    // Debug: Log what we received for this local
+    if (index === 0) {
+      console.log('[LocalCardOptimized v2.0] 🔍 Badge data for first card:', {
+        nombre: local.nombre,
+        estadoCompleto: local.estadoCompleto,
+        estaAbierto: local.estaAbierto,
+        hasEstadoCompleto: !!local.estadoCompleto,
+      });
+    }
+    
     // ✅ PRIORITY 1: Use server-calculated estadoCompleto (from get_locales_v2)
     if (local.estadoCompleto) {
       const estado = local.estadoCompleto;
-      
-      const colorMap: Record<string, string> = {
-        'bg-green-500': '#22C55E',    // Abierto ahora
-        'bg-orange-500': '#F97316',   // Cierra pronto
-        'bg-yellow-500': '#EAB308',   // Abre pronto
-        'bg-red-500': '#EF4444',      // Cerrado ahora
-        'bg-gray-400': '#9CA3AF',     // Sin información
-      };
-      
-      const badgeColor = colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF';
-      
-      // Debug: Log badge info for first 3 cards
-      if (index < 3) {
-        console.log(`[LocalCardOptimized v2.2] 🎨 Badge #${index} (Server):`, {
-          nombre: local.nombre,
-          badge: estado.badge,
-          claseBg: estado.claseBg,
-          color: badgeColor,
-          estaAbierto: estado.estaAbierto,
-        });
-      }
-      
-      return {
-        text: estado.badge,
-        color: badgeColor,
-      };
-    }
-    
-    // ✅ PRIORITY 2: Calculate from horarios_completos if available
-    if (local.horarios_completos && Object.keys(local.horarios_completos).length > 0) {
-      // Import getEstadoLocal dynamically to avoid circular dependencies
-      const { getEstadoLocal } = require('@/utils/timeUtils');
-      const estado = getEstadoLocal(local);
       
       const colorMap: Record<string, string> = {
         'bg-green-500': '#22C55E',
@@ -202,45 +155,31 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
       
       const badgeColor = colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF';
       
-      // Debug: Log calculated badge for first 3 cards
-      if (index < 3) {
-        console.log(`[LocalCardOptimized v2.2] 🧮 Badge #${index} (Calculated):`, {
-          nombre: local.nombre,
-          badge: estado.badge,
-          claseBg: estado.claseBg,
-          color: badgeColor,
-          estaAbierto: estado.estaAbierto,
-        });
-      }
-      
       return {
         text: estado.badge,
         color: badgeColor,
       };
     }
     
-    // ✅ PRIORITY 3: Use simple estaAbierto boolean (legacy support)
-    if (index < 3) {
-      console.log(`[LocalCardOptimized v2.2] ⚠️ Badge #${index} (Fallback):`, {
-        nombre: local.nombre,
-        estaAbierto: local.estaAbierto,
-      });
+    // ✅ FALLBACK: Use simple estaAbierto boolean (legacy support)
+    if (index === 0) {
+      console.log('[LocalCardOptimized v2.0] ⚠️ No estadoCompleto, using fallback for:', local.nombre);
     }
     
     if (local.estaAbierto === true) {
       return {
         text: 'Abierto ahora',
-        color: '#22C55E', // Verde
+        color: '#22C55E',
       };
     } else if (local.estaAbierto === false) {
       return {
         text: 'Cerrado ahora',
-        color: '#EF4444', // Rojo
+        color: '#EF4444',
       };
     } else {
       return {
         text: 'Sin info de horario',
-        color: '#9CA3AF', // Gris
+        color: '#9CA3AF',
       };
     }
   };
