@@ -48,22 +48,22 @@ const sortLocales = (locales: any[]) => {
 };
 
 /**
- * ✅ useBaresQuery v608.0 - FIXED IMAGE LOADING + OPTIMIZED DATA FETCHING
+ * ✅ useBaresQuery v609.0 - FIXED IMAGE LOADING (REMOVED NON-EXISTENT COLUMN)
  * 
  * UNIFIED BUSINESS LOGIC:
  * - Fetches locales from Supabase with SPECIFIC FIELDS (reduced payload)
- * - ✅ FIXED v608: Now includes 'imagenes' array field for gallery images
+ * - ✅ FIXED v609: Removed 'imagenes' array field (column doesn't exist in DB)
  * - Applies filters (tipo, provincia, destacado)
  * - Calculates distance using Haversine formula
  * - Determines open/closed status
  * - Applies master sorting (open+featured → open+proximity → closed)
- * - ✅ v608: Optimizes BOTH imagen_url AND imagenes array using Supabase transformation
+ * - ✅ v609: Optimizes ONLY imagen_url using Supabase transformation
  * 
- * OPTIMIZATIONS v608.0:
+ * OPTIMIZATIONS v609.0:
  * 1️⃣ REDUCED PAYLOAD: Select only necessary fields (not select('*'))
- * 2️⃣ IMAGE OPTIMIZATION: Transform imagen_url and imagenes array using getOptimizedImageUrl
+ * 2️⃣ IMAGE OPTIMIZATION: Transform imagen_url using getOptimizedImageUrl
  * 3️⃣ MEMOIZATION: Lightweight distance and status calculations
- * 4️⃣ ✅ FIXED: Include 'imagenes' field in SELECT to show cover images on cards
+ * 4️⃣ ✅ FIXED: Only use imagen_url field (the actual column that exists)
  * 
  * CACHE STRATEGY:
  * - queryKey includes [filtros, !!userLocation] for proper cache invalidation
@@ -89,16 +89,15 @@ export const useBaresQuery = (
     queryKey: ['bares', filtros, !!userLocation],
     
     queryFn: async () => {
-      console.log('[useBaresQuery v608.0] 📡 Fetching bares from Supabase...');
-      console.log('[useBaresQuery v608.0] 🔍 Filters:', filtros);
-      console.log('[useBaresQuery v608.0] 📍 User location:', userLocation ? 'Available' : 'Not available');
+      console.log('[useBaresQuery v609.0] 📡 Fetching bares from Supabase...');
+      console.log('[useBaresQuery v609.0] 🔍 Filters:', filtros);
+      console.log('[useBaresQuery v609.0] 📍 User location:', userLocation ? 'Available' : 'Not available');
       
-      // ✅ v608: FIXED - Now includes 'imagenes' array field for gallery images
-      // BEFORE: select('id, nombre, direccion, imagen_url, ...')
-      // AFTER: select('id, nombre, direccion, imagen_url, imagenes, ...')
+      // ✅ v609: FIXED - Removed 'imagenes' field (doesn't exist in DB)
+      // Only fetch imagen_url which is the actual column name
       let query = supabase
         .from('locales')
-        .select('id, nombre, direccion, imagen_url, imagenes, latitud, longitud, destacado, horarios_completos, barlive_type, barlive_types, rating, google_rating')
+        .select('id, nombre, direccion, imagen_url, latitud, longitud, destacado, horarios_completos, barlive_type, barlive_types, rating, google_rating')
         .eq('activo', true);
 
       // Apply filters dynamically
@@ -114,13 +113,13 @@ export const useBaresQuery = (
 
       const { data, error } = await query;
       if (error) {
-        console.error('[useBaresQuery v608.0] ❌ Error fetching data:', error);
+        console.error('[useBaresQuery v609.0] ❌ Error fetching data:', error);
         throw error;
       }
 
-      console.log('[useBaresQuery v608.0] ✅ Fetched', data?.length || 0, 'locales');
+      console.log('[useBaresQuery v609.0] ✅ Fetched', data?.length || 0, 'locales');
 
-      // ✅ v608: PROCESS DATA - Calculate open status, distance, and OPTIMIZE IMAGES
+      // ✅ v609: PROCESS DATA - Calculate open status, distance, and OPTIMIZE IMAGES
       const procesados = data.map(local => {
         // Determine if local is open/closed
         const estado = getEstadoLocal(local);
@@ -136,16 +135,8 @@ export const useBaresQuery = (
           );
         }
         
-        // ✅ v608: OPTIMIZE IMAGES - Transform URLs using Supabase server-side rendering
+        // ✅ v609: OPTIMIZE IMAGE - Transform URL using Supabase server-side rendering
         const optimizedImageUrl = getOptimizedImageUrl(local.imagen_url, 400, 70);
-        
-        // ✅ v608: OPTIMIZE GALLERY IMAGES - Transform imagenes array
-        let optimizedImagenes: string[] | undefined = undefined;
-        if (local.imagenes && Array.isArray(local.imagenes) && local.imagenes.length > 0) {
-          optimizedImagenes = local.imagenes
-            .map((img: string) => getOptimizedImageUrl(img, 400, 70))
-            .filter((img): img is string => img !== undefined);
-        }
         
         return {
           ...local,
@@ -156,23 +147,22 @@ export const useBaresQuery = (
             lat: local.latitud,
             lng: local.longitud,
           },
-          // ✅ Replace original URLs with optimized versions
+          // ✅ Replace original URL with optimized version
           imagen_url: optimizedImageUrl,
-          imagenes: optimizedImagenes,
         };
       });
 
       // ✅ APPLY MASTER SORTING LOGIC
       const sorted = sortLocales(procesados);
       
-      console.log('[useBaresQuery v608.0] 🎯 Sorted', sorted.length, 'locales');
-      console.log('[useBaresQuery v608.0] 📊 First 3:', sorted.slice(0, 3).map(l => ({
+      console.log('[useBaresQuery v609.0] 🎯 Sorted', sorted.length, 'locales');
+      console.log('[useBaresQuery v609.0] 📊 First 3:', sorted.slice(0, 3).map(l => ({
         nombre: l.nombre,
         abierto: l.estaAbierto,
         destacado: l.destacado,
         distancia: l.distancia === Infinity ? 'N/A' : `${l.distancia.toFixed(1)}km`,
         imageOptimized: l.imagen_url?.includes('render/image') ? 'YES' : 'NO',
-        hasGallery: l.imagenes && l.imagenes.length > 0 ? 'YES' : 'NO'
+        hasImage: l.imagen_url ? 'YES' : 'NO'
       })));
 
       return sorted;
