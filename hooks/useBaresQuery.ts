@@ -2,7 +2,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/utils/supabase';
 import { getEstadoLocal } from '@/utils/timeUtils';
-import { getOptimizedImageUrl } from '@/src/utils/imageUtils';
 
 /**
  * ✅ HAVERSINE FORMULA - Distance calculation between two coordinates
@@ -48,30 +47,19 @@ const sortLocales = (locales: any[]) => {
 };
 
 /**
- * ✅ useBaresQuery v615.0 - SOLUCIÓN DEFINITIVA DE IMÁGENES
+ * ✅ useBaresQuery - THE BRAIN 🧠
  * 
  * UNIFIED BUSINESS LOGIC:
- * - Fetches locales from Supabase with SPECIFIC FIELDS (reduced payload)
- * - ✅ FIXED v615: Limpieza destructiva de URLs + transformación correcta
+ * - Fetches locales from Supabase
  * - Applies filters (tipo, provincia, destacado)
  * - Calculates distance using Haversine formula
  * - Determines open/closed status
  * - Applies master sorting (open+featured → open+proximity → closed)
- * - ✅ v615: URLs optimizadas estilo Instagram (ligeras y rápidas)
  * 
- * OPTIMIZATIONS v615.0:
- * 1️⃣ REDUCED PAYLOAD: Select only necessary fields (not select('*'))
- * 2️⃣ IMAGE OPTIMIZATION: Transform imagen_url using getOptimizedImageUrl (destructive cleanup)
- * 3️⃣ MEMOIZATION: Lightweight distance and status calculations
- * 4️⃣ ✅ FIXED: Limpieza destructiva elimina /object/ completamente
- * 5️⃣ ✅ FIXED: Transformación correcta /storage/v1/public/ → /storage/v1/render/image/public/
- * 6️⃣ ✅ FIXED v615: Cache invalidation + expo-image disk cache para velocidad
- * 
- * CACHE STRATEGY v615:
- * - queryKey includes [filtros, !!userLocation, 'v615'] for FORCED cache invalidation
+ * CACHE STRATEGY:
+ * - queryKey includes [filtros, !!userLocation] for proper cache invalidation
  * - staleTime: 5 minutes (data considered fresh)
  * - gcTime: 24 hours (cache retention)
- * - v615 version forces TanStack Query to ignore old cached URLs with errors
  * 
  * @param userLocation - User's current location { latitude, longitude }
  * @param filtros - Active filters { tipo, provincia, destacado, abierto, precioMedio }
@@ -88,20 +76,16 @@ export const useBaresQuery = (
   }
 ) => {
   return useQuery({
-    // ✅ CRITICAL v615: queryKey includes 'v615' to FORCE cache invalidation and ignore old malformed URLs
-    queryKey: ['bares', filtros, !!userLocation, 'v615'],
+    // ✅ CRITICAL: queryKey includes filters and userLocation presence for cache invalidation
+    queryKey: ['bares', filtros, !!userLocation],
     
     queryFn: async () => {
-      console.log('[useBaresQuery v615.0] 📡 Fetching bares from Supabase...');
-      console.log('[useBaresQuery v615.0] 🔍 Filters:', filtros);
-      console.log('[useBaresQuery v615.0] 📍 User location:', userLocation ? 'Available' : 'Not available');
+      console.log('[useBaresQuery] 📡 Fetching bares from Supabase...');
+      console.log('[useBaresQuery] 🔍 Filters:', filtros);
+      console.log('[useBaresQuery] 📍 User location:', userLocation ? 'Available' : 'Not available');
       
-      // ✅ v612: FIXED - Removed 'imagenes' field (doesn't exist in DB)
-      // Only fetch imagen_url which is the actual column name
-      let query = supabase
-        .from('locales')
-        .select('id, nombre, direccion, imagen_url, latitud, longitud, destacado, horarios_completos, barlive_type, barlive_types, rating, google_rating')
-        .eq('activo', true);
+      // ✅ Build query with filters
+      let query = supabase.from('locales').select('*').eq('activo', true);
 
       // Apply filters dynamically
       if (filtros.tipo && filtros.tipo !== 'todos') {
@@ -116,13 +100,13 @@ export const useBaresQuery = (
 
       const { data, error } = await query;
       if (error) {
-        console.error('[useBaresQuery v615.0] ❌ Error fetching data:', error);
+        console.error('[useBaresQuery] ❌ Error fetching data:', error);
         throw error;
       }
 
-      console.log('[useBaresQuery v615.0] ✅ Fetched', data?.length || 0, 'locales');
+      console.log('[useBaresQuery] ✅ Fetched', data?.length || 0, 'locales');
 
-      // ✅ v613: PROCESS DATA - Calculate open status, distance, and OPTIMIZE IMAGES
+      // ✅ PROCESS DATA: Calculate open status and distance
       const procesados = data.map(local => {
         // Determine if local is open/closed
         const estado = getEstadoLocal(local);
@@ -138,35 +122,22 @@ export const useBaresQuery = (
           );
         }
         
-        // ✅ v615: OPTIMIZE IMAGE - Limpieza destructiva + transformación correcta
-        const optimizedImageUrl = getOptimizedImageUrl(local.imagen_url, 400, 70);
-        
         return {
           ...local,
           estaAbierto: estado.estaAbierto,
-          estadoCompleto: estado,
           distancia,
-          coordenadas: {
-            lat: local.latitud,
-            lng: local.longitud,
-          },
-          // ✅ Replace original URL with optimized version
-          imagen_url: optimizedImageUrl,
         };
       });
 
       // ✅ APPLY MASTER SORTING LOGIC
       const sorted = sortLocales(procesados);
       
-      console.log('[useBaresQuery v615.0] 🎯 Sorted', sorted.length, 'locales');
-      console.log('[useBaresQuery v615.0] 📊 First 3 with images:', sorted.slice(0, 3).map(l => ({
+      console.log('[useBaresQuery] 🎯 Sorted', sorted.length, 'locales');
+      console.log('[useBaresQuery] 📊 First 3:', sorted.slice(0, 3).map(l => ({
         nombre: l.nombre,
         abierto: l.estaAbierto,
         destacado: l.destacado,
-        distancia: l.distancia === Infinity ? 'N/A' : `${l.distancia.toFixed(1)}km`,
-        imageUrl: l.imagen_url ? l.imagen_url.substring(0, 80) + '...' : 'NO IMAGE',
-        hasCorrectPath: l.imagen_url ? l.imagen_url.includes('/storage/v1/render/image/public/') : false,
-        hasInvalidPath: l.imagen_url ? l.imagen_url.includes('/object/render/') : false
+        distancia: l.distancia === Infinity ? 'N/A' : `${l.distancia.toFixed(1)}km`
       })));
 
       return sorted;

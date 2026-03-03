@@ -1,17 +1,17 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - FLASHLIST + SERVER-SIDE IMAGE OPTIMIZATION v607.0
+ * EXPLORAR SCREEN - FLASHLIST + SERVER-SIDE IMAGE OPTIMIZATION v606.0
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * 🎯 OBJETIVO: Scroll infinito + Búsqueda predictiva + 60 FPS + Imágenes optimizadas
  * 
- * ✅ OPTIMIZACIONES v607.0 (GLOBAL IMAGE OPTIMIZATION):
+ * ✅ OPTIMIZACIONES v606.0 (SERVER-SIDE IMAGE OPTIMIZATION):
  * 1️⃣ SERVER-SIDE TRANSFORMATION: Imágenes optimizadas en el servidor (400px, 70% quality)
  * 2️⃣ PRIORITY LOADING: Primeras 4 tarjetas con prioridad alta
  * 3️⃣ MEMORY-DISK CACHE: Caché agresivo para evitar peticiones repetidas
  * 4️⃣ SMOOTH TRANSITIONS: Fade de 200ms para evitar saltos visuales
- * 5️⃣ ESTIMATEDITEMSIZE: Ajustado a 320px (valor real tras optimización visual v336)
+ * 5️⃣ ESTIMATEDITEMSIZE: Ajustado a 380px (valor real medido)
  * 6️⃣ DRAWDISTANCE: 1000px para pre-renderizar items fuera de vista
  * 
  * Previous optimizations maintained (v605.0):
@@ -982,13 +982,13 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* ✅ v607: FLASHLIST OPTIMIZATION + SERVER-SIDE IMAGE OPTIMIZATION */}
+      {/* ✅ v606: FLASHLIST OPTIMIZATION + SERVER-SIDE IMAGE OPTIMIZATION */}
       <AnimatedFlashList
         ref={flashListRef}
         data={filteredVenues}
         renderItem={renderVenueCard}
         keyExtractor={(item: Venue) => `local-${item.id}`}
-        estimatedItemSize={320}
+        estimatedItemSize={380}
         drawDistance={1000}
         contentContainerStyle={[
           styles.listContent,

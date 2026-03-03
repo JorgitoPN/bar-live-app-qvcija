@@ -19,6 +19,7 @@ interface LocalData {
   id: string;
   nombre: string;
   direccion: string;
+  imagenes?: string[];
   imagen_url?: string;
   estadoCompleto?: {
     estaAbierto: boolean;
@@ -55,19 +56,15 @@ interface LocalCardProps {
 }
 
 /**
- * ✅ LOCAL CARD v607.0 - UI OPTIMIZATION & SERVER-SIDE IMAGE OPTIMIZATION
+ * ✅ LOCAL CARD v336.0 - UI OPTIMIZATION & VIEWPORT EFFICIENCY
  * 
- * CRITICAL CHANGES v607.0:
- * - ✅ SERVER-OPTIMIZED IMAGES: Uses pre-optimized URLs from useBaresQuery (400px, 70% quality)
- * - ✅ NO CLIENT-SIDE TRANSFORMATION: Images already optimized by Supabase Storage
- * - ✅ PRIORITY LOADING: First 4 cards load with priority="high"
- * - ✅ MEMORY-DISK CACHE: Aggressive caching to avoid repeated network requests
- * 
- * Previous optimizations v336.0:
+ * CRITICAL CHANGES v336.0:
  * - ✅ REDUCED IMAGE HEIGHT: Card images now 140px (was 200px)
  * - ✅ VIEWPORT OPTIMIZATION: Users can now see almost 2 complete cards on screen
  * - ✅ BETTER SPACE USAGE: 30% reduction in image height improves content density
  * - ✅ MAINTAINED TEXT SCALING: +2 point font increase preserved across all text
+ * 
+ * Previous optimizations v335.0:
  * - ✅ React.memo with custom comparison to prevent unnecessary re-renders
  * - ✅ expo-image with priority="high", cachePolicy="disk", transition={150}
  * - ✅ recyclingKey based on local.id for optimal memory reuse on Android
@@ -90,8 +87,7 @@ const LocalCard = memo<LocalCardProps>(({
   onPerfilSocial,
   index,
 }) => {
-  // ✅ v607: Image URL is already optimized by useBaresQuery - no client-side transformation needed
-  const imagenPrincipal = local.imagen_url;
+  const imagenPrincipal = local.imagenes?.[0] || local.imagen_url;
 
   const shouldDimImage = () => {
     if (local.estadoCompleto) {
@@ -112,9 +108,6 @@ const LocalCard = memo<LocalCardProps>(({
     Platform.OS === 'android' && index === 0 && { marginTop: 8 }
   ];
 
-  // ✅ v607: Priority loading for first 4 cards
-  const imagePriority = index < 4 ? 'high' : 'low';
-
   return (
     <TouchableOpacity 
       style={cardStyle} 
@@ -127,9 +120,9 @@ const LocalCard = memo<LocalCardProps>(({
             source={{ uri: imagenPrincipal }}
             style={styles.image}
             contentFit="cover"
-            priority={imagePriority}
+            priority="high"
             cachePolicy="disk"
-            transition={200}
+            transition={150}
             recyclingKey={local.id}
           />
         ) : (
