@@ -3,15 +3,21 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ useBaresQuery v4.0 - INTELLIGENT LOCATION-BASED CACHING 🚀
+ * ✅ useBaresQuery v457.0 - FIXED "Sin info de horario" BUG 🐛→✅
  * 
- * NEW IN v4.0:
+ * NEW IN v457.0:
+ * - ✅ CRITICAL FIX: Proper snake_case to camelCase mapping for estadocompleto
+ * - ✅ FIXED: "Sin info de horario" appearing for open venues (Pub momo, Vinoteca Raquel)
+ * - ✅ Backend now returns pre-calculated estadocompleto JSONB with badge, color, status
+ * - ✅ Frontend correctly maps PostgreSQL snake_case to React camelCase
+ * 
+ * FEATURES FROM v4.0:
  * - ✅ INTELLIGENT CACHING: queryKey includes rounded lat/lng
  * - ✅ CACHE REUSE: Minor location changes (10m) use same cache
  * - ✅ CACHE INVALIDATION: Major location changes (city) fetch new data
  * - ✅ EXAMPLE: Move 10m → cache hit, Move to new city → new fetch
  * 
- * PREVIOUS FEATURES (v3.0):
+ * FEATURES FROM v3.0:
  * - ✅ INFINITE SCROLL: useInfiniteQuery for paginated data
  * - ✅ GLOBAL CACHE: Data persists across navigation
  * - ✅ STALE-WHILE-REVALIDATE: Shows cached data instantly, updates in background
@@ -31,6 +37,7 @@ import { supabase } from '@/utils/supabase';
  * - Frontend processing: Heavy → Zero 🎉
  * - Navigation: Data loss → Instant restore from cache 💾
  * - Location changes: Always refetch → Smart cache reuse 🧠
+ * - Status badges: "Sin info de horario" bug → Correct "Abierto ahora" ✅
  * 
  * CACHE STRATEGY:
  * - queryKey includes rounded lat/lng for intelligent caching
@@ -67,9 +74,10 @@ export const useBaresQuery = ({
   const roundedLng = userLocation ? Math.round(userLocation.longitude) : null;
   
   return useInfiniteQuery({
-    // ✅ v4.0: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
+    // ✅ v457.0: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
+    // Version bumped to v457 to force cache refresh with new estadocompleto field
     queryKey: [
-      'bares_infinite_v4',
+      'bares_infinite_v457',
       roundedLat,
       roundedLng,
       selectedCategory,
@@ -78,10 +86,10 @@ export const useBaresQuery = ({
     ],
     
     queryFn: async ({ pageParam = 0 }) => {
-      console.log('[useBaresQuery v4.0] 📡 Fetching page:', pageParam / pageSize + 1);
-      console.log('[useBaresQuery v4.0] 🔍 Category:', selectedCategory);
-      console.log('[useBaresQuery v4.0] 🔍 Search:', searchQuery);
-      console.log('[useBaresQuery v4.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
+      console.log('[useBaresQuery v457.0] 📡 Fetching page:', pageParam / pageSize + 1);
+      console.log('[useBaresQuery v457.0] 🔍 Category:', selectedCategory);
+      console.log('[useBaresQuery v457.0] 🔍 Search:', searchQuery);
+      console.log('[useBaresQuery v457.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
       
       const startTime = performance.now();
       
@@ -119,27 +127,29 @@ export const useBaresQuery = ({
       const loadTime = endTime - startTime;
 
       if (error) {
-        console.error('[useBaresQuery v4.0] ❌ Error calling RPC:', error);
+        console.error('[useBaresQuery v457.0] ❌ Error calling RPC:', error);
         throw error;
       }
 
       const venues = data || [];
-      console.log('[useBaresQuery v4.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
+      console.log('[useBaresQuery v457.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
       
-      // ✅ Enrich with estadoCompleto (already calculated by backend)
-      // CRITICAL: PostgreSQL returns snake_case, we need to map to camelCase
+      // ✅ v457.0: CRITICAL FIX - Map snake_case to camelCase for estadocompleto
+      // PostgreSQL returns snake_case, frontend expects camelCase
       const enrichedVenues = venues.map((venue: any) => {
-        const estadoCompleto = venue.estadocompleto || venue.estadoCompleto || null;
-        const estaAbierto = venue.estaabierto !== undefined ? venue.estaabierto : venue.estaAbierto;
+        // ✅ CRITICAL: PostgreSQL returns 'estadocompleto' (lowercase), map to 'estadoCompleto'
+        const estadoCompleto = venue.estadocompleto || null;
+        const estaAbierto = venue.esta_abierto !== undefined ? venue.esta_abierto : null;
         
-        // Debug log for first venue to verify mapping
-        if (venues.indexOf(venue) === 0) {
-          console.log('[useBaresQuery v4.0] 🔍 First venue mapping:', {
+        // Debug log for first 3 venues to verify mapping
+        if (venues.indexOf(venue) < 3) {
+          console.log('[useBaresQuery v457.0] 🔍 Venue mapping:', {
             nombre: venue.nombre,
             estadocompleto_raw: venue.estadocompleto,
             estadoCompleto_mapped: estadoCompleto,
-            estaabierto_raw: venue.estaabierto,
+            esta_abierto_raw: venue.esta_abierto,
             estaAbierto_mapped: estaAbierto,
+            badge: estadoCompleto?.badge,
           });
         }
         
