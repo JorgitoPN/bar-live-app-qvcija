@@ -1,32 +1,34 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - REACT QUERY + FLASHLIST v8.0.0 (FIXED EMPTY HORARIOS)
+ * EXPLORAR SCREEN - REACT QUERY + FLASHLIST v9.0.0 (FIXED STRING SCHEDULE FORMAT)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v8.0.0 (CRITICAL FIX):
- * 1️⃣ EMPTY HORARIOS FIX: Locales with horarios_completos = {} now correctly identified as "Sin info" ✅
- * 2️⃣ PROPER SORTING: Open venues appear first, then "sin info", then closed ✅
- * 3️⃣ BACKEND FIX: RPC function now checks for empty {} objects ✅
+ * 🎯 NEW IN v9.0.0 (CRITICAL FIX):
+ * 1️⃣ STRING FORMAT FIX: Backend now handles BOTH schedule formats:
+ *    - String format: ["16:00–04:00"] ✅
+ *    - Object format: [{"apertura": "16:00", "cierre": "04:00"}] ✅
+ * 2️⃣ PROPER SORTING: "Pub Momo" and similar locales now correctly identified as OPEN ✅
+ * 3️⃣ TAB REFRESH FIX: Tapping "Explorar" tab now properly scrolls to top AND refetches ✅
  * 
- * 🎯 MAINTAINED FROM v7.2.0:
- * 1️⃣ SCROLL RESET: Auto-scroll to top when filters change ✅
- * 2️⃣ FILTER SYNC: Advanced filters use same useFilterStore as category bar ✅
- * 3️⃣ TAB BEHAVIOR: Tap "Explorar" tab → scroll to top + refetch ✅
+ * 🎯 MAINTAINED FROM v8.0.0:
+ * 1️⃣ EMPTY HORARIOS FIX: Locales with horarios_completos = {} correctly identified as "Sin info" ✅
+ * 2️⃣ SCROLL RESET: Auto-scroll to top when filters change ✅
+ * 3️⃣ FILTER SYNC: Advanced filters use same useFilterStore as category bar ✅
  * 4️⃣ SEARCH SUPPORT: Backend ILIKE search ✅
  * 
- * ✅ SORTING LOGIC (v8.0.0 - FIXED):
+ * ✅ SORTING LOGIC (v9.0.0 - FIXED):
  * 1️⃣ TIER 1: Destacados Abiertos (< 50km) - HIGHEST PRIORITY
  * 2️⃣ TIER 2: Locales Abiertos (Estándar) - SECOND PRIORITY
  * 3️⃣ TIER 3: Sin Información de Horario (includes empty {}) - THIRD PRIORITY
  * 4️⃣ TIER 4: Destacados Cerrados (< 50km) - FOURTH PRIORITY
  * 5️⃣ TIER 5: Locales Cerrados (Estándar) - LOWEST PRIORITY
  * 
- * 🚀 RESULTADO v8.0.0:
- * - Locales con {} → Correctamente identificados como "Sin info" ✅
- * - Ordenamiento correcto: Abiertos → Sin info → Cerrados 🎯
- * - Filtros cambian → Scroll automático al inicio ✅
- * - Tap en tab "Explorar" → Scroll + refetch ✅
+ * 🚀 RESULTADO v9.0.0:
+ * - "Pub Momo" → Correctamente identificado como ABIERTO y DESTACADO (Tier 1) ✅
+ * - "Lar do Alambique" → Correctamente identificado como "Sin info" (Tier 3) ✅
+ * - Ordenamiento correcto: Destacados Abiertos → Abiertos → Sin info → Cerrados 🎯
+ * - Tap en tab "Explorar" → Scroll + refetch funcionando correctamente ✅
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -170,7 +172,7 @@ export default function ExplorarScreen() {
   const flashListRef = useRef<FlashList<Venue>>(null);
   const debouncedQuery = useDebounce(searchQuery, 500);
   
-  // ✅ v8.0.0: REACT QUERY - Global cache with infinite scroll + fixed empty horarios detection
+  // ✅ v9.0.0: REACT QUERY - Global cache with infinite scroll + fixed string schedule format
   const {
     data,
     isLoading,
@@ -194,23 +196,23 @@ export default function ExplorarScreen() {
     return data.pages.flatMap(page => page.venues);
   }, [data]);
   
-  // ✅ FIX 3 v8.0.0: CRITICAL - useScrollToTop with custom refetch behavior
+  // ✅ FIX 3 v9.0.0: CRITICAL - useScrollToTop with custom refetch behavior
   // This hook is called when the user taps the "Explorar" tab while already on this screen
-  useScrollToTop(
-    useRef({
-      scrollToTop: () => {
-        console.log('[ExplorarScreen v8.0.0] 🔄 Tab pressed - Scrolling to top and refetching...');
-        
-        // Scroll to top
-        if (flashListRef.current) {
-          flashListRef.current.scrollToOffset({ offset: 0, animated: true });
-        }
-        
-        // Refetch data
-        refetch();
-      },
-    } as any)
-  );
+  const scrollToTopRef = useRef({
+    scrollToTop: () => {
+      console.log('[ExplorarScreen v9.0.0] 🔄 Tab pressed - Scrolling to top and refetching...');
+      
+      // Scroll to top
+      if (flashListRef.current) {
+        flashListRef.current.scrollToOffset({ offset: 0, animated: true });
+      }
+      
+      // Refetch data
+      refetch();
+    },
+  });
+  
+  useScrollToTop(scrollToTopRef as any);
   
   // ✅ FIX 4 v602: Animated header - FIXED to show on scroll up
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -273,8 +275,8 @@ export default function ExplorarScreen() {
   // ═══════════════════════════════════════════════════════════════════════════
   
   useEffect(() => {
-    console.log('[ExplorarScreen v8.0.0] 🔄 Filters changed - Scrolling to top');
-    console.log('[ExplorarScreen v8.0.0] 📊 Active filters:', {
+    console.log('[ExplorarScreen v9.0.0] 🔄 Filters changed - Scrolling to top');
+    console.log('[ExplorarScreen v9.0.0] 📊 Active filters:', {
       category: selectedCategory,
       hasAdvancedFilters: hasActiveFilters,
       searchQuery: debouncedQuery,
@@ -290,18 +292,18 @@ export default function ExplorarScreen() {
   // DATA LOADING - v606.0 REACT QUERY (SIMPLIFIED)
   // ═══════════════════════════════════════════════════════════════════════════
   
-  // ✅ v8.0.0: INTELLIGENT PRELOAD - Fetch next page predictively
+  // ✅ v9.0.0: INTELLIGENT PRELOAD - Fetch next page predictively
   const loadMoreVenues = useCallback(() => {
     if (!isFetchingNextPage && hasNextPage && allVenues.length >= ITEMS_PER_PAGE) {
-      console.log('[ExplorarScreen v8.0.0] 🚀 PRECARGA INTELIGENTE - Fetching next page');
-      console.log('[ExplorarScreen v8.0.0] 📊 Items actuales:', allVenues.length);
+      console.log('[ExplorarScreen v9.0.0] 🚀 PRECARGA INTELIGENTE - Fetching next page');
+      console.log('[ExplorarScreen v9.0.0] 📊 Items actuales:', allVenues.length);
       fetchNextPage();
     }
   }, [isFetchingNextPage, hasNextPage, allVenues.length, fetchNextPage]);
 
-  // ✅ v8.0.0: PULL-TO-REFRESH - Force refetch from server
+  // ✅ v9.0.0: PULL-TO-REFRESH - Force refetch from server
   const onRefresh = useCallback(() => {
-    console.log('[ExplorarScreen v8.0.0] 🔄 Pull-to-refresh - Refetching from server...');
+    console.log('[ExplorarScreen v9.0.0] 🔄 Pull-to-refresh - Refetching from server...');
     refetch();
   }, [refetch]);
 
@@ -319,13 +321,13 @@ export default function ExplorarScreen() {
     }
   }, [allVenues]);
 
-  // ✅ v8.0.0: Scroll position persistence - React Query maintains data across navigation
+  // ✅ v9.0.0: Scroll position persistence - React Query maintains data across navigation
   useFocusEffect(
     useCallback(() => {
-      console.log('[ExplorarScreen v8.0.0] 👁️ Pantalla enfocada - Datos desde caché:', allVenues.length);
+      console.log('[ExplorarScreen v9.0.0] 👁️ Pantalla enfocada - Datos desde caché:', allVenues.length);
       
       return () => {
-        console.log('[ExplorarScreen v8.0.0] 👁️ Pantalla desenfocada - Datos persisten en caché');
+        console.log('[ExplorarScreen v9.0.0] 👁️ Pantalla desenfocada - Datos persisten en caché');
       };
     }, [allVenues.length])
   );
@@ -346,19 +348,19 @@ export default function ExplorarScreen() {
   }, [selectedCategory, debouncedQuery]);
 
   const handleCategoryChange = useCallback((categoryId: string) => {
-    console.log('[ExplorarScreen v8.0.0] 🏷️ Cambiando categoría a:', categoryId);
-    console.log('[ExplorarScreen v8.0.0] 🏷️ Category ID received:', categoryId);
-    console.log('[ExplorarScreen v8.0.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
+    console.log('[ExplorarScreen v9.0.0] 🏷️ Cambiando categoría a:', categoryId);
+    console.log('[ExplorarScreen v9.0.0] 🏷️ Category ID received:', categoryId);
+    console.log('[ExplorarScreen v9.0.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
     
-    // ✅ v8.0.0: Update category - React Query will handle cache invalidation automatically
+    // ✅ v9.0.0: Update category - React Query will handle cache invalidation automatically
     const newCategory = categoryId === 'todos' ? null : categoryId;
     setSelectedCategory(newCategory);
     
-    console.log('[ExplorarScreen v8.0.0] ✅ Category changed - React Query will refetch automatically');
+    console.log('[ExplorarScreen v9.0.0] ✅ Category changed - React Query will refetch automatically');
   }, [setSelectedCategory]);
 
   const clearFilters = useCallback(() => {
-    console.log('[ExplorarScreen v8.0.0] 🧹 Limpiando filtros...');
+    console.log('[ExplorarScreen v9.0.0] 🧹 Limpiando filtros...');
     setSearchQuery('');
     limpiarFiltros();
   }, [limpiarFiltros]);
@@ -422,21 +424,21 @@ export default function ExplorarScreen() {
     router.push('/solicitudes/solicitar-propiedad-v2');
   }, [user, router]);
 
-  // ✅ FIX 3 v8.0.0: Apertura instantánea del modal - ULTRA OPTIMIZED
+  // ✅ FIX 3 v9.0.0: Apertura instantánea del modal - ULTRA OPTIMIZED
   const handleOpenAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v8.0.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
+    console.log('[ExplorarScreen v9.0.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
     
-    // ✅ v8.0.0: Respuesta INMEDIATA - sin requestAnimationFrame
+    // ✅ v9.0.0: Respuesta INMEDIATA - sin requestAnimationFrame
     setShowAdvancedFilters(true);
   }, []);
 
   const handleCloseAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v8.0.0] 🔒 Cerrando filtros avanzados');
+    console.log('[ExplorarScreen v9.0.0] 🔒 Cerrando filtros avanzados');
     setShowAdvancedFilters(false);
   }, []);
 
   const handleClearAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v8.0.0] 🧹 Limpiando filtros avanzados');
+    console.log('[ExplorarScreen v9.0.0] 🧹 Limpiando filtros avanzados');
     limpiarFiltros();
   }, [limpiarFiltros]);
 
@@ -841,7 +843,7 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* ✅ v8.0.0: FLASHLIST + REACT QUERY + FIXED EMPTY HORARIOS - Proper sorting + 60 FPS + Global Cache */}
+      {/* ✅ v9.0.0: FLASHLIST + REACT QUERY + FIXED STRING SCHEDULE FORMAT - Proper sorting + 60 FPS + Global Cache */}
       <AnimatedFlashList
         ref={flashListRef}
         data={filteredVenues}
