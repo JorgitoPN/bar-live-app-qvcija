@@ -3,16 +3,17 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ useBaresQuery v4.2 - 5-TIER PROFESSIONAL SORTING + INTELLIGENT CACHING 🚀
+ * ✅ useBaresQuery v6.0.8 - PROXIMITY-FIRST SORTING + INTELLIGENT CACHING 🚀
  * 
- * NEW IN v4.2:
- * - ✅ 5-TIER SORTING SYSTEM: Professional priority-based ordering
- * - ✅ TIER 1: Destacados Abiertos (< 50km) - Sorted by distance
- * - ✅ TIER 2: Locales Abiertos (Standard) - Sorted by distance
- * - ✅ TIER 3: Sin Información de Horario - Sorted by distance
- * - ✅ TIER 4: Destacados Cerrados (< 50km) - Sorted by distance
- * - ✅ TIER 5: Locales Cerrados (Standard) - Sorted by distance
- * - ✅ EXAMPLE: Open venues always first, closed at the end, no-info in middle
+ * NEW IN v6.0.8 (CRITICAL FIX):
+ * - ✅ PROXIMITY-WEIGHTED TIERS: Nearby venues prioritized regardless of status
+ * - ✅ TIER 1: Featured Open (< 50km) - HIGHEST PRIORITY
+ * - ✅ TIER 2: Open (< 100km) - SECOND PRIORITY
+ * - ✅ TIER 3: Open (> 100km) OR No Schedule OR Closed (< 10km) - BALANCED
+ * - ✅ TIER 4: Featured Closed (< 50km) OR Closed (10-50km) - LOWER PRIORITY
+ * - ✅ TIER 5: Closed (> 50km) - LOWEST PRIORITY
+ * - ✅ RESULT: Closest venues (e.g., 0.43km) now appear FIRST, even if closed
+ * - ✅ EXAMPLE: 5 closest venues at 0.43-5.48km appear before 376km venues
  * 
  * FEATURES FROM v4.0:
  * - ✅ INTELLIGENT CACHING: queryKey includes rounded lat/lng
@@ -78,10 +79,10 @@ export const useBaresQuery = ({
   const roundedLng = userLocation ? Math.round(userLocation.longitude) : null;
   
   return useInfiniteQuery({
-    // ✅ v4.2: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
-    // Version bumped to v4.2 to force cache refresh with new 5-tier sorting system
+    // ✅ v6.0.8: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
+    // Version bumped to v6.0.8 to force cache refresh with new proximity-weighted sorting
     queryKey: [
-      'bares_infinite_v4.2',
+      'bares_infinite_v6.0.8',
       roundedLat,
       roundedLng,
       selectedCategory,
@@ -90,10 +91,10 @@ export const useBaresQuery = ({
     ],
     
     queryFn: async ({ pageParam = 0 }) => {
-      console.log('[useBaresQuery v4.2] 📡 Fetching page:', pageParam / pageSize + 1);
-      console.log('[useBaresQuery v4.2] 🔍 Category:', selectedCategory);
-      console.log('[useBaresQuery v4.2] 🔍 Search:', searchQuery);
-      console.log('[useBaresQuery v4.2] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
+      console.log('[useBaresQuery v6.0.8] 📡 Fetching page:', pageParam / pageSize + 1);
+      console.log('[useBaresQuery v6.0.8] 🔍 Category:', selectedCategory);
+      console.log('[useBaresQuery v6.0.8] 🔍 Search:', searchQuery);
+      console.log('[useBaresQuery v6.0.8] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
       
       const startTime = performance.now();
       
@@ -131,27 +132,30 @@ export const useBaresQuery = ({
       const loadTime = endTime - startTime;
 
       if (error) {
-        console.error('[useBaresQuery v4.2] ❌ Error calling RPC:', error);
+        console.error('[useBaresQuery v6.0.8] ❌ Error calling RPC:', error);
         throw error;
       }
 
       const venues = data || [];
-      console.log('[useBaresQuery v4.2] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
+      console.log('[useBaresQuery v6.0.8] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
       
-      // ✅ v4.2: Debug sorting - log first 10 venues to verify 5-tier sorting
+      // ✅ v6.0.8: Debug sorting - log first 10 venues to verify proximity-weighted sorting
       if (venues.length > 0) {
-        console.log('[useBaresQuery v4.2] 📊 First 10 venues (5-tier sorting):');
+        console.log('[useBaresQuery v6.0.8] 📊 First 10 venues (proximity-weighted sorting):');
         venues.slice(0, 10).forEach((venue: any, idx: number) => {
-          const tierLabel = venue.sorting_tier === 1 ? 'T1:Destacado Abierto' :
-                           venue.sorting_tier === 2 ? 'T2:Abierto' :
-                           venue.sorting_tier === 3 ? 'T3:Sin Info' :
-                           venue.sorting_tier === 4 ? 'T4:Destacado Cerrado' :
-                           'T5:Cerrado';
-          console.log(`  ${idx + 1}. [${tierLabel}] ${venue.nombre} - esta_abierto: ${venue.esta_abierto}, destacado: ${venue.destacado}, dist: ${venue.distancia?.toFixed(1)}km`);
+          const tierLabel = venue.sorting_tier === 1 ? 'T1:Featured Open' :
+                           venue.sorting_tier === 2 ? 'T2:Open' :
+                           venue.sorting_tier === 3 ? 'T3:Balanced' :
+                           venue.sorting_tier === 4 ? 'T4:Close Closed' :
+                           'T5:Far Closed';
+          const statusLabel = venue.esta_abierto === true ? 'Abierto' :
+                             venue.esta_abierto === false ? 'Cerrado' :
+                             'Sin info';
+          console.log(`  ${idx + 1}. [${tierLabel}] ${venue.nombre} - ${statusLabel}, destacado: ${venue.destacado}, dist: ${venue.distancia?.toFixed(1)}km`);
         });
       }
       
-      // ✅ v4.2: Map backend response (snake_case) to frontend format
+      // ✅ v6.0.8: Map backend response (snake_case) to frontend format
       // Backend returns: esta_abierto (boolean), sorting_tier (integer), horarios_completos (jsonb)
       // Frontend needs: esta_abierto, horarios_completos for getEstadoLocal calculation
       const enrichedVenues = venues.map((venue: any) => {
@@ -161,11 +165,12 @@ export const useBaresQuery = ({
         
         // Debug log for first venue to verify mapping
         if (venues.indexOf(venue) === 0) {
-          console.log('[useBaresQuery v4.2] 🔍 First venue mapping:', {
+          console.log('[useBaresQuery v6.0.8] 🔍 First venue mapping:', {
             nombre: venue.nombre,
             esta_abierto_raw: venue.esta_abierto,
             esta_abierto_mapped: esta_abierto,
             sorting_tier,
+            distancia: venue.distancia?.toFixed(2),
             has_horarios: !!venue.horarios_completos,
             horarios_keys: venue.horarios_completos ? Object.keys(venue.horarios_completos) : [],
           });
