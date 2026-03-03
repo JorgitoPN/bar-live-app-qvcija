@@ -1,21 +1,24 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - REACT QUERY + FLASHLIST v10.0.0 (FIXED "CERRADO" HANDLING)
+ * EXPLORAR SCREEN - REACT QUERY + FLASHLIST v11.0.0 (FIXED ADVANCED FILTERS)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v10.0.0 (CRITICAL FIX):
- * 1️⃣ "CERRADO" FIX: Backend now properly handles "Cerrado" string in schedules ✅
- * 2️⃣ PROPER SORTING: Venues with "Cerrado" now correctly identified as CLOSED ✅
- * 3️⃣ FILTER SYNC FIX: Advanced filters now properly update the venue list ✅
- * 4️⃣ RESULT: "Picadilly", "cafe bar Camboño", "POPA" now correctly sorted as CLOSED ✅
+ * 🎯 NEW IN v11.0.0 (CRITICAL FIX):
+ * 1️⃣ ADVANCED FILTERS FIX: Servicios, Ambiente, Clientela now properly discriminate results ✅
+ * 2️⃣ SCROLL TO TOP FIX: Improved scroll behavior when tapping "Explorar" tab ✅
+ * 3️⃣ FILTER LOGIC: Uses AND logic - all selected filters must match ✅
+ * 4️⃣ RESULT: Advanced filters now work correctly - no more mixed results ✅
+ * 
+ * MAINTAINED FROM v10.0.0:
+ * 1️⃣ "CERRADO" FIX: Backend properly handles "Cerrado" string in schedules ✅
+ * 2️⃣ PROPER SORTING: Venues with "Cerrado" correctly identified as CLOSED ✅
+ * 3️⃣ FILTER SYNC FIX: Advanced filters properly update the venue list ✅
  * 
  * MAINTAINED FROM v9.0.0:
- * 1️⃣ STRING FORMAT FIX: Backend handles BOTH schedule formats:
- *    - String format: ["16:00–04:00"] ✅
- *    - Object format: [{"apertura": "16:00", "cierre": "04:00"}] ✅
- * 2️⃣ PROPER SORTING: "Pub Momo" and similar locales correctly identified as OPEN ✅
- * 3️⃣ TAB REFRESH FIX: Tapping "Explorar" tab properly scrolls to top AND refetches ✅
+ * 1️⃣ STRING FORMAT FIX: Backend handles BOTH schedule formats ✅
+ * 2️⃣ PROPER SORTING: "Pub Momo" correctly identified as OPEN ✅
+ * 3️⃣ TAB REFRESH FIX: Tapping "Explorar" tab scrolls to top AND refetches ✅
  * 
  * 🎯 MAINTAINED FROM v8.0.0:
  * 1️⃣ EMPTY HORARIOS FIX: Locales with horarios_completos = {} correctly identified as "Sin info" ✅
@@ -30,11 +33,12 @@
  * 4️⃣ TIER 4: Destacados Cerrados (< 50km) - FOURTH PRIORITY
  * 5️⃣ TIER 5: Locales Cerrados (Estándar) - LOWEST PRIORITY
  * 
- * 🚀 RESULTADO v9.0.0:
- * - "Pub Momo" → Correctamente identificado como ABIERTO y DESTACADO (Tier 1) ✅
- * - "Lar do Alambique" → Correctamente identificado como "Sin info" (Tier 3) ✅
- * - Ordenamiento correcto: Destacados Abiertos → Abiertos → Sin info → Cerrados 🎯
- * - Tap en tab "Explorar" → Scroll + refetch funcionando correctamente ✅
+ * 🚀 RESULTADO v11.0.0:
+ * - Advanced filters now properly discriminate results ✅
+ * - Servicios filter: Only shows venues with ALL selected services ✅
+ * - Ambiente filter: Only shows venues with ALL selected ambientes ✅
+ * - Clientela filter: Only shows venues with ALL selected clientela ✅
+ * - Scroll to top: Improved reliability when tapping "Explorar" tab ✅
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -178,7 +182,7 @@ export default function ExplorarScreen() {
   const flashListRef = useRef<FlashList<Venue>>(null);
   const debouncedQuery = useDebounce(searchQuery, 500);
   
-  // ✅ v10.0.0: REACT QUERY - Global cache with infinite scroll + fixed "Cerrado" handling + filter sync
+  // ✅ v11.0.0: REACT QUERY - Global cache with infinite scroll + fixed advanced filters
   const {
     data,
     isLoading,
@@ -202,15 +206,21 @@ export default function ExplorarScreen() {
     return data.pages.flatMap(page => page.venues);
   }, [data]);
   
-  // ✅ FIX 3 v10.0.0: CRITICAL - useScrollToTop with custom refetch behavior
-  // This hook is called when the user taps the "Explorar" tab while already on this screen
+  // ✅ FIX v11.0.0: IMPROVED SCROLL TO TOP - More reliable scroll behavior
   const scrollToTopRef = useRef({
     scrollToTop: () => {
-      console.log('[ExplorarScreen v10.0.0] 🔄 Tab pressed - Scrolling to top and refetching...');
+      console.log('[ExplorarScreen v11.0.0] 🔄 Tab pressed - Scrolling to top and refetching...');
       
-      // Scroll to top
-      if (flashListRef.current) {
-        flashListRef.current.scrollToOffset({ offset: 0, animated: true });
+      // ✅ v11.0.0: Improved scroll to top - use scrollToIndex for more reliable behavior
+      if (flashListRef.current && allVenues.length > 0) {
+        try {
+          // Try scrollToIndex first (more reliable)
+          flashListRef.current.scrollToIndex({ index: 0, animated: true });
+        } catch (error) {
+          // Fallback to scrollToOffset if scrollToIndex fails
+          console.log('[ExplorarScreen v11.0.0] ⚠️ scrollToIndex failed, using scrollToOffset');
+          flashListRef.current.scrollToOffset({ offset: 0, animated: true });
+        }
       }
       
       // Refetch data
@@ -244,7 +254,7 @@ export default function ExplorarScreen() {
     
     const fetchLocation = async () => {
       try {
-        console.log('[ExplorarScreen v8.0.0] 📍 Obteniendo ubicación del usuario...');
+        console.log('[ExplorarScreen v11.0.0] 📍 Obteniendo ubicación del usuario...');
         const location = await getOptimizedUserLocation();
         
         if (isMounted && location) {
@@ -254,17 +264,17 @@ export default function ExplorarScreen() {
           });
           setLocationReady(true);
           setLocationError(null);
-          console.log('[ExplorarScreen v8.0.0] ✅ Ubicación obtenida:', location.coords);
+          console.log('[ExplorarScreen v11.0.0] ✅ Ubicación obtenida:', location.coords);
         } else if (isMounted) {
           setLocationError('No se pudo obtener tu ubicación');
           setLocationReady(true);
-          console.warn('[ExplorarScreen v8.0.0] ⚠️ No se pudo obtener ubicación');
+          console.warn('[ExplorarScreen v11.0.0] ⚠️ No se pudo obtener ubicación');
         }
       } catch (error) {
         if (isMounted) {
           setLocationError('Error al obtener ubicación');
           setLocationReady(true);
-          console.error('[ExplorarScreen v8.0.0] ❌ Error obteniendo ubicación:', error);
+          console.error('[ExplorarScreen v11.0.0] ❌ Error obteniendo ubicación:', error);
         }
       }
     };
@@ -281,36 +291,40 @@ export default function ExplorarScreen() {
   // ═══════════════════════════════════════════════════════════════════════════
   
   useEffect(() => {
-    console.log('[ExplorarScreen v10.0.0] 🔄 Filters changed - Scrolling to top');
-    console.log('[ExplorarScreen v10.0.0] 📊 Active filters:', {
+    console.log('[ExplorarScreen v11.0.0] 🔄 Filters changed - Scrolling to top');
+    console.log('[ExplorarScreen v11.0.0] 📊 Active filters:', {
       category: selectedCategory,
       hasAdvancedFilters: hasActiveFilters,
       searchQuery: debouncedQuery,
       filtros: filtros,
     });
     
-    // ✅ Scroll to top when filters change
-    if (flashListRef.current) {
-      flashListRef.current.scrollToOffset({ offset: 0, animated: true });
+    // ✅ v11.0.0: Improved scroll to top when filters change
+    if (flashListRef.current && allVenues.length > 0) {
+      try {
+        flashListRef.current.scrollToIndex({ index: 0, animated: true });
+      } catch (error) {
+        flashListRef.current.scrollToOffset({ offset: 0, animated: true });
+      }
     }
-  }, [selectedCategory, filtros, debouncedQuery, hasActiveFilters]);
+  }, [selectedCategory, filtros, debouncedQuery, hasActiveFilters, allVenues.length]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // DATA LOADING - v606.0 REACT QUERY (SIMPLIFIED)
   // ═══════════════════════════════════════════════════════════════════════════
   
-  // ✅ v10.0.0: INTELLIGENT PRELOAD - Fetch next page predictively
+  // ✅ v11.0.0: INTELLIGENT PRELOAD - Fetch next page predictively
   const loadMoreVenues = useCallback(() => {
     if (!isFetchingNextPage && hasNextPage && allVenues.length >= ITEMS_PER_PAGE) {
-      console.log('[ExplorarScreen v10.0.0] 🚀 PRECARGA INTELIGENTE - Fetching next page');
-      console.log('[ExplorarScreen v10.0.0] 📊 Items actuales:', allVenues.length);
+      console.log('[ExplorarScreen v11.0.0] 🚀 PRECARGA INTELIGENTE - Fetching next page');
+      console.log('[ExplorarScreen v11.0.0] 📊 Items actuales:', allVenues.length);
       fetchNextPage();
     }
   }, [isFetchingNextPage, hasNextPage, allVenues.length, fetchNextPage]);
 
-  // ✅ v10.0.0: PULL-TO-REFRESH - Force refetch from server
+  // ✅ v11.0.0: PULL-TO-REFRESH - Force refetch from server
   const onRefresh = useCallback(() => {
-    console.log('[ExplorarScreen v10.0.0] 🔄 Pull-to-refresh - Refetching from server...');
+    console.log('[ExplorarScreen v11.0.0] 🔄 Pull-to-refresh - Refetching from server...');
     refetch();
   }, [refetch]);
 
@@ -328,13 +342,13 @@ export default function ExplorarScreen() {
     }
   }, [allVenues]);
 
-  // ✅ v10.0.0: Scroll position persistence - React Query maintains data across navigation
+  // ✅ v11.0.0: Scroll position persistence - React Query maintains data across navigation
   useFocusEffect(
     useCallback(() => {
-      console.log('[ExplorarScreen v10.0.0] 👁️ Pantalla enfocada - Datos desde caché:', allVenues.length);
+      console.log('[ExplorarScreen v11.0.0] 👁️ Pantalla enfocada - Datos desde caché:', allVenues.length);
       
       return () => {
-        console.log('[ExplorarScreen v10.0.0] 👁️ Pantalla desenfocada - Datos persisten en caché');
+        console.log('[ExplorarScreen v11.0.0] 👁️ Pantalla desenfocada - Datos persisten en caché');
       };
     }, [allVenues.length])
   );
@@ -355,19 +369,19 @@ export default function ExplorarScreen() {
   }, [selectedCategory, debouncedQuery]);
 
   const handleCategoryChange = useCallback((categoryId: string) => {
-    console.log('[ExplorarScreen v10.0.0] 🏷️ Cambiando categoría a:', categoryId);
-    console.log('[ExplorarScreen v10.0.0] 🏷️ Category ID received:', categoryId);
-    console.log('[ExplorarScreen v10.0.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
+    console.log('[ExplorarScreen v11.0.0] 🏷️ Cambiando categoría a:', categoryId);
+    console.log('[ExplorarScreen v11.0.0] 🏷️ Category ID received:', categoryId);
+    console.log('[ExplorarScreen v11.0.0] 🏷️ Will set to:', categoryId === 'todos' ? 'null (all)' : categoryId);
     
-    // ✅ v10.0.0: Update category - React Query will handle cache invalidation automatically
+    // ✅ v11.0.0: Update category - React Query will handle cache invalidation automatically
     const newCategory = categoryId === 'todos' ? null : categoryId;
     setSelectedCategory(newCategory);
     
-    console.log('[ExplorarScreen v10.0.0] ✅ Category changed - React Query will refetch automatically');
+    console.log('[ExplorarScreen v11.0.0] ✅ Category changed - React Query will refetch automatically');
   }, [setSelectedCategory]);
 
   const clearFilters = useCallback(() => {
-    console.log('[ExplorarScreen v10.0.0] 🧹 Limpiando filtros...');
+    console.log('[ExplorarScreen v11.0.0] 🧹 Limpiando filtros...');
     setSearchQuery('');
     limpiarFiltros();
   }, [limpiarFiltros]);
@@ -431,21 +445,21 @@ export default function ExplorarScreen() {
     router.push('/solicitudes/solicitar-propiedad-v2');
   }, [user, router]);
 
-  // ✅ FIX 3 v10.0.0: Apertura instantánea del modal - ULTRA OPTIMIZED
+  // ✅ FIX 3 v11.0.0: Apertura instantánea del modal - ULTRA OPTIMIZED
   const handleOpenAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v10.0.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
+    console.log('[ExplorarScreen v11.0.0] 🎯 Abriendo filtros avanzados - INSTANT RESPONSE');
     
-    // ✅ v10.0.0: Respuesta INMEDIATA - sin requestAnimationFrame
+    // ✅ v11.0.0: Respuesta INMEDIATA - sin requestAnimationFrame
     setShowAdvancedFilters(true);
   }, []);
 
   const handleCloseAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v10.0.0] 🔒 Cerrando filtros avanzados');
+    console.log('[ExplorarScreen v11.0.0] 🔒 Cerrando filtros avanzados');
     setShowAdvancedFilters(false);
   }, []);
 
   const handleClearAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v10.0.0] 🧹 Limpiando filtros avanzados');
+    console.log('[ExplorarScreen v11.0.0] 🧹 Limpiando filtros avanzados');
     limpiarFiltros();
   }, [limpiarFiltros]);
 
@@ -850,7 +864,7 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* ✅ v10.0.0: FLASHLIST + REACT QUERY + FIXED "CERRADO" HANDLING - Proper sorting + 60 FPS + Global Cache */}
+      {/* ✅ v11.0.0: FLASHLIST + REACT QUERY + FIXED ADVANCED FILTERS - Proper filtering + 60 FPS + Global Cache */}
       <AnimatedFlashList
         ref={flashListRef}
         data={filteredVenues}
@@ -885,7 +899,7 @@ export default function ExplorarScreen() {
         extraData={selectedCategory}
       />
 
-      {/* ✅ FIX 2 v10.0.0: ADVANCED FILTERS SHEET - Synchronized with Zustand store */}
+      {/* ✅ FIX 2 v11.0.0: ADVANCED FILTERS SHEET - Synchronized with Zustand store */}
       <FiltrosAvanzadosSheet
         visible={showAdvancedFilters}
         onClose={handleCloseAdvancedFilters}
