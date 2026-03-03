@@ -134,8 +134,7 @@ export default function FiltrosAvanzadosScreen() {
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.3] ✅ Applying filters:', filtrosTemp);
-    console.log('[FiltrosAvanzados v3.3] 🔄 Filters will trigger scroll reset in ExplorarScreen');
+    console.log('[FiltrosAvanzados v3.2 iOS+Android] ✅ Applying filters:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     router.back();
   }, [filtrosTemp, contextAplicarFiltros, router]);

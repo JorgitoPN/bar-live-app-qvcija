@@ -3,14 +3,9 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ useBaresQuery v459.0 - CORRECCIÓN 3: Precarga sin bloqueo de ubicación
+ * ✅ useBaresQuery v458.0 - CORRECCIÓN 4: Integración con Backend (get_locales_v2)
  * 
- * NEW IN v459.0:
- * - ✅ CORRECCIÓN 3: Query NO usa enabled: !!location - muestra caché inmediatamente
- * - ✅ CORRECCIÓN 3: GPS se actualiza en segundo plano sin bloquear la UI
- * - ✅ CORRECCIÓN 3: Primera carga muestra 20 locales de caché al instante
- * 
- * FEATURES FROM v458.0:
+ * NEW IN v458.0:
  * - ✅ CORRECCIÓN 4: Asegura que la función SQL reciba los parámetros de useFilterStore
  * - ✅ CORRECCIÓN 4: La función devuelve el objeto estadoCompleto calculado en SQL
  * - ✅ CORRECCIÓN 4: El frontend no procesa nada - todo viene pre-calculado del backend
@@ -49,14 +44,12 @@ import { supabase } from '@/utils/supabase';
  * - Location changes: Always refetch → Smart cache reuse 🧠
  * - Status badges: "Sin info de horario" bug → Correct "Abierto ahora" ✅
  * - Backend integration: ✅ Recibe todos los parámetros de useFilterStore
- * - Initial load: Blocked by GPS → Shows cache immediately ✅
  * 
  * CACHE STRATEGY:
  * - queryKey includes rounded lat/lng for intelligent caching
  * - staleTime: 5 minutes (data considered fresh, no spinner on navigation)
  * - gcTime: 30 minutes (cache retention)
  * - Automatic background refetch when stale
- * - NO enabled: !!location - shows cached data immediately while GPS updates
  * 
  * @param userLocation - User's current location { latitude, longitude }
  * @param filters - Active filters from useFilterStore
@@ -87,10 +80,10 @@ export const useBaresQuery = ({
   const roundedLng = userLocation ? Math.round(userLocation.longitude) : null;
   
   return useInfiniteQuery({
-    // ✅ v459.0: CORRECCIÓN 3: queryKey includes ROUNDED lat/lng + ALL filters from useFilterStore
-    // Version bumped to v459 to force cache refresh with new precarga logic
+    // ✅ v458.0: CORRECCIÓN 4: queryKey includes ROUNDED lat/lng + ALL filters from useFilterStore
+    // Version bumped to v458 to force cache refresh with new filter integration
     queryKey: [
-      'bares_infinite_v459',
+      'bares_infinite_v458',
       roundedLat,
       roundedLng,
       selectedCategory,
@@ -99,11 +92,11 @@ export const useBaresQuery = ({
     ],
     
     queryFn: async ({ pageParam = 0 }) => {
-      console.log('[useBaresQuery v459.0] 📡 Fetching page:', pageParam / pageSize + 1);
-      console.log('[useBaresQuery v459.0] 🔍 Category:', selectedCategory);
-      console.log('[useBaresQuery v459.0] 🔍 Search:', searchQuery);
-      console.log('[useBaresQuery v459.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Using default (Madrid)');
-      console.log('[useBaresQuery v459.0] 🎯 Filters from useFilterStore:', globalFiltros);
+      console.log('[useBaresQuery v458.0] 📡 Fetching page:', pageParam / pageSize + 1);
+      console.log('[useBaresQuery v458.0] 🔍 Category:', selectedCategory);
+      console.log('[useBaresQuery v458.0] 🔍 Search:', searchQuery);
+      console.log('[useBaresQuery v458.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
+      console.log('[useBaresQuery v458.0] 🎯 Filters from useFilterStore:', globalFiltros);
       
       const startTime = performance.now();
       
@@ -143,12 +136,12 @@ export const useBaresQuery = ({
       const loadTime = endTime - startTime;
 
       if (error) {
-        console.error('[useBaresQuery v459.0] ❌ Error calling RPC:', error);
+        console.error('[useBaresQuery v458.0] ❌ Error calling RPC:', error);
         throw error;
       }
 
       const venues = data || [];
-      console.log('[useBaresQuery v459.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
+      console.log('[useBaresQuery v458.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
       
       // ✅ CORRECCIÓN 4: CRITICAL FIX - Map snake_case to camelCase for estadocompleto
       // PostgreSQL returns snake_case, frontend expects camelCase
@@ -160,7 +153,7 @@ export const useBaresQuery = ({
         
         // Debug log for first 3 venues to verify mapping
         if (venues.indexOf(venue) < 3) {
-          console.log('[useBaresQuery v459.0] 🔍 Venue mapping:', {
+          console.log('[useBaresQuery v458.0] 🔍 Venue mapping:', {
             nombre: venue.nombre,
             estadocompleto_raw: venue.estadocompleto,
             estadoCompleto_mapped: estadoCompleto,
@@ -192,10 +185,6 @@ export const useBaresQuery = ({
     // ✅ CACHE CONFIGURATION - Stale-While-Revalidate
     staleTime: 1000 * 60 * 5, // 5 minutes - data is fresh, no refetch on navigation
     gcTime: 1000 * 60 * 30, // 30 minutes - keep in cache
-    
-    // ✅ v459.0: CORRECCIÓN 3 - NO enabled: !!location
-    // Query runs immediately and shows cached data while GPS updates in background
-    // This ensures 20 locales are shown instantly on app open
     
     // ✅ BACKGROUND REFETCH - Update data without blocking UI
     refetchOnMount: 'always', // Always check for updates when component mounts
