@@ -49,9 +49,6 @@ import {
   Animated,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-
-// ✅ FIX: Wrap FlashList with Animated for native scroll events
-const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -66,6 +63,10 @@ import { getOptimizedUserLocation } from '@/utils/locationUtils';
 import LocalCardOptimized from '@/components/explorar/LocalCardOptimized';
 import { intelligentPreloader } from '@/utils/intelligentPreloader';
 import { useBaresQuery } from '@/hooks/useBaresQuery';
+import { getEstadoLocal } from '@/utils/timeUtils';
+
+// ✅ FIX: Wrap FlashList with Animated for native scroll events
+const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES & INTERFACES

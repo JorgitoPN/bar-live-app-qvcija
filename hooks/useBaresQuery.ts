@@ -3,9 +3,15 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ useBaresQuery v3.0 - INFINITE SCROLL + GLOBAL CACHE 🚀
+ * ✅ useBaresQuery v4.0 - INTELLIGENT LOCATION-BASED CACHING 🚀
  * 
- * NEW IN v3.0:
+ * NEW IN v4.0:
+ * - ✅ INTELLIGENT CACHING: queryKey includes rounded lat/lng
+ * - ✅ CACHE REUSE: Minor location changes (10m) use same cache
+ * - ✅ CACHE INVALIDATION: Major location changes (city) fetch new data
+ * - ✅ EXAMPLE: Move 10m → cache hit, Move to new city → new fetch
+ * 
+ * PREVIOUS FEATURES (v3.0):
  * - ✅ INFINITE SCROLL: useInfiniteQuery for paginated data
  * - ✅ GLOBAL CACHE: Data persists across navigation
  * - ✅ STALE-WHILE-REVALIDATE: Shows cached data instantly, updates in background
@@ -24,9 +30,10 @@ import { supabase } from '@/utils/supabase';
  * - Scroll performance: Laggy → 60fps smooth 🎯
  * - Frontend processing: Heavy → Zero 🎉
  * - Navigation: Data loss → Instant restore from cache 💾
+ * - Location changes: Always refetch → Smart cache reuse 🧠
  * 
  * CACHE STRATEGY:
- * - queryKey includes all filters for proper cache invalidation
+ * - queryKey includes rounded lat/lng for intelligent caching
  * - staleTime: 5 minutes (data considered fresh, no spinner on navigation)
  * - gcTime: 30 minutes (cache retention)
  * - Automatic background refetch when stale
@@ -53,21 +60,28 @@ export const useBaresQuery = ({
   globalFiltros,
   pageSize = 20,
 }: UseBaresQueryParams) => {
+  // ✅ v4.0: INTELLIGENT CACHING - Round location to nearest integer
+  // This allows cache reuse for minor location changes (e.g., 10 meters)
+  // but fetches new data for major changes (e.g., different city)
+  const roundedLat = userLocation ? Math.round(userLocation.latitude) : null;
+  const roundedLng = userLocation ? Math.round(userLocation.longitude) : null;
+  
   return useInfiniteQuery({
-    // ✅ CRITICAL: queryKey includes ALL filters for proper cache invalidation
+    // ✅ v4.0: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
     queryKey: [
-      'bares_infinite_v3',
+      'bares_infinite_v4',
+      roundedLat,
+      roundedLng,
       selectedCategory,
       searchQuery,
       globalFiltros,
-      !!userLocation,
     ],
     
     queryFn: async ({ pageParam = 0 }) => {
-      console.log('[useBaresQuery v3.0] 📡 Fetching page:', pageParam / pageSize + 1);
-      console.log('[useBaresQuery v3.0] 🔍 Category:', selectedCategory);
-      console.log('[useBaresQuery v3.0] 🔍 Search:', searchQuery);
-      console.log('[useBaresQuery v3.0] 📍 Location:', userLocation ? 'Available' : 'Not available');
+      console.log('[useBaresQuery v4.0] 📡 Fetching page:', pageParam / pageSize + 1);
+      console.log('[useBaresQuery v4.0] 🔍 Category:', selectedCategory);
+      console.log('[useBaresQuery v4.0] 🔍 Search:', searchQuery);
+      console.log('[useBaresQuery v4.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
       
       const startTime = performance.now();
       
@@ -105,12 +119,12 @@ export const useBaresQuery = ({
       const loadTime = endTime - startTime;
 
       if (error) {
-        console.error('[useBaresQuery v3.0] ❌ Error calling RPC:', error);
+        console.error('[useBaresQuery v4.0] ❌ Error calling RPC:', error);
         throw error;
       }
 
       const venues = data || [];
-      console.log('[useBaresQuery v3.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
+      console.log('[useBaresQuery v4.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
       
       // ✅ Enrich with estadoCompleto (already calculated by backend)
       const enrichedVenues = venues.map((venue: any) => ({

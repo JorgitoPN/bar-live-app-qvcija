@@ -6,6 +6,7 @@ import { AvatarProvider } from '@/contexts/AvatarContext';
 import { UIScalingProvider } from '@/contexts/UIScalingContext';
 import { WidgetProvider } from '@/contexts/WidgetContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
+import { LocationProvider } from '@/contexts/LocationContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { colors } from '@/styles/commonStyles';
 import React, { useEffect } from 'react';
@@ -255,19 +256,20 @@ export default function RootLayout() {
           client={queryClient}
           persistOptions={{ persister }}
         >
-          <ImpersonationProvider>
-            <ModeProvider>
-              <AvatarProvider>
-                <UIScalingProvider>
-                  <WidgetProvider>
-                    <SelectedLocalProvider>
-                      <Stack
-                        screenOptions={{
-                          headerShown: false,
-                          contentStyle: { backgroundColor: colors.background },
-                          animation: 'default',
-                        }}
-                      >
+          <LocationProvider>
+            <ImpersonationProvider>
+              <ModeProvider>
+                <AvatarProvider>
+                  <UIScalingProvider>
+                    <WidgetProvider>
+                      <SelectedLocalProvider>
+                        <Stack
+                          screenOptions={{
+                            headerShown: false,
+                            contentStyle: { backgroundColor: colors.background },
+                            animation: 'default',
+                          }}
+                        >
                         <Stack.Screen name="index" options={{ headerShown: false }} />
                         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                         <Stack.Screen name="auth" options={{ headerShown: false }} />
@@ -322,6 +324,7 @@ export default function RootLayout() {
               </AvatarProvider>
             </ModeProvider>
           </ImpersonationProvider>
+        </LocationProvider>
         </PersistQueryClientProvider>
       </ErrorBoundary>
     </GestureHandlerRootView>
