@@ -41,6 +41,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { optimisticUI } from '@/utils/optimisticUI';
 import { intelligentPreloader } from '@/utils/intelligentPreloader';
 import { Skeleton } from '@/components/common/SkeletonLoader';
+import { getEstadoLocal } from '@/utils/timeUtils';
 
 // ✅ Necesario para Linking
 import { Linking } from 'react-native';
@@ -127,23 +128,25 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   }, [router, local.id]);
 
   /**
-   * ✅ OPTIMIZED v2.0: Prioritize server-calculated estadoCompleto
-   * This eliminates ALL client-side time calculations for instant rendering
+   * ✅ FIXED v2.1: Use getEstadoLocal for accurate status calculation
+   * The backend only returns esta_abierto boolean, not full estadoCompleto
+   * We need to calculate the full status (badge, color) using timeUtils
    */
   const getBadgeInfo = () => {
     // Debug: Log what we received for this local
     if (index === 0) {
-      console.log('[LocalCardOptimized v2.0] 🔍 Badge data for first card:', {
+      console.log('[LocalCardOptimized v2.1] 🔍 Badge data for first card:', {
         nombre: local.nombre,
-        estadoCompleto: local.estadoCompleto,
+        esta_abierto: local.esta_abierto,
         estaAbierto: local.estaAbierto,
-        hasEstadoCompleto: !!local.estadoCompleto,
+        horarios_completos: local.horarios_completos,
+        hasHorarios: !!local.horarios_completos,
       });
     }
     
-    // ✅ PRIORITY 1: Use server-calculated estadoCompleto (from get_locales_v2)
-    if (local.estadoCompleto) {
-      const estado = local.estadoCompleto;
+    // ✅ PRIORITY 1: Calculate full status using timeUtils if we have schedule
+    if (local.horarios_completos && Object.keys(local.horarios_completos).length > 0) {
+      const estado = getEstadoLocal(local);
       
       const colorMap: Record<string, string> = {
         'bg-green-500': '#22C55E',
@@ -155,23 +158,35 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
       
       const badgeColor = colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF';
       
+      if (index === 0) {
+        console.log('[LocalCardOptimized v2.1] ✅ Calculated status:', {
+          badge: estado.badge,
+          estaAbierto: estado.estaAbierto,
+          claseBg: estado.claseBg,
+          color: badgeColor,
+        });
+      }
+      
       return {
         text: estado.badge,
         color: badgeColor,
       };
     }
     
-    // ✅ FALLBACK: Use simple estaAbierto boolean (legacy support)
+    // ✅ FALLBACK: Use simple esta_abierto boolean from backend
     if (index === 0) {
-      console.log('[LocalCardOptimized v2.0] ⚠️ No estadoCompleto, using fallback for:', local.nombre);
+      console.log('[LocalCardOptimized v2.1] ⚠️ No horarios_completos, using backend esta_abierto for:', local.nombre);
     }
     
-    if (local.estaAbierto === true) {
+    // Check both snake_case and camelCase (backend returns snake_case)
+    const estaAbierto = local.esta_abierto !== undefined ? local.esta_abierto : local.estaAbierto;
+    
+    if (estaAbierto === true) {
       return {
         text: 'Abierto ahora',
         color: '#22C55E',
       };
-    } else if (local.estaAbierto === false) {
+    } else if (estaAbierto === false) {
       return {
         text: 'Cerrado ahora',
         color: '#EF4444',
@@ -185,17 +200,18 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   };
 
   /**
-   * ✅ OPTIMIZED v2.0: Use server estadoCompleto for dimming logic
+   * ✅ FIXED v2.1: Use getEstadoLocal for accurate dimming logic
    */
   const getShouldDimImage = () => {
-    // ✅ PRIORITY 1: Use server-calculated estadoCompleto
-    if (local.estadoCompleto) {
-      return local.estadoCompleto.estaAbierto === false && 
-             !local.estadoCompleto.badge.includes('pronto');
+    // ✅ Calculate full status if we have schedule
+    if (local.horarios_completos && Object.keys(local.horarios_completos).length > 0) {
+      const estado = getEstadoLocal(local);
+      return estado.estaAbierto === false && !estado.badge.includes('pronto');
     }
     
-    // ✅ FALLBACK: Use simple estaAbierto boolean
-    return local.estaAbierto === false;
+    // ✅ FALLBACK: Use simple esta_abierto boolean from backend
+    const estaAbierto = local.esta_abierto !== undefined ? local.esta_abierto : local.estaAbierto;
+    return estaAbierto === false;
   };
 
   const getCategoriasAMostrar = () => {

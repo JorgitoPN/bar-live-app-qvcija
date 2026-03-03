@@ -126,28 +126,29 @@ export const useBaresQuery = ({
       const venues = data || [];
       console.log('[useBaresQuery v4.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
       
-      // ✅ Enrich with estadoCompleto (already calculated by backend)
-      // CRITICAL: PostgreSQL returns snake_case, we need to map to camelCase
+      // ✅ v4.1: Map backend response (snake_case) to frontend format
+      // Backend returns: esta_abierto (boolean), horarios_completos (jsonb)
+      // Frontend needs: esta_abierto, horarios_completos for getEstadoLocal calculation
       const enrichedVenues = venues.map((venue: any) => {
-        const estadoCompleto = venue.estadocompleto || venue.estadoCompleto || null;
-        const estaAbierto = venue.estaabierto !== undefined ? venue.estaabierto : venue.estaAbierto;
+        // Map snake_case to camelCase for consistency
+        const esta_abierto = venue.esta_abierto !== undefined ? venue.esta_abierto : null;
         
         // Debug log for first venue to verify mapping
         if (venues.indexOf(venue) === 0) {
-          console.log('[useBaresQuery v4.0] 🔍 First venue mapping:', {
+          console.log('[useBaresQuery v4.1] 🔍 First venue mapping:', {
             nombre: venue.nombre,
-            estadocompleto_raw: venue.estadocompleto,
-            estadoCompleto_mapped: estadoCompleto,
-            estaabierto_raw: venue.estaabierto,
-            estaAbierto_mapped: estaAbierto,
+            esta_abierto_raw: venue.esta_abierto,
+            esta_abierto_mapped: esta_abierto,
+            has_horarios: !!venue.horarios_completos,
+            horarios_keys: venue.horarios_completos ? Object.keys(venue.horarios_completos) : [],
           });
         }
         
         return {
           ...venue,
-          estadoCompleto,
-          estaAbierto,
-          distancia: venue.distance_km,
+          esta_abierto, // Keep snake_case for backend compatibility
+          estaAbierto: esta_abierto, // Also provide camelCase for frontend
+          distancia: venue.distancia || venue.distance_km,
           coordenadas: { lat: venue.latitud || 0, lng: venue.longitud || 0 },
         };
       });
