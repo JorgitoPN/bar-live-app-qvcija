@@ -1,7 +1,8 @@
 
--- ✅ MIGRATION: Fix schedule parsing to handle both hyphen (-) and en dash (–)
--- This migration fixes the issue where locales with hyphen-separated schedules
--- were not being detected as open/closed correctly
+-- ✅ MIGRATION: Add search query support and fix schedule parsing
+-- This migration adds p_search_query parameter and fixes the schedule parsing to handle both formats:
+-- 1. "HH:MM–HH:MM" (with en-dash)
+-- 2. "HH:MM-HH:MM" (with hyphen)
 
 CREATE OR REPLACE FUNCTION get_sorted_locales_by_proximity(
   p_user_lat DOUBLE PRECISION DEFAULT NULL,
@@ -13,6 +14,7 @@ CREATE OR REPLACE FUNCTION get_sorted_locales_by_proximity(
   p_comunidad_filter TEXT DEFAULT NULL,
   p_provincia_filter TEXT DEFAULT NULL,
   p_max_distance_km DOUBLE PRECISION DEFAULT NULL,
+  p_search_query TEXT DEFAULT NULL,
   p_limit INTEGER DEFAULT 20,
   p_offset INTEGER DEFAULT 0
 )
@@ -41,7 +43,7 @@ RETURNS TABLE (
   esta_abierto BOOLEAN,
   has_schedule_info BOOLEAN,
   sorting_tier INTEGER,
-  distance_km DOUBLE PRECISION
+  distancia DOUBLE PRECISION
 )
 LANGUAGE plpgsql
 STABLE
@@ -53,11 +55,11 @@ DECLARE
 BEGIN
   -- Get current day and time in Spain timezone
   v_current_datetime := NOW() AT TIME ZONE 'Europe/Madrid';
-  v_current_day := LOWER(TRIM(TO_CHAR(v_current_datetime, 'Day')));
+  v_current_day := TRIM(TO_CHAR(v_current_datetime, 'Day'));
   v_current_time := v_current_datetime::TIME;
 
   -- Map English day names to Spanish
-  v_current_day := CASE v_current_day
+  v_current_day := CASE LOWER(v_current_day)
     WHEN 'monday' THEN 'lunes'
     WHEN 'tuesday' THEN 'martes'
     WHEN 'wednesday' THEN 'miércoles'
@@ -108,7 +110,7 @@ BEGIN
             2
           )
         ELSE NULL
-      END AS distance_km
+      END AS distancia
     FROM locales l
     WHERE l.activo = TRUE
       -- Category filter
@@ -116,6 +118,15 @@ BEGIN
         p_category_filter IS NULL
         OR l.barlive_type = ANY(p_category_filter)
         OR l.barlive_types && p_category_filter
+      )
+      -- ✅ NEW: Search query filter (predictive search on nombre, direccion, ciudad, provincia)
+      AND (
+        p_search_query IS NULL
+        OR p_search_query = ''
+        OR l.nombre ILIKE '%' || p_search_query || '%'
+        OR l.direccion ILIKE '%' || p_search_query || '%'
+        OR l.ciudad ILIKE '%' || p_search_query || '%'
+        OR l.provincia ILIKE '%' || p_search_query || '%'
       )
       -- Servicios filter (AND logic - local must have ALL selected services)
       AND (
@@ -170,18 +181,14 @@ BEGIN
       CASE
         WHEN lwd.horarios_completos IS NULL OR jsonb_typeof(lwd.horarios_completos) != 'object' THEN NULL
         WHEN lwd.horarios_completos->v_current_day IS NULL THEN FALSE
-        WHEN jsonb_array_length(lwd.horarios_completos->v_current_day) = 0 THEN FALSE
         ELSE (
           SELECT bool_or(
-            CASE
-              -- ✅ FIX: Handle both hyphen (-) and en dash (–)
-              WHEN horario::TEXT ~ '^\d{2}:\d{2}[-–]\d{2}:\d{2}$' THEN
-                v_current_time >= SPLIT_PART(REPLACE(horario::TEXT, '–', '-'), '-', 1)::TIME
-                AND v_current_time <= SPLIT_PART(REPLACE(horario::TEXT, '–', '-'), '-', 2)::TIME
-              ELSE FALSE
-            END
+            -- ✅ FIX: Handle both en-dash (–) and hyphen (-) in schedule format
+            v_current_time >= SPLIT_PART(REPLACE(horario::TEXT, '–', '-'), '-', 1)::TIME
+            AND v_current_time <= SPLIT_PART(REPLACE(horario::TEXT, '–', '-'), '-', 2)::TIME
           )
           FROM jsonb_array_elements_text(lwd.horarios_completos->v_current_day) AS horario
+          WHERE horario::TEXT ~ '^\d{2}:\d{2}[–-]\d{2}:\d{2}$'
         )
       END AS esta_abierto
     FROM locales_with_distance lwd
@@ -190,8 +197,8 @@ BEGIN
       p_max_distance_km IS NULL
       OR p_user_lat IS NULL
       OR p_user_lng IS NULL
-      OR lwd.distance_km IS NULL
-      OR lwd.distance_km <= p_max_distance_km
+      OR lwd.distancia IS NULL
+      OR lwd.distancia <= p_max_distance_km
     )
   ),
   locales_with_tier AS (
@@ -202,23 +209,20 @@ BEGIN
         -- TIER 1: Featured & Open (< 50km)
         WHEN lws.destacado = TRUE
           AND lws.esta_abierto = TRUE
-          AND (lws.distance_km IS NULL OR lws.distance_km < 50)
+          AND (lws.distancia IS NULL OR lws.distancia < 50)
         THEN 1
         -- TIER 2: Standard Open (or Featured > 50km)
         WHEN lws.esta_abierto = TRUE
         THEN 2
-        -- TIER 3: No Schedule Info
-        WHEN lws.esta_abierto IS NULL
+        -- TIER 3: No Schedule Info (ALWAYS before closed venues)
+        WHEN lws.has_schedule_info = FALSE OR lws.esta_abierto IS NULL
         THEN 3
         -- TIER 4: Featured & Closed (< 50km)
         WHEN lws.destacado = TRUE
           AND lws.esta_abierto = FALSE
-          AND (lws.distance_km IS NULL OR lws.distance_km < 50)
+          AND (lws.distancia IS NULL OR lws.distancia < 50)
         THEN 4
         -- TIER 5: Standard Closed (or Featured > 50km)
-        WHEN lws.esta_abierto = FALSE
-        THEN 5
-        -- Default: Tier 5
         ELSE 5
       END AS sorting_tier
     FROM locales_with_status lws
@@ -248,11 +252,11 @@ BEGIN
     lwt.esta_abierto,
     lwt.has_schedule_info,
     lwt.sorting_tier,
-    lwt.distance_km
+    lwt.distancia
   FROM locales_with_tier lwt
   ORDER BY
     lwt.sorting_tier ASC,
-    COALESCE(lwt.distance_km, 999999) ASC
+    COALESCE(lwt.distancia, 999999) ASC
   LIMIT p_limit
   OFFSET p_offset;
 END;
@@ -262,11 +266,4 @@ $$;
 GRANT EXECUTE ON FUNCTION get_sorted_locales_by_proximity TO anon, authenticated;
 
 -- Add comment
-COMMENT ON FUNCTION get_sorted_locales_by_proximity IS 
-'Returns locales sorted by 5-tier system with advanced filters support.
-Tier 1: Featured & Open (< 50km)
-Tier 2: Standard Open
-Tier 3: No Schedule Info
-Tier 4: Featured & Closed (< 50km)
-Tier 5: Standard Closed
-Handles both hyphen (-) and en dash (–) in schedule strings.';
+COMMENT ON FUNCTION get_sorted_locales_by_proximity IS 'Returns locales sorted by 5-tier system with search query and advanced filters support. Tier 3 (No Schedule Info) ALWAYS appears before Tier 4 & 5 (Closed venues).';
