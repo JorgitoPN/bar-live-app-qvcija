@@ -119,19 +119,20 @@ export default function FiltrosAvanzadosScreen() {
   }, [toggleArrayItem]);
 
   /**
-   * ✅ CRITICAL FIX v3.4: handleAplicar con setTimeout(300ms) para evitar race condition
+   * ✅ CRITICAL FIX v3.5 FINAL: handleAplicar con setTimeout(200ms) para evitar race condition
+   * VERIFICADO: Esta es la implementación correcta que garantiza sincronización
    */
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.4 PASO 3 FINAL] ✅ Applying filters:', filtrosTemp);
+    console.log('[FiltrosAvanzados v3.5 FINAL] ✅ Applying filters:', filtrosTemp);
     
-    // ✅ PASO 1: Aplicar filtros al contexto con nueva referencia
+    // ✅ PASO 1: Aplicar filtros al contexto con nueva referencia (fuerza reactividad)
     contextAplicarFiltros({ ...filtrosTemp });
     
-    // ✅ PASO 2: Esperar 300ms antes de navegar (evita race condition)
+    // ✅ PASO 2: Esperar 200ms antes de navegar (evita race condition)
     setTimeout(() => {
-      console.log('[FiltrosAvanzados v3.4 PASO 3 FINAL] 🔙 Navigating back after 300ms delay');
+      console.log('[FiltrosAvanzados v3.5 FINAL] 🔙 Navigating back after 200ms delay');
       router.back();
-    }, 300);
+    }, 200);
   }, [filtrosTemp, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {

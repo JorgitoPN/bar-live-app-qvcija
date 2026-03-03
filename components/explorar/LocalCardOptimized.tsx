@@ -119,18 +119,18 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
   }, [router, local.id]);
 
   /**
-   * ✅ CRITICAL FIX v2.2: COLORES HEXADECIMALES EXACTOS + TEXTOS EN ESPAÑOL
+   * ✅ CRITICAL FIX v2.3 FINAL: COLORES HEXADECIMALES EXACTOS + TEXTOS EN ESPAÑOL
    * 
-   * Mapeo de colores corregido (incluye clases Tailwind Y textos en español):
+   * VERIFICADO: Mapeo de colores corregido (incluye clases Tailwind Y textos en español):
    * - 'bg-green-500' / 'abierto' → #22C55E (Verde - Abierto)
    * - 'bg-red-500' / 'cerrado' → #EF4444 (Rojo - Cerrado)
    * - 'bg-orange-500' / 'cierra_pronto' → #F97316 (Naranja - Cierra pronto)
    * - 'bg-yellow-500' / 'abre_pronto' → #EAB308 (Amarillo - Abre pronto)
-   * - 'bg-gray-400' → #9CA3AF (Gris - Sin info)
+   * - 'bg-gray-400' / 'sin_info' → #9CA3AF (Gris - Sin info)
    */
   const getBadgeInfo = () => {
     if (index === 0) {
-      console.log('[LocalCardOptimized v2.2 PASO 3 FINAL] 🎨 Badge data for first card:', {
+      console.log('[LocalCardOptimized v2.3 FINAL] 🎨 Badge data for first card:', {
         nombre: local.nombre,
         estadoCompleto: local.estadoCompleto,
         estaAbierto: local.estaAbierto,
@@ -141,7 +141,7 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
     if (local.estadoCompleto) {
       const estado = local.estadoCompleto;
       
-      // ✅ COLORES HEXADECIMALES EXACTOS - PASO 3 FINAL
+      // ✅ COLORES HEXADECIMALES EXACTOS - VERIFICADO
       // Incluye tanto clases Tailwind como textos en español
       const colorMap: Record<string, string> = {
         'bg-green-500': '#22C55E',
@@ -153,12 +153,13 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
         'bg-yellow-500': '#EAB308',
         'abre_pronto': '#EAB308',
         'bg-gray-400': '#9CA3AF',
+        'sin_info': '#9CA3AF',
       };
       
       const badgeColor = colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF';
       
       if (index === 0) {
-        console.log('[LocalCardOptimized v2.2 PASO 3 FINAL] 🎨 Color mapping:', {
+        console.log('[LocalCardOptimized v2.3 FINAL] 🎨 Color mapping:', {
           claseBg: estado.claseBg,
           mappedColor: badgeColor,
           badge: estado.badge,
@@ -172,7 +173,7 @@ const LocalCardOptimized = memo(({ local, index, onPress, socialProfiles, active
     }
     
     if (index === 0) {
-      console.log('[LocalCardOptimized v2.2 PASO 3 FINAL] ⚠️ No estadoCompleto, using fallback for:', local.nombre);
+      console.log('[LocalCardOptimized v2.3 FINAL] ⚠️ No estadoCompleto, using fallback for:', local.nombre);
     }
     
     if (local.estaAbierto === true) {
