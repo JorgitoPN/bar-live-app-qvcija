@@ -48,35 +48,30 @@ const sortLocales = (locales: any[]) => {
 };
 
 /**
- * ✅ useBaresQuery v614.0 - MANDATORY CLEANUP PHASE + CACHE INVALIDATION
+ * ✅ useBaresQuery v615.0 - SOLUCIÓN DEFINITIVA DE IMÁGENES
  * 
  * UNIFIED BUSINESS LOGIC:
  * - Fetches locales from Supabase with SPECIFIC FIELDS (reduced payload)
- * - ✅ FIXED v609: Removed 'imagenes' array field (column doesn't exist in DB)
- * - ✅ FIXED v610: Enhanced logging to debug image URL optimization
- * - ✅ FIXED v611: Prevent duplicate 'render/image' path in URLs
- * - ✅ FIXED v612: Correct path replacement to avoid /object/render/image/ malformation
- * - ✅ FIXED v613: DESTRUCTIVE pre-cleaning of URLs before optimization to eliminate /object/render/image/ errors
- * - ✅ FIXED v614: MANDATORY cleanup phase in getOptimizedImageUrl + cache invalidation via queryKey v614
+ * - ✅ FIXED v615: Limpieza destructiva de URLs + transformación correcta
  * - Applies filters (tipo, provincia, destacado)
  * - Calculates distance using Haversine formula
  * - Determines open/closed status
  * - Applies master sorting (open+featured → open+proximity → closed)
- * - ✅ v614: Automatic cleanup in getOptimizedImageUrl + verification logging
+ * - ✅ v615: URLs optimizadas estilo Instagram (ligeras y rápidas)
  * 
- * OPTIMIZATIONS v614.0:
+ * OPTIMIZATIONS v615.0:
  * 1️⃣ REDUCED PAYLOAD: Select only necessary fields (not select('*'))
- * 2️⃣ IMAGE OPTIMIZATION: Transform imagen_url using getOptimizedImageUrl (mandatory cleanup)
+ * 2️⃣ IMAGE OPTIMIZATION: Transform imagen_url using getOptimizedImageUrl (destructive cleanup)
  * 3️⃣ MEMOIZATION: Lightweight distance and status calculations
- * 4️⃣ ✅ FIXED: Only use imagen_url field (the actual column that exists)
- * 5️⃣ ✅ FIXED: Correct URL path transformation without duplication
- * 6️⃣ ✅ FIXED v614: Mandatory cleanup phase + cache invalidation to force UI refresh
+ * 4️⃣ ✅ FIXED: Limpieza destructiva elimina /object/ completamente
+ * 5️⃣ ✅ FIXED: Transformación correcta /storage/v1/public/ → /storage/v1/render/image/public/
+ * 6️⃣ ✅ FIXED v615: Cache invalidation + expo-image disk cache para velocidad
  * 
- * CACHE STRATEGY v614:
- * - queryKey includes [filtros, !!userLocation, 'v614'] for FORCED cache invalidation
+ * CACHE STRATEGY v615:
+ * - queryKey includes [filtros, !!userLocation, 'v615'] for FORCED cache invalidation
  * - staleTime: 5 minutes (data considered fresh)
  * - gcTime: 24 hours (cache retention)
- * - v614 version forces TanStack Query to ignore old cached URLs with errors
+ * - v615 version forces TanStack Query to ignore old cached URLs with errors
  * 
  * @param userLocation - User's current location { latitude, longitude }
  * @param filtros - Active filters { tipo, provincia, destacado, abierto, precioMedio }
@@ -93,13 +88,13 @@ export const useBaresQuery = (
   }
 ) => {
   return useQuery({
-    // ✅ CRITICAL v614: queryKey includes 'v614' to FORCE cache invalidation and ignore old malformed URLs
-    queryKey: ['bares', filtros, !!userLocation, 'v614'],
+    // ✅ CRITICAL v615: queryKey includes 'v615' to FORCE cache invalidation and ignore old malformed URLs
+    queryKey: ['bares', filtros, !!userLocation, 'v615'],
     
     queryFn: async () => {
-      console.log('[useBaresQuery v614.0] 📡 Fetching bares from Supabase...');
-      console.log('[useBaresQuery v614.0] 🔍 Filters:', filtros);
-      console.log('[useBaresQuery v614.0] 📍 User location:', userLocation ? 'Available' : 'Not available');
+      console.log('[useBaresQuery v615.0] 📡 Fetching bares from Supabase...');
+      console.log('[useBaresQuery v615.0] 🔍 Filters:', filtros);
+      console.log('[useBaresQuery v615.0] 📍 User location:', userLocation ? 'Available' : 'Not available');
       
       // ✅ v612: FIXED - Removed 'imagenes' field (doesn't exist in DB)
       // Only fetch imagen_url which is the actual column name
@@ -121,11 +116,11 @@ export const useBaresQuery = (
 
       const { data, error } = await query;
       if (error) {
-        console.error('[useBaresQuery v614.0] ❌ Error fetching data:', error);
+        console.error('[useBaresQuery v615.0] ❌ Error fetching data:', error);
         throw error;
       }
 
-      console.log('[useBaresQuery v614.0] ✅ Fetched', data?.length || 0, 'locales');
+      console.log('[useBaresQuery v615.0] ✅ Fetched', data?.length || 0, 'locales');
 
       // ✅ v613: PROCESS DATA - Calculate open status, distance, and OPTIMIZE IMAGES
       const procesados = data.map(local => {
@@ -143,28 +138,8 @@ export const useBaresQuery = (
           );
         }
         
-        // ✅ v614: VERIFICACIÓN DE LIMPIEZA - Detectar URLs con errores antes de optimizar
-        const originalImageUrl = local.imagen_url;
-        let hadObjectRenderError = false;
-        
-        // Verificar si la URL contiene el error /object/render/ antes de la limpieza
-        if (originalImageUrl && typeof originalImageUrl === 'string' && originalImageUrl.includes('/object/render/')) {
-          hadObjectRenderError = true;
-          console.log(`[useBaresQuery v614] ⚠️ URL con error detectada para ${local.nombre}:`, originalImageUrl.substring(0, 80));
-        }
-        
-        // ✅ v614: OPTIMIZE IMAGE - La función getOptimizedImageUrl ahora incluye limpieza automática
-        const optimizedImageUrl = getOptimizedImageUrl(originalImageUrl, 400, 70);
-        
-        // Log específico si se limpió una URL con error
-        if (hadObjectRenderError && optimizedImageUrl) {
-          console.log(`[useBaresQuery v614] ✅ URL limpiada exitosamente:`, {
-            local: local.nombre,
-            antes: originalImageUrl.substring(0, 80) + '...',
-            despues: optimizedImageUrl.substring(0, 80) + '...',
-            errorEliminado: !optimizedImageUrl.includes('/object/render/')
-          });
-        }
+        // ✅ v615: OPTIMIZE IMAGE - Limpieza destructiva + transformación correcta
+        const optimizedImageUrl = getOptimizedImageUrl(local.imagen_url, 400, 70);
         
         return {
           ...local,
@@ -183,8 +158,8 @@ export const useBaresQuery = (
       // ✅ APPLY MASTER SORTING LOGIC
       const sorted = sortLocales(procesados);
       
-      console.log('[useBaresQuery v614.0] 🎯 Sorted', sorted.length, 'locales');
-      console.log('[useBaresQuery v614.0] 📊 First 3 with images:', sorted.slice(0, 3).map(l => ({
+      console.log('[useBaresQuery v615.0] 🎯 Sorted', sorted.length, 'locales');
+      console.log('[useBaresQuery v615.0] 📊 First 3 with images:', sorted.slice(0, 3).map(l => ({
         nombre: l.nombre,
         abierto: l.estaAbierto,
         destacado: l.destacado,

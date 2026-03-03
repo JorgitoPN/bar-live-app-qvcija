@@ -33,7 +33,7 @@ const SUPABASE_URL = 'https://embntaqwlwmgazvrglaf.supabase.co';
 
 /**
  * Optimiza una URL de imagen usando transformación de Supabase Storage
- * ✅ v614: MANDATORY CLEANUP PHASE - Elimina errores de optimizaciones previas
+ * ✅ v615: SOLUCIÓN DEFINITIVA - Limpieza destructiva y transformación correcta
  * 
  * @param url - URL original de la imagen
  * @param width - Ancho deseado en píxeles (default: 400)
@@ -52,23 +52,27 @@ const SUPABASE_URL = 'https://embntaqwlwmgazvrglaf.supabase.co';
 export function getOptimizedImageUrl(url: string | undefined | null, width = 400, quality = 70): string | undefined {
   if (!url || typeof url !== 'string') return undefined;
 
-  // PASO A: Limpiar errores de optimizaciones fallidas anteriores
-  // Esto elimina el molesto '/object/render/image/' y lo deja en la ruta base correcta
-  let currentUrl = url.replace('/object/render/image/', '/render/image/');
+  // Si no es de Supabase, no la toques
+  if (!url.includes('supabase.co')) return url;
 
-  // PASO B: Si ya es una URL de renderizado válida, no la vuelvas a transformar
-  if (currentUrl.includes('/storage/v1/render/image/')) return currentUrl;
+  // PASO 1: LIMPIEZA DESTRUCTIVA - Eliminar el segmento /object/ completamente
+  // Esto corrige URLs mal formadas como /object/render/image/
+  let cleanUrl = url.replace('/storage/v1/object/', '/storage/v1/');
 
-  // PASO C: Transformación estándar de Supabase
-  if (currentUrl.includes('supabase.co') && currentUrl.includes('/storage/v1/object/public/')) {
-    let optimized = currentUrl.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+  // PASO 2: Si ya es una URL de renderizado válida, no la vuelvas a transformar
+  if (cleanUrl.includes('/storage/v1/render/image/')) return cleanUrl;
 
-    // Añadir parámetros de optimización si no los tiene
-    const separator = optimized.includes('?') ? '&' : '?';
-    return `${optimized}${separator}width=${width}&quality=${quality}&resize=contain`;
+  // PASO 3: TRANSFORMACIÓN CORRECTA - Insertar /render/image/ en el lugar correcto
+  // De: /storage/v1/public/locales/fotos/imagen.jpg
+  // A:  /storage/v1/render/image/public/locales/fotos/imagen.jpg
+  let optimized = cleanUrl.replace('/storage/v1/public/', '/storage/v1/render/image/public/');
+
+  // Añadir parámetros de optimización si no los tiene
+  if (!optimized.includes('?')) {
+    optimized += `?width=${width}&quality=${quality}&resize=contain`;
   }
 
-  return currentUrl;
+  return optimized;
 }
 
 /**

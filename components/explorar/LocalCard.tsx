@@ -128,7 +128,7 @@ const LocalCard = memo<LocalCardProps>(({
             style={styles.image}
             contentFit="cover"
             priority={imagePriority}
-            cachePolicy="memory-disk"
+            cachePolicy="disk"
             transition={200}
             recyclingKey={local.id}
           />
