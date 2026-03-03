@@ -3,17 +3,16 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ useBaresQuery v6.0.8 - PROXIMITY-FIRST SORTING + INTELLIGENT CACHING 🚀
+ * ✅ useBaresQuery v7.0.0 - STRICT 5-TIER SORTING + INTELLIGENT CACHING 🚀
  * 
- * NEW IN v6.0.8 (CRITICAL FIX):
- * - ✅ PROXIMITY-WEIGHTED TIERS: Nearby venues prioritized regardless of status
+ * NEW IN v7.0.0 (STRICT STATUS-BASED SORTING):
  * - ✅ TIER 1: Featured Open (< 50km) - HIGHEST PRIORITY
- * - ✅ TIER 2: Open (< 100km) - SECOND PRIORITY
- * - ✅ TIER 3: Open (> 100km) OR No Schedule OR Closed (< 10km) - BALANCED
- * - ✅ TIER 4: Featured Closed (< 50km) OR Closed (10-50km) - LOWER PRIORITY
- * - ✅ TIER 5: Closed (> 50km) - LOWEST PRIORITY
- * - ✅ RESULT: Closest venues (e.g., 0.43km) now appear FIRST, even if closed
- * - ✅ EXAMPLE: 5 closest venues at 0.43-5.48km appear before 376km venues
+ * - ✅ TIER 2: Open (Standard) - All open venues, sorted by proximity
+ * - ✅ TIER 3: No Schedule Info - ALWAYS before closed venues
+ * - ✅ TIER 4: Featured Closed (< 50km) - First in "Cerrados" block
+ * - ✅ TIER 5: Closed (Standard) - All closed venues, sorted by proximity
+ * - ✅ RESULT: Status-based hierarchy with proximity within each tier
+ * - ✅ KEY CHANGE: "Sin info" venues ALWAYS appear before ALL closed venues
  * 
  * FEATURES FROM v4.0:
  * - ✅ INTELLIGENT CACHING: queryKey includes rounded lat/lng
@@ -79,10 +78,10 @@ export const useBaresQuery = ({
   const roundedLng = userLocation ? Math.round(userLocation.longitude) : null;
   
   return useInfiniteQuery({
-    // ✅ v6.0.8: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
-    // Version bumped to v6.0.8 to force cache refresh with new proximity-weighted sorting
+    // ✅ v7.0.0: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
+    // Version bumped to v7.0.0 to force cache refresh with new strict 5-tier sorting
     queryKey: [
-      'bares_infinite_v6.0.8',
+      'bares_infinite_v7.0.0',
       roundedLat,
       roundedLng,
       selectedCategory,
@@ -91,10 +90,10 @@ export const useBaresQuery = ({
     ],
     
     queryFn: async ({ pageParam = 0 }) => {
-      console.log('[useBaresQuery v6.0.8] 📡 Fetching page:', pageParam / pageSize + 1);
-      console.log('[useBaresQuery v6.0.8] 🔍 Category:', selectedCategory);
-      console.log('[useBaresQuery v6.0.8] 🔍 Search:', searchQuery);
-      console.log('[useBaresQuery v6.0.8] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
+      console.log('[useBaresQuery v7.0.0] 📡 Fetching page:', pageParam / pageSize + 1);
+      console.log('[useBaresQuery v7.0.0] 🔍 Category:', selectedCategory);
+      console.log('[useBaresQuery v7.0.0] 🔍 Search:', searchQuery);
+      console.log('[useBaresQuery v7.0.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
       
       const startTime = performance.now();
       
@@ -132,22 +131,22 @@ export const useBaresQuery = ({
       const loadTime = endTime - startTime;
 
       if (error) {
-        console.error('[useBaresQuery v6.0.8] ❌ Error calling RPC:', error);
+        console.error('[useBaresQuery v7.0.0] ❌ Error calling RPC:', error);
         throw error;
       }
 
       const venues = data || [];
-      console.log('[useBaresQuery v6.0.8] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
+      console.log('[useBaresQuery v7.0.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
       
-      // ✅ v6.0.8: Debug sorting - log first 10 venues to verify proximity-weighted sorting
+      // ✅ v7.0.0: Debug sorting - log first 10 venues to verify strict 5-tier sorting
       if (venues.length > 0) {
-        console.log('[useBaresQuery v6.0.8] 📊 First 10 venues (proximity-weighted sorting):');
+        console.log('[useBaresQuery v7.0.0] 📊 First 10 venues (strict 5-tier sorting):');
         venues.slice(0, 10).forEach((venue: any, idx: number) => {
-          const tierLabel = venue.sorting_tier === 1 ? 'T1:Featured Open' :
-                           venue.sorting_tier === 2 ? 'T2:Open' :
-                           venue.sorting_tier === 3 ? 'T3:Balanced' :
-                           venue.sorting_tier === 4 ? 'T4:Close Closed' :
-                           'T5:Far Closed';
+          const tierLabel = venue.sorting_tier === 1 ? 'T1:Featured Open <50km' :
+                           venue.sorting_tier === 2 ? 'T2:Open (Standard)' :
+                           venue.sorting_tier === 3 ? 'T3:No Schedule Info' :
+                           venue.sorting_tier === 4 ? 'T4:Featured Closed <50km' :
+                           'T5:Closed (Standard)';
           const statusLabel = venue.esta_abierto === true ? 'Abierto' :
                              venue.esta_abierto === false ? 'Cerrado' :
                              'Sin info';
@@ -155,7 +154,7 @@ export const useBaresQuery = ({
         });
       }
       
-      // ✅ v6.0.8: Map backend response (snake_case) to frontend format
+      // ✅ v7.0.0: Map backend response (snake_case) to frontend format
       // Backend returns: esta_abierto (boolean), sorting_tier (integer), horarios_completos (jsonb)
       // Frontend needs: esta_abierto, horarios_completos for getEstadoLocal calculation
       const enrichedVenues = venues.map((venue: any) => {
@@ -165,7 +164,7 @@ export const useBaresQuery = ({
         
         // Debug log for first venue to verify mapping
         if (venues.indexOf(venue) === 0) {
-          console.log('[useBaresQuery v6.0.8] 🔍 First venue mapping:', {
+          console.log('[useBaresQuery v7.0.0] 🔍 First venue mapping:', {
             nombre: venue.nombre,
             esta_abierto_raw: venue.esta_abierto,
             esta_abierto_mapped: esta_abierto,
