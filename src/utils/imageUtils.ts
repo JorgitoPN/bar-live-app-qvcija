@@ -1,7 +1,7 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * IMAGE OPTIMIZATION UTILITY v613 - SERVER-SIDE TRANSFORMATION
+ * IMAGE OPTIMIZATION UTILITY v614 - MANDATORY CLEANUP PHASE
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * 🎯 OBJETIVO: Reducir payload de imágenes usando transformación de Supabase Storage
@@ -11,7 +11,7 @@
  * 2️⃣ Transformación server-side (width, quality, resize mode)
  * 3️⃣ Fallback seguro para URLs externas
  * 4️⃣ Caché-friendly (URLs consistentes)
- * 5️⃣ ✅ v613: DESTRUCTIVE cleanup - Elimina /object/render/image/ malformations
+ * 5️⃣ ✅ v614: MANDATORY cleanup phase - Fase de limpieza obligatoria antes de optimizar
  * 
  * 📊 IMPACTO:
  * - Reducción de ~70% en tamaño de imagen (de ~500KB a ~150KB)
@@ -19,24 +19,26 @@
  * - Menor consumo de datos móviles
  * - Mejor rendimiento en redes lentas
  * 
- * 🔧 v613 CRITICAL FIX:
- * - Limpieza destructiva de URLs mal formadas (/object/render/image/ → /render/image/)
- * - Previene duplicación de segmentos de ruta
- * - Garantiza URLs correctas para IntelligentPreloader
+ * 🔧 v614 CRITICAL FIX:
+ * - PASO A: Limpieza obligatoria de URLs mal formadas (/object/render/image/ → /render/image/)
+ * - PASO B: Verificación de URLs ya optimizadas (evita re-transformación)
+ * - PASO C: Transformación estándar de Supabase con parámetros de optimización
+ * - Garantiza URLs correctas para IntelligentPreloader y expo-image
  */
 
 const SUPABASE_URL = 'https://embntaqwlwmgazvrglaf.supabase.co';
 
-// ✅ v613 Cache Buster - Updated: 2025-01-XX to force expo-image cache invalidation
+// ✅ v614 Cache Buster - Updated: 2025-01-XX to force expo-image cache invalidation
 // This timestamp change forces the app to discard old cached URLs with malformed paths
 
 /**
  * Optimiza una URL de imagen usando transformación de Supabase Storage
+ * ✅ v614: MANDATORY CLEANUP PHASE - Elimina errores de optimizaciones previas
  * 
  * @param url - URL original de la imagen
  * @param width - Ancho deseado en píxeles (default: 400)
  * @param quality - Calidad JPEG 1-100 (default: 70)
- * @returns URL optimizada o URL original si no es de Supabase
+ * @returns URL optimizada o undefined si la URL es inválida
  * 
  * @example
  * // Imagen de Supabase
@@ -47,25 +49,27 @@ const SUPABASE_URL = 'https://embntaqwlwmgazvrglaf.supabase.co';
  * getOptimizedImageUrl('https://example.com/image.jpg')
  * // → 'https://example.com/image.jpg' (sin cambios)
  */
-export const getOptimizedImageUrl = (url: string, width = 400, quality = 70) => {
-  if (!url || typeof url !== 'string' || !url.includes('supabase.co')) return url;
+export function getOptimizedImageUrl(url: string | undefined | null, width = 400, quality = 70): string | undefined {
+  if (!url || typeof url !== 'string') return undefined;
 
-  // 1. Limpieza de seguridad: Si la URL ya viene mal formada por intentos previos, corregirla primero
-  let cleanUrl = url.replace('/object/render/image/', '/render/image/');
+  // PASO A: Limpiar errores de optimizaciones fallidas anteriores
+  // Esto elimina el molesto '/object/render/image/' y lo deja en la ruta base correcta
+  let currentUrl = url.replace('/object/render/image/', '/render/image/');
 
-  // 2. Si ya es una URL de renderizado optimizada, no hacer nada más
-  if (cleanUrl.includes('/storage/v1/render/image/')) return cleanUrl;
+  // PASO B: Si ya es una URL de renderizado válida, no la vuelvas a transformar
+  if (currentUrl.includes('/storage/v1/render/image/')) return currentUrl;
 
-  // 3. Transformación estándar: Reemplazar el path de objeto por el de renderizado
-  let optimizedUrl = cleanUrl.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+  // PASO C: Transformación estándar de Supabase
+  if (currentUrl.includes('supabase.co') && currentUrl.includes('/storage/v1/object/public/')) {
+    let optimized = currentUrl.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
 
-  // Añadir parámetros de optimización si no los tiene
-  if (optimizedUrl.includes('/render/image/public/') && !optimizedUrl.includes('?')) {
-    optimizedUrl += `?width=${width}&quality=${quality}&resize=contain`;
+    // Añadir parámetros de optimización si no los tiene
+    const separator = optimized.includes('?') ? '&' : '?';
+    return `${optimized}${separator}width=${width}&quality=${quality}&resize=contain`;
   }
 
-  return optimizedUrl;
-};
+  return currentUrl;
+}
 
 /**
  * Optimiza un array de URLs de imágenes
