@@ -1,32 +1,27 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - FLASHLIST + SERVER-SIDE IMAGE OPTIMIZATION v606.0
+ * EXPLORAR SCREEN - FLASHLIST OPTIMIZATION v605.0 (60 FPS)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 OBJETIVO: Scroll infinito + Búsqueda predictiva + 60 FPS + Imágenes optimizadas
+ * 🎯 OBJETIVO: Scroll infinito sin tiempos de espera + Búsqueda predictiva + 60 FPS
  * 
- * ✅ OPTIMIZACIONES v606.0 (SERVER-SIDE IMAGE OPTIMIZATION):
- * 1️⃣ SERVER-SIDE TRANSFORMATION: Imágenes optimizadas en el servidor (400px, 70% quality)
- * 2️⃣ PRIORITY LOADING: Primeras 4 tarjetas con prioridad alta
- * 3️⃣ MEMORY-DISK CACHE: Caché agresivo para evitar peticiones repetidas
- * 4️⃣ SMOOTH TRANSITIONS: Fade de 200ms para evitar saltos visuales
- * 5️⃣ ESTIMATEDITEMSIZE: Ajustado a 380px (valor real medido)
- * 6️⃣ DRAWDISTANCE: 1000px para pre-renderizar items fuera de vista
- * 
- * Previous optimizations maintained (v605.0):
+ * ✅ OPTIMIZACIONES v605.0 (FLASHLIST):
  * 1️⃣ FLASHLIST: Reemplazo de FlatList por FlashList para mejor reciclaje de celdas
- * 2️⃣ MEMORY EFFICIENCY: ~10x menos memoria que FlatList
- * 3️⃣ SCROLL PERFORMANCE: 60 FPS constantes incluso con imágenes pesadas
- * 4️⃣ BÚSQUEDA PREDICTIVA: Backend ILIKE para búsqueda parcial case-insensitive
- * 5️⃣ PRECARGA INTELIGENTE: Carga anticipada al 50% del bloque actual (10/20 items)
- * 6️⃣ CARGA EN BACKGROUND: requestAnimationFrame para no bloquear UI
- * 7️⃣ PREVENCIÓN DE DUPLICADOS: Sistema de locks para evitar llamadas múltiples
- * 8️⃣ THROTTLING OPTIMIZADO: Scroll handler con throttle de 16ms (60fps)
- * 9️⃣ CONDICIONES DE CARRERA: Refs para prevenir race conditions
- * 🔟 ESCALABILIDAD: Preparado para miles de registros sin degradación
+ * 2️⃣ ESTIMATEDITEMSIZE: 400px para cálculo instantáneo de layouts
+ * 3️⃣ MEMORY EFFICIENCY: ~10x menos memoria que FlatList
+ * 4️⃣ SCROLL PERFORMANCE: 60 FPS constantes incluso con imágenes pesadas
  * 
- * 🚀 RESULTADO: Experiencia completamente fluida con imágenes optimizadas + 60 FPS
+ * Previous optimizations maintained (v604.0):
+ * 1️⃣ BÚSQUEDA PREDICTIVA: Backend ILIKE para búsqueda parcial case-insensitive
+ * 2️⃣ PRECARGA INTELIGENTE: Carga anticipada al 50% del bloque actual (10/20 items)
+ * 3️⃣ CARGA EN BACKGROUND: requestAnimationFrame para no bloquear UI
+ * 4️⃣ PREVENCIÓN DE DUPLICADOS: Sistema de locks para evitar llamadas múltiples
+ * 5️⃣ THROTTLING OPTIMIZADO: Scroll handler con throttle de 16ms (60fps)
+ * 6️⃣ CONDICIONES DE CARRERA: Refs para prevenir race conditions
+ * 7️⃣ ESCALABILIDAD: Preparado para miles de registros sin degradación
+ * 
+ * 🚀 RESULTADO: Experiencia completamente fluida con búsqueda predictiva + 60 FPS
  * 
  * WHY FLASHLIST IS SUPERIOR TO FLATLIST:
  * 1. CELL RECYCLING: FlashList recycles cells more efficiently by using a "blank space" strategy
@@ -79,7 +74,6 @@ import { getEstadoLocal } from '@/utils/timeUtils';
 import LocalCardOptimized from '@/components/explorar/LocalCardOptimized';
 import { dataCache } from '@/utils/dataCache';
 import { intelligentPreloader } from '@/utils/intelligentPreloader';
-import { getOptimizedImageUrl } from '@/utils/imageUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES & INTERFACES
@@ -347,29 +341,13 @@ export default function ExplorarScreen() {
       const venues = data || [];
       console.log('[ExplorarScreen v600.0] ✅ Cargados', venues.length, 'locales');
       
-      // ✅ v606: Enriquecer con estado completo + OPTIMIZACIÓN DE IMÁGENES
-      const enrichedVenues = venues.map((venue: Venue) => {
-        // ✅ Optimizar imagen principal
-        const optimizedImageUrl = venue.imagen_url 
-          ? getOptimizedImageUrl(venue.imagen_url, 400, 70)
-          : undefined;
-        
-        // ✅ Optimizar galería de imágenes
-        const optimizedGallery = venue.imagenes 
-          ? venue.imagenes.map(url => getOptimizedImageUrl(url, 400, 70))
-          : venue.galeria_urls
-            ? venue.galeria_urls.map(url => getOptimizedImageUrl(url, 400, 70))
-            : [];
-        
-        return {
-          ...venue,
-          imagen_url: optimizedImageUrl,
-          imagenes: optimizedGallery,
-          estadoCompleto: venue.horarios_completos ? getEstadoLocal(venue) : null,
-          distancia: venue.distance_km,
-          coordenadas: { lat: venue.latitud || 0, lng: venue.longitud || 0 },
-        };
-      });
+      // ✅ Enriquecer con estado completo
+      const enrichedVenues = venues.map((venue: Venue) => ({
+        ...venue,
+        estadoCompleto: venue.horarios_completos ? getEstadoLocal(venue) : null,
+        distancia: venue.distance_km,
+        coordenadas: { lat: venue.latitud || 0, lng: venue.longitud || 0 },
+      }));
       
       if (isRefresh || pageNum === 1) {
         setAllVenues(enrichedVenues);
@@ -982,14 +960,13 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* ✅ v606: FLASHLIST OPTIMIZATION + SERVER-SIDE IMAGE OPTIMIZATION */}
+      {/* ✅ v605: FLASHLIST OPTIMIZATION - 60 FPS scroll infinito inteligente */}
       <AnimatedFlashList
         ref={flashListRef}
         data={filteredVenues}
         renderItem={renderVenueCard}
         keyExtractor={(item: Venue) => `local-${item.id}`}
-        estimatedItemSize={380}
-        drawDistance={1000}
+        estimatedItemSize={400}
         contentContainerStyle={[
           styles.listContent,
           { 
