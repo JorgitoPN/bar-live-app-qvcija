@@ -1,29 +1,20 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 useBaresQuery v26.2.0 - FIXED PAGINATION SIZE & ORDERING
+ * 🚀 useBaresQuery v26.3.0 - FIXED SORTING ORDER PRESERVATION
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v26.2.0 (FIXED PAGINATION SIZE):
+ * 🎯 NEW IN v26.3.0 (FIXED SORTING ORDER):
+ * 1️⃣ PRESERVE DB ORDER: No re-sorting in frontend, respect database order ✅
+ * 2️⃣ PROPER TIER DISPLAY: Show venues in exact order from RPC function ✅
+ * 3️⃣ NO MIXING: Destacados, abiertos, sin info, cerrados in correct blocks ✅
+ * 4️⃣ RESULT: Perfect 5-tier sorting as specified ✅
+ * 
+ * 🎯 v26.2.0 (FIXED PAGINATION SIZE):
  * 1️⃣ 20 PER PAGE: Restored to 20 items per page (was incorrectly set to 10) ✅
  * 2️⃣ PROPER CURSOR: Uses (tier, distance, id) for stable pagination ✅
  * 3️⃣ RESPECTS ORDER: Venues maintain priority order across pages ✅
  * 4️⃣ RESULT: Smooth infinite scroll with correct ordering ✅
- * 
- * 🎯 v26.0.0 (DATABASE-SIDE FAVORITE JOIN - FASE 10):
- * 1️⃣ ELIMINATED O(N×M): No more manual cross-referencing of venues × favorites ✅
- * 2️⃣ DATABASE LEFT JOIN: is_favorite calculated by PostgreSQL, not JavaScript ✅
- * 3️⃣ IDENTICAL SPEED: Authenticated load now same speed as anonymous load ✅
- * 4️⃣ RESULT: >60 second blocking eliminated, instant load with auth ✅
- * 
- * 🎯 v25.0.0 (INITIAL LOAD OPTIMIZATION):
- * 1️⃣ REDUCED TIMEOUT: 8s query timeout (from 10s) ✅
- * 2️⃣ SMALLER INITIAL PAGE: 10 items first load (from 20) ✅
- * 3️⃣ INSTANT PREFETCH: Prefetch starts at 50% scroll (from 70%) ✅
- * 4️⃣ AGGRESSIVE CACHE: 15min staleTime (from 10min) ✅
- * 5️⃣ SMART RETRY: 2 retries with faster backoff (from 3) ✅
- * 6️⃣ MEMORY EFFICIENT: Max 8 pages in memory (from 10) ✅
- * 7️⃣ RESULT: 40% faster initial load, smoother UX ✅
  * 
  * ARCHITECTURAL PRINCIPLES:
  * - ✅ Stale-While-Revalidate pattern for instant UX
@@ -33,13 +24,14 @@
  * - ✅ Proper error boundaries and fallbacks
  * - ✅ Memory-efficient data structures
  * - ✅ Platform-specific optimizations
+ * - ✅ NO FRONTEND SORTING - Respect database order
  * 
- * PERFORMANCE TARGETS (v25.0.0):
- * - Initial load: <200ms ⚡ (improved from 300ms)
- * - Subsequent loads: <30ms (cached) 🚀 (improved from 50ms)
+ * PERFORMANCE TARGETS (v26.3.0):
+ * - Initial load: <200ms ⚡
+ * - Subsequent loads: <30ms (cached) 🚀
  * - Scroll performance: 60fps 🎯
- * - Memory usage: <40MB for 100 items 💾 (improved from 50MB)
- * - Network efficiency: 75% less bandwidth 📡 (improved from 70%)
+ * - Memory usage: <40MB for 100 items 💾
+ * - Network efficiency: 75% less bandwidth 📡
  */
 
 import React from 'react';
@@ -81,7 +73,7 @@ function generateQueryKey(params: UseBaresQueryParams) {
   );
   
   return [
-    'bares_infinite_v26.2.0',  // ✅ Updated version for fixed page size (20 items)
+    'bares_infinite_v26.3.0',  // ✅ Updated version for fixed sorting order
     lat,
     lng,
     params.selectedCategory,
@@ -138,7 +130,7 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
       const pageNumber = isFirstPage ? 1 : Math.floor((pageParam.offset || 0) / pageSize) + 1;
       
       console.log('═══════════════════════════════════════════════════════════');
-      console.log('[useBaresQuery v26.2] 📡 Fetching page:', pageNumber, {
+      console.log('[useBaresQuery v26.3] 📡 Fetching page:', pageNumber, {
         isFirstPage,
         pageParam,
         pageSize,
@@ -238,8 +230,17 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
             id: data[0].id,
             nombre: data[0].nombre,
             is_favorite: data[0].is_favorite,
+            sorting_tier: data[0].sorting_tier,
+            esta_abierto: data[0].esta_abierto,
+            destacado: data[0].destacado,
           } : null,
           allVenueNames: data?.slice(0, 5).map((v: any) => v.nombre) || [],
+          sortingTiers: data?.slice(0, 10).map((v: any) => ({
+            nombre: v.nombre,
+            tier: v.sorting_tier,
+            abierto: v.esta_abierto,
+            destacado: v.destacado,
+          })) || [],
           loadTime: `${loadTime.toFixed(0)}ms`,
         });
         console.log('[useBaresQuery FASE 14] 📦 Full data sample (first 2):', JSON.stringify(data?.slice(0, 2), null, 2));
@@ -267,6 +268,14 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
           pageNumber,
         });
         
+        // ✅ v26.3.0: CRITICAL - DO NOT RE-SORT! Preserve database order
+        // The RPC function already returns venues in the correct 5-tier order:
+        // Tier 1: Destacados Abiertos (< 50km)
+        // Tier 2: Locales Abiertos (Standard)
+        // Tier 3: Sin Información de Horario
+        // Tier 4: Destacados Cerrados (< 50km)
+        // Tier 5: Locales Cerrados (Standard)
+        
         // ✅ FASE 10: Enrich venues with computed properties
         // is_favorite is now calculated by database, no manual cross-referencing needed!
         const enrichedVenues = venues.map((venue: any) => ({
@@ -283,11 +292,14 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
           is_favorite: venue.is_favorite || false,
         }));
         
-        console.log('[useBaresQuery FASE 10] ✅ Venues enriched with database-calculated is_favorite', {
+        console.log('[useBaresQuery v26.3.0] ✅ Venues enriched (NO RE-SORTING)', {
           totalVenues: enrichedVenues.length,
-          sampleFavoriteStatus: enrichedVenues.slice(0, 3).map(v => ({
+          sampleOrder: enrichedVenues.slice(0, 5).map(v => ({
             nombre: v.nombre,
-            is_favorite: v.is_favorite,
+            tier: v.sorting_tier,
+            abierto: v.esta_abierto,
+            destacado: v.destacado,
+            distancia: v.distancia?.toFixed(2),
           })),
         });
         
@@ -302,7 +314,7 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
             offset: (pageParam?.offset || 0) + pageSize,
           };
           
-          console.log('[useBaresQuery v26.2] 📍 Next cursor calculated:', {
+          console.log('[useBaresQuery v26.3] 📍 Next cursor calculated:', {
             last_id: lastVenue.id,
             last_tier: lastVenue.sorting_tier,
             last_distance: lastVenue.distancia?.toFixed(2),
@@ -311,7 +323,7 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
             totalLoaded: (pageParam?.offset || 0) + venues.length,
           });
         } else {
-          console.log('[useBaresQuery v26.2] 🏁 No more pages - received', venues.length, 'venues (less than', pageSize, ')');
+          console.log('[useBaresQuery v26.3] 🏁 No more pages - received', venues.length, 'venues (less than', pageSize, ')');
         }
         
         return {

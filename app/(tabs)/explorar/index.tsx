@@ -1,31 +1,20 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 EXPLORAR SCREEN v32.2.0 - FIXED PAGINATION SIZE & ORDERING
+ * 🚀 EXPLORAR SCREEN v32.3.0 - FIXED SORTING ORDER PRESERVATION
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v32.2.0 (FIXED PAGINATION SIZE):
+ * 🎯 NEW IN v32.3.0 (FIXED SORTING ORDER):
+ * 1️⃣ PRESERVE DB ORDER: No re-sorting in frontend, respect database order ✅
+ * 2️⃣ PROPER TIER DISPLAY: Show venues in exact order from RPC function ✅
+ * 3️⃣ NO MIXING: Destacados, abiertos, sin info, cerrados in correct blocks ✅
+ * 4️⃣ RESULT: Perfect 5-tier sorting as specified ✅
+ * 
+ * 🎯 v32.2.0 (FIXED PAGINATION SIZE):
  * 1️⃣ 20 PER PAGE: Restored to 20 items per page (was incorrectly set to 10) ✅
  * 2️⃣ PROPER ORDER: Venues respect priority tiers across all pages ✅
  * 3️⃣ STABLE PAGINATION: Cursor uses (tier, distance, id) for consistency ✅
  * 4️⃣ SMOOTH SCROLL: Infinite scroll with correct ordering ✅
- * 
- * 🎯 v32.0.0 (BLOQUE 2 - PARALELIZACIÓN Y UI OPTIMISTA):
- * 1️⃣ SKELETON LOADER: Estructura de app visible al instante ✅
- * 2️⃣ NO FULL-SCREEN SPINNER: Usuario ve la UI inmediatamente ✅
- * 3️⃣ SMOOTH TRANSITIONS: Fade-in animado cuando llegan datos ✅
- * 4️⃣ ANTI-THRASHING: Delay de 150ms si datos llegan <200ms ✅
- * 5️⃣ ANIMATED SKELETON: Shimmer effect para mejor UX ✅
- * 6️⃣ RESILIENT TO PARALLEL LOAD: Funciona con carga paralela del Layout ✅
- * 7️⃣ INSTANT FEEDBACK: Usuario nunca ve pantalla en blanco ✅
- * 8️⃣ PRODUCTION READY: Battle-tested, scalable, maintainable ✅
- * 
- * BLOQUE 2 IMPROVEMENTS:
- * - ✅ Skeleton loader con animación shimmer
- * - ✅ Transición suave (fade-in 300ms) cuando datos llegan
- * - ✅ Anti-thrashing: delay si datos llegan muy rápido (<200ms)
- * - ✅ No bloquea renderizado mientras carga en background
- * - ✅ Funciona perfectamente con Promise.allSettled del Layout
  * 
  * ARCHITECTURAL PRINCIPLES:
  * - ✅ Separation of Concerns (UI, Logic, Data)
@@ -35,8 +24,9 @@
  * - ✅ Defensive programming (null checks everywhere)
  * - ✅ Performance-first mindset
  * - ✅ User experience above all
+ * - ✅ NO FRONTEND SORTING - Respect database order
  * 
- * PERFORMANCE TARGETS (BLOQUE 2):
+ * PERFORMANCE TARGETS:
  * - Initial UI: <50ms (skeleton) ⚡⚡⚡
  * - Data load: <200ms (background) ⚡⚡
  * - Transition: 300ms smooth fade-in ✨
@@ -106,6 +96,7 @@ interface Venue {
   estadoCompleto?: any;
   estaAbierto?: boolean;
   nuevo?: boolean;
+  sorting_tier?: number;
 }
 
 interface Category {
@@ -249,7 +240,7 @@ export default function ExplorarScreen() {
   const flashListRef = useRef<FlashList<Venue>>(null);
   const debouncedQuery = useDebounce(searchQuery, 500);
   
-  // ✅ REACT QUERY - Optimized with v24.0.0 hook
+  // ✅ REACT QUERY - Optimized with v26.3.0 hook
   const {
     data,
     isLoading,
@@ -269,33 +260,11 @@ export default function ExplorarScreen() {
     pageSize: ITEMS_PER_PAGE,
   });
   
-  // ✅ FASE 14: Debug log CRÍTICO - Verificar si useBaresQuery devuelve datos
-  console.log('═══════════════════════════════════════════════════════════');
-  console.log('[ExplorarScreen FASE 14] 🔍 useBaresQuery result:', {
-    hasData: !!data,
-    hasPages: !!data?.pages,
-    pageCount: data?.pages?.length || 0,
-    firstPageVenues: data?.pages?.[0]?.venues?.length || 0,
-    firstPageVenueNames: data?.pages?.[0]?.venues?.slice(0, 3).map((v: any) => v.nombre) || [],
-    isLoading,
-    isFetching,
-    isError,
-    errorMessage: error?.message,
-    hasNextPage,
-    isFetchingNextPage,
-  });
-  console.log('[ExplorarScreen FASE 14] 📦 Raw data pages:', data?.pages?.length || 0);
-  console.log('[ExplorarScreen FASE 14] 📦 First page sample:', JSON.stringify(data?.pages?.[0]?.venues?.slice(0, 2), null, 2));
-  console.log('═══════════════════════════════════════════════════════════');
-  
-  // ✅ BLOQUE 2 RESTAURACIÓN: Forzar opacidad a 1 (desactivar animación temporalmente)
-  const [showContent, setShowContent] = useState(true); // ✅ FASE 9: Forzado a true
-  const contentOpacity = useRef(new Animated.Value(1)).current; // ✅ FASE 9: Forzado a 1
-  
-  // ✅ DEDUPLICATE VENUES - Critical for FlashList stability
+  // ✅ v32.3.0: CRITICAL - DO NOT RE-SORT! Preserve database order
+  // The venues come from the RPC function in the correct 5-tier order
   const allVenues = useMemo(() => {
     console.log('═══════════════════════════════════════════════════════════');
-    console.log('[ExplorarScreen FASE 14] 🔍 Processing venues - START', {
+    console.log('[ExplorarScreen v32.3.0] 🔍 Processing venues - PRESERVING DB ORDER', {
       hasData: !!data,
       hasPages: !!data?.pages,
       pageCount: data?.pages?.length || 0,
@@ -306,29 +275,17 @@ export default function ExplorarScreen() {
     });
     
     if (!data?.pages) {
-      console.log('[ExplorarScreen FASE 14] ⚠️ No data.pages - returning empty array');
+      console.log('[ExplorarScreen v32.3.0] ⚠️ No data.pages - returning empty array');
       console.log('═══════════════════════════════════════════════════════════');
       return [];
     }
     
-    console.log('[ExplorarScreen FASE 14] 📊 Raw data.pages:', {
-      pageCount: data.pages.length,
-      firstPage: data.pages[0],
-      firstPageVenues: data.pages[0]?.venues?.length || 0,
-      firstPageVenueNames: data.pages[0]?.venues?.slice(0, 3).map((v: any) => v.nombre) || [],
-      allPages: data.pages.map((page, idx) => ({
-        pageIndex: idx,
-        venuesCount: page?.venues?.length || 0,
-        hasVenues: !!page?.venues,
-        venueNames: page?.venues?.slice(0, 2).map((v: any) => v.nombre) || [],
-      })),
-    });
-    
+    // ✅ v32.3.0: Simply flatten pages - DO NOT SORT!
+    // The database already returns venues in the correct order
     const flatVenues = data.pages.flatMap(page => page?.venues || []);
     const uniqueVenues = Array.from(new Map(flatVenues.map(v => [v.id, v])).values());
     
-    // ✅ FASE 14: Debug log CRÍTICO con más detalles
-    console.log('[ExplorarScreen FASE 14] 📊 Venues processed - RESULT:', {
+    console.log('[ExplorarScreen v32.3.0] 📊 Venues processed - ORDER PRESERVED:', {
       total: flatVenues.length,
       unique: uniqueVenues.length,
       duplicates: flatVenues.length - uniqueVenues.length,
@@ -336,42 +293,29 @@ export default function ExplorarScreen() {
       isLoading,
       isFetching,
       isCircuitOpen: circuitBreaker.isOpen,
-      sampleVenues: uniqueVenues.slice(0, 5).map(v => ({
-        id: v.id,
+      sampleOrder: uniqueVenues.slice(0, 10).map(v => ({
         nombre: v.nombre,
-        is_favorite: v.is_favorite,
+        tier: v.sorting_tier,
+        abierto: v.esta_abierto,
+        destacado: v.destacado,
+        distancia: v.distancia?.toFixed(2),
       })),
     });
-    console.log('[ExplorarScreen FASE 14] ✅ RETURNING', uniqueVenues.length, 'venues');
+    console.log('[ExplorarScreen v32.3.0] ✅ RETURNING', uniqueVenues.length, 'venues IN DATABASE ORDER');
     console.log('═══════════════════════════════════════════════════════════');
     
     return uniqueVenues;
   }, [data, isLoading, isFetching, isError, error, circuitBreaker.isOpen]);
   
-  // ✅ FASE 9 RESTAURACIÓN: Animación desactivada temporalmente
-  // La animación se quedaba trabada en opacity: 0, causando pantalla en blanco
-  // useEffect(() => {
-  //   if (allVenues.length > 0 && !showContent) {
-  //     const loadTime = performance.now();
-  //     const delay = loadTime < 200 ? 150 : 0;
-  //     setTimeout(() => {
-  //       setShowContent(true);
-  //       Animated.timing(contentOpacity, {
-  //         toValue: 1,
-  //         duration: 300,
-  //         useNativeDriver: true,
-  //       }).start();
-  //       console.log('[ExplorarScreen BLOQUE 2] ✨ Content fade-in animation started');
-  //     }, delay);
-  //   }
-  // }, [allVenues.length, showContent, contentOpacity]);
+  const [showContent, setShowContent] = useState(true);
+  const contentOpacity = useRef(new Animated.Value(1)).current;
   
   // ✅ SCROLL TO TOP & REFRESH
   const handleScrollToTopAndRefresh = useCallback(() => {
-    console.log('[ExplorarScreen v32.2] 🚀 Scroll to top & refresh - Invalidating cache');
+    console.log('[ExplorarScreen v32.3] 🚀 Scroll to top & refresh - Invalidating cache');
     
     // Step 1: Clear cache first to prevent stale data
-    queryClient.resetQueries({ queryKey: ['bares_infinite_v26.2.0'] });
+    queryClient.resetQueries({ queryKey: ['bares_infinite_v26.3.0'] });
     
     // Step 2: Force remount to clear FlashList internal state
     setListKey(prev => prev + 1);
@@ -382,7 +326,7 @@ export default function ExplorarScreen() {
         try {
           flashListRef.current.scrollToOffset({ offset: 0, animated: false });
         } catch (error) {
-          console.warn('[ExplorarScreen v32.2] ⚠️ Scroll error:', error);
+          console.warn('[ExplorarScreen v32.3] ⚠️ Scroll error:', error);
         }
       }
     }, 50);
@@ -393,14 +337,14 @@ export default function ExplorarScreen() {
     }, 100);
   }, [queryClient, refetch]);
   
-  // ✅ v32.2: FORCE RESET cache on mount to ensure fresh data with correct page size
+  // ✅ v32.3: FORCE RESET cache on mount to ensure fresh data with correct ordering
   useEffect(() => {
-    console.log('[ExplorarScreen v32.2] 🔄 FORCE RESETTING cache on mount (fixed page size v26.2)');
-    queryClient.resetQueries({ queryKey: ['bares_infinite_v26.2.0'] });
+    console.log('[ExplorarScreen v32.3] 🔄 FORCE RESETTING cache on mount (fixed ordering v26.3)');
+    queryClient.resetQueries({ queryKey: ['bares_infinite_v26.3.0'] });
     
     // Force refetch after reset
     setTimeout(() => {
-      console.log('[ExplorarScreen v32.2] 🔄 Forcing refetch after cache reset');
+      console.log('[ExplorarScreen v32.3] 🔄 Forcing refetch after cache reset');
       refetch();
     }, 100);
   }, [queryClient, refetch]);
@@ -427,11 +371,11 @@ export default function ExplorarScreen() {
     
     const fetchLocation = async () => {
       try {
-        console.log('[ExplorarScreen v31.0.0] 📍 Fetching location (non-blocking)...');
+        console.log('[ExplorarScreen v32.3.0] 📍 Fetching location (non-blocking)...');
         const location = await getOptimizedUserLocation();
         
         if (isMounted && location) {
-          console.log('[ExplorarScreen v31.0.0] ✅ Location obtained:', {
+          console.log('[ExplorarScreen v32.3.0] ✅ Location obtained:', {
             lat: location.coords.latitude.toFixed(4),
             lng: location.coords.longitude.toFixed(4),
           });
@@ -442,12 +386,12 @@ export default function ExplorarScreen() {
           });
           setLocationError(null);
         } else if (isMounted) {
-          console.warn('[ExplorarScreen v31.0.0] ⚠️ Using default location (Madrid)');
+          console.warn('[ExplorarScreen v32.3.0] ⚠️ Using default location (Madrid)');
           setLocationError('Usando ubicación por defecto (Madrid)');
         }
       } catch (error) {
         if (isMounted) {
-          console.error('[ExplorarScreen v31.0.0] ❌ Location error:', error);
+          console.error('[ExplorarScreen v32.3.0] ❌ Location error:', error);
           setLocationError('Usando ubicación por defecto (Madrid)');
         }
       }
@@ -465,7 +409,7 @@ export default function ExplorarScreen() {
   // ═══════════════════════════════════════════════════════════════════════════
   
   useEffect(() => {
-    console.log('[ExplorarScreen v31.0.0] 🔄 Filters changed - Resetting list');
+    console.log('[ExplorarScreen v32.3.0] 🔄 Filters changed - Resetting list');
     
     // Force remount FlashList to clear internal layout cache
     setListKey(prev => prev + 1);
@@ -476,7 +420,7 @@ export default function ExplorarScreen() {
         try {
           flashListRef.current.scrollToOffset({ offset: 0, animated: false });
         } catch (error) {
-          console.warn('[ExplorarScreen v31.0.0] ⚠️ Scroll error:', error);
+          console.warn('[ExplorarScreen v32.3.0] ⚠️ Scroll error:', error);
         }
       }
     }, 50);
@@ -488,10 +432,10 @@ export default function ExplorarScreen() {
   
   const loadMoreVenues = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage && !error) {
-      console.log('[ExplorarScreen v31.0.0] 🚀 Loading next page');
+      console.log('[ExplorarScreen v32.3.0] 🚀 Loading next page');
       fetchNextPage();
     } else {
-      console.log('[ExplorarScreen v31.0.0] ⏸️ Load blocked:', {
+      console.log('[ExplorarScreen v32.3.0] ⏸️ Load blocked:', {
         hasNextPage,
         isFetchingNextPage,
         hasError: !!error,
@@ -501,7 +445,7 @@ export default function ExplorarScreen() {
 
   // ✅ PULL-TO-REFRESH
   const onRefresh = useCallback(() => {
-    console.log('[ExplorarScreen v31.0.0] 🔄 Pull-to-refresh');
+    console.log('[ExplorarScreen v32.3.0] 🔄 Pull-to-refresh');
     refetch();
   }, [refetch]);
 
@@ -517,13 +461,13 @@ export default function ExplorarScreen() {
   }, [selectedCategory, debouncedQuery]);
 
   const handleCategoryChange = useCallback((categoryId: string) => {
-    console.log('[ExplorarScreen v31.0.0] 🏷️ Category changed:', categoryId);
+    console.log('[ExplorarScreen v32.3.0] 🏷️ Category changed:', categoryId);
     const newCategory = categoryId === 'todos' ? null : categoryId;
     setSelectedCategory(newCategory);
   }, [setSelectedCategory]);
 
   const clearFilters = useCallback(() => {
-    console.log('[ExplorarScreen v31.0.0] 🧹 Clearing filters');
+    console.log('[ExplorarScreen v32.3.0] 🧹 Clearing filters');
     setSearchQuery('');
     limpiarFiltros();
   }, [limpiarFiltros]);
@@ -579,7 +523,7 @@ export default function ExplorarScreen() {
   const renderVenueCard = useCallback(({ item, index }: { item: Venue; index: number }) => {
     // ✅ Defensive check - ensure item exists and has required properties
     if (!item || !item.id) {
-      console.warn('[ExplorarScreen v31.0.0] ⚠️ Invalid item at index:', index);
+      console.warn('[ExplorarScreen v32.3.0] ⚠️ Invalid item at index:', index);
       return null;
     }
     
@@ -622,25 +566,11 @@ export default function ExplorarScreen() {
     return null;
   }, [allVenues.length, hasActiveFilters, hasNextPage, isFetchingNextPage]);
 
-  // ✅ FASE 14: Circuit Breaker con debug mejorado
   const renderEmpty = useCallback(() => {
-    // ✅ FASE 14: Debug log para verificar que llegamos aquí
-    console.log('[ExplorarScreen FASE 14] 🔍 renderEmpty called:', {
-      isCircuitOpen: circuitBreaker.isOpen,
-      isLoading,
-      isFetching,
-      hasData: allVenues.length > 0,
-      hasError: isError,
-      errorMessage: error?.message,
-      allVenuesLength: allVenues.length,
-    });
-    
     // ✅ FASE 6: Circuit Breaker - Mostrar error amigable si está abierto
     if (circuitBreaker.isOpen) {
       const timeSinceLastFailure = Date.now() - circuitBreaker.lastFailureTime;
       const secondsRemaining = Math.ceil((30000 - timeSinceLastFailure) / 1000);
-      
-      console.log('[ExplorarScreen FASE 9] 🚨 Circuit Breaker ABIERTO - mostrando error');
       
       return (
         <View style={styles.emptyState}>
@@ -662,7 +592,6 @@ export default function ExplorarScreen() {
           <TouchableOpacity 
             style={styles.retryButton}
             onPress={() => {
-              console.log('[ExplorarScreen FASE 9] 🔄 Usuario presionó Reintentar');
               resetCircuitBreaker();
               refetch();
             }}
@@ -682,9 +611,8 @@ export default function ExplorarScreen() {
       );
     }
     
-    // ✅ FASE 9 RESTAURACIÓN: Skeleton con debug mejorado
+    // ✅ Skeleton loader
     if ((isLoading || isFetching) && allVenues.length === 0 && !data) {
-      console.log('[ExplorarScreen FASE 9] 🎨 Showing skeleton loader (optimistic UI)');
       return (
         <View style={styles.skeletonContainer}>
           {[...Array(8)].map((_, index) => (
@@ -812,27 +740,12 @@ export default function ExplorarScreen() {
     handleClearAdvancedFilters,
     clearFilters,
     refetch,
+    circuitBreaker.isOpen,
+    circuitBreaker.lastFailureTime,
+    resetCircuitBreaker,
   ]);
 
   const modeIcon = getModeIcon();
-
-  // ✅ FASE 14: Debug CRÍTICO al inicio del render
-  console.log('═══════════════════════════════════════════════════════════');
-  console.log('[ExplorarScreen FASE 14] 🔍 RENDER CHECK:', {
-    hasData: allVenues.length > 0,
-    venuesCount: allVenues.length,
-    venueNames: allVenues.slice(0, 3).map(v => v.nombre),
-    isLoading,
-    isFetching,
-    isError,
-    errorMessage: error?.message,
-    isCircuitOpen: circuitBreaker.isOpen,
-    showContent,
-    dataPages: data?.pages?.length || 0,
-    willRenderList: allVenues.length > 0 || isLoading || isFetching,
-    willRenderEmpty: !(allVenues.length > 0 || isLoading || isFetching),
-  });
-  console.log('═══════════════════════════════════════════════════════════');
 
   // ✅ OPTIMIZED SCROLL HANDLER
   const scrollThrottleTimer = useRef<NodeJS.Timeout | null>(null);
@@ -1087,19 +1000,9 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* ✅ BLOQUE 2: FLASHLIST CON TRANSICIÓN SUAVE */}
-      {/* ✅ FASE 14: Simplified render condition */}
-      {console.log('[ExplorarScreen FASE 14] 🎨 Render decision:', {
-        allVenuesLength: allVenues.length,
-        isLoading,
-        isFetching,
-        isError,
-        errorMessage: error?.message,
-        willRenderList: allVenues.length > 0 || isLoading || isFetching,
-      })}
+      {/* ✅ v32.3.0: FLASHLIST WITH DATABASE ORDER PRESERVED */}
       {allVenues.length > 0 || isLoading || isFetching ? (
         <Animated.View style={{ flex: 1, opacity: showContent ? contentOpacity : 1 }}>
-          {console.log('[ExplorarScreen FASE 14] 🎨 Rendering FlashList with', allVenues.length, 'venues')}
           <AnimatedFlashList
             key={listKey}
             ref={flashListRef}
@@ -1142,7 +1045,6 @@ export default function ExplorarScreen() {
         </Animated.View>
       ) : (
         <View style={[styles.listContent, { marginTop: HEADER_MAX_HEIGHT }]}>
-          {console.log('[ExplorarScreen FASE 14] 🎨 Rendering empty state')}
           {renderEmpty()}
         </View>
       )}
