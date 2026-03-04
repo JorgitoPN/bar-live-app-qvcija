@@ -196,10 +196,10 @@ export const useBaresQuery = ({
   const roundedLng = userLocation ? Math.round(userLocation.longitude) : null;
   
   const query = useInfiniteQuery({
-    // ✅ v19.0.0: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
-    // Version bumped to v19.0.0 - INTELLIGENT BACKGROUND PREFETCH
+    // ✅ v23.0.0: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
+    // Version bumped to v23.0.0 - COMPLETE SCROLL & SPACING FIX
     queryKey: [
-      'bares_infinite_v19.0.0',
+      'bares_infinite_v23.0.0',
       roundedLat,
       roundedLng,
       selectedCategory,
@@ -211,11 +211,11 @@ export const useBaresQuery = ({
       const isFirstPage = !pageParam;
       const pageNumber = isFirstPage ? 1 : Math.floor((pageParam.offset || 0) / pageSize) + 1;
       
-      console.log('[useBaresQuery v18.0.0] 📡 Fetching page:', pageNumber);
-      console.log('[useBaresQuery v18.0.0] 🔍 Category:', selectedCategory);
-      console.log('[useBaresQuery v18.0.0] 🔍 Search:', searchQuery);
-      console.log('[useBaresQuery v18.0.0] 🔍 Advanced Filters:', globalFiltros);
-      console.log('[useBaresQuery v18.0.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
+      console.log('[useBaresQuery v23.0.0] 📡 Fetching page:', pageNumber);
+      console.log('[useBaresQuery v23.0.0] 🔍 Category:', selectedCategory);
+      console.log('[useBaresQuery v23.0.0] 🔍 Search:', searchQuery);
+      console.log('[useBaresQuery v23.0.0] 🔍 Advanced Filters:', globalFiltros);
+      console.log('[useBaresQuery v23.0.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
       
       if (!isFirstPage) {
         console.log('[useBaresQuery v15.0.0] 🎯 CURSOR:', {
