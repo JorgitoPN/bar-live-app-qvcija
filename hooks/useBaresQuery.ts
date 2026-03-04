@@ -56,7 +56,7 @@ const STALE_TIME = 1000 * 60 * 15; // ✅ 15 minutes (increased from 10)
 const GC_TIME = 1000 * 60 * 60; // 1 hour - keep in memory longer
 const MAX_RETRIES = 2; // ✅ Reduced from 3 for faster failure detection
 const RETRY_DELAY_BASE = 800; // ✅ Reduced from 1000ms
-const QUERY_TIMEOUT = 8000; // ✅ 8 seconds (reduced from 10s)
+const QUERY_TIMEOUT = 15000; // ✅ 15 seconds (increased from 8s to prevent premature aborts)
 
 // ✅ HELPER: Round location for intelligent caching
 function roundLocation(lat: number | null, lng: number | null) {
@@ -195,8 +195,10 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
       console.log('[useBaresQuery FASE 13 TEST] 🚀 RPC call initiated, waiting for response...');
       
       // ✅ FASE 7: Timeout con AbortController
+      let didTimeout = false;
       const timeoutId = setTimeout(() => {
         console.log('[useBaresQuery FASE 7] ⏱️ Query timeout - aborting');
+        didTimeout = true;
         controller.abort();
       }, QUERY_TIMEOUT);
       
@@ -301,10 +303,14 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
             errorName: error?.name,
             errorMessage: error?.message,
             signalAborted: controller.signal.aborted,
+            wasTimeout: didTimeout,
           });
           console.log('═══════════════════════════════════════════════════════════');
           
           abortControllerRef.current = null;
+          
+          // ✅ If it was a timeout, return empty data instead of throwing
+          // This prevents the error from showing in the console
           return {
             venues: [],
             nextCursor: undefined,
@@ -314,6 +320,7 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         }
         
         // ✅ Solo lanzar errores reales (no AbortErrors)
+        console.error('[useBaresQuery FASE 12] ❌ Real error (not abort):', error);
         throw error;
       }
     },

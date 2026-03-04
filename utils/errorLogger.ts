@@ -317,8 +317,6 @@ export const setupErrorLogging = () => {
 
   // Override console.error to capture and send to server
   console.error = (...args: any[]) => {
-    // ✅ FASE 9 RESTAURACIÓN: Reactiva temporalmente console.error para AbortErrors
-    // Necesitamos ver qué error está rompiendo el renderizado
     const message = stringifyArgs(args);
     
     // Check if it's an AbortError
@@ -327,17 +325,19 @@ export const setupErrorLogging = () => {
       (typeof arg === 'string' && arg.toLowerCase().includes('abort'))
     );
     
+    // ✅ FASE 14: Completely suppress AbortErrors - they're expected behavior
+    // AbortErrors occur when queries are cancelled (timeout, unmount, navigation)
+    // These are NOT real errors and should not clutter the console
+    if (hasAbortError) {
+      // Silently ignore - don't log to console or send to server
+      return;
+    }
+    
     // Always call original first (even for AbortErrors during debugging)
     originalConsoleError.apply(console, args);
     
     // Skip muted messages
     if (shouldMuteMessage(message)) return;
-    
-    // ✅ FASE 9: Para AbortErrors, solo mostrar en consola, NO enviar al servidor
-    if (hasAbortError) {
-      console.log('[ErrorLogger FASE 9] ⚠️ AbortError detected (not sending to server)');
-      return; // Detener aquí - no encolar ni enviar
-    }
 
     const source = getCallerInfo();
     queueLog('error', message, source);
