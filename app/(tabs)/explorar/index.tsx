@@ -1,13 +1,13 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 EXPLORAR SCREEN v32.1.0 - FIXED SORTING & PAGINATION
+ * 🚀 EXPLORAR SCREEN v32.2.0 - FIXED PAGINATION SIZE & ORDERING
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v32.1.0 (FIXED SORTING & PAGINATION):
- * 1️⃣ PROPER ORDER: Venues respect priority tiers across all pages ✅
- * 2️⃣ STABLE PAGINATION: Cursor uses (tier, distance, id) for consistency ✅
- * 3️⃣ 20 PER PAGE: Fixed page size prevents app saturation ✅
+ * 🎯 NEW IN v32.2.0 (FIXED PAGINATION SIZE):
+ * 1️⃣ 20 PER PAGE: Restored to 20 items per page (was incorrectly set to 10) ✅
+ * 2️⃣ PROPER ORDER: Venues respect priority tiers across all pages ✅
+ * 3️⃣ STABLE PAGINATION: Cursor uses (tier, distance, id) for consistency ✅
  * 4️⃣ SMOOTH SCROLL: Infinite scroll with correct ordering ✅
  * 
  * 🎯 v32.0.0 (BLOQUE 2 - PARALELIZACIÓN Y UI OPTIMISTA):
@@ -120,14 +120,14 @@ interface Category {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 240;
-const ITEMS_PER_PAGE = 10; // ✅ v31.1: Reduced from 20 for faster initial load
-const PRELOAD_THRESHOLD = 0.4; // ✅ v31.1: Load next page at 40% scroll (from 50%)
+const ITEMS_PER_PAGE = 20; // ✅ v32.2: FIXED - 20 items per page as specified
+const PRELOAD_THRESHOLD = 0.5; // ✅ Load next page at 50% scroll
 const SCROLL_THROTTLE = 16; // 60fps
-const INITIAL_NUM_TO_RENDER = 8; // ✅ v31.1: Reduced from 10
-const MAX_TO_RENDER_PER_BATCH = 8; // ✅ v31.1: Reduced from 10
-const WINDOW_SIZE = 4; // ✅ v31.1: Reduced from 5
+const INITIAL_NUM_TO_RENDER = 10; // ✅ Initial render count
+const MAX_TO_RENDER_PER_BATCH = 10; // ✅ Batch render count
+const WINDOW_SIZE = 5; // ✅ Window size for recycling
 const ESTIMATED_ITEM_SIZE = 350;
-const DRAW_DISTANCE = Dimensions.get('window').height * 1.5; // ✅ v31.1: Reduced from 2x
+const DRAW_DISTANCE = Dimensions.get('window').height * 2; // ✅ Draw distance
 
 // ✅ DEFAULT LOCATION: Madrid center
 const DEFAULT_LOCATION = {
@@ -368,10 +368,10 @@ export default function ExplorarScreen() {
   
   // ✅ SCROLL TO TOP & REFRESH
   const handleScrollToTopAndRefresh = useCallback(() => {
-    console.log('[ExplorarScreen v32.1] 🚀 Scroll to top & refresh - Invalidating cache');
+    console.log('[ExplorarScreen v32.2] 🚀 Scroll to top & refresh - Invalidating cache');
     
     // Step 1: Clear cache first to prevent stale data
-    queryClient.resetQueries({ queryKey: ['bares_infinite_v26.1.0'] });
+    queryClient.resetQueries({ queryKey: ['bares_infinite_v26.2.0'] });
     
     // Step 2: Force remount to clear FlashList internal state
     setListKey(prev => prev + 1);
@@ -382,7 +382,7 @@ export default function ExplorarScreen() {
         try {
           flashListRef.current.scrollToOffset({ offset: 0, animated: false });
         } catch (error) {
-          console.warn('[ExplorarScreen v32.1] ⚠️ Scroll error:', error);
+          console.warn('[ExplorarScreen v32.2] ⚠️ Scroll error:', error);
         }
       }
     }, 50);
@@ -393,14 +393,14 @@ export default function ExplorarScreen() {
     }, 100);
   }, [queryClient, refetch]);
   
-  // ✅ v32.1: FORCE RESET cache on mount to ensure fresh data with new sorting
+  // ✅ v32.2: FORCE RESET cache on mount to ensure fresh data with correct page size
   useEffect(() => {
-    console.log('[ExplorarScreen v32.1] 🔄 FORCE RESETTING cache on mount (new sorting v26.1)');
-    queryClient.resetQueries({ queryKey: ['bares_infinite_v26.1.0'] });
+    console.log('[ExplorarScreen v32.2] 🔄 FORCE RESETTING cache on mount (fixed page size v26.2)');
+    queryClient.resetQueries({ queryKey: ['bares_infinite_v26.2.0'] });
     
     // Force refetch after reset
     setTimeout(() => {
-      console.log('[ExplorarScreen v32.1] 🔄 Forcing refetch after cache reset');
+      console.log('[ExplorarScreen v32.2] 🔄 Forcing refetch after cache reset');
       refetch();
     }, 100);
   }, [queryClient, refetch]);

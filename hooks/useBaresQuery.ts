@@ -1,13 +1,13 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 useBaresQuery v26.1.0 - FIXED SORTING & PAGINATION
+ * 🚀 useBaresQuery v26.2.0 - FIXED PAGINATION SIZE & ORDERING
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v26.1.0 (FIXED SORTING & PAGINATION):
- * 1️⃣ PROPER CURSOR: Uses (tier, distance, id) for stable pagination ✅
- * 2️⃣ RESPECTS ORDER: Venues maintain priority order across pages ✅
- * 3️⃣ 20 PER PAGE: Fixed page size to avoid saturating the app ✅
+ * 🎯 NEW IN v26.2.0 (FIXED PAGINATION SIZE):
+ * 1️⃣ 20 PER PAGE: Restored to 20 items per page (was incorrectly set to 10) ✅
+ * 2️⃣ PROPER CURSOR: Uses (tier, distance, id) for stable pagination ✅
+ * 3️⃣ RESPECTS ORDER: Venues maintain priority order across pages ✅
  * 4️⃣ RESULT: Smooth infinite scroll with correct ordering ✅
  * 
  * 🎯 v26.0.0 (DATABASE-SIDE FAVORITE JOIN - FASE 10):
@@ -56,8 +56,8 @@ interface UseBaresQueryParams {
   pageSize?: number;
 }
 
-// ✅ CONSTANTS - Tuned for ULTRA-FAST initial load (v25.0.0)
-const DEFAULT_PAGE_SIZE = 10; // ✅ Reduced from 20 for faster first load
+// ✅ CONSTANTS - Tuned for correct pagination (v26.2.0)
+const DEFAULT_PAGE_SIZE = 20; // ✅ FIXED: 20 items per page as specified
 const STALE_TIME = 1000 * 60 * 15; // ✅ 15 minutes (increased from 10)
 const GC_TIME = 1000 * 60 * 60; // 1 hour - keep in memory longer
 const MAX_RETRIES = 3; // ✅ FASE 14: Increased to 3 for better reliability
@@ -81,7 +81,7 @@ function generateQueryKey(params: UseBaresQueryParams) {
   );
   
   return [
-    'bares_infinite_v26.1.0',  // ✅ Updated version for fixed sorting & pagination
+    'bares_infinite_v26.2.0',  // ✅ Updated version for fixed page size (20 items)
     lat,
     lng,
     params.selectedCategory,
@@ -138,9 +138,10 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
       const pageNumber = isFirstPage ? 1 : Math.floor((pageParam.offset || 0) / pageSize) + 1;
       
       console.log('═══════════════════════════════════════════════════════════');
-      console.log('[useBaresQuery FASE 12] 📡 Fetching page:', pageNumber, {
+      console.log('[useBaresQuery v26.2] 📡 Fetching page:', pageNumber, {
         isFirstPage,
         pageParam,
+        pageSize,
         category: selectedCategory,
         search: searchQuery,
         hasFilters: Object.keys(globalFiltros).length > 0,
@@ -301,14 +302,16 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
             offset: (pageParam?.offset || 0) + pageSize,
           };
           
-          console.log('[useBaresQuery v26.1] 📍 Next cursor calculated:', {
+          console.log('[useBaresQuery v26.2] 📍 Next cursor calculated:', {
             last_id: lastVenue.id,
             last_tier: lastVenue.sorting_tier,
             last_distance: lastVenue.distancia?.toFixed(2),
             venue_name: lastVenue.nombre,
+            pageSize,
+            totalLoaded: (pageParam?.offset || 0) + venues.length,
           });
         } else {
-          console.log('[useBaresQuery v26.1] 🏁 No more pages - received', venues.length, 'venues (less than', pageSize, ')');
+          console.log('[useBaresQuery v26.2] 🏁 No more pages - received', venues.length, 'venues (less than', pageSize, ')');
         }
         
         return {
