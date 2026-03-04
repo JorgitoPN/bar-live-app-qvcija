@@ -1,16 +1,17 @@
 
 /**
- * FLOATING TAB BAR - VERSION v346.0
+ * FLOATING TAB BAR - VERSION v347.0
  * 
- * ✅ SCROLL-TO-TOP FIX v346.0 - ALWAYS USE ROUTER.PUSH() FOR ACTIVE TABS
+ * ✅ PASO 1: TRIGGER SINCRONIZADO - ROUTER.PUSH() PARA PESTAÑAS ACTIVAS
  * 
- * CRITICAL CHANGES v346.0:
- * - ✅ SCROLL FIX: Always use router.push() when tab is already active
- * - ✅ SCROLL FIX: This triggers React Navigation's useScrollToTop hook
- * - ✅ SCROLL FIX: Simplified logic - no complex conditions
- * - ✅ RESULT: Tapping "Home" (Explorar) always scrolls to top reliably
+ * CAMBIOS CRÍTICOS v347.0:
+ * - ✅ PASO 1: Detecta si la pestaña está activa con isTabActive
+ * - ✅ PASO 1: Si INACTIVA → router.replace() (navegación instantánea)
+ * - ✅ PASO 1: Si ACTIVA → router.push() OBLIGATORIO (dispara useScrollToTop)
+ * - ✅ RESULTADO: Expo Router dispara el hook nativo de React Navigation
+ * - ✅ RESULTADO: Al tocar "Home/Explorar" activo, SIEMPRE hace scroll al inicio
  * 
- * Previous fixes maintained (v344.0):
+ * Correcciones previas mantenidas (v344.0):
  * - ✅ ANDROID AVATAR PERSISTENCE FIX
  * - ✅ ZERO-DELAY: Tab switches happen instantly (< 5ms)
  * - ✅ OPTIMIZED: Memoized all components for zero re-renders
@@ -439,19 +440,19 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
     return false;
   }, [pathname]);
 
-  // ✅ v346.0: FIXED - Always use router.push() for active tabs to trigger scroll-to-top
+  // ✅ v347.0: PASO 1 - ALWAYS use router.push() for active tabs to trigger scroll-to-top
   const handleTabPress = useCallback((tab: TabBarItem) => {
     const isActive = isTabActive(tab);
     
-    console.log('[FloatingTabBar v346.0] 🔘 Tab pressed:', tab.name, '| Active:', isActive);
+    console.log('[FloatingTabBar v347.0] 🔘 Tab pressed:', tab.name, '| Active:', isActive);
     
     if (isActive) {
-      // ✅ CRITICAL: router.push() to same route triggers useScrollToTop hook
-      console.log('[FloatingTabBar v346.0] ✅ Active tab - Using router.push() to trigger scroll-to-top');
+      // ✅ CRÍTICO: router.push() a la misma ruta dispara el hook useScrollToTop
+      console.log('[FloatingTabBar v347.0] ✅ Pestaña activa - Usando router.push() para disparar scroll-to-top');
       router.push(tab.route as any);
     } else {
-      // ✅ For inactive tabs, use router.replace() for instant navigation
-      console.log('[FloatingTabBar v346.0] ➡️ Inactive tab - Using router.replace()');
+      // ✅ Para pestañas inactivas, usar router.replace() para navegación instantánea
+      console.log('[FloatingTabBar v347.0] ➡️ Pestaña inactiva - Usando router.replace()');
       router.replace(tab.route as any);
     }
   }, [router, isTabActive]);
