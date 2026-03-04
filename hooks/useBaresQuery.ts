@@ -54,9 +54,9 @@ interface UseBaresQueryParams {
 const DEFAULT_PAGE_SIZE = 10; // ✅ Reduced from 20 for faster first load
 const STALE_TIME = 1000 * 60 * 15; // ✅ 15 minutes (increased from 10)
 const GC_TIME = 1000 * 60 * 60; // 1 hour - keep in memory longer
-const MAX_RETRIES = 2; // ✅ Reduced from 3 for faster failure detection
-const RETRY_DELAY_BASE = 800; // ✅ Reduced from 1000ms
-const QUERY_TIMEOUT = 15000; // ✅ 15 seconds (increased from 8s to prevent premature aborts)
+const MAX_RETRIES = 3; // ✅ FASE 14: Increased to 3 for better reliability
+const RETRY_DELAY_BASE = 1000; // ✅ FASE 14: 1 second base delay
+const QUERY_TIMEOUT = 30000; // ✅ 30 seconds (increased to prevent AbortErrors on slow connections)
 
 // ✅ HELPER: Round location for intelligent caching
 function roundLocation(lat: number | null, lng: number | null) {
@@ -189,15 +189,21 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
       console.log('[useBaresQuery FASE 12] 📡 RPC Parameters:', JSON.stringify(rpcParams, null, 2));
       console.log('═══════════════════════════════════════════════════════════');
       
-      console.log('[useBaresQuery FASE 13 TEST] 🚀 Calling supabase.rpc...');
-      console.log('[useBaresQuery FASE 13 TEST] 📡 Full RPC params:', JSON.stringify(rpcParams, null, 2));
-      const queryPromise = supabase.rpc('get_venues_with_auth', rpcParams).abortSignal(controller.signal);
-      console.log('[useBaresQuery FASE 13 TEST] 🚀 RPC call initiated, waiting for response...');
+      console.log('[useBaresQuery FASE 14] 🚀 Calling supabase.rpc...');
+      console.log('[useBaresQuery FASE 14] 📡 Full RPC params:', JSON.stringify(rpcParams, null, 2));
+      console.log('[useBaresQuery FASE 14] 📡 Supabase client ready:', !!supabase);
+      console.log('[useBaresQuery FASE 14] 📡 RPC function name: get_venues_with_auth');
       
-      // ✅ FASE 7: Timeout con AbortController
+      // ✅ FASE 14: NO usar abortSignal - causa AbortErrors prematuros
+      // El timeout manual es suficiente para controlar la duración
+      const queryPromise = supabase.rpc('get_venues_with_auth', rpcParams);
+      console.log('[useBaresQuery FASE 14] 🚀 RPC call initiated, waiting for response...');
+      console.log('[useBaresQuery FASE 14] 🚀 Query promise created:', !!queryPromise);
+      
+      // ✅ FASE 14: Timeout con AbortController (solo para casos extremos)
       let didTimeout = false;
       const timeoutId = setTimeout(() => {
-        console.log('[useBaresQuery FASE 7] ⏱️ Query timeout - aborting');
+        console.log('[useBaresQuery FASE 14] ⏱️ Query timeout after 30s - aborting');
         didTimeout = true;
         controller.abort();
       }, QUERY_TIMEOUT);
@@ -212,10 +218,10 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         const endTime = performance.now();
         const loadTime = endTime - startTime;
         
-        // ✅ FASE 13 TEST: Debug log CRÍTICO de la respuesta
+        // ✅ FASE 14: Debug log CRÍTICO de la respuesta
         console.log('═══════════════════════════════════════════════════════════');
-        console.log('[useBaresQuery FASE 13 TEST] 📦 RPC Response received');
-        console.log('[useBaresQuery FASE 13 TEST] 📦 Response details:', {
+        console.log('[useBaresQuery FASE 14] 📦 RPC Response received');
+        console.log('[useBaresQuery FASE 14] 📦 Response details:', {
           hasError: !!error,
           errorDetails: error ? JSON.stringify(error) : null,
           dataType: typeof data,
@@ -227,23 +233,31 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
             is_favorite: data[0].is_favorite,
           } : null,
           allVenueNames: data?.slice(0, 5).map((v: any) => v.nombre) || [],
+          loadTime: `${loadTime.toFixed(0)}ms`,
         });
-        console.log('[useBaresQuery FASE 13 TEST] 📦 Full data sample (first 2):', JSON.stringify(data?.slice(0, 2), null, 2));
+        console.log('[useBaresQuery FASE 14] 📦 Full data sample (first 2):', JSON.stringify(data?.slice(0, 2), null, 2));
         console.log('═══════════════════════════════════════════════════════════');
         
         if (error) {
           console.error('═══════════════════════════════════════════════════════════');
-          console.error('[useBaresQuery FASE 12] ❌ RPC Error:', error);
+          console.error('[useBaresQuery FASE 14] ❌ RPC Error:', error);
+          console.error('[useBaresQuery FASE 14] ❌ Error details:', {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint,
+          });
           console.error('═══════════════════════════════════════════════════════════');
           throw error;
         }
         
         const venues = data || [];
         
-        // ✅ Performance monitoring
-        console.log('[useBaresQuery FASE 11] ✅ Loaded', venues.length, 'venues in', `${loadTime.toFixed(0)}ms`, {
+        // ✅ FASE 14: Performance monitoring
+        console.log('[useBaresQuery FASE 14] ✅ Loaded', venues.length, 'venues in', `${loadTime.toFixed(0)}ms`, {
           isFirstPage,
-          performance: loadTime < 500 ? '⚡ FAST' : loadTime < 1000 ? '✅ GOOD' : '⚠️ SLOW',
+          performance: loadTime < 500 ? '⚡ FAST' : loadTime < 1000 ? '✅ GOOD' : loadTime < 2000 ? '⚠️ SLOW' : '🐌 VERY SLOW',
+          pageNumber,
         });
         
         // ✅ FASE 10: Enrich venues with computed properties
@@ -291,7 +305,7 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
       } catch (error: any) {
         clearTimeout(timeoutId);
         
-        // ✅ FASE 12: Check for AbortErrors but LOG them for debugging
+        // ✅ FASE 14: Check for AbortErrors but LOG them for debugging
         const isAbortError = 
           error?.name === 'AbortError' || 
           error?.message?.toLowerCase().includes('abort') ||
@@ -299,18 +313,25 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         
         if (isAbortError) {
           console.log('═══════════════════════════════════════════════════════════');
-          console.log('[useBaresQuery FASE 12] ⚠️ Query was aborted:', {
+          console.log('[useBaresQuery FASE 14] ⚠️ Query was aborted:', {
             errorName: error?.name,
             errorMessage: error?.message,
             signalAborted: controller.signal.aborted,
             wasTimeout: didTimeout,
+            loadTime: `${(performance.now() - startTime).toFixed(0)}ms`,
           });
           console.log('═══════════════════════════════════════════════════════════');
           
           abortControllerRef.current = null;
           
-          // ✅ If it was a timeout, return empty data instead of throwing
-          // This prevents the error from showing in the console
+          // ✅ FASE 14: Si fue timeout, lanzar error para que React Query reintente
+          // Si fue cancelación manual, retornar vacío
+          if (didTimeout) {
+            console.error('[useBaresQuery FASE 14] ❌ Timeout - throwing error for retry');
+            throw new Error('Query timeout after 30 seconds');
+          }
+          
+          // Cancelación manual (cambio de parámetros, etc.)
           return {
             venues: [],
             nextCursor: undefined,
@@ -320,7 +341,7 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         }
         
         // ✅ Solo lanzar errores reales (no AbortErrors)
-        console.error('[useBaresQuery FASE 12] ❌ Real error (not abort):', error);
+        console.error('[useBaresQuery FASE 14] ❌ Real error (not abort):', error);
         throw error;
       }
     },
@@ -337,10 +358,29 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
     refetchOnWindowFocus: false, // Mobile optimization
     refetchOnReconnect: true, // Sync when network returns
     
-    // ✅ ERROR RECOVERY - Exponential backoff
-    retry: MAX_RETRIES,
-    retryDelay: (attemptIndex) => 
-      Math.min(RETRY_DELAY_BASE * Math.pow(2, attemptIndex), 30000),
+    // ✅ FASE 14: ERROR RECOVERY - Exponential backoff with better retry logic
+    retry: (failureCount, error: any) => {
+      // ✅ Don't retry on AbortErrors (user cancelled)
+      if (error?.name === 'AbortError' && !error?.message?.includes('timeout')) {
+        console.log('[useBaresQuery FASE 14] ⏭️ Skipping retry for user-cancelled request');
+        return false;
+      }
+      
+      // ✅ Retry up to MAX_RETRIES times for other errors
+      const shouldRetry = failureCount < MAX_RETRIES;
+      console.log('[useBaresQuery FASE 14] 🔄 Retry decision:', {
+        failureCount,
+        shouldRetry,
+        errorName: error?.name,
+        errorMessage: error?.message,
+      });
+      return shouldRetry;
+    },
+    retryDelay: (attemptIndex) => {
+      const delay = Math.min(RETRY_DELAY_BASE * Math.pow(2, attemptIndex), 10000);
+      console.log('[useBaresQuery FASE 14] ⏱️ Retry delay:', delay, 'ms for attempt', attemptIndex + 1);
+      return delay;
+    },
     
     // ✅ PERFORMANCE OPTIMIZATION
     getPreviousPageParam: undefined, // Disable reverse pagination
