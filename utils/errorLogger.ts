@@ -1,4 +1,3 @@
-
 // Global error logging for runtime errors
 // Captures console.log/warn/error and sends to Natively server for AI debugging
 
@@ -20,36 +19,9 @@ const MUTED_MESSAGES = [
   'Each child in a list should have a unique "key" prop',
 ];
 
-// ✅ FASE 9: Error names to mute (optimization noise)
-const MUTED_ERROR_NAMES = [
-  'AbortError', // ✅ FASE 9: Silenciar AbortErrors (son ruido de optimización)
-];
-
 // Check if a message should be muted
 const shouldMuteMessage = (message: string): boolean => {
   return MUTED_MESSAGES.some(muted => message.includes(muted));
-};
-
-// ✅ FASE 9: Check if an error should be muted by name
-const shouldMuteError = (error: any): boolean => {
-  if (!error) return false;
-  
-  // Check if error has a name property that matches muted names
-  if (error.name && MUTED_ERROR_NAMES.includes(error.name)) {
-    return true;
-  }
-  
-  // Check if error message contains AbortError
-  if (typeof error === 'string' && error.includes('AbortError')) {
-    return true;
-  }
-  
-  // Check if error message contains "aborted"
-  if (error.message && typeof error.message === 'string' && error.message.toLowerCase().includes('abort')) {
-    return true;
-  }
-  
-  return false;
 };
 
 // Queue for batching logs
@@ -294,12 +266,6 @@ const stringifyArgs = (args: any[]): string => {
     if (typeof arg === 'string') return arg;
     if (arg === null) return 'null';
     if (arg === undefined) return 'undefined';
-    
-    // ✅ FASE 9: Check if arg is an error object and should be muted
-    if (shouldMuteError(arg)) {
-      return '[AbortError - muted]';
-    }
-    
     try {
       return JSON.stringify(arg);
     } catch {
@@ -324,17 +290,9 @@ export const setupErrorLogging = () => {
   originalConsoleLog('[Natively] Setting up error logging...');
   originalConsoleLog('[Natively] Log server URL:', logServerUrl || 'NOT AVAILABLE');
   originalConsoleLog('[Natively] Platform:', Platform.OS);
-  originalConsoleLog('[Natively FASE 9] ✅ AbortError silencing enabled - TOTAL SILENCE MODE');
 
   // Override console.log to capture and send to server
   console.log = (...args: any[]) => {
-    // ✅ FASE 9: Check if any arg is an AbortError and skip logging COMPLETELY
-    const hasAbortError = args.some(arg => shouldMuteError(arg));
-    if (hasAbortError) {
-      // ✅ SILENCIO TOTAL: No llamar a originalConsoleLog, no queueLog, nada
-      return;
-    }
-    
     // Always call original first
     originalConsoleLog.apply(console, args);
 
@@ -346,13 +304,6 @@ export const setupErrorLogging = () => {
 
   // Override console.warn to capture and send to server
   console.warn = (...args: any[]) => {
-    // ✅ FASE 9: Check if any arg is an AbortError and skip logging COMPLETELY
-    const hasAbortError = args.some(arg => shouldMuteError(arg));
-    if (hasAbortError) {
-      // ✅ SILENCIO TOTAL: No llamar a originalConsoleWarn, no queueLog, nada
-      return;
-    }
-    
     // Always call original first
     originalConsoleWarn.apply(console, args);
 
@@ -366,19 +317,27 @@ export const setupErrorLogging = () => {
 
   // Override console.error to capture and send to server
   console.error = (...args: any[]) => {
-    // ✅ FASE 9: Check if any arg is an AbortError and skip logging COMPLETELY
-    const hasAbortError = args.some(arg => shouldMuteError(arg));
-    if (hasAbortError) {
-      // ✅ SILENCIO TOTAL: No llamar a originalConsoleError, no queueLog, no sendErrorToParent
-      return;
-    }
+    // ✅ FASE 9 RESTAURACIÓN: Reactiva temporalmente console.error para AbortErrors
+    // Necesitamos ver qué error está rompiendo el renderizado
+    const message = stringifyArgs(args);
     
-    // Always call original first
+    // Check if it's an AbortError
+    const hasAbortError = args.some(arg => 
+      (arg && typeof arg === 'object' && arg.name === 'AbortError') ||
+      (typeof arg === 'string' && arg.toLowerCase().includes('abort'))
+    );
+    
+    // Always call original first (even for AbortErrors during debugging)
     originalConsoleError.apply(console, args);
     
-    // Queue log for sending to server (skip muted messages)
-    const message = stringifyArgs(args);
+    // Skip muted messages
     if (shouldMuteMessage(message)) return;
+    
+    // ✅ FASE 9: Para AbortErrors, solo mostrar en consola, NO enviar al servidor
+    if (hasAbortError) {
+      console.log('[ErrorLogger FASE 9] ⚠️ AbortError detected (not sending to server)');
+      return; // Detener aquí - no encolar ni enviar
+    }
 
     const source = getCallerInfo();
     queueLog('error', message, source);
@@ -391,12 +350,6 @@ export const setupErrorLogging = () => {
   if (typeof window !== 'undefined') {
     // Override window.onerror to catch JavaScript errors
     window.onerror = (message, source, lineno, colno, error) => {
-      // ✅ FASE 9: Check if error is an AbortError and skip COMPLETELY
-      if (shouldMuteError(error)) {
-        // ✅ SILENCIO TOTAL: No queueLog, no sendErrorToParent
-        return false;
-      }
-      
       const sourceFile = source ? source.split('/').pop() : 'unknown';
       const errorMessage = `RUNTIME ERROR: ${message} at ${sourceFile}:${lineno}:${colno}`;
 
@@ -413,12 +366,6 @@ export const setupErrorLogging = () => {
     // Capture unhandled promise rejections (web only)
     if (Platform.OS === 'web') {
       window.addEventListener('unhandledrejection', (event) => {
-        // ✅ FASE 9: Check if rejection is an AbortError and skip COMPLETELY
-        if (shouldMuteError(event.reason)) {
-          // ✅ SILENCIO TOTAL: No queueLog, no sendErrorToParent
-          return;
-        }
-        
         const message = `UNHANDLED PROMISE REJECTION: ${event.reason}`;
         queueLog('error', message, '');
         sendErrorToParent('error', 'Unhandled Promise Rejection', { reason: event.reason });

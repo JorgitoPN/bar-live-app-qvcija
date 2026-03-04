@@ -263,47 +263,56 @@ export default function ExplorarScreen() {
     pageSize: ITEMS_PER_PAGE,
   });
   
-  // ✅ BLOQUE 2: SMOOTH TRANSITION - Evitar "layout thrashing"
-  const [showContent, setShowContent] = useState(false);
-  const contentOpacity = useRef(new Animated.Value(0)).current;
+  // ✅ BLOQUE 2 RESTAURACIÓN: Forzar opacidad a 1 (desactivar animación temporalmente)
+  const [showContent, setShowContent] = useState(true); // ✅ FASE 9: Forzado a true
+  const contentOpacity = useRef(new Animated.Value(1)).current; // ✅ FASE 9: Forzado a 1
   
   // ✅ DEDUPLICATE VENUES - Critical for FlashList stability
   const allVenues = useMemo(() => {
-    if (!data?.pages) return [];
+    if (!data?.pages) {
+      console.log('[ExplorarScreen FASE 9] ⚠️ No data.pages');
+      return [];
+    }
+    
+    console.log('[ExplorarScreen FASE 9] 📊 Raw data.pages:', {
+      pageCount: data.pages.length,
+      firstPage: data.pages[0],
+    });
     
     const flatVenues = data.pages.flatMap(page => page?.venues || []);
     const uniqueVenues = Array.from(new Map(flatVenues.map(v => [v.id, v])).values());
     
-    console.log('[ExplorarScreen BLOQUE 2] 📊 Venues:', {
+    // ✅ FASE 9: Debug log usando console.log directo (no originalConsoleLog)
+    console.log('[ExplorarScreen FASE 9 RESTAURACIÓN] 📊 Venues:', {
       total: flatVenues.length,
       unique: uniqueVenues.length,
       duplicates: flatVenues.length - uniqueVenues.length,
+      hasData: uniqueVenues.length > 0,
+      isLoading,
+      isFetching,
+      isCircuitOpen: circuitBreaker.isOpen,
     });
     
     return uniqueVenues;
-  }, [data]);
+  }, [data, isLoading, isFetching, circuitBreaker.isOpen]);
   
-  // ✅ BLOQUE 2: Smooth fade-in when data arrives
-  useEffect(() => {
-    if (allVenues.length > 0 && !showContent) {
-      const loadTime = performance.now();
-      
-      // Si los datos llegan en menos de 200ms, añadir un pequeño delay
-      // para evitar que la UI "salte" bruscamente
-      const delay = loadTime < 200 ? 150 : 0;
-      
-      setTimeout(() => {
-        setShowContent(true);
-        Animated.timing(contentOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }).start();
-        
-        console.log('[ExplorarScreen BLOQUE 2] ✨ Content fade-in animation started');
-      }, delay);
-    }
-  }, [allVenues.length, showContent, contentOpacity]);
+  // ✅ FASE 9 RESTAURACIÓN: Animación desactivada temporalmente
+  // La animación se quedaba trabada en opacity: 0, causando pantalla en blanco
+  // useEffect(() => {
+  //   if (allVenues.length > 0 && !showContent) {
+  //     const loadTime = performance.now();
+  //     const delay = loadTime < 200 ? 150 : 0;
+  //     setTimeout(() => {
+  //       setShowContent(true);
+  //       Animated.timing(contentOpacity, {
+  //         toValue: 1,
+  //         duration: 300,
+  //         useNativeDriver: true,
+  //       }).start();
+  //       console.log('[ExplorarScreen BLOQUE 2] ✨ Content fade-in animation started');
+  //     }, delay);
+  //   }
+  // }, [allVenues.length, showContent, contentOpacity]);
   
   // ✅ SCROLL TO TOP & REFRESH
   const handleScrollToTopAndRefresh = useCallback(() => {
@@ -549,12 +558,23 @@ export default function ExplorarScreen() {
     return null;
   }, [allVenues.length, hasActiveFilters, hasNextPage, isFetchingNextPage]);
 
-  // ✅ BLOQUE 2: UI OPTIMISTA - Skeleton inmediato, sin spinner de pantalla completa
+  // ✅ FASE 9 RESTAURACIÓN: Circuit Breaker con debug mejorado
   const renderEmpty = useCallback(() => {
+    // ✅ FASE 9: Debug log para verificar que llegamos aquí
+    console.log('[ExplorarScreen FASE 9] 🔍 renderEmpty called:', {
+      isCircuitOpen: circuitBreaker.isOpen,
+      isLoading,
+      isFetching,
+      hasData: allVenues.length > 0,
+      hasError: isError,
+    });
+    
     // ✅ FASE 6: Circuit Breaker - Mostrar error amigable si está abierto
     if (circuitBreaker.isOpen) {
       const timeSinceLastFailure = Date.now() - circuitBreaker.lastFailureTime;
       const secondsRemaining = Math.ceil((30000 - timeSinceLastFailure) / 1000);
+      
+      console.log('[ExplorarScreen FASE 9] 🚨 Circuit Breaker ABIERTO - mostrando error');
       
       return (
         <View style={styles.emptyState}>
@@ -576,6 +596,7 @@ export default function ExplorarScreen() {
           <TouchableOpacity 
             style={styles.retryButton}
             onPress={() => {
+              console.log('[ExplorarScreen FASE 9] 🔄 Usuario presionó Reintentar');
               resetCircuitBreaker();
               refetch();
             }}
@@ -595,10 +616,9 @@ export default function ExplorarScreen() {
       );
     }
     
-    // ✅ BLOQUE 2: Mostrar skeleton INMEDIATAMENTE durante carga inicial
-    // NO mostrar spinner de pantalla completa - el usuario ve la estructura de la app al instante
+    // ✅ FASE 9 RESTAURACIÓN: Skeleton con debug mejorado
     if ((isLoading || isFetching) && allVenues.length === 0 && !data) {
-      console.log('[ExplorarScreen BLOQUE 2] 🎨 Showing skeleton loader (optimistic UI)');
+      console.log('[ExplorarScreen FASE 9] 🎨 Showing skeleton loader (optimistic UI)');
       return (
         <View style={styles.skeletonContainer}>
           {[...Array(8)].map((_, index) => (
@@ -729,6 +749,16 @@ export default function ExplorarScreen() {
   ]);
 
   const modeIcon = getModeIcon();
+
+  // ✅ FASE 9 RESTAURACIÓN: Debug crítico al inicio del render
+  console.log('[ExplorarScreen FASE 9] 🔍 RENDER CHECK:', {
+    hasData: allVenues.length > 0,
+    isLoading,
+    isFetching,
+    isCircuitOpen: circuitBreaker.isOpen,
+    showContent,
+    dataPages: data?.pages?.length || 0,
+  });
 
   // ✅ OPTIMIZED SCROLL HANDLER
   const scrollThrottleTimer = useRef<NodeJS.Timeout | null>(null);
