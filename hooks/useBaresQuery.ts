@@ -223,12 +223,25 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
       } catch (error: any) {
         clearTimeout(timeoutId);
         
-        // ✅ FASE 7: Manejar cancelación gracefully
-        if (error.name === 'AbortError' || controller.signal.aborted) {
-          console.log('[useBaresQuery FASE 7] 🛑 Request cancelled - user navigated away');
-          throw new Error('Request cancelled');
+        // ✅ FASE 9: Silenciar AbortErrors completamente
+        const isAbortError = 
+          error?.name === 'AbortError' || 
+          error?.message?.toLowerCase().includes('abort') ||
+          controller.signal.aborted;
+        
+        if (isAbortError) {
+          // ✅ FASE 9: Silencio total - no console.log, no throw
+          // El error se ignora completamente como parte de la estrategia de optimización
+          abortControllerRef.current = null;
+          return {
+            venues: [],
+            nextCursor: undefined,
+            pageNumber: 0,
+            totalLoaded: 0,
+          };
         }
         
+        // ✅ Solo lanzar errores reales (no AbortErrors)
         throw error;
       }
     },

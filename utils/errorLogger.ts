@@ -333,7 +333,7 @@ export const setupErrorLogging = () => {
     if (hasAbortError) {
       // Still call original for debugging, but don't queue for server
       originalConsoleLog.apply(console, args);
-      return;
+      return; // ✅ FASE 9: Stop execution here - no queueLog
     }
     
     // Always call original first
@@ -352,7 +352,7 @@ export const setupErrorLogging = () => {
     if (hasAbortError) {
       // Still call original for debugging, but don't queue for server
       originalConsoleWarn.apply(console, args);
-      return;
+      return; // ✅ FASE 9: Stop execution here - no queueLog
     }
     
     // Always call original first
@@ -373,15 +373,15 @@ export const setupErrorLogging = () => {
     if (hasAbortError) {
       // Still call original for debugging, but don't queue for server
       originalConsoleError.apply(console, args);
-      return;
+      return; // ✅ FASE 9: Stop execution here - no queueLog, no sendErrorToParent
     }
+    
+    // Always call original first
+    originalConsoleError.apply(console, args);
     
     // Queue log for sending to server (skip muted messages)
     const message = stringifyArgs(args);
     if (shouldMuteMessage(message)) return;
-
-    // Always call original first
-    originalConsoleError.apply(console, args);
 
     const source = getCallerInfo();
     queueLog('error', message, source);
@@ -396,7 +396,7 @@ export const setupErrorLogging = () => {
     window.onerror = (message, source, lineno, colno, error) => {
       // ✅ FASE 9: Check if error is an AbortError and skip
       if (shouldMuteError(error)) {
-        return false;
+        return false; // ✅ FASE 9: Stop execution here - no queueLog, no sendErrorToParent
       }
       
       const sourceFile = source ? source.split('/').pop() : 'unknown';
@@ -417,7 +417,7 @@ export const setupErrorLogging = () => {
       window.addEventListener('unhandledrejection', (event) => {
         // ✅ FASE 9: Check if rejection is an AbortError and skip
         if (shouldMuteError(event.reason)) {
-          return;
+          return; // ✅ FASE 9: Stop execution here - no queueLog, no sendErrorToParent
         }
         
         const message = `UNHANDLED PROMISE REJECTION: ${event.reason}`;
