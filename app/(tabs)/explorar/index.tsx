@@ -263,11 +263,13 @@ export default function ExplorarScreen() {
     pageSize: ITEMS_PER_PAGE,
   });
   
-  // ✅ FASE 11: Debug log inmediatamente después de useBaresQuery
-  console.log('[ExplorarScreen FASE 11] 🔍 useBaresQuery result:', {
+  // ✅ FASE 12: Debug log CRÍTICO - Verificar si useBaresQuery devuelve datos
+  console.log('═══════════════════════════════════════════════════════════');
+  console.log('[ExplorarScreen FASE 12] 🔍 useBaresQuery result:', {
     hasData: !!data,
     hasPages: !!data?.pages,
     pageCount: data?.pages?.length || 0,
+    firstPageVenues: data?.pages?.[0]?.venues?.length || 0,
     isLoading,
     isFetching,
     isError,
@@ -275,6 +277,8 @@ export default function ExplorarScreen() {
     hasNextPage,
     isFetchingNextPage,
   });
+  console.log('[ExplorarScreen FASE 12] 📦 Raw data:', JSON.stringify(data, null, 2));
+  console.log('═══════════════════════════════════════════════════════════');
   
   // ✅ BLOQUE 2 RESTAURACIÓN: Forzar opacidad a 1 (desactivar animación temporalmente)
   const [showContent, setShowContent] = useState(true); // ✅ FASE 9: Forzado a true
@@ -282,7 +286,8 @@ export default function ExplorarScreen() {
   
   // ✅ DEDUPLICATE VENUES - Critical for FlashList stability
   const allVenues = useMemo(() => {
-    console.log('[ExplorarScreen FASE 11] 🔍 Processing venues - START', {
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('[ExplorarScreen FASE 12] 🔍 Processing venues - START', {
       hasData: !!data,
       hasPages: !!data?.pages,
       pageCount: data?.pages?.length || 0,
@@ -293,11 +298,12 @@ export default function ExplorarScreen() {
     });
     
     if (!data?.pages) {
-      console.log('[ExplorarScreen FASE 11] ⚠️ No data.pages - returning empty array');
+      console.log('[ExplorarScreen FASE 12] ⚠️ No data.pages - returning empty array');
+      console.log('═══════════════════════════════════════════════════════════');
       return [];
     }
     
-    console.log('[ExplorarScreen FASE 11] 📊 Raw data.pages:', {
+    console.log('[ExplorarScreen FASE 12] 📊 Raw data.pages:', {
       pageCount: data.pages.length,
       firstPage: data.pages[0],
       firstPageVenues: data.pages[0]?.venues?.length || 0,
@@ -311,8 +317,8 @@ export default function ExplorarScreen() {
     const flatVenues = data.pages.flatMap(page => page?.venues || []);
     const uniqueVenues = Array.from(new Map(flatVenues.map(v => [v.id, v])).values());
     
-    // ✅ FASE 11: Debug log mejorado con más detalles
-    console.log('[ExplorarScreen FASE 11] 📊 Venues processed - RESULT:', {
+    // ✅ FASE 12: Debug log CRÍTICO con más detalles
+    console.log('[ExplorarScreen FASE 12] 📊 Venues processed - RESULT:', {
       total: flatVenues.length,
       unique: uniqueVenues.length,
       duplicates: flatVenues.length - uniqueVenues.length,
@@ -326,6 +332,7 @@ export default function ExplorarScreen() {
         is_favorite: v.is_favorite,
       })),
     });
+    console.log('═══════════════════════════════════════════════════════════');
     
     return uniqueVenues;
   }, [data, isLoading, isFetching, isError, error, circuitBreaker.isOpen]);
@@ -375,11 +382,17 @@ export default function ExplorarScreen() {
     }, 100);
   }, [queryClient, refetch]);
   
-  // ✅ FASE 10: Invalidate cache on mount to force fresh data with new RPC
+  // ✅ FASE 12: FORCE RESET cache on mount to ensure fresh data
   useEffect(() => {
-    console.log('[ExplorarScreen FASE 10] 🔄 Invalidating cache on mount to use new get_venues_with_auth RPC');
-    queryClient.invalidateQueries({ queryKey: ['bares_infinite_v24.0.0'] });
-  }, [queryClient]);
+    console.log('[ExplorarScreen FASE 12] 🔄 FORCE RESETTING cache on mount');
+    queryClient.resetQueries({ queryKey: ['bares_infinite_v24.0.0'] });
+    
+    // Force refetch after reset
+    setTimeout(() => {
+      console.log('[ExplorarScreen FASE 12] 🔄 Forcing refetch after cache reset');
+      refetch();
+    }, 100);
+  }, [queryClient, refetch]);
   
   // ✅ React Navigation integration
   useScrollToTop(
@@ -790,15 +803,20 @@ export default function ExplorarScreen() {
 
   const modeIcon = getModeIcon();
 
-  // ✅ FASE 9 RESTAURACIÓN: Debug crítico al inicio del render
-  console.log('[ExplorarScreen FASE 9] 🔍 RENDER CHECK:', {
+  // ✅ FASE 12: Debug CRÍTICO al inicio del render
+  console.log('═══════════════════════════════════════════════════════════');
+  console.log('[ExplorarScreen FASE 12] 🔍 RENDER CHECK:', {
     hasData: allVenues.length > 0,
+    venuesCount: allVenues.length,
     isLoading,
     isFetching,
     isCircuitOpen: circuitBreaker.isOpen,
     showContent,
     dataPages: data?.pages?.length || 0,
+    willRenderList: allVenues.length > 0 || isLoading || isFetching,
+    willRenderEmpty: !(allVenues.length > 0 || isLoading || isFetching),
   });
+  console.log('═══════════════════════════════════════════════════════════');
 
   // ✅ OPTIMIZED SCROLL HANDLER
   const scrollThrottleTimer = useRef<NodeJS.Timeout | null>(null);

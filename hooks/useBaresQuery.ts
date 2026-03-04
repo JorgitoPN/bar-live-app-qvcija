@@ -131,12 +131,16 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
       const isFirstPage = !pageParam;
       const pageNumber = isFirstPage ? 1 : Math.floor((pageParam.offset || 0) / pageSize) + 1;
       
-      console.log('[useBaresQuery v24.0.0] 📡 Fetching page:', pageNumber, {
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('[useBaresQuery FASE 12] 📡 Fetching page:', pageNumber, {
+        isFirstPage,
+        pageParam,
         category: selectedCategory,
         search: searchQuery,
         hasFilters: Object.keys(globalFiltros).length > 0,
         platform: Platform.OS,
       });
+      console.log('═══════════════════════════════════════════════════════════');
       
       const startTime = performance.now();
       
@@ -161,7 +165,7 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         userLocation: { lat: userLocation?.latitude, lng: userLocation?.longitude },
       });
       
-      // ✅ FASE 11: Debug log de parámetros antes de llamar al RPC
+      // ✅ FASE 12: Debug log CRÍTICO de parámetros antes de llamar al RPC
       const rpcParams = {
         p_user_id: userId,
         p_user_lat: userLocation?.latitude || 40.4168,
@@ -180,9 +184,14 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         p_search_query: searchQuery || null,
       };
       
-      console.log('[useBaresQuery FASE 11] 📡 RPC Parameters:', JSON.stringify(rpcParams, null, 2));
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('[useBaresQuery FASE 12] 📡 Calling RPC get_venues_with_auth');
+      console.log('[useBaresQuery FASE 12] 📡 RPC Parameters:', JSON.stringify(rpcParams, null, 2));
+      console.log('═══════════════════════════════════════════════════════════');
       
+      console.log('[useBaresQuery FASE 12] 🚀 Calling supabase.rpc...');
       const queryPromise = supabase.rpc('get_venues_with_auth', rpcParams).abortSignal(controller.signal);
+      console.log('[useBaresQuery FASE 12] 🚀 RPC call initiated, waiting for response...');
       
       // ✅ FASE 7: Timeout con AbortController
       const timeoutId = setTimeout(() => {
@@ -200,8 +209,10 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         const endTime = performance.now();
         const loadTime = endTime - startTime;
         
-        // ✅ FASE 11: Debug log detallado de la respuesta
-        console.log('[useBaresQuery FASE 11] 📦 RPC Response:', {
+        // ✅ FASE 12: Debug log CRÍTICO de la respuesta
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('[useBaresQuery FASE 12] 📦 RPC Response received');
+        console.log('[useBaresQuery FASE 12] 📦 Response details:', {
           hasError: !!error,
           errorDetails: error ? JSON.stringify(error) : null,
           dataType: typeof data,
@@ -213,9 +224,13 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
             is_favorite: data[0].is_favorite,
           } : null,
         });
+        console.log('[useBaresQuery FASE 12] 📦 Full data:', JSON.stringify(data, null, 2));
+        console.log('═══════════════════════════════════════════════════════════');
         
         if (error) {
-          console.error('[useBaresQuery FASE 11] ❌ RPC Error:', error);
+          console.error('═══════════════════════════════════════════════════════════');
+          console.error('[useBaresQuery FASE 12] ❌ RPC Error:', error);
+          console.error('═══════════════════════════════════════════════════════════');
           throw error;
         }
         
@@ -272,15 +287,21 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
       } catch (error: any) {
         clearTimeout(timeoutId);
         
-        // ✅ FASE 9: Silenciar AbortErrors completamente
+        // ✅ FASE 12: Check for AbortErrors but LOG them for debugging
         const isAbortError = 
           error?.name === 'AbortError' || 
           error?.message?.toLowerCase().includes('abort') ||
           controller.signal.aborted;
         
         if (isAbortError) {
-          // ✅ FASE 9: Silencio total - no console.log, no throw
-          // El error se ignora completamente como parte de la estrategia de optimización
+          console.log('═══════════════════════════════════════════════════════════');
+          console.log('[useBaresQuery FASE 12] ⚠️ Query was aborted:', {
+            errorName: error?.name,
+            errorMessage: error?.message,
+            signalAborted: controller.signal.aborted,
+          });
+          console.log('═══════════════════════════════════════════════════════════');
+          
           abortControllerRef.current = null;
           return {
             venues: [],
