@@ -1,10 +1,6 @@
 
 /**
- * ✅ FILTER CONTEXT v3.3 - ALIASED TO ZUSTAND STORE
- * 
- * CHANGES v3.3:
- * - 🚫 REMOVED: "tipos" from DynamicFilterOptions interface
- * - ✅ Venue type filtering completely removed from data layer
+ * ✅ FILTER CONTEXT v3.2 - ALIASED TO ZUSTAND STORE
  * 
  * CRITICAL CHANGES v3.2 (PASO 3.2 - HOOK ALIASING):
  * - ✅ ALIASING: useFilters now internally calls useFilterStore
@@ -22,6 +18,7 @@ import { useFilterStore } from '@/src/store/useFilterStore';
 import { Filtros } from '@/types';
 
 interface DynamicFilterOptions {
+  tipos: string[];
   servicios: string[];
   ambientes: string[];
   clientela: string[];
