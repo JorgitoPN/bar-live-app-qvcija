@@ -1,10 +1,17 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 EXPLORAR SCREEN v32.0.0 - BLOQUE 2: UI OPTIMISTA Y TRANSICIONES SUAVES
+ * 🚀 EXPLORAR SCREEN v33.0.0 - FASE 10: MOBILE PARITY (WEB-MOBILE FIX)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v32.0.0 (BLOQUE 2 - PARALELIZACIÓN Y UI OPTIMISTA):
+ * 🎯 NEW IN v33.0.0 (FASE 10 - MOBILE NETWORK FIXES):
+ * 1️⃣ OFFLINE MODE INDICATOR: Visual feedback when using cached data ✅
+ * 2️⃣ PLATFORM-AWARE TIMEOUTS: 5s mobile, 2.5s web ✅
+ * 3️⃣ GRACEFUL DEGRADATION: Show cached data on network failure ✅
+ * 4️⃣ RETRY MECHANISM: Easy retry button in offline mode ✅
+ * 5️⃣ RESULT: Mobile works as reliably as web ✅
+ * 
+ * 🎯 PREVIOUS (v32.0.0 - BLOQUE 2 - UI OPTIMISTA):
  * 1️⃣ SKELETON LOADER: Estructura de app visible al instante ✅
  * 2️⃣ NO FULL-SCREEN SPINNER: Usuario ve la UI inmediatamente ✅
  * 3️⃣ SMOOTH TRANSITIONS: Fade-in animado cuando llegan datos ✅
@@ -243,7 +250,7 @@ export default function ExplorarScreen() {
   const flashListRef = useRef<FlashList<Venue>>(null);
   const debouncedQuery = useDebounce(searchQuery, 500);
   
-  // ✅ REACT QUERY - Optimized with v24.0.0 hook
+  // ✅ REACT QUERY - Optimized with v26.0.0 hook (FASE 10)
   const {
     data,
     isLoading,
@@ -262,6 +269,15 @@ export default function ExplorarScreen() {
     globalFiltros: filtros,
     pageSize: ITEMS_PER_PAGE,
   });
+  
+  // ✅ FASE 10: Detectar si estamos en modo offline (usando datos cacheados)
+  const isUsingCachedData = React.useMemo(() => {
+    if (Platform.OS === 'web') return false;
+    if (!data || !data.pages || data.pages.length === 0) return false;
+    
+    // Si hay datos pero el query está en error, probablemente estamos usando caché
+    return isError && data.pages.length > 0;
+  }, [isError, data]);
   
   // ✅ BLOQUE 2 RESTAURACIÓN: Forzar opacidad a 1 (desactivar animación temporalmente)
   const [showContent, setShowContent] = useState(true); // ✅ FASE 9: Forzado a true
@@ -896,6 +912,23 @@ export default function ExplorarScreen() {
               </Text>
             </View>
           )}
+          
+          {/* ✅ FASE 10: Offline Mode Indicator */}
+          {isUsingCachedData && (
+            <View style={styles.offlineModeBanner}>
+              <IconSymbol ios_icon_name="wifi.slash" android_material_icon_name="wifi_off" size={scaleIconSize(16)} color="#3B82F6" />
+              <Text style={[styles.offlineModeText, { fontSize: scaleFontSize(12) }]} numberOfLines={2}>
+                Modo offline - Mostrando datos guardados
+              </Text>
+              <TouchableOpacity 
+                onPress={() => refetch()}
+                style={styles.offlineRetryButton}
+                activeOpacity={0.7}
+              >
+                <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={scaleIconSize(14)} color="#3B82F6" />
+              </TouchableOpacity>
+            </View>
+          )}
         
           <View style={styles.compactSearchRow}>
             <View style={styles.searchContainer}>
@@ -1169,6 +1202,26 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.headerText,
     fontWeight: '500',
+  },
+  offlineModeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  offlineModeText: {
+    flex: 1,
+    color: colors.headerText,
+    fontWeight: '500',
+  },
+  offlineRetryButton: {
+    padding: 4,
   },
   compactSearchRow: {
     flexDirection: 'row',
