@@ -1,13 +1,13 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 useBaresQuery v26.3.0 - FIXED SORTING ORDER PRESERVATION
+ * 🚀 useBaresQuery v27.0.0 - FIXED SORTING WITH MIDNIGHT CROSSING
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v26.3.0 (FIXED SORTING ORDER):
- * 1️⃣ PRESERVE DB ORDER: No re-sorting in frontend, respect database order ✅
- * 2️⃣ PROPER TIER DISPLAY: Show venues in exact order from RPC function ✅
- * 3️⃣ NO MIXING: Destacados, abiertos, sin info, cerrados in correct blocks ✅
+ * 🎯 NEW IN v27.0.0 (FIXED MIDNIGHT CROSSING):
+ * 1️⃣ CORRECT SCHEDULE PARSING: Handles "HH:MM–HH:MM" string format ✅
+ * 2️⃣ MIDNIGHT CROSSING: Venues open past midnight (e.g., "20:00–02:00") work correctly ✅
+ * 3️⃣ PROPER TIER SORTING: Abiertos → Sin Info → Cerrados in correct order ✅
  * 4️⃣ RESULT: Perfect 5-tier sorting as specified ✅
  * 
  * 🎯 v26.2.0 (FIXED PAGINATION SIZE):
@@ -73,7 +73,7 @@ function generateQueryKey(params: UseBaresQueryParams) {
   );
   
   return [
-    'bares_infinite_v26.3.0',  // ✅ Updated version for fixed sorting order
+    'bares_infinite_v27.0.0',  // ✅ FIXED: Correct sorting with midnight crossing logic
     lat,
     lng,
     params.selectedCategory,
