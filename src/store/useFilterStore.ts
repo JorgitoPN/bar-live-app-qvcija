@@ -4,7 +4,11 @@ import { Filtros } from '@/types';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ FILTER STORE v1.0 - ZUSTAND ATOMIC STATE MANAGEMENT
+ * ✅ FILTER STORE v1.1 - ZUSTAND ATOMIC STATE MANAGEMENT
+ * 
+ * CHANGES v1.1:
+ * - 🚫 REMOVED: "tipos" from dynamicOptions (no longer fetched or stored)
+ * - ✅ Venue type filtering completely removed from data layer
  * 
  * BENEFITS:
  * - ✅ ATOMIC UPDATES: Only filter-using components re-render
@@ -19,7 +23,6 @@ import { supabase } from '@/utils/supabase';
  */
 
 interface DynamicFilterOptions {
-  tipos: string[];
   servicios: string[];
   ambientes: string[];
   clientela: string[];
@@ -48,7 +51,6 @@ export const useFilterStore = create<FilterState>((set, get) => ({
   filtros: {},
   selectedCategory: null,
   dynamicOptions: {
-    tipos: [],
     servicios: [],
     ambientes: [],
     clientela: [],
@@ -119,7 +121,6 @@ export const useFilterStore = create<FilterState>((set, get) => ({
         console.log('[FilterStore] ⚠️ No active locals found');
         set({ 
           dynamicOptions: {
-            tipos: [],
             servicios: [],
             ambientes: [],
             clientela: [],
@@ -132,18 +133,6 @@ export const useFilterStore = create<FilterState>((set, get) => ({
       }
 
       console.log('[FilterStore] 📊 Processing', locales.length, 'active locals...');
-
-      // Extract unique tipos
-      const tiposSet = new Set<string>();
-      locales.forEach(local => {
-        if (local.barlive_types && Array.isArray(local.barlive_types)) {
-          local.barlive_types.forEach((tipo: string) => {
-            if (tipo && tipo.trim()) {
-              tiposSet.add(tipo.toLowerCase());
-            }
-          });
-        }
-      });
 
       // Extract unique servicios
       const serviciosSet = new Set<string>();
@@ -198,7 +187,6 @@ export const useFilterStore = create<FilterState>((set, get) => ({
       });
 
       const newOptions: DynamicFilterOptions = {
-        tipos: Array.from(tiposSet).sort(),
         servicios: Array.from(serviciosSet).sort(),
         ambientes: Array.from(ambientesSet).sort(),
         clientela: Array.from(clientelaSet).sort(),
@@ -207,7 +195,6 @@ export const useFilterStore = create<FilterState>((set, get) => ({
       };
 
       console.log('[FilterStore] ✅ Dynamic options loaded:', {
-        tipos: newOptions.tipos.length,
         servicios: newOptions.servicios.length,
         ambientes: newOptions.ambientes.length,
         clientela: newOptions.clientela.length,

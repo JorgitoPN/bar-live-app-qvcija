@@ -45,9 +45,15 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ CROSS-PLATFORM FILTERS PAGE v3.4 - iOS + ANDROID - TIPOS DE LOCAL SECTION HIDDEN
+ * ✅ CROSS-PLATFORM FILTERS PAGE v3.5 - iOS + ANDROID - TIPOS DE LOCAL COMPLETELY REMOVED
  * 
- * NEW FEATURES v3.4:
+ * NEW FEATURES v3.5:
+ * - 🚫 COMPLETELY REMOVED "Tipos de local" from data layer (Zustand store)
+ * - ✅ No longer fetches or stores venue types in dynamicOptions
+ * - ✅ Section permanently removed from UI and state management
+ * - ✅ Fixed issue where tipos data was still being loaded despite UI removal
+ * 
+ * Previous features v3.4:
  * - 🚫 COMPLETELY REMOVED "Tipos de local" section from advanced filters page
  * - ✅ Section no longer appears even when venue types are available
  * - ✅ Filters out 'discoteca' and 'pub' types from available options (backend compatibility)
@@ -100,7 +106,7 @@ export default function FiltrosAvanzadosScreen() {
   });
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados v3.4 iOS+Android] 🔄 Page opened, loading filters (Tipos de local section removed)');
+    console.log('[FiltrosAvanzados v3.5 iOS+Android] 🔄 Page opened, loading filters (Tipos de local completely removed from data layer)');
     setFiltrosTemp(contextFiltros);
     refreshDynamicOptions();
   }, [contextFiltros, refreshDynamicOptions]);
@@ -135,13 +141,13 @@ export default function FiltrosAvanzadosScreen() {
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.4 iOS+Android] ✅ Applying filters:', filtrosTemp);
+    console.log('[FiltrosAvanzados v3.5 iOS+Android] ✅ Applying filters:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     router.back();
   }, [filtrosTemp, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.4 iOS+Android] 🧹 Clearing all filters - INSTANT UI UPDATE');
+    console.log('[FiltrosAvanzados v3.5 iOS+Android] 🧹 Clearing all filters - INSTANT UI UPDATE');
     
     // ✅ PASO 1: Actualizar UI INMEDIATAMENTE (síncrono)
     const emptyFiltros = {};
@@ -154,7 +160,7 @@ export default function FiltrosAvanzadosScreen() {
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v3.4 iOS+Android] 📍 Selected comunidad:', selectedComunidad);
+    console.log('[FiltrosAvanzados v3.5 iOS+Android] 📍 Selected comunidad:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -178,7 +184,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v3.4 iOS+Android] 📍 Selected provincia:', provincia);
+    console.log('[FiltrosAvanzados v3.5 iOS+Android] 📍 Selected provincia:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -189,7 +195,7 @@ export default function FiltrosAvanzadosScreen() {
 
   // ✅ v3.2 iOS FIX: Auto-activate distance filter when user changes slider
   const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados v3.4 iOS+Android] 📏 Radius changed to:', value, 'km - Auto-activating filter');
+    console.log('[FiltrosAvanzados v3.5 iOS+Android] 📏 Radius changed to:', value, 'km - Auto-activating filter');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: value,
@@ -198,7 +204,7 @@ export default function FiltrosAvanzadosScreen() {
 
   // ✅ v3.2 iOS FIX: Activate distance filter with default value
   const activateDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.4 iOS+Android] 🎯 Activating search range filter with default 50km');
+    console.log('[FiltrosAvanzados v3.5 iOS+Android] 🎯 Activating search range filter with default 50km');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: 50,
@@ -207,7 +213,7 @@ export default function FiltrosAvanzadosScreen() {
 
   // ✅ v3.2 iOS FIX: Reset distance filter to "Sin límite"
   const resetDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.4 iOS+Android] 🔄 Resetting search range to "Sin límite"');
+    console.log('[FiltrosAvanzados v3.5 iOS+Android] 🔄 Resetting search range to "Sin límite"');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: undefined,
@@ -314,7 +320,7 @@ export default function FiltrosAvanzadosScreen() {
     return clientela;
   }, [dynamicOptions.clientela]);
 
-  // ✅ v3.4: Updated active filters count (removed tipo filter)
+  // ✅ v3.5: Updated active filters count (tipo filter completely removed from data layer)
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (filtrosTemp.servicios && filtrosTemp.servicios.length > 0) count++;
@@ -402,7 +408,7 @@ export default function FiltrosAvanzadosScreen() {
                 <TouchableOpacity
                   style={styles.locationButton}
                   onPress={() => {
-                    console.log('[FiltrosAvanzados v3.4 iOS+Android] 🔍 Opening comunidad modal');
+                    console.log('[FiltrosAvanzados v3.5 iOS+Android] 🔍 Opening comunidad modal');
                     setShowComunidadModal(true);
                   }}
                 >
@@ -420,7 +426,7 @@ export default function FiltrosAvanzadosScreen() {
                   ]}
                   onPress={() => {
                     if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
-                      console.log('[FiltrosAvanzados v3.4 iOS+Android] 🔍 Opening provincia modal');
+                      console.log('[FiltrosAvanzados v3.5 iOS+Android] 🔍 Opening provincia modal');
                       setShowProvinciaModal(true);
                     }
                   }}
@@ -507,7 +513,7 @@ export default function FiltrosAvanzadosScreen() {
           )}
         </View>
 
-        {/* ✅ v3.4: TIPO DE LOCAL SECTION COMPLETELY REMOVED */}
+        {/* ✅ v3.5: TIPO DE LOCAL SECTION COMPLETELY REMOVED FROM UI AND DATA LAYER */}
 
         {/* SERVICIOS SECTION */}
         {serviciosDisponibles.length > 0 && (
