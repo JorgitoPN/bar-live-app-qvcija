@@ -117,7 +117,18 @@ const flushLogs = async () => {
           fetchErrorLogged = true;
           // Use a different method to avoid recursion - write directly without going through our intercept
           if (typeof window !== 'undefined' && window.console) {
-            (window.console as any).__proto__.log.call(console, '[Natively] Fetch error (will not repeat):', e.message || e);
+            try {
+              // Try to get the native log method from the prototype chain
+              const nativeLog = Object.getPrototypeOf(window.console)?.log;
+              if (typeof nativeLog === 'function') {
+                nativeLog.call(window.console, '[Natively] Fetch error (will not repeat):', e.message || e);
+              } else {
+                // Fallback to standard console.log if prototype method is not available
+                window.console.log('[Natively] Fetch error (will not repeat):', e.message || e);
+              }
+            } catch (logError) {
+              // If all else fails, silently ignore
+            }
           }
         }
       });
