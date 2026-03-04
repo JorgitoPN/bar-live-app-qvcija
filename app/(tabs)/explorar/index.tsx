@@ -846,8 +846,6 @@ export default function ExplorarScreen() {
         renderItem={renderVenueCard}
         keyExtractor={(item: Venue) => item.id}
         getItemType={getItemType}
-        
-        {/* ✅ PASO 2: OPTIMIZACIÓN DE VIRTUALIZACIÓN Y RENDIMIENTO */}
         estimatedItemSize={ESTIMATED_ITEM_SIZE} // ✅ 350px - Evita saltos en el scroll
         drawDistance={Dimensions.get('window').height * 2} // ✅ Renderiza locales 2 pantallas por adelantado
         removeClippedSubviews={true} // ✅ Libera memoria de elementos fuera de pantalla
