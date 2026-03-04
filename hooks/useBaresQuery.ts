@@ -59,9 +59,15 @@ import { supabase } from '@/utils/supabase';
  */
 
 /**
- * ✅ useBaresQuery v13.0.0 - CURSOR-BASED PAGINATION 🚀
+ * ✅ useBaresQuery v13.1.0 - CURSOR-BASED PAGINATION FIXED 🚀
  * 
- * NEW IN v13.0.0 (PERFORMANCE OPTIMIZATION):
+ * NEW IN v13.1.0 (CRITICAL BUG FIX):
+ * - ✅ FIXED DUPLICATES: Cursor pagination no longer includes the last item again
+ * - ✅ STABLE PAGINATION: WHERE clause now uses strict > comparison for ID
+ * - ✅ NO MISSING VENUES: All venues now appear correctly in the list
+ * - ✅ FEATURED VENUES: Featured venues now appear when within 50km
+ * 
+ * MAINTAINED FROM v13.0.0 (PERFORMANCE OPTIMIZATION):
  * - ✅ CURSOR-BASED PAGINATION: Replaced OFFSET with cursor (last_id, last_tier, last_distance)
  * - ✅ REDUCED DB LOAD: Cursor pagination is O(1) vs OFFSET O(n)
  * - ✅ CONSISTENT RESULTS: No duplicate/missing items when data changes during scroll
@@ -164,10 +170,10 @@ export const useBaresQuery = ({
   const roundedLng = userLocation ? Math.round(userLocation.longitude) : null;
   
   return useInfiniteQuery({
-    // ✅ v13.0.0: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
-    // Version bumped to v13.0.0 to force cache refresh with cursor-based pagination
+    // ✅ v13.1.0: CRITICAL: queryKey includes ROUNDED lat/lng for intelligent caching
+    // Version bumped to v13.1.0 to force cache refresh - FIXED cursor pagination duplicates
     queryKey: [
-      'bares_infinite_v13.0.0',
+      'bares_infinite_v13.1.0',
       roundedLat,
       roundedLng,
       selectedCategory,
@@ -179,14 +185,14 @@ export const useBaresQuery = ({
       const isFirstPage = !pageParam;
       const pageNumber = isFirstPage ? 1 : Math.floor((pageParam.offset || 0) / pageSize) + 1;
       
-      console.log('[useBaresQuery v13.0.0] 📡 Fetching page:', pageNumber);
-      console.log('[useBaresQuery v13.0.0] 🔍 Category:', selectedCategory);
-      console.log('[useBaresQuery v13.0.0] 🔍 Search:', searchQuery);
-      console.log('[useBaresQuery v13.0.0] 🔍 Advanced Filters:', globalFiltros);
-      console.log('[useBaresQuery v13.0.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
+      console.log('[useBaresQuery v13.1.0] 📡 Fetching page:', pageNumber);
+      console.log('[useBaresQuery v13.1.0] 🔍 Category:', selectedCategory);
+      console.log('[useBaresQuery v13.1.0] 🔍 Search:', searchQuery);
+      console.log('[useBaresQuery v13.1.0] 🔍 Advanced Filters:', globalFiltros);
+      console.log('[useBaresQuery v13.1.0] 📍 Location:', userLocation ? `${roundedLat}, ${roundedLng} (rounded)` : 'Not available');
       
       if (!isFirstPage) {
-        console.log('[useBaresQuery v13.0.0] 🎯 CURSOR:', {
+        console.log('[useBaresQuery v13.1.0] 🎯 CURSOR:', {
           last_id: pageParam.last_id,
           last_tier: pageParam.last_tier,
           last_distance: pageParam.last_distance?.toFixed(2),
@@ -234,21 +240,21 @@ export const useBaresQuery = ({
       const loadTime = endTime - startTime;
 
       if (error) {
-        console.error('[useBaresQuery v13.0.0] ❌ Error calling RPC:', error);
+        console.error('[useBaresQuery v13.1.0] ❌ Error calling RPC:', error);
         throw error;
       }
 
       const venues = data || [];
-      console.log('[useBaresQuery v13.0.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
+      console.log('[useBaresQuery v13.1.0] ✅ Received', venues.length, 'locales in', `${loadTime.toFixed(0)}ms`);
       
-      // ✅ v13.0.0: Debug initial load quantity
+      // ✅ v13.1.0: Debug initial load quantity
       if (isFirstPage) {
-        console.log('[useBaresQuery v13.0.0] 🎯 INITIAL LOAD: Fetched', venues.length, 'locales (target: 20)');
+        console.log('[useBaresQuery v13.1.0] 🎯 INITIAL LOAD: Fetched', venues.length, 'locales (target: 20)');
       }
       
-      // ✅ v13.0.0: Debug filtering - log filter application
+      // ✅ v13.1.0: Debug filtering - log filter application
       if (globalFiltros.servicios?.length > 0 || globalFiltros.ambiente?.length > 0 || globalFiltros.clientela?.length > 0) {
-        console.log('[useBaresQuery v13.0.0] 🎯 Advanced filters applied:', {
+        console.log('[useBaresQuery v13.1.0] 🎯 Advanced filters applied:', {
           servicios: globalFiltros.servicios,
           ambiente: globalFiltros.ambiente,
           clientela: globalFiltros.clientela,
@@ -256,9 +262,9 @@ export const useBaresQuery = ({
         });
       }
       
-      // ✅ v13.0.0: Debug sorting - log first 10 venues
+      // ✅ v13.1.0: Debug sorting - log first 10 venues
       if (venues.length > 0 && isFirstPage) {
-        console.log('[useBaresQuery v13.0.0] 📊 First 10 venues (cursor-based pagination):');
+        console.log('[useBaresQuery v13.1.0] 📊 First 10 venues (FIXED cursor pagination):');
         venues.slice(0, 10).forEach((venue: any, idx: number) => {
           const tierLabel = venue.sorting_tier === 1 ? 'T1:Featured Open <50km' :
                            venue.sorting_tier === 2 ? 'T2:Open (Standard)' :
@@ -280,7 +286,7 @@ export const useBaresQuery = ({
         
         // Debug log for first venue to verify mapping
         if (venues.indexOf(venue) === 0 && isFirstPage) {
-          console.log('[useBaresQuery v13.0.0] 🔍 First venue mapping:', {
+          console.log('[useBaresQuery v13.1.0] 🔍 First venue mapping:', {
             nombre: venue.nombre,
             destacado: venue.destacado,
             esta_abierto_raw: venue.esta_abierto,
@@ -301,7 +307,7 @@ export const useBaresQuery = ({
         };
       });
 
-      // ✅ v13.0.0: Calculate next cursor from last item
+      // ✅ v13.1.0: Calculate next cursor from last item
       let nextCursor = undefined;
       if (venues.length === pageSize) {
         const lastVenue = venues[venues.length - 1];
@@ -312,7 +318,7 @@ export const useBaresQuery = ({
           offset: (pageParam?.offset || 0) + pageSize, // Keep offset for page number calculation
         };
         
-        console.log('[useBaresQuery v13.0.0] 🎯 Next cursor:', {
+        console.log('[useBaresQuery v13.1.0] 🎯 Next cursor:', {
           last_id: nextCursor.last_id,
           last_tier: nextCursor.last_tier,
           last_distance: nextCursor.last_distance?.toFixed(2),
