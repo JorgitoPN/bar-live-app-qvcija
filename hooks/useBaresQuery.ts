@@ -1,10 +1,16 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 useBaresQuery v26.0.0 - DATABASE-SIDE FAVORITE JOIN (FASE 10)
+ * 🚀 useBaresQuery v26.1.0 - FIXED SORTING & PAGINATION
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v26.0.0 (DATABASE-SIDE FAVORITE JOIN - FASE 10):
+ * 🎯 NEW IN v26.1.0 (FIXED SORTING & PAGINATION):
+ * 1️⃣ PROPER CURSOR: Uses (tier, distance, id) for stable pagination ✅
+ * 2️⃣ RESPECTS ORDER: Venues maintain priority order across pages ✅
+ * 3️⃣ 20 PER PAGE: Fixed page size to avoid saturating the app ✅
+ * 4️⃣ RESULT: Smooth infinite scroll with correct ordering ✅
+ * 
+ * 🎯 v26.0.0 (DATABASE-SIDE FAVORITE JOIN - FASE 10):
  * 1️⃣ ELIMINATED O(N×M): No more manual cross-referencing of venues × favorites ✅
  * 2️⃣ DATABASE LEFT JOIN: is_favorite calculated by PostgreSQL, not JavaScript ✅
  * 3️⃣ IDENTICAL SPEED: Authenticated load now same speed as anonymous load ✅
@@ -75,7 +81,7 @@ function generateQueryKey(params: UseBaresQueryParams) {
   );
   
   return [
-    'bares_infinite_v24.0.0',
+    'bares_infinite_v26.1.0',  // ✅ Updated version for fixed sorting & pagination
     lat,
     lng,
     params.selectedCategory,
@@ -284,16 +290,25 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
           })),
         });
         
-        // ✅ Calculate next cursor
+        // ✅ FIXED: Calculate next cursor with proper tier and distance
         let nextCursor = undefined;
         if (venues.length === pageSize) {
           const lastVenue = venues[venues.length - 1];
           nextCursor = {
             last_id: lastVenue.id,
-            last_tier: lastVenue.sorting_tier,
-            last_distance: lastVenue.distancia,
+            last_tier: lastVenue.sorting_tier || 5,  // Default to tier 5 if missing
+            last_distance: lastVenue.distancia || 999999,  // Default to max distance if missing
             offset: (pageParam?.offset || 0) + pageSize,
           };
+          
+          console.log('[useBaresQuery v26.1] 📍 Next cursor calculated:', {
+            last_id: lastVenue.id,
+            last_tier: lastVenue.sorting_tier,
+            last_distance: lastVenue.distancia?.toFixed(2),
+            venue_name: lastVenue.nombre,
+          });
+        } else {
+          console.log('[useBaresQuery v26.1] 🏁 No more pages - received', venues.length, 'venues (less than', pageSize, ')');
         }
         
         return {

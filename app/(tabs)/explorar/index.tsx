@@ -1,10 +1,16 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 EXPLORAR SCREEN v32.0.0 - BLOQUE 2: UI OPTIMISTA Y TRANSICIONES SUAVES
+ * 🚀 EXPLORAR SCREEN v32.1.0 - FIXED SORTING & PAGINATION
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v32.0.0 (BLOQUE 2 - PARALELIZACIÓN Y UI OPTIMISTA):
+ * 🎯 NEW IN v32.1.0 (FIXED SORTING & PAGINATION):
+ * 1️⃣ PROPER ORDER: Venues respect priority tiers across all pages ✅
+ * 2️⃣ STABLE PAGINATION: Cursor uses (tier, distance, id) for consistency ✅
+ * 3️⃣ 20 PER PAGE: Fixed page size prevents app saturation ✅
+ * 4️⃣ SMOOTH SCROLL: Infinite scroll with correct ordering ✅
+ * 
+ * 🎯 v32.0.0 (BLOQUE 2 - PARALELIZACIÓN Y UI OPTIMISTA):
  * 1️⃣ SKELETON LOADER: Estructura de app visible al instante ✅
  * 2️⃣ NO FULL-SCREEN SPINNER: Usuario ve la UI inmediatamente ✅
  * 3️⃣ SMOOTH TRANSITIONS: Fade-in animado cuando llegan datos ✅
@@ -362,10 +368,10 @@ export default function ExplorarScreen() {
   
   // ✅ SCROLL TO TOP & REFRESH
   const handleScrollToTopAndRefresh = useCallback(() => {
-    console.log('[ExplorarScreen FASE 10] 🚀 Scroll to top & refresh - Invalidating cache');
+    console.log('[ExplorarScreen v32.1] 🚀 Scroll to top & refresh - Invalidating cache');
     
     // Step 1: Clear cache first to prevent stale data
-    queryClient.resetQueries({ queryKey: ['bares_infinite_v24.0.0'] });
+    queryClient.resetQueries({ queryKey: ['bares_infinite_v26.1.0'] });
     
     // Step 2: Force remount to clear FlashList internal state
     setListKey(prev => prev + 1);
@@ -376,7 +382,7 @@ export default function ExplorarScreen() {
         try {
           flashListRef.current.scrollToOffset({ offset: 0, animated: false });
         } catch (error) {
-          console.warn('[ExplorarScreen FASE 10] ⚠️ Scroll error:', error);
+          console.warn('[ExplorarScreen v32.1] ⚠️ Scroll error:', error);
         }
       }
     }, 50);
@@ -387,14 +393,14 @@ export default function ExplorarScreen() {
     }, 100);
   }, [queryClient, refetch]);
   
-  // ✅ FASE 12: FORCE RESET cache on mount to ensure fresh data
+  // ✅ v32.1: FORCE RESET cache on mount to ensure fresh data with new sorting
   useEffect(() => {
-    console.log('[ExplorarScreen FASE 12] 🔄 FORCE RESETTING cache on mount');
-    queryClient.resetQueries({ queryKey: ['bares_infinite_v24.0.0'] });
+    console.log('[ExplorarScreen v32.1] 🔄 FORCE RESETTING cache on mount (new sorting v26.1)');
+    queryClient.resetQueries({ queryKey: ['bares_infinite_v26.1.0'] });
     
     // Force refetch after reset
     setTimeout(() => {
-      console.log('[ExplorarScreen FASE 12] 🔄 Forcing refetch after cache reset');
+      console.log('[ExplorarScreen v32.1] 🔄 Forcing refetch after cache reset');
       refetch();
     }, 100);
   }, [queryClient, refetch]);
