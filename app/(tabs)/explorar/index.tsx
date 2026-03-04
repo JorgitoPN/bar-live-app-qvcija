@@ -1,498 +1,911 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * EXPLORAR SCREEN v30.0.2 - CORRECCIÓN OVER-RENDERING 🚀
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * 🎯 CORRECCIÓN CRÍTICA: Over-rendering y carga continua
+ * 
+ * ✅ CAMBIOS IMPLEMENTADOS:
+ *    - onEndReachedThreshold={0.5}: Threshold reducido para evitar carga prematura
+ *      Cálculo: 20 locales * 0.5 = 10 locales vistos → quedan 10 locales
+ *    - ListFooterComponent devuelve null si !hasNextPage (CRÍTICO)
+ *    - Guardia estricta en onEndReached mantiene las 3 condiciones
+ * 
+ * 🎯 RESULTADO ESPERADO:
+ * - ✅ Sin carga continua: Solo carga cuando el usuario hace scroll
+ * - ✅ Threshold conservador: Espera a que el usuario vea 50% de los locales
+ * - ✅ Sin over-rendering: ListFooterComponent corta el sensor cuando no hay más datos
+ */
+
+import React, { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  RefreshControl,
   TouchableOpacity,
-  ActivityIndicator,
+  TextInput,
   Platform,
-  Dimensions,
+  ScrollView,
+  ActivityIndicator,
   Animated,
+  Dimensions,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { useRouter } from 'expo-router';
-import { colors, commonStyles } from '@/styles/commonStyles';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
-import { useEffectiveUser } from '@/hooks/useEffectiveUser';
-import { useImpersonation } from '@/contexts/ImpersonationContext';
-import TarjetaLocal from '@/components/home/TarjetaLocal';
-import BarraFiltrosInteractiva from '@/components/home/BarraFiltrosInteractiva';
-import { SkeletonLocalCard } from '@/components/common/SkeletonLoader';
-import { scaleFontSize } from '@/utils/androidScaling';
+import FiltrosAvanzadosSheet from '@/components/home/FiltrosAvanzadosSheet';
+import { colors } from '@/styles/commonStyles';
+import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMode } from '@/contexts/ModeContext';
+import { useFilterStore } from '@/src/store/useFilterStore';
+import { getOptimizedUserLocation } from '@/utils/locationUtils';
+import LocalCardOptimizedV2 from '@/components/explorar/LocalCardOptimizedV2';
 import { useBaresQuery } from '@/hooks/useBaresQuery';
-import { useLocation } from '@/contexts/LocationContext';
 import { useScrollToTop } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// ✅ Wrap FlashList with Animated for native scroll events
+const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 220;
-const HEADER_MIN_HEIGHT = Platform.OS === 'android' ? 0 : 0;
-const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+// ═══════════════════════════════════════════════════════════════════════════
+// TYPES & INTERFACES
+// ═══════════════════════════════════════════════════════════════════════════
 
-interface Local {
+interface Venue {
   id: string;
   nombre: string;
-  tipo: string;
   direccion: string;
-  provincia: string;
+  imagenes?: string[];
   imagen_url?: string;
-  rating: number;
+  esta_abierto?: boolean;
+  destacado?: boolean;
+  distance_km?: number;
+  rating?: number;
   google_rating?: number;
-  precio_medio?: number;
-  destacado: boolean;
-  nuevo: boolean;
-  abierto: boolean;
-  distancia?: number;
+  barlive_types?: string[];
+  barlive_type?: string;
   latitud?: number;
   longitud?: number;
-  popularidad?: number;
   horarios_completos?: Record<string, string[]>;
-  google_business_status?: string;
-  estado_actual?: string;
+  coordenadas?: { lat: number; lng: number };
+  distancia?: number;
+  estadoCompleto?: any;
   estaAbierto?: boolean;
+  nuevo?: boolean;
 }
 
-interface Filtro {
+interface Category {
   id: string;
-  label: string;
-  icon?: string;
-  activo?: boolean;
+  nombre: string;
+  iosIcon: string;
+  androidIcon: string;
 }
 
-/**
- * ✅ EXPLORAR SCREEN v108.0 - ABSOLUTE SCROLL TO TOP FIX
- * 
- * 🔧 NEW IN v108.0:
- * - ✅ ABSOLUTE SCROLL TO TOP: Added viewPosition: 0 and viewOffset: 0
- * - ✅ CRITICAL FIX: FlashList now positions first item at TOP of viewport
- * - ✅ TAB BEHAVIOR: Tapping "Explorar" tab while active scrolls to absolute top + refreshes data
- * - ✅ PRECISE SCROLLING: viewPosition: 0 ensures item 0 is at TOP, not middle
- * 
- * MAINTAINED FROM v107.0:
- * - ✅ Migrated to LocationContext for null-safe location access
- * - ✅ Guard clause prevents crash when context is not ready
- * - ✅ Skeleton loader shown when location is loading
- * - ✅ Cached data displayed instantly while location loads
- * 
- * 🧠 THE BRAIN (useBaresQuery hook):
- * - ✅ Unified business logic: fetch, filter, calculate distance, sort
- * - ✅ Haversine formula for distance calculation
- * - ✅ Master sorting: 1) Open+Featured 2) Open+Proximity 3) Closed
- * - ✅ queryKey includes [filtros, !!userLocation] for cache invalidation
- * 
- * 🎨 THE SHELL (ExplorarScreen):
- * - ✅ Pure visual component - no business logic
- * - ✅ Connects to useBaresQuery for data
- * - ✅ Maintained Animated.event for Header
- * - ✅ FlashList with refetch for pull-to-refresh
- * 
- * 🎯 THE RENDERER (TarjetaLocal):
- * - ✅ React.memo with custom comparison (local.id, local.estaAbierto)
- * - ✅ expo-image with recyclingKey={local.id} for FlashList optimization
- * - ✅ Prevents unnecessary re-renders during scroll
- * 
- * 📊 PERFORMANCE METRICS:
- * - 60 FPS scrolling maintained
- * - Instant cache hits (5 min staleTime)
- * - Optimistic UI updates
- * - Memory-efficient image recycling
- */
+// ═══════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 240;
+const HEADER_MIN_HEIGHT = 0;
+const ITEMS_PER_PAGE = 20;
+
+// ✅ CORRECCIÓN CRÍTICA: Threshold reducido a 0.5 (no más alto)
+// Threshold de 0.5 significa: cuando el usuario ha visto el 50% de los locales (10 de 20),
+// se dispara la carga de la siguiente página, dejando 10 locales de buffer
+const PRELOAD_THRESHOLD = 0.5;
+
+const SCROLL_THROTTLE = 16;
+
+const INITIAL_NUM_TO_RENDER = 10;
+const MAX_TO_RENDER_PER_BATCH = 10;
+const WINDOW_SIZE = 5;
+const ESTIMATED_ITEM_SIZE = 350;
+const DRAW_DISTANCE = Dimensions.get('window').height * 2;
+
+const CATEGORIAS: Category[] = [
+  { id: 'todos', nombre: 'Todos', iosIcon: 'square.grid.2x2', androidIcon: 'apps' },
+  { id: 'discotecas', nombre: 'Discotecas', iosIcon: 'music.note', androidIcon: 'music_note' },
+  { id: 'pubs', nombre: 'Pubs', iosIcon: 'wineglass', androidIcon: 'local_bar' },
+  { id: 'bares', nombre: 'Bares', iosIcon: 'cup.and.saucer', androidIcon: 'local_cafe' },
+  { id: 'restaurantes', nombre: 'Restaurantes', iosIcon: 'fork.knife', androidIcon: 'restaurant' },
+  { id: 'cafeterias', nombre: 'Cafeterías', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CUSTOM HOOK: useDebounce
+// ═══════════════════════════════════════════════════════════════════════════
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SKELETON CARD COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SkeletonCard = memo(() => (
+  <View style={styles.skeletonCard}>
+    <View style={styles.skeletonImage} />
+    <View style={styles.skeletonContent}>
+      <View style={[styles.skeletonLine, { width: '70%', height: 20 }]} />
+      <View style={[styles.skeletonLine, { width: '90%', height: 14, marginTop: 8 }]} />
+      <View style={styles.skeletonBadges}>
+        <View style={[styles.skeletonLine, { width: 80, height: 24, borderRadius: 6 }]} />
+        <View style={[styles.skeletonLine, { width: 100, height: 24, borderRadius: 6 }]} />
+      </View>
+    </View>
+  </View>
+));
+
+SkeletonCard.displayName = 'SkeletonCard';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
 
 export default function ExplorarScreen() {
   const router = useRouter();
-  const { userId, user, isImpersonating } = useEffectiveUser();
-  const { impersonationSession } = useImpersonation();
+  const { user } = useAuth();
+  const { currentMode } = useMode();
+  const queryClient = useQueryClient();
   
-  // ✅ v107.0: NULL-SAFE LOCATION ACCESS
-  const locationContext = useLocation();
-  const userLocation = locationContext?.userLocation || null;
-  const locationLoading = locationContext?.isLoading || false;
+  // ✅ Use Zustand store directly for filter synchronization
+  const filtros = useFilterStore(state => state.filtros);
+  const selectedCategory = useFilterStore(state => state.selectedCategory);
+  const setSelectedCategory = useFilterStore(state => state.setSelectedCategory);
+  const limpiarFiltros = useFilterStore(state => state.limpiarFiltros);
+  const hasActiveFilters = useFilterStore(state => state.hasActiveFilters);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STATE MANAGEMENT
+  // ═══════════════════════════════════════════════════════════════════════════
   
-  const [filtros, setFiltros] = useState({
-    tipo: 'todos',
-    provincia: 'todos',
-    precioMedio: 'todos',
-    abierto: false,
-    destacado: false,
-  });
-
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const lastScrollY = useRef(0);
-  const scrollDirection = useRef<'up' | 'down'>('down');
-
-  // ✅ CRITICAL: Call ALL hooks BEFORE any conditional returns (React Hooks rules)
-  // We pass null to useBaresQuery when location is not ready - it will handle it gracefully
-  const { data: locales, isLoading, refetch } = useBaresQuery({
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [locationReady, setLocationReady] = useState(false);
+  
+  const [listKey, setListKey] = useState(0);
+  
+  const flashListRef = useRef<FlashList<Venue>>(null);
+  const debouncedQuery = useDebounce(searchQuery, 500);
+  
+  // ✅ REACT QUERY - Optimized cache with aggressive staleTime
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+    isRefetching,
+    error,
+  } = useBaresQuery({
     userLocation,
-    selectedCategory: filtros.tipo === 'todos' ? null : filtros.tipo,
-    searchQuery: '',
-    globalFiltros: {
-      abierto: filtros.abierto,
-      destacado: filtros.destacado,
-      provincia: filtros.provincia === 'todos' ? null : filtros.provincia,
-      servicios: [],
-      ambiente: [],
-      clientela: [],
-      comunidad: null,
-      distancia: null,
-    },
-    pageSize: 20,
+    selectedCategory,
+    searchQuery: debouncedQuery,
+    globalFiltros: filtros,
+    pageSize: ITEMS_PER_PAGE,
   });
-
-  // ✅ ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
-  const headerTranslateY = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [0, -HEADER_SCROLL_DISTANCE],
-    extrapolate: 'clamp',
-  });
-
-  const filtrosArray: Filtro[] = React.useMemo(() => [
-    {
-      id: 'todos',
-      label: 'Todos',
-      icon: 'building.2',
-      activo: filtros.tipo === 'todos',
-    },
-    {
-      id: 'bar',
-      label: 'Bares',
-      icon: 'wineglass',
-      activo: filtros.tipo === 'bar',
-    },
-    {
-      id: 'restaurante',
-      label: 'Restaurantes',
-      icon: 'fork.knife',
-      activo: filtros.tipo === 'restaurante',
-    },
-    {
-      id: 'discoteca',
-      label: 'Discotecas',
-      icon: 'music.note',
-      activo: filtros.tipo === 'discoteca',
-    },
-    {
-      id: 'abierto',
-      label: 'Abierto ahora',
-      icon: 'clock',
-      activo: filtros.abierto,
-    },
-    {
-      id: 'destacado',
-      label: 'Destacados',
-      icon: 'star.fill',
-      activo: filtros.destacado,
-    },
-  ], [filtros]);
-
-  const handleFiltroPress = useCallback((filtroId: string) => {
-    console.log('[ExplorarScreen v108.0] Filtro presionado:', filtroId);
-    
-    if (filtroId === 'todos') {
-      setFiltros(prev => ({ ...prev, tipo: 'todos' }));
-    } else if (filtroId === 'bar' || filtroId === 'restaurante' || filtroId === 'discoteca') {
-      setFiltros(prev => ({ ...prev, tipo: filtroId }));
-    } else if (filtroId === 'abierto') {
-      setFiltros(prev => ({ ...prev, abierto: !prev.abierto }));
-    } else if (filtroId === 'destacado') {
-      setFiltros(prev => ({ ...prev, destacado: !prev.destacado }));
-    }
-  }, []);
-
-  const handleMasFiltrosPress = useCallback(() => {
-    console.log('[ExplorarScreen v108.0] Más filtros presionado');
-  }, []);
-
-  const flashListRef = useRef<any>(null);
   
-  // ✅ v108.0: CRITICAL FIX - Scroll to ABSOLUTE top with viewPosition
-  const scrollToTopRef = useRef({
-    scrollToTop: () => {
-      console.log('[ExplorarScreen v108.0] 🔄 Explorar tab pressed while active - Scrolling to top + refreshing...');
-      
-      // 1️⃣ SCROLL TO TOP - Use scrollToIndex with viewPosition: 0 to ensure ABSOLUTE top
-      if (flashListRef.current && locales && locales.length > 0) {
-        try {
-          // ✅ CRITICAL FIX: Add viewPosition: 0 to scroll to ABSOLUTE beginning
-          // viewPosition: 0 means the item will be at the TOP of the viewport
-          // viewOffset: 0 ensures no additional offset is applied
-          flashListRef.current.scrollToIndex({ 
-            index: 0, 
-            animated: true,
-            viewPosition: 0,  // Position item at the TOP of the viewport
-            viewOffset: 0     // No additional offset
+  // ✅ Filtrado de duplicados por ID (CRÍTICO para evitar colapso de FlashList)
+  const allVenues = useMemo(() => {
+    if (!data?.pages) return [];
+    const flatVenues = data.pages.flatMap(page => page.venues);
+    
+    // ✅ CRÍTICO: Filtrar duplicados por ID usando Map
+    const uniqueVenues = Array.from(new Map(flatVenues.map(v => [v.id, v])).values());
+    
+    console.log('[ExplorarScreen v30.0.2] 📊 Venues procesados:');
+    console.log('[ExplorarScreen v30.0.2]   - Total flat:', flatVenues.length);
+    console.log('[ExplorarScreen v30.0.2]   - Únicos (sin duplicados):', uniqueVenues.length);
+    console.log('[ExplorarScreen v30.0.2]   - Duplicados eliminados:', flatVenues.length - uniqueVenues.length);
+    
+    return uniqueVenues;
+  }, [data]);
+  
+  // ✅ Scroll, Cache Clear, Key Reset, Refetch (SECUENCIAL)
+  const handleScrollToTopAndRefresh = useCallback(() => {
+    console.log('[ExplorarScreen v30.0.2] 🚀 handleScrollToTopAndRefresh DISPARADO');
+    
+    // PASO 1: Scroll inmediato al inicio
+    if (flashListRef.current) {
+      try {
+        console.log('[ExplorarScreen v30.0.2] ⬆️ Ejecutando scrollToOffset({ offset: 0, animated: false })');
+        flashListRef.current.scrollToOffset({ 
+          offset: 0, 
+          animated: false 
+        });
+        console.log('[ExplorarScreen v30.0.2] ✅ Scroll a offset 0 completado');
+      } catch (error) {
+        console.log('[ExplorarScreen v30.0.2] ⚠️ Error en scroll:', error);
+      }
+    }
+    
+    // PASO 2: Limpiar caché de React Query
+    console.log('[ExplorarScreen v30.0.2] 🗑️ Limpiando caché de React Query');
+    queryClient.resetQueries({ queryKey: ['bares_infinite_v23.0.0'] });
+    
+    // PASO 3: Forzar remontado del componente FlashList
+    console.log('[ExplorarScreen v30.0.2] 🔑 Incrementando listKey para forzar remontado');
+    setListKey(prev => prev + 1);
+    
+    // PASO 4: Refetch de datos tras un micro-delay
+    setTimeout(() => {
+      console.log('[ExplorarScreen v30.0.2] 🔄 Ejecutando refetch()');
+      refetch();
+    }, 100);
+    
+  }, [queryClient, refetch]);
+  
+  // ✅ Integración con React Navigation (useScrollToTop)
+  useScrollToTop(
+    useRef({
+      scrollToTop: handleScrollToTopAndRefresh,
+    })
+  );
+  
+  // ✅ Animated header
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+  const scrollDirection = useRef<'up' | 'down'>('up');
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOCATION MANAGEMENT
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchLocation = async () => {
+      try {
+        console.log('[ExplorarScreen v30.0.2] 📍 Obteniendo ubicación del usuario...');
+        const location = await getOptimizedUserLocation();
+        
+        if (isMounted && location) {
+          setUserLocation({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
           });
-          console.log('[ExplorarScreen v108.0] ✅ Scrolled to index 0 with viewPosition: 0 (absolute top)');
-        } catch (error) {
-          console.log('[ExplorarScreen v108.0] ⚠️ scrollToIndex failed, trying scrollToOffset:', error);
-          try {
-            flashListRef.current.scrollToOffset({ offset: 0, animated: true });
-            console.log('[ExplorarScreen v108.0] ✅ Fallback scrollToOffset successful');
-          } catch (fallbackError) {
-            console.log('[ExplorarScreen v108.0] ⚠️ Both scroll methods failed:', fallbackError);
-          }
+          setLocationReady(true);
+          setLocationError(null);
+          console.log('[ExplorarScreen v30.0.2] ✅ Ubicación obtenida:', location.coords);
+        } else if (isMounted) {
+          setLocationError('No se pudo obtener tu ubicación');
+          setLocationReady(true);
+          console.warn('[ExplorarScreen v30.0.2] ⚠️ No se pudo obtener ubicación');
+        }
+      } catch (error) {
+        if (isMounted) {
+          setLocationError('Error al obtener ubicación');
+          setLocationReady(true);
+          console.error('[ExplorarScreen v30.0.2] ❌ Error obteniendo ubicación:', error);
         }
       }
-      
-      // 2️⃣ DATA REFRESH
-      console.log('[ExplorarScreen v108.0] 🔄 Triggering data refresh...');
-      refetch();
-      console.log('[ExplorarScreen v108.0] ✅ Data refresh triggered');
-    },
-  });
+    };
+    
+    fetchLocation();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ✅ SCROLL RESET ON FILTER CHANGE
+  // ═══════════════════════════════════════════════════════════════════════════
   
-  useScrollToTop(scrollToTopRef as any);
+  useEffect(() => {
+    console.log('[ExplorarScreen v30.0.2] 🔄 Filters changed - Scrolling to top');
+    
+    if (flashListRef.current) {
+      try {
+        flashListRef.current.scrollToOffset({ offset: 0, animated: false });
+      } catch (error) {
+        console.log('[ExplorarScreen v30.0.2] ⚠️ Scroll to top failed:', error);
+      }
+    }
+  }, [selectedCategory, filtros, debouncedQuery, hasActiveFilters]);
 
-  const renderItem = useCallback(({ item }: { item: Local }) => (
-    <TarjetaLocal key={item.id} local={item} />
-  ), []);
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ✅ CORRECCIÓN CRÍTICA: CARGA PREDICTIVA CON THRESHOLD 0.5
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const loadMoreVenues = useCallback(() => {
+    // ✅ GUARDIA ESTRICTA: Solo cargar si:
+    // 1. hasNextPage = true (hay más datos en el servidor)
+    // 2. !isFetchingNextPage (no hay una petición en curso)
+    // 3. !error (no hay errores previos)
+    if (hasNextPage && !isFetchingNextPage && !error) {
+      console.log('[ExplorarScreen v30.0.2] 🚀 Carga Predictiva activada (threshold 0.5)');
+      console.log('[ExplorarScreen v30.0.2]   - Threshold: 0.5 (50% de 20 locales = 10 vistos, 10 restantes)');
+      console.log('[ExplorarScreen v30.0.2]   - hasNextPage:', hasNextPage);
+      console.log('[ExplorarScreen v30.0.2]   - isFetchingNextPage:', isFetchingNextPage);
+      console.log('[ExplorarScreen v30.0.2]   - error:', error);
+      fetchNextPage();
+    } else {
+      console.log('[ExplorarScreen v30.0.2] ⏸️ Carga bloqueada por guardia');
+      console.log('[ExplorarScreen v30.0.2]   - hasNextPage:', hasNextPage);
+      console.log('[ExplorarScreen v30.0.2]   - isFetchingNextPage:', isFetchingNextPage);
+      console.log('[ExplorarScreen v30.0.2]   - error:', error);
+    }
+  }, [hasNextPage, isFetchingNextPage, error, fetchNextPage]);
 
-  const keyExtractor = useCallback((item: Local) => item.id, []);
+  // ✅ PULL-TO-REFRESH - Force refetch from server
+  const onRefresh = useCallback(() => {
+    console.log('[ExplorarScreen v30.0.2] 🔄 Pull-to-refresh - Refetching from server...');
+    refetch();
+  }, [refetch]);
 
-  const renderListEmpty = useCallback(() => {
-    // ✅ v107.0: Show skeleton while location is loading AND no cached data
-    if ((locationLoading || isLoading) && (!locales || locales.length === 0)) {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FILTER MANAGEMENT
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const filteredVenues = allVenues;
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (selectedCategory !== 'todos' && selectedCategory !== null) count++;
+    if (debouncedQuery) count++;
+    return count;
+  }, [selectedCategory, debouncedQuery]);
+
+  const handleCategoryChange = useCallback((categoryId: string) => {
+    console.log('[ExplorarScreen v30.0.2] 🏷️ Cambiando categoría a:', categoryId);
+    
+    const newCategory = categoryId === 'todos' ? null : categoryId;
+    setSelectedCategory(newCategory);
+    
+    console.log('[ExplorarScreen v30.0.2] ✅ Category changed - React Query will refetch automatically');
+  }, [setSelectedCategory]);
+
+  const clearFilters = useCallback(() => {
+    console.log('[ExplorarScreen v30.0.2] 🧹 Limpiando filtros...');
+    setSearchQuery('');
+    limpiarFiltros();
+  }, [limpiarFiltros]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ACTION HANDLERS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const handleNavigateToMap = useCallback(() => {
+    router.push('/(tabs)/explorar/mapa');
+  }, [router]);
+
+  const handleClaimOrCreateLocal = useCallback(() => {
+    if (!user) {
+      router.push('/auth/account-required');
+      return;
+    }
+    router.push('/solicitudes/solicitar-propiedad-v2');
+  }, [user, router]);
+
+  const handleOpenAdvancedFilters = useCallback(() => {
+    console.log('[ExplorarScreen v30.0.2] 🎯 Abriendo filtros avanzados');
+    setShowAdvancedFilters(true);
+  }, []);
+
+  const handleCloseAdvancedFilters = useCallback(() => {
+    console.log('[ExplorarScreen v30.0.2] 🔒 Cerrando filtros avanzados');
+    setShowAdvancedFilters(false);
+  }, []);
+
+  const handleClearAdvancedFilters = useCallback(() => {
+    console.log('[ExplorarScreen v30.0.2] 🧹 Limpiando filtros avanzados');
+    limpiarFiltros();
+  }, [limpiarFiltros]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MODE HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const getModeLabel = useCallback(() => {
+    if (currentMode === 'admin') return 'Admin';
+    if (currentMode === 'propietario') return 'Propietario';
+    return 'Cliente';
+  }, [currentMode]);
+
+  const getModeIcon = useCallback(() => {
+    if (currentMode === 'admin') return { ios: 'shield.fill', android: 'admin_panel_settings' };
+    if (currentMode === 'propietario') return { ios: 'building.2.fill', android: 'store' };
+    return { ios: 'person.fill', android: 'person' };
+  }, [currentMode]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDER FUNCTIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const renderVenueCard = useCallback(({ item, index }: { item: Venue; index: number }) => {
+    return (
+      <LocalCardOptimizedV2
+        local={item}
+        index={index}
+        onPress={() => router.push(`/detalle/local?id=${item.id}`)}
+        socialProfiles={new Map()}
+        activeEvents={new Map()}
+      />
+    );
+  }, [router]);
+  
+  // ✅ CRITICAL - Help FlashList understand item types for recycling
+  const getItemType = useCallback(() => {
+    return 'local-card';
+  }, []);
+
+  // ✅ CORRECCIÓN CRÍTICA: ListFooterComponent devuelve null si !hasNextPage
+  const renderFooter = useCallback(() => {
+    console.log('[ExplorarScreen v30.0.2] 🔍 renderFooter llamado');
+    console.log('[ExplorarScreen v30.0.2]   - hasNextPage:', hasNextPage);
+    console.log('[ExplorarScreen v30.0.2]   - isFetchingNextPage:', isFetchingNextPage);
+    console.log('[ExplorarScreen v30.0.2]   - filteredVenues.length:', filteredVenues.length);
+    
+    // ✅ CRÍTICO: Si no hay más páginas, devolver null para cortar el sensor de scroll
+    if (!hasNextPage) {
+      console.log('[ExplorarScreen v30.0.2] 🛑 No hay más páginas, ListFooterComponent devuelve null');
+      return null;
+    }
+
+    // Si hay filtros activos pero no hay resultados, no mostrar footer
+    if (filteredVenues.length === 0 && hasActiveFilters) {
+      console.log('[ExplorarScreen v30.0.2] 🛑 Sin resultados con filtros activos, devuelve null');
+      return null;
+    }
+
+    // ✅ Mostrar ActivityIndicator discreto solo si está cargando la siguiente página
+    if (isFetchingNextPage && filteredVenues.length >= 20) {
+      console.log('[ExplorarScreen v30.0.2] ⏳ Mostrando ActivityIndicator discreto');
       return (
-        <View style={styles.skeletonContainer}>
-          <SkeletonLocalCard />
-          <SkeletonLocalCard />
-          <SkeletonLocalCard />
+        <View style={styles.footerLoadingContainer}>
+          <ActivityIndicator size="small" color={colors.primary} />
         </View>
       );
     }
 
+    // Si hay más páginas pero no está cargando, devolver null
+    console.log('[ExplorarScreen v30.0.2] 🛑 Hay más páginas pero no está cargando, devuelve null');
+    return null;
+  }, [filteredVenues.length, hasActiveFilters, hasNextPage, isFetchingNextPage]);
+
+  const renderEmpty = useCallback(() => {
+    // ✅ SKELETON LOADING - Show skeleton cards while loading
+    if ((isLoading || isFetching) && allVenues.length === 0 && !data) {
+      return (
+        <View style={styles.skeletonContainer}>
+          {[...Array(5)].map((_, index) => (
+            <SkeletonCard key={index} />
+          ))}
+        </View>
+      );
+    }
+    
+    if (activeFiltersCount > 0 || hasActiveFilters) {
+      return (
+        <View style={styles.emptyState}>
+          <IconSymbol
+            ios_icon_name="magnifyingglass"
+            android_material_icon_name="search"
+            size={64}
+            color={colors.textSecondary}
+          />
+          <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No se encontraron resultados</Text>
+          <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
+            {hasActiveFilters 
+              ? 'Intenta ajustar los filtros avanzados' 
+              : 'Intenta con otros filtros de búsqueda'}
+          </Text>
+          
+          <View style={styles.emptyStateButtons}>
+            {hasActiveFilters && (
+              <TouchableOpacity 
+                style={[styles.clearFiltersButton, styles.clearAdvancedButton]}
+                onPress={handleClearAdvancedFilters}
+                activeOpacity={0.7}
+              >
+                <IconSymbol 
+                  ios_icon_name="slider.horizontal.3" 
+                  android_material_icon_name="tune" 
+                  size={scaleIconSize(16)} 
+                  color={colors.headerText} 
+                />
+                <Text style={[styles.clearFiltersButtonText, { fontSize: scaleFontSize(14) }]}>
+                  Limpiar filtros avanzados
+                </Text>
+              </TouchableOpacity>
+            )}
+            
+            {activeFiltersCount > 0 && (
+              <TouchableOpacity 
+                style={styles.clearFiltersButton}
+                onPress={clearFilters}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.clearFiltersButtonText, { fontSize: scaleFontSize(14) }]}>
+                  Limpiar todos los filtros
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      );
+    }
+    
     return (
       <View style={styles.emptyState}>
-        <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={64} color={colors.textSecondary} />
-        <Text style={[styles.emptyText, { fontSize: scaleFontSize(20) }]}>No se encontraron locales</Text>
-        <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(15) }]}>
-          Intenta ajustar los filtros de búsqueda
+        <IconSymbol
+          ios_icon_name="map"
+          android_material_icon_name="map"
+          size={64}
+          color={colors.textSecondary}
+        />
+        <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>No hay locales disponibles</Text>
+        <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
+          Intenta buscar en otra ubicación
         </Text>
       </View>
     );
-  }, [locationLoading, isLoading, locales]);
+  }, [isLoading, isFetching, allVenues.length, data, activeFiltersCount, hasActiveFilters, handleClearAdvancedFilters, clearFilters]);
 
-  const handleClaimOrCreateLocal = useCallback(() => {
-    router.push('/auth/local-ownership-request' as any);
-  }, [router]);
+  const modeIcon = getModeIcon();
 
-  // ✅ MAINTAINED: Animated.event for Header
+  // ✅ OPTIMIZED SCROLL HANDLER - Throttled for better performance
+  const scrollThrottleTimer = useRef<NodeJS.Timeout | null>(null);
+  
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    {
+    { 
       useNativeDriver: true,
       listener: (event: any) => {
-        if (Platform.OS !== 'android') return;
-        
         const currentScrollY = event.nativeEvent.contentOffset.y;
         const diff = currentScrollY - lastScrollY.current;
         
-        if (diff > 5) {
-          scrollDirection.current = 'down';
+        if (scrollThrottleTimer.current) {
+          return;
+        }
+        
+        scrollThrottleTimer.current = setTimeout(() => {
+          scrollThrottleTimer.current = null;
+        }, SCROLL_THROTTLE);
+        
+        if (diff > 5 && currentScrollY > 50) {
+          if (scrollDirection.current !== 'down') {
+            scrollDirection.current = 'down';
+            Animated.timing(headerTranslateY, {
+              toValue: -HEADER_MAX_HEIGHT,
+              duration: 250,
+              useNativeDriver: true,
+            }).start();
+          }
         } else if (diff < -5) {
-          scrollDirection.current = 'up';
+          if (scrollDirection.current !== 'up') {
+            scrollDirection.current = 'up';
+            Animated.timing(headerTranslateY, {
+              toValue: 0,
+              duration: 250,
+              useNativeDriver: true,
+            }).start();
+          }
         }
         
         lastScrollY.current = currentScrollY;
-      },
+      }
     }
   );
 
-  // ✅ v107.0: GUARD CLAUSE - Prevent crash if LocationContext not detected
-  // This is AFTER all hooks are called
-  if (locationContext === null) {
-    console.warn('[ExplorarScreen v108.0] ⚠️ LocationContext no detectado. Revisa el RootLayout.');
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { fontSize: scaleFontSize(16) }]}>
-          Inicializando ubicación...
-        </Text>
-      </View>
-    );
-  }
-
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MAIN RENDER
+  // ═══════════════════════════════════════════════════════════════════════════
+  
   return (
     <View style={styles.container}>
-      {Platform.OS === 'android' ? (
-        <Animated.View
-          style={[
-            styles.headerContainer,
-            {
-              transform: [{ translateY: headerTranslateY }],
-            },
-          ]}
+      {/* ✅ ANIMATED HEADER */}
+      <Animated.View 
+        style={[
+          styles.headerContainer,
+          { transform: [{ translateY: headerTranslateY }] }
+        ]}
+      >
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.headerGradient}
         >
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            style={styles.header}
-          >
-            <View style={styles.headerContent}>
-              <Text style={[styles.headerTitle, { fontSize: scaleFontSize(32) }]}>BarLive</Text>
-              <Text style={[styles.headerSubtitle, { fontSize: scaleFontSize(15) }]}>
-                {isImpersonating 
-                  ? `Viendo como ${impersonationSession?.impersonated_user_name}` 
-                  : 'Descubre los mejores locales'}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.mapButton}
-              onPress={() => router.push('/(tabs)/explorar/mapa' as any)}
+          <View style={styles.headerTop}>
+            <TouchableOpacity 
+              style={styles.claimBannerInHeader}
+              onPress={handleClaimOrCreateLocal}
+              activeOpacity={0.8}
             >
-              <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={24} color={colors.headerText} />
+              <IconSymbol 
+                ios_icon_name="building.2.fill" 
+                android_material_icon_name="store" 
+                size={scaleIconSize(18)} 
+                color={colors.headerText} 
+              />
+              <Text style={[styles.claimBannerInHeaderText, { fontSize: scaleFontSize(14) }]} numberOfLines={1}>
+                ¿Tienes un local?
+              </Text>
             </TouchableOpacity>
-          </LinearGradient>
 
-          {isImpersonating && (
-            <View style={styles.impersonationIndicator}>
-              <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={18} color={colors.white} />
-              <Text style={[styles.impersonationIndicatorText, { fontSize: scaleFontSize(13) }]}>
-                Vista de usuario impersonado
+            <View style={styles.headerActions}>
+              {user && (
+                <TouchableOpacity 
+                  style={styles.modeSelectorButton}
+                  onPress={() => router.push('/explorar/selector-modo')}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol 
+                    ios_icon_name={modeIcon.ios} 
+                    android_material_icon_name={modeIcon.android} 
+                    size={scaleIconSize(18)} 
+                    color={colors.headerText} 
+                  />
+                  <Text style={[styles.modeSelectorText, { fontSize: scaleFontSize(13) }]} numberOfLines={1}>
+                    {getModeLabel()}
+                  </Text>
+                  <IconSymbol 
+                    ios_icon_name="chevron.down" 
+                    android_material_icon_name="arrow_drop_down" 
+                    size={scaleIconSize(16)} 
+                    color={colors.headerText} 
+                  />
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity 
+                style={styles.mapButton}
+                onPress={handleNavigateToMap}
+                activeOpacity={0.7}
+              >
+                <IconSymbol 
+                  ios_icon_name="map.fill" 
+                  android_material_icon_name="map" 
+                  size={scaleIconSize(28)} 
+                  color={colors.headerText} 
+                />
+              </TouchableOpacity>
+
+              {activeFiltersCount > 0 && (
+                <TouchableOpacity 
+                  style={styles.clearFiltersHeaderButton}
+                  onPress={clearFilters}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(20)} color={colors.headerText} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+          
+          {locationError && (
+            <View style={styles.locationWarningBanner}>
+              <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={scaleIconSize(16)} color="#F97316" />
+              <Text style={[styles.locationWarningText, { fontSize: scaleFontSize(12) }]} numberOfLines={2}>
+                {locationError}
               </Text>
             </View>
           )}
+        
+          <View style={styles.compactSearchRow}>
+            <View style={styles.searchContainer}>
+              <IconSymbol 
+                ios_icon_name="magnifyingglass" 
+                android_material_icon_name="search"
+                size={scaleIconSize(18)} 
+                color={colors.textSecondary}
+              />
+              <TextInput
+                style={[styles.searchInput, { fontSize: scaleFontSize(15) }]}
+                placeholder="Buscar..."
+                placeholderTextColor={colors.textSecondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+                blurOnSubmit={false}
+                enablesReturnKeyAutomatically={false}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity 
+                  onPress={() => setSearchQuery('')}
+                  style={styles.clearButton}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol 
+                    ios_icon_name="xmark.circle.fill" 
+                    android_material_icon_name="cancel"
+                    size={scaleIconSize(18)} 
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            <View style={styles.filterButtonContainer}>
+              <TouchableOpacity 
+                onPress={handleOpenAdvancedFilters}
+                style={styles.filterIconButtonCompact}
+                activeOpacity={0.7}
+              >
+                <IconSymbol 
+                  ios_icon_name="slider.horizontal.3" 
+                  android_material_icon_name="tune" 
+                  size={scaleIconSize(20)} 
+                  color={colors.headerText} 
+                />
+                {hasActiveFilters && (
+                  <View style={styles.filterActiveDot} />
+                )}
+              </TouchableOpacity>
+              
+              {hasActiveFilters && (
+                <TouchableOpacity 
+                  onPress={handleClearAdvancedFilters}
+                  style={styles.clearAdvancedFiltersButton}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol 
+                    ios_icon_name="xmark.circle.fill" 
+                    android_material_icon_name="cancel" 
+                    size={scaleIconSize(18)} 
+                    color={colors.headerText} 
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
 
-          <BarraFiltrosInteractiva 
-            filtros={filtrosArray}
-            onFiltroPress={handleFiltroPress}
-            onMasFiltrosPress={handleMasFiltrosPress}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoriesScroll}
+            contentContainerStyle={styles.categoriesContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {CATEGORIAS.map((categoria) => {
+              const isSelected = (categoria.id === 'todos' && !selectedCategory) || selectedCategory === categoria.id;
+              
+              return (
+                <TouchableOpacity
+                  key={categoria.id}
+                  style={styles.categoriaButtonCompact}
+                  onPress={() => handleCategoryChange(categoria.id)}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.categoriaIconContainerCompact,
+                      isSelected && styles.categoriaIconContainerActive,
+                    ]}
+                  >
+                    <IconSymbol
+                      ios_icon_name={categoria.iosIcon}
+                      android_material_icon_name={categoria.androidIcon}
+                      size={Platform.OS === 'android' ? 16 : 18}
+                      color={isSelected ? colors.primary : colors.white}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.categoriaLabelCompact,
+                      isSelected && styles.categoriaLabelActive,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {categoria.nombre}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </LinearGradient>
+      </Animated.View>
+
+      {/* ✅ CORRECCIÓN CRÍTICA: FLASHLIST CON THRESHOLD 0.5 Y LISTFOOTERCOMPONENT OPTIMIZADO */}
+      <AnimatedFlashList
+        key={listKey}
+        ref={flashListRef}
+        data={filteredVenues}
+        renderItem={renderVenueCard}
+        keyExtractor={(item: Venue) => item.id}
+        getItemType={getItemType}
+        estimatedItemSize={ESTIMATED_ITEM_SIZE}
+        initialNumToRender={INITIAL_NUM_TO_RENDER}
+        maxToRenderPerBatch={MAX_TO_RENDER_PER_BATCH}
+        windowSize={WINDOW_SIZE}
+        removeClippedSubviews={true}
+        drawDistance={DRAW_DISTANCE}
+        maintainVisibleContentPosition={undefined}
+        contentContainerStyle={[
+          styles.listContent,
+          { 
+            marginTop: HEADER_MAX_HEIGHT,
+            paddingTop: 4,
+            paddingBottom: getContentBottomPadding(100)
+          },
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
+        }
+        onScroll={handleScroll}
+        scrollEventThrottle={SCROLL_THROTTLE}
+        onEndReached={filteredVenues.length > 0 ? loadMoreVenues : undefined}
+        onEndReachedThreshold={PRELOAD_THRESHOLD}
+        ListFooterComponent={renderFooter}
+        ListEmptyComponent={renderEmpty}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      />
 
+      {/* ✅ ERROR DISPLAY */}
+      {error && (
+        <View style={styles.errorBanner}>
+          <IconSymbol 
+            ios_icon_name="exclamationmark.triangle.fill" 
+            android_material_icon_name="warning" 
+            size={scaleIconSize(20)} 
+            color="#EF4444" 
+          />
+          <Text style={[styles.errorText, { fontSize: scaleFontSize(14) }]}>
+            Error al cargar locales. Toca para reintentar.
+          </Text>
           <TouchableOpacity 
-            style={styles.claimLocalBanner}
-            onPress={handleClaimOrCreateLocal}
+            style={styles.retryButton}
+            onPress={() => refetch()}
             activeOpacity={0.7}
           >
-            <LinearGradient
-              colors={[colors.primary + '20', colors.primary + '10']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.claimLocalGradient}
-            >
-              <View style={styles.claimLocalContent}>
-                <IconSymbol 
-                  ios_icon_name="building.2" 
-                  android_material_icon_name="business" 
-                  size={16} 
-                  color={colors.primary} 
-                />
-                <Text 
-                  style={[
-                    styles.claimLocalText, 
-                    { fontSize: scaleFontSize(13) }
-                  ]} 
-                  numberOfLines={1}
-                >
-                  Reclama tu local o crea uno nuevo
-                </Text>
-                <IconSymbol 
-                  ios_icon_name="chevron.right" 
-                  android_material_icon_name="chevron_right" 
-                  size={14} 
-                  color={colors.textSecondary} 
-                />
-              </View>
-            </LinearGradient>
+            <IconSymbol 
+              ios_icon_name="arrow.clockwise" 
+              android_material_icon_name="refresh" 
+              size={scaleIconSize(18)} 
+              color={colors.headerText} 
+            />
           </TouchableOpacity>
-        </Animated.View>
-      ) : (
-        <React.Fragment>
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            style={styles.header}
-          >
-            <View style={styles.headerContent}>
-              <Text style={styles.headerTitle}>BarLive</Text>
-              <Text style={styles.headerSubtitle}>
-                {isImpersonating 
-                  ? `Viendo como ${impersonationSession?.impersonated_user_name}` 
-                  : 'Descubre los mejores locales'}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.mapButton}
-              onPress={() => router.push('/(tabs)/explorar/mapa' as any)}
-            >
-              <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-          </LinearGradient>
-
-          {isImpersonating && (
-            <View style={styles.impersonationIndicator}>
-              <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={18} color={colors.white} />
-              <Text style={styles.impersonationIndicatorText}>
-                Vista de usuario impersonado
-              </Text>
-            </View>
-          )}
-
-          <BarraFiltrosInteractiva 
-            filtros={filtrosArray}
-            onFiltroPress={handleFiltroPress}
-            onMasFiltrosPress={handleMasFiltrosPress}
-          />
-
-          <TouchableOpacity 
-            style={styles.claimLocalBanner}
-            onPress={handleClaimOrCreateLocal}
-            activeOpacity={0.8}
-          >
-            <View style={styles.claimLocalContent}>
-              <IconSymbol 
-                ios_icon_name="building.2" 
-                android_material_icon_name="business" 
-                size={16} 
-                color={colors.primary} 
-              />
-              <Text style={styles.claimLocalText} numberOfLines={1}>
-                Reclama tu local o crea uno nuevo
-              </Text>
-              <IconSymbol 
-                ios_icon_name="chevron.right" 
-                android_material_icon_name="chevron_right" 
-                size={14} 
-                color={colors.textSecondary} 
-              />
-            </View>
-          </TouchableOpacity>
-        </React.Fragment>
+        </View>
       )}
 
-      <View style={styles.flashListContainer}>
-        {/* ✅ FLASHLIST USES locales FROM useBaresQuery AND refetch FOR PULL-TO-REFRESH */}
-        <FlashList
-          ref={flashListRef}
-          data={locales || []}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          estimatedItemSize={250}
-          onRefresh={refetch}
-          refreshing={isLoading}
-          ListEmptyComponent={renderListEmpty}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.flashListContent}
-          onScroll={Platform.OS === 'android' ? handleScroll : undefined}
-          scrollEventThrottle={16}
-        />
-      </View>
+      {/* ✅ ADVANCED FILTERS SHEET */}
+      <FiltrosAvanzadosSheet
+        visible={showAdvancedFilters}
+        onClose={handleCloseAdvancedFilters}
+      />
     </View>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STYLES
+// ═══════════════════════════════════════════════════════════════════════════
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: colors.text,
-    marginTop: 16,
   },
   headerContainer: {
     position: 'absolute',
@@ -502,95 +915,264 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     backgroundColor: colors.background,
   },
-  header: {
-    paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerContent: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    color: colors.headerText,
-    opacity: 0.9,
-    marginTop: 4,
-  },
-  mapButton: {
-    padding: 8,
-  },
-  impersonationIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#8B5CF6',
-    paddingVertical: 8,
+  headerGradient: {
+    paddingTop: Platform.OS === 'android' ? 36 : 50,
+    paddingBottom: Platform.OS === 'android' ? 4 : 6,
     paddingHorizontal: 16,
   },
-  impersonationIndicatorText: {
-    fontWeight: '600',
-    color: colors.white,
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Platform.OS === 'android' ? 4 : 6,
   },
-  claimLocalBanner: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 8,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  claimLocalGradient: {
-    borderWidth: 1.5,
-    borderColor: colors.primary + '30',
-    borderRadius: 12,
-  },
-  claimLocalContent: {
+  claimBannerInHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
     gap: 8,
-  },
-  claimLocalText: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
     flex: 1,
+    maxWidth: '60%',
+    marginRight: 12,
+  },
+  claimBannerInHeaderText: {
     fontWeight: '600',
+    color: colors.headerText,
+    flexShrink: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 12,
+  },
+  modeSelectorButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    maxWidth: 150,
+  },
+  modeSelectorText: {
+    fontWeight: '600',
+    color: colors.headerText,
+    flexShrink: 1,
+  },
+  mapButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearFiltersHeaderButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locationWarningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(249, 115, 22, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(249, 115, 22, 0.3)',
+  },
+  locationWarningText: {
+    flex: 1,
+    color: colors.headerText,
+    fontWeight: '500',
+  },
+  compactSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: Platform.OS === 'android' ? 4 : 6,
+  },
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    gap: 6,
+    height: 40,
+  },
+  searchInput: {
+    flex: 1,
     color: colors.text,
+    padding: 0,
+    marginLeft: 8,
   },
-  content: {
-    flex: 1,
-    marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT : 0,
+  clearButton: {
+    padding: 4,
   },
-  flashListContainer: {
-    flex: 1,
-    marginTop: Platform.OS === 'android' ? HEADER_MAX_HEIGHT : 0,
+  filterButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  flashListContent: {
-    padding: 16,
-    paddingBottom: 100,
+  filterIconButtonCompact: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  filterActiveDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+    borderWidth: 1.5,
+    borderColor: colors.headerText,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#EF4444',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  clearAdvancedFiltersButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#EF4444',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  categoriesScroll: {
+    marginBottom: Platform.OS === 'android' ? 4 : 6,
+    marginRight: -16,
+  },
+  categoriesContent: {
+    paddingHorizontal: 0,
+    paddingRight: 16,
+    gap: 16,
+  },
+  categoriaButtonCompact: {
+    alignItems: 'center',
+    gap: 4,
+    minWidth: 60,
+  },
+  categoriaIconContainerCompact: {
+    width: Platform.OS === 'android' ? 36 : 40,
+    height: Platform.OS === 'android' ? 36 : 40,
+    borderRadius: Platform.OS === 'android' ? 9 : 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  categoriaIconContainerActive: {
+    borderColor: colors.white,
+    backgroundColor: colors.white,
+  },
+  categoriaLabelCompact: {
+    fontSize: Platform.OS === 'android' ? scaleFontSize(11) : 12,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+  },
+  categoriaLabelActive: {
+    color: colors.white,
+    fontWeight: '700',
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   skeletonContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+  },
+  skeletonCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  skeletonImage: {
+    width: '100%',
+    height: 140,
+    backgroundColor: colors.cardBorder,
+  },
+  skeletonContent: {
     padding: 16,
   },
-  footerLoader: {
+  skeletonLine: {
+    backgroundColor: colors.cardBorder,
+    borderRadius: 4,
+  },
+  skeletonBadges: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  footerContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 60,
+  },
+  footerLoadingContainer: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 60,
+  },
+  footerLoadingHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
     gap: 8,
+    marginBottom: 20,
   },
-  footerLoaderText: {
-    fontSize: 14,
+  footerText: {
     color: colors.textSecondary,
+    fontWeight: '500',
   },
   emptyState: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 80,
@@ -599,13 +1181,71 @@ const styles = StyleSheet.create({
   emptyText: {
     fontWeight: '600',
     color: colors.text,
-    marginTop: 16,
+    marginBottom: 8,
     textAlign: 'center',
+    marginTop: 16,
   },
   emptySubtext: {
     color: colors.textSecondary,
-    marginTop: 8,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
+  },
+  emptyStateButtons: {
+    marginTop: 20,
+    gap: 12,
+    alignItems: 'center',
+  },
+  clearFiltersButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  clearAdvancedButton: {
+    backgroundColor: '#EF4444',
+  },
+  clearFiltersButtonText: {
+    fontWeight: '600',
+    color: colors.headerText,
+  },
+  errorBanner: {
+    position: 'absolute',
+    bottom: 100,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.95)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  errorText: {
+    flex: 1,
+    color: colors.headerText,
+    fontWeight: '600',
+  },
+  retryButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
