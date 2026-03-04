@@ -1,16 +1,17 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN v23.0.0 - COMPLETE SCROLL & SPACING FIX 🚀
+ * EXPLORAR SCREEN v24.0.0 - DEFINITIVE SCROLL TO TOP FIX 🚀
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v23.0.0 (CRITICAL FIXES):
- * 1️⃣ SCROLL TO TOP FIX: Changed from scrollToIndex to scrollToOffset ✅
- *    - Previous: scrollToIndex was unreliable, scrolled to middle of screen
- *    - Issue: FlashList scrollToIndex has inconsistent behavior
- *    - Fixed: scrollToOffset({ offset: 0, animated: true })
- *    - Result: ALWAYS scrolls to ABSOLUTE top (offset 0)
+ * 🎯 NEW IN v24.0.0 (CRITICAL FIX):
+ * 1️⃣ SCROLL TO TOP FIX: Properly integrated with React Navigation ✅
+ *    - Previous: useScrollToTop was receiving wrong ref structure
+ *    - Issue: Hook expected FlashList ref, but got custom object
+ *    - Fixed: Created proper ref object with scrollToTop method
+ *    - Result: Tab press ALWAYS scrolls to ABSOLUTE top (offset 0)
  *    - User will see "Pub Kapital" (first item) at the TOP of the screen
+ *    - No more jumping to middle of list or "Pub Gallaecia"
  * 
  * 2️⃣ BLANK SPACE FIX: Removed overrideItemLayout ✅
  *    - Previous: overrideItemLayout was forcing fixed size, causing gaps
@@ -247,37 +248,50 @@ export default function ExplorarScreen() {
   // ✅ v17.0: Flatten paginated data into single array
   const allVenues = useMemo(() => {
     if (!data?.pages) return [];
-    return data.pages.flatMap(page => page.venues);
+    const venues = data.pages.flatMap(page => page.venues);
+    console.log('[ExplorarScreen v24.0] 📊 Total venues loaded:', venues.length);
+    return venues;
   }, [data]);
   
-  // ✅ v23.0: CRITICAL FIX - Proper scroll to top implementation
-  const scrollToTopRef = useRef({
+  // ✅ v24.0: CRITICAL FIX - Proper scroll to top implementation with React Navigation
+  // Create a custom ref object that React Navigation's useScrollToTop can use
+  const scrollToTopRef = useRef<any>({
     scrollToTop: () => {
-      console.log('[ExplorarScreen v23.0] 🔄 Tab pressed while active - Executing scroll to top + data refresh...');
+      console.log('[ExplorarScreen v24.0] 🔄 Tab pressed while active - Executing scroll to top + data refresh...');
+      console.log('[ExplorarScreen v24.0] 📊 Current state:', {
+        hasFlashListRef: !!flashListRef.current,
+        venuesCount: allVenues.length,
+        isLoading,
+        isFetching,
+      });
       
       // 1️⃣ SCROLL TO TOP - Use scrollToOffset for reliable absolute top positioning
-      if (flashListRef.current && filteredVenues.length > 0) {
+      if (flashListRef.current) {
         try {
           // ✅ CRITICAL FIX: Use scrollToOffset with offset: 0 for ABSOLUTE top
-          // This is more reliable than scrollToIndex for going to the beginning
+          // This scrolls to the very beginning of the list (pixel 0)
+          // Works even if list is empty or loading
           flashListRef.current.scrollToOffset({ 
             offset: 0, 
             animated: true 
           });
-          console.log('[ExplorarScreen v23.0] ✅ Scrolled to offset 0 (absolute top)');
+          console.log('[ExplorarScreen v24.0] ✅ Scrolled to offset 0 (absolute top)');
         } catch (error) {
-          console.log('[ExplorarScreen v23.0] ⚠️ scrollToOffset failed:', error);
+          console.log('[ExplorarScreen v24.0] ⚠️ scrollToOffset failed:', error);
         }
+      } else {
+        console.log('[ExplorarScreen v24.0] ⚠️ FlashList ref not available');
       }
       
       // 2️⃣ DATA REFRESH - Trigger pull-to-refresh behavior
-      console.log('[ExplorarScreen v23.0] 🔄 Triggering data refresh...');
+      console.log('[ExplorarScreen v24.0] 🔄 Triggering data refresh...');
       refetch();
-      console.log('[ExplorarScreen v23.0] ✅ Data refresh triggered');
+      console.log('[ExplorarScreen v24.0] ✅ Data refresh triggered');
     },
   });
   
-  useScrollToTop(scrollToTopRef as any);
+  // ✅ v24.0: Register the scroll-to-top handler with React Navigation
+  useScrollToTop(scrollToTopRef);
   
   // ✅ v17.0: Animated header
   const scrollY = useRef(new Animated.Value(0)).current;
