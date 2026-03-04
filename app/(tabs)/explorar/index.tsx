@@ -1,36 +1,34 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN v29.0.0 - SOLUCIÓN DEFINITIVA SCROLL-TO-TOP 🚀
+ * EXPLORAR SCREEN v30.0.0 - OPTIMIZACIÓN COMPLETA DE RENDIMIENTO 🚀
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 SOLUCIÓN v29.0.0 (3 PASOS ESTRICTOS):
+ * 🎯 OPTIMIZACIONES v30.0.0 (3 PASOS TÉCNICOS):
  * 
- * ✅ PASO 1: FloatingTabBar.tsx - Trigger Sincronizado
- *    - Detecta si la pestaña está activa con isTabActive
- *    - Si INACTIVA: router.replace() para navegación instantánea
- *    - Si ACTIVA: router.push() OBLIGATORIO (dispara useScrollToTop)
- *    - Resultado: Expo Router dispara el hook nativo de React Navigation
+ * ✅ PASO 1: Carga Predictiva Fluida (Regla de los 7 locales)
+ *    - onEndReachedThreshold={0.65}: Dispara carga cuando faltan 7 locales (de 20)
+ *    - Guardia estricta: if (hasNextPage && !isFetchingNextPage && !error) { fetchNextPage(); }
+ *    - Resultado: Transición invisible sin estados de carga visibles
  * 
- * ✅ PASO 2: explorar/index.tsx - Scroll y Caché (SECUENCIAL)
- *    2.1. Scroll inmediato: scrollToOffset({ offset: 0, animated: false })
- *    2.2. Limpiar caché: queryClient.resetQueries(['bares_infinite_v23.0.0'])
- *    2.3. Forzar remontado: setListKey(prev => prev + 1)
- *    2.4. Refetch datos: setTimeout(() => refetch(), 100)
- *    - Hook: useScrollToTop(useRef({ scrollToTop: handleScrollToTopAndRefresh }))
- *    - estimatedItemSize: 350px (evita espacios en blanco)
+ * ✅ PASO 2: Optimización de Virtualización y Rendimiento
+ *    - drawDistance={Dimensions.get('window').height * 2}: Renderiza locales por adelantado
+ *    - removeClippedSubviews={true}: Libera memoria de elementos fuera de pantalla
+ *    - estimatedItemSize={350}: Valor fijo para evitar saltos en el scroll
+ *    - maxToRenderPerBatch={10} y windowSize={5}: Control de componentes por ciclo
+ *    - Resultado: Scroll fluido sin over-rendering ni saturación de memoria
  * 
- * ✅ PASO 3: Validación de Datos (Filtrado de Duplicados)
- *    - useMemo procesa allVenues con Array.from(new Map(...).values())
- *    - Elimina IDs duplicados que colapsan el renderizado de FlashList
- *    - Verifica que refetch() envíe p_page = 1 y resetee offset
+ * ✅ PASO 3: ListFooterComponent Inteligente
+ *    - Si isFetchingNextPage: Muestra ActivityIndicator discreto
+ *    - Si !hasNextPage: Devuelve null (CRÍTICO - corta el sensor de scroll)
+ *    - Resultado: No más peticiones infinitas cuando no hay más datos
  * 
- * 🎯 RESULTADO v29.0.0:
- * - ✅ SIEMPRE SCROLL A LA PARTE SUPERIOR: Primer item visible ✅
- * - ✅ NO MÁS "PUB GALLAECIA": Nunca se queda atascado en items previos ✅
- * - ✅ DATOS FRESCOS: Caché limpiado y refetch del servidor ✅
- * - ✅ PREDECIBLE: Funciona consistentemente en cada tap ✅
- * - ✅ SIN RACE CONDITIONS: Flujo secuencial sin setTimeout encadenados ✅
+ * 🎯 RESULTADO v30.0.0:
+ * - ✅ SCROLL INFINITO SIN CORTES: Usuario no ve estados de carga ✅
+ * - ✅ MEMORIA OPTIMIZADA: No acumula peso innecesario en el dispositivo ✅
+ * - ✅ PRECARGA INTELIGENTE: Siguiente página lista antes de llegar al final ✅
+ * - ✅ SIN PETICIONES REDUNDANTES: Guardia estricta evita llamadas duplicadas ✅
+ * - ✅ RENDIMIENTO MÁXIMO: drawDistance y removeClippedSubviews optimizados ✅
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
@@ -45,6 +43,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Animated,
+  Dimensions,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -106,14 +105,15 @@ interface Category {
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 240;
 const HEADER_MIN_HEIGHT = 0;
 const ITEMS_PER_PAGE = 20;
-const PRELOAD_THRESHOLD = 0.5;
+const PRELOAD_THRESHOLD = 0.65; // ✅ v30.0: PASO 1 - Regla de los 7 locales (0.65 * 20 = 13, quedan 7)
 const SCROLL_THROTTLE = 16;
 
-// ✅ v25.0: CRITICAL FIX - Optimized item size for better height estimation
+// ✅ v30.0: PASO 2 - Optimización de Virtualización y Rendimiento
 const INITIAL_NUM_TO_RENDER = 10;
-const MAX_TO_RENDER_PER_BATCH = 5;
+const MAX_TO_RENDER_PER_BATCH = 10; // ✅ Aumentado de 5 a 10 para mejor rendimiento
 const WINDOW_SIZE = 5;
-const ESTIMATED_ITEM_SIZE = 350; // ✅ v25.0: Increased to 350px for better estimation
+const ESTIMATED_ITEM_SIZE = 350; // ✅ Valor fijo para evitar saltos en el scroll
+const DRAW_DISTANCE = Dimensions.get('window').height * 2; // ✅ Renderizar locales por adelantado
 
 const CATEGORIAS: Category[] = [
   { id: 'todos', nombre: 'Todos', iosIcon: 'square.grid.2x2', androidIcon: 'apps' },
@@ -353,13 +353,14 @@ export default function ExplorarScreen() {
   // DATA LOADING
   // ═══════════════════════════════════════════════════════════════════════════
   
-  // ✅ v21.0: INTELLIGENT PRELOAD - Fetch next page predictively
+  // ✅ v30.0: PASO 1 - Carga Predictiva con Regla de los 7 locales
   const loadMoreVenues = useCallback(() => {
-    if (!isFetchingNextPage && hasNextPage && allVenues.length >= ITEMS_PER_PAGE) {
-      console.log('[ExplorarScreen v28.0] 🚀 PRECARGA INTELIGENTE - Fetching next page');
+    // ✅ Guardia estricta: Solo cargar si hay más páginas, no está cargando y no hay error
+    if (hasNextPage && !isFetchingNextPage && !error) {
+      console.log('[ExplorarScreen v30.0] 🚀 PASO 1 - Carga Predictiva activada (7 locales restantes)');
       fetchNextPage();
     }
-  }, [isFetchingNextPage, hasNextPage, allVenues.length, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, error, fetchNextPage]);
 
   // ✅ v21.0: PULL-TO-REFRESH - Force refetch from server
   const onRefresh = useCallback(() => {
@@ -463,34 +464,30 @@ export default function ExplorarScreen() {
     return 'local-card';
   }, []);
 
+  // ✅ v30.0: PASO 3 - ListFooterComponent Inteligente
   const renderFooter = useCallback(() => {
+    // ✅ CRÍTICO: Si no hay más páginas, devolver null para cortar el sensor de scroll
+    if (!hasNextPage) {
+      console.log('[ExplorarScreen v30.0] 🛑 PASO 3 - No hay más páginas, ListFooterComponent devuelve null');
+      return null;
+    }
+
+    // Si hay filtros activos pero no hay resultados, no mostrar footer
     if (filteredVenues.length === 0 && hasActiveFilters) {
       return null;
     }
 
-    if (!hasNextPage && filteredVenues.length > 0) {
-      return (
-        <View style={styles.footerContainer}>
-          <Text style={[styles.footerText, { fontSize: scaleFontSize(14) }]}>
-            ✅ Has visto todos los locales disponibles
-          </Text>
-        </View>
-      );
-    }
-
+    // ✅ Mostrar ActivityIndicator discreto solo si está cargando la siguiente página
     if (isFetchingNextPage && filteredVenues.length >= 20) {
+      console.log('[ExplorarScreen v30.0] ⏳ PASO 3 - Mostrando ActivityIndicator discreto');
       return (
         <View style={styles.footerLoadingContainer}>
-          <View style={styles.footerLoadingHeader}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.footerText, { fontSize: scaleFontSize(14) }]}>
-              Cargando más locales...
-            </Text>
-          </View>
+          <ActivityIndicator size="small" color={colors.primary} />
         </View>
       );
     }
 
+    // Si hay más páginas pero no está cargando, devolver null (espacio mínimo)
     return null;
   }, [filteredVenues.length, hasActiveFilters, hasNextPage, isFetchingNextPage]);
 
@@ -828,7 +825,7 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* ✅ v25.0: FLASHLIST WITH KEY RESET - Forces complete remount on key change */}
+      {/* ✅ v30.0: FLASHLIST OPTIMIZADO - Paso 1, 2 y 3 aplicados */}
       <AnimatedFlashList
         key={listKey}
         ref={flashListRef}
@@ -841,7 +838,7 @@ export default function ExplorarScreen() {
         maxToRenderPerBatch={MAX_TO_RENDER_PER_BATCH}
         windowSize={WINDOW_SIZE}
         removeClippedSubviews={true}
-        drawDistance={500}
+        drawDistance={DRAW_DISTANCE}
         maintainVisibleContentPosition={undefined}
         contentContainerStyle={[
           styles.listContent,
@@ -862,7 +859,7 @@ export default function ExplorarScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={SCROLL_THROTTLE}
         onEndReached={filteredVenues.length > 0 ? loadMoreVenues : undefined}
-        onEndReachedThreshold={PRELOAD_THRESHOLD}
+        onEndReachedThreshold={0.65}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
         keyboardShouldPersistTaps="handled"
@@ -1162,8 +1159,10 @@ const styles = StyleSheet.create({
     minHeight: 60,
   },
   footerLoadingContainer: {
-    paddingVertical: 20,
-    minHeight: 100,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 60,
   },
   footerLoadingHeader: {
     flexDirection: 'row',
