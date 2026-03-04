@@ -97,13 +97,13 @@ const LocalCard = memo<LocalCardProps>(({
 }) => {
   const imagenPrincipalRaw = local.imagenes?.[0] || local.imagen_url;
   
-  // ✅ v337.0: Optimize image with WebP format and exact dimensions
+  // ✅ v338.0: Optimize image with WebP format and aggressive compression
   const { width: optimalWidth, height: optimalHeight } = getOptimalImageDimensions('card');
   const imagenPrincipal = getOptimizedImageUrl(
     imagenPrincipalRaw,
     optimalWidth,
     optimalHeight,
-    80 // Quality: 80% (good balance between size and quality)
+    70 // Quality: 70% (aggressive compression for faster load)
   );
 
   const shouldDimImage = () => {

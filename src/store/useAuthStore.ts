@@ -157,60 +157,88 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   
-  // Initialize auth (called once on app start)
+  // ✅ v16.0: OPTIMIZED INITIALIZATION - Faster session check with timeout
   initialize: async () => {
+    const startTime = performance.now();
+    console.log('[AuthStore v16.0] 🚀 Initializing auth (OPTIMIZED)...');
+    
     try {
-      // Android: Instant session load (no validation delay)
-      if (Platform.OS === 'android') {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
-        if (currentSession) {
-          set({ session: currentSession, sessionReady: true });
-          
-          // Background user load
-          setTimeout(() => {
-            getCurrentUser().then(({ user: userData, error: userError }) => {
-              if (!userError && userData) {
-                set({ user: userData });
-              }
-            });
-          }, 100);
-        }
-        
-        set({ loading: false });
-        return;
-      }
+      // ✅ OPTIMIZATION 1: Add timeout to session check (5 seconds max)
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise<{ data: { session: null }, error: Error }>((resolve) => {
+        setTimeout(() => {
+          console.log('[AuthStore v16.0] ⏱️ Session check timeout (5s)');
+          resolve({ data: { session: null }, error: new Error('Timeout') });
+        }, 5000);
+      });
       
-      // iOS: Full validation
-      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      const { data: { session: currentSession }, error: sessionError } = await Promise.race([
+        sessionPromise,
+        timeoutPromise
+      ]);
       
-      if (sessionError) {
-        set({ loading: false });
+      const sessionTime = performance.now() - startTime;
+      console.log('[AuthStore v16.0] ⚡ Session check completed in', `${sessionTime.toFixed(0)}ms`);
+      
+      if (sessionError && sessionError.message !== 'Timeout') {
+        console.error('[AuthStore v16.0] ❌ Session error:', sessionError);
+        set({ loading: false, sessionReady: true });
         return;
       }
       
       if (currentSession) {
+        console.log('[AuthStore v16.0] ✅ Session found');
         set({ session: currentSession, sessionReady: true });
         
-        const { user: userData, error: userError } = await getCurrentUser();
-        
-        if (!userError && userData) {
-          set({ user: userData });
+        // ✅ OPTIMIZATION 2: Load user profile in background (non-blocking)
+        setTimeout(async () => {
+          const profileStart = performance.now();
           
-          // iOS push notifications
-          setTimeout(() => {
-            registerForPushNotifications()
-              .then(pushToken => {
-                if (pushToken) {
-                  savePushToken(userData.id, pushToken).catch(() => {});
-                }
-              })
-              .catch(() => {});
-          }, 10000);
-        }
+          // Add timeout to profile fetch (3 seconds max)
+          const profilePromise = getCurrentUser();
+          const profileTimeoutPromise = new Promise<{ user: null, error: Error }>((resolve) => {
+            setTimeout(() => {
+              console.log('[AuthStore v16.0] ⏱️ Profile fetch timeout (3s)');
+              resolve({ user: null, error: new Error('Timeout') });
+            }, 3000);
+          });
+          
+          const { user: userData, error: userError } = await Promise.race([
+            profilePromise,
+            profileTimeoutPromise
+          ]);
+          
+          const profileTime = performance.now() - profileStart;
+          
+          if (!userError && userData) {
+            console.log('[AuthStore v16.0] ✅ User profile loaded in', `${profileTime.toFixed(0)}ms`);
+            set({ user: userData });
+            
+            // ✅ OPTIMIZATION 3: Push notifications in background (iOS only, delayed)
+            if (Platform.OS === 'ios') {
+              setTimeout(() => {
+                registerForPushNotifications()
+                  .then(pushToken => {
+                    if (pushToken) {
+                      savePushToken(userData.id, pushToken).catch(() => {});
+                    }
+                  })
+                  .catch(() => {});
+              }, 10000); // 10 second delay
+            }
+          } else if (userError && userError.message !== 'Timeout') {
+            console.error('[AuthStore v16.0] ❌ Profile error:', userError);
+          }
+        }, 100); // Start profile load after 100ms
+      } else {
+        console.log('[AuthStore v16.0] ℹ️ No session found');
+        set({ sessionReady: true });
       }
+      
+      const totalTime = performance.now() - startTime;
+      console.log('[AuthStore v16.0] ✅ Auth initialized in', `${totalTime.toFixed(0)}ms`);
     } catch (err) {
-      // Silent error
+      console.error('[AuthStore v16.0] ❌ Initialization error:', err);
     } finally {
       set({ loading: false });
     }

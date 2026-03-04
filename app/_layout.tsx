@@ -23,6 +23,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { supabaseStorage } from '@/src/lib/supabaseStorage';
+import { supabase } from '@/utils/supabase';
 
 /**
  * ✅ ROOT LAYOUT v18.2 - TANSTACK QUERY ASYNC PERSISTER (PASO 4.2 COMPLETADO)
@@ -161,23 +162,74 @@ const persister = createAsyncStoragePersister({
 console.log('[TanStack Query] ✅ Async cache persister initialized successfully');
 
 export default function RootLayout() {
-  // ✅ v17.0: Initialize Zustand stores (replaces Provider initialization)
+  // ✅ v19.0: Initialize Zustand stores + PRELOAD DATA IN BACKGROUND
   useEffect(() => {
-    console.log('[RootLayout v17.0] 🚀 Initializing Zustand stores...');
+    console.log('[RootLayout v19.0] 🚀 Initializing Zustand stores...');
     
     // Initialize auth store
     useAuthStore.getState().initialize();
-    console.log('[RootLayout v17.0] ✅ Auth store initialized');
+    console.log('[RootLayout v19.0] ✅ Auth store initialized');
     
     // Initialize global data store
     useGlobalDataStore.getState().initialize();
-    console.log('[RootLayout v17.0] ✅ Global data store initialized');
+    console.log('[RootLayout v19.0] ✅ Global data store initialized');
     
     // Initialize filter store (load dynamic options)
     useFilterStore.getState().refreshDynamicOptions();
-    console.log('[RootLayout v17.0] ✅ Filter store initialized');
+    console.log('[RootLayout v19.0] ✅ Filter store initialized');
     
-    console.log('[RootLayout v17.0] 🎉 All Zustand stores ready!');
+    // ✅ v19.0: PRELOAD DATA IN BACKGROUND - Fetch locales data when app opens
+    // This ensures data is ready when user navigates to Explorar tab
+    setTimeout(async () => {
+      try {
+        console.log('[RootLayout v19.0] 🚀 Preloading locales data in background...');
+        
+        // Prefetch the first page of locales (will be cached by TanStack Query)
+        await queryClient.prefetchInfiniteQuery({
+          queryKey: ['bares_infinite_v15.0.0', null, null, null, '', {}],
+          queryFn: async () => {
+            const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity_cursor', {
+              p_user_lat: 40.4168, // Madrid default
+              p_user_lng: -3.7038,
+              p_limit: 20,
+              p_last_id: null,
+              p_last_sorting_tier: null,
+              p_last_distance_km: null,
+              p_category_filter: null,
+              p_servicios_filter: null,
+              p_ambiente_filter: null,
+              p_clientela_filter: null,
+              p_comunidad_filter: null,
+              p_provincia_filter: null,
+              p_max_distance_km: null,
+              p_search_query: null,
+            });
+            
+            if (error) throw error;
+            
+            const venues = data || [];
+            console.log('[RootLayout v19.0] ✅ Preloaded', venues.length, 'locales');
+            
+            return {
+              venues,
+              nextCursor: venues.length === 20 ? {
+                last_id: venues[venues.length - 1].id,
+                last_tier: venues[venues.length - 1].sorting_tier,
+                last_distance: venues[venues.length - 1].distancia,
+                offset: 20,
+              } : undefined,
+            };
+          },
+          initialPageParam: undefined,
+        });
+        
+        console.log('[RootLayout v19.0] ✅ Data preload complete - Explorar will load instantly!');
+      } catch (error) {
+        console.log('[RootLayout v19.0] ⚠️ Data preload failed (non-critical):', error);
+      }
+    }, 2000); // Start preload after 2 seconds (after auth is ready)
+    
+    console.log('[RootLayout v19.0] 🎉 All Zustand stores ready!');
   }, []);
 
   // ✅ ANDROID FIX v13.0: Set global system navigation bar color to WHITE (no blue flash)

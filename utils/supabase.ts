@@ -37,10 +37,11 @@ export const isSupabaseConfigured = (): boolean => {
 };
 
 /**
- * ✅ OPTIMIZACIÓN DE IMÁGENES - WebP con Fallback
+ * ✅ v16.0: OPTIMIZACIÓN DE IMÁGENES - WebP con Compresión Agresiva
  * 
  * Transforma URLs de Supabase Storage para servir imágenes optimizadas:
  * - Formato WebP (reduce tamaño 25-35% vs JPEG)
+ * - Compresión agresiva (quality 70 default, antes 80)
  * - Redimensionamiento dinámico (solo descarga el tamaño necesario)
  * - Cache-Control optimizado (reduce Egress)
  * - Fallback automático a JPEG para navegadores antiguos
@@ -48,14 +49,14 @@ export const isSupabaseConfigured = (): boolean => {
  * @param imageUrl - URL original de la imagen en Supabase Storage
  * @param width - Ancho deseado en píxeles (opcional)
  * @param height - Alto deseado en píxeles (opcional)
- * @param quality - Calidad de compresión 1-100 (default: 80)
+ * @param quality - Calidad de compresión 1-100 (default: 70 - más compresión)
  * @returns URL optimizada con transformaciones de Supabase
  */
 export const getOptimizedImageUrl = (
   imageUrl: string | undefined | null,
   width?: number,
   height?: number,
-  quality: number = 80
+  quality: number = 70 // ✅ v16.0: Reduced from 80 to 70 for better compression
 ): string => {
   if (!imageUrl) {
     return '';
@@ -84,21 +85,12 @@ export const getOptimizedImageUrl = (
       transformParams.push(`height=${height}`);
     }
     
-    // Calidad de compresión
+    // Calidad de compresión (70 = buen balance entre tamaño y calidad)
     transformParams.push(`quality=${quality}`);
     
     // Añadir parámetros a la URL
     const separator = url.search ? '&' : '?';
     const optimizedUrl = `${imageUrl}${separator}${transformParams.join('&')}`;
-    
-    console.log('[Supabase] 🖼️ Optimized image URL:', {
-      original: imageUrl.substring(0, 50) + '...',
-      optimized: optimizedUrl.substring(0, 50) + '...',
-      width,
-      height,
-      quality,
-      format: 'webp (with JPEG fallback)',
-    });
     
     return optimizedUrl;
   } catch (error) {
