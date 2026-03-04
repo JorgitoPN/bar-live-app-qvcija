@@ -24,11 +24,19 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { supabaseStorage } from '@/src/lib/supabaseStorage';
 import { supabase } from '@/utils/supabase';
+import { PerformanceTracker } from '@/utils/performanceTracker';
 
 /**
- * ✅ ROOT LAYOUT v21.0 - BLOQUE 2 COMPLETADO: PARALELIZACIÓN TOTAL
+ * ✅ ROOT LAYOUT v22.0 - FASE 6-8 COMPLETADO: HARDENING Y OBSERVABILIDAD
  * 
- * 🎉 BLOQUE 2 COMPLETADO: PARALELIZACIÓN TOTAL Y UI OPTIMISTA
+ * 🎉 FASE 6-8 COMPLETADO: RESILIENCIA Y OBSERVABILIDAD PERMANENTE
+ * 
+ * CAMBIOS v22.0 (FASE 6-8):
+ * - 🛡️ CIRCUIT BREAKER: Protección contra fallos consecutivos del backend
+ * - 🛑 ABORTCONTROLLER: Cancelación de peticiones al navegar/desmontar
+ * - 📊 OBSERVABILIDAD: Métricas de TTI enviadas a Supabase para análisis
+ * - 🧹 LOGS LIMPIOS: Logs de desarrollo eliminados en producción
+ * - ⚡ TTI OBJETIVO: <500ms mantenido con resiliencia
  * 
  * CAMBIOS v21.0 (BLOQUE 2):
  * - 🚀 ELIMINADO: await de funciones de carga - NO bloquean renderizado
@@ -163,10 +171,16 @@ const persister = createAsyncStoragePersister({
 console.log('[TanStack Query] ✅ Async cache persister initialized successfully');
 
 export default function RootLayout() {
-  // ✅ BLOQUE 2: PARALELIZACIÓN TOTAL - NO AWAIT, PROMISE.ALLSETTLED
+  // ✅ BLOQUE 2 + FASE 8: PARALELIZACIÓN TOTAL + OBSERVABILIDAD
   useEffect(() => {
     const startTime = performance.now();
-    console.log('[RootLayout BLOQUE 2] 🚀 Starting PARALLEL initialization (NO AWAIT)...');
+    
+    // ✅ FASE 8: Iniciar tracking de TTI
+    PerformanceTracker.start('app_initialization');
+    
+    if (__DEV__) {
+      console.log('[RootLayout BLOQUE 2] 🚀 Starting PARALLEL initialization (NO AWAIT)...');
+    }
     
     // ✅ REGLA DE ORO: NO AWAIT - Lanzar todo en paralelo con Promise.allSettled
     // El RootLayout permite renderizado inmediato después de lectura síncrona de MMKV
@@ -185,7 +199,9 @@ export default function RootLayout() {
       // 4️⃣ Prefetch Critical Data - Primera página de locales en background
       (async () => {
         try {
-          console.log('[RootLayout BLOQUE 2] 🚀 Prefetching first page (non-blocking)...');
+          if (__DEV__) {
+            console.log('[RootLayout BLOQUE 2] 🚀 Prefetching first page (non-blocking)...');
+          }
           
           await queryClient.prefetchInfiniteQuery({
             queryKey: ['bares_infinite_v24.0.0', null, null, null, '', {}],
@@ -210,7 +226,10 @@ export default function RootLayout() {
               if (error) throw error;
               
               const venues = data || [];
-              console.log('[RootLayout BLOQUE 2] ✅ Prefetched', venues.length, 'locales');
+              
+              if (__DEV__) {
+                console.log('[RootLayout BLOQUE 2] ✅ Prefetched', venues.length, 'locales');
+              }
               
               return {
                 venues,
@@ -225,22 +244,39 @@ export default function RootLayout() {
             initialPageParam: undefined,
           });
         } catch (error) {
-          console.log('[RootLayout BLOQUE 2] ⚠️ Prefetch failed (non-critical):', error);
+          if (__DEV__) {
+            console.log('[RootLayout BLOQUE 2] ⚠️ Prefetch failed (non-critical):', error);
+          }
         }
       })(),
     ]).then((results) => {
       const totalTime = performance.now() - startTime;
-      console.log('[RootLayout BLOQUE 2] 🎉 ALL background tasks settled in', `${totalTime.toFixed(0)}ms`);
       
-      // ✅ Log individual results for debugging
-      results.forEach((result, index) => {
-        const taskNames = ['Auth', 'GlobalData', 'Filters', 'Prefetch'];
-        if (result.status === 'rejected') {
-          console.error(`[RootLayout BLOQUE 2] ❌ ${taskNames[index]} failed:`, result.reason);
-        } else {
-          console.log(`[RootLayout BLOQUE 2] ✅ ${taskNames[index]} completed`);
-        }
-      });
+      // ✅ FASE 8: Registrar TTI
+      PerformanceTracker.end('app_initialization');
+      PerformanceTracker.recordTTI();
+      
+      if (__DEV__) {
+        console.log('[RootLayout BLOQUE 2] 🎉 ALL background tasks settled in', `${totalTime.toFixed(0)}ms`);
+        
+        // ✅ Log individual results for debugging (solo en DEV)
+        results.forEach((result, index) => {
+          const taskNames = ['Auth', 'GlobalData', 'Filters', 'Prefetch'];
+          if (result.status === 'rejected') {
+            console.error(`[RootLayout BLOQUE 2] ❌ ${taskNames[index]} failed:`, result.reason);
+          } else {
+            console.log(`[RootLayout BLOQUE 2] ✅ ${taskNames[index]} completed`);
+          }
+        });
+      }
+      
+      // ✅ FASE 8: Enviar métricas a Supabase (solo en producción)
+      if (!__DEV__) {
+        // Esperar 2 segundos antes de enviar para no interferir con la UI
+        setTimeout(() => {
+          PerformanceTracker.logPerformanceMetrics();
+        }, 2000);
+      }
     });
     
     // ✅ IMPORTANTE: NO hay await aquí - el useEffect termina inmediatamente

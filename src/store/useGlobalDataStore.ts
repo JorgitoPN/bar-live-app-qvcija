@@ -37,6 +37,13 @@ const MAX_CACHE_ITEMS = {
   OFERTAS: Platform.OS === 'android' ? 5 : 15,
 };
 
+// ✅ FASE 6: Circuit Breaker State
+interface CircuitBreakerState {
+  failures: number;
+  lastFailureTime: number;
+  isOpen: boolean;
+}
+
 interface GlobalDataState {
   // State
   locales: Local[];
@@ -47,6 +54,9 @@ interface GlobalDataState {
   isRefreshing: boolean;
   hasLoadedOnce: boolean;
   lastUpdate: number;
+  
+  // ✅ FASE 6: Circuit Breaker State
+  circuitBreaker: CircuitBreakerState;
   
   // Actions
   setLocales: (locales: Local[]) => void;
@@ -59,6 +69,11 @@ interface GlobalDataState {
   updatePost: (postId: string, updates: Partial<any>) => void;
   loadLocalesInBounds: (bounds: { north: number; south: number; east: number; west: number }) => Promise<Local[]>;
   initialize: () => Promise<void>;
+  
+  // ✅ FASE 6: Circuit Breaker Actions
+  recordFailure: () => void;
+  recordSuccess: () => void;
+  resetCircuitBreaker: () => void;
 }
 
 const transformarLocal = (local: any): Local => {
@@ -82,6 +97,11 @@ const transformarLocal = (local: any): Local => {
   };
 };
 
+// ✅ FASE 6: Circuit Breaker Constants
+const CIRCUIT_BREAKER_THRESHOLD = 3; // Fallos consecutivos antes de abrir
+const CIRCUIT_BREAKER_TIMEOUT = 30000; // 30 segundos antes de intentar de nuevo
+const CIRCUIT_BREAKER_RESET_TIME = 60000; // 1 minuto para resetear contador
+
 export const useGlobalDataStore = create<GlobalDataState>((set, get) => ({
   // Initial state
   locales: [],
@@ -92,6 +112,13 @@ export const useGlobalDataStore = create<GlobalDataState>((set, get) => ({
   isRefreshing: false,
   hasLoadedOnce: false,
   lastUpdate: 0,
+  
+  // ✅ FASE 6: Circuit Breaker Initial State
+  circuitBreaker: {
+    failures: 0,
+    lastFailureTime: 0,
+    isOpen: false,
+  },
   
   // Simple setters
   setLocales: (locales) => set({ locales }),
@@ -117,10 +144,93 @@ export const useGlobalDataStore = create<GlobalDataState>((set, get) => ({
     set({ posts: updatedPosts });
   },
   
+  // ✅ FASE 6: Circuit Breaker Actions
+  recordFailure: () => {
+    const { circuitBreaker } = get();
+    const now = Date.now();
+    
+    // Reset contador si ha pasado suficiente tiempo
+    if (now - circuitBreaker.lastFailureTime > CIRCUIT_BREAKER_RESET_TIME) {
+      set({
+        circuitBreaker: {
+          failures: 1,
+          lastFailureTime: now,
+          isOpen: false,
+        },
+      });
+      console.log('[GlobalDataStore FASE 6] 🔄 Circuit Breaker: Primer fallo después de reset');
+      return;
+    }
+    
+    const newFailures = circuitBreaker.failures + 1;
+    const shouldOpen = newFailures >= CIRCUIT_BREAKER_THRESHOLD;
+    
+    set({
+      circuitBreaker: {
+        failures: newFailures,
+        lastFailureTime: now,
+        isOpen: shouldOpen,
+      },
+    });
+    
+    if (shouldOpen) {
+      console.error('[GlobalDataStore FASE 6] 🚨 Circuit Breaker ABIERTO:', newFailures, 'fallos consecutivos');
+    } else {
+      console.warn('[GlobalDataStore FASE 6] ⚠️ Circuit Breaker:', newFailures, 'fallos');
+    }
+  },
+  
+  recordSuccess: () => {
+    const { circuitBreaker } = get();
+    
+    if (circuitBreaker.failures > 0 || circuitBreaker.isOpen) {
+      console.log('[GlobalDataStore FASE 6] ✅ Circuit Breaker: Éxito - reseteando contador');
+      set({
+        circuitBreaker: {
+          failures: 0,
+          lastFailureTime: 0,
+          isOpen: false,
+        },
+      });
+    }
+  },
+  
+  resetCircuitBreaker: () => {
+    console.log('[GlobalDataStore FASE 6] 🔄 Circuit Breaker: Reset manual');
+    set({
+      circuitBreaker: {
+        failures: 0,
+        lastFailureTime: 0,
+        isOpen: false,
+      },
+    });
+  },
+  
   // Load locales in map bounds
   loadLocalesInBounds: async (bounds) => {
+    const { circuitBreaker, recordFailure, recordSuccess } = get();
+    
+    // ✅ FASE 6: Verificar Circuit Breaker
+    if (circuitBreaker.isOpen) {
+      const timeSinceLastFailure = Date.now() - circuitBreaker.lastFailureTime;
+      
+      if (timeSinceLastFailure < CIRCUIT_BREAKER_TIMEOUT) {
+        console.warn('[GlobalDataStore FASE 6] 🚫 Circuit Breaker ABIERTO - rechazando petición');
+        return [];
+      }
+      
+      console.log('[GlobalDataStore FASE 6] 🔄 Circuit Breaker: Intentando reconectar...');
+    }
+    
     try {
       const mapLimit = Platform.OS === 'android' ? 75 : 200;
+      
+      // ✅ FASE 7: AbortController con timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log('[GlobalDataStore FASE 7] ⏱️ Timeout en loadLocalesInBounds');
+        controller.abort();
+      }, 5000);
       
       const { data, error } = await supabase
         .from('locales')
@@ -132,12 +242,23 @@ export const useGlobalDataStore = create<GlobalDataState>((set, get) => ({
         .lte('longitud', bounds.east)
         .order('destacado', { ascending: false })
         .order('rating', { ascending: false })
-        .limit(mapLimit);
+        .limit(mapLimit)
+        .abortSignal(controller.signal);
+      
+      clearTimeout(timeoutId);
 
       if (error) throw error;
+      
+      // ✅ FASE 6: Registrar éxito
+      recordSuccess();
 
       return (data || []).map(transformarLocal);
-    } catch (error) {
+    } catch (error: any) {
+      // ✅ FASE 6: Registrar fallo
+      if (error.name !== 'AbortError') {
+        recordFailure();
+      }
+      
       return [];
     }
   },

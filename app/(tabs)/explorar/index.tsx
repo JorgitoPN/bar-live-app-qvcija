@@ -70,6 +70,7 @@ import LocalCardOptimizedV2 from '@/components/explorar/LocalCardOptimizedV2';
 import { useBaresQuery } from '@/hooks/useBaresQuery';
 import { useScrollToTop } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
+import { useGlobalDataStore } from '@/src/store/useGlobalDataStore';
 
 // ✅ Animated FlashList for native scroll events
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
@@ -224,6 +225,10 @@ export default function ExplorarScreen() {
   const setSelectedCategory = useFilterStore(state => state.setSelectedCategory);
   const limpiarFiltros = useFilterStore(state => state.limpiarFiltros);
   const hasActiveFilters = useFilterStore(state => state.hasActiveFilters);
+  
+  // ✅ FASE 6: Circuit Breaker State
+  const circuitBreaker = useGlobalDataStore(state => state.circuitBreaker);
+  const resetCircuitBreaker = useGlobalDataStore(state => state.resetCircuitBreaker);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // STATE MANAGEMENT
@@ -546,6 +551,50 @@ export default function ExplorarScreen() {
 
   // ✅ BLOQUE 2: UI OPTIMISTA - Skeleton inmediato, sin spinner de pantalla completa
   const renderEmpty = useCallback(() => {
+    // ✅ FASE 6: Circuit Breaker - Mostrar error amigable si está abierto
+    if (circuitBreaker.isOpen) {
+      const timeSinceLastFailure = Date.now() - circuitBreaker.lastFailureTime;
+      const secondsRemaining = Math.ceil((30000 - timeSinceLastFailure) / 1000);
+      
+      return (
+        <View style={styles.emptyState}>
+          <IconSymbol
+            ios_icon_name="exclamationmark.triangle.fill"
+            android_material_icon_name="error"
+            size={64}
+            color="#EF4444"
+          />
+          <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>
+            Servicio temporalmente no disponible
+          </Text>
+          <Text style={[styles.emptySubtext, { fontSize: scaleFontSize(14) }]}>
+            Estamos experimentando problemas de conexión.{'\n'}
+            {secondsRemaining > 0 
+              ? `Reintentando en ${secondsRemaining} segundos...` 
+              : 'Puedes intentar de nuevo ahora.'}
+          </Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => {
+              resetCircuitBreaker();
+              refetch();
+            }}
+            activeOpacity={0.7}
+          >
+            <IconSymbol 
+              ios_icon_name="arrow.clockwise" 
+              android_material_icon_name="refresh" 
+              size={scaleIconSize(18)} 
+              color={colors.headerText} 
+            />
+            <Text style={[styles.retryButtonText, { fontSize: scaleFontSize(14) }]}>
+              Reintentar ahora
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    
     // ✅ BLOQUE 2: Mostrar skeleton INMEDIATAMENTE durante carga inicial
     // NO mostrar spinner de pantalla completa - el usuario ve la estructura de la app al instante
     if ((isLoading || isFetching) && allVenues.length === 0 && !data) {

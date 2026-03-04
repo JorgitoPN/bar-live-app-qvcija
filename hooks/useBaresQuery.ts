@@ -89,11 +89,34 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
   const queryClient = useQueryClient();
   const queryKey = generateQueryKey(params);
   
+  // ✅ FASE 7: AbortController para cancelación de peticiones
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+  
+  // ✅ FASE 7: Cleanup al desmontar o cambiar parámetros
+  React.useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        console.log('[useBaresQuery FASE 7] 🛑 Aborting pending request on unmount/param change');
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, [queryKey]);
+  
   // ✅ MAIN QUERY - Optimized for production
   const query = useInfiniteQuery({
     queryKey,
     
     queryFn: async ({ pageParam, signal }) => {
+      // ✅ FASE 7: Crear nuevo AbortController para esta petición
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      
+      // ✅ FASE 7: Conectar signal de React Query con nuestro controller
+      signal?.addEventListener('abort', () => {
+        console.log('[useBaresQuery FASE 7] 🛑 Query cancelled by React Query');
+        controller.abort();
+      });
       const isFirstPage = !pageParam;
       const pageNumber = isFirstPage ? 1 : Math.floor((pageParam.offset || 0) / pageSize) + 1;
       
@@ -119,11 +142,7 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         categoryFilter = [categoryMapping[selectedCategory] || selectedCategory];
       }
       
-      // ✅ Call RPC with timeout protection
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Query timeout')), QUERY_TIMEOUT);
-      });
-      
+      // ✅ FASE 7: Call RPC with AbortController signal
       const queryPromise = supabase.rpc('get_sorted_locales_by_proximity_cursor', {
         p_user_lat: userLocation?.latitude || 40.4168,
         p_user_lng: userLocation?.longitude || -3.7038,
@@ -139,57 +158,79 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         p_provincia_filter: globalFiltros.provincia || null,
         p_max_distance_km: globalFiltros.distancia || null,
         p_search_query: searchQuery || null,
-      });
+      }).abortSignal(controller.signal);
       
-      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      // ✅ FASE 7: Timeout con AbortController
+      const timeoutId = setTimeout(() => {
+        console.log('[useBaresQuery FASE 7] ⏱️ Query timeout - aborting');
+        controller.abort();
+      }, QUERY_TIMEOUT);
       
-      const endTime = performance.now();
-      const loadTime = endTime - startTime;
-      
-      if (error) {
-        console.error('[useBaresQuery v24.0.0] ❌ RPC Error:', error);
+      try {
+        const { data, error } = await queryPromise;
+        clearTimeout(timeoutId);
+        
+        // ✅ FASE 7: Limpiar referencia después de completar
+        abortControllerRef.current = null;
+        
+        const endTime = performance.now();
+        const loadTime = endTime - startTime;
+        
+        if (error) {
+          console.error('[useBaresQuery v24.0.0] ❌ RPC Error:', error);
+          throw error;
+        }
+        
+        const venues = data || [];
+        
+        // ✅ Performance monitoring
+        console.log('[useBaresQuery v24.0.0] ✅ Loaded', venues.length, 'venues in', `${loadTime.toFixed(0)}ms`, {
+          isFirstPage,
+          performance: loadTime < 500 ? '⚡ FAST' : loadTime < 1000 ? '✅ GOOD' : '⚠️ SLOW',
+        });
+        
+        // ✅ Enrich venues with computed properties
+        const enrichedVenues = venues.map((venue: any) => ({
+          ...venue,
+          esta_abierto: venue.esta_abierto !== undefined ? venue.esta_abierto : null,
+          estaAbierto: venue.esta_abierto !== undefined ? venue.esta_abierto : null,
+          sorting_tier: venue.sorting_tier || 5,
+          distancia: venue.distancia || venue.distance_km,
+          coordenadas: { 
+            lat: venue.latitud || 0, 
+            lng: venue.longitud || 0 
+          },
+        }));
+        
+        // ✅ Calculate next cursor
+        let nextCursor = undefined;
+        if (venues.length === pageSize) {
+          const lastVenue = venues[venues.length - 1];
+          nextCursor = {
+            last_id: lastVenue.id,
+            last_tier: lastVenue.sorting_tier,
+            last_distance: lastVenue.distancia,
+            offset: (pageParam?.offset || 0) + pageSize,
+          };
+        }
+        
+        return {
+          venues: enrichedVenues,
+          nextCursor,
+          pageNumber,
+          totalLoaded: (pageParam?.offset || 0) + venues.length,
+        };
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        
+        // ✅ FASE 7: Manejar cancelación gracefully
+        if (error.name === 'AbortError' || controller.signal.aborted) {
+          console.log('[useBaresQuery FASE 7] 🛑 Request cancelled - user navigated away');
+          throw new Error('Request cancelled');
+        }
+        
         throw error;
       }
-      
-      const venues = data || [];
-      
-      // ✅ Performance monitoring
-      console.log('[useBaresQuery v24.0.0] ✅ Loaded', venues.length, 'venues in', `${loadTime.toFixed(0)}ms`, {
-        isFirstPage,
-        performance: loadTime < 500 ? '⚡ FAST' : loadTime < 1000 ? '✅ GOOD' : '⚠️ SLOW',
-      });
-      
-      // ✅ Enrich venues with computed properties
-      const enrichedVenues = venues.map((venue: any) => ({
-        ...venue,
-        esta_abierto: venue.esta_abierto !== undefined ? venue.esta_abierto : null,
-        estaAbierto: venue.esta_abierto !== undefined ? venue.esta_abierto : null,
-        sorting_tier: venue.sorting_tier || 5,
-        distancia: venue.distancia || venue.distance_km,
-        coordenadas: { 
-          lat: venue.latitud || 0, 
-          lng: venue.longitud || 0 
-        },
-      }));
-      
-      // ✅ Calculate next cursor
-      let nextCursor = undefined;
-      if (venues.length === pageSize) {
-        const lastVenue = venues[venues.length - 1];
-        nextCursor = {
-          last_id: lastVenue.id,
-          last_tier: lastVenue.sorting_tier,
-          last_distance: lastVenue.distancia,
-          offset: (pageParam?.offset || 0) + pageSize,
-        };
-      }
-      
-      return {
-        venues: enrichedVenues,
-        nextCursor,
-        pageNumber,
-        totalLoaded: (pageParam?.offset || 0) + venues.length,
-      };
     },
     
     getNextPageParam: (lastPage) => lastPage.nextCursor,

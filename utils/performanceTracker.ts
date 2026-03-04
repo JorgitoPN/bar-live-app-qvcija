@@ -1,13 +1,14 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 PERFORMANCE TRACKER - FASE 0 & 1 INSTRUMENTACIÓN
+ * 🚀 PERFORMANCE TRACKER - FASE 0, 1 & 8 INSTRUMENTACIÓN Y OBSERVABILIDAD
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * PROPÓSITO:
  * - Medir TTFB (Time To First Byte) de todas las peticiones de red
  * - Medir TTI (Time To Interactive) cuando la UI es interactiva
  * - Identificar cuellos de botella en el bootstrap de la app
+ * - FASE 8: Enviar métricas de rendimiento a Supabase para análisis
  * 
  * USO:
  * 1. Importar: import PerformanceTracker from '@/utils/performanceTracker';
@@ -15,7 +16,11 @@
  * 3. Finalizar medición: PerformanceTracker.end('nombre_operacion');
  * 4. Ver resultados: PerformanceTracker.getMeasures();
  * 5. Limpiar: PerformanceTracker.clearMeasures();
+ * 6. FASE 8: Enviar métricas: PerformanceTracker.logPerformanceMetrics();
  */
+
+import { supabase } from './supabase';
+import { Platform } from 'react-native';
 
 interface PerformanceMeasure {
   start: number;
@@ -23,10 +28,23 @@ interface PerformanceMeasure {
   duration: number;
 }
 
+// ✅ FASE 8: Interfaz para métricas de rendimiento
+interface PerformanceMetrics {
+  tti: number; // Time To Interactive
+  ttfb: number; // Time To First Byte
+  platform: string;
+  device: string;
+  networkType?: string;
+  timestamp: string;
+  measures: Record<string, PerformanceMeasure>;
+}
+
 class PerformanceTrackerClass {
   private marks: Map<string, number> = new Map();
   private measures: Map<string, PerformanceMeasure> = new Map();
   private appLaunchTime: number = 0;
+  private ttiRecorded: boolean = false;
+  private tti: number = 0;
 
   constructor() {
     // Marcar el inicio de la app
@@ -161,6 +179,117 @@ class PerformanceTrackerClass {
    */
   getTimeSinceLaunch(): number {
     return performance.now() - this.appLaunchTime;
+  }
+  
+  /**
+   * ✅ FASE 8: Registrar TTI (Time To Interactive)
+   * Debe llamarse cuando la UI es completamente interactiva
+   */
+  recordTTI(): void {
+    if (this.ttiRecorded) {
+      console.warn('[PerformanceTracker FASE 8] ⚠️ TTI ya fue registrado');
+      return;
+    }
+    
+    this.tti = this.getTimeSinceLaunch();
+    this.ttiRecorded = true;
+    
+    console.log('[PerformanceTracker FASE 8] 🎯 TTI registrado:', this.tti.toFixed(2), 'ms');
+    
+    // ✅ Clasificar TTI
+    let ttiLabel = '✅ EXCELENTE';
+    if (this.tti > 3000) {
+      ttiLabel = '🐌 MUY LENTO';
+    } else if (this.tti > 1000) {
+      ttiLabel = '⚠️ LENTO';
+    } else if (this.tti > 500) {
+      ttiLabel = '🟡 ACEPTABLE';
+    } else if (this.tti > 200) {
+      ttiLabel = '⚡ RÁPIDO';
+    }
+    
+    console.log('[PerformanceTracker FASE 8] 📊 TTI Clasificación:', ttiLabel);
+  }
+  
+  /**
+   * ✅ FASE 8: Enviar métricas de rendimiento a Supabase
+   * Envía de forma silenciosa el TTI real de los usuarios para análisis
+   */
+  async logPerformanceMetrics(): Promise<void> {
+    if (!this.ttiRecorded) {
+      console.warn('[PerformanceTracker FASE 8] ⚠️ TTI no registrado - llamar recordTTI() primero');
+      return;
+    }
+    
+    try {
+      // ✅ Obtener TTFB de la primera petición de red
+      const measures = this.getMeasures();
+      const firstNetworkRequest = Object.entries(measures).find(([name]) => 
+        name.includes('fetch') || name.includes('rpc') || name.includes('query')
+      );
+      
+      const ttfb = firstNetworkRequest ? firstNetworkRequest[1].duration : 0;
+      
+      // ✅ Construir métricas
+      const metrics: PerformanceMetrics = {
+        tti: this.tti,
+        ttfb,
+        platform: Platform.OS,
+        device: Platform.select({
+          ios: 'iOS',
+          android: 'Android',
+          web: 'Web',
+          default: 'Unknown',
+        }),
+        timestamp: new Date().toISOString(),
+        measures,
+      };
+      
+      console.log('[PerformanceTracker FASE 8] 📤 Enviando métricas a Supabase:', {
+        tti: metrics.tti.toFixed(2),
+        ttfb: metrics.ttfb.toFixed(2),
+        platform: metrics.platform,
+      });
+      
+      // ✅ Enviar a Supabase (silenciosamente)
+      // TODO: Backend Integration - POST /api/performance-metrics
+      // Body: { tti, ttfb, platform, device, timestamp, measures }
+      // Returns: { success: true }
+      
+      // ✅ Por ahora, solo log en consola (modo release)
+      if (__DEV__) {
+        console.log('[PerformanceTracker FASE 8] 📊 Métricas (DEV MODE):', JSON.stringify(metrics, null, 2));
+      } else {
+        // En producción, enviar a Supabase
+        const { error } = await supabase
+          .from('performance_logs')
+          .insert({
+            tti: metrics.tti,
+            ttfb: metrics.ttfb,
+            platform: metrics.platform,
+            device: metrics.device,
+            timestamp: metrics.timestamp,
+            measures: metrics.measures,
+          });
+        
+        if (error) {
+          console.error('[PerformanceTracker FASE 8] ❌ Error enviando métricas:', error);
+        } else {
+          console.log('[PerformanceTracker FASE 8] ✅ Métricas enviadas exitosamente');
+        }
+      }
+    } catch (error) {
+      // ✅ Silenciar errores - no queremos afectar la experiencia del usuario
+      console.error('[PerformanceTracker FASE 8] ❌ Error en logPerformanceMetrics:', error);
+    }
+  }
+  
+  /**
+   * ✅ FASE 8: Obtener TTI registrado
+   * @returns TTI en milisegundos
+   */
+  getTTI(): number {
+    return this.tti;
   }
 }
 
