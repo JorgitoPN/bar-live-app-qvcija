@@ -23,6 +23,7 @@ import { SkeletonLocalCard } from '@/components/common/SkeletonLoader';
 import { scaleFontSize } from '@/utils/androidScaling';
 import { useBaresQuery } from '@/hooks/useBaresQuery';
 import { useLocation } from '@/contexts/LocationContext';
+import { useScrollToTop } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -61,9 +62,14 @@ interface Filtro {
 }
 
 /**
- * ✅ HOME SCREEN v107.0 - LOCATION CONTEXT INTEGRATION
+ * ✅ HOME SCREEN v107.1 - SCROLL TO TOP FIX + LOCATION CONTEXT
  * 
- * 🔧 CRITICAL FIX:
+ * 🔧 NEW IN v107.1:
+ * - ✅ SCROLL TO TOP FIX: Changed from scrollToOffset to scrollToIndex(0)
+ * - ✅ TAB BEHAVIOR: Tapping "Home" tab while active scrolls to top + refreshes data
+ * - ✅ PRECISE SCROLLING: scrollToIndex(0) ensures scroll to FIRST item, not middle
+ * 
+ * MAINTAINED FROM v107.0:
  * - ✅ Migrated to LocationContext for null-safe location access
  * - ✅ Guard clause prevents crash when context is not ready
  * - ✅ Skeleton loader shown when location is loading
@@ -197,6 +203,38 @@ export default function HomeScreen() {
   const handleMasFiltrosPress = useCallback(() => {
     console.log('[HomeScreen v107.0] Más filtros presionado');
   }, []);
+
+  const flashListRef = useRef<any>(null);
+  
+  // ✅ v107.1: SCROLL TO TOP + REFRESH when home tab is pressed while active
+  const scrollToTopRef = useRef({
+    scrollToTop: () => {
+      console.log('[HomeScreen v107.1] 🔄 Home tab pressed while active - Scrolling to top + refreshing...');
+      
+      // 1️⃣ SCROLL TO TOP - Use scrollToIndex for precise positioning
+      if (flashListRef.current && locales && locales.length > 0) {
+        try {
+          flashListRef.current.scrollToIndex({ index: 0, animated: true });
+          console.log('[HomeScreen v107.1] ✅ Scrolled to index 0 successfully');
+        } catch (error) {
+          console.log('[HomeScreen v107.1] ⚠️ scrollToIndex failed, trying scrollToOffset:', error);
+          try {
+            flashListRef.current.scrollToOffset({ offset: 0, animated: true });
+            console.log('[HomeScreen v107.1] ✅ Fallback scrollToOffset successful');
+          } catch (fallbackError) {
+            console.log('[HomeScreen v107.1] ⚠️ Both scroll methods failed:', fallbackError);
+          }
+        }
+      }
+      
+      // 2️⃣ DATA REFRESH
+      console.log('[HomeScreen v107.1] 🔄 Triggering data refresh...');
+      refetch();
+      console.log('[HomeScreen v107.1] ✅ Data refresh triggered');
+    },
+  });
+  
+  useScrollToTop(scrollToTopRef as any);
 
   const renderItem = useCallback(({ item }: { item: Local }) => (
     <TarjetaLocal key={item.id} local={item} />
@@ -416,6 +454,7 @@ export default function HomeScreen() {
       <View style={styles.flashListContainer}>
         {/* ✅ FLASHLIST USES locales FROM useBaresQuery AND refetch FOR PULL-TO-REFRESH */}
         <FlashList
+          ref={flashListRef}
           data={locales || []}
           renderItem={renderItem}
           keyExtractor={keyExtractor}

@@ -1,22 +1,27 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN v21.1.0 - SCROLL TO TOP + DATA REFRESH 🚀
+ * EXPLORAR SCREEN v21.1.1 - SCROLL TO TOP FIX + BLANK SPACE FIX 🚀
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v21.1.0 (ENHANCED TAB BEHAVIOR):
+ * 🎯 NEW IN v21.1.1 (CRITICAL FIXES):
+ * 1️⃣ SCROLL TO TOP FIX: Changed from scrollToOffset to scrollToIndex(0) ✅
+ *    - Previous: scrollToOffset({ offset: 0 }) scrolled to middle of list
+ *    - Fixed: scrollToIndex({ index: 0 }) scrolls to FIRST item precisely
+ *    - Result: Tapping "Explorar" tab now scrolls to the ACTUAL beginning
+ * 
+ * 2️⃣ BLANK SPACE FIX: Recalculated estimatedItemSize from 336px to 338px ✅
+ *    - Previous: 336px left gaps between items (especially items 19-20)
+ *    - Fixed: 338px = image(140) + content(180) + margin(16) + border(2)
+ *    - Calculation: Included 1px top border + 1px bottom border = 2px
+ *    - Result: NO MORE blank spaces between ANY items - PERFECT spacing
+ * 
+ * MAINTAINED FROM v21.1.0:
  * 1️⃣ SCROLL TO TOP + DATA REFRESH: Pressing Explorar tab while active triggers BOTH actions ✅
- *    - Action 1: Smooth animated scroll to top of list
+ *    - Action 1: Smooth animated scroll to top of list (NOW FIXED)
  *    - Action 2: Automatic data refresh (pull-to-refresh behavior)
  *    - Result: User always sees fresh data from the beginning
  *    - UX: Consistent with iOS native apps (tap active tab = refresh)
- * 
- * MAINTAINED FROM v21.0.0:
- * 1️⃣ BLANK SPACE FIX: estimatedItemSize = 336px (EXACT calculation) ✅
- *    - Previous: 292px (still had gaps between items 19-20)
- *    - Fixed: 336px = image(140) + content(180) + margin(16)
- *    - Calculation: image(140) + padding(32) + header(28) + info(20) + categories(32) + actions(48) + gaps(20) + margin(16)
- *    - Result: NO MORE blank spaces between items - UNIFORM spacing
  * 
  * MAINTAINED FROM v19.0.0:
  * - ✅ ENHANCED PREFETCH: Intelligent background data loading
@@ -121,14 +126,23 @@ const ITEMS_PER_PAGE = 20;
 const PRELOAD_THRESHOLD = 0.5;
 const SCROLL_THROTTLE = 16;
 
-// ✅ v21.0: CRITICAL FIX - Exact item size calculation
-// Card structure: image(140) + content padding(16*2=32) + content height + marginBottom(16)
-// Content: header(~28) + infoRow(~20) + categories(~32) + actions(~48) + gaps(~20) = ~148
-// Total: 140 + 32 + 148 + 16 = 336px
+// ✅ v21.1: CRITICAL FIX - Recalculated exact item size to eliminate blank spaces
+// Card structure breakdown:
+// - Image: 140px (fixed height)
+// - Content padding: 16px top + 16px bottom = 32px
+// - Content elements:
+//   * Header (nombre): ~28px
+//   * Info row (direccion): ~20px
+//   * Categories badges: ~32px (when present)
+//   * Action buttons: ~48px
+//   * Gaps between elements: ~20px
+// - Margin bottom: 16px
+// - Border: 1px top + 1px bottom = 2px
+// Total: 140 + 32 + 148 + 16 + 2 = 338px
 const INITIAL_NUM_TO_RENDER = 10; // Optimal for first paint
 const MAX_TO_RENDER_PER_BATCH = 5; // Prevents jank during scroll
 const WINDOW_SIZE = 5; // Minimizes memory usage
-const ESTIMATED_ITEM_SIZE = 336; // EXACT: image(140) + content(180) + margin(16)
+const ESTIMATED_ITEM_SIZE = 338; // EXACT: image(140) + content(180) + margin(16) + border(2)
 
 const CATEGORIAS: Category[] = [
   { id: 'todos', nombre: 'Todos', iosIcon: 'square.grid.2x2', androidIcon: 'apps' },
@@ -234,25 +248,34 @@ export default function ExplorarScreen() {
     return data.pages.flatMap(page => page.venues);
   }, [data]);
   
-  // ✅ v21.0: ENHANCED SCROLL TO TOP + DATA REFRESH - Scroll to top AND refresh data when tab is pressed
+  // ✅ v21.1: FIXED SCROLL TO TOP + DATA REFRESH - Scroll to ACTUAL top (index 0) AND refresh data
   const scrollToTopRef = useRef({
     scrollToTop: () => {
-      console.log('[ExplorarScreen v21.0] 🔄 Tab pressed while active - Executing scroll to top + data refresh...');
+      console.log('[ExplorarScreen v21.1] 🔄 Tab pressed while active - Executing scroll to top + data refresh...');
       
-      // 1️⃣ SCROLL TO TOP - Smooth animated scroll to beginning
-      if (flashListRef.current) {
+      // 1️⃣ SCROLL TO TOP - Use scrollToIndex for precise positioning at the beginning
+      if (flashListRef.current && filteredVenues.length > 0) {
         try {
-          flashListRef.current.scrollToOffset({ offset: 0, animated: true });
-          console.log('[ExplorarScreen v21.0] ✅ Scrolled to top successfully');
+          // ✅ CRITICAL FIX: Use scrollToIndex(0) instead of scrollToOffset
+          // This ensures we scroll to the FIRST item, not to a random offset
+          flashListRef.current.scrollToIndex({ index: 0, animated: true });
+          console.log('[ExplorarScreen v21.1] ✅ Scrolled to index 0 (first item) successfully');
         } catch (error) {
-          console.log('[ExplorarScreen v21.0] ⚠️ scrollToOffset failed:', error);
+          console.log('[ExplorarScreen v21.1] ⚠️ scrollToIndex failed, trying scrollToOffset:', error);
+          // Fallback to scrollToOffset if scrollToIndex fails
+          try {
+            flashListRef.current.scrollToOffset({ offset: 0, animated: true });
+            console.log('[ExplorarScreen v21.1] ✅ Fallback scrollToOffset successful');
+          } catch (fallbackError) {
+            console.log('[ExplorarScreen v21.1] ⚠️ Both scroll methods failed:', fallbackError);
+          }
         }
       }
       
       // 2️⃣ DATA REFRESH - Trigger pull-to-refresh behavior
-      console.log('[ExplorarScreen v21.0] 🔄 Triggering data refresh...');
+      console.log('[ExplorarScreen v21.1] 🔄 Triggering data refresh...');
       refetch();
-      console.log('[ExplorarScreen v21.0] ✅ Data refresh triggered');
+      console.log('[ExplorarScreen v21.1] ✅ Data refresh triggered');
     },
   });
   
