@@ -4,18 +4,25 @@ import { supabase } from '@/utils/supabase';
 import { Alert } from 'react-native';
 
 /**
- * ✅ FAVORITES STORE v1.0 - ZUSTAND ATOMIC STATE MANAGEMENT
+ * ✅ FAVORITES STORE v2.0 - ZUSTAND ATOMIC STATE MANAGEMENT
+ * 
+ * 🚀 NEW IN v2.0 (DATABASE-SIDE JOIN OPTIMIZATION):
+ * - ✅ NO INITIAL LOADING: Favorites come from database via is_favorite flag
+ * - ✅ ACTION-ONLY STORE: Only handles user actions (toggle favorite)
+ * - ✅ OPTIMISTIC UI: Instant feedback, background sync
+ * - ✅ O(1) PERFORMANCE: No more O(N×M) cross-referencing
  * 
  * BENEFITS:
  * - ✅ ATOMIC UPDATES: Only components using favorites re-render
- * - ✅ LAZY LOADING: Favorites load only when needed
- * - ✅ OPTIMISTIC UI: Instant feedback, background sync
  * - ✅ NO PROVIDER: Direct import and use
+ * - ✅ INSTANT LOAD: Favorites calculated by database, not frontend
  * 
  * EXAMPLE:
  * // Only re-renders when favorites change
- * const favorites = useFavoritesStore(state => state.favorites);
  * const toggleFavorite = useFavoritesStore(state => state.toggleFavorite);
+ * 
+ * NOTE: Initial favorite status comes from database via is_favorite flag.
+ *       This store is ONLY for user actions (toggling favorites).
  */
 
 interface FavoritesState {
@@ -43,9 +50,13 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
   setFavorites: (favorites) => set({ favorites }),
   setLoading: (loading) => set({ loading }),
   
-  // Check if local is favorite
+  // ✅ FASE 10: DEPRECATED - Use is_favorite from database instead
+  // This method is kept for backward compatibility but should not be used
+  // for initial rendering. Use local.is_favorite from database response.
   isFavorite: (localId) => {
     const { favorites, hasLoaded } = get();
+    
+    console.warn('[FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.');
     
     // Lazy load if not loaded yet
     if (!hasLoaded) {
