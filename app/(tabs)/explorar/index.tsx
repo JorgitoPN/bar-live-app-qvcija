@@ -263,13 +263,14 @@ export default function ExplorarScreen() {
     pageSize: ITEMS_PER_PAGE,
   });
   
-  // ✅ FASE 12: Debug log CRÍTICO - Verificar si useBaresQuery devuelve datos
+  // ✅ FASE 13 TEST: Debug log CRÍTICO - Verificar si useBaresQuery devuelve datos
   console.log('═══════════════════════════════════════════════════════════');
-  console.log('[ExplorarScreen FASE 12] 🔍 useBaresQuery result:', {
+  console.log('[ExplorarScreen FASE 13 TEST] 🔍 useBaresQuery result:', {
     hasData: !!data,
     hasPages: !!data?.pages,
     pageCount: data?.pages?.length || 0,
     firstPageVenues: data?.pages?.[0]?.venues?.length || 0,
+    firstPageVenueNames: data?.pages?.[0]?.venues?.slice(0, 3).map((v: any) => v.nombre) || [],
     isLoading,
     isFetching,
     isError,
@@ -277,7 +278,8 @@ export default function ExplorarScreen() {
     hasNextPage,
     isFetchingNextPage,
   });
-  console.log('[ExplorarScreen FASE 12] 📦 Raw data:', JSON.stringify(data, null, 2));
+  console.log('[ExplorarScreen FASE 13 TEST] 📦 Raw data pages:', data?.pages?.length || 0);
+  console.log('[ExplorarScreen FASE 13 TEST] 📦 First page sample:', JSON.stringify(data?.pages?.[0]?.venues?.slice(0, 2), null, 2));
   console.log('═══════════════════════════════════════════════════════════');
   
   // ✅ BLOQUE 2 RESTAURACIÓN: Forzar opacidad a 1 (desactivar animación temporalmente)
@@ -287,7 +289,7 @@ export default function ExplorarScreen() {
   // ✅ DEDUPLICATE VENUES - Critical for FlashList stability
   const allVenues = useMemo(() => {
     console.log('═══════════════════════════════════════════════════════════');
-    console.log('[ExplorarScreen FASE 12] 🔍 Processing venues - START', {
+    console.log('[ExplorarScreen FASE 13 TEST] 🔍 Processing venues - START', {
       hasData: !!data,
       hasPages: !!data?.pages,
       pageCount: data?.pages?.length || 0,
@@ -298,27 +300,29 @@ export default function ExplorarScreen() {
     });
     
     if (!data?.pages) {
-      console.log('[ExplorarScreen FASE 12] ⚠️ No data.pages - returning empty array');
+      console.log('[ExplorarScreen FASE 13 TEST] ⚠️ No data.pages - returning empty array');
       console.log('═══════════════════════════════════════════════════════════');
       return [];
     }
     
-    console.log('[ExplorarScreen FASE 12] 📊 Raw data.pages:', {
+    console.log('[ExplorarScreen FASE 13 TEST] 📊 Raw data.pages:', {
       pageCount: data.pages.length,
       firstPage: data.pages[0],
       firstPageVenues: data.pages[0]?.venues?.length || 0,
+      firstPageVenueNames: data.pages[0]?.venues?.slice(0, 3).map((v: any) => v.nombre) || [],
       allPages: data.pages.map((page, idx) => ({
         pageIndex: idx,
         venuesCount: page?.venues?.length || 0,
         hasVenues: !!page?.venues,
+        venueNames: page?.venues?.slice(0, 2).map((v: any) => v.nombre) || [],
       })),
     });
     
     const flatVenues = data.pages.flatMap(page => page?.venues || []);
     const uniqueVenues = Array.from(new Map(flatVenues.map(v => [v.id, v])).values());
     
-    // ✅ FASE 12: Debug log CRÍTICO con más detalles
-    console.log('[ExplorarScreen FASE 12] 📊 Venues processed - RESULT:', {
+    // ✅ FASE 13 TEST: Debug log CRÍTICO con más detalles
+    console.log('[ExplorarScreen FASE 13 TEST] 📊 Venues processed - RESULT:', {
       total: flatVenues.length,
       unique: uniqueVenues.length,
       duplicates: flatVenues.length - uniqueVenues.length,
@@ -326,12 +330,13 @@ export default function ExplorarScreen() {
       isLoading,
       isFetching,
       isCircuitOpen: circuitBreaker.isOpen,
-      sampleVenues: uniqueVenues.slice(0, 3).map(v => ({
+      sampleVenues: uniqueVenues.slice(0, 5).map(v => ({
         id: v.id,
         nombre: v.nombre,
         is_favorite: v.is_favorite,
       })),
     });
+    console.log('[ExplorarScreen FASE 13 TEST] ✅ RETURNING', uniqueVenues.length, 'venues');
     console.log('═══════════════════════════════════════════════════════════');
     
     return uniqueVenues;
@@ -613,13 +618,14 @@ export default function ExplorarScreen() {
 
   // ✅ FASE 9 RESTAURACIÓN: Circuit Breaker con debug mejorado
   const renderEmpty = useCallback(() => {
-    // ✅ FASE 9: Debug log para verificar que llegamos aquí
-    console.log('[ExplorarScreen FASE 9] 🔍 renderEmpty called:', {
+    // ✅ FASE 13 TEST: Debug log para verificar que llegamos aquí
+    console.log('[ExplorarScreen FASE 13 TEST] 🔍 renderEmpty called:', {
       isCircuitOpen: circuitBreaker.isOpen,
       isLoading,
       isFetching,
       hasData: allVenues.length > 0,
       hasError: isError,
+      allVenuesLength: allVenues.length,
     });
     
     // ✅ FASE 6: Circuit Breaker - Mostrar error amigable si está abierto
@@ -803,11 +809,12 @@ export default function ExplorarScreen() {
 
   const modeIcon = getModeIcon();
 
-  // ✅ FASE 12: Debug CRÍTICO al inicio del render
+  // ✅ FASE 13 TEST: Debug CRÍTICO al inicio del render
   console.log('═══════════════════════════════════════════════════════════');
-  console.log('[ExplorarScreen FASE 12] 🔍 RENDER CHECK:', {
+  console.log('[ExplorarScreen FASE 13 TEST] 🔍 RENDER CHECK:', {
     hasData: allVenues.length > 0,
     venuesCount: allVenues.length,
+    venueNames: allVenues.slice(0, 3).map(v => v.nombre),
     isLoading,
     isFetching,
     isCircuitOpen: circuitBreaker.isOpen,
@@ -1072,8 +1079,16 @@ export default function ExplorarScreen() {
       </Animated.View>
 
       {/* ✅ BLOQUE 2: FLASHLIST CON TRANSICIÓN SUAVE */}
+      {/* ✅ FASE 13 TEST: Simplified render condition */}
+      {console.log('[ExplorarScreen FASE 13 TEST] 🎨 Render decision:', {
+        allVenuesLength: allVenues.length,
+        isLoading,
+        isFetching,
+        willRenderList: allVenues.length > 0 || isLoading || isFetching,
+      })}
       {allVenues.length > 0 || isLoading || isFetching ? (
         <Animated.View style={{ flex: 1, opacity: showContent ? contentOpacity : 1 }}>
+          {console.log('[ExplorarScreen FASE 13 TEST] 🎨 Rendering FlashList with', allVenues.length, 'venues')}
           <AnimatedFlashList
             key={listKey}
             ref={flashListRef}
@@ -1109,13 +1124,14 @@ export default function ExplorarScreen() {
             onEndReached={allVenues.length > 0 ? loadMoreVenues : undefined}
             onEndReachedThreshold={PRELOAD_THRESHOLD}
             ListFooterComponent={renderFooter}
-            ListEmptyComponent={renderEmpty}
+            ListEmptyComponent={null}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
           />
         </Animated.View>
       ) : (
         <View style={[styles.listContent, { marginTop: HEADER_MAX_HEIGHT }]}>
+          {console.log('[ExplorarScreen FASE 13 TEST] 🎨 Rendering empty state')}
           {renderEmpty()}
         </View>
       )}

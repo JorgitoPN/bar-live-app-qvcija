@@ -189,9 +189,10 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
       console.log('[useBaresQuery FASE 12] 📡 RPC Parameters:', JSON.stringify(rpcParams, null, 2));
       console.log('═══════════════════════════════════════════════════════════');
       
-      console.log('[useBaresQuery FASE 12] 🚀 Calling supabase.rpc...');
+      console.log('[useBaresQuery FASE 13 TEST] 🚀 Calling supabase.rpc...');
+      console.log('[useBaresQuery FASE 13 TEST] 📡 Full RPC params:', JSON.stringify(rpcParams, null, 2));
       const queryPromise = supabase.rpc('get_venues_with_auth', rpcParams).abortSignal(controller.signal);
-      console.log('[useBaresQuery FASE 12] 🚀 RPC call initiated, waiting for response...');
+      console.log('[useBaresQuery FASE 13 TEST] 🚀 RPC call initiated, waiting for response...');
       
       // ✅ FASE 7: Timeout con AbortController
       const timeoutId = setTimeout(() => {
@@ -209,10 +210,10 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         const endTime = performance.now();
         const loadTime = endTime - startTime;
         
-        // ✅ FASE 12: Debug log CRÍTICO de la respuesta
+        // ✅ FASE 13 TEST: Debug log CRÍTICO de la respuesta
         console.log('═══════════════════════════════════════════════════════════');
-        console.log('[useBaresQuery FASE 12] 📦 RPC Response received');
-        console.log('[useBaresQuery FASE 12] 📦 Response details:', {
+        console.log('[useBaresQuery FASE 13 TEST] 📦 RPC Response received');
+        console.log('[useBaresQuery FASE 13 TEST] 📦 Response details:', {
           hasError: !!error,
           errorDetails: error ? JSON.stringify(error) : null,
           dataType: typeof data,
@@ -223,8 +224,9 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
             nombre: data[0].nombre,
             is_favorite: data[0].is_favorite,
           } : null,
+          allVenueNames: data?.slice(0, 5).map((v: any) => v.nombre) || [],
         });
-        console.log('[useBaresQuery FASE 12] 📦 Full data:', JSON.stringify(data, null, 2));
+        console.log('[useBaresQuery FASE 13 TEST] 📦 Full data sample (first 2):', JSON.stringify(data?.slice(0, 2), null, 2));
         console.log('═══════════════════════════════════════════════════════════');
         
         if (error) {
