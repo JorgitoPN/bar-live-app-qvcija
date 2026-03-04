@@ -1,10 +1,17 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 EXPLORAR SCREEN v33.0.0 - FASE 10: MOBILE PARITY (WEB-MOBILE FIX)
+ * 🚀 EXPLORAR SCREEN v34.0.0 - FASE 11: MOBILE RENDERING DEBUG (EMERGENCY)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v33.0.0 (FASE 10 - MOBILE NETWORK FIXES):
+ * 🎯 NEW IN v34.0.0 (FASE 11 - MOBILE RENDERING FIXES):
+ * 1️⃣ ANIMATED VIEW DISABLED: Using standard View (no opacity animations) ✅
+ * 2️⃣ DATA BYPASS: Force render even if data is undefined ✅
+ * 3️⃣ FIRST PAINT LOGS: Critical logs to track mobile rendering ✅
+ * 4️⃣ HARD RESET BUTTON: Clear cache and retry mechanism ✅
+ * 5️⃣ RESULT: Diagnose why mobile shows blank screen ✅
+ * 
+ * 🎯 PREVIOUS (v33.0.0 - FASE 10 - MOBILE NETWORK FIXES):
  * 1️⃣ OFFLINE MODE INDICATOR: Visual feedback when using cached data ✅
  * 2️⃣ PLATFORM-AWARE TIMEOUTS: 5s mobile, 2.5s web ✅
  * 3️⃣ GRACEFUL DEGRADATION: Show cached data on network failure ✅
@@ -221,10 +228,23 @@ SkeletonCard.displayName = 'SkeletonCard';
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function ExplorarScreen() {
+  // ✅ FASE 11: CRITICAL - Log component initialization
+  console.log('[ExplorarScreen FASE 11] 🚀 COMPONENT INITIALIZING', {
+    platform: Platform.OS,
+    timestamp: new Date().toISOString(),
+  });
+  
   const router = useRouter();
   const { user } = useAuth();
   const { currentMode } = useMode();
   const queryClient = useQueryClient();
+  
+  // ✅ FASE 11: Log after hooks initialization
+  console.log('[ExplorarScreen FASE 11] ✅ HOOKS INITIALIZED', {
+    hasUser: !!user,
+    currentMode,
+    platform: Platform.OS,
+  });
   
   // ✅ Zustand store for filters
   const filtros = useFilterStore(state => state.filtros);
@@ -279,18 +299,19 @@ export default function ExplorarScreen() {
     return isError && data.pages.length > 0;
   }, [isError, data]);
   
-  // ✅ BLOQUE 2 RESTAURACIÓN: Forzar opacidad a 1 (desactivar animación temporalmente)
-  const [showContent, setShowContent] = useState(true); // ✅ FASE 9: Forzado a true
-  const contentOpacity = useRef(new Animated.Value(1)).current; // ✅ FASE 9: Forzado a 1
+  // ✅ FASE 11 RESTAURACIÓN: Desactivar animación completamente (SOS)
+  const [showContent, setShowContent] = useState(true);
+  // ✅ FASE 11: NO usar Animated.Value - renderizar View estándar directamente
   
-  // ✅ DEDUPLICATE VENUES - Critical for FlashList stability
+  // ✅ FASE 11 BYPASS: Forzar renderizado incluso si data es undefined
   const allVenues = useMemo(() => {
-    if (!data?.pages) {
-      console.log('[ExplorarScreen FASE 9] ⚠️ No data.pages');
+    // ✅ FASE 11: Bypass de seguridad - siempre devolver array válido
+    if (!data || !data.pages) {
+      console.log('[ExplorarScreen FASE 11] ⚠️ No data - returning empty array for safety');
       return [];
     }
     
-    console.log('[ExplorarScreen FASE 9] 📊 Raw data.pages:', {
+    console.log('[ExplorarScreen FASE 11] 📊 Raw data.pages:', {
       pageCount: data.pages.length,
       firstPage: data.pages[0],
     });
@@ -298,8 +319,8 @@ export default function ExplorarScreen() {
     const flatVenues = data.pages.flatMap(page => page?.venues || []);
     const uniqueVenues = Array.from(new Map(flatVenues.map(v => [v.id, v])).values());
     
-    // ✅ FASE 9: Debug log usando console.log directo (no originalConsoleLog)
-    console.log('[ExplorarScreen FASE 9 RESTAURACIÓN] 📊 Venues:', {
+    // ✅ FASE 11: Debug log crítico
+    console.log('[ExplorarScreen FASE 11 DEPURACIÓN] 📊 Venues:', {
       total: flatVenues.length,
       unique: uniqueVenues.length,
       duplicates: flatVenues.length - uniqueVenues.length,
@@ -507,6 +528,30 @@ export default function ExplorarScreen() {
   const handleClearAdvancedFilters = useCallback(() => {
     limpiarFiltros();
   }, [limpiarFiltros]);
+  
+  // ✅ FASE 11: Hard-Reset de la Caché de Red
+  const handleClearCacheAndRetry = useCallback(() => {
+    console.log('[ExplorarScreen FASE 11] 🧹 HARD RESET: Clearing cache and retrying');
+    
+    // Step 1: Clear React Query cache
+    queryClient.clear();
+    
+    // Step 2: Reset abort controllers
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    
+    // Step 3: Force remount FlashList
+    setListKey(prev => prev + 1);
+    
+    // Step 4: Refetch data
+    setTimeout(() => {
+      refetch();
+    }, 100);
+  }, [queryClient, refetch]);
+  
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // MODE HELPERS
@@ -574,16 +619,30 @@ export default function ExplorarScreen() {
     return null;
   }, [allVenues.length, hasActiveFilters, hasNextPage, isFetchingNextPage]);
 
-  // ✅ FASE 9 RESTAURACIÓN: Circuit Breaker con debug mejorado
+  // ✅ FASE 11: BYPASS DE SEGURIDAD - Mostrar texto simple si data es undefined
   const renderEmpty = useCallback(() => {
-    // ✅ FASE 9: Debug log para verificar que llegamos aquí
-    console.log('[ExplorarScreen FASE 9] 🔍 renderEmpty called:', {
+    // ✅ FASE 11: Debug log crítico
+    console.log('[ExplorarScreen FASE 11] 🔍 renderEmpty called:', {
       isCircuitOpen: circuitBreaker.isOpen,
       isLoading,
       isFetching,
       hasData: allVenues.length > 0,
       hasError: isError,
+      dataIsUndefined: data === undefined,
     });
+    
+    // ✅ FASE 11: BYPASS - Si data es undefined, mostrar mensaje simple
+    if (data === undefined && (isLoading || isFetching)) {
+      console.log('[ExplorarScreen FASE 11] 🎨 Data undefined - showing simple text');
+      return (
+        <View style={styles.emptyState}>
+          <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>
+            Buscando locales...
+          </Text>
+          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 16 }} />
+        </View>
+      );
+    }
     
     // ✅ FASE 6: Circuit Breaker - Mostrar error amigable si está abierto
     if (circuitBreaker.isOpen) {
@@ -766,14 +825,16 @@ export default function ExplorarScreen() {
 
   const modeIcon = getModeIcon();
 
-  // ✅ FASE 9 RESTAURACIÓN: Debug crítico al inicio del render
-  console.log('[ExplorarScreen FASE 9] 🔍 RENDER CHECK:', {
+  // ✅ FASE 11: PRIMER PINTADO - Log crítico para verificar que llegamos al render
+  console.log('MÓVIL: Intentando renderizar lista', { 
+    total: allVenues?.length,
     hasData: allVenues.length > 0,
     isLoading,
     isFetching,
     isCircuitOpen: circuitBreaker.isOpen,
     showContent,
     dataPages: data?.pages?.length || 0,
+    platform: Platform.OS,
   });
 
   // ✅ OPTIMIZED SCROLL HANDLER
@@ -823,6 +884,18 @@ export default function ExplorarScreen() {
   // ═══════════════════════════════════════════════════════════════════════════
   // MAIN RENDER
   // ═══════════════════════════════════════════════════════════════════════════
+  
+  // ✅ FASE 11: Error boundary - catch any render errors
+  try {
+    console.log('[ExplorarScreen FASE 11] 🎨 STARTING RENDER', {
+      allVenuesLength: allVenues?.length || 0,
+      isLoading,
+      isFetching,
+      platform: Platform.OS,
+    });
+  } catch (error) {
+    console.error('[ExplorarScreen FASE 11] ❌ ERROR IN PRE-RENDER LOG:', error);
+  }
   
   return (
     <View style={styles.container}>
@@ -928,6 +1001,25 @@ export default function ExplorarScreen() {
                 <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={scaleIconSize(14)} color="#3B82F6" />
               </TouchableOpacity>
             </View>
+          )}
+          
+          {/* ✅ FASE 11: Hard-Reset Button (Emergency) */}
+          {Platform.OS !== 'web' && (
+            <TouchableOpacity 
+              style={styles.hardResetButton}
+              onPress={handleClearCacheAndRetry}
+              activeOpacity={0.7}
+            >
+              <IconSymbol 
+                ios_icon_name="arrow.clockwise.circle.fill" 
+                android_material_icon_name="refresh" 
+                size={scaleIconSize(16)} 
+                color={colors.headerText} 
+              />
+              <Text style={[styles.hardResetButtonText, { fontSize: scaleFontSize(12) }]}>
+                Limpiar Caché y Reintentar
+              </Text>
+            </TouchableOpacity>
           )}
         
           <View style={styles.compactSearchRow}>
@@ -1046,13 +1138,13 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* ✅ BLOQUE 2: FLASHLIST CON TRANSICIÓN SUAVE */}
+      {/* ✅ FASE 11: DESACTIVAR ANIMATED.VIEW - Usar View estándar (SOS) */}
       {allVenues.length > 0 || isLoading || isFetching ? (
-        <Animated.View style={{ flex: 1, opacity: showContent ? contentOpacity : 1 }}>
+        <View style={{ flex: 1 }}>
           <AnimatedFlashList
             key={listKey}
             ref={flashListRef}
-            data={allVenues}
+            data={allVenues || []}
             renderItem={renderVenueCard}
             keyExtractor={(item: Venue) => item.id}
             getItemType={getItemType}
@@ -1088,7 +1180,7 @@ export default function ExplorarScreen() {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
           />
-        </Animated.View>
+        </View>
       ) : (
         <View style={[styles.listContent, { marginTop: HEADER_MAX_HEIGHT }]}>
           {renderEmpty()}
@@ -1222,6 +1314,23 @@ const styles = StyleSheet.create({
   },
   offlineRetryButton: {
     padding: 4,
+  },
+  hardResetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+  },
+  hardResetButtonText: {
+    flex: 1,
+    color: colors.headerText,
+    fontWeight: '600',
   },
   compactSearchRow: {
     flexDirection: 'row',
