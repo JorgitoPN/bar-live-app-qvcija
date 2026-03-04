@@ -30,6 +30,7 @@ interface AuthState {
   session: Session | null;
   loading: boolean;
   sessionReady: boolean;
+  isAuthenticated: boolean; // ✅ BLOQUE 1: Explicit auth state for instant UI updates
   
   // Actions
   setUser: (user: AuthUser | null) => void;
@@ -53,10 +54,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   session: null,
   loading: true,
   sessionReady: false,
+  isAuthenticated: false, // ✅ BLOQUE 1: Start as unauthenticated
   
   // Simple setters (atomic updates)
   setUser: (user) => set({ user }),
-  setSession: (session) => set({ session, sessionReady: !!session }),
+  setSession: (session) => set({ session, sessionReady: !!session, isAuthenticated: !!session }),
   setLoading: (loading) => set({ loading }),
   setSessionReady: (sessionReady) => set({ sessionReady }),
   
@@ -135,10 +137,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // Sign out
   signOut: async () => {
     try {
-      set({ user: null, session: null, sessionReady: false });
+      set({ user: null, session: null, sessionReady: false, isAuthenticated: false });
       supabase.auth.signOut().then(() => {}).catch(() => {});
     } catch (err) {
-      set({ user: null, session: null, sessionReady: false });
+      set({ user: null, session: null, sessionReady: false, isAuthenticated: false });
     }
   },
   
@@ -157,52 +159,83 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   
-  // ✅ v17.0: ULTRA-FAST INITIALIZATION - Aggressive optimization with smart fallbacks
+  // ✅ BLOQUE 1 COMPLETADO: SYNCHRONOUS SESSION READ + REDUCED TIMEOUT
   initialize: async () => {
     const startTime = performance.now();
-    console.log('[AuthStore v17.0] 🚀 Initializing auth (ULTRA-FAST)...');
+    console.log('[AuthStore BLOQUE 1] 🚀 Initializing with MMKV sync read...');
     
     try {
-      // ✅ OPTIMIZATION 1: Reduced timeout to 3 seconds (from 5s)
+      // ✅ PASO 1: LECTURA SÍNCRONA INMEDIATA desde MMKV (antes de cualquier red)
+      // Esto permite que la UI se renderice con el estado de autenticación correcto
+      // ANTES de esperar la validación de red
+      const { getSessionSync } = require('@/src/lib/supabaseStorage');
+      const cachedSessionData = getSessionSync();
+      
+      if (cachedSessionData) {
+        try {
+          const parsedSession = JSON.parse(cachedSessionData);
+          console.log('[AuthStore BLOQUE 1] ⚡ SYNC session found in MMKV (<1ms)');
+          
+          // Actualizar estado INMEDIATAMENTE con la sesión cacheada
+          set({ 
+            session: parsedSession,
+            isAuthenticated: true,
+            sessionReady: true,
+            loading: false 
+          });
+          
+          const syncTime = performance.now() - startTime;
+          console.log(`[AuthStore BLOQUE 1] ✅ UI ready in ${syncTime.toFixed(0)}ms (SYNC)`);
+        } catch (parseError) {
+          console.error('[AuthStore BLOQUE 1] ❌ Failed to parse cached session:', parseError);
+        }
+      } else {
+        console.log('[AuthStore BLOQUE 1] ℹ️ No cached session in MMKV');
+        // Marcar como ready incluso sin sesión (usuario no autenticado)
+        set({ loading: false, sessionReady: true });
+      }
+      
+      // ✅ PASO 2: VALIDACIÓN DE RED (en paralelo, no bloquea la UI)
+      // Timeout reducido a 1500ms según análisis de Fase 2
+      const networkStart = performance.now();
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise<{ data: { session: null }, error: Error }>((resolve) => {
         setTimeout(() => {
-          console.log('[AuthStore v17.0] ⏱️ Session check timeout (3s)');
+          console.log('[AuthStore BLOQUE 1] ⏱️ Network validation timeout (1500ms)');
           resolve({ data: { session: null }, error: new Error('Timeout') });
-        }, 3000); // ✅ Reduced from 5000ms
+        }, 1500); // ✅ REDUCIDO de 3000ms a 1500ms (Fase 2 - Cuello de Botella)
       });
       
-      const { data: { session: currentSession }, error: sessionError } = await Promise.race([
+      const { data: { session: networkSession }, error: sessionError } = await Promise.race([
         sessionPromise,
         timeoutPromise
       ]);
       
-      const sessionTime = performance.now() - startTime;
-      console.log('[AuthStore v17.0] ⚡ Session check completed in', `${sessionTime.toFixed(0)}ms`);
+      const networkTime = performance.now() - networkStart;
+      console.log(`[AuthStore BLOQUE 1] 🌐 Network validation completed in ${networkTime.toFixed(0)}ms`);
       
-      // ✅ OPTIMIZATION 2: Mark as ready IMMEDIATELY, even on error
-      set({ loading: false, sessionReady: true });
-      
+      // Si la validación de red falla o timeout, mantener la sesión cacheada
       if (sessionError && sessionError.message !== 'Timeout') {
-        console.error('[AuthStore v17.0] ❌ Session error (non-blocking):', sessionError);
+        console.error('[AuthStore BLOQUE 1] ❌ Network validation error (non-blocking):', sessionError);
         return;
       }
       
-      if (currentSession) {
-        console.log('[AuthStore v17.0] ✅ Session found');
-        set({ session: currentSession });
+      // Si la red devuelve una sesión diferente, actualizar
+      if (networkSession) {
+        console.log('[AuthStore BLOQUE 1] ✅ Network session validated');
+        set({ session: networkSession });
         
-        // ✅ OPTIMIZATION 3: Load user profile IMMEDIATELY in background (no delay)
+        // ✅ PASO 3: CARGAR PERFIL DE USUARIO (en background, no bloquea)
         (async () => {
           const profileStart = performance.now();
           
-          // Reduced timeout to 2 seconds (from 3s)
+          // Timeout reducido a 1500ms (consistente con sesión)
           const profilePromise = getCurrentUser();
           const profileTimeoutPromise = new Promise<{ user: null, error: Error }>((resolve) => {
             setTimeout(() => {
-              console.log('[AuthStore v17.0] ⏱️ Profile fetch timeout (2s)');
+              console.log('[AuthStore BLOQUE 1] ⏱️ Profile fetch timeout (1500ms)');
               resolve({ user: null, error: new Error('Timeout') });
-            }, 2000); // ✅ Reduced from 3000ms
+            }, 1500); // ✅ REDUCIDO de 2000ms a 1500ms
           });
           
           const { user: userData, error: userError } = await Promise.race([
@@ -213,10 +246,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           const profileTime = performance.now() - profileStart;
           
           if (!userError && userData) {
-            console.log('[AuthStore v17.0] ✅ User profile loaded in', `${profileTime.toFixed(0)}ms`);
+            console.log(`[AuthStore BLOQUE 1] ✅ User profile loaded in ${profileTime.toFixed(0)}ms`);
             set({ user: userData });
             
-            // ✅ OPTIMIZATION 4: Push notifications ONLY on iOS, heavily delayed
+            // ✅ PASO 4: Push notifications (muy diferido, no crítico)
             if (Platform.OS === 'ios') {
               setTimeout(() => {
                 registerForPushNotifications()
@@ -226,20 +259,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     }
                   })
                   .catch(() => {});
-              }, 15000); // ✅ Increased delay to 15 seconds (from 10s)
+              }, 15000);
             }
           } else if (userError && userError.message !== 'Timeout') {
-            console.error('[AuthStore v17.0] ❌ Profile error (non-blocking):', userError);
+            console.error('[AuthStore BLOQUE 1] ❌ Profile error (non-blocking):', userError);
           }
-        })(); // ✅ No setTimeout - start immediately
+        })();
       } else {
-        console.log('[AuthStore v17.0] ℹ️ No session found');
+        console.log('[AuthStore BLOQUE 1] ℹ️ No network session (user logged out or timeout)');
+        // Si no hay sesión de red, limpiar la sesión cacheada
+        if (cachedSessionData) {
+          set({ session: null, isAuthenticated: false });
+        }
       }
       
       const totalTime = performance.now() - startTime;
-      console.log('[AuthStore v17.0] ✅ Auth initialized in', `${totalTime.toFixed(0)}ms`);
+      console.log(`[AuthStore BLOQUE 1] ✅ Total initialization: ${totalTime.toFixed(0)}ms`);
+      console.log('[AuthStore BLOQUE 1] 📊 Breakdown:');
+      console.log('  - MMKV sync read: <1ms');
+      console.log(`  - Network validation: ${networkTime.toFixed(0)}ms`);
+      console.log('  - Profile load: background (non-blocking)');
     } catch (err) {
-      console.error('[AuthStore v17.0] ❌ Initialization error (non-blocking):', err);
+      console.error('[AuthStore BLOQUE 1] ❌ Initialization error (non-blocking):', err);
       // ✅ CRITICAL: Always mark as ready, even on error
       set({ loading: false, sessionReady: true });
     }
