@@ -62,12 +62,13 @@ interface Filtro {
 }
 
 /**
- * ✅ HOME SCREEN v107.1 - SCROLL TO TOP FIX + LOCATION CONTEXT
+ * ✅ HOME SCREEN v108.0 - ABSOLUTE SCROLL TO TOP FIX
  * 
- * 🔧 NEW IN v107.1:
- * - ✅ SCROLL TO TOP FIX: Changed from scrollToOffset to scrollToIndex(0)
- * - ✅ TAB BEHAVIOR: Tapping "Home" tab while active scrolls to top + refreshes data
- * - ✅ PRECISE SCROLLING: scrollToIndex(0) ensures scroll to FIRST item, not middle
+ * 🔧 NEW IN v108.0:
+ * - ✅ ABSOLUTE SCROLL TO TOP: Added viewPosition: 0 and viewOffset: 0
+ * - ✅ CRITICAL FIX: FlashList now positions first item at TOP of viewport
+ * - ✅ TAB BEHAVIOR: Tapping "Home" tab while active scrolls to absolute top + refreshes data
+ * - ✅ PRECISE SCROLLING: viewPosition: 0 ensures item 0 is at TOP, not middle
  * 
  * MAINTAINED FROM v107.0:
  * - ✅ Migrated to LocationContext for null-safe location access
@@ -206,31 +207,39 @@ export default function HomeScreen() {
 
   const flashListRef = useRef<any>(null);
   
-  // ✅ v107.1: SCROLL TO TOP + REFRESH when home tab is pressed while active
+  // ✅ v108.0: CRITICAL FIX - Scroll to ABSOLUTE top with viewPosition
   const scrollToTopRef = useRef({
     scrollToTop: () => {
-      console.log('[HomeScreen v107.1] 🔄 Home tab pressed while active - Scrolling to top + refreshing...');
+      console.log('[HomeScreen v108.0] 🔄 Home tab pressed while active - Scrolling to top + refreshing...');
       
-      // 1️⃣ SCROLL TO TOP - Use scrollToIndex for precise positioning
+      // 1️⃣ SCROLL TO TOP - Use scrollToIndex with viewPosition: 0 to ensure ABSOLUTE top
       if (flashListRef.current && locales && locales.length > 0) {
         try {
-          flashListRef.current.scrollToIndex({ index: 0, animated: true });
-          console.log('[HomeScreen v107.1] ✅ Scrolled to index 0 successfully');
+          // ✅ CRITICAL FIX: Add viewPosition: 0 to scroll to ABSOLUTE beginning
+          // viewPosition: 0 means the item will be at the TOP of the viewport
+          // viewOffset: 0 ensures no additional offset is applied
+          flashListRef.current.scrollToIndex({ 
+            index: 0, 
+            animated: true,
+            viewPosition: 0,  // Position item at the TOP of the viewport
+            viewOffset: 0     // No additional offset
+          });
+          console.log('[HomeScreen v108.0] ✅ Scrolled to index 0 with viewPosition: 0 (absolute top)');
         } catch (error) {
-          console.log('[HomeScreen v107.1] ⚠️ scrollToIndex failed, trying scrollToOffset:', error);
+          console.log('[HomeScreen v108.0] ⚠️ scrollToIndex failed, trying scrollToOffset:', error);
           try {
             flashListRef.current.scrollToOffset({ offset: 0, animated: true });
-            console.log('[HomeScreen v107.1] ✅ Fallback scrollToOffset successful');
+            console.log('[HomeScreen v108.0] ✅ Fallback scrollToOffset successful');
           } catch (fallbackError) {
-            console.log('[HomeScreen v107.1] ⚠️ Both scroll methods failed:', fallbackError);
+            console.log('[HomeScreen v108.0] ⚠️ Both scroll methods failed:', fallbackError);
           }
         }
       }
       
       // 2️⃣ DATA REFRESH
-      console.log('[HomeScreen v107.1] 🔄 Triggering data refresh...');
+      console.log('[HomeScreen v108.0] 🔄 Triggering data refresh...');
       refetch();
-      console.log('[HomeScreen v107.1] ✅ Data refresh triggered');
+      console.log('[HomeScreen v108.0] ✅ Data refresh triggered');
     },
   });
   

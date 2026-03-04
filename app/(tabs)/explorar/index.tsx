@@ -1,20 +1,23 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN v21.1.1 - SCROLL TO TOP FIX + BLANK SPACE FIX 🚀
+ * EXPLORAR SCREEN v22.0.0 - ABSOLUTE SCROLL TO TOP FIX 🚀
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v21.1.1 (CRITICAL FIXES):
- * 1️⃣ SCROLL TO TOP FIX: Changed from scrollToOffset to scrollToIndex(0) ✅
- *    - Previous: scrollToOffset({ offset: 0 }) scrolled to middle of list
- *    - Fixed: scrollToIndex({ index: 0 }) scrolls to FIRST item precisely
- *    - Result: Tapping "Explorar" tab now scrolls to the ACTUAL beginning
+ * 🎯 NEW IN v22.0.0 (CRITICAL FIX):
+ * 1️⃣ ABSOLUTE SCROLL TO TOP: Added viewPosition: 0 and viewOffset: 0 ✅
+ *    - Previous: scrollToIndex({ index: 0 }) was scrolling to wrong position
+ *    - Issue: FlashList was positioning item 0 in the middle of viewport
+ *    - Fixed: scrollToIndex({ index: 0, viewPosition: 0, viewOffset: 0 })
+ *    - viewPosition: 0 = Position item at TOP of viewport (not middle)
+ *    - viewOffset: 0 = No additional offset applied
+ *    - Result: Tapping "Explorar" tab now scrolls to ABSOLUTE beginning
+ *    - User will see "Pub Kapital" (first item) at the TOP of the screen
  * 
- * 2️⃣ BLANK SPACE FIX: Recalculated estimatedItemSize from 336px to 338px ✅
- *    - Previous: 336px left gaps between items (especially items 19-20)
- *    - Fixed: 338px = image(140) + content(180) + margin(16) + border(2)
- *    - Calculation: Included 1px top border + 1px bottom border = 2px
- *    - Result: NO MORE blank spaces between ANY items - PERFECT spacing
+ * MAINTAINED FROM v21.1.1:
+ * 2️⃣ BLANK SPACE FIX: estimatedItemSize = 338px ✅
+ *    - 338px = image(140) + content(180) + margin(16) + border(2)
+ *    - Result: NO MORE blank spaces between items
  * 
  * MAINTAINED FROM v21.1.0:
  * 1️⃣ SCROLL TO TOP + DATA REFRESH: Pressing Explorar tab while active triggers BOTH actions ✅
@@ -248,34 +251,40 @@ export default function ExplorarScreen() {
     return data.pages.flatMap(page => page.venues);
   }, [data]);
   
-  // ✅ v21.1: FIXED SCROLL TO TOP + DATA REFRESH - Scroll to ACTUAL top (index 0) AND refresh data
+  // ✅ v22.0.0: CRITICAL FIX - Scroll to ABSOLUTE top with viewPosition
   const scrollToTopRef = useRef({
     scrollToTop: () => {
-      console.log('[ExplorarScreen v21.1] 🔄 Tab pressed while active - Executing scroll to top + data refresh...');
+      console.log('[ExplorarScreen v22.0] 🔄 Tab pressed while active - Executing scroll to top + data refresh...');
       
-      // 1️⃣ SCROLL TO TOP - Use scrollToIndex for precise positioning at the beginning
+      // 1️⃣ SCROLL TO TOP - Use scrollToIndex with viewPosition: 0 to ensure ABSOLUTE top
       if (flashListRef.current && filteredVenues.length > 0) {
         try {
-          // ✅ CRITICAL FIX: Use scrollToIndex(0) instead of scrollToOffset
-          // This ensures we scroll to the FIRST item, not to a random offset
-          flashListRef.current.scrollToIndex({ index: 0, animated: true });
-          console.log('[ExplorarScreen v21.1] ✅ Scrolled to index 0 (first item) successfully');
+          // ✅ CRITICAL FIX: Add viewPosition: 0 to scroll to ABSOLUTE beginning
+          // viewPosition: 0 means the item will be at the TOP of the viewport
+          // viewOffset: 0 ensures no additional offset is applied
+          flashListRef.current.scrollToIndex({ 
+            index: 0, 
+            animated: true,
+            viewPosition: 0,  // Position item at the TOP of the viewport
+            viewOffset: 0     // No additional offset
+          });
+          console.log('[ExplorarScreen v22.0] ✅ Scrolled to index 0 with viewPosition: 0 (absolute top)');
         } catch (error) {
-          console.log('[ExplorarScreen v21.1] ⚠️ scrollToIndex failed, trying scrollToOffset:', error);
+          console.log('[ExplorarScreen v22.0] ⚠️ scrollToIndex failed, trying scrollToOffset:', error);
           // Fallback to scrollToOffset if scrollToIndex fails
           try {
             flashListRef.current.scrollToOffset({ offset: 0, animated: true });
-            console.log('[ExplorarScreen v21.1] ✅ Fallback scrollToOffset successful');
+            console.log('[ExplorarScreen v22.0] ✅ Fallback scrollToOffset successful');
           } catch (fallbackError) {
-            console.log('[ExplorarScreen v21.1] ⚠️ Both scroll methods failed:', fallbackError);
+            console.log('[ExplorarScreen v22.0] ⚠️ Both scroll methods failed:', fallbackError);
           }
         }
       }
       
       // 2️⃣ DATA REFRESH - Trigger pull-to-refresh behavior
-      console.log('[ExplorarScreen v21.1] 🔄 Triggering data refresh...');
+      console.log('[ExplorarScreen v22.0] 🔄 Triggering data refresh...');
       refetch();
-      console.log('[ExplorarScreen v21.1] ✅ Data refresh triggered');
+      console.log('[ExplorarScreen v22.0] ✅ Data refresh triggered');
     },
   });
   
