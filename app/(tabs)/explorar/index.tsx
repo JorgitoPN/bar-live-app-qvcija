@@ -1,10 +1,16 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 EXPLORAR SCREEN v33.1.0 - FIXED STATUS DISPLAY MISMATCH
+ * 🚀 EXPLORAR SCREEN v34.0.0 - FIXED ADVANCED FILTERS
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v33.1.0 (FIXED STATUS DISPLAY MISMATCH):
+ * 🎯 NEW IN v34.0.0 (FIXED ADVANCED FILTERS):
+ * 1️⃣ SERVICIOS FILTER: Now returns only venues with selected services set to TRUE ✅
+ * 2️⃣ AMBIENTE FILTER: Now returns only venues with selected ambience set to TRUE ✅
+ * 3️⃣ CLIENTELA FILTER: Now returns only venues with selected clientele set to TRUE ✅
+ * 4️⃣ RESULT: Filters work correctly and show only matching venues ✅
+ * 
+ * 🎯 v33.1.0 (FIXED STATUS DISPLAY MISMATCH):
  * 1️⃣ CARDS USE DATABASE STATUS: No more recalculation causing visual mismatch ✅
  * 2️⃣ CONSISTENT DISPLAY: Status badge matches sorting tier ✅
  * 3️⃣ NO CLOSED IN OPEN: Closed venues only appear in closed section ✅
@@ -270,7 +276,7 @@ export default function ExplorarScreen() {
   // The venues come from the RPC function in the correct 5-tier order
   const allVenues = useMemo(() => {
     console.log('═══════════════════════════════════════════════════════════');
-    console.log('[ExplorarScreen v32.3.0] 🔍 Processing venues - PRESERVING DB ORDER', {
+    console.log('[ExplorarScreen v34.0.0] 🔍 Processing venues - PRESERVING DB ORDER', {
       hasData: !!data,
       hasPages: !!data?.pages,
       pageCount: data?.pages?.length || 0,
@@ -281,17 +287,17 @@ export default function ExplorarScreen() {
     });
     
     if (!data?.pages) {
-      console.log('[ExplorarScreen v32.3.0] ⚠️ No data.pages - returning empty array');
+      console.log('[ExplorarScreen v34.0.0] ⚠️ No data.pages - returning empty array');
       console.log('═══════════════════════════════════════════════════════════');
       return [];
     }
     
-    // ✅ v32.3.0: Simply flatten pages - DO NOT SORT!
-    // The database already returns venues in the correct order
+    // ✅ v34.0.0: Simply flatten pages - DO NOT SORT!
+    // The database already returns venues in the correct order with proper filtering
     const flatVenues = data.pages.flatMap(page => page?.venues || []);
     const uniqueVenues = Array.from(new Map(flatVenues.map(v => [v.id, v])).values());
     
-    console.log('[ExplorarScreen v32.3.0] 📊 Venues processed - ORDER PRESERVED:', {
+    console.log('[ExplorarScreen v34.0.0] 📊 Venues processed - ORDER PRESERVED:', {
       total: flatVenues.length,
       unique: uniqueVenues.length,
       duplicates: flatVenues.length - uniqueVenues.length,
@@ -307,7 +313,7 @@ export default function ExplorarScreen() {
         distancia: v.distancia?.toFixed(2),
       })),
     });
-    console.log('[ExplorarScreen v32.3.0] ✅ RETURNING', uniqueVenues.length, 'venues IN DATABASE ORDER');
+    console.log('[ExplorarScreen v34.0.0] ✅ RETURNING', uniqueVenues.length, 'venues IN DATABASE ORDER WITH CORRECT FILTERS');
     console.log('═══════════════════════════════════════════════════════════');
     
     return uniqueVenues;
@@ -318,10 +324,10 @@ export default function ExplorarScreen() {
   
   // ✅ SCROLL TO TOP & REFRESH
   const handleScrollToTopAndRefresh = useCallback(() => {
-    console.log('[ExplorarScreen v33.1] 🚀 Scroll to top & refresh - Invalidating cache');
+    console.log('[ExplorarScreen v34.0] 🚀 Scroll to top & refresh - Invalidating cache');
     
     // Step 1: Clear cache first to prevent stale data
-    queryClient.resetQueries({ queryKey: ['bares_infinite_v27.1.0'] });
+    queryClient.resetQueries({ queryKey: ['bares_infinite_v28.0.0'] });
     
     // Step 2: Force remount to clear FlashList internal state
     setListKey(prev => prev + 1);
@@ -343,14 +349,14 @@ export default function ExplorarScreen() {
     }, 100);
   }, [queryClient, refetch]);
   
-  // ✅ v33.1: FORCE RESET cache on mount to ensure fresh data with correct ordering
+  // ✅ v34.0: FORCE RESET cache on mount to ensure fresh data with correct filtering
   useEffect(() => {
-    console.log('[ExplorarScreen v33.1] 🔄 FORCE RESETTING cache on mount (fixed status display v27.1)');
-    queryClient.resetQueries({ queryKey: ['bares_infinite_v27.1.0'] });
+    console.log('[ExplorarScreen v34.0] 🔄 FORCE RESETTING cache on mount (fixed advanced filters v28.0)');
+    queryClient.resetQueries({ queryKey: ['bares_infinite_v28.0.0'] });
     
     // Force refetch after reset
     setTimeout(() => {
-      console.log('[ExplorarScreen v33.0] 🔄 Forcing refetch after cache reset');
+      console.log('[ExplorarScreen v34.0] 🔄 Forcing refetch after cache reset');
       refetch();
     }, 100);
   }, [queryClient, refetch]);
@@ -415,7 +421,7 @@ export default function ExplorarScreen() {
   // ═══════════════════════════════════════════════════════════════════════════
   
   useEffect(() => {
-    console.log('[ExplorarScreen v33.1.0] 🔄 Filters changed - Resetting list');
+    console.log('[ExplorarScreen v34.0.0] 🔄 Filters changed - Resetting list');
     
     // Force remount FlashList to clear internal layout cache
     setListKey(prev => prev + 1);

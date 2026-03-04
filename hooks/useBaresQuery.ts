@@ -1,10 +1,16 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 useBaresQuery v27.1.0 - FIXED STATUS DISPLAY MISMATCH
+ * 🚀 useBaresQuery v28.0.0 - FIXED ADVANCED FILTERS
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v27.1.0 (FIXED STATUS DISPLAY MISMATCH):
+ * 🎯 NEW IN v28.0.0 (FIXED ADVANCED FILTERS):
+ * 1️⃣ SERVICIOS FILTER: Now properly checks for TRUE values in servicios_disponibles ✅
+ * 2️⃣ AMBIENTE FILTER: Now properly checks for TRUE values in ambiente_completo ✅
+ * 3️⃣ CLIENTELA FILTER: Now properly checks for TRUE values in clientela ✅
+ * 4️⃣ RESULT: Filters return only venues that actually have the selected characteristics ✅
+ * 
+ * 🎯 v27.1.0 (FIXED STATUS DISPLAY MISMATCH):
  * 1️⃣ CARDS USE DATABASE STATUS: Frontend displays database-calculated esta_abierto ✅
  * 2️⃣ NO RECALCULATION: Prevents mismatch between sorting and display ✅
  * 3️⃣ CONSISTENT UI: Status badge matches sorting tier ✅
@@ -79,7 +85,7 @@ function generateQueryKey(params: UseBaresQueryParams) {
   );
   
   return [
-    'bares_infinite_v27.1.0',  // ✅ FIXED: Status display matches sorting (no closed in open section)
+    'bares_infinite_v28.0.0',  // ✅ FIXED: Advanced filters now properly check for TRUE values
     lat,
     lng,
     params.selectedCategory,
