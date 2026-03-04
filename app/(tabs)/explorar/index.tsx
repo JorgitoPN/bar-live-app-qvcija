@@ -245,12 +245,14 @@ export default function ExplorarScreen() {
     pageSize: ITEMS_PER_PAGE,
   });
   
-  // ✅ v17.0: Flatten paginated data into single array
+  // ✅ v23.0: Flatten paginated data into single array with duplicate filtering
   const allVenues = useMemo(() => {
     if (!data?.pages) return [];
-    const venues = data.pages.flatMap(page => page.venues);
-    console.log('[ExplorarScreen v24.0] 📊 Total venues loaded:', venues.length);
-    return venues;
+    const flatVenues = data.pages.flatMap(page => page.venues);
+    // Filtramos duplicados por ID para evitar que FlashList cree espacios en blanco
+    const uniqueVenues = Array.from(new Map(flatVenues.map(v => [v.id, v])).values());
+    console.log('[ExplorarScreen v23.0] 📊 Total venues loaded:', flatVenues.length, '| Unique:', uniqueVenues.length);
+    return uniqueVenues;
   }, [data]);
   
   // ✅ v24.0: CRITICAL FIX - Proper scroll to top implementation with React Navigation
@@ -271,22 +273,25 @@ export default function ExplorarScreen() {
           // ✅ CRITICAL FIX: Use scrollToOffset with offset: 0 for ABSOLUTE top
           // This scrolls to the very beginning of the list (pixel 0)
           // Works even if list is empty or loading
+          // animated: false prevents race condition with data refresh
           flashListRef.current.scrollToOffset({ 
             offset: 0, 
-            animated: true 
+            animated: false 
           });
-          console.log('[ExplorarScreen v24.0] ✅ Scrolled to offset 0 (absolute top)');
+          console.log('[ExplorarScreen v23.0] ✅ Scrolled to offset 0 (absolute top, no animation)');
         } catch (error) {
-          console.log('[ExplorarScreen v24.0] ⚠️ scrollToOffset failed:', error);
+          console.log('[ExplorarScreen v23.0] ⚠️ scrollToOffset failed:', error);
         }
       } else {
-        console.log('[ExplorarScreen v24.0] ⚠️ FlashList ref not available');
+        console.log('[ExplorarScreen v23.0] ⚠️ FlashList ref not available');
       }
       
-      // 2️⃣ DATA REFRESH - Trigger pull-to-refresh behavior
-      console.log('[ExplorarScreen v24.0] 🔄 Triggering data refresh...');
-      refetch();
-      console.log('[ExplorarScreen v24.0] ✅ Data refresh triggered');
+      // 2️⃣ DATA REFRESH - Trigger pull-to-refresh behavior with delay to prevent race conditions
+      setTimeout(() => {
+        console.log('[ExplorarScreen v23.0] 🔄 Triggering data refresh...');
+        refetch();
+        console.log('[ExplorarScreen v23.0] ✅ Data refresh triggered');
+      }, 50);
     },
   });
   
