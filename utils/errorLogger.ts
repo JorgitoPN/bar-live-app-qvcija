@@ -324,16 +324,15 @@ export const setupErrorLogging = () => {
   originalConsoleLog('[Natively] Setting up error logging...');
   originalConsoleLog('[Natively] Log server URL:', logServerUrl || 'NOT AVAILABLE');
   originalConsoleLog('[Natively] Platform:', Platform.OS);
-  originalConsoleLog('[Natively FASE 9] ✅ AbortError silencing enabled');
+  originalConsoleLog('[Natively FASE 9] ✅ AbortError silencing enabled - TOTAL SILENCE MODE');
 
   // Override console.log to capture and send to server
   console.log = (...args: any[]) => {
-    // ✅ FASE 9: Check if any arg is an AbortError and skip logging
+    // ✅ FASE 9: Check if any arg is an AbortError and skip logging COMPLETELY
     const hasAbortError = args.some(arg => shouldMuteError(arg));
     if (hasAbortError) {
-      // Still call original for debugging, but don't queue for server
-      originalConsoleLog.apply(console, args);
-      return; // ✅ FASE 9: Stop execution here - no queueLog
+      // ✅ SILENCIO TOTAL: No llamar a originalConsoleLog, no queueLog, nada
+      return;
     }
     
     // Always call original first
@@ -347,12 +346,11 @@ export const setupErrorLogging = () => {
 
   // Override console.warn to capture and send to server
   console.warn = (...args: any[]) => {
-    // ✅ FASE 9: Check if any arg is an AbortError and skip logging
+    // ✅ FASE 9: Check if any arg is an AbortError and skip logging COMPLETELY
     const hasAbortError = args.some(arg => shouldMuteError(arg));
     if (hasAbortError) {
-      // Still call original for debugging, but don't queue for server
-      originalConsoleWarn.apply(console, args);
-      return; // ✅ FASE 9: Stop execution here - no queueLog
+      // ✅ SILENCIO TOTAL: No llamar a originalConsoleWarn, no queueLog, nada
+      return;
     }
     
     // Always call original first
@@ -368,12 +366,11 @@ export const setupErrorLogging = () => {
 
   // Override console.error to capture and send to server
   console.error = (...args: any[]) => {
-    // ✅ FASE 9: Check if any arg is an AbortError and skip logging
+    // ✅ FASE 9: Check if any arg is an AbortError and skip logging COMPLETELY
     const hasAbortError = args.some(arg => shouldMuteError(arg));
     if (hasAbortError) {
-      // Still call original for debugging, but don't queue for server
-      originalConsoleError.apply(console, args);
-      return; // ✅ FASE 9: Stop execution here - no queueLog, no sendErrorToParent
+      // ✅ SILENCIO TOTAL: No llamar a originalConsoleError, no queueLog, no sendErrorToParent
+      return;
     }
     
     // Always call original first
@@ -394,9 +391,10 @@ export const setupErrorLogging = () => {
   if (typeof window !== 'undefined') {
     // Override window.onerror to catch JavaScript errors
     window.onerror = (message, source, lineno, colno, error) => {
-      // ✅ FASE 9: Check if error is an AbortError and skip
+      // ✅ FASE 9: Check if error is an AbortError and skip COMPLETELY
       if (shouldMuteError(error)) {
-        return false; // ✅ FASE 9: Stop execution here - no queueLog, no sendErrorToParent
+        // ✅ SILENCIO TOTAL: No queueLog, no sendErrorToParent
+        return false;
       }
       
       const sourceFile = source ? source.split('/').pop() : 'unknown';
@@ -415,9 +413,10 @@ export const setupErrorLogging = () => {
     // Capture unhandled promise rejections (web only)
     if (Platform.OS === 'web') {
       window.addEventListener('unhandledrejection', (event) => {
-        // ✅ FASE 9: Check if rejection is an AbortError and skip
+        // ✅ FASE 9: Check if rejection is an AbortError and skip COMPLETELY
         if (shouldMuteError(event.reason)) {
-          return; // ✅ FASE 9: Stop execution here - no queueLog, no sendErrorToParent
+          // ✅ SILENCIO TOTAL: No queueLog, no sendErrorToParent
+          return;
         }
         
         const message = `UNHANDLED PROMISE REJECTION: ${event.reason}`;
