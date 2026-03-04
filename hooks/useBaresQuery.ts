@@ -161,8 +161,9 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         userLocation: { lat: userLocation?.latitude, lng: userLocation?.longitude },
       });
       
-      const queryPromise = supabase.rpc('get_venues_with_auth', {
-        p_user_id: userId, // ✅ Pass user ID for database-side LEFT JOIN
+      // ✅ FASE 11: Debug log de parámetros antes de llamar al RPC
+      const rpcParams = {
+        p_user_id: userId,
         p_user_lat: userLocation?.latitude || 40.4168,
         p_user_lng: userLocation?.longitude || -3.7038,
         p_limit: pageSize,
@@ -177,7 +178,11 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         p_provincia_filter: globalFiltros.provincia || null,
         p_max_distance_km: globalFiltros.distancia || null,
         p_search_query: searchQuery || null,
-      }).abortSignal(controller.signal);
+      };
+      
+      console.log('[useBaresQuery FASE 11] 📡 RPC Parameters:', JSON.stringify(rpcParams, null, 2));
+      
+      const queryPromise = supabase.rpc('get_venues_with_auth', rpcParams).abortSignal(controller.signal);
       
       // ✅ FASE 7: Timeout con AbortController
       const timeoutId = setTimeout(() => {
@@ -195,15 +200,29 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         const endTime = performance.now();
         const loadTime = endTime - startTime;
         
+        // ✅ FASE 11: Debug log detallado de la respuesta
+        console.log('[useBaresQuery FASE 11] 📦 RPC Response:', {
+          hasError: !!error,
+          errorDetails: error ? JSON.stringify(error) : null,
+          dataType: typeof data,
+          dataIsArray: Array.isArray(data),
+          dataLength: data?.length || 0,
+          firstVenue: data?.[0] ? {
+            id: data[0].id,
+            nombre: data[0].nombre,
+            is_favorite: data[0].is_favorite,
+          } : null,
+        });
+        
         if (error) {
-          console.error('[useBaresQuery v24.0.0] ❌ RPC Error:', error);
+          console.error('[useBaresQuery FASE 11] ❌ RPC Error:', error);
           throw error;
         }
         
         const venues = data || [];
         
         // ✅ Performance monitoring
-        console.log('[useBaresQuery v24.0.0] ✅ Loaded', venues.length, 'venues in', `${loadTime.toFixed(0)}ms`, {
+        console.log('[useBaresQuery FASE 11] ✅ Loaded', venues.length, 'venues in', `${loadTime.toFixed(0)}ms`, {
           isFirstPage,
           performance: loadTime < 500 ? '⚡ FAST' : loadTime < 1000 ? '✅ GOOD' : '⚠️ SLOW',
         });

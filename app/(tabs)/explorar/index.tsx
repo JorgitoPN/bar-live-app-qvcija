@@ -263,28 +263,56 @@ export default function ExplorarScreen() {
     pageSize: ITEMS_PER_PAGE,
   });
   
+  // ✅ FASE 11: Debug log inmediatamente después de useBaresQuery
+  console.log('[ExplorarScreen FASE 11] 🔍 useBaresQuery result:', {
+    hasData: !!data,
+    hasPages: !!data?.pages,
+    pageCount: data?.pages?.length || 0,
+    isLoading,
+    isFetching,
+    isError,
+    errorMessage: error?.message,
+    hasNextPage,
+    isFetchingNextPage,
+  });
+  
   // ✅ BLOQUE 2 RESTAURACIÓN: Forzar opacidad a 1 (desactivar animación temporalmente)
   const [showContent, setShowContent] = useState(true); // ✅ FASE 9: Forzado a true
   const contentOpacity = useRef(new Animated.Value(1)).current; // ✅ FASE 9: Forzado a 1
   
   // ✅ DEDUPLICATE VENUES - Critical for FlashList stability
   const allVenues = useMemo(() => {
+    console.log('[ExplorarScreen FASE 11] 🔍 Processing venues - START', {
+      hasData: !!data,
+      hasPages: !!data?.pages,
+      pageCount: data?.pages?.length || 0,
+      isLoading,
+      isFetching,
+      isError,
+      error: error?.message,
+    });
+    
     if (!data?.pages) {
-      console.log('[ExplorarScreen FASE 10] ⚠️ No data.pages');
+      console.log('[ExplorarScreen FASE 11] ⚠️ No data.pages - returning empty array');
       return [];
     }
     
-    console.log('[ExplorarScreen FASE 10] 📊 Raw data.pages:', {
+    console.log('[ExplorarScreen FASE 11] 📊 Raw data.pages:', {
       pageCount: data.pages.length,
       firstPage: data.pages[0],
       firstPageVenues: data.pages[0]?.venues?.length || 0,
+      allPages: data.pages.map((page, idx) => ({
+        pageIndex: idx,
+        venuesCount: page?.venues?.length || 0,
+        hasVenues: !!page?.venues,
+      })),
     });
     
     const flatVenues = data.pages.flatMap(page => page?.venues || []);
     const uniqueVenues = Array.from(new Map(flatVenues.map(v => [v.id, v])).values());
     
-    // ✅ FASE 10: Debug log mejorado
-    console.log('[ExplorarScreen FASE 10] 📊 Venues processed:', {
+    // ✅ FASE 11: Debug log mejorado con más detalles
+    console.log('[ExplorarScreen FASE 11] 📊 Venues processed - RESULT:', {
       total: flatVenues.length,
       unique: uniqueVenues.length,
       duplicates: flatVenues.length - uniqueVenues.length,
@@ -292,15 +320,15 @@ export default function ExplorarScreen() {
       isLoading,
       isFetching,
       isCircuitOpen: circuitBreaker.isOpen,
-      sampleVenue: uniqueVenues[0] ? {
-        id: uniqueVenues[0].id,
-        nombre: uniqueVenues[0].nombre,
-        is_favorite: uniqueVenues[0].is_favorite,
-      } : null,
+      sampleVenues: uniqueVenues.slice(0, 3).map(v => ({
+        id: v.id,
+        nombre: v.nombre,
+        is_favorite: v.is_favorite,
+      })),
     });
     
     return uniqueVenues;
-  }, [data, isLoading, isFetching, circuitBreaker.isOpen]);
+  }, [data, isLoading, isFetching, isError, error, circuitBreaker.isOpen]);
   
   // ✅ FASE 9 RESTAURACIÓN: Animación desactivada temporalmente
   // La animación se quedaba trabada en opacity: 0, causando pantalla en blanco
