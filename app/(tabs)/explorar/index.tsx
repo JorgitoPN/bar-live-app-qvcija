@@ -1,19 +1,22 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN v21.0.0 - BLANK SPACE FIX + SCROLL TO TOP 🚀
+ * EXPLORAR SCREEN v21.1.0 - SCROLL TO TOP + DATA REFRESH 🚀
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v21.0.0 (CRITICAL BUG FIXES):
+ * 🎯 NEW IN v21.1.0 (ENHANCED TAB BEHAVIOR):
+ * 1️⃣ SCROLL TO TOP + DATA REFRESH: Pressing Explorar tab while active triggers BOTH actions ✅
+ *    - Action 1: Smooth animated scroll to top of list
+ *    - Action 2: Automatic data refresh (pull-to-refresh behavior)
+ *    - Result: User always sees fresh data from the beginning
+ *    - UX: Consistent with iOS native apps (tap active tab = refresh)
+ * 
+ * MAINTAINED FROM v21.0.0:
  * 1️⃣ BLANK SPACE FIX: estimatedItemSize = 336px (EXACT calculation) ✅
  *    - Previous: 292px (still had gaps between items 19-20)
  *    - Fixed: 336px = image(140) + content(180) + margin(16)
  *    - Calculation: image(140) + padding(32) + header(28) + info(20) + categories(32) + actions(48) + gaps(20) + margin(16)
  *    - Result: NO MORE blank spaces between items - UNIFORM spacing
- * 2️⃣ SCROLL TO TOP: Pressing Explorar tab scrolls to top ✅
- *    - Smooth animated scroll to beginning of list
- *    - User always starts from the first local
- *    - Result: Consistent navigation experience
  * 
  * MAINTAINED FROM v19.0.0:
  * - ✅ ENHANCED PREFETCH: Intelligent background data loading
@@ -231,20 +234,25 @@ export default function ExplorarScreen() {
     return data.pages.flatMap(page => page.venues);
   }, [data]);
   
-  // ✅ v21.0: ENHANCED SCROLL TO TOP - Scroll to top when tab is pressed
+  // ✅ v21.0: ENHANCED SCROLL TO TOP + DATA REFRESH - Scroll to top AND refresh data when tab is pressed
   const scrollToTopRef = useRef({
     scrollToTop: () => {
-      console.log('[ExplorarScreen v21.0] 🔄 Tab pressed - Scrolling to top...');
+      console.log('[ExplorarScreen v21.0] 🔄 Tab pressed while active - Executing scroll to top + data refresh...');
       
+      // 1️⃣ SCROLL TO TOP - Smooth animated scroll to beginning
       if (flashListRef.current) {
         try {
-          // Scroll to top with smooth animation
           flashListRef.current.scrollToOffset({ offset: 0, animated: true });
           console.log('[ExplorarScreen v21.0] ✅ Scrolled to top successfully');
         } catch (error) {
           console.log('[ExplorarScreen v21.0] ⚠️ scrollToOffset failed:', error);
         }
       }
+      
+      // 2️⃣ DATA REFRESH - Trigger pull-to-refresh behavior
+      console.log('[ExplorarScreen v21.0] 🔄 Triggering data refresh...');
+      refetch();
+      console.log('[ExplorarScreen v21.0] ✅ Data refresh triggered');
     },
   });
   
