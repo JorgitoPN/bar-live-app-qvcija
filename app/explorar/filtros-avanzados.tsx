@@ -45,9 +45,14 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ CROSS-PLATFORM FILTERS PAGE v3.3 - iOS + ANDROID - REMOVED NIGHTLIFE CATEGORY
+ * ✅ CROSS-PLATFORM FILTERS PAGE v3.4 - iOS + ANDROID - TIPOS DE LOCAL SECTION HIDDEN
  * 
- * NEW FEATURES v3.3:
+ * NEW FEATURES v3.4:
+ * - 🚫 COMPLETELY REMOVED "Tipos de local" section from advanced filters page
+ * - ✅ Section no longer appears even when venue types are available
+ * - ✅ Filters out 'discoteca' and 'pub' types from available options (backend compatibility)
+ * 
+ * Previous features v3.3:
  * - 🚫 Removed "Discotecas, pubs, bares, etc" category filter
  * - ✅ Filters out 'discoteca' and 'pub' types from available options
  * 
@@ -89,14 +94,13 @@ export default function FiltrosAvanzadosScreen() {
   const [searchProvincia, setSearchProvincia] = useState('');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     ubicacion: true,
-    tipo: false,
     servicios: false,
     ambiente: false,
     clientela: false,
   });
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados v3.3 iOS+Android] 🔄 Page opened, loading filters (nightlife category removed)');
+    console.log('[FiltrosAvanzados v3.4 iOS+Android] 🔄 Page opened, loading filters (Tipos de local section removed)');
     setFiltrosTemp(contextFiltros);
     refreshDynamicOptions();
   }, [contextFiltros, refreshDynamicOptions]);
@@ -108,13 +112,6 @@ export default function FiltrosAvanzadosScreen() {
     }
     return [...arr, item];
   }, []);
-
-  const handleTipoToggle = useCallback((tipoId: string) => {
-    setFiltrosTemp(prev => ({
-      ...prev,
-      tipo: tipoId === 'todos' ? undefined : toggleArrayItem(prev.tipo, tipoId),
-    }));
-  }, [toggleArrayItem]);
 
   const handleServicioToggle = useCallback((servicioId: string) => {
     setFiltrosTemp(prev => ({
@@ -138,13 +135,13 @@ export default function FiltrosAvanzadosScreen() {
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.3 iOS+Android] ✅ Applying filters:', filtrosTemp);
+    console.log('[FiltrosAvanzados v3.4 iOS+Android] ✅ Applying filters:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     router.back();
   }, [filtrosTemp, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.3 iOS+Android] 🧹 Clearing all filters - INSTANT UI UPDATE');
+    console.log('[FiltrosAvanzados v3.4 iOS+Android] 🧹 Clearing all filters - INSTANT UI UPDATE');
     
     // ✅ PASO 1: Actualizar UI INMEDIATAMENTE (síncrono)
     const emptyFiltros = {};
@@ -157,7 +154,7 @@ export default function FiltrosAvanzadosScreen() {
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v3.3 iOS+Android] 📍 Selected comunidad:', selectedComunidad);
+    console.log('[FiltrosAvanzados v3.4 iOS+Android] 📍 Selected comunidad:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -181,7 +178,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v3.3 iOS+Android] 📍 Selected provincia:', provincia);
+    console.log('[FiltrosAvanzados v3.4 iOS+Android] 📍 Selected provincia:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -192,7 +189,7 @@ export default function FiltrosAvanzadosScreen() {
 
   // ✅ v3.2 iOS FIX: Auto-activate distance filter when user changes slider
   const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados v3.3 iOS+Android] 📏 Radius changed to:', value, 'km - Auto-activating filter');
+    console.log('[FiltrosAvanzados v3.4 iOS+Android] 📏 Radius changed to:', value, 'km - Auto-activating filter');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: value,
@@ -201,7 +198,7 @@ export default function FiltrosAvanzadosScreen() {
 
   // ✅ v3.2 iOS FIX: Activate distance filter with default value
   const activateDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.3 iOS+Android] 🎯 Activating search range filter with default 50km');
+    console.log('[FiltrosAvanzados v3.4 iOS+Android] 🎯 Activating search range filter with default 50km');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: 50,
@@ -210,7 +207,7 @@ export default function FiltrosAvanzadosScreen() {
 
   // ✅ v3.2 iOS FIX: Reset distance filter to "Sin límite"
   const resetDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.3 iOS+Android] 🔄 Resetting search range to "Sin límite"');
+    console.log('[FiltrosAvanzados v3.4 iOS+Android] 🔄 Resetting search range to "Sin límite"');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: undefined,
@@ -258,38 +255,6 @@ export default function FiltrosAvanzadosScreen() {
       p.toLowerCase().includes(query)
     );
   }, [availableProvincias, searchProvincia]);
-
-  const tiposLocales = useMemo(() => {
-    const tipos = [{ id: 'todos', label: 'Todos', icon: '🏪' }];
-    
-    // ✅ v3.3: Filter out nightlife categories (discoteca, pub) along with lounge and sala_conciertos
-    const filteredTipos = dynamicOptions.tipos.filter(tipo => 
-      tipo !== 'lounge' && 
-      tipo !== 'sala_conciertos' && 
-      tipo !== 'discoteca' && 
-      tipo !== 'pub'
-    );
-    
-    filteredTipos.forEach(tipo => {
-      let icon = '📍';
-      if (tipo === 'cafe') icon = '☕';
-      else if (tipo === 'bar') icon = '🍷';
-      else if (tipo === 'restaurante') icon = '🍽️';
-      else if (tipo === 'cocteleria') icon = '🍹';
-      else if (tipo === 'terraza') icon = '☀️';
-      else if (tipo === 'rooftop') icon = '🏢';
-      
-      tipos.push({
-        id: tipo,
-        label: tipo.charAt(0).toUpperCase() + tipo.slice(1),
-        icon: icon,
-      });
-    });
-    
-    console.log('[FiltrosAvanzados v3.3] 🚫 Filtered out nightlife categories. Available types:', filteredTipos);
-    
-    return tipos;
-  }, [dynamicOptions.tipos]);
 
   const serviciosDisponibles = useMemo(() => {
     return dynamicOptions.servicios.map(servicio => {
@@ -349,10 +314,9 @@ export default function FiltrosAvanzadosScreen() {
     return clientela;
   }, [dynamicOptions.clientela]);
 
-  // ✅ v3.2 iOS FIX: Only count distance filter when it's actually set (not "Sin límite")
+  // ✅ v3.4: Updated active filters count (removed tipo filter)
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (filtrosTemp.tipo && filtrosTemp.tipo.length > 0) count++;
     if (filtrosTemp.servicios && filtrosTemp.servicios.length > 0) count++;
     if (filtrosTemp.ambiente && filtrosTemp.ambiente.length > 0) count++;
     if (filtrosTemp.clientela && filtrosTemp.clientela.length > 0) count++;
@@ -438,7 +402,7 @@ export default function FiltrosAvanzadosScreen() {
                 <TouchableOpacity
                   style={styles.locationButton}
                   onPress={() => {
-                    console.log('[FiltrosAvanzados v3.3 iOS+Android] 🔍 Opening comunidad modal');
+                    console.log('[FiltrosAvanzados v3.4 iOS+Android] 🔍 Opening comunidad modal');
                     setShowComunidadModal(true);
                   }}
                 >
@@ -456,7 +420,7 @@ export default function FiltrosAvanzadosScreen() {
                   ]}
                   onPress={() => {
                     if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
-                      console.log('[FiltrosAvanzados v3.3 iOS+Android] 🔍 Opening provincia modal');
+                      console.log('[FiltrosAvanzados v3.4 iOS+Android] 🔍 Opening provincia modal');
                       setShowProvinciaModal(true);
                     }
                   }}
@@ -543,58 +507,7 @@ export default function FiltrosAvanzadosScreen() {
           )}
         </View>
 
-        {/* TIPO DE LOCAL SECTION */}
-        {tiposLocales.length > 1 && (
-          <View style={styles.section}>
-            <TouchableOpacity 
-              style={styles.sectionHeader}
-              onPress={() => toggleSection('tipo')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.sectionHeaderLeft}>
-                <View style={styles.sectionIconContainer}>
-                  <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={scaleIconSize(16)} color={colors.primary} />
-                </View>
-                <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Tipo de Local</Text>
-                <Text style={[styles.sectionCount, { fontSize: scaleFontSize(11) }]}>({tiposLocales.length - 1})</Text>
-              </View>
-              <IconSymbol 
-                ios_icon_name={expandedSections.tipo ? "chevron.up" : "chevron.down"} 
-                android_material_icon_name={expandedSections.tipo ? "expand_less" : "expand_more"} 
-                size={scaleIconSize(18)} 
-                color={colors.textSecondary} 
-              />
-            </TouchableOpacity>
-            
-            {expandedSections.tipo && (
-              <View style={styles.sectionContent}>
-                <View style={styles.chipContainer}>
-                  {tiposLocales.map((tipo) => {
-                    const isSelected = tipo.id === 'todos' 
-                      ? !filtrosTemp.tipo || filtrosTemp.tipo.length === 0
-                      : filtrosTemp.tipo?.includes(tipo.id);
-                    
-                    return (
-                      <TouchableOpacity
-                        key={tipo.id}
-                        style={[
-                          styles.chip,
-                          isSelected && styles.chipActive,
-                        ]}
-                        onPress={() => handleTipoToggle(tipo.id)}
-                      >
-                        <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>{tipo.icon}</Text>
-                        <Text style={[styles.chipText, { fontSize: scaleFontSize(11) }, isSelected && styles.chipTextActive]}>
-                          {tipo.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            )}
-          </View>
-        )}
+        {/* ✅ v3.4: TIPO DE LOCAL SECTION COMPLETELY REMOVED */}
 
         {/* SERVICIOS SECTION */}
         {serviciosDisponibles.length > 0 && (
@@ -753,7 +666,7 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         )}
 
-        {(tiposLocales.length === 1 && serviciosDisponibles.length === 0 && ambientesDisponibles.length === 1 && clientelaDisponible.length === 1) && !isLoadingOptions && (
+        {(serviciosDisponibles.length === 0 && ambientesDisponibles.length === 1 && clientelaDisponible.length === 1) && !isLoadingOptions && (
           <View style={styles.emptyState}>
             <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="warning" size={scaleIconSize(48)} color={colors.textSecondary} />
             <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(14) }]}>
