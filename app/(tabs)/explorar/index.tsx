@@ -104,14 +104,14 @@ interface Category {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 240;
-const ITEMS_PER_PAGE = 20;
-const PRELOAD_THRESHOLD = 0.5; // Load next page at 50% scroll
+const ITEMS_PER_PAGE = 10; // ✅ v31.1: Reduced from 20 for faster initial load
+const PRELOAD_THRESHOLD = 0.4; // ✅ v31.1: Load next page at 40% scroll (from 50%)
 const SCROLL_THROTTLE = 16; // 60fps
-const INITIAL_NUM_TO_RENDER = 10;
-const MAX_TO_RENDER_PER_BATCH = 10;
-const WINDOW_SIZE = 5;
+const INITIAL_NUM_TO_RENDER = 8; // ✅ v31.1: Reduced from 10
+const MAX_TO_RENDER_PER_BATCH = 8; // ✅ v31.1: Reduced from 10
+const WINDOW_SIZE = 4; // ✅ v31.1: Reduced from 5
 const ESTIMATED_ITEM_SIZE = 350;
-const DRAW_DISTANCE = Dimensions.get('window').height * 2;
+const DRAW_DISTANCE = Dimensions.get('window').height * 1.5; // ✅ v31.1: Reduced from 2x
 
 // ✅ DEFAULT LOCATION: Madrid center
 const DEFAULT_LOCATION = {

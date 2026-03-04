@@ -157,19 +157,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   
-  // ✅ v16.0: OPTIMIZED INITIALIZATION - Faster session check with timeout
+  // ✅ v17.0: ULTRA-FAST INITIALIZATION - Aggressive optimization with smart fallbacks
   initialize: async () => {
     const startTime = performance.now();
-    console.log('[AuthStore v16.0] 🚀 Initializing auth (OPTIMIZED)...');
+    console.log('[AuthStore v17.0] 🚀 Initializing auth (ULTRA-FAST)...');
     
     try {
-      // ✅ OPTIMIZATION 1: Add timeout to session check (5 seconds max)
+      // ✅ OPTIMIZATION 1: Reduced timeout to 3 seconds (from 5s)
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise<{ data: { session: null }, error: Error }>((resolve) => {
         setTimeout(() => {
-          console.log('[AuthStore v16.0] ⏱️ Session check timeout (5s)');
+          console.log('[AuthStore v17.0] ⏱️ Session check timeout (3s)');
           resolve({ data: { session: null }, error: new Error('Timeout') });
-        }, 5000);
+        }, 3000); // ✅ Reduced from 5000ms
       });
       
       const { data: { session: currentSession }, error: sessionError } = await Promise.race([
@@ -178,29 +178,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       ]);
       
       const sessionTime = performance.now() - startTime;
-      console.log('[AuthStore v16.0] ⚡ Session check completed in', `${sessionTime.toFixed(0)}ms`);
+      console.log('[AuthStore v17.0] ⚡ Session check completed in', `${sessionTime.toFixed(0)}ms`);
+      
+      // ✅ OPTIMIZATION 2: Mark as ready IMMEDIATELY, even on error
+      set({ loading: false, sessionReady: true });
       
       if (sessionError && sessionError.message !== 'Timeout') {
-        console.error('[AuthStore v16.0] ❌ Session error:', sessionError);
-        set({ loading: false, sessionReady: true });
+        console.error('[AuthStore v17.0] ❌ Session error (non-blocking):', sessionError);
         return;
       }
       
       if (currentSession) {
-        console.log('[AuthStore v16.0] ✅ Session found');
-        set({ session: currentSession, sessionReady: true });
+        console.log('[AuthStore v17.0] ✅ Session found');
+        set({ session: currentSession });
         
-        // ✅ OPTIMIZATION 2: Load user profile in background (non-blocking)
-        setTimeout(async () => {
+        // ✅ OPTIMIZATION 3: Load user profile IMMEDIATELY in background (no delay)
+        (async () => {
           const profileStart = performance.now();
           
-          // Add timeout to profile fetch (3 seconds max)
+          // Reduced timeout to 2 seconds (from 3s)
           const profilePromise = getCurrentUser();
           const profileTimeoutPromise = new Promise<{ user: null, error: Error }>((resolve) => {
             setTimeout(() => {
-              console.log('[AuthStore v16.0] ⏱️ Profile fetch timeout (3s)');
+              console.log('[AuthStore v17.0] ⏱️ Profile fetch timeout (2s)');
               resolve({ user: null, error: new Error('Timeout') });
-            }, 3000);
+            }, 2000); // ✅ Reduced from 3000ms
           });
           
           const { user: userData, error: userError } = await Promise.race([
@@ -211,10 +213,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           const profileTime = performance.now() - profileStart;
           
           if (!userError && userData) {
-            console.log('[AuthStore v16.0] ✅ User profile loaded in', `${profileTime.toFixed(0)}ms`);
+            console.log('[AuthStore v17.0] ✅ User profile loaded in', `${profileTime.toFixed(0)}ms`);
             set({ user: userData });
             
-            // ✅ OPTIMIZATION 3: Push notifications in background (iOS only, delayed)
+            // ✅ OPTIMIZATION 4: Push notifications ONLY on iOS, heavily delayed
             if (Platform.OS === 'ios') {
               setTimeout(() => {
                 registerForPushNotifications()
@@ -224,23 +226,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     }
                   })
                   .catch(() => {});
-              }, 10000); // 10 second delay
+              }, 15000); // ✅ Increased delay to 15 seconds (from 10s)
             }
           } else if (userError && userError.message !== 'Timeout') {
-            console.error('[AuthStore v16.0] ❌ Profile error:', userError);
+            console.error('[AuthStore v17.0] ❌ Profile error (non-blocking):', userError);
           }
-        }, 100); // Start profile load after 100ms
+        })(); // ✅ No setTimeout - start immediately
       } else {
-        console.log('[AuthStore v16.0] ℹ️ No session found');
-        set({ sessionReady: true });
+        console.log('[AuthStore v17.0] ℹ️ No session found');
       }
       
       const totalTime = performance.now() - startTime;
-      console.log('[AuthStore v16.0] ✅ Auth initialized in', `${totalTime.toFixed(0)}ms`);
+      console.log('[AuthStore v17.0] ✅ Auth initialized in', `${totalTime.toFixed(0)}ms`);
     } catch (err) {
-      console.error('[AuthStore v16.0] ❌ Initialization error:', err);
-    } finally {
-      set({ loading: false });
+      console.error('[AuthStore v17.0] ❌ Initialization error (non-blocking):', err);
+      // ✅ CRITICAL: Always mark as ready, even on error
+      set({ loading: false, sessionReady: true });
     }
   },
 }));
