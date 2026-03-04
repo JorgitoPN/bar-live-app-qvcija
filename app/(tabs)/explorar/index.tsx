@@ -222,7 +222,7 @@ export default function ExplorarScreen() {
   const allVenues = useMemo(() => {
     if (!data?.pages) return [];
     
-    const flatVenues = data.pages.flatMap(page => page.venues);
+    const flatVenues = data.pages.flatMap(page => page?.venues || []);
     const uniqueVenues = Array.from(new Map(flatVenues.map(v => [v.id, v])).values());
     
     console.log('[ExplorarScreen v31.0.0] 📊 Venues:', {
@@ -238,22 +238,24 @@ export default function ExplorarScreen() {
   const handleScrollToTopAndRefresh = useCallback(() => {
     console.log('[ExplorarScreen v31.0.0] 🚀 Scroll to top & refresh');
     
-    // Step 1: Scroll to top
-    if (flashListRef.current) {
-      try {
-        flashListRef.current.scrollToOffset({ offset: 0, animated: false });
-      } catch (error) {
-        console.warn('[ExplorarScreen v31.0.0] ⚠️ Scroll error:', error);
-      }
-    }
-    
-    // Step 2: Clear cache
+    // Step 1: Clear cache first to prevent stale data
     queryClient.resetQueries({ queryKey: ['bares_infinite_v24.0.0'] });
     
-    // Step 3: Force remount
+    // Step 2: Force remount to clear FlashList internal state
     setListKey(prev => prev + 1);
     
-    // Step 4: Refetch
+    // Step 3: Scroll to top after remount
+    setTimeout(() => {
+      if (flashListRef.current) {
+        try {
+          flashListRef.current.scrollToOffset({ offset: 0, animated: false });
+        } catch (error) {
+          console.warn('[ExplorarScreen v31.0.0] ⚠️ Scroll error:', error);
+        }
+      }
+    }, 50);
+    
+    // Step 4: Refetch data
     setTimeout(() => {
       refetch();
     }, 100);
@@ -319,15 +321,21 @@ export default function ExplorarScreen() {
   // ═══════════════════════════════════════════════════════════════════════════
   
   useEffect(() => {
-    console.log('[ExplorarScreen v31.0.0] 🔄 Filters changed - Scrolling to top');
+    console.log('[ExplorarScreen v31.0.0] 🔄 Filters changed - Resetting list');
     
-    if (flashListRef.current) {
-      try {
-        flashListRef.current.scrollToOffset({ offset: 0, animated: false });
-      } catch (error) {
-        console.warn('[ExplorarScreen v31.0.0] ⚠️ Scroll error:', error);
+    // Force remount FlashList to clear internal layout cache
+    setListKey(prev => prev + 1);
+    
+    // Scroll to top after remount
+    setTimeout(() => {
+      if (flashListRef.current) {
+        try {
+          flashListRef.current.scrollToOffset({ offset: 0, animated: false });
+        } catch (error) {
+          console.warn('[ExplorarScreen v31.0.0] ⚠️ Scroll error:', error);
+        }
       }
-    }
+    }, 50);
   }, [selectedCategory, filtros, debouncedQuery, hasActiveFilters]);
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -425,6 +433,12 @@ export default function ExplorarScreen() {
   // ═══════════════════════════════════════════════════════════════════════════
   
   const renderVenueCard = useCallback(({ item, index }: { item: Venue; index: number }) => {
+    // ✅ Defensive check - ensure item exists and has required properties
+    if (!item || !item.id) {
+      console.warn('[ExplorarScreen v31.0.0] ⚠️ Invalid item at index:', index);
+      return null;
+    }
+    
     return (
       <LocalCardOptimizedV2
         local={item}
@@ -853,45 +867,51 @@ export default function ExplorarScreen() {
       </Animated.View>
 
       {/* ✅ FLASHLIST WITH OPTIMIZED PAGINATION */}
-      <AnimatedFlashList
-        key={listKey}
-        ref={flashListRef}
-        data={allVenues}
-        renderItem={renderVenueCard}
-        keyExtractor={(item: Venue) => item.id}
-        getItemType={getItemType}
-        estimatedItemSize={ESTIMATED_ITEM_SIZE}
-        initialNumToRender={INITIAL_NUM_TO_RENDER}
-        maxToRenderPerBatch={MAX_TO_RENDER_PER_BATCH}
-        windowSize={WINDOW_SIZE}
-        removeClippedSubviews={true}
-        drawDistance={DRAW_DISTANCE}
-        maintainVisibleContentPosition={undefined}
-        contentContainerStyle={[
-          styles.listContent,
-          { 
-            marginTop: HEADER_MAX_HEIGHT,
-            paddingTop: 4,
-            paddingBottom: getContentBottomPadding(100)
-          },
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
-        onScroll={handleScroll}
-        scrollEventThrottle={SCROLL_THROTTLE}
-        onEndReached={allVenues.length > 0 ? loadMoreVenues : undefined}
-        onEndReachedThreshold={PRELOAD_THRESHOLD}
-        ListFooterComponent={renderFooter}
-        ListEmptyComponent={renderEmpty}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-      />
+      {allVenues.length > 0 || isLoading || isFetching ? (
+        <AnimatedFlashList
+          key={listKey}
+          ref={flashListRef}
+          data={allVenues}
+          renderItem={renderVenueCard}
+          keyExtractor={(item: Venue) => item.id}
+          getItemType={getItemType}
+          estimatedItemSize={ESTIMATED_ITEM_SIZE}
+          initialNumToRender={INITIAL_NUM_TO_RENDER}
+          maxToRenderPerBatch={MAX_TO_RENDER_PER_BATCH}
+          windowSize={WINDOW_SIZE}
+          removeClippedSubviews={true}
+          drawDistance={DRAW_DISTANCE}
+          maintainVisibleContentPosition={undefined}
+          contentContainerStyle={[
+            styles.listContent,
+            { 
+              marginTop: HEADER_MAX_HEIGHT,
+              paddingTop: 4,
+              paddingBottom: getContentBottomPadding(100)
+            },
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+          onScroll={handleScroll}
+          scrollEventThrottle={SCROLL_THROTTLE}
+          onEndReached={allVenues.length > 0 ? loadMoreVenues : undefined}
+          onEndReachedThreshold={PRELOAD_THRESHOLD}
+          ListFooterComponent={renderFooter}
+          ListEmptyComponent={renderEmpty}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        />
+      ) : (
+        <View style={[styles.listContent, { marginTop: HEADER_MAX_HEIGHT }]}>
+          {renderEmpty()}
+        </View>
+      )}
 
       {/* ✅ ADVANCED FILTERS SHEET */}
       <FiltrosAvanzadosSheet
