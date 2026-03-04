@@ -1,22 +1,21 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN v30.0.1 - PASO 1: CARGA PREDICTIVA FLUIDA 🚀
+ * EXPLORAR SCREEN v30.0.2 - CORRECCIÓN OVER-RENDERING 🚀
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 PASO 1 IMPLEMENTADO: Carga Predictiva Fluida (Regla de los 7 locales)
+ * 🎯 CORRECCIÓN CRÍTICA: Over-rendering y carga continua
  * 
- * ✅ CONFIGURACIÓN CRÍTICA:
- *    - onEndReachedThreshold={0.65}: Dispara carga cuando faltan 7 locales (de 20)
- *      Cálculo: 20 locales * 0.65 = 13 locales vistos → quedan 7 locales
- *    - Guardia estricta en onEndReached:
- *      if (hasNextPage && !isFetchingNextPage && !isError) { fetchNextPage(); }
+ * ✅ CAMBIOS IMPLEMENTADOS:
+ *    - onEndReachedThreshold={0.5}: Threshold reducido para evitar carga prematura
+ *      Cálculo: 20 locales * 0.5 = 10 locales vistos → quedan 10 locales
+ *    - ListFooterComponent devuelve null si !hasNextPage (CRÍTICO)
+ *    - Guardia estricta en onEndReached mantiene las 3 condiciones
  * 
  * 🎯 RESULTADO ESPERADO:
- * - ✅ Transición invisible: Usuario nunca ve estados de carga
- * - ✅ Precarga inteligente: Siguiente página lista antes de llegar al final
- * - ✅ Sin peticiones redundantes: Guardia evita llamadas duplicadas
- * - ✅ Scroll fluido: No hay cortes ni pausas perceptibles
+ * - ✅ Sin carga continua: Solo carga cuando el usuario hace scroll
+ * - ✅ Threshold conservador: Espera a que el usuario vea 50% de los locales
+ * - ✅ Sin over-rendering: ListFooterComponent corta el sensor cuando no hay más datos
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
@@ -94,10 +93,10 @@ const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 200 : 240;
 const HEADER_MIN_HEIGHT = 0;
 const ITEMS_PER_PAGE = 20;
 
-// ✅ PASO 1: CARGA PREDICTIVA - Regla de los 7 locales
-// Threshold de 0.65 significa: cuando el usuario ha visto el 65% de los locales (13 de 20),
-// se dispara la carga de la siguiente página, dejando 7 locales de buffer
-const PRELOAD_THRESHOLD = 0.65;
+// ✅ CORRECCIÓN CRÍTICA: Threshold reducido a 0.5 (no más alto)
+// Threshold de 0.5 significa: cuando el usuario ha visto el 50% de los locales (10 de 20),
+// se dispara la carga de la siguiente página, dejando 10 locales de buffer
+const PRELOAD_THRESHOLD = 0.5;
 
 const SCROLL_THROTTLE = 16;
 
@@ -216,43 +215,43 @@ export default function ExplorarScreen() {
     // ✅ CRÍTICO: Filtrar duplicados por ID usando Map
     const uniqueVenues = Array.from(new Map(flatVenues.map(v => [v.id, v])).values());
     
-    console.log('[ExplorarScreen v30.0.1] 📊 Venues procesados:');
-    console.log('[ExplorarScreen v30.0.1]   - Total flat:', flatVenues.length);
-    console.log('[ExplorarScreen v30.0.1]   - Únicos (sin duplicados):', uniqueVenues.length);
-    console.log('[ExplorarScreen v30.0.1]   - Duplicados eliminados:', flatVenues.length - uniqueVenues.length);
+    console.log('[ExplorarScreen v30.0.2] 📊 Venues procesados:');
+    console.log('[ExplorarScreen v30.0.2]   - Total flat:', flatVenues.length);
+    console.log('[ExplorarScreen v30.0.2]   - Únicos (sin duplicados):', uniqueVenues.length);
+    console.log('[ExplorarScreen v30.0.2]   - Duplicados eliminados:', flatVenues.length - uniqueVenues.length);
     
     return uniqueVenues;
   }, [data]);
   
   // ✅ Scroll, Cache Clear, Key Reset, Refetch (SECUENCIAL)
   const handleScrollToTopAndRefresh = useCallback(() => {
-    console.log('[ExplorarScreen v30.0.1] 🚀 handleScrollToTopAndRefresh DISPARADO');
+    console.log('[ExplorarScreen v30.0.2] 🚀 handleScrollToTopAndRefresh DISPARADO');
     
     // PASO 1: Scroll inmediato al inicio
     if (flashListRef.current) {
       try {
-        console.log('[ExplorarScreen v30.0.1] ⬆️ Ejecutando scrollToOffset({ offset: 0, animated: false })');
+        console.log('[ExplorarScreen v30.0.2] ⬆️ Ejecutando scrollToOffset({ offset: 0, animated: false })');
         flashListRef.current.scrollToOffset({ 
           offset: 0, 
           animated: false 
         });
-        console.log('[ExplorarScreen v30.0.1] ✅ Scroll a offset 0 completado');
+        console.log('[ExplorarScreen v30.0.2] ✅ Scroll a offset 0 completado');
       } catch (error) {
-        console.log('[ExplorarScreen v30.0.1] ⚠️ Error en scroll:', error);
+        console.log('[ExplorarScreen v30.0.2] ⚠️ Error en scroll:', error);
       }
     }
     
     // PASO 2: Limpiar caché de React Query
-    console.log('[ExplorarScreen v30.0.1] 🗑️ Limpiando caché de React Query');
+    console.log('[ExplorarScreen v30.0.2] 🗑️ Limpiando caché de React Query');
     queryClient.resetQueries({ queryKey: ['bares_infinite_v23.0.0'] });
     
     // PASO 3: Forzar remontado del componente FlashList
-    console.log('[ExplorarScreen v30.0.1] 🔑 Incrementando listKey para forzar remontado');
+    console.log('[ExplorarScreen v30.0.2] 🔑 Incrementando listKey para forzar remontado');
     setListKey(prev => prev + 1);
     
     // PASO 4: Refetch de datos tras un micro-delay
     setTimeout(() => {
-      console.log('[ExplorarScreen v30.0.1] 🔄 Ejecutando refetch()');
+      console.log('[ExplorarScreen v30.0.2] 🔄 Ejecutando refetch()');
       refetch();
     }, 100);
     
@@ -280,7 +279,7 @@ export default function ExplorarScreen() {
     
     const fetchLocation = async () => {
       try {
-        console.log('[ExplorarScreen v30.0.1] 📍 Obteniendo ubicación del usuario...');
+        console.log('[ExplorarScreen v30.0.2] 📍 Obteniendo ubicación del usuario...');
         const location = await getOptimizedUserLocation();
         
         if (isMounted && location) {
@@ -290,17 +289,17 @@ export default function ExplorarScreen() {
           });
           setLocationReady(true);
           setLocationError(null);
-          console.log('[ExplorarScreen v30.0.1] ✅ Ubicación obtenida:', location.coords);
+          console.log('[ExplorarScreen v30.0.2] ✅ Ubicación obtenida:', location.coords);
         } else if (isMounted) {
           setLocationError('No se pudo obtener tu ubicación');
           setLocationReady(true);
-          console.warn('[ExplorarScreen v30.0.1] ⚠️ No se pudo obtener ubicación');
+          console.warn('[ExplorarScreen v30.0.2] ⚠️ No se pudo obtener ubicación');
         }
       } catch (error) {
         if (isMounted) {
           setLocationError('Error al obtener ubicación');
           setLocationReady(true);
-          console.error('[ExplorarScreen v30.0.1] ❌ Error obteniendo ubicación:', error);
+          console.error('[ExplorarScreen v30.0.2] ❌ Error obteniendo ubicación:', error);
         }
       }
     };
@@ -317,19 +316,19 @@ export default function ExplorarScreen() {
   // ═══════════════════════════════════════════════════════════════════════════
   
   useEffect(() => {
-    console.log('[ExplorarScreen v30.0.1] 🔄 Filters changed - Scrolling to top');
+    console.log('[ExplorarScreen v30.0.2] 🔄 Filters changed - Scrolling to top');
     
     if (flashListRef.current) {
       try {
         flashListRef.current.scrollToOffset({ offset: 0, animated: false });
       } catch (error) {
-        console.log('[ExplorarScreen v30.0.1] ⚠️ Scroll to top failed:', error);
+        console.log('[ExplorarScreen v30.0.2] ⚠️ Scroll to top failed:', error);
       }
     }
   }, [selectedCategory, filtros, debouncedQuery, hasActiveFilters]);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // ✅ PASO 1: CARGA PREDICTIVA CON REGLA DE LOS 7 LOCALES
+  // ✅ CORRECCIÓN CRÍTICA: CARGA PREDICTIVA CON THRESHOLD 0.5
   // ═══════════════════════════════════════════════════════════════════════════
   
   const loadMoreVenues = useCallback(() => {
@@ -338,23 +337,23 @@ export default function ExplorarScreen() {
     // 2. !isFetchingNextPage (no hay una petición en curso)
     // 3. !error (no hay errores previos)
     if (hasNextPage && !isFetchingNextPage && !error) {
-      console.log('[ExplorarScreen v30.0.1] 🚀 PASO 1 - Carga Predictiva activada');
-      console.log('[ExplorarScreen v30.0.1]   - Threshold: 0.65 (65% de 20 locales = 13 vistos, 7 restantes)');
-      console.log('[ExplorarScreen v30.0.1]   - hasNextPage:', hasNextPage);
-      console.log('[ExplorarScreen v30.0.1]   - isFetchingNextPage:', isFetchingNextPage);
-      console.log('[ExplorarScreen v30.0.1]   - error:', error);
+      console.log('[ExplorarScreen v30.0.2] 🚀 Carga Predictiva activada (threshold 0.5)');
+      console.log('[ExplorarScreen v30.0.2]   - Threshold: 0.5 (50% de 20 locales = 10 vistos, 10 restantes)');
+      console.log('[ExplorarScreen v30.0.2]   - hasNextPage:', hasNextPage);
+      console.log('[ExplorarScreen v30.0.2]   - isFetchingNextPage:', isFetchingNextPage);
+      console.log('[ExplorarScreen v30.0.2]   - error:', error);
       fetchNextPage();
     } else {
-      console.log('[ExplorarScreen v30.0.1] ⏸️ PASO 1 - Carga bloqueada por guardia');
-      console.log('[ExplorarScreen v30.0.1]   - hasNextPage:', hasNextPage);
-      console.log('[ExplorarScreen v30.0.1]   - isFetchingNextPage:', isFetchingNextPage);
-      console.log('[ExplorarScreen v30.0.1]   - error:', error);
+      console.log('[ExplorarScreen v30.0.2] ⏸️ Carga bloqueada por guardia');
+      console.log('[ExplorarScreen v30.0.2]   - hasNextPage:', hasNextPage);
+      console.log('[ExplorarScreen v30.0.2]   - isFetchingNextPage:', isFetchingNextPage);
+      console.log('[ExplorarScreen v30.0.2]   - error:', error);
     }
   }, [hasNextPage, isFetchingNextPage, error, fetchNextPage]);
 
   // ✅ PULL-TO-REFRESH - Force refetch from server
   const onRefresh = useCallback(() => {
-    console.log('[ExplorarScreen v30.0.1] 🔄 Pull-to-refresh - Refetching from server...');
+    console.log('[ExplorarScreen v30.0.2] 🔄 Pull-to-refresh - Refetching from server...');
     refetch();
   }, [refetch]);
 
@@ -372,16 +371,16 @@ export default function ExplorarScreen() {
   }, [selectedCategory, debouncedQuery]);
 
   const handleCategoryChange = useCallback((categoryId: string) => {
-    console.log('[ExplorarScreen v30.0.1] 🏷️ Cambiando categoría a:', categoryId);
+    console.log('[ExplorarScreen v30.0.2] 🏷️ Cambiando categoría a:', categoryId);
     
     const newCategory = categoryId === 'todos' ? null : categoryId;
     setSelectedCategory(newCategory);
     
-    console.log('[ExplorarScreen v30.0.1] ✅ Category changed - React Query will refetch automatically');
+    console.log('[ExplorarScreen v30.0.2] ✅ Category changed - React Query will refetch automatically');
   }, [setSelectedCategory]);
 
   const clearFilters = useCallback(() => {
-    console.log('[ExplorarScreen v30.0.1] 🧹 Limpiando filtros...');
+    console.log('[ExplorarScreen v30.0.2] 🧹 Limpiando filtros...');
     setSearchQuery('');
     limpiarFiltros();
   }, [limpiarFiltros]);
@@ -403,17 +402,17 @@ export default function ExplorarScreen() {
   }, [user, router]);
 
   const handleOpenAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v30.0.1] 🎯 Abriendo filtros avanzados');
+    console.log('[ExplorarScreen v30.0.2] 🎯 Abriendo filtros avanzados');
     setShowAdvancedFilters(true);
   }, []);
 
   const handleCloseAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v30.0.1] 🔒 Cerrando filtros avanzados');
+    console.log('[ExplorarScreen v30.0.2] 🔒 Cerrando filtros avanzados');
     setShowAdvancedFilters(false);
   }, []);
 
   const handleClearAdvancedFilters = useCallback(() => {
-    console.log('[ExplorarScreen v30.0.1] 🧹 Limpiando filtros avanzados');
+    console.log('[ExplorarScreen v30.0.2] 🧹 Limpiando filtros avanzados');
     limpiarFiltros();
   }, [limpiarFiltros]);
 
@@ -454,22 +453,28 @@ export default function ExplorarScreen() {
     return 'local-card';
   }, []);
 
-  // ✅ ListFooterComponent Inteligente
+  // ✅ CORRECCIÓN CRÍTICA: ListFooterComponent devuelve null si !hasNextPage
   const renderFooter = useCallback(() => {
+    console.log('[ExplorarScreen v30.0.2] 🔍 renderFooter llamado');
+    console.log('[ExplorarScreen v30.0.2]   - hasNextPage:', hasNextPage);
+    console.log('[ExplorarScreen v30.0.2]   - isFetchingNextPage:', isFetchingNextPage);
+    console.log('[ExplorarScreen v30.0.2]   - filteredVenues.length:', filteredVenues.length);
+    
     // ✅ CRÍTICO: Si no hay más páginas, devolver null para cortar el sensor de scroll
     if (!hasNextPage) {
-      console.log('[ExplorarScreen v30.0.1] 🛑 No hay más páginas, ListFooterComponent devuelve null');
+      console.log('[ExplorarScreen v30.0.2] 🛑 No hay más páginas, ListFooterComponent devuelve null');
       return null;
     }
 
     // Si hay filtros activos pero no hay resultados, no mostrar footer
     if (filteredVenues.length === 0 && hasActiveFilters) {
+      console.log('[ExplorarScreen v30.0.2] 🛑 Sin resultados con filtros activos, devuelve null');
       return null;
     }
 
     // ✅ Mostrar ActivityIndicator discreto solo si está cargando la siguiente página
     if (isFetchingNextPage && filteredVenues.length >= 20) {
-      console.log('[ExplorarScreen v30.0.1] ⏳ Mostrando ActivityIndicator discreto');
+      console.log('[ExplorarScreen v30.0.2] ⏳ Mostrando ActivityIndicator discreto');
       return (
         <View style={styles.footerLoadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
@@ -478,6 +483,7 @@ export default function ExplorarScreen() {
     }
 
     // Si hay más páginas pero no está cargando, devolver null
+    console.log('[ExplorarScreen v30.0.2] 🛑 Hay más páginas pero no está cargando, devuelve null');
     return null;
   }, [filteredVenues.length, hasActiveFilters, hasNextPage, isFetchingNextPage]);
 
@@ -815,7 +821,7 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* ✅ PASO 1: FLASHLIST CON CARGA PREDICTIVA CONFIGURADA */}
+      {/* ✅ CORRECCIÓN CRÍTICA: FLASHLIST CON THRESHOLD 0.5 Y LISTFOOTERCOMPONENT OPTIMIZADO */}
       <AnimatedFlashList
         key={listKey}
         ref={flashListRef}
