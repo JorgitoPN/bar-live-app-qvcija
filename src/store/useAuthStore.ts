@@ -7,12 +7,7 @@ import { Session } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
 /**
- * ✅ AUTH STORE v3.0 - FASE 10: MOBILE PARITY (WEB-MOBILE FIX)
- * 
- * OPTIMIZACIONES FASE 10:
- * - ✅ PLATFORM-SPECIFIC TIMEOUTS: 5s mobile, 2.5s web
- * - ✅ GRACEFUL NETWORK FAILURES: Mantener sesión cacheada en caso de timeout
- * - ✅ COMPLETE ABORT SILENCING: No console noise from optimizations
+ * ✅ AUTH STORE v2.0 - FASE 9: PERFIL INSTANTÁNEO (<100ms)
  * 
  * OPTIMIZACIONES FASE 9:
  * - ✅ STALE-WHILE-REVALIDATE: Perfil cacheado en MMKV, carga síncrona
@@ -24,7 +19,6 @@ import { Platform } from 'react-native';
  * - Usuario visible en UI en <100ms tras abrir la app
  * - Perfil básico (nombre, avatar) cargado síncronamente desde MMKV
  * - Datos extendidos (estadísticas, historial) cargados en background
- * - Mobile funciona tan bien como web
  * 
  * BENEFITS OF ZUSTAND OVER CONTEXT:
  * - ✅ ATOMIC UPDATES: Components only re-render when their specific slice changes
@@ -238,10 +232,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   
-  // ✅ FASE 10: PERFIL INSTANTÁNEO - STALE-WHILE-REVALIDATE (MOBILE PARITY)
+  // ✅ FASE 9: PERFIL INSTANTÁNEO - STALE-WHILE-REVALIDATE
   initialize: async () => {
     const startTime = performance.now();
-    console.log('[AuthStore FASE 10] 🚀 Initializing with INSTANT profile hydration (mobile parity)...');
+    console.log('[AuthStore FASE 9] 🚀 Initializing with INSTANT profile hydration...');
     
     try {
       // ═══════════════════════════════════════════════════════════════════════════
@@ -255,7 +249,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (cachedSessionData) {
         try {
           const parsedSession = JSON.parse(cachedSessionData);
-          console.log('[AuthStore FASE 10] ⚡ SYNC session found in MMKV (<1ms)');
+          console.log('[AuthStore FASE 9] ⚡ SYNC session found in MMKV (<1ms)');
           
           // Actualizar estado INMEDIATAMENTE con la sesión cacheada
           set({ 
@@ -265,10 +259,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             loading: false 
           });
         } catch (parseError) {
-          console.error('[AuthStore FASE 10] ❌ Failed to parse cached session:', parseError);
+          console.error('[AuthStore FASE 9] ❌ Failed to parse cached session:', parseError);
         }
       } else {
-        console.log('[AuthStore FASE 10] ℹ️ No cached session in MMKV');
+        console.log('[AuthStore FASE 9] ℹ️ No cached session in MMKV');
         set({ loading: false, sessionReady: true });
       }
       
@@ -278,7 +272,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (cachedProfileT0) {
         try {
           const parsedProfileT0 = JSON.parse(cachedProfileT0);
-          console.log('[AuthStore FASE 10] ⚡ SYNC profile T0 found in MMKV (<1ms)');
+          console.log('[AuthStore FASE 9] ⚡ SYNC profile T0 found in MMKV (<1ms)');
           
           // ✅ CRITICAL: Perfil visible INMEDIATAMENTE en la UI
           set({ 
@@ -287,28 +281,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           });
           
           const syncTime = performance.now() - startTime;
-          console.log(`[AuthStore FASE 10] ✅ Profile visible in UI in ${syncTime.toFixed(0)}ms (SYNC)`);
+          console.log(`[AuthStore FASE 9] ✅ Profile visible in UI in ${syncTime.toFixed(0)}ms (SYNC)`);
         } catch (parseError) {
-          console.error('[AuthStore FASE 10] ❌ Failed to parse cached profile T0:', parseError);
+          console.error('[AuthStore FASE 9] ❌ Failed to parse cached profile T0:', parseError);
         }
       } else {
-        console.log('[AuthStore FASE 10] ℹ️ No cached profile T0 in MMKV');
+        console.log('[AuthStore FASE 9] ℹ️ No cached profile T0 in MMKV');
       }
       
       // ═══════════════════════════════════════════════════════════════════════════
       // ✅ PASO 2: VALIDACIÓN DE RED (en paralelo, no bloquea la UI)
       // ═══════════════════════════════════════════════════════════════════════════
       const networkStart = performance.now();
-      
-      // ✅ FASE 10: Platform-specific timeout (mobile needs more time)
-      const networkTimeout = Platform.OS !== 'web' ? 5000 : 2500;
-      
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise<{ data: { session: null }, error: Error }>((resolve) => {
         setTimeout(() => {
-          console.log(`[AuthStore FASE 10] ⏱️ Network validation timeout (${networkTimeout}ms) - ${Platform.OS}`);
+          console.log('[AuthStore FASE 9] ⏱️ Network validation timeout (1500ms)');
           resolve({ data: { session: null }, error: new Error('Timeout') });
-        }, networkTimeout);
+        }, 1500);
       });
       
       const { data: { session: networkSession }, error: sessionError } = await Promise.race([
@@ -317,24 +307,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       ]);
       
       const networkTime = performance.now() - networkStart;
-      console.log(`[AuthStore FASE 10] 🌐 Network validation completed in ${networkTime.toFixed(0)}ms (${Platform.OS})`);
+      console.log(`[AuthStore FASE 9] 🌐 Network validation completed in ${networkTime.toFixed(0)}ms`);
       
-      // ✅ FASE 10: Si la validación de red falla o timeout, mantener la sesión cacheada
-      if (sessionError) {
-        if (sessionError.message === 'Timeout') {
-          console.log('[AuthStore FASE 10] ⚠️ Network timeout - keeping cached session (mobile fallback)');
-          // Mantener la sesión cacheada, no hacer nada
-          return;
-        } else {
-          console.error('[AuthStore FASE 10] ❌ Network validation error (non-blocking):', sessionError);
-          // Mantener la sesión cacheada, no hacer nada
-          return;
-        }
+      // Si la validación de red falla o timeout, mantener la sesión cacheada
+      if (sessionError && sessionError.message !== 'Timeout') {
+        console.error('[AuthStore FASE 9] ❌ Network validation error (non-blocking):', sessionError);
+        return;
       }
       
       // Si la red devuelve una sesión diferente, actualizar
       if (networkSession) {
-        console.log('[AuthStore FASE 10] ✅ Network session validated');
+        console.log('[AuthStore FASE 9] ✅ Network session validated');
         set({ session: networkSession });
         
         // ═══════════════════════════════════════════════════════════════════════════
@@ -350,10 +333,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             const profileStart = performance.now();
             
             try {
-              // ✅ FASE 10: Platform-specific timeout (mobile needs more time)
-              const profileTimeout = Platform.OS !== 'web' ? 5000 : 2500;
+              // ✅ Timeout reducido a 1500ms (consistente con sesión)
               const controller = new AbortController();
-              const profileTimeoutId = setTimeout(() => controller.abort(), profileTimeout);
+              const profileTimeoutId = setTimeout(() => controller.abort(), 1500);
               
               // ✅ Fetch T0 profile (basic data only)
               const { data: profileData, error: profileError } = await supabase
@@ -368,7 +350,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               const profileTime = performance.now() - profileStart;
               
               if (!profileError && profileData) {
-                console.log(`[AuthStore FASE 10] ✅ Profile T0 loaded in ${profileTime.toFixed(0)}ms (${Platform.OS})`);
+                console.log(`[AuthStore FASE 9] ✅ Profile T0 loaded in ${profileTime.toFixed(0)}ms`);
                 
                 const profileT0: UserProfileT0 = {
                   id: profileData.id,
@@ -398,7 +380,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                         .single();
                       
                       if (!extendedError && extendedData) {
-                        console.log('[AuthStore FASE 10] ✅ Profile T1 loaded (deferred)');
+                        console.log('[AuthStore FASE 9] ✅ Profile T1 loaded (deferred)');
                         
                         const profileT1: UserProfileT1 = {
                           bio: extendedData.bio,
@@ -421,7 +403,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                       }
                     } catch (t1Error: any) {
                       if (t1Error.name !== 'AbortError') {
-                        console.error('[AuthStore FASE 10] ❌ Profile T1 error (non-critical):', t1Error);
+                        console.error('[AuthStore FASE 9] ❌ Profile T1 error (non-critical):', t1Error);
                       }
                     }
                   })();
@@ -440,27 +422,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                   }, 15000);
                 }
               } else if (profileError && profileError.message !== 'AbortError') {
-                console.error('[AuthStore FASE 10] ❌ Profile T0 error (non-blocking):', profileError);
+                console.error('[AuthStore FASE 9] ❌ Profile T0 error (non-blocking):', profileError);
               }
             } catch (error: any) {
               if (error.name !== 'AbortError') {
-                console.error('[AuthStore FASE 10] ❌ Profile fetch error:', error);
+                console.error('[AuthStore FASE 9] ❌ Profile fetch error:', error);
               }
             } finally {
               set({ isFetchingProfile: false });
             }
           })();
         } else {
-          console.log('[AuthStore FASE 10] ⚠️ Profile fetch already in progress, skipping');
+          console.log('[AuthStore FASE 9] ⚠️ Profile fetch already in progress, skipping');
         }
       } else {
-        console.log('[AuthStore FASE 10] ℹ️ No network session (user logged out or timeout)');
-        // ✅ FASE 10: Si no hay sesión de red pero hay sesión cacheada, mantenerla (mobile fallback)
-        if (cachedSessionData && Platform.OS !== 'web') {
-          console.log('[AuthStore FASE 10] 📦 Keeping cached session (mobile offline mode)');
-          // No limpiar la sesión cacheada en mobile, permitir modo offline
-        } else if (!cachedSessionData) {
-          // Solo limpiar si no hay sesión cacheada
+        console.log('[AuthStore FASE 9] ℹ️ No network session (user logged out or timeout)');
+        // Si no hay sesión de red, limpiar la sesión cacheada
+        if (cachedSessionData) {
           set({ 
             session: null, 
             isAuthenticated: false,
@@ -472,14 +450,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       
       const totalTime = performance.now() - startTime;
-      console.log(`[AuthStore FASE 10] ✅ Total initialization: ${totalTime.toFixed(0)}ms (${Platform.OS})`);
-      console.log('[AuthStore FASE 10] 📊 Breakdown:');
+      console.log(`[AuthStore FASE 9] ✅ Total initialization: ${totalTime.toFixed(0)}ms`);
+      console.log('[AuthStore FASE 9] 📊 Breakdown:');
       console.log('  - MMKV sync read (session + profile T0): <1ms');
-      console.log(`  - Network validation: ${networkTime.toFixed(0)}ms (timeout: ${networkTimeout}ms)`);
+      console.log(`  - Network validation: ${networkTime.toFixed(0)}ms`);
       console.log('  - Profile T0 revalidation: background (non-blocking)');
       console.log('  - Profile T1 load: deferred (2s delay)');
     } catch (err) {
-      console.error('[AuthStore FASE 10] ❌ Initialization error (non-blocking):', err);
+      console.error('[AuthStore FASE 9] ❌ Initialization error (non-blocking):', err);
       // ✅ CRITICAL: Always mark as ready, even on error
       set({ loading: false, sessionReady: true });
     }

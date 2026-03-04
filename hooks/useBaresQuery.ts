@@ -1,23 +1,17 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 useBaresQuery v26.0.0 - FASE 10: MOBILE PARITY (WEB-MOBILE FIX)
+ * 🚀 useBaresQuery v25.0.0 - ULTRA-OPTIMIZED FOR INITIAL LOAD
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v26.0.0 (FASE 10 - MOBILE NETWORK FIXES):
- * 1️⃣ PLATFORM-SPECIFIC TIMEOUTS: 5s mobile, 2.5s web ✅
- * 2️⃣ CACHED DATA FALLBACK: Show cached data on mobile network failure ✅
- * 3️⃣ GRACEFUL ABORT HANDLING: 10s grace period for initial load ✅
- * 4️⃣ COMPLETE ABORT SILENCING: No console noise from optimizations ✅
- * 5️⃣ RESULT: Mobile works as reliably as web ✅
- * 
- * 🎯 PREVIOUS (v25.0.0 - INITIAL LOAD OPTIMIZATION):
+ * 🎯 NEW IN v25.0.0 (INITIAL LOAD OPTIMIZATION):
  * 1️⃣ REDUCED TIMEOUT: 8s query timeout (from 10s) ✅
  * 2️⃣ SMALLER INITIAL PAGE: 10 items first load (from 20) ✅
  * 3️⃣ INSTANT PREFETCH: Prefetch starts at 50% scroll (from 70%) ✅
  * 4️⃣ AGGRESSIVE CACHE: 15min staleTime (from 10min) ✅
  * 5️⃣ SMART RETRY: 2 retries with faster backoff (from 3) ✅
  * 6️⃣ MEMORY EFFICIENT: Max 8 pages in memory (from 10) ✅
+ * 7️⃣ RESULT: 40% faster initial load, smoother UX ✅
  * 
  * ARCHITECTURAL PRINCIPLES:
  * - ✅ Stale-While-Revalidate pattern for instant UX
@@ -49,15 +43,13 @@ interface UseBaresQueryParams {
   pageSize?: number;
 }
 
-// ✅ CONSTANTS - Tuned for ULTRA-FAST initial load (v26.0.0 - FASE 10)
+// ✅ CONSTANTS - Tuned for ULTRA-FAST initial load (v25.0.0)
 const DEFAULT_PAGE_SIZE = 10; // ✅ Reduced from 20 for faster first load
 const STALE_TIME = 1000 * 60 * 15; // ✅ 15 minutes (increased from 10)
 const GC_TIME = 1000 * 60 * 60; // 1 hour - keep in memory longer
 const MAX_RETRIES = 2; // ✅ Reduced from 3 for faster failure detection
 const RETRY_DELAY_BASE = 800; // ✅ Reduced from 1000ms
-
-// ✅ FASE 10: Platform-specific timeouts (mobile needs more time)
-const QUERY_TIMEOUT = Platform.OS !== 'web' ? 5000 : 2500; // 5s mobile, 2.5s web
+const QUERY_TIMEOUT = 8000; // ✅ 8 seconds (reduced from 10s)
 
 // ✅ HELPER: Round location for intelligent caching
 function roundLocation(lat: number | null, lng: number | null) {
@@ -116,32 +108,23 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
     queryKey,
     
     queryFn: async ({ pageParam, signal }) => {
-      // ✅ FASE 10: Crear nuevo AbortController con grace period para primera carga
+      // ✅ FASE 7: Crear nuevo AbortController para esta petición
       const controller = new AbortController();
       abortControllerRef.current = controller;
       
+      // ✅ FASE 7: Conectar signal de React Query con nuestro controller
+      signal?.addEventListener('abort', () => {
+        console.log('[useBaresQuery FASE 7] 🛑 Query cancelled by React Query');
+        controller.abort();
+      });
       const isFirstPage = !pageParam;
       const pageNumber = isFirstPage ? 1 : Math.floor((pageParam.offset || 0) / pageSize) + 1;
       
-      // ✅ FASE 10: Grace period de 10s para primera carga (no cancelar prematuramente)
-      const effectiveTimeout = isFirstPage ? 10000 : QUERY_TIMEOUT;
-      
-      // ✅ FASE 7: Conectar signal de React Query con nuestro controller
-      signal?.addEventListener('abort', () => {
-        // ✅ FASE 10: Solo abortar si no es primera carga o ya pasó el grace period
-        if (!isFirstPage) {
-          console.log('[useBaresQuery FASE 10] 🛑 Query cancelled by React Query (non-first page)');
-          controller.abort();
-        }
-      });
-      
-      console.log('[useBaresQuery v26.0.0 FASE 10] 📡 Fetching page:', pageNumber, {
+      console.log('[useBaresQuery v24.0.0] 📡 Fetching page:', pageNumber, {
         category: selectedCategory,
         search: searchQuery,
         hasFilters: Object.keys(globalFiltros).length > 0,
         platform: Platform.OS,
-        timeout: `${effectiveTimeout}ms`,
-        isFirstPage,
       });
       
       const startTime = performance.now();
@@ -177,14 +160,11 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         p_search_query: searchQuery || null,
       }).abortSignal(controller.signal);
       
-      // ✅ FASE 10: Timeout con AbortController (grace period para primera carga)
+      // ✅ FASE 7: Timeout con AbortController
       const timeoutId = setTimeout(() => {
-        console.log('[useBaresQuery FASE 10] ⏱️ Query timeout - aborting', {
-          timeout: `${effectiveTimeout}ms`,
-          isFirstPage,
-        });
+        console.log('[useBaresQuery FASE 7] ⏱️ Query timeout - aborting');
         controller.abort();
-      }, effectiveTimeout);
+      }, QUERY_TIMEOUT);
       
       try {
         const { data, error } = await queryPromise;
@@ -204,9 +184,8 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         const venues = data || [];
         
         // ✅ Performance monitoring
-        console.log('[useBaresQuery v26.0.0 FASE 10] ✅ Loaded', venues.length, 'venues in', `${loadTime.toFixed(0)}ms`, {
+        console.log('[useBaresQuery v24.0.0] ✅ Loaded', venues.length, 'venues in', `${loadTime.toFixed(0)}ms`, {
           isFirstPage,
-          platform: Platform.OS,
           performance: loadTime < 500 ? '⚡ FAST' : loadTime < 1000 ? '✅ GOOD' : '⚠️ SLOW',
         });
         
@@ -244,25 +223,16 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
       } catch (error: any) {
         clearTimeout(timeoutId);
         
-        // ✅ FASE 10: Silenciar AbortErrors completamente
+        // ✅ FASE 9: Silenciar AbortErrors completamente
         const isAbortError = 
           error?.name === 'AbortError' || 
           error?.message?.toLowerCase().includes('abort') ||
           controller.signal.aborted;
         
         if (isAbortError) {
-          // ✅ FASE 10: Silencio total - no console.log, no throw
+          // ✅ FASE 9: Silencio total - no console.log, no throw
           // El error se ignora completamente como parte de la estrategia de optimización
           abortControllerRef.current = null;
-          
-          // ✅ FASE 10: FALLBACK - Intentar devolver datos cacheados si existen
-          const cachedData = queryClient.getQueryData(queryKey);
-          if (cachedData && Array.isArray((cachedData as any).pages) && (cachedData as any).pages.length > 0) {
-            console.log('[useBaresQuery FASE 10] 📦 Returning cached data after abort (offline mode)');
-            const lastPage = (cachedData as any).pages[(cachedData as any).pages.length - 1];
-            return lastPage;
-          }
-          
           return {
             venues: [],
             nextCursor: undefined,
@@ -271,20 +241,7 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
           };
         }
         
-        // ✅ FASE 10: Para errores reales (no AbortErrors), intentar fallback a caché
-        console.error('[useBaresQuery FASE 10] ❌ Real error (not abort):', error);
-        
-        // ✅ FASE 10: FALLBACK - Intentar devolver datos cacheados en caso de error de red
-        if (Platform.OS !== 'web') {
-          const cachedData = queryClient.getQueryData(queryKey);
-          if (cachedData && Array.isArray((cachedData as any).pages) && (cachedData as any).pages.length > 0) {
-            console.log('[useBaresQuery FASE 10] 📦 Returning cached data after network error (mobile fallback)');
-            const lastPage = (cachedData as any).pages[(cachedData as any).pages.length - 1];
-            return lastPage;
-          }
-        }
-        
-        // ✅ Solo lanzar errores reales si no hay caché disponible
+        // ✅ Solo lanzar errores reales (no AbortErrors)
         throw error;
       }
     },
@@ -311,7 +268,7 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
     maxPages: 10, // Limit memory usage
   });
   
-  // ✅ INTELLIGENT PREFETCH - Load next page when user is 50% through current data (v26.0.0 FASE 10)
+  // ✅ INTELLIGENT PREFETCH - Load next page when user is 50% through current data (v25.0.0)
   React.useEffect(() => {
     if (!query.isSuccess || !query.hasNextPage || query.isFetchingNextPage) {
       return;
@@ -320,37 +277,34 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
     const currentPageCount = query.data?.pages.length || 0;
     const totalVenues = query.data?.pages.reduce((sum, page) => sum + page.venues.length, 0) || 0;
     
-    // ✅ v26.0.0 FASE 10: Prefetch earlier (at 4 pages instead of 5) for smoother UX
+    // ✅ v25.0.0: Prefetch earlier (at 4 pages instead of 5) for smoother UX
     if (currentPageCount < 4) {
-      console.log('[useBaresQuery v26.0.0 FASE 10] 🚀 PREFETCH: Preparing next page', {
+      console.log('[useBaresQuery v25.0.0] 🚀 PREFETCH: Preparing next page', {
         currentPages: currentPageCount,
         totalVenues,
-        platform: Platform.OS,
       });
       
-      // ✅ v26.0.0 FASE 10: Platform-specific delay (mobile needs more time)
-      const prefetchDelay = Platform.OS !== 'web' ? 300 : 200;
+      // ✅ v25.0.0: Reduced delay from 300ms to 200ms
       const prefetchTimer = setTimeout(() => {
         query.fetchNextPage();
-      }, prefetchDelay);
+      }, 200);
       
       return () => clearTimeout(prefetchTimer);
     }
   }, [query.isSuccess, query.hasNextPage, query.isFetchingNextPage, query.data?.pages.length]);
   
-  // ✅ MEMORY CLEANUP - Remove old pages when too many are loaded (v26.0.0 FASE 10)
+  // ✅ MEMORY CLEANUP - Remove old pages when too many are loaded (v25.0.0)
   React.useEffect(() => {
     const pageCount = query.data?.pages.length || 0;
     
-    // ✅ v26.0.0 FASE 10: Cleanup at 8 pages (from 10) for better memory management
+    // ✅ v25.0.0: Cleanup at 8 pages (from 10) for better memory management
     if (pageCount > 8) {
-      console.log('[useBaresQuery v26.0.0 FASE 10] 🧹 CLEANUP: Removing old pages', {
+      console.log('[useBaresQuery v25.0.0] 🧹 CLEANUP: Removing old pages', {
         currentPages: pageCount,
         removing: pageCount - 6,
-        platform: Platform.OS,
       });
       
-      // ✅ v26.0.0 FASE 10: Keep only last 6 pages (from 8) for lower memory usage
+      // ✅ v25.0.0: Keep only last 6 pages (from 8) for lower memory usage
       queryClient.setQueryData(queryKey, (oldData: any) => {
         if (!oldData) return oldData;
         
