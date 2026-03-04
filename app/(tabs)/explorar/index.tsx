@@ -1,10 +1,17 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * EXPLORAR SCREEN - REACT QUERY + FLASHLIST v14.0.0 (OVERNIGHT SCHEDULE FIX)
+ * EXPLORAR SCREEN - REACT QUERY + FLASHLIST v14.1.0 (BLANK SPACE FIX)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v14.0.0 (CRITICAL SORTING FIX):
+ * 🎯 NEW IN v14.1.0 (BLANK SPACE FIX):
+ * 1️⃣ ACCURATE ITEM SIZE: Changed estimatedItemSize from 450 to 280 (matches actual card height) ✅
+ * 2️⃣ STABLE KEYS: Using item.id.toString() instead of template literal for better stability ✅
+ * 3️⃣ ITEM TYPE HINT: Added getItemType to help FlashList understand layout ✅
+ * 4️⃣ OPTIMIZED RENDERING: Added maxToRenderPerBatch and windowSize for smoother scrolling ✅
+ * 5️⃣ CLIPPING OPTIMIZATION: Enabled removeClippedSubviews for better memory usage ✅
+ * 
+ * MAINTAINED FROM v14.0.0 (CRITICAL SORTING FIX):
  * 1️⃣ OVERNIGHT SCHEDULES: Venues with overnight hours (e.g., "16:00–04:00") now correctly show as OPEN ✅
  * 2️⃣ FEATURED PRIORITY: "Pub Momo" and other featured venues now appear at the TOP (Tier 1) ✅
  * 3️⃣ PROPER SORTING: Open venues ALWAYS appear before closed venues ✅
@@ -523,6 +530,12 @@ export default function ExplorarScreen() {
       />
     );
   }, [router]);
+  
+  // ✅ v14.1.0: BLANK SPACE FIX - Help FlashList understand item types
+  const getItemType = useCallback((item: Venue) => {
+    // All items are the same type (local card)
+    return 'local-card';
+  }, []);
 
   const renderFooter = useCallback(() => {
     if (filteredVenues.length === 0 && hasActiveFilters) {
@@ -898,9 +911,13 @@ export default function ExplorarScreen() {
         ref={flashListRef}
         data={filteredVenues}
         renderItem={renderVenueCard}
-        keyExtractor={(item: Venue) => `local-${item.id}`}
-        estimatedItemSize={450}
+        keyExtractor={(item: Venue) => item.id.toString()}
+        getItemType={getItemType}
+        estimatedItemSize={280}
         initialNumToRender={20}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
         contentContainerStyle={[
           styles.listContent,
           { 
