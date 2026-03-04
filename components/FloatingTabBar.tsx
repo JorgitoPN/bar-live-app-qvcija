@@ -1,22 +1,19 @@
 
 /**
- * FLOATING TAB BAR - VERSION v344.0
+ * FLOATING TAB BAR - VERSION v345.0
  * 
- * ✅ ANDROID AVATAR PERSISTENCE FIX v344.0 - ULTIMATE SOLUTION
+ * ✅ SCROLL-TO-TOP FIX v345.0 - TAP ACTIVE TAB TO SCROLL
  * 
- * CRITICAL CHANGES v344.0:
- * - ✅ ANDROID FIX: Avatar uses GLOBAL state that persists across ALL navigation
- * - ✅ ANDROID FIX: Avatar loads ONCE on app start and NEVER reloads
- * - ✅ ANDROID FIX: Avatar is COMPLETELY INDEPENDENT of current route/tab
- * - ✅ ANDROID FIX: Avatar uses AsyncStorage for ultra-persistent caching
- * - ✅ ANDROID FIX: "Trick" - Avatar component thinks it's ALWAYS on profile page
- * - ✅ RESULT: Avatar NEVER disappears, shows on ALL screens, ALL the time
+ * CRITICAL CHANGES v345.0:
+ * - ✅ SCROLL FIX: Detect when user taps already-active tab
+ * - ✅ SCROLL FIX: Trigger scroll-to-top when tapping active Explorar tab
+ * - ✅ SCROLL FIX: Use router.push() instead of router.replace() for active tabs
+ * - ✅ RESULT: Tapping "Home" (Explorar) when already on Explorar scrolls to top
  * 
- * Previous fixes maintained (v342.0):
+ * Previous fixes maintained (v344.0):
+ * - ✅ ANDROID AVATAR PERSISTENCE FIX
  * - ✅ ZERO-DELAY: Tab switches happen instantly (< 5ms)
  * - ✅ OPTIMIZED: Memoized all components for zero re-renders
- * - ✅ INSTANT: Use router.replace() for immediate navigation
- * - ✅ SMART: Only reload avatar when actually needed
  */
 
 import React, { memo, useCallback, useRef } from 'react';
@@ -442,10 +439,22 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
     return false;
   }, [pathname]);
 
-  // ✅ v341.0: INSTANT navigation with router.replace
+  // ✅ v345.0: SCROLL-TO-TOP FIX - Detect active tab press and use router.push()
   const handleTabPress = useCallback((tab: TabBarItem) => {
-    router.replace(tab.route as any);
-  }, [router]);
+    const isActive = isTabActive(tab);
+    
+    console.log('[FloatingTabBar v345.0] 🔘 Tab pressed:', tab.name, '| Active:', isActive);
+    
+    // ✅ CRITICAL FIX: If tab is already active, use router.push() to trigger scroll-to-top
+    // router.push() to the same route triggers React Navigation's useScrollToTop hook
+    if (isActive) {
+      console.log('[FloatingTabBar v345.0] ✅ Tab is active - Using router.push() to trigger scroll-to-top');
+      router.push(tab.route as any);
+    } else {
+      console.log('[FloatingTabBar v345.0] ➡️ Tab is inactive - Using router.replace() for instant navigation');
+      router.replace(tab.route as any);
+    }
+  }, [router, isTabActive]);
 
   const renderTab = useCallback((tab: TabBarItem, index: number) => {
     const isActive = isTabActive(tab);
