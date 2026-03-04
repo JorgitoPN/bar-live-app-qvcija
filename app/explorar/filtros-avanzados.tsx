@@ -45,9 +45,13 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ CROSS-PLATFORM FILTERS PAGE v3.2 - iOS + ANDROID - SIN LÍMITE DEFAULT
+ * ✅ CROSS-PLATFORM FILTERS PAGE v3.3 - iOS + ANDROID - REMOVED NIGHTLIFE CATEGORY
  * 
- * NEW FEATURES v3.2 (iOS FIX):
+ * NEW FEATURES v3.3:
+ * - 🚫 Removed "Discotecas, pubs, bares, etc" category filter
+ * - ✅ Filters out 'discoteca' and 'pub' types from available options
+ * 
+ * Previous features v3.2 (iOS FIX):
  * - 🎯 "Sin límite" as default for search range on BOTH iOS and Android
  * - ⚡ Auto-activate filter when user modifies range (iOS + Android)
  * - 🔄 Option to return to "Sin límite" after setting a range (iOS + Android)
@@ -92,7 +96,7 @@ export default function FiltrosAvanzadosScreen() {
   });
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados v3.2 iOS+Android] 🔄 Page opened, loading filters');
+    console.log('[FiltrosAvanzados v3.3 iOS+Android] 🔄 Page opened, loading filters (nightlife category removed)');
     setFiltrosTemp(contextFiltros);
     refreshDynamicOptions();
   }, [contextFiltros, refreshDynamicOptions]);
@@ -134,13 +138,13 @@ export default function FiltrosAvanzadosScreen() {
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.2 iOS+Android] ✅ Applying filters:', filtrosTemp);
+    console.log('[FiltrosAvanzados v3.3 iOS+Android] ✅ Applying filters:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     router.back();
   }, [filtrosTemp, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.2 iOS+Android] 🧹 Clearing all filters - INSTANT UI UPDATE');
+    console.log('[FiltrosAvanzados v3.3 iOS+Android] 🧹 Clearing all filters - INSTANT UI UPDATE');
     
     // ✅ PASO 1: Actualizar UI INMEDIATAMENTE (síncrono)
     const emptyFiltros = {};
@@ -153,7 +157,7 @@ export default function FiltrosAvanzadosScreen() {
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v3.2 iOS+Android] 📍 Selected comunidad:', selectedComunidad);
+    console.log('[FiltrosAvanzados v3.3 iOS+Android] 📍 Selected comunidad:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -177,7 +181,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v3.2 iOS+Android] 📍 Selected provincia:', provincia);
+    console.log('[FiltrosAvanzados v3.3 iOS+Android] 📍 Selected provincia:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -188,7 +192,7 @@ export default function FiltrosAvanzadosScreen() {
 
   // ✅ v3.2 iOS FIX: Auto-activate distance filter when user changes slider
   const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados v3.2 iOS+Android] 📏 Radius changed to:', value, 'km - Auto-activating filter');
+    console.log('[FiltrosAvanzados v3.3 iOS+Android] 📏 Radius changed to:', value, 'km - Auto-activating filter');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: value,
@@ -197,7 +201,7 @@ export default function FiltrosAvanzadosScreen() {
 
   // ✅ v3.2 iOS FIX: Activate distance filter with default value
   const activateDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.2 iOS+Android] 🎯 Activating search range filter with default 50km');
+    console.log('[FiltrosAvanzados v3.3 iOS+Android] 🎯 Activating search range filter with default 50km');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: 50,
@@ -206,7 +210,7 @@ export default function FiltrosAvanzadosScreen() {
 
   // ✅ v3.2 iOS FIX: Reset distance filter to "Sin límite"
   const resetDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v3.2 iOS+Android] 🔄 Resetting search range to "Sin límite"');
+    console.log('[FiltrosAvanzados v3.3 iOS+Android] 🔄 Resetting search range to "Sin límite"');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: undefined,
@@ -258,8 +262,12 @@ export default function FiltrosAvanzadosScreen() {
   const tiposLocales = useMemo(() => {
     const tipos = [{ id: 'todos', label: 'Todos', icon: '🏪' }];
     
+    // ✅ v3.3: Filter out nightlife categories (discoteca, pub) along with lounge and sala_conciertos
     const filteredTipos = dynamicOptions.tipos.filter(tipo => 
-      tipo !== 'lounge' && tipo !== 'sala_conciertos'
+      tipo !== 'lounge' && 
+      tipo !== 'sala_conciertos' && 
+      tipo !== 'discoteca' && 
+      tipo !== 'pub'
     );
     
     filteredTipos.forEach(tipo => {
@@ -267,9 +275,7 @@ export default function FiltrosAvanzadosScreen() {
       if (tipo === 'cafe') icon = '☕';
       else if (tipo === 'bar') icon = '🍷';
       else if (tipo === 'restaurante') icon = '🍽️';
-      else if (tipo === 'pub') icon = '🍺';
       else if (tipo === 'cocteleria') icon = '🍹';
-      else if (tipo === 'discoteca') icon = '🎵';
       else if (tipo === 'terraza') icon = '☀️';
       else if (tipo === 'rooftop') icon = '🏢';
       
@@ -279,6 +285,8 @@ export default function FiltrosAvanzadosScreen() {
         icon: icon,
       });
     });
+    
+    console.log('[FiltrosAvanzados v3.3] 🚫 Filtered out nightlife categories. Available types:', filteredTipos);
     
     return tipos;
   }, [dynamicOptions.tipos]);
@@ -430,7 +438,7 @@ export default function FiltrosAvanzadosScreen() {
                 <TouchableOpacity
                   style={styles.locationButton}
                   onPress={() => {
-                    console.log('[FiltrosAvanzados v3.2 iOS+Android] 🔍 Opening comunidad modal');
+                    console.log('[FiltrosAvanzados v3.3 iOS+Android] 🔍 Opening comunidad modal');
                     setShowComunidadModal(true);
                   }}
                 >
@@ -448,7 +456,7 @@ export default function FiltrosAvanzadosScreen() {
                   ]}
                   onPress={() => {
                     if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
-                      console.log('[FiltrosAvanzados v3.2 iOS+Android] 🔍 Opening provincia modal');
+                      console.log('[FiltrosAvanzados v3.3 iOS+Android] 🔍 Opening provincia modal');
                       setShowProvinciaModal(true);
                     }
                   }}
