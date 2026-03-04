@@ -270,20 +270,21 @@ export default function ExplorarScreen() {
   // ✅ DEDUPLICATE VENUES - Critical for FlashList stability
   const allVenues = useMemo(() => {
     if (!data?.pages) {
-      console.log('[ExplorarScreen FASE 9] ⚠️ No data.pages');
+      console.log('[ExplorarScreen FASE 10] ⚠️ No data.pages');
       return [];
     }
     
-    console.log('[ExplorarScreen FASE 9] 📊 Raw data.pages:', {
+    console.log('[ExplorarScreen FASE 10] 📊 Raw data.pages:', {
       pageCount: data.pages.length,
       firstPage: data.pages[0],
+      firstPageVenues: data.pages[0]?.venues?.length || 0,
     });
     
     const flatVenues = data.pages.flatMap(page => page?.venues || []);
     const uniqueVenues = Array.from(new Map(flatVenues.map(v => [v.id, v])).values());
     
-    // ✅ FASE 9: Debug log usando console.log directo (no originalConsoleLog)
-    console.log('[ExplorarScreen FASE 9 RESTAURACIÓN] 📊 Venues:', {
+    // ✅ FASE 10: Debug log mejorado
+    console.log('[ExplorarScreen FASE 10] 📊 Venues processed:', {
       total: flatVenues.length,
       unique: uniqueVenues.length,
       duplicates: flatVenues.length - uniqueVenues.length,
@@ -291,6 +292,11 @@ export default function ExplorarScreen() {
       isLoading,
       isFetching,
       isCircuitOpen: circuitBreaker.isOpen,
+      sampleVenue: uniqueVenues[0] ? {
+        id: uniqueVenues[0].id,
+        nombre: uniqueVenues[0].nombre,
+        is_favorite: uniqueVenues[0].is_favorite,
+      } : null,
     });
     
     return uniqueVenues;
@@ -316,7 +322,7 @@ export default function ExplorarScreen() {
   
   // ✅ SCROLL TO TOP & REFRESH
   const handleScrollToTopAndRefresh = useCallback(() => {
-    console.log('[ExplorarScreen v31.0.0] 🚀 Scroll to top & refresh');
+    console.log('[ExplorarScreen FASE 10] 🚀 Scroll to top & refresh - Invalidating cache');
     
     // Step 1: Clear cache first to prevent stale data
     queryClient.resetQueries({ queryKey: ['bares_infinite_v24.0.0'] });
@@ -330,7 +336,7 @@ export default function ExplorarScreen() {
         try {
           flashListRef.current.scrollToOffset({ offset: 0, animated: false });
         } catch (error) {
-          console.warn('[ExplorarScreen v31.0.0] ⚠️ Scroll error:', error);
+          console.warn('[ExplorarScreen FASE 10] ⚠️ Scroll error:', error);
         }
       }
     }, 50);
@@ -340,6 +346,12 @@ export default function ExplorarScreen() {
       refetch();
     }, 100);
   }, [queryClient, refetch]);
+  
+  // ✅ FASE 10: Invalidate cache on mount to force fresh data with new RPC
+  useEffect(() => {
+    console.log('[ExplorarScreen FASE 10] 🔄 Invalidating cache on mount to use new get_venues_with_auth RPC');
+    queryClient.invalidateQueries({ queryKey: ['bares_infinite_v24.0.0'] });
+  }, [queryClient]);
   
   // ✅ React Navigation integration
   useScrollToTop(

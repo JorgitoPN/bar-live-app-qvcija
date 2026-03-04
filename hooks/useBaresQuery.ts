@@ -158,6 +158,7 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
       console.log('[useBaresQuery FASE 10] 🚀 Using get_venues_with_auth RPC', {
         userId: userId ? 'authenticated' : 'anonymous',
         hasSession: !!userId,
+        userLocation: { lat: userLocation?.latitude, lng: userLocation?.longitude },
       });
       
       const queryPromise = supabase.rpc('get_venues_with_auth', {
