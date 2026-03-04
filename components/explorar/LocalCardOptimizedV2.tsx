@@ -1,10 +1,16 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * LOCAL CARD PROFESSIONAL v7.0 - DATABASE-SIDE FAVORITE JOIN (FASE 10) 🚀
+ * LOCAL CARD PROFESSIONAL v7.1 - FIXED STATUS DISPLAY MISMATCH 🚀
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v7.0 (DATABASE-SIDE FAVORITE JOIN - FASE 10):
+ * 🎯 NEW IN v7.1 (FIXED STATUS DISPLAY MISMATCH):
+ * 1️⃣ USE DATABASE STATUS: Display esta_abierto from database, don't recalculate ✅
+ * 2️⃣ CONSISTENT SORTING: Status matches sorting tier (no closed in open section) ✅
+ * 3️⃣ MIDNIGHT CROSSING: Database handles this correctly, frontend just displays ✅
+ * 4️⃣ RESULT: Visual status matches actual sorting order ✅
+ * 
+ * 🎯 v7.0 (DATABASE-SIDE FAVORITE JOIN - FASE 10):
  * 1️⃣ NO MANUAL CROSS-REFERENCING: is_favorite comes from database ✅
  * 2️⃣ O(1) FAVORITE CHECK: No more .find() or .includes() loops ✅
  * 3️⃣ ELIMINATED BLOCKING: No >60 second freeze on authenticated load ✅
@@ -93,12 +99,25 @@ const LocalCardOptimizedV2 = memo(({ local, index, onPress, socialProfiles, acti
       60
     );
 
-    // ✅ Calculate estado ONCE and cache result
+    // ✅ v7.1: USE DATABASE-CALCULATED STATUS - Don't recalculate!
+    // The database already calculated esta_abierto correctly with midnight crossing logic
+    // Recalculating in the frontend causes mismatches between sorting and display
     let badgeText = 'Sin info de horario';
     let badgeColor = '#9CA3AF';
     let shouldDimImage = false;
 
-    if (local.horarios_completos && Object.keys(local.horarios_completos).length > 0) {
+    const estaAbierto = local.esta_abierto !== undefined ? local.esta_abierto : local.estaAbierto;
+    
+    if (estaAbierto === true) {
+      badgeText = 'Abierto ahora';
+      badgeColor = '#22C55E';
+      shouldDimImage = false;
+    } else if (estaAbierto === false) {
+      badgeText = 'Cerrado ahora';
+      badgeColor = '#EF4444';
+      shouldDimImage = true;
+    } else if (local.horarios_completos && Object.keys(local.horarios_completos).length > 0) {
+      // Has schedule but status is null - use frontend calculation as fallback
       const estado = getEstadoLocal(local);
       
       const colorMap: Record<string, string> = {
@@ -112,17 +131,6 @@ const LocalCardOptimizedV2 = memo(({ local, index, onPress, socialProfiles, acti
       badgeText = estado.badge;
       badgeColor = colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF';
       shouldDimImage = estado.estaAbierto === false && !estado.badge.includes('pronto');
-    } else {
-      const estaAbierto = local.esta_abierto !== undefined ? local.esta_abierto : local.estaAbierto;
-      
-      if (estaAbierto === true) {
-        badgeText = 'Abierto ahora';
-        badgeColor = '#22C55E';
-      } else if (estaAbierto === false) {
-        badgeText = 'Cerrado ahora';
-        badgeColor = '#EF4444';
-        shouldDimImage = true;
-      }
     }
 
     // ✅ Categories
@@ -158,7 +166,7 @@ const LocalCardOptimizedV2 = memo(({ local, index, onPress, socialProfiles, acti
     // ✅ Badge background color with opacity
     const badgeBackgroundColor = badgeColor + 'E6';
 
-    console.log('[LocalCardV6.0] ✅ Memoized data calculated:', {
+    console.log('[LocalCardV7.1] ✅ Memoized data calculated:', {
       nombre: local.nombre,
       badge: badgeText,
       shouldDimImage,
@@ -166,6 +174,9 @@ const LocalCardOptimizedV2 = memo(({ local, index, onPress, socialProfiles, acti
       hasRating,
       hasActiveEvent,
       hasDistance,
+      estaAbierto,
+      sorting_tier: local.sorting_tier,
+      usedDatabaseStatus: estaAbierto !== null && estaAbierto !== undefined,
     });
 
     return {

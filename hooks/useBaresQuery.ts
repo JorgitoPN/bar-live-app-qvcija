@@ -1,10 +1,16 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 useBaresQuery v27.0.0 - FIXED SORTING WITH MIDNIGHT CROSSING
+ * 🚀 useBaresQuery v27.1.0 - FIXED STATUS DISPLAY MISMATCH
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v27.0.0 (FIXED MIDNIGHT CROSSING):
+ * 🎯 NEW IN v27.1.0 (FIXED STATUS DISPLAY MISMATCH):
+ * 1️⃣ CARDS USE DATABASE STATUS: Frontend displays database-calculated esta_abierto ✅
+ * 2️⃣ NO RECALCULATION: Prevents mismatch between sorting and display ✅
+ * 3️⃣ CONSISTENT UI: Status badge matches sorting tier ✅
+ * 4️⃣ RESULT: No more closed venues appearing in open section ✅
+ * 
+ * 🎯 v27.0.0 (FIXED MIDNIGHT CROSSING):
  * 1️⃣ CORRECT SCHEDULE PARSING: Handles "HH:MM–HH:MM" string format ✅
  * 2️⃣ MIDNIGHT CROSSING: Venues open past midnight (e.g., "20:00–02:00") work correctly ✅
  * 3️⃣ PROPER TIER SORTING: Abiertos → Sin Info → Cerrados in correct order ✅
@@ -73,7 +79,7 @@ function generateQueryKey(params: UseBaresQueryParams) {
   );
   
   return [
-    'bares_infinite_v27.0.0',  // ✅ FIXED: Correct sorting with midnight crossing logic
+    'bares_infinite_v27.1.0',  // ✅ FIXED: Status display matches sorting (no closed in open section)
     lat,
     lng,
     params.selectedCategory,

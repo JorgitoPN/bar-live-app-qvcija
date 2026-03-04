@@ -1,10 +1,16 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 EXPLORAR SCREEN v33.0.0 - FIXED SORTING WITH MIDNIGHT CROSSING
+ * 🚀 EXPLORAR SCREEN v33.1.0 - FIXED STATUS DISPLAY MISMATCH
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v33.0.0 (FIXED MIDNIGHT CROSSING):
+ * 🎯 NEW IN v33.1.0 (FIXED STATUS DISPLAY MISMATCH):
+ * 1️⃣ CARDS USE DATABASE STATUS: No more recalculation causing visual mismatch ✅
+ * 2️⃣ CONSISTENT DISPLAY: Status badge matches sorting tier ✅
+ * 3️⃣ NO CLOSED IN OPEN: Closed venues only appear in closed section ✅
+ * 4️⃣ RESULT: Visual consistency between sorting and display ✅
+ * 
+ * 🎯 v33.0.0 (FIXED MIDNIGHT CROSSING):
  * 1️⃣ CORRECT SCHEDULE PARSING: Database now handles "HH:MM–HH:MM" string format ✅
  * 2️⃣ MIDNIGHT CROSSING: Venues open past midnight work correctly ✅
  * 3️⃣ PROPER TIER SORTING: Abiertos → Sin Info → Cerrados in correct order ✅
@@ -312,10 +318,10 @@ export default function ExplorarScreen() {
   
   // ✅ SCROLL TO TOP & REFRESH
   const handleScrollToTopAndRefresh = useCallback(() => {
-    console.log('[ExplorarScreen v33.0] 🚀 Scroll to top & refresh - Invalidating cache');
+    console.log('[ExplorarScreen v33.1] 🚀 Scroll to top & refresh - Invalidating cache');
     
     // Step 1: Clear cache first to prevent stale data
-    queryClient.resetQueries({ queryKey: ['bares_infinite_v27.0.0'] });
+    queryClient.resetQueries({ queryKey: ['bares_infinite_v27.1.0'] });
     
     // Step 2: Force remount to clear FlashList internal state
     setListKey(prev => prev + 1);
@@ -337,10 +343,10 @@ export default function ExplorarScreen() {
     }, 100);
   }, [queryClient, refetch]);
   
-  // ✅ v33.0: FORCE RESET cache on mount to ensure fresh data with correct ordering
+  // ✅ v33.1: FORCE RESET cache on mount to ensure fresh data with correct ordering
   useEffect(() => {
-    console.log('[ExplorarScreen v33.0] 🔄 FORCE RESETTING cache on mount (fixed midnight crossing v27.0)');
-    queryClient.resetQueries({ queryKey: ['bares_infinite_v27.0.0'] });
+    console.log('[ExplorarScreen v33.1] 🔄 FORCE RESETTING cache on mount (fixed status display v27.1)');
+    queryClient.resetQueries({ queryKey: ['bares_infinite_v27.1.0'] });
     
     // Force refetch after reset
     setTimeout(() => {
@@ -409,7 +415,7 @@ export default function ExplorarScreen() {
   // ═══════════════════════════════════════════════════════════════════════════
   
   useEffect(() => {
-    console.log('[ExplorarScreen v32.3.0] 🔄 Filters changed - Resetting list');
+    console.log('[ExplorarScreen v33.1.0] 🔄 Filters changed - Resetting list');
     
     // Force remount FlashList to clear internal layout cache
     setListKey(prev => prev + 1);
