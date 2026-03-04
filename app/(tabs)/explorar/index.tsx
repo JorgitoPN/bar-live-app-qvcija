@@ -27,7 +27,7 @@
  * - UX: Instant feedback, no blank screens 🎉
  */
 
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
 import {
   View,
   Text,
