@@ -290,8 +290,8 @@ export default function FiltrosAvanzadosScreen() {
     );
   }, [availableProvincias, searchProvincia]);
 
-  // ✅ v44.0 FIX: Only show on Android
-  const shouldShowTipoDeLocal = Platform.OS === 'android';
+  // ✅ v44.0 FIX: Hide on all platforms (was incorrectly showing only on Android)
+  const shouldShowTipoDeLocal = false;
 
   const tiposLocales = useMemo(() => {
     const tipos = [{ id: 'todos', label: 'Todos', icon: '🏪' }];
