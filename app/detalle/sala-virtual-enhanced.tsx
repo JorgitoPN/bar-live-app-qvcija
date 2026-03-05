@@ -3377,20 +3377,20 @@ function SalaVirtualEnhancedScreen() {
     return totalPadding;
   }, [showQuickMessages, activeTab, insets.bottom, isKeyboardVisible, keyboardHeight]);
 
-  // ✅ v8.1: FIXED - iOS keyboard positioning (NO EXTRA SPACE)
+  // ✅ v8.2: ANDROID FIX - Input field sits DIRECTLY on keyboard (NO GAP)
   // iOS: Input sits DIRECTLY on keyboard (bottom = keyboardHeight, no extra spacing)
-  // Android: Input rises above keyboard with clearance (bottom = keyboardHeight + 50)
+  // Android: Input sits DIRECTLY on keyboard (bottom = keyboardHeight, NO extra spacing)
   // Keyboard CLOSED: bottom = 0 (input sits at screen bottom)
   const inputContainerBottom = useMemo(() => {
     if (!isKeyboardVisible) {
       return 0;
     }
     
-    // ✅ iOS: NO extra space - input sits directly on keyboard
-    // ✅ Android: 50px clearance above keyboard
-    const bottomValue = Platform.OS === 'ios' ? keyboardHeight : keyboardHeight + 50;
+    // ✅ ANDROID FIX: NO extra space - input sits directly on keyboard (same as iOS)
+    // This fixes the gap between input field and keyboard on Android
+    const bottomValue = keyboardHeight;
     
-    console.log('[SalaVirtual v8.1] 📐 Input container bottom:', bottomValue, 
+    console.log('[SalaVirtual v8.2] 📐 Input container bottom:', bottomValue, 
       '(platform:', Platform.OS, ', keyboard:', isKeyboardVisible ? 'OPEN' : 'CLOSED', ')');
     return bottomValue;
   }, [isKeyboardVisible, keyboardHeight]);
