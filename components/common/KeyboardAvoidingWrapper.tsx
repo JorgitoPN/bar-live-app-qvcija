@@ -126,11 +126,11 @@ const KeyboardAvoidingWrapper: React.FC<KeyboardAvoidingWrapperProps> = ({
     });
   };
 
-  // ✅ FIXED v10.0: iOS keyboard offset - NO EXTRA SPACE
-  // The input should sit DIRECTLY on top of the keyboard with NO gap
-  // Setting offset to 0 ensures the input is flush with the keyboard
+  // ✅ FIXED v11.0: iOS keyboard offset - 1PX SPACE
+  // Adding 1px of space between the text field and the keyboard on iOS
+  // This prevents the input from being too close to the keyboard
   const iosKeyboardOffset = Platform.OS === 'ios' 
-    ? 0 + extraOffset  // Zero offset = input sits directly on keyboard (no gap)
+    ? 1 + extraOffset  // 1px offset = small breathing space between input and keyboard
     : extraOffset;
 
   return (
