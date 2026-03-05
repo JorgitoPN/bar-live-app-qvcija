@@ -45,17 +45,18 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ FILTROS AVANZADOS v4.2 - TIPO DE LOCAL COMPLETAMENTE ELIMINADO
+ * ✅ FILTROS AVANZADOS v5.0 - SIN TIPO DE LOCAL
  * 
- * CAMBIOS v4.2:
- * - 🚫 ELIMINADO COMPLETAMENTE: Sección "Tipos de local (6) 1 MÁX"
- * - 🚫 NO SE MUESTRA: Ningún desplegable de tipos de local
- * - ✅ SOLO DISPONIBLE EN: Página Explorar y Página Mapa
- * - 🎯 FILTROS AVANZADOS: Ubicación, Servicios, Ambiente, Clientela
+ * FILTROS DISPONIBLES:
+ * - 📍 Ubicación (Comunidad, Provincia, Radio)
+ * - ✅ Servicios
+ * - ✨ Ambiente
+ * - 👥 Clientela
  * 
- * NOTA: El filtro de tipo de local se gestiona exclusivamente desde:
- * - app/(tabs)/explorar/index.tsx (barra de filtros)
- * - app/(tabs)/explorar/mapa.tsx (selector de mapa)
+ * 🚫 TIPO DE LOCAL NO ESTÁ AQUÍ
+ * El filtro de tipo de local solo está disponible en:
+ * - Página Explorar (barra de filtros superior)
+ * - Página Mapa (selector de mapa)
  */
 export default function FiltrosAvanzadosScreen() {
   const router = useRouter();
@@ -83,8 +84,7 @@ export default function FiltrosAvanzadosScreen() {
   });
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados v4.2] 🔄 Página abierta - TIPO DE LOCAL NO DISPONIBLE AQUÍ');
-    console.log('[FiltrosAvanzados v4.2] ℹ️ Tipo de local solo disponible en Explorar y Mapa');
+    console.log('[FiltrosAvanzados v5.0] 🔄 Inicializando - SIN filtro de tipo de local');
     setFiltrosTemp(contextFiltros);
     refreshDynamicOptions();
   }, [contextFiltros, refreshDynamicOptions]);
@@ -119,24 +119,22 @@ export default function FiltrosAvanzadosScreen() {
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v4.2] ✅ Aplicando filtros (sin tipo de local):', filtrosTemp);
+    console.log('[FiltrosAvanzados v5.0] ✅ Aplicando filtros:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     router.back();
   }, [filtrosTemp, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v4.2] 🧹 Limpiando todos los filtros - UI INSTANTÁNEA');
-    
+    console.log('[FiltrosAvanzados v5.0] 🧹 Limpiando filtros');
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
-    
     setTimeout(() => {
       contextLimpiarFiltros();
     }, 0);
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v4.2] 📍 Comunidad seleccionada:', selectedComunidad);
+    console.log('[FiltrosAvanzados v5.0] 📍 Comunidad seleccionada:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -160,7 +158,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v4.2] 📍 Provincia seleccionada:', provincia);
+    console.log('[FiltrosAvanzados v5.0] 📍 Provincia seleccionada:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -170,7 +168,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados v4.2] 📏 Radio cambiado a:', value, 'km');
+    console.log('[FiltrosAvanzados v5.0] 📏 Radio cambiado a:', value, 'km');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: value,
@@ -178,7 +176,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const activateDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v4.2] 🎯 Activando filtro de distancia con 50km por defecto');
+    console.log('[FiltrosAvanzados v5.0] 🎯 Activando filtro de distancia');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: 50,
@@ -186,7 +184,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const resetDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v4.2] 🔄 Reseteando radio de búsqueda a "Sin límite"');
+    console.log('[FiltrosAvanzados v5.0] 🔄 Reseteando radio de búsqueda');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: undefined,
@@ -203,7 +201,6 @@ export default function FiltrosAvanzadosScreen() {
   const allComunidades = useMemo(() => {
     const staticComunidades = Object.keys(COMUNIDADES_PROVINCIAS);
     const dynamicComunidades = dynamicOptions.comunidades || [];
-    
     const merged = new Set([...staticComunidades, ...dynamicComunidades]);
     return ['Todas las Comunidades', ...Array.from(merged).sort()];
   }, [dynamicOptions.comunidades]);
@@ -293,7 +290,7 @@ export default function FiltrosAvanzadosScreen() {
     return clientela;
   }, [dynamicOptions.clientela]);
 
-  // ✅ CONTADOR DE FILTROS ACTIVOS (SIN TIPO DE LOCAL)
+  // Contador de filtros activos (sin tipo de local)
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (filtrosTemp.servicios && filtrosTemp.servicios.length > 0) count++;
@@ -302,13 +299,11 @@ export default function FiltrosAvanzadosScreen() {
     if (filtrosTemp.comunidad) count++;
     if (filtrosTemp.provincia) count++;
     if (filtrosTemp.distancia !== undefined && filtrosTemp.distancia !== null) count++;
-    // 🚫 NO SE CUENTA selectedLocalType - ese filtro no existe en esta página
     return count;
   }, [filtrosTemp]);
 
   const footerPaddingBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 20) : 20;
   const scrollContentPaddingBottom = Platform.OS === 'android' ? 120 + insets.bottom : 120;
-
   const isDistanceFilterActive = filtrosTemp.distancia !== undefined && filtrosTemp.distancia !== null;
 
   return (
@@ -339,11 +334,6 @@ export default function FiltrosAvanzadosScreen() {
         style={styles.content} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.contentContainer, { paddingBottom: scrollContentPaddingBottom }]}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={10}
-        updateCellsBatchingPeriod={50}
-        initialNumToRender={10}
-        windowSize={10}
       >
         {isLoadingOptions && (
           <View style={styles.loadingBanner}>
@@ -352,7 +342,7 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         )}
 
-        {/* 📍 SECCIÓN UBICACIÓN */}
+        {/* 📍 UBICACIÓN */}
         <View style={styles.section}>
           <TouchableOpacity 
             style={styles.sectionHeader}
@@ -378,10 +368,7 @@ export default function FiltrosAvanzadosScreen() {
               <View style={styles.locationGrid}>
                 <TouchableOpacity
                   style={styles.locationButton}
-                  onPress={() => {
-                    console.log('[FiltrosAvanzados v4.2] 🔍 Abriendo modal de comunidad');
-                    setShowComunidadModal(true);
-                  }}
+                  onPress={() => setShowComunidadModal(true)}
                 >
                   <Text style={[styles.locationLabel, { fontSize: scaleFontSize(9) }]}>Comunidad</Text>
                   <Text style={[styles.locationValue, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>
@@ -397,7 +384,6 @@ export default function FiltrosAvanzadosScreen() {
                   ]}
                   onPress={() => {
                     if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
-                      console.log('[FiltrosAvanzados v4.2] 🔍 Abriendo modal de provincia');
                       setShowProvinciaModal(true);
                     }
                   }}
@@ -480,11 +466,7 @@ export default function FiltrosAvanzadosScreen() {
           )}
         </View>
 
-        {/* 🚫 NOTA: SECCIÓN "TIPOS DE LOCAL" ELIMINADA */}
-        {/* Esta sección ya no aparece en Filtros Avanzados */}
-        {/* El filtro de tipo de local solo está disponible en Explorar y Mapa */}
-
-        {/* ✅ SECCIÓN SERVICIOS */}
+        {/* ✅ SERVICIOS */}
         {serviciosDisponibles.length > 0 && (
           <View style={styles.section}>
             <TouchableOpacity 
@@ -535,7 +517,7 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         )}
 
-        {/* ✨ SECCIÓN AMBIENTE */}
+        {/* ✨ AMBIENTE */}
         {ambientesDisponibles.length > 1 && (
           <View style={styles.section}>
             <TouchableOpacity 
@@ -588,7 +570,7 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         )}
 
-        {/* 👥 SECCIÓN CLIENTELA */}
+        {/* 👥 CLIENTELA */}
         {clientelaDisponible.length > 1 && (
           <View style={styles.section}>
             <TouchableOpacity 
