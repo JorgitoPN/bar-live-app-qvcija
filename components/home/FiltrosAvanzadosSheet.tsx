@@ -18,6 +18,7 @@ import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Filtros } from '@/types';
 import { useFilterStore } from '@/src/store/useFilterStore';
+import { useRouter } from 'expo-router';
 
 interface FiltrosAvanzadosSheetProps {
   visible: boolean;
