@@ -80,5 +80,9 @@
       "androidMode": "default",
       "androidCollapsedTitle": "BarLive"
     },
+    "cli": {
+      "appVersionSource": "remote"
+    },
+    "owner": "barlive"
   }
 }
