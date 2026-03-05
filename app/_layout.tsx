@@ -11,7 +11,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { colors } from '@/styles/commonStyles';
 import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Platform, AppState, AppStateStatus } from 'react-native';
+import { Platform, AppState, AppStateStatus, InteractionManager } from 'react-native';
 import * as SystemUI from 'expo-system-ui';
 import { startBackgroundLocationTracking } from '@/utils/locationUtils';
 import { backgroundSync } from '@/utils/backgroundSync';
@@ -27,9 +27,29 @@ import { supabase } from '@/utils/supabase';
 import { PerformanceTracker } from '@/utils/performanceTracker';
 
 /**
- * ✅ ROOT LAYOUT v23.0 - CACHE CLEARED (v7.0)
+ * ✅ ROOT LAYOUT v24.0 - PASO 1: INTERACTIONMANAGER DEFERRED LOADING
  * 
- * 🎉 v23.0 CHANGES:
+ * 🎉 v24.0 CHANGES (PASO 1 - DIAGNÓSTICO DE HILO PRINCIPAL):
+ * - ⏱️ INTERACTIONMANAGER: Heavy logic runs AFTER login transition completes
+ * - 🚀 DEFERRED LOADING: GlobalData, Filters, Prefetch delayed by 500ms, 1000ms, 1500ms
+ * - ✅ MAIN THREAD FREE: Login transition animations are smooth and unblocked
+ * - 🎯 TARGET: Eliminate 30-second delay by preventing main thread blocking
+ * 
+ * PROBLEMA IDENTIFICADO:
+ * - JSON.parse de objetos grandes de MMKV/Supabase bloqueaba el hilo principal
+ * - Renderizado masivo de listas (Sala Virtual) bloqueaba la UI
+ * - Múltiples suscripciones de Realtime colapsaban el socket
+ * 
+ * SOLUCIÓN PASO 1:
+ * - InteractionManager.runAfterInteractions: Espera a que termine la animación de login
+ * - Deferred loading: Carga pesada escalonada (500ms, 1000ms, 1500ms)
+ * - Main thread libre: Usuario ve la UI inmediatamente después de login
+ * 
+ * PRÓXIMOS PASOS:
+ * - PASO 2: Virtualización con @shopify/flash-list en sala-virtual-enhanced.tsx
+ * - PASO 3: Centralizar y debounce de suscripciones Realtime de Supabase
+ * 
+ * CAMBIOS v23.0:
  * - 🧹 CACHE KEY UPDATED: tanstack-query-cache-v7.0 (forzar refresh)
  * - 🚀 TODOS LOS USUARIOS: Verán cambios inmediatamente en iOS y Web
  * - ✅ ANDROID: Ya funcionaba correctamente
@@ -51,7 +71,7 @@ import { PerformanceTracker } from '@/utils/performanceTracker';
  * - 🚀 TTI MEJORADO: Time to Interactive reducido de ~3s a <500ms
  */
 
-// ✅ v23.0: CACHE KEY UPDATED - Force refresh on all platforms
+// ✅ v24.0: PASO 1 - InteractionManager deferred loading
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -64,8 +84,8 @@ const queryClient = new QueryClient({
   },
 });
 
-// ✅ v23.0: CACHE KEY UPDATED - tanstack-query-cache-v7.0
-console.log('[TanStack Query v7.0] 🚀 Initializing with NEW cache key (force refresh)');
+// ✅ v24.0: PASO 1 - Deferred loading with InteractionManager
+console.log('[TanStack Query v24.0 - PASO 1] 🚀 Initializing with deferred loading strategy');
 
 const persister = createAsyncStoragePersister({
   storage: supabaseStorage,
@@ -73,10 +93,10 @@ const persister = createAsyncStoragePersister({
   throttleTime: 1000,
 });
 
-console.log('[TanStack Query v7.0] ✅ Cache persister initialized with v7.0 key');
+console.log('[TanStack Query v24.0 - PASO 1] ✅ Cache persister initialized');
 
 export default function RootLayout() {
-  // ✅ BLOQUE 2 + FASE 8: PARALELIZACIÓN TOTAL + OBSERVABILIDAD
+  // ✅ PASO 1: DIAGNÓSTICO DE HILO PRINCIPAL - InteractionManager.runAfterInteractions
   useEffect(() => {
     const startTime = performance.now();
     
@@ -84,108 +104,141 @@ export default function RootLayout() {
     PerformanceTracker.start('app_initialization');
     
     if (__DEV__) {
-      console.log('[RootLayout v23.0] 🚀 Starting PARALLEL initialization (CACHE v7.0)...');
+      console.log('[RootLayout v24.0 - PASO 1] 🚀 Starting DEFERRED initialization...');
+      console.log('[RootLayout v24.0 - PASO 1] ⏱️ Heavy logic will run AFTER login transition completes');
     }
     
-    // ✅ REGLA DE ORO: NO AWAIT - Lanzar todo en paralelo con Promise.allSettled
-    // El RootLayout permite renderizado inmediato después de lectura síncrona de MMKV
-    // Las promesas de red NO bloquean el renderizado de Tabs/Stack
+    // ✅ PASO 1: DEFER HEAVY LOGIC - Use InteractionManager to run after animations
+    // This prevents blocking the main thread during login transition
+    // The UI will be responsive immediately, heavy work happens in background
     
-    Promise.allSettled([
-      // 1️⃣ Auth Store - Lectura síncrona MMKV + validación de red en background
-      useAuthStore.getState().initialize(),
-      
-      // 2️⃣ Global Data Store - Carga de caché en background
-      useGlobalDataStore.getState().initialize(),
-      
-      // 3️⃣ Filter Store - Opciones dinámicas en background
-      useFilterStore.getState().refreshDynamicOptions(),
-      
-      // 4️⃣ Prefetch Critical Data - Primera página de locales en background
-      (async () => {
-        try {
-          if (__DEV__) {
-            console.log('[RootLayout v23.0] 🚀 Prefetching first page (non-blocking)...');
-          }
-          
-          await queryClient.prefetchInfiniteQuery({
-            queryKey: ['bares_infinite_v24.0.0', null, null, null, '', {}],
-            queryFn: async () => {
-              const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity_cursor', {
-                p_user_lat: 40.4168,
-                p_user_lng: -3.7038,
-                p_limit: 10,
-                p_last_id: null,
-                p_last_sorting_tier: null,
-                p_last_distance_km: null,
-                p_category_filter: null,
-                p_servicios_filter: null,
-                p_ambiente_filter: null,
-                p_clientela_filter: null,
-                p_comunidad_filter: null,
-                p_provincia_filter: null,
-                p_max_distance_km: null,
-                p_search_query: null,
-              });
-              
-              if (error) throw error;
-              
-              const venues = data || [];
-              
-              if (__DEV__) {
-                console.log('[RootLayout v23.0] ✅ Prefetched', venues.length, 'locales');
-              }
-              
-              return {
-                venues,
-                nextCursor: venues.length === 10 ? {
-                  last_id: venues[venues.length - 1].id,
-                  last_tier: venues[venues.length - 1].sorting_tier,
-                  last_distance: venues[venues.length - 1].distancia,
-                  offset: 10,
-                } : undefined,
-              };
-            },
-            initialPageParam: undefined,
-          });
-        } catch (error) {
-          if (__DEV__) {
-            console.log('[RootLayout v23.0] ⚠️ Prefetch failed (non-critical):', error);
-          }
-        }
-      })(),
-    ]).then((results) => {
-      const totalTime = performance.now() - startTime;
-      
-      // ✅ FASE 8: Registrar TTI
-      PerformanceTracker.end('app_initialization');
-      PerformanceTracker.recordTTI();
-      
+    const interactionHandle = InteractionManager.runAfterInteractions(() => {
       if (__DEV__) {
-        console.log('[RootLayout v23.0] 🎉 ALL background tasks settled in', `${totalTime.toFixed(0)}ms`);
-        
-        // ✅ Log individual results for debugging (solo en DEV)
-        results.forEach((result, index) => {
-          const taskNames = ['Auth', 'GlobalData', 'Filters', 'Prefetch'];
-          if (result.status === 'rejected') {
-            console.error(`[RootLayout v23.0] ❌ ${taskNames[index]} failed:`, result.reason);
-          } else {
-            console.log(`[RootLayout v23.0] ✅ ${taskNames[index]} completed`);
-          }
-        });
+        console.log('[RootLayout v24.0 - PASO 1] ✅ Login transition complete - starting heavy tasks');
       }
       
-      // ✅ FASE 8: Enviar métricas a Supabase (solo en producción)
-      if (!__DEV__) {
-        // Esperar 2 segundos antes de enviar para no interferir con la UI
-        setTimeout(() => {
-          PerformanceTracker.logPerformanceMetrics();
-        }, 2000);
-      }
+      // ✅ REGLA DE ORO: NO AWAIT - Lanzar todo en paralelo con Promise.allSettled
+      // El RootLayout permite renderizado inmediato después de lectura síncrona de MMKV
+      // Las promesas de red NO bloquean el renderizado de Tabs/Stack
+      
+      Promise.allSettled([
+        // 1️⃣ Auth Store - Lectura síncrona MMKV + validación de red en background
+        useAuthStore.getState().initialize(),
+        
+        // 2️⃣ Global Data Store - Carga de caché en background (DEFERRED)
+        (async () => {
+          // ✅ PASO 1: Defer GlobalData initialization by 500ms
+          await new Promise(resolve => setTimeout(resolve, 500));
+          if (__DEV__) {
+            console.log('[RootLayout v24.0 - PASO 1] 🔄 Starting GlobalData initialization (deferred)');
+          }
+          return useGlobalDataStore.getState().initialize();
+        })(),
+        
+        // 3️⃣ Filter Store - Opciones dinámicas en background (DEFERRED)
+        (async () => {
+          // ✅ PASO 1: Defer Filter options by 1000ms
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          if (__DEV__) {
+            console.log('[RootLayout v24.0 - PASO 1] 🔄 Starting Filter options refresh (deferred)');
+          }
+          return useFilterStore.getState().refreshDynamicOptions();
+        })(),
+        
+        // 4️⃣ Prefetch Critical Data - Primera página de locales en background (DEFERRED)
+        (async () => {
+          // ✅ PASO 1: Defer prefetch by 1500ms
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          try {
+            if (__DEV__) {
+              console.log('[RootLayout v24.0 - PASO 1] 🚀 Prefetching first page (deferred, non-blocking)...');
+            }
+            
+            await queryClient.prefetchInfiniteQuery({
+              queryKey: ['bares_infinite_v24.0.0', null, null, null, '', {}],
+              queryFn: async () => {
+                const { data, error } = await supabase.rpc('get_sorted_locales_by_proximity_cursor', {
+                  p_user_lat: 40.4168,
+                  p_user_lng: -3.7038,
+                  p_limit: 10,
+                  p_last_id: null,
+                  p_last_sorting_tier: null,
+                  p_last_distance_km: null,
+                  p_category_filter: null,
+                  p_servicios_filter: null,
+                  p_ambiente_filter: null,
+                  p_clientela_filter: null,
+                  p_comunidad_filter: null,
+                  p_provincia_filter: null,
+                  p_max_distance_km: null,
+                  p_search_query: null,
+                });
+                
+                if (error) throw error;
+                
+                const venues = data || [];
+                
+                if (__DEV__) {
+                  console.log('[RootLayout v24.0 - PASO 1] ✅ Prefetched', venues.length, 'locales');
+                }
+                
+                return {
+                  venues,
+                  nextCursor: venues.length === 10 ? {
+                    last_id: venues[venues.length - 1].id,
+                    last_tier: venues[venues.length - 1].sorting_tier,
+                    last_distance: venues[venues.length - 1].distancia,
+                    offset: 10,
+                  } : undefined,
+                };
+              },
+              initialPageParam: undefined,
+            });
+          } catch (error) {
+            if (__DEV__) {
+              console.log('[RootLayout v24.0 - PASO 1] ⚠️ Prefetch failed (non-critical):', error);
+            }
+          }
+        })(),
+      ]).then((results) => {
+        const totalTime = performance.now() - startTime;
+        
+        // ✅ FASE 8: Registrar TTI
+        PerformanceTracker.end('app_initialization');
+        PerformanceTracker.recordTTI();
+        
+        if (__DEV__) {
+          console.log('[RootLayout v24.0 - PASO 1] 🎉 ALL background tasks settled in', `${totalTime.toFixed(0)}ms`);
+          
+          // ✅ Log individual results for debugging (solo en DEV)
+          results.forEach((result, index) => {
+            const taskNames = ['Auth', 'GlobalData (deferred)', 'Filters (deferred)', 'Prefetch (deferred)'];
+            if (result.status === 'rejected') {
+              console.error(`[RootLayout v24.0 - PASO 1] ❌ ${taskNames[index]} failed:`, result.reason);
+            } else {
+              console.log(`[RootLayout v24.0 - PASO 1] ✅ ${taskNames[index]} completed`);
+            }
+          });
+        }
+        
+        // ✅ FASE 8: Enviar métricas a Supabase (solo en producción)
+        if (!__DEV__) {
+          // Esperar 2 segundos antes de enviar para no interferir con la UI
+          setTimeout(() => {
+            PerformanceTracker.logPerformanceMetrics();
+          }, 2000);
+        }
+      });
     });
     
     // ✅ IMPORTANTE: NO hay await aquí - el useEffect termina inmediatamente
     // Las promesas continúan ejecutándose en background sin bloquear el render
+    
+    return () => {
+      // ✅ Cleanup: Cancel deferred tasks if component unmounts
+      interactionHandle.cancel();
+    };
   }, []);
 
   // ✅ ANDROID FIX v13.0: Set global system navigation bar color to WHITE (no blue flash)
