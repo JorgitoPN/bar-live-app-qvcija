@@ -3696,7 +3696,7 @@ function SalaVirtualEnhancedScreen() {
         </View>
 
         {activeTab === 'chat' && (
-          <KeyboardAvoidingWrapper style={styles.chatContainer}>
+          <View style={styles.chatContainer}>
             <FlashList
               ref={flashListRef}
               data={messages}
@@ -3812,7 +3812,7 @@ function SalaVirtualEnhancedScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </KeyboardAvoidingWrapper>
+          </View>
         )}
 
         {activeTab === 'users' && (
@@ -3875,7 +3875,7 @@ function SalaVirtualEnhancedScreen() {
         )}
 
         {activeTab === 'private' && selectedPrivateChat && (
-          <KeyboardAvoidingWrapper style={styles.chatContainer}>
+          <View style={styles.chatContainer}>
             <TouchableOpacity
               style={[styles.privateChatHeader, { backgroundColor: themeColors.cardBg, borderBottomColor: themeColors.cardBorder }]}
               onPress={handlePrivateChatUserPress}
@@ -4020,7 +4020,7 @@ function SalaVirtualEnhancedScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </KeyboardAvoidingWrapper>
+          </View>
         )}
 
         {renderBottomSheet()}
