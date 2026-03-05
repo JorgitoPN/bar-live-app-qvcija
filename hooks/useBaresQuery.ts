@@ -1,16 +1,10 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 useBaresQuery v28.1.0 - FIXED TIPO FILTER SYNCHRONIZATION
+ * 🚀 useBaresQuery v28.0.0 - FIXED ADVANCED FILTERS
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v28.1.0 (FIXED TIPO FILTER):
- * 1️⃣ TIPO FILTER: Now passes globalFiltros.tipo to RPC as p_tipo_filter ✅
- * 2️⃣ BIDIRECTIONAL SYNC: Advanced Filters tipo selection now applies to results ✅
- * 3️⃣ SINGLE SELECTION: Supports single tipo selection from Advanced Filters ✅
- * 4️⃣ RESULT: Selecting a tipo in Advanced Filters correctly filters venues ✅
- * 
- * 🎯 v28.0.0 (FIXED ADVANCED FILTERS):
+ * 🎯 NEW IN v28.0.0 (FIXED ADVANCED FILTERS):
  * 1️⃣ SERVICIOS FILTER: Now properly checks for TRUE values in servicios_disponibles ✅
  * 2️⃣ AMBIENTE FILTER: Now properly checks for TRUE values in ambiente_completo ✅
  * 3️⃣ CLIENTELA FILTER: Now properly checks for TRUE values in clientela ✅
@@ -91,12 +85,12 @@ function generateQueryKey(params: UseBaresQueryParams) {
   );
   
   return [
-    'bares_infinite_v28.1.0',  // ✅ FIXED: Now includes tipo filter from Advanced Filters
+    'bares_infinite_v28.0.0',  // ✅ FIXED: Advanced filters now properly check for TRUE values
     lat,
     lng,
     params.selectedCategory,
     params.searchQuery,
-    JSON.stringify(params.globalFiltros), // Stable serialization (includes tipo)
+    JSON.stringify(params.globalFiltros), // Stable serialization
   ];
 }
 
@@ -182,10 +176,6 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         userLocation: { lat: userLocation?.latitude, lng: userLocation?.longitude },
       });
       
-      // ✅ v28.1.0: FIXED - Now passing tipo filter from Advanced Filters
-      // Map tipo filter to array format (single selection)
-      const tipoFilter = globalFiltros.tipo ? [globalFiltros.tipo] : null;
-      
       // ✅ FASE 12: Debug log CRÍTICO de parámetros antes de llamar al RPC
       const rpcParams = {
         p_user_id: userId,
@@ -196,7 +186,6 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         p_last_sorting_tier: pageParam?.last_tier || null,
         p_last_distance_km: pageParam?.last_distance || null,
         p_category_filter: categoryFilter,
-        p_tipo_filter: tipoFilter, // ✅ NEW: Pass tipo filter from Advanced Filters
         p_servicios_filter: globalFiltros.servicios?.length > 0 ? globalFiltros.servicios : null,
         p_ambiente_filter: globalFiltros.ambiente?.length > 0 ? globalFiltros.ambiente : null,
         p_clientela_filter: globalFiltros.clientela?.length > 0 ? globalFiltros.clientela : null,
