@@ -44,7 +44,7 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
   'Melilla': ['Melilla'],
 };
 
-// ✅ UNIQUE ICON MAPPING FOR SERVICIOS
+// ✅ UNIQUE ICON MAPPING FOR SERVICIOS - SINGLE COLOR BLUE THEME
 const getServicioIcon = (servicioId: string) => {
   const iconMap: Record<string, { ios: string; android: string }> = {
     'terraza': { ios: 'sun.max.fill', android: 'wb_sunny' },
@@ -56,7 +56,7 @@ const getServicioIcon = (servicioId: string) => {
     'takeaway': { ios: 'takeoutbag.and.cup.and.straw.fill', android: 'shopping_bag' },
     'dj': { ios: 'hifispeaker.2.fill', android: 'headset' },
     'cerveza': { ios: 'wineglass.fill', android: 'local_bar' },
-    'cocteles': { ios: 'cup.and.saucer.fill', android: 'local_cafe' },
+    'cocteles': { ios: 'cup.and.saucer.fill', android: 'liquor' },
     'vino': { ios: 'wineglass', android: 'wine_bar' },
     'cafe': { ios: 'cup.and.saucer', android: 'coffee' },
     'musica_vivo': { ios: 'music.mic', android: 'mic' },
@@ -66,7 +66,7 @@ const getServicioIcon = (servicioId: string) => {
   return iconMap[servicioId] || { ios: 'checkmark.circle.fill', android: 'check_circle' };
 };
 
-// ✅ UNIQUE ICON MAPPING FOR AMBIENTE
+// ✅ UNIQUE ICON MAPPING FOR AMBIENTE - SINGLE COLOR BLUE THEME
 const getAmbienteIcon = (ambienteId: string) => {
   const iconMap: Record<string, { ios: string; android: string }> = {
     'cualquiera': { ios: 'sparkles', android: 'auto_awesome' },
@@ -74,14 +74,16 @@ const getAmbienteIcon = (ambienteId: string) => {
     'animado': { ios: 'party.popper.fill', android: 'celebration' },
     'romantico': { ios: 'heart.fill', android: 'favorite' },
     'familiar': { ios: 'figure.2.and.child.holdinghands', android: 'family_restroom' },
-    'moderno': { ios: 'sparkle', android: 'star' },
+    'moderno': { ios: 'sparkle', android: 'star_rate' },
     'tradicional': { ios: 'building.columns.fill', android: 'account_balance' },
+    'elegante': { ios: 'sparkle', android: 'diamond' },
+    'casual': { ios: 'figure.walk', android: 'directions_walk' },
   };
   
   return iconMap[ambienteId] || { ios: 'star.fill', android: 'star' };
 };
 
-// ✅ UNIQUE ICON MAPPING FOR CLIENTELA
+// ✅ UNIQUE ICON MAPPING FOR CLIENTELA - SINGLE COLOR BLUE THEME
 const getClientelaIcon = (clientelaId: string) => {
   const iconMap: Record<string, { ios: string; android: string }> = {
     'cualquiera': { ios: 'person.3.fill', android: 'people' },
@@ -90,6 +92,8 @@ const getClientelaIcon = (clientelaId: string) => {
     'familias': { ios: 'house.fill', android: 'home' },
     'jovenes': { ios: 'figure.dance', android: 'sports_bar' },
     'profesionales': { ios: 'briefcase.fill', android: 'work' },
+    'estudiantes': { ios: 'book.fill', android: 'school' },
+    'parejas': { ios: 'heart.fill', android: 'favorite_border' },
   };
   
   return iconMap[clientelaId] || { ios: 'person.fill', android: 'person' };
@@ -651,7 +655,7 @@ export default function FiltrosAvanzadosScreen() {
                         ios_icon_name={servicio.iosIcon}
                         android_material_icon_name={servicio.androidIcon}
                         size={scaleIconSize(16)}
-                        color={isSelected ? colors.headerText : colors.text}
+                        color={isSelected ? '#FFFFFF' : '#3B82F6'}
                       />
                       <Text 
                         style={[
@@ -704,7 +708,7 @@ export default function FiltrosAvanzadosScreen() {
                         ios_icon_name={ambiente.iosIcon}
                         android_material_icon_name={ambiente.androidIcon}
                         size={scaleIconSize(16)}
-                        color={isSelected ? colors.headerText : colors.text}
+                        color={isSelected ? '#FFFFFF' : '#3B82F6'}
                       />
                       <Text 
                         style={[
@@ -757,7 +761,7 @@ export default function FiltrosAvanzadosScreen() {
                         ios_icon_name={clientela.iosIcon}
                         android_material_icon_name={clientela.androidIcon}
                         size={scaleIconSize(16)}
-                        color={isSelected ? colors.headerText : colors.text}
+                        color={isSelected ? '#FFFFFF' : '#3B82F6'}
                       />
                       <Text 
                         style={[
@@ -1247,7 +1251,7 @@ const styles = StyleSheet.create({
     color: '#10B981',
   },
   
-  // CHIPS COMPACTOS
+  // CHIPS COMPACTOS - BLUE THEME
   chipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1262,20 +1266,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: colors.background,
     borderWidth: 1.5,
-    borderColor: colors.cardBorder,
+    borderColor: '#3B82F6' + '30',
   },
   chipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
   },
   chipIcon: {
   },
   chipText: {
     fontWeight: '600',
-    color: colors.text,
+    color: '#3B82F6',
   },
   chipTextActive: {
-    color: colors.headerText,
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   
