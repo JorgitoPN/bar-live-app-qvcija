@@ -41,17 +41,17 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v306.0 - COMPLETE ANDROID FIX
+ * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v307.0 - PRECISE ANDROID FIX
  * 
  * ANDROID-SPECIFIC FIXES:
- * 1️⃣ CONVERSACIÓN - Input field behavior (COMPLETE FIX):
+ * 1️⃣ CONVERSACIÓN - Input field behavior (PRECISE FIX - NO EXCESS SPACING):
  *    - ✅ Absolute positioning with bottom: 0 (extends to physical screen bottom)
  *    - ✅ Input rises smoothly when keyboard opens via dynamic bottom positioning
- *    - ✅ DYNAMIC HEIGHT MEASUREMENT: onLayout measures actual input container height
- *    - ✅ COMPLETE VISIBILITY: androidKeyboardOffset = inputContainerHeight + insets.bottom
+ *    - ✅ PRECISE KEYBOARD DETECTION: Uses ONLY keyboard height from system
+ *    - ✅ NO EXTRA OFFSETS: Eliminates the 50px excess spacing issue
  *    - ✅ Input returns to bottom automatically when keyboard closes
  *    - ✅ NO stuck-in-middle issue
- *    - ✅ NO PARTIAL COVERING - entire input container is visible above keyboard
+ *    - ✅ PERFECT POSITIONING - input sits exactly at keyboard edge
  *    - ✅ White background extends BEHIND system navigation bar
  *    - ✅ Visible content respects safe area insets
  *    - ✅ Enhanced logging for debugging keyboard behavior
@@ -71,16 +71,16 @@ interface Message {
  *    - ✅ Professional behavior matching standard Android apps
  * 
  * TECHNICAL IMPLEMENTATION:
- * - position: 'absolute' with dynamic bottom (keyboardHeight + androidKeyboardOffset when open, 0 when closed)
- * - androidKeyboardOffset = inputContainerHeight + insets.bottom (measured dynamically via onLayout)
+ * - position: 'absolute' with dynamic bottom (keyboardHeight when open, 0 when closed)
+ * - NO EXTRA OFFSETS: androidKeyboardOffset = 0 (system keyboard height is already perfect)
  * - paddingBottom: insets.bottom (creates white space behind system nav bar)
  * - Keyboard listeners for height tracking (keyboardDidShow/keyboardDidHide)
  * - No KeyboardAvoidingView (causes issues on Android)
  * - inputContainer (absolute) + inputRow (flex layout) pattern
  * - WHITE BACKGROUND (#FFFFFF) extends behind system navigation bar
- * - FlatList paddingBottom: keyboardHeight + androidKeyboardOffset OR inputContainerHeight + insets.bottom
+ * - FlatList paddingBottom: keyboardHeight (when open) OR inputContainerHeight + insets.bottom (when closed)
  * - Input content respects safe area via paddingBottom
- * - DYNAMIC MEASUREMENT - input container height measured on layout for accurate calculations
+ * - PRECISE MEASUREMENT - uses system keyboard height directly without modifications
  * - Enhanced console logging for debugging
  */
 export default function ConversacionScreen() {
@@ -119,19 +119,21 @@ export default function ConversacionScreen() {
     }
   }, []);
 
-  // ✅ FIX v306.0: Detect keyboard height dynamically - ANDROID COMPLETE FIX
+  // ✅ FIX v307.0: Precise keyboard height detection - NO EXCESS SPACING
   useEffect(() => {
-    console.log('[Conversacion v306.0] 🎹 Setting up keyboard listeners for Android complete fix');
+    console.log('[Conversacion v307.0] 🎹 Setting up precise keyboard listeners');
     
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[Conversacion v306.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
-        console.log('[Conversacion v306.0] 📱 Platform:', Platform.OS);
-        console.log('[Conversacion v306.0] 📏 Input container height:', inputContainerHeight);
-        console.log('[Conversacion v306.0] 📏 Bottom safe area:', insets.bottom);
-        console.log('[Conversacion v306.0] 📏 Total offset will be:', e.endCoordinates.height + inputContainerHeight + insets.bottom, 'px');
-        setKeyboardHeight(e.endCoordinates.height);
+        const keyboardHeight = e.endCoordinates.height;
+        console.log('[Conversacion v307.0] ⌨️ Keyboard shown');
+        console.log('[Conversacion v307.0] 📱 Platform:', Platform.OS);
+        console.log('[Conversacion v307.0] 📏 Keyboard height (from system):', keyboardHeight);
+        console.log('[Conversacion v307.0] 📏 Input container height:', inputContainerHeight);
+        console.log('[Conversacion v307.0] 📏 Bottom safe area:', insets.bottom);
+        console.log('[Conversacion v307.0] ✅ Using ONLY keyboard height (no extra offsets)');
+        setKeyboardHeight(keyboardHeight);
         setKeyboardVisible(true);
       }
     );
@@ -139,14 +141,14 @@ export default function ConversacionScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[Conversacion v306.0] ⌨️ Keyboard hidden');
+        console.log('[Conversacion v307.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
         setKeyboardVisible(false);
       }
     );
 
     return () => {
-      console.log('[Conversacion v306.0] 🧹 Cleaning up keyboard listeners');
+      console.log('[Conversacion v307.0] 🧹 Cleaning up keyboard listeners');
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
@@ -642,18 +644,17 @@ export default function ConversacionScreen() {
     );
   };
 
-  // ✅ FIX v306.0: Measure input container height for accurate keyboard offset calculation
+  // ✅ FIX v307.0: Measure input container height for accurate positioning
   const onLayoutInputContainer = (event: any) => {
     const height = event.nativeEvent.layout.height;
-    console.log('[Conversacion v306.0] 📏 Input container measured height:', height);
+    console.log('[Conversacion v307.0] 📏 Input container measured height:', height);
     setInputContainerHeight(height);
   };
 
-  // ✅ FIX v306.0: Calculate Android keyboard offset dynamically
-  // This ensures the entire input container is visible above the keyboard
-  const androidKeyboardOffset = Platform.OS === 'android' 
-    ? inputContainerHeight + insets.bottom 
-    : 0;
+  // ✅ FIX v307.0: Use ONLY keyboard height - system already accounts for everything
+  // The keyboard height from the system is the exact distance from the bottom of the screen
+  // to where the keyboard starts. We don't need to add any extra offsets.
+  const androidKeyboardOffset = 0; // No extra offset needed!
 
   const renderMessage = ({ item }: { item: Message }) => {
     if (item.tipo_mensaje === 'momento' && item.momento_id) {
@@ -747,14 +748,13 @@ export default function ConversacionScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* ✅ FIX v306.0: Messages list with DYNAMIC OFFSET based on measured input container height */}
+      {/* ✅ FIX v307.0: Messages list with PRECISE keyboard-aware padding */}
       {/* 
-        CRITICAL FIX FOR ANDROID - COMPLETE SOLUTION:
-        - When keyboard is OPEN: paddingBottom = keyboardHeight + androidKeyboardOffset
+        CRITICAL FIX FOR ANDROID - PRECISE SOLUTION:
+        - When keyboard is OPEN: paddingBottom = keyboardHeight (system provides exact height)
         - When keyboard is CLOSED: paddingBottom = inputContainerHeight + insets.bottom
-        - androidKeyboardOffset = inputContainerHeight + insets.bottom (measured dynamically)
-        - This ensures content NEVER scrolls underneath the input or system navigation bar
-        - Input container is FULLY visible above keyboard (no partial covering)
+        - NO EXTRA OFFSETS - the keyboard height from the system is already perfect
+        - This eliminates the 50px excess spacing issue
       */}
       <FlatList
         ref={flatListRef}
@@ -764,7 +764,7 @@ export default function ConversacionScreen() {
           styles.messagesList,
           { 
             paddingBottom: isKeyboardVisible
-              ? keyboardHeight + androidKeyboardOffset  // ✅ COMPLETE: Keyboard open - full input visible
+              ? keyboardHeight  // ✅ PRECISE: Use ONLY keyboard height from system
               : (inputContainerHeight || 80) + insets.bottom   // Keyboard closed: space for input + system nav bar
           }
         ]}
@@ -783,28 +783,28 @@ export default function ConversacionScreen() {
         }
       />
 
-      {/* ✅ FIX v306.0: Input container with DYNAMIC OFFSET - complete Android fix */}
+      {/* ✅ FIX v307.0: Input container with PRECISE keyboard positioning */}
       {/* 
-        CRITICAL FIX FOR ANDROID - COMPLETE SOLUTION:
+        CRITICAL FIX FOR ANDROID - PRECISE SOLUTION:
         - position: 'absolute' with dynamic bottom positioning
-        - When keyboard OPEN: bottom = keyboardHeight + androidKeyboardOffset (entire input visible)
+        - When keyboard OPEN: bottom = keyboardHeight (system provides exact position)
         - When keyboard CLOSED: bottom = 0 (sits at physical screen bottom)
-        - androidKeyboardOffset = inputContainerHeight + insets.bottom (measured dynamically)
+        - NO EXTRA OFFSETS - eliminates the 50px excess spacing
         - paddingBottom: insets.bottom (creates white space behind system nav bar when closed)
         - backgroundColor: '#FFFFFF' ensures solid white background (no transparency)
         - White background extends BEHIND the system navigation bar
         - Visible content (input field) respects safe area via paddingBottom
-        - onLayout measures the actual height of the input container for accurate calculations
+        - onLayout measures the actual height of the input container for FlatList padding
       */}
       <View 
         style={[
           styles.inputContainer, 
           { 
-            bottom: isKeyboardVisible ? keyboardHeight + androidKeyboardOffset : 0, // ✅ CRITICAL: Dynamic offset ensures full visibility
+            bottom: isKeyboardVisible ? keyboardHeight : 0, // ✅ PRECISE: Use ONLY keyboard height
             paddingBottom: isKeyboardVisible ? 0 : insets.bottom, // ✅ CRITICAL: White space only when keyboard closed
           }
         ]}
-        onLayout={onLayoutInputContainer} // ✅ CRITICAL: Measure input container height
+        onLayout={onLayoutInputContainer} // ✅ Measure input container height for FlatList padding
       >
         <View style={styles.inputRow}>
           <TextInput
