@@ -1066,7 +1066,7 @@ export default function SalaVirtualEnhancedScreen() {
             });
 
             setTimeout(() => {
-              privateChatListRef.current?.scrollToEnd({ animated: true });
+              privateChatFlashListRef.current?.scrollToEnd({ animated: true });
             }, 100);
           }
         }
