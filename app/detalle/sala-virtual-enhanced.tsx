@@ -3710,7 +3710,7 @@ function SalaVirtualEnhancedScreen() {
               data={messages}
               renderItem={renderMessage}
               keyExtractor={(item) => item.id}
-              estimatedItemSize={80}
+              estimatedItemSize={100}
               contentContainerStyle={[
                 styles.messagesList,
                 { paddingBottom: contentPaddingBottom },
@@ -3719,17 +3719,29 @@ function SalaVirtualEnhancedScreen() {
               onContentSizeChange={() => {
                 // ✅ PASO 2: FlashList auto-scroll optimization
                 // Auto-scroll to end when new messages arrive
-                setTimeout(() => {
-                  flashListRef.current?.scrollToEnd({ animated: true });
-                }, 50);
+                // ✅ FIX: Only scroll if we have messages and layouts are ready
+                if (messages.length > 0) {
+                  setTimeout(() => {
+                    try {
+                      flashListRef.current?.scrollToEnd({ animated: true });
+                    } catch (error) {
+                      console.log('[SalaVirtual] Scroll skipped - layouts not ready yet');
+                    }
+                  }, 100);
+                }
               }}
               onLayout={() => {
                 // ✅ PASO 2: FlashList keyboard scroll optimization
                 // Force scroll to end when keyboard opens
+                // ✅ FIX: Only scroll if we have messages and layouts are ready
                 if (isKeyboardVisible && messages.length > 0) {
                   setTimeout(() => {
-                    flashListRef.current?.scrollToEnd({ animated: true });
-                  }, 100);
+                    try {
+                      flashListRef.current?.scrollToEnd({ animated: true });
+                    } catch (error) {
+                      console.log('[SalaVirtual] Scroll skipped - layouts not ready yet');
+                    }
+                  }, 150);
                 }
               }}
               ListEmptyComponent={
@@ -3829,7 +3841,7 @@ function SalaVirtualEnhancedScreen() {
             renderItem={renderUserItem}
             keyExtractor={(item) => item.id}
             numColumns={5}
-            estimatedItemSize={90}
+            estimatedItemSize={110}
             key="users-grid-5-columns"
             contentContainerStyle={[
               styles.usersGrid,
@@ -3857,7 +3869,7 @@ function SalaVirtualEnhancedScreen() {
             data={privateChats}
             renderItem={renderPrivateChatItem}
             keyExtractor={(item) => item.userId}
-            estimatedItemSize={76}
+            estimatedItemSize={90}
             contentContainerStyle={[
               styles.privateChatsContainer,
               { paddingBottom: Math.max(insets.bottom, 20) },
@@ -3928,7 +3940,7 @@ function SalaVirtualEnhancedScreen() {
               data={privateChatMessages}
               renderItem={renderMessage}
               keyExtractor={(item) => item.id}
-              estimatedItemSize={80}
+              estimatedItemSize={100}
               contentContainerStyle={[
                 styles.messagesList,
                 { paddingBottom: contentPaddingBottom },
@@ -3937,17 +3949,29 @@ function SalaVirtualEnhancedScreen() {
               onContentSizeChange={() => {
                 // ✅ PASO 2: FlashList auto-scroll optimization (private chat)
                 // Auto-scroll to end when new messages arrive
-                setTimeout(() => {
-                  privateChatFlashListRef.current?.scrollToEnd({ animated: true });
-                }, 50);
+                // ✅ FIX: Only scroll if we have messages and layouts are ready
+                if (privateChatMessages.length > 0) {
+                  setTimeout(() => {
+                    try {
+                      privateChatFlashListRef.current?.scrollToEnd({ animated: true });
+                    } catch (error) {
+                      console.log('[SalaVirtual] Private chat scroll skipped - layouts not ready yet');
+                    }
+                  }, 100);
+                }
               }}
               onLayout={() => {
                 // ✅ PASO 2: FlashList keyboard scroll optimization (private chat)
                 // Force scroll to end when keyboard opens
+                // ✅ FIX: Only scroll if we have messages and layouts are ready
                 if (isKeyboardVisible && privateChatMessages.length > 0) {
                   setTimeout(() => {
-                    privateChatFlashListRef.current?.scrollToEnd({ animated: true });
-                  }, 100);
+                    try {
+                      privateChatFlashListRef.current?.scrollToEnd({ animated: true });
+                    } catch (error) {
+                      console.log('[SalaVirtual] Private chat scroll skipped - layouts not ready yet');
+                    }
+                  }, 150);
                 }
               }}
               ListEmptyComponent={
