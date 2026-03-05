@@ -88,8 +88,6 @@ export default function FiltrosAvanzadosScreen() {
     dynamicOptions,
     refreshDynamicOptions,
     isLoadingOptions,
-    selectedLocalType, // ✅ NEW: Get selected local type from store
-    toggleLocalType, // ✅ NEW: Toggle function for single selection
   } = useFilters();
   
   const [filtrosTemp, setFiltrosTemp] = useState<Filtros>(contextFiltros);
