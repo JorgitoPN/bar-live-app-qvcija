@@ -3,303 +3,415 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
-  Animated,
+  TextInput,
+  FlatList,
+  Platform,
+  ActivityIndicator,
   Keyboard,
 } from 'react-native';
-import { Stack } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Stack, useRouter } from 'expo-router';
+import { IconSymbol } from '@/components/IconSymbol';
+import { colors } from '@/styles/commonStyles';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
- * Advanced Chat Example with Smooth Animations
+ * ✅ EJEMPLO AVANZADO DE CHAT CON CARACTERÍSTICAS PROFESIONALES
  * 
- * This demonstrates advanced usage of useKeyboardHeight with:
- * - Smooth animated transitions when keyboard appears/disappears
- * - Dynamic input height based on content
- * - Typing indicator
- * - Message timestamps
- * - Read receipts
+ * Este ejemplo muestra características avanzadas:
+ * - Indicador de "escribiendo..."
+ * - Auto-scroll al abrir teclado
+ * - Botón para scroll al final
+ * - Manejo de mensajes largos
+ * - Logs detallados para debugging
  */
 
 interface Message {
   id: string;
   text: string;
-  isMyMessage: boolean;
-  timestamp: Date;
-  read: boolean;
+  isOwn: boolean;
+  timestamp: string;
 }
 
-export default function AdvancedChatExample() {
-  const { keyboardHeight, keyboardVisible } = useKeyboardHeight();
+export default function AdvancedChatScreen() {
+  const router = useRouter();
+  const flatListRef = useRef<FlatList>(null);
+  const textInputRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
   
+  const { keyboardHeight, keyboardVisible } = useKeyboardHeight();
+  const [inputContainerHeight, setInputContainerHeight] = useState(0);
+  
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    { id: '1', text: 'Hola! Este es un ejemplo avanzado de chat', isOwn: false, timestamp: '10:30' },
+    { id: '2', text: 'Genial! Veo que tiene muchas características', isOwn: true, timestamp: '10:31' },
+    { id: '3', text: 'Sí, incluye auto-scroll, indicador de escritura, y más', isOwn: false, timestamp: '10:32' },
+    { id: '4', text: 'Perfecto para apps de mensajería profesionales', isOwn: true, timestamp: '10:33' },
+  ]);
+  
   const [isTyping, setIsTyping] = useState(false);
-  
-  const flatListRef = useRef<FlatList>(null);
-  
-  // Animated value for smooth keyboard transitions
-  const inputBottomAnim = useRef(new Animated.Value(0)).current;
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [sending, setSending] = useState(false);
 
-  /**
-   * Animate input container when keyboard appears/disappears
-   */
+  // ✅ Auto-scroll cuando el teclado se abre
   useEffect(() => {
-    Animated.spring(inputBottomAnim, {
-      toValue: keyboardHeight,
-      useNativeDriver: false,
-      tension: 100,
-      friction: 10,
-    }).start();
-  }, [keyboardHeight]);
+    if (keyboardVisible) {
+      console.log('[AdvancedChat] 🎹 Teclado abierto - auto-scroll al final');
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [keyboardVisible]);
 
-  /**
-   * Send message
-   */
-  const handleSend = () => {
-    if (message.trim().length === 0) return;
-    
+  // ✅ Simular indicador de "escribiendo..."
+  useEffect(() => {
+    if (message.length > 0) {
+      setIsTyping(true);
+      const timer = setTimeout(() => setIsTyping(false), 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setIsTyping(false);
+    }
+  }, [message]);
+
+  const handleSend = async () => {
+    if (!message.trim() || sending) return;
+
+    const messageText = message.trim();
+    setSending(true);
+    setMessage('');
+
+    console.log('[AdvancedChat] 📤 Enviando mensaje:', messageText);
+
+    // Simular envío de mensaje
     const newMessage: Message = {
       id: Date.now().toString(),
-      text: message.trim(),
-      isMyMessage: true,
-      timestamp: new Date(),
-      read: false,
+      text: messageText,
+      isOwn: true,
+      timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
     };
-    
-    setMessages((prev) => [...prev, newMessage]);
-    setMessage('');
-    
-    // Simulate typing indicator
-    setIsTyping(true);
-    setTimeout(() => {
-      setIsTyping(false);
-      
-      // Simulate response
-      const response: Message = {
-        id: (Date.now() + 1).toString(),
-        text: 'Thanks for your message!',
-        isMyMessage: false,
-        timestamp: new Date(),
-        read: true,
-      };
-      setMessages((prev) => [...prev, response]);
-    }, 2000);
-    
+
+    setMessages(prev => [...prev, newMessage]);
+
+    // Scroll al final
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
+
+    // Simular respuesta automática después de 2 segundos
+    setTimeout(() => {
+      const autoReply: Message = {
+        id: (Date.now() + 1).toString(),
+        text: 'Mensaje recibido! El sistema de teclado funciona perfectamente 👍',
+        isOwn: false,
+        timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, autoReply]);
+      
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }, 2000);
+
+    setSending(false);
+    console.log('[AdvancedChat] ✅ Mensaje enviado correctamente');
   };
 
-  /**
-   * Render message bubble
-   */
-  const renderMessage = ({ item }: { item: Message }) => {
-    const bubbleStyle = item.isMyMessage ? styles.myMessage : styles.otherMessage;
-    const textStyle = item.isMyMessage ? styles.myMessageText : styles.otherMessageText;
-    
-    return (
-      <View style={[styles.messageBubble, bubbleStyle]}>
-        <Text style={textStyle}>{item.text}</Text>
-        <View style={styles.messageFooter}>
-          <Text style={styles.timestamp}>
-            {item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </Text>
-          {item.isMyMessage && (
-            <Text style={styles.readReceipt}>{item.read ? '✓✓' : '✓'}</Text>
-          )}
-        </View>
-      </View>
-    );
+  const handleScroll = (event: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const isAtBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 50;
+    setShowScrollButton(!isAtBottom);
   };
 
-  /**
-   * Render typing indicator
-   */
-  const renderTypingIndicator = () => {
-    if (!isTyping) return null;
-    
-    return (
-      <View style={[styles.messageBubble, styles.otherMessage, styles.typingIndicator]}>
-        <Text style={styles.typingText}>typing...</Text>
-      </View>
-    );
+  const scrollToBottom = () => {
+    flatListRef.current?.scrollToEnd({ animated: true });
+    setShowScrollButton(false);
   };
 
-  const flatListPaddingBottom = keyboardVisible
-    ? keyboardHeight + 80
-    : insets.bottom + 80;
+  const renderMessage = ({ item }: { item: Message }) => (
+    <View style={[styles.messageBubble, item.isOwn ? styles.ownMessage : styles.otherMessage]}>
+      <Text style={[styles.messageText, item.isOwn && styles.ownMessageText]}>
+        {item.text}
+      </Text>
+      <Text style={[styles.messageTime, item.isOwn && styles.ownMessageTime]}>
+        {item.timestamp}
+      </Text>
+    </View>
+  );
 
   return (
-    <>
+    <View style={styles.container}>
       <Stack.Screen
         options={{
-          headerShown: true,
-          title: 'Advanced Chat',
-          headerBackTitle: 'Back',
+          title: 'Chat Avanzado',
+          headerStyle: { backgroundColor: colors.primary },
+          headerTintColor: colors.headerText,
         }}
       />
 
-      <View style={styles.container}>
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{
-            paddingTop: 20,
-            paddingHorizontal: 16,
-            paddingBottom: flatListPaddingBottom,
-          }}
-          ListFooterComponent={renderTypingIndicator}
-          onContentSizeChange={() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-          }}
-        />
+      {/* ✅ LISTA DE MENSAJES */}
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        keyExtractor={(item) => item.id}
+        renderItem={renderMessage}
+        contentContainerStyle={[
+          styles.messagesList,
+          {
+            paddingBottom: keyboardVisible
+              ? keyboardHeight
+              : (inputContainerHeight || 80) + insets.bottom
+          }
+        ]}
+        keyboardShouldPersistTaps="handled"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        ListFooterComponent={
+          isTyping ? (
+            <View style={styles.typingIndicator}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.typingText}>Escribiendo...</Text>
+            </View>
+          ) : null
+        }
+      />
 
-        {/* Animated input container */}
-        <Animated.View
+      {/* ✅ BOTÓN DE SCROLL AL FINAL */}
+      {showScrollButton && (
+        <TouchableOpacity
           style={[
-            styles.inputContainer,
-            {
-              bottom: inputBottomAnim,
-              paddingBottom: keyboardVisible ? 12 : insets.bottom + 12,
-            },
+            styles.scrollButton,
+            { bottom: keyboardVisible ? keyboardHeight + 80 : inputContainerHeight + insets.bottom + 20 }
           ]}
+          onPress={scrollToBottom}
         >
+          <IconSymbol
+            ios_icon_name="arrow.down"
+            android_material_icon_name="arrow_downward"
+            size={20}
+            color={colors.headerText}
+          />
+        </TouchableOpacity>
+      )}
+
+      {/* ✅ INPUT CONTAINER */}
+      <View
+        style={[
+          styles.inputContainer,
+          {
+            bottom: keyboardHeight,
+            paddingBottom: keyboardVisible ? 0 : insets.bottom
+          }
+        ]}
+        onLayout={(event) => {
+          const height = event.nativeEvent.layout.height;
+          console.log('[AdvancedChat] 📏 Input container height:', height);
+          setInputContainerHeight(height);
+        }}
+      >
+        <View style={styles.inputRow}>
+          <TouchableOpacity style={styles.attachButton}>
+            <IconSymbol
+              ios_icon_name="plus.circle.fill"
+              android_material_icon_name="add_circle"
+              size={28}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
+          
           <TextInput
-            style={styles.textInput}
+            ref={textInputRef}
+            style={styles.input}
+            placeholder="Escribe un mensaje..."
+            placeholderTextColor={colors.textSecondary}
             value={message}
-            onChangeText={setMessage}
-            placeholder="Type a message..."
-            placeholderTextColor="#999"
+            onChangeText={(text) => {
+              console.log('[AdvancedChat] 📝 Texto cambiado, longitud:', text.length);
+              setMessage(text);
+            }}
             multiline
-            maxLength={500}
+            maxLength={1000}
             onSubmitEditing={handleSend}
             blurOnSubmit={false}
+            returnKeyType="send"
+            onFocus={() => {
+              console.log('[AdvancedChat] 🎯 Input enfocado');
+            }}
+            onBlur={() => {
+              console.log('[AdvancedChat] 👋 Input desenfocado');
+            }}
           />
           
           <TouchableOpacity
-            style={[
-              styles.sendButton,
-              message.trim().length === 0 && styles.sendButtonDisabled,
-            ]}
+            style={[styles.sendButton, (!message.trim() || sending) && styles.sendButtonDisabled]}
             onPress={handleSend}
-            disabled={message.trim().length === 0}
+            disabled={!message.trim() || sending}
           >
-            <Text style={styles.sendButtonText}>→</Text>
+            {sending ? (
+              <ActivityIndicator size="small" color={colors.headerText} />
+            ) : (
+              <IconSymbol
+                ios_icon_name="paperplane.fill"
+                android_material_icon_name="send"
+                size={20}
+                color={colors.headerText}
+              />
+            )}
           </TouchableOpacity>
-        </Animated.View>
+        </View>
       </View>
-    </>
+
+      {/* ✅ PANEL DE INFORMACIÓN DE DEBUGGING */}
+      {__DEV__ && (
+        <View style={styles.debugPanel}>
+          <Text style={styles.debugTitle}>🔧 Debug Info</Text>
+          <Text style={styles.debugText}>
+            Teclado: {keyboardVisible ? '✅ ABIERTO' : '❌ CERRADO'}
+          </Text>
+          <Text style={styles.debugText}>
+            Altura teclado: {keyboardHeight}px
+          </Text>
+          <Text style={styles.debugText}>
+            Altura input: {inputContainerHeight}px
+          </Text>
+          <Text style={styles.debugText}>
+            Safe area bottom: {insets.bottom}px
+          </Text>
+          <Text style={styles.debugText}>
+            Padding FlatList: {keyboardVisible ? keyboardHeight : (inputContainerHeight || 80) + insets.bottom}px
+          </Text>
+          <Text style={styles.debugText}>
+            Plataforma: {Platform.OS}
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
+  },
+  messagesList: {
+    padding: 16,
   },
   messageBubble: {
-    maxWidth: '80%',
+    maxWidth: '75%',
     padding: 12,
     borderRadius: 16,
-    marginVertical: 4,
-  },
-  myMessage: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#007AFF',
-    borderBottomRightRadius: 4,
+    marginBottom: 8,
   },
   otherMessage: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    borderBottomLeftRadius: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: '#E5E7EB',
   },
-  myMessageText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+  ownMessage: {
+    alignSelf: 'flex-end',
+    backgroundColor: colors.primary,
   },
-  otherMessageText: {
-    color: '#000000',
-    fontSize: 16,
+  messageText: {
+    fontSize: 15,
+    color: colors.text,
+    marginBottom: 4,
   },
-  messageFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    justifyContent: 'flex-end',
+  ownMessageText: {
+    color: colors.headerText,
   },
-  timestamp: {
+  messageTime: {
     fontSize: 11,
-    color: '#FFFFFF80',
+    color: colors.textSecondary,
   },
-  readReceipt: {
-    fontSize: 11,
-    color: '#FFFFFF80',
-    marginLeft: 4,
+  ownMessageTime: {
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   typingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     paddingVertical: 8,
   },
   typingText: {
-    color: '#999',
     fontSize: 14,
+    color: colors.textSecondary,
     fontStyle: 'italic',
+  },
+  scrollButton: {
+    position: 'absolute',
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   inputContainer: {
     position: 'absolute',
     left: 0,
     right: 0,
     backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 12,
-    paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E0E0E0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 8,
+    paddingVertical: 8,
+    gap: 8,
   },
-  textInput: {
+  attachButton: {
+    marginBottom: 6,
+  },
+  input: {
     flex: 1,
-    minHeight: 40,
-    maxHeight: 120,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginRight: 8,
     fontSize: 16,
-    color: '#000000',
+    color: colors.text,
+    maxHeight: 100,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
   },
   sendButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 20,
     width: 40,
     height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 2,
   },
   sendButtonDisabled: {
-    backgroundColor: '#CCCCCC',
+    opacity: 0.5,
   },
-  sendButtonText: {
+  debugPanel: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 100 : 80,
+    left: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    padding: 12,
+    borderRadius: 8,
+  },
+  debugTitle: {
     color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  debugText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    marginBottom: 2,
   },
 });

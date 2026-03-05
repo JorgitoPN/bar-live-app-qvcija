@@ -1,296 +1,286 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
-  KeyboardAvoidingView,
+  TextInput,
+  FlatList,
   Platform,
 } from 'react-native';
-import { Stack } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Stack, useRouter } from 'expo-router';
+import { IconSymbol } from '@/components/IconSymbol';
+import { colors } from '@/styles/commonStyles';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
- * Example Chat Screen demonstrating useKeyboardHeight hook
+ * ✅ EJEMPLO DE PANTALLA DE CHAT CON LAYOUT CORRECTO
  * 
- * This shows the CORRECT way to implement a chat interface that works
- * perfectly on both iOS and Android, including handling the Android
- * predictive text bar.
+ * Este es un ejemplo simple que muestra el patrón correcto para implementar
+ * una pantalla de chat con el campo de texto que funciona perfectamente en
+ * Android e iOS, incluyendo la barra predictiva de Gboard.
  * 
- * KEY FEATURES:
- * - Input field always positioned exactly above keyboard
- * - FlatList automatically scrolls to show latest message
- * - Proper safe area handling for notched devices
- * - Works with Android predictive text bar (Gboard, etc.)
+ * PUNTOS CLAVE:
+ * 1. useKeyboardHeight() - Detecta altura real del teclado (incluye barra predictiva)
+ * 2. position: 'absolute' en inputContainer - Flota sobre el contenido
+ * 3. bottom: keyboardHeight - Se mueve con el teclado
+ * 4. paddingBottom dinámico en FlatList - Evita que mensajes queden ocultos
+ * 5. blurOnSubmit={false} - Teclado permanece abierto al enviar
  */
 
 interface Message {
   id: string;
   text: string;
-  isMyMessage: boolean;
-  timestamp: Date;
+  isOwn: boolean;
+  timestamp: string;
 }
 
 export default function ExampleChatScreen() {
-  // Get keyboard height and visibility from our custom hook
-  const { keyboardHeight, keyboardVisible } = useKeyboardHeight();
-  
-  // Get safe area insets for proper spacing on notched devices
+  const router = useRouter();
+  const flatListRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
   
-  // Message input state
+  // ✅ Hook para detectar altura del teclado (incluye barra predictiva en Android)
+  const { keyboardHeight, keyboardVisible } = useKeyboardHeight();
+  
+  // ✅ Estado para medir la altura del input container
+  const [inputContainerHeight, setInputContainerHeight] = useState(0);
+  
   const [message, setMessage] = useState('');
-  
-  // Messages list state
   const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: 'Hey! How are you?',
-      isMyMessage: false,
-      timestamp: new Date(),
-    },
-    {
-      id: '2',
-      text: 'I\'m good! How about you?',
-      isMyMessage: true,
-      timestamp: new Date(),
-    },
-    {
-      id: '3',
-      text: 'Great! Want to grab coffee later?',
-      isMyMessage: false,
-      timestamp: new Date(),
-    },
+    { id: '1', text: 'Hola! ¿Cómo estás?', isOwn: false, timestamp: '10:30' },
+    { id: '2', text: 'Muy bien, gracias! ¿Y tú?', isOwn: true, timestamp: '10:31' },
+    { id: '3', text: 'Genial! Probando el nuevo sistema de teclado', isOwn: false, timestamp: '10:32' },
   ]);
-  
-  // Reference to FlatList for auto-scrolling
-  const flatListRef = useRef<FlatList>(null);
 
-  /**
-   * Send a new message
-   */
   const handleSend = () => {
-    if (message.trim().length === 0) return;
-    
-    console.log('📤 Sending message:', message);
-    
+    if (!message.trim()) return;
+
     const newMessage: Message = {
       id: Date.now().toString(),
       text: message.trim(),
-      isMyMessage: true,
-      timestamp: new Date(),
+      isOwn: true,
+      timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
     };
-    
-    setMessages((prev) => [...prev, newMessage]);
+
+    setMessages(prev => [...prev, newMessage]);
     setMessage('');
-    
-    // Scroll to bottom after sending
+
+    // Scroll al final después de enviar
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
   };
 
-  /**
-   * Auto-scroll to bottom when keyboard appears
-   */
-  useEffect(() => {
-    if (keyboardVisible) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
-  }, [keyboardVisible]);
-
-  /**
-   * Render a single message bubble
-   */
-  const renderMessage = ({ item }: { item: Message }) => {
-    const bubbleStyle = item.isMyMessage ? styles.myMessage : styles.otherMessage;
-    const textStyle = item.isMyMessage ? styles.myMessageText : styles.otherMessageText;
-    
-    return (
-      <View style={[styles.messageBubble, bubbleStyle]}>
-        <Text style={textStyle}>{item.text}</Text>
-        <Text style={styles.timestamp}>
-          {item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </Text>
-      </View>
-    );
-  };
-
-  /**
-   * Calculate the bottom padding for the FlatList
-   * 
-   * When keyboard is visible: Use keyboard height + small buffer
-   * When keyboard is hidden: Use safe area bottom + input container height
-   */
-  const flatListPaddingBottom = keyboardVisible
-    ? keyboardHeight + 80 // Keyboard height + input container height + buffer
-    : insets.bottom + 80; // Safe area + input container height
+  const renderMessage = ({ item }: { item: Message }) => (
+    <View style={[styles.messageBubble, item.isOwn ? styles.ownMessage : styles.otherMessage]}>
+      <Text style={[styles.messageText, item.isOwn && styles.ownMessageText]}>
+        {item.text}
+      </Text>
+      <Text style={[styles.messageTime, item.isOwn && styles.ownMessageTime]}>
+        {item.timestamp}
+      </Text>
+    </View>
+  );
 
   return (
-    <>
-      {/* Header configuration */}
+    <View style={styles.container}>
       <Stack.Screen
         options={{
-          headerShown: true,
-          title: 'Chat Example',
-          headerBackTitle: 'Back',
+          title: 'Chat de Ejemplo',
+          headerStyle: { backgroundColor: colors.primary },
+          headerTintColor: colors.headerText,
         }}
       />
 
-      <View style={styles.container}>
-        {/* Messages list */}
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{
-            paddingTop: 20,
-            paddingHorizontal: 16,
-            paddingBottom: flatListPaddingBottom,
-          }}
-          onContentSizeChange={() => {
-            // Auto-scroll to bottom when new messages arrive
-            flatListRef.current?.scrollToEnd({ animated: true });
-          }}
-          onLayout={() => {
-            // Auto-scroll to bottom on initial layout
-            flatListRef.current?.scrollToEnd({ animated: false });
-          }}
-        />
+      {/* ✅ LISTA DE MENSAJES CON PADDING DINÁMICO */}
+      {/* 
+        CRÍTICO: El paddingBottom debe ajustarse dinámicamente:
+        - Cuando teclado ABIERTO: paddingBottom = keyboardHeight
+        - Cuando teclado CERRADO: paddingBottom = inputContainerHeight + insets.bottom
+        
+        Esto asegura que:
+        1. Los mensajes no queden ocultos detrás del input
+        2. El último mensaje sea visible cuando el teclado está abierto
+        3. Se respeten los safe areas del dispositivo
+      */}
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        keyExtractor={(item) => item.id}
+        renderItem={renderMessage}
+        contentContainerStyle={[
+          styles.messagesList,
+          {
+            paddingBottom: keyboardVisible
+              ? keyboardHeight  // ✅ Espacio para el teclado (incluye barra predictiva)
+              : (inputContainerHeight || 80) + insets.bottom  // ✅ Espacio para input + safe area
+          }
+        ]}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() => {
+          // Auto-scroll al final cuando se agregan mensajes
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }}
+      />
 
-        {/* Input container - positioned above keyboard */}
-        <View
-          style={[
-            styles.inputContainer,
-            {
-              // Position the input container exactly above the keyboard
-              bottom: keyboardHeight,
-              
-              // Add safe area padding only when keyboard is hidden
-              // When keyboard is visible, we don't need safe area padding
-              paddingBottom: keyboardVisible ? 0 : insets.bottom,
-            },
-          ]}
-        >
+      {/* ✅ INPUT CONTAINER CON POSICIÓN ABSOLUTA */}
+      {/* 
+        CRÍTICO: Debe tener position: 'absolute' para flotar sobre el contenido
+        
+        El bottom se ajusta dinámicamente:
+        - Cuando teclado ABIERTO: bottom = keyboardHeight (input sube con el teclado)
+        - Cuando teclado CERRADO: bottom = 0 (input en la parte inferior de la pantalla)
+        
+        El paddingBottom se ajusta dinámicamente:
+        - Cuando teclado ABIERTO: paddingBottom = 0 (no necesita espacio extra)
+        - Cuando teclado CERRADO: paddingBottom = insets.bottom (respeta safe area)
+      */}
+      <View
+        style={[
+          styles.inputContainer,
+          {
+            bottom: keyboardHeight,  // ✅ Se mueve con el teclado
+            paddingBottom: keyboardVisible ? 0 : insets.bottom  // ✅ Safe area solo cuando cerrado
+          }
+        ]}
+        onLayout={(event) => {
+          // ✅ Medir la altura del input container para calcular el padding del FlatList
+          const height = event.nativeEvent.layout.height;
+          setInputContainerHeight(height);
+        }}
+      >
+        <View style={styles.inputRow}>
           <TextInput
-            style={styles.textInput}
+            style={styles.input}
+            placeholder="Escribe un mensaje..."
+            placeholderTextColor={colors.textSecondary}
             value={message}
             onChangeText={setMessage}
-            placeholder="Type a message..."
-            placeholderTextColor="#999"
             multiline
-            maxLength={500}
+            maxLength={1000}
             onSubmitEditing={handleSend}
-            blurOnSubmit={false}
+            blurOnSubmit={false}  // ✅ CRÍTICO: Teclado permanece abierto al enviar
+            returnKeyType="send"
           />
-          
           <TouchableOpacity
-            style={[
-              styles.sendButton,
-              message.trim().length === 0 && styles.sendButtonDisabled,
-            ]}
+            style={[styles.sendButton, !message.trim() && styles.sendButtonDisabled]}
             onPress={handleSend}
-            disabled={message.trim().length === 0}
+            disabled={!message.trim()}
           >
-            <Text style={styles.sendButtonText}>Send</Text>
+            <IconSymbol
+              ios_icon_name="paperplane.fill"
+              android_material_icon_name="send"
+              size={20}
+              color={colors.headerText}
+            />
           </TouchableOpacity>
         </View>
       </View>
-    </>
+
+      {/* ✅ INDICADOR DE ESTADO DEL TECLADO (solo para debugging) */}
+      {__DEV__ && (
+        <View style={styles.debugInfo}>
+          <Text style={styles.debugText}>
+            Teclado: {keyboardVisible ? 'ABIERTO' : 'CERRADO'} | 
+            Altura: {keyboardHeight}px | 
+            Input: {inputContainerHeight}px
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
+    flex: 1,  // ✅ CRÍTICO: flex: 1 para que el layout funcione correctamente
+    backgroundColor: colors.background,
+  },
+  messagesList: {
+    padding: 16,
+    // paddingBottom se establece dinámicamente en el componente
   },
   messageBubble: {
-    maxWidth: '80%',
+    maxWidth: '75%',
     padding: 12,
     borderRadius: 16,
-    marginVertical: 4,
-  },
-  myMessage: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#007AFF',
-    borderBottomRightRadius: 4,
+    marginBottom: 8,
   },
   otherMessage: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    borderBottomLeftRadius: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: '#E5E7EB',
   },
-  myMessageText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-  },
-  otherMessageText: {
-    color: '#000000',
-    fontSize: 16,
-  },
-  timestamp: {
-    fontSize: 11,
-    color: '#FFFFFF80',
-    marginTop: 4,
+  ownMessage: {
     alignSelf: 'flex-end',
+    backgroundColor: colors.primary,
+  },
+  messageText: {
+    fontSize: 15,
+    color: colors.text,
+    marginBottom: 4,
+  },
+  ownMessageText: {
+    color: colors.headerText,
+  },
+  messageTime: {
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+  ownMessageTime: {
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   inputContainer: {
-    position: 'absolute',
+    position: 'absolute',  // ✅ CRÍTICO: Posición absoluta para flotar sobre el contenido
     left: 0,
     right: 0,
     backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    // bottom: keyboardHeight (se establece dinámicamente en el componente)
+    // paddingBottom: insets.bottom (se establece dinámicamente en el componente)
+  },
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 12,
-    paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E0E0E0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 8,
+    paddingVertical: 8,
+    gap: 12,
   },
-  textInput: {
+  input: {
     flex: 1,
-    minHeight: 40,
-    maxHeight: 120,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginRight: 8,
     fontSize: 16,
-    color: '#000000',
+    color: colors.text,
+    maxHeight: 100,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
   },
   sendButton: {
-    backgroundColor: '#007AFF',
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 0,
+    marginBottom: 2,
   },
   sendButtonDisabled: {
-    backgroundColor: '#CCCCCC',
+    opacity: 0.5,
   },
-  sendButtonText: {
+  debugInfo: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 100 : 80,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: 8,
+    alignItems: 'center',
+  },
+  debugText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
 });
