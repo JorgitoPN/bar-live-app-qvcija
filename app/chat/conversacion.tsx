@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -41,17 +42,17 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v307.0 - PRECISE ANDROID FIX
+ * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v308.0 - PREDICTIVE TEXT BAR FIX
  * 
  * ANDROID-SPECIFIC FIXES:
- * 1️⃣ CONVERSACIÓN - Input field behavior (PRECISE FIX - NO EXCESS SPACING):
+ * 1️⃣ CONVERSACIÓN - Input field behavior (PREDICTIVE TEXT BAR FIX):
  *    - ✅ Absolute positioning with bottom: 0 (extends to physical screen bottom)
  *    - ✅ Input rises smoothly when keyboard opens via dynamic bottom positioning
- *    - ✅ PRECISE KEYBOARD DETECTION: Uses ONLY keyboard height from system
- *    - ✅ NO EXTRA OFFSETS: Eliminates the 50px excess spacing issue
+ *    - ✅ PREDICTIVE TEXT DETECTION: Adds extra offset for predictive text bar
+ *    - ✅ Uses screen height change to detect actual keyboard + predictive text height
  *    - ✅ Input returns to bottom automatically when keyboard closes
  *    - ✅ NO stuck-in-middle issue
- *    - ✅ PERFECT POSITIONING - input sits exactly at keyboard edge
+ *    - ✅ PERFECT POSITIONING - input sits exactly at keyboard edge (including predictive text)
  *    - ✅ White background extends BEHIND system navigation bar
  *    - ✅ Visible content respects safe area insets
  *    - ✅ Enhanced logging for debugging keyboard behavior
@@ -72,7 +73,8 @@ interface Message {
  * 
  * TECHNICAL IMPLEMENTATION:
  * - position: 'absolute' with dynamic bottom (keyboardHeight when open, 0 when closed)
- * - NO EXTRA OFFSETS: androidKeyboardOffset = 0 (system keyboard height is already perfect)
+ * - PREDICTIVE TEXT DETECTION: Uses Dimensions to detect screen height changes
+ * - Calculates actual keyboard height including predictive text bar
  * - paddingBottom: insets.bottom (creates white space behind system nav bar)
  * - Keyboard listeners for height tracking (keyboardDidShow/keyboardDidHide)
  * - No KeyboardAvoidingView (causes issues on Android)
@@ -80,7 +82,7 @@ interface Message {
  * - WHITE BACKGROUND (#FFFFFF) extends behind system navigation bar
  * - FlatList paddingBottom: keyboardHeight (when open) OR inputContainerHeight + insets.bottom (when closed)
  * - Input content respects safe area via paddingBottom
- * - PRECISE MEASUREMENT - uses system keyboard height directly without modifications
+ * - PRECISE MEASUREMENT - uses screen height change to detect full keyboard height
  * - Enhanced console logging for debugging
  */
 export default function ConversacionScreen() {
@@ -100,6 +102,7 @@ export default function ConversacionScreen() {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [inputContainerHeight, setInputContainerHeight] = useState(0);
+  const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height);
 
   const channelRef = useRef<any>(null);
 
@@ -119,36 +122,65 @@ export default function ConversacionScreen() {
     }
   }, []);
 
-  // ✅ FIX v307.0: Precise keyboard height detection - NO EXCESS SPACING
+  // ✅ FIX v308.0: Track screen height changes to detect predictive text bar
   useEffect(() => {
-    console.log('[Conversacion v307.0] 🎹 Setting up precise keyboard listeners');
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      const newHeight = window.height;
+      console.log('[Conversacion v308.0] 📱 Screen height changed:', screenHeight, '→', newHeight);
+      setScreenHeight(newHeight);
+    });
+
+    return () => {
+      subscription?.remove();
+    };
+  }, [screenHeight]);
+
+  // ✅ FIX v308.0: Precise keyboard height detection including predictive text bar
+  useEffect(() => {
+    console.log('[Conversacion v308.0] 🎹 Setting up precise keyboard listeners with predictive text detection');
+    
+    const initialScreenHeight = Dimensions.get('window').height;
+    let lastScreenHeight = initialScreenHeight;
     
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        const keyboardHeight = e.endCoordinates.height;
-        console.log('[Conversacion v307.0] ⌨️ Keyboard shown');
-        console.log('[Conversacion v307.0] 📱 Platform:', Platform.OS);
-        console.log('[Conversacion v307.0] 📏 Keyboard height (from system):', keyboardHeight);
-        console.log('[Conversacion v307.0] 📏 Input container height:', inputContainerHeight);
-        console.log('[Conversacion v307.0] 📏 Bottom safe area:', insets.bottom);
-        console.log('[Conversacion v307.0] ✅ Using ONLY keyboard height (no extra offsets)');
-        setKeyboardHeight(keyboardHeight);
+        const reportedKeyboardHeight = e.endCoordinates.height;
+        const currentScreenHeight = Dimensions.get('window').height;
+        
+        // ✅ CRITICAL FIX: Calculate actual keyboard height including predictive text
+        // The screen height change gives us the REAL keyboard height (including predictive text)
+        const actualKeyboardHeight = Platform.OS === 'android' 
+          ? Math.max(reportedKeyboardHeight, lastScreenHeight - currentScreenHeight)
+          : reportedKeyboardHeight;
+        
+        console.log('[Conversacion v308.0] ⌨️ Keyboard shown');
+        console.log('[Conversacion v308.0] 📱 Platform:', Platform.OS);
+        console.log('[Conversacion v308.0] 📏 Reported keyboard height:', reportedKeyboardHeight);
+        console.log('[Conversacion v308.0] 📏 Screen height change:', lastScreenHeight, '→', currentScreenHeight, '=', lastScreenHeight - currentScreenHeight);
+        console.log('[Conversacion v308.0] 📏 Actual keyboard height (including predictive text):', actualKeyboardHeight);
+        console.log('[Conversacion v308.0] 📏 Input container height:', inputContainerHeight);
+        console.log('[Conversacion v308.0] 📏 Bottom safe area:', insets.bottom);
+        console.log('[Conversacion v308.0] ✅ Using actual keyboard height (includes predictive text bar)');
+        
+        setKeyboardHeight(actualKeyboardHeight);
         setKeyboardVisible(true);
+        lastScreenHeight = currentScreenHeight;
       }
     );
 
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[Conversacion v307.0] ⌨️ Keyboard hidden');
+        console.log('[Conversacion v308.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
         setKeyboardVisible(false);
+        lastScreenHeight = Dimensions.get('window').height;
       }
     );
 
     return () => {
-      console.log('[Conversacion v307.0] 🧹 Cleaning up keyboard listeners');
+      console.log('[Conversacion v308.0] 🧹 Cleaning up keyboard listeners');
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
@@ -644,17 +676,12 @@ export default function ConversacionScreen() {
     );
   };
 
-  // ✅ FIX v307.0: Measure input container height for accurate positioning
+  // ✅ FIX v308.0: Measure input container height for accurate positioning
   const onLayoutInputContainer = (event: any) => {
     const height = event.nativeEvent.layout.height;
-    console.log('[Conversacion v307.0] 📏 Input container measured height:', height);
+    console.log('[Conversacion v308.0] 📏 Input container measured height:', height);
     setInputContainerHeight(height);
   };
-
-  // ✅ FIX v307.0: Use ONLY keyboard height - system already accounts for everything
-  // The keyboard height from the system is the exact distance from the bottom of the screen
-  // to where the keyboard starts. We don't need to add any extra offsets.
-  const androidKeyboardOffset = 0; // No extra offset needed!
 
   const renderMessage = ({ item }: { item: Message }) => {
     if (item.tipo_mensaje === 'momento' && item.momento_id) {
@@ -748,13 +775,13 @@ export default function ConversacionScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* ✅ FIX v307.0: Messages list with PRECISE keyboard-aware padding */}
+      {/* ✅ FIX v308.0: Messages list with PRECISE keyboard-aware padding (including predictive text) */}
       {/* 
-        CRITICAL FIX FOR ANDROID - PRECISE SOLUTION:
-        - When keyboard is OPEN: paddingBottom = keyboardHeight (system provides exact height)
+        CRITICAL FIX FOR ANDROID - PREDICTIVE TEXT SOLUTION:
+        - When keyboard is OPEN: paddingBottom = keyboardHeight (includes predictive text bar)
         - When keyboard is CLOSED: paddingBottom = inputContainerHeight + insets.bottom
-        - NO EXTRA OFFSETS - the keyboard height from the system is already perfect
-        - This eliminates the 50px excess spacing issue
+        - Uses screen height change to detect full keyboard height including predictive text
+        - This ensures the input field is never hidden by the predictive text bar
       */}
       <FlatList
         ref={flatListRef}
@@ -764,7 +791,7 @@ export default function ConversacionScreen() {
           styles.messagesList,
           { 
             paddingBottom: isKeyboardVisible
-              ? keyboardHeight  // ✅ PRECISE: Use ONLY keyboard height from system
+              ? keyboardHeight  // ✅ INCLUDES PREDICTIVE TEXT: Uses actual keyboard height from screen change
               : (inputContainerHeight || 80) + insets.bottom   // Keyboard closed: space for input + system nav bar
           }
         ]}
@@ -783,13 +810,13 @@ export default function ConversacionScreen() {
         }
       />
 
-      {/* ✅ FIX v307.0: Input container with PRECISE keyboard positioning */}
+      {/* ✅ FIX v308.0: Input container with PRECISE keyboard positioning (including predictive text) */}
       {/* 
-        CRITICAL FIX FOR ANDROID - PRECISE SOLUTION:
+        CRITICAL FIX FOR ANDROID - PREDICTIVE TEXT SOLUTION:
         - position: 'absolute' with dynamic bottom positioning
-        - When keyboard OPEN: bottom = keyboardHeight (system provides exact position)
+        - When keyboard OPEN: bottom = keyboardHeight (includes predictive text bar height)
         - When keyboard CLOSED: bottom = 0 (sits at physical screen bottom)
-        - NO EXTRA OFFSETS - eliminates the 50px excess spacing
+        - Uses screen height change to detect full keyboard height
         - paddingBottom: insets.bottom (creates white space behind system nav bar when closed)
         - backgroundColor: '#FFFFFF' ensures solid white background (no transparency)
         - White background extends BEHIND the system navigation bar
@@ -800,7 +827,7 @@ export default function ConversacionScreen() {
         style={[
           styles.inputContainer, 
           { 
-            bottom: isKeyboardVisible ? keyboardHeight : 0, // ✅ PRECISE: Use ONLY keyboard height
+            bottom: isKeyboardVisible ? keyboardHeight : 0, // ✅ INCLUDES PREDICTIVE TEXT: Uses actual keyboard height
             paddingBottom: isKeyboardVisible ? 0 : insets.bottom, // ✅ CRITICAL: White space only when keyboard closed
           }
         ]}
@@ -933,7 +960,6 @@ const styles = StyleSheet.create({
     borderTopColor: colors.cardBorder,
     // ✅ bottom: 0 (set dynamically in component) - Extends to physical screen edge
     // ✅ paddingBottom: insets.bottom (set dynamically in component) - Creates white space behind system nav bar
-    // ✅ transform: translateY (set dynamically in component) - Moves up when keyboard opens
   },
   inputRow: {
     flexDirection: 'row',
