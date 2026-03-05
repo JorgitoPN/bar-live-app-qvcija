@@ -58,28 +58,28 @@ const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
  * - ✅ Quick clear button for advanced filters
  */
 
-// ✅ v456.0 ICON CONSISTENCY FIX - MATERIAL ICONS USE UNDERSCORES
+// ✅ v458.0 ICON CONSISTENCY FIX - MATERIAL ICONS USE HYPHENS
 // These icons are IDENTICAL across ALL pages:
 // - app/(tabs)/explorar/filtros-simples.tsx
 // - app/(tabs)/explorar/filtros-simples.android.tsx
 // - app/(tabs)/explorar/mapa.tsx (THIS FILE)
-// CRITICAL: Material icon names use UNDERSCORES (local_cafe, local_bar, sports_bar)
+// CRITICAL: Material icon names use HYPHENS (local-cafe, local-bar, sports-bar)
 // CRITICAL: These exact names are mapped in components/IconSymbol.tsx
 // 
 // ICON REFERENCE (DO NOT CHANGE):
 // - Todas: star (⭐)
-// - Cafés: local_cafe (☕)
+// - Cafés: local-cafe (☕)
 // - Restaurantes: restaurant (🍽️)
-// - Bares: local_bar (🍷)
-// - Pubs: sports_bar (🍺)
+// - Bares: local-bar (🍷)
+// - Pubs: sports-bar (🍺)
 // - Coctelería: liquor (🍹)
 // - Discotecas: nightlife (🎵)
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
-  { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
+  { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local-cafe' },
   { id: 'restaurante', nombre: 'Restaurantes', iosIcon: 'fork.knife', androidIcon: 'restaurant' },
-  { id: 'bar', nombre: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local_bar' },
-  { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports_bar' },
+  { id: 'bar', nombre: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local-bar' },
+  { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports-bar' },
   { id: 'cocteleria', nombre: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'liquor' },
   { id: 'discoteca', nombre: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
 ];

@@ -12,14 +12,14 @@ import {
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-// ✅ v457.0 COMPREHENSIVE ICON MAPPING WITH FALLBACKS
-// CRITICAL FIX: Material Icons use UNDERSCORES (_), not hyphens (-)
-// Category icons (star, local_cafe, restaurant, local_bar, sports_bar, liquor, nightlife)
+// ✅ v458.0 SIMPLIFIED ICON MAPPING - DIRECT PASSTHROUGH
+// CRITICAL: Material Icons use HYPHENS (-) in their glyphMap, not underscores
+// The @expo/vector-icons/MaterialIcons library expects hyphenated names
+// Category icons: star, local-cafe, restaurant, local-bar, sports-bar, liquor, nightlife
 // MUST match EXACTLY with the androidIcon values in CATEGORIAS arrays in:
 // - app/(tabs)/explorar/filtros-simples.tsx
 // - app/(tabs)/explorar/filtros-simples.android.tsx
 // - app/(tabs)/explorar/mapa.tsx
-// DO NOT CHANGE THESE MAPPINGS WITHOUT UPDATING ALL THREE FILES
 const ICON_MAPPING: Record<string, string> = {
   // Common icons
   'home': 'home',
@@ -29,6 +29,7 @@ const ICON_MAPPING: Record<string, string> = {
   'search': 'search',
   'close': 'close',
   'check': 'check',
+  'arrow_back': 'arrow-back',
   'arrow-back': 'arrow-back',
   'arrow-forward': 'arrow-forward',
   'menu': 'menu',
@@ -72,6 +73,7 @@ const ICON_MAPPING: Record<string, string> = {
   'help': 'help',
   'warning': 'warning',
   'error': 'error',
+  'check_circle': 'check-circle',
   'check-circle': 'check-circle',
   'cancel': 'cancel',
   'refresh': 'refresh',
@@ -87,6 +89,7 @@ const ICON_MAPPING: Record<string, string> = {
   'content-copy': 'content-copy',
   'filter': 'filter-list',
   'filter-list': 'filter-list',
+  'tune': 'tune',
   'sort': 'sort',
   'expand-more': 'expand-more',
   'expand-less': 'expand-less',
@@ -140,6 +143,8 @@ const ICON_MAPPING: Record<string, string> = {
   'cloud-download': 'cloud-download',
   'place': 'place',
   'navigation': 'navigation',
+  'my_location': 'my-location',
+  'my-location': 'my-location',
   'explore': 'explore',
   'directions': 'directions',
   'alarm': 'alarm',
@@ -148,73 +153,65 @@ const ICON_MAPPING: Record<string, string> = {
   'menu-open': 'menu-open',
   'notification-important': 'notifications-active',
   'notifications-active': 'notifications-active',
-  // ✅ v457.0 CATEGORY ICONS - FIXED MATERIAL ICONS NAMES
-  // CRITICAL: Material Icons use underscores (_), not hyphens (-)
+  // ✅ v458.0 CATEGORY ICONS - CORRECT MATERIAL ICONS NAMES
+  // CRITICAL: MaterialIcons glyphMap uses HYPHENS (-), not underscores (_)
   // These MUST match the androidIcon values in CATEGORIAS arrays
-  // We map BOTH hyphen and underscore versions to the correct Material Icon name
+  // We map BOTH underscore and hyphen versions to the correct hyphenated name
   'star': 'star',
-  'local-cafe': 'local_cafe',
-  'local_cafe': 'local_cafe',
+  'local_cafe': 'local-cafe',
+  'local-cafe': 'local-cafe',
   'restaurant': 'restaurant',
-  'local-bar': 'local_bar',
-  'local_bar': 'local_bar',
-  'sports-bar': 'sports_bar',
-  'sports_bar': 'sports_bar',
+  'local_bar': 'local-bar',
+  'local-bar': 'local-bar',
+  'sports_bar': 'sports-bar',
+  'sports-bar': 'sports-bar',
   'liquor': 'liquor',
   'nightlife': 'nightlife',
   'nightlife_dining': 'nightlife',
 };
 
-// ✅ v457.0 Get valid icon name with fallback
-// CRITICAL: This function resolves icon names to valid Material Icons
+// ✅ v458.0 Get valid icon name with fallback - SIMPLIFIED LOGIC
+// CRITICAL: MaterialIcons glyphMap uses HYPHENS (-), not underscores (_)
+// This function resolves icon names to valid Material Icons
 // For category icons, it uses the ICON_MAPPING above
-// FIXED: Now properly checks MaterialIcons.glyphMap for underscore names
 function getValidIconName(iconName: string): { name: string; library: 'material' | 'ionicons' } {
   // If no icon name provided, return default
   if (!iconName) {
-    console.warn('⚠️ IconSymbol v457.0: No icon name provided, using fallback');
     return { name: 'help-outline', library: 'material' };
   }
 
-  // Convert to lowercase and remove common prefixes/suffixes
+  // Convert to lowercase and trim
   const normalizedName = iconName.toLowerCase().trim();
   
   // ✅ STEP 1: Check if mapped (HIGHEST PRIORITY for category icons)
   if (ICON_MAPPING[normalizedName]) {
     const mappedName = ICON_MAPPING[normalizedName];
-    console.log(`✅ IconSymbol v457.0: Mapped "${iconName}" → "${mappedName}"`);
     return { name: mappedName, library: 'material' };
   }
   
-  // ✅ STEP 2: Check if exists in MaterialIcons directly (with underscore)
+  // ✅ STEP 2: Check if exists in MaterialIcons directly (with hyphen)
   if (normalizedName in MaterialIcons.glyphMap) {
-    console.log(`✅ IconSymbol v457.0: Found "${iconName}" directly in MaterialIcons`);
     return { name: normalizedName, library: 'material' };
   }
   
-  // ✅ STEP 3: Try with hyphen-to-underscore conversion (Material Icons use underscores)
-  const withUnderscore = normalizedName.replace(/-/g, '_');
-  if (withUnderscore !== normalizedName && withUnderscore in MaterialIcons.glyphMap) {
-    console.log(`✅ IconSymbol v457.0: Found "${iconName}" as "${withUnderscore}" in MaterialIcons`);
-    return { name: withUnderscore, library: 'material' };
+  // ✅ STEP 3: Try with underscore-to-hyphen conversion (MaterialIcons use hyphens)
+  const withHyphen = normalizedName.replace(/_/g, '-');
+  if (withHyphen !== normalizedName && withHyphen in MaterialIcons.glyphMap) {
+    return { name: withHyphen, library: 'material' };
   }
   
   // ✅ STEP 4: Check if exists in Ionicons
   if (normalizedName in Ionicons.glyphMap) {
-    console.log(`✅ IconSymbol v457.0: Found "${iconName}" in Ionicons`);
     return { name: normalizedName, library: 'ionicons' };
   }
   
-  // ✅ STEP 5: Try with underscore-to-hyphen conversion (for Ionicons)
-  const withHyphen = normalizedName.replace(/_/g, '-');
-  if (withHyphen !== normalizedName && withHyphen in Ionicons.glyphMap) {
-    console.log(`✅ IconSymbol v457.0: Found "${iconName}" as "${withHyphen}" in Ionicons`);
-    return { name: withHyphen, library: 'ionicons' };
+  // ✅ STEP 5: Try with hyphen-to-underscore conversion (for Ionicons)
+  const withUnderscore = normalizedName.replace(/-/g, '_');
+  if (withUnderscore !== normalizedName && withUnderscore in Ionicons.glyphMap) {
+    return { name: withUnderscore, library: 'ionicons' };
   }
   
   // ✅ STEP 6: Fallback to help-outline
-  console.warn(`❌ IconSymbol v457.0: Icon "${iconName}" not found in MaterialIcons or Ionicons. Using fallback "help-outline"`);
-  console.warn(`   Available Material Icons sample:`, Object.keys(MaterialIcons.glyphMap).slice(0, 10));
   return { name: 'help-outline', library: 'material' };
 }
 
@@ -224,24 +221,24 @@ function getValidIconName(iconName: string): { name: string; library: 'material'
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  */
 /**
- * ✅ v457.0 IconSymbol Component - FIXED MATERIAL ICONS NAMING
+ * ✅ v458.0 IconSymbol Component - FINAL FIX FOR MATERIAL ICONS
  * 
  * An icon component that uses native SFSymbols on iOS, and MaterialIcons on Android and web.
  * This ensures a consistent look across platforms, and optimal resource usage.
  * 
- * CRITICAL FIX v457.0: Material Icons use UNDERSCORES (_), not hyphens (-)
+ * CRITICAL FIX v458.0: MaterialIcons glyphMap uses HYPHENS (-), not underscores (_)
  * For category icons (Explorar/Mapa filters), the android_material_icon_name
- * MUST use underscores:
+ * can use EITHER format (underscore or hyphen), and this component will convert:
  * - star (Todas)
- * - local_cafe (Cafés) ← underscore, not hyphen
+ * - local_cafe → local-cafe (Cafés)
  * - restaurant (Restaurantes)
- * - local_bar (Bares) ← underscore, not hyphen
- * - sports_bar (Pubs) ← underscore, not hyphen
+ * - local_bar → local-bar (Bares)
+ * - sports_bar → sports-bar (Pubs)
  * - liquor (Coctelería)
  * - nightlife (Discotecas)
  * 
  * The component now properly handles both hyphen and underscore formats
- * and converts them to the correct Material Icons naming convention.
+ * and converts them to the correct hyphenated Material Icons naming convention.
  */
 export function IconSymbol({
   ios_icon_name = undefined,
