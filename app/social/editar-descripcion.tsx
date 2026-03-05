@@ -216,7 +216,7 @@ export default function EditarDescripcionScreen() {
       <KeyboardAvoidingView 
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
         

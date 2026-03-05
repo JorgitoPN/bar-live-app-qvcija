@@ -104,9 +104,9 @@ export default function ConversacionScreen() {
   const isLocalChat = !!params.localId;
   const localId = params.localId as string | undefined;
   
-  // ✅ FIX v304.0: USER REFINEMENT - Increased by 5px more (from 15px to 20px)
-  // Provides balanced spacing between keyboard and input field
-  const EXTRA_KEYBOARD_OFFSET = 20;
+  // ✅ FIX v304.0: USER REFINEMENT - Set to 0 for iOS (padding behavior handles it)
+  // iOS uses 'padding' behavior which automatically adjusts, no extra offset needed
+  const EXTRA_KEYBOARD_OFFSET = Platform.OS === 'ios' ? 0 : 0;
 
   // ✅ ANDROID FIX v286.0: Set system navigation bar color to WHITE (matching input container)
   useEffect(() => {
