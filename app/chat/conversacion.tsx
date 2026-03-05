@@ -122,11 +122,11 @@ export default function ConversacionScreen() {
     }
   }, []);
 
-  // ✅ FIX v308.0: Track screen height changes to detect predictive text bar
+  // ✅ FIX v309.0: Track screen height changes to detect predictive text bar
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
       const newHeight = window.height;
-      console.log('[Conversacion v308.0] 📱 Screen height changed:', screenHeight, '→', newHeight);
+      console.log('[Conversacion v309.0] 📱 Screen height changed:', screenHeight, '→', newHeight);
       setScreenHeight(newHeight);
     });
 
@@ -135,9 +135,9 @@ export default function ConversacionScreen() {
     };
   }, [screenHeight]);
 
-  // ✅ FIX v308.0: Precise keyboard height detection including predictive text bar
+  // ✅ FIX v309.0: Precise keyboard height detection including predictive text bar
   useEffect(() => {
-    console.log('[Conversacion v308.0] 🎹 Setting up precise keyboard listeners with predictive text detection');
+    console.log('[Conversacion v309.0] 🎹 Setting up precise keyboard listeners with predictive text detection');
     
     const initialScreenHeight = Dimensions.get('window').height;
     let lastScreenHeight = initialScreenHeight;
@@ -154,14 +154,14 @@ export default function ConversacionScreen() {
           ? Math.max(reportedKeyboardHeight, lastScreenHeight - currentScreenHeight)
           : reportedKeyboardHeight;
         
-        console.log('[Conversacion v308.0] ⌨️ Keyboard shown');
-        console.log('[Conversacion v308.0] 📱 Platform:', Platform.OS);
-        console.log('[Conversacion v308.0] 📏 Reported keyboard height:', reportedKeyboardHeight);
-        console.log('[Conversacion v308.0] 📏 Screen height change:', lastScreenHeight, '→', currentScreenHeight, '=', lastScreenHeight - currentScreenHeight);
-        console.log('[Conversacion v308.0] 📏 Actual keyboard height (including predictive text):', actualKeyboardHeight);
-        console.log('[Conversacion v308.0] 📏 Input container height:', inputContainerHeight);
-        console.log('[Conversacion v308.0] 📏 Bottom safe area:', insets.bottom);
-        console.log('[Conversacion v308.0] ✅ Using actual keyboard height (includes predictive text bar)');
+        console.log('[Conversacion v309.0] ⌨️ Keyboard shown');
+        console.log('[Conversacion v309.0] 📱 Platform:', Platform.OS);
+        console.log('[Conversacion v309.0] 📏 Reported keyboard height:', reportedKeyboardHeight);
+        console.log('[Conversacion v309.0] 📏 Screen height change:', lastScreenHeight, '→', currentScreenHeight, '=', lastScreenHeight - currentScreenHeight);
+        console.log('[Conversacion v309.0] 📏 Actual keyboard height (including predictive text):', actualKeyboardHeight);
+        console.log('[Conversacion v309.0] 📏 Input container height:', inputContainerHeight);
+        console.log('[Conversacion v309.0] 📏 Bottom safe area:', insets.bottom);
+        console.log('[Conversacion v309.0] ✅ Using actual keyboard height (includes predictive text bar)');
         
         setKeyboardHeight(actualKeyboardHeight);
         setKeyboardVisible(true);
@@ -172,7 +172,7 @@ export default function ConversacionScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[Conversacion v308.0] ⌨️ Keyboard hidden');
+        console.log('[Conversacion v309.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
         setKeyboardVisible(false);
         lastScreenHeight = Dimensions.get('window').height;
@@ -180,7 +180,7 @@ export default function ConversacionScreen() {
     );
 
     return () => {
-      console.log('[Conversacion v308.0] 🧹 Cleaning up keyboard listeners');
+      console.log('[Conversacion v309.0] 🧹 Cleaning up keyboard listeners');
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };

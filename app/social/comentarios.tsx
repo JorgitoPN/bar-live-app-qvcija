@@ -61,18 +61,19 @@ interface Comment {
 }
 
 /**
- * ✅ COMMENTS FULL SCREEN PAGE v327.0 - INCREASED KEYBOARD ELEVATION
+ * ✅ COMMENTS FULL SCREEN PAGE v328.0 - PRECISE KEYBOARD DETECTION
  * 
- * NEW CHANGES v327.0:
- * - ✅ CRITICAL FIX: Increased keyboard elevation by adding 50px extra lift
- *   - Keyboard OPEN: bottom = keyboardHeight + 50 (input rises ABOVE keyboard with clearance)
+ * NEW CHANGES v328.0:
+ * - ✅ CRITICAL FIX: Precise keyboard height detection including predictive text bar
+ *   - Uses screen height change to detect ACTUAL keyboard height (includes predictive text)
+ *   - Keyboard OPEN: bottom = keyboardHeight (input sits exactly at keyboard edge)
  *   - Keyboard CLOSED: bottom = 0 (input sits at screen bottom)
- * - ✅ Ensures text field is FULLY VISIBLE and not partially covered by keyboard
- * - ✅ Provides comfortable typing space above keyboard
+ * - ✅ Ensures text field is FULLY VISIBLE and not covered by predictive text bar
+ * - ✅ No extra space between input and keyboard
  * 
- * Previous changes v326.0:
- * - Manual elevation using bottom = keyboardHeight (input was at keyboard edge)
- * - Input could be partially obscured on some devices
+ * Previous changes v327.0:
+ * - Added 50px extra lift (caused unnecessary gap)
+ * - Input was elevated too high above keyboard
  */
 
 export default function ComentariosScreen() {
@@ -100,19 +101,37 @@ export default function ComentariosScreen() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
 
+  // ✅ FIX v328.0: Precise keyboard height detection including predictive text bar
   useEffect(() => {
-    console.log('[ComentariosScreen v327.0] 🎯 Comments page mounted as overlay');
-    console.log('[ComentariosScreen v327.0] 📱 Bottom inset (system buttons):', insets.bottom);
-    console.log('[ComentariosScreen v327.0] 🔧 Using MANUAL ELEVATION with +50px extra lift');
+    console.log('[ComentariosScreen v328.0] 🎯 Comments page mounted as overlay');
+    console.log('[ComentariosScreen v328.0] 📱 Bottom inset (system buttons):', insets.bottom);
+    console.log('[ComentariosScreen v328.0] 🔧 Using PRECISE KEYBOARD DETECTION with predictive text bar');
+    
+    const initialScreenHeight = Dimensions.get('window').height;
+    let lastScreenHeight = initialScreenHeight;
     
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        const height = e.endCoordinates.height;
-        console.log('[ComentariosScreen v327.0] ⌨️ Keyboard shown, height:', height);
-        console.log('[ComentariosScreen v327.0] ✅ Elevating input by', height + 50, 'pixels (keyboard + 50px clearance)');
-        setKeyboardHeight(height);
+        const reportedKeyboardHeight = e.endCoordinates.height;
+        const currentScreenHeight = Dimensions.get('window').height;
+        
+        // ✅ CRITICAL FIX: Calculate actual keyboard height including predictive text
+        // The screen height change gives us the REAL keyboard height (including predictive text)
+        const actualKeyboardHeight = Platform.OS === 'android' 
+          ? Math.max(reportedKeyboardHeight, lastScreenHeight - currentScreenHeight)
+          : reportedKeyboardHeight;
+        
+        console.log('[ComentariosScreen v328.0] ⌨️ Keyboard shown');
+        console.log('[ComentariosScreen v328.0] 📱 Platform:', Platform.OS);
+        console.log('[ComentariosScreen v328.0] 📏 Reported keyboard height:', reportedKeyboardHeight);
+        console.log('[ComentariosScreen v328.0] 📏 Screen height change:', lastScreenHeight, '→', currentScreenHeight, '=', lastScreenHeight - currentScreenHeight);
+        console.log('[ComentariosScreen v328.0] 📏 Actual keyboard height (including predictive text):', actualKeyboardHeight);
+        console.log('[ComentariosScreen v328.0] ✅ Using actual keyboard height (includes predictive text bar)');
+        
+        setKeyboardHeight(actualKeyboardHeight);
         setIsKeyboardVisible(true);
+        lastScreenHeight = currentScreenHeight;
         
         // ✅ Scroll to bottom when keyboard opens so user can see input
         setTimeout(() => {
@@ -124,15 +143,16 @@ export default function ComentariosScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[ComentariosScreen v327.0] ⌨️ Keyboard hidden');
-        console.log('[ComentariosScreen v327.0] ✅ Resetting input to bottom: 0, paddingBottom:', insets.bottom);
+        console.log('[ComentariosScreen v328.0] ⌨️ Keyboard hidden');
+        console.log('[ComentariosScreen v328.0] ✅ Resetting input to bottom: 0, paddingBottom:', insets.bottom);
         setKeyboardHeight(0);
         setIsKeyboardVisible(false);
+        lastScreenHeight = Dimensions.get('window').height;
       }
     );
 
     return () => {
-      console.log('[ComentariosScreen v327.0] 🔄 Comments page unmounting');
+      console.log('[ComentariosScreen v328.0] 🔄 Comments page unmounting');
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
@@ -629,23 +649,22 @@ export default function ComentariosScreen() {
   const inputAvatarRadius = inputAvatarSize / 2;
   const inputAvatarTextSize = Platform.OS === 'android' ? scaleFontSize(14) : 14;
 
-  // ✅ v327.0: INCREASED KEYBOARD ELEVATION
-  // Added 50px extra lift to ensure input is FULLY VISIBLE above keyboard
-  // Keyboard OPEN: bottom = keyboardHeight + 50 (input rises well above keyboard)
+  // ✅ v328.0: PRECISE KEYBOARD POSITIONING (includes predictive text bar)
+  // Keyboard OPEN: bottom = keyboardHeight (input sits exactly at keyboard edge, including predictive text)
   // Keyboard CLOSED: bottom = 0 (input sits at screen bottom)
   const inputContainerBottom = useMemo(() => {
-    const bottomValue = isKeyboardVisible ? keyboardHeight + 50 : 0;
-    console.log('[ComentariosScreen v327.0] 📐 Input container bottom:', bottomValue, 
+    const bottomValue = isKeyboardVisible ? keyboardHeight : 0;
+    console.log('[ComentariosScreen v328.0] 📐 Input container bottom:', bottomValue, 
       '(keyboard:', isKeyboardVisible ? 'OPEN' : 'CLOSED', ')');
     return bottomValue;
   }, [isKeyboardVisible, keyboardHeight]);
 
-  // ✅ v327.0: DYNAMIC PADDING FOR CONTENT INSIDE INPUT CONTAINER
+  // ✅ v328.0: DYNAMIC PADDING FOR CONTENT INSIDE INPUT CONTAINER
   // Keyboard OPEN: paddingBottom = 8 (minimal, input is already elevated)
   // Keyboard CLOSED: paddingBottom = insets.bottom (aligns with system buttons)
   const inputContainerPaddingBottom = useMemo(() => {
     const paddingValue = isKeyboardVisible ? 8 : insets.bottom;
-    console.log('[ComentariosScreen v327.0] 📐 Input container paddingBottom:', paddingValue, 
+    console.log('[ComentariosScreen v328.0] 📐 Input container paddingBottom:', paddingValue, 
       '(keyboard:', isKeyboardVisible ? 'OPEN' : 'CLOSED', ')');
     return paddingValue;
   }, [isKeyboardVisible, insets.bottom]);

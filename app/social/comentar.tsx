@@ -15,6 +15,7 @@ import {
   Image,
   StatusBar,
   KeyboardAvoidingView,
+  Dimensions,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -58,22 +59,22 @@ interface Comment {
 }
 
 /**
- * ✅ ANDROID COMMENTS PAGE v4.0 - KEYBOARD OVERLAP FIX (FINAL)
+ * ✅ ANDROID COMMENTS PAGE v5.0 - PRECISE KEYBOARD DETECTION
  * 
- * CRITICAL FIXES v4.0:
+ * CRITICAL FIXES v5.0:
+ * - ✅ FIXED: Precise keyboard height detection including predictive text bar
+ * - ✅ FIXED: Uses screen height change to detect ACTUAL keyboard height
  * - ✅ FIXED: Input container paddingBottom increased to 32px for Android system buttons
  * - ✅ FIXED: Extra safety margin to ensure input is NEVER covered by gesture navigation
  * - ✅ FIXED: FlatList contentContainerStyle accounts for larger bottom padding
- * - ✅ FIXED: Keyboard height detection improved for better scroll behavior
  * - ✅ RESULTADO: Campo de texto y botón SIEMPRE visibles e interactuables
  * - ✅ RESULTADO: Respeta los safe areas del dispositivo correctamente
  * - ✅ RESULTADO: No quedan cubiertos por los botones del sistema (gestos/navegación)
+ * - ✅ RESULTADO: No hay espacio extra entre el teclado y el campo de texto
  * 
- * Previous changes v3.0:
- * - ✅ FIXED: Input container paddingBottom increased for Android system buttons
- * - ✅ FIXED: Extra padding added to ensure input is never covered by gesture navigation
- * - ✅ FIXED: FlatList contentContainerStyle accounts for larger bottom padding
- * - ✅ RESULTADO: Input y botón SIEMPRE accesibles, nunca cubiertos por botones del sistema
+ * Previous changes v4.0:
+ * - Used reported keyboard height (didn't include predictive text bar)
+ * - Could have gap between keyboard and input on some devices
  */
 export default function ComentarScreen() {
   const router = useRouter();
@@ -98,24 +99,48 @@ export default function ComentarScreen() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
 
+  // ✅ FIX v5.0: Precise keyboard height detection including predictive text bar
   useEffect(() => {
+    console.log('[ComentarScreen v5.0] 🎹 Setting up precise keyboard listeners with predictive text detection');
+    
+    const initialScreenHeight = Dimensions.get('window').height;
+    let lastScreenHeight = initialScreenHeight;
+    
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[ComentarScreen v4.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
-        setKeyboardHeight(e.endCoordinates.height);
+        const reportedKeyboardHeight = e.endCoordinates.height;
+        const currentScreenHeight = Dimensions.get('window').height;
+        
+        // ✅ CRITICAL FIX: Calculate actual keyboard height including predictive text
+        // The screen height change gives us the REAL keyboard height (including predictive text)
+        const actualKeyboardHeight = Platform.OS === 'android' 
+          ? Math.max(reportedKeyboardHeight, lastScreenHeight - currentScreenHeight)
+          : reportedKeyboardHeight;
+        
+        console.log('[ComentarScreen v5.0] ⌨️ Keyboard shown');
+        console.log('[ComentarScreen v5.0] 📱 Platform:', Platform.OS);
+        console.log('[ComentarScreen v5.0] 📏 Reported keyboard height:', reportedKeyboardHeight);
+        console.log('[ComentarScreen v5.0] 📏 Screen height change:', lastScreenHeight, '→', currentScreenHeight, '=', lastScreenHeight - currentScreenHeight);
+        console.log('[ComentarScreen v5.0] 📏 Actual keyboard height (including predictive text):', actualKeyboardHeight);
+        console.log('[ComentarScreen v5.0] ✅ Using actual keyboard height (includes predictive text bar)');
+        
+        setKeyboardHeight(actualKeyboardHeight);
+        lastScreenHeight = currentScreenHeight;
       }
     );
 
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[ComentarScreen v4.0] ⌨️ Keyboard hidden');
+        console.log('[ComentarScreen v5.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
+        lastScreenHeight = Dimensions.get('window').height;
       }
     );
 
     return () => {
+      console.log('[ComentarScreen v5.0] 🧹 Cleaning up keyboard listeners');
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
