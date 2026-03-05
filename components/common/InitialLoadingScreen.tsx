@@ -5,13 +5,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/commonStyles';
 
 /**
- * ✅ INITIAL LOADING SCREEN v3.1 - LOGO REAL DE BARLIVE
+ * ✅ INITIAL LOADING SCREEN v3.2 - LOGO IMPRESIONANTE CON ANIMACIÓN
  * 
- * CHANGES v3.1:
+ * CHANGES v3.2:
  * - ✅ LOGO REAL: Usa el logo oficial de BarLive
+ * - ✅ ESQUINAS REDONDEADAS: borderRadius para un look más profesional
+ * - ✅ ANIMACIÓN SORPRENDENTE: Escala y fade-in suave
+ * - ✅ SOMBRA ELEGANTE: Shadow para dar profundidad
  * - ✅ MENSAJE ACTUALIZADO: "La actividad de tus locales, en vivo"
  * - ✅ PROGRESS TRACKING: Shows actual loading progress
- * - ✅ SMOOTH ANIMATIONS: Minimal CPU load
  */
 
 interface InitialLoadingScreenProps {
@@ -20,6 +22,25 @@ interface InitialLoadingScreenProps {
 
 export default function InitialLoadingScreen({ progress = 0 }: InitialLoadingScreenProps) {
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // ✅ Animate logo entrance
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [scaleAnim, fadeAnim]);
 
   // ✅ Animate progress bar smoothly
   useEffect(() => {
@@ -51,15 +72,27 @@ export default function InitialLoadingScreen({ progress = 0 }: InitialLoadingScr
       style={styles.container}
     >
       <View style={styles.content}>
-        {/* ✅ Logo real de BarLive */}
-        <Image
-          source={require('@/assets/images/0bc5d522-34a4-4e44-ab69-2b6add00d6f7.jpeg')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        {/* ✅ Logo real de BarLive con animación impresionante */}
+        <Animated.View
+          style={[
+            styles.logoContainer,
+            {
+              transform: [{ scale: scaleAnim }],
+              opacity: fadeAnim,
+            },
+          ]}
+        >
+          <Image
+            source={require('@/assets/images/0bc5d522-34a4-4e44-ab69-2b6add00d6f7.jpeg')}
+            style={styles.logo}
+            resizeMode="cover"
+          />
+        </Animated.View>
         
         {/* ✅ Mensaje actualizado */}
-        <Text style={styles.subtitle}>La actividad de tus locales, en vivo</Text>
+        <Animated.Text style={[styles.subtitle, { opacity: fadeAnim }]}>
+          La actividad de tus locales, en vivo
+        </Animated.Text>
         
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.headerText} />
@@ -97,10 +130,24 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
   },
+  logoContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.44,
+    shadowRadius: 10.32,
+    elevation: 16,
+  },
   logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 8,
+    width: '100%',
+    height: '100%',
   },
   subtitle: {
     fontSize: 18,
@@ -108,6 +155,7 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     textAlign: 'center',
     fontWeight: '500',
+    letterSpacing: 0.5,
   },
   loadingContainer: {
     alignItems: 'center',
