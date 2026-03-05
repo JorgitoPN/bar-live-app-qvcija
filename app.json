@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "BarLive",
@@ -31,7 +32,10 @@
         "SCHEDULE_EXACT_ALARM",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "FOREGROUND_SERVICE"
+        "FOREGROUND_SERVICE",
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "USE_FULL_SCREEN_INTENT"
       ],
       "googleServicesFile": "./google-services.json",
       "jsEngine": "hermes",
@@ -47,10 +51,12 @@
         "expo-notifications",
         {
           "icon": "./assets/images/final_quest_240x240.png",
-          "color": "#ffffff",
+          "color": "#14B8A6",
+          "sounds": ["./assets/sounds/notification.mp3"],
           "mode": "production",
           "androidMode": "default",
-          "androidCollapsedTitle": "BarLive"
+          "androidCollapsedTitle": "BarLive",
+          "iosDisplayInForeground": true
         }
       ]
     ],
@@ -65,6 +71,12 @@
     "scheme": "barlive",
     "experiments": {
       "typedRoutes": true
+    },
+    "notification": {
+      "icon": "./assets/images/final_quest_240x240.png",
+      "color": "#14B8A6",
+      "androidMode": "default",
+      "androidCollapsedTitle": "BarLive"
     }
   }
 }

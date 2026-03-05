@@ -1,7 +1,7 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * SISTEMA DE NOTIFICACIONES PUSH - PRODUCCIÓN COMPLETA v1.1
+ * SISTEMA DE NOTIFICACIONES PUSH - PRODUCCIÓN COMPLETA v1.2 - ANDROID FIX
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * 🎯 CARACTERÍSTICAS:
@@ -16,6 +16,8 @@
  * ✅ Notificaciones silenciosas
  * ✅ Segmentación preparada
  * ✅ Notificaciones programadas
+ * ✅ SONIDO Y VIBRACIÓN EN ANDROID (v1.2)
+ * ✅ HEADS-UP NOTIFICATIONS EN ANDROID (v1.2)
  * 
  * 🔐 SEGURIDAD:
  * - Tokens encriptados en base de datos
@@ -27,10 +29,13 @@
  * - Servidor: Edge Functions para envío (Supabase)
  * - Base de datos: Tabla push_tokens para gestión
  * 
- * 🆕 CAMBIOS v1.1:
- * - ✅ FIXED: Removed call to non-existent isSupabaseConfigured function
- * - ✅ IMPROVED: Direct null check on supabase client
- * - ✅ ADDED: Support for new notification types (plan_purchase, plan_renewal, featured_local_reminder)
+ * 🆕 CAMBIOS v1.2 (ANDROID FIX):
+ * - ✅ FIXED: Canales de Android se crean ANTES de solicitar permisos
+ * - ✅ FIXED: Prioridad MAX para notificaciones heads-up
+ * - ✅ FIXED: Sonido configurado correctamente en todos los canales
+ * - ✅ FIXED: Vibración habilitada en todos los canales
+ * - ✅ IMPROVED: Logging detallado para debugging
+ * - ✅ ADDED: Verificación de creación exitosa de canales
  */
 
 import { Platform, Alert, Linking } from 'react-native';
@@ -75,13 +80,14 @@ Notifications.setNotificationHandler({
     // Personalizar comportamiento según tipo de notificación
     const notificationType = notification.request.content.data?.type;
     
+    // CRÍTICO: SIEMPRE mostrar alerta, sonido y badge
     return {
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
-      priority: notificationType === 'urgent' 
-        ? Notifications.AndroidNotificationPriority?.MAX ?? 5
-        : Notifications.AndroidNotificationPriority?.HIGH ?? 4,
+      priority: notificationType === 'urgent' || notificationType === 'message'
+        ? Notifications.AndroidNotificationPriority.MAX
+        : Notifications.AndroidNotificationPriority.HIGH,
     };
   },
 });
@@ -140,12 +146,157 @@ export const showDevelopmentBuildInfo = (): void => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ANDROID NOTIFICATION CHANNELS (CRITICAL FOR SOUND & DISPLAY)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Configurar canales de notificación para Android
+ * 🚨 CRÍTICO: Esto DEBE ejecutarse ANTES de solicitar permisos
+ * 🚨 CRÍTICO: Los canales determinan si hay sonido y si aparecen en pantalla
+ */
+const configureAndroidChannels = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android') {
+    console.log('[Notifications] ℹ️ No es Android, saltando configuración de canales');
+    return true;
+  }
+
+  try {
+    console.log('[Notifications] 🔧 Configurando canales de Android...');
+
+    // Canal por defecto - PRIORIDAD MAX para heads-up
+    const defaultChannel = await Notifications.setNotificationChannelAsync('default', {
+      name: 'Notificaciones Generales',
+      importance: Notifications.AndroidImportance.MAX, // MAX para heads-up
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#14B8A6',
+      sound: 'default', // Sonido por defecto del sistema
+      enableVibrate: true,
+      enableLights: true,
+      showBadge: true,
+      description: 'Notificaciones generales de BarLive',
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: false,
+    });
+    console.log('[Notifications] ✅ Canal "default" creado:', defaultChannel ? 'OK' : 'FAILED');
+
+    // Canal para mensajes - PRIORIDAD MAX
+    const messagesChannel = await Notifications.setNotificationChannelAsync('messages', {
+      name: 'Mensajes',
+      importance: Notifications.AndroidImportance.MAX, // MAX para heads-up
+      vibrationPattern: [0, 300, 200, 300],
+      lightColor: '#3B82F6',
+      sound: 'default',
+      enableVibrate: true,
+      enableLights: true,
+      showBadge: true,
+      description: 'Mensajes directos y conversaciones',
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: false,
+    });
+    console.log('[Notifications] ✅ Canal "messages" creado:', messagesChannel ? 'OK' : 'FAILED');
+
+    // Canal para eventos - PRIORIDAD HIGH
+    const eventsChannel = await Notifications.setNotificationChannelAsync('events', {
+      name: 'Eventos',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 400, 200, 400],
+      lightColor: '#8B5CF6',
+      sound: 'default',
+      enableVibrate: true,
+      enableLights: true,
+      showBadge: true,
+      description: 'Recordatorios de eventos y actividades',
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: false,
+    });
+    console.log('[Notifications] ✅ Canal "events" creado:', eventsChannel ? 'OK' : 'FAILED');
+
+    // Canal para brindis - PRIORIDAD MAX
+    const cheersChannel = await Notifications.setNotificationChannelAsync('cheers', {
+      name: 'Brindis',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 500, 250, 500],
+      lightColor: '#FACC15',
+      sound: 'default',
+      enableVibrate: true,
+      enableLights: true,
+      showBadge: true,
+      description: 'Brindis y celebraciones',
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: false,
+    });
+    console.log('[Notifications] ✅ Canal "cheers" creado:', cheersChannel ? 'OK' : 'FAILED');
+
+    // Canal para promociones - PRIORIDAD DEFAULT
+    const promosChannel = await Notifications.setNotificationChannelAsync('promos', {
+      name: 'Promociones',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      vibrationPattern: [0, 200, 100, 200],
+      lightColor: '#EF4444',
+      sound: 'default',
+      enableVibrate: true,
+      enableLights: true,
+      showBadge: false,
+      description: 'Ofertas y promociones especiales',
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: false,
+    });
+    console.log('[Notifications] ✅ Canal "promos" creado:', promosChannel ? 'OK' : 'FAILED');
+
+    // Canal para notificaciones de planes y suscripciones - PRIORIDAD HIGH
+    const subscriptionsChannel = await Notifications.setNotificationChannelAsync('subscriptions', {
+      name: 'Planes y Suscripciones',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 300, 150, 300],
+      lightColor: '#10B981',
+      sound: 'default',
+      enableVibrate: true,
+      enableLights: true,
+      showBadge: true,
+      description: 'Compras, renovaciones y recordatorios de planes',
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: false,
+    });
+    console.log('[Notifications] ✅ Canal "subscriptions" creado:', subscriptionsChannel ? 'OK' : 'FAILED');
+
+    // Canal para notificaciones silenciosas - PRIORIDAD LOW
+    const silentChannel = await Notifications.setNotificationChannelAsync('silent', {
+      name: 'Silenciosas',
+      importance: Notifications.AndroidImportance.LOW,
+      vibrationPattern: [0],
+      sound: null,
+      enableVibrate: false,
+      enableLights: false,
+      showBadge: false,
+      description: 'Actualizaciones en segundo plano',
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.SECRET,
+      bypassDnd: false,
+    });
+    console.log('[Notifications] ✅ Canal "silent" creado:', silentChannel ? 'OK' : 'FAILED');
+
+    // Verificar que al menos el canal por defecto se creó
+    if (!defaultChannel) {
+      console.error('[Notifications] ❌ CRÍTICO: No se pudo crear el canal por defecto');
+      return false;
+    }
+
+    console.log('[Notifications] ✅ Todos los canales de Android configurados exitosamente');
+    return true;
+  } catch (error: any) {
+    console.error('[Notifications] ❌ Error configurando canales:', error.message);
+    console.error('[Notifications] ❌ Stack:', error.stack);
+    return false;
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
 // REGISTRATION & PERMISSIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * Registrar dispositivo para notificaciones push
  * Maneja permisos, tokens y configuración de canales
+ * 🚨 v1.2: Canales se configuran ANTES de solicitar permisos
  */
 export const registerForPushNotifications = async (): Promise<string | null> => {
   try {
@@ -163,6 +314,21 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
         console.log('[Notifications] ⚠️ Las notificaciones push solo funcionan en dispositivos físicos');
       }
       return null;
+    }
+
+    // ✅ CRÍTICO: Configurar canales de Android ANTES de solicitar permisos
+    if (Platform.OS === 'android') {
+      console.log('[Notifications] 🔧 Configurando canales de Android ANTES de solicitar permisos...');
+      const channelsConfigured = await configureAndroidChannels();
+      if (!channelsConfigured) {
+        console.error('[Notifications] ❌ CRÍTICO: No se pudieron configurar los canales');
+        Alert.alert(
+          'Error de Configuración',
+          'No se pudieron configurar los canales de notificación. Las notificaciones pueden no funcionar correctamente.',
+          [{ text: 'OK' }]
+        );
+        // Continuar de todos modos, pero advertir al usuario
+      }
     }
 
     // ✅ Verificar token existente en caché
@@ -231,10 +397,14 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
         platform: Platform.OS,
       }));
 
-      // ✅ Configurar canales de Android
-      if (Platform.OS === 'android') {
-        await configureAndroidChannels();
-      }
+      console.log('[Notifications] ✅ Sistema de notificaciones completamente configurado');
+      console.log('[Notifications] 📊 Resumen:');
+      console.log('[Notifications]    - Canales: Configurados');
+      console.log('[Notifications]    - Permisos: Otorgados');
+      console.log('[Notifications]    - Token: Obtenido');
+      console.log('[Notifications]    - Sonido: Habilitado');
+      console.log('[Notifications]    - Vibración: Habilitada');
+      console.log('[Notifications]    - Heads-up: Habilitado (prioridad MAX)');
 
       return token;
     } catch (tokenError: any) {
@@ -250,162 +420,6 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
   } catch (error: any) {
     console.error('[Notifications] ❌ Error en registro:', error.message);
     return null;
-  }
-};
-
-/**
- * Configurar canales de notificación para Android
- * Cada canal tiene su propia configuración de sonido, vibración, etc.
- */
-const configureAndroidChannels = async (): Promise<void> => {
-  if (Platform.OS !== 'android') return;
-
-  try {
-    // Canal por defecto
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'Notificaciones Generales',
-      importance: Notifications.AndroidImportance?.HIGH ?? 4,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#14B8A6',
-      sound: 'default',
-      enableVibrate: true,
-      enableLights: true,
-      showBadge: true,
-      description: 'Notificaciones generales de BarLive',
-    });
-
-    // Canal para mensajes
-    await Notifications.setNotificationChannelAsync('messages', {
-      name: 'Mensajes',
-      importance: Notifications.AndroidImportance?.MAX ?? 5,
-      vibrationPattern: [0, 300, 200, 300],
-      lightColor: '#3B82F6',
-      sound: 'default',
-      enableVibrate: true,
-      enableLights: true,
-      showBadge: true,
-      description: 'Mensajes directos y conversaciones',
-    });
-
-    // Canal para eventos
-    await Notifications.setNotificationChannelAsync('events', {
-      name: 'Eventos',
-      importance: Notifications.AndroidImportance?.HIGH ?? 4,
-      vibrationPattern: [0, 400, 200, 400],
-      lightColor: '#8B5CF6',
-      sound: 'default',
-      enableVibrate: true,
-      enableLights: true,
-      showBadge: true,
-      description: 'Recordatorios de eventos y actividades',
-    });
-
-    // Canal para brindis
-    await Notifications.setNotificationChannelAsync('cheers', {
-      name: 'Brindis',
-      importance: Notifications.AndroidImportance?.MAX ?? 5,
-      vibrationPattern: [0, 500, 250, 500],
-      lightColor: '#FACC15',
-      sound: 'default',
-      enableVibrate: true,
-      enableLights: true,
-      showBadge: true,
-      description: 'Brindis y celebraciones',
-    });
-
-    // Canal para promociones
-    await Notifications.setNotificationChannelAsync('promos', {
-      name: 'Promociones',
-      importance: Notifications.AndroidImportance?.DEFAULT ?? 3,
-      vibrationPattern: [0, 200, 100, 200],
-      lightColor: '#EF4444',
-      sound: 'default',
-      enableVibrate: true,
-      enableLights: true,
-      showBadge: false,
-      description: 'Ofertas y promociones especiales',
-    });
-
-    // Canal para notificaciones de planes y suscripciones
-    await Notifications.setNotificationChannelAsync('subscriptions', {
-      name: 'Planes y Suscripciones',
-      importance: Notifications.AndroidImportance?.HIGH ?? 4,
-      vibrationPattern: [0, 300, 150, 300],
-      lightColor: '#10B981',
-      sound: 'default',
-      enableVibrate: true,
-      enableLights: true,
-      showBadge: true,
-      description: 'Compras, renovaciones y recordatorios de planes',
-    });
-
-    // Canal para notificaciones silenciosas
-    await Notifications.setNotificationChannelAsync('silent', {
-      name: 'Silenciosas',
-      importance: Notifications.AndroidImportance?.LOW ?? 2,
-      vibrationPattern: [0],
-      sound: null,
-      enableVibrate: false,
-      enableLights: false,
-      showBadge: false,
-      description: 'Actualizaciones en segundo plano',
-    });
-
-    console.log('[Notifications] ✅ Canales de Android configurados');
-  } catch (error: any) {
-    console.error('[Notifications] ❌ Error configurando canales:', error.message);
-  }
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// TOKEN MANAGEMENT
-// ═══════════════════════════════════════════════════════════════════════════
-
-/**
- * Guardar token de push en base de datos
- * Incluye información del dispositivo para gestión
- */
-export const savePushToken = async (userId: string, token: string, deviceData?: DeviceData): Promise<void> => {
-  try {
-    console.log('[Notifications] 💾 Guardando push token...');
-    
-    // Check if Supabase is configured
-    if (!isSupabaseConfigured()) {
-      console.log('[Notifications] ⚠️ Supabase no configurado');
-      return;
-    }
-
-    // Obtener información del dispositivo si no se proporciona
-    const finalDeviceData = deviceData || {
-      deviceId: Constants.deviceId || 'unknown',
-      deviceName: Constants.deviceName || 'unknown',
-      osVersion: String(Platform.Version),
-      appVersion: Constants.expoConfig?.version || '1.0.0',
-    };
-
-    const { error } = await supabase
-      .from('push_tokens')
-      .upsert({
-        user_id: userId,
-        token,
-        platform: Platform.OS,
-        device_id: finalDeviceData.deviceId,
-        device_name: finalDeviceData.deviceName,
-        os_version: finalDeviceData.osVersion,
-        app_version: finalDeviceData.appVersion,
-        updated_at: new Date().toISOString(),
-        active: true,
-      }, {
-        onConflict: 'user_id,device_id',
-      });
-
-    if (error) {
-      console.error('[Notifications] ❌ Error guardando token:', error.message);
-    } else {
-      console.log('[Notifications] ✅ Token guardado con información del dispositivo');
-    }
-  } catch (error: any) {
-    console.error('[Notifications] ❌ Error en savePushToken:', error.message);
   }
 };
 
@@ -467,6 +481,58 @@ export const removePushToken = async (userId: string): Promise<void> => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// TOKEN MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Guardar token de push en base de datos
+ * Incluye información del dispositivo para gestión
+ */
+export const savePushToken = async (userId: string, token: string, deviceData?: DeviceData): Promise<void> => {
+  try {
+    console.log('[Notifications] 💾 Guardando push token...');
+    
+    // Check if Supabase is configured
+    if (!isSupabaseConfigured()) {
+      console.log('[Notifications] ⚠️ Supabase no configurado');
+      return;
+    }
+
+    // Obtener información del dispositivo si no se proporciona
+    const finalDeviceData = deviceData || {
+      deviceId: Constants.deviceId || 'unknown',
+      deviceName: Constants.deviceName || 'unknown',
+      osVersion: String(Platform.Version),
+      appVersion: Constants.expoConfig?.version || '1.0.0',
+    };
+
+    const { error } = await supabase
+      .from('push_tokens')
+      .upsert({
+        user_id: userId,
+        token,
+        platform: Platform.OS,
+        device_id: finalDeviceData.deviceId,
+        device_name: finalDeviceData.deviceName,
+        os_version: finalDeviceData.osVersion,
+        app_version: finalDeviceData.appVersion,
+        updated_at: new Date().toISOString(),
+        active: true,
+      }, {
+        onConflict: 'user_id,device_id',
+      });
+
+    if (error) {
+      console.error('[Notifications] ❌ Error guardando token:', error.message);
+    } else {
+      console.log('[Notifications] ✅ Token guardado con información del dispositivo');
+    }
+  } catch (error: any) {
+    console.error('[Notifications] ❌ Error en savePushToken:', error.message);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
 // NOTIFICATION SENDING
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -492,10 +558,15 @@ export const sendLocalNotification = async (data: NotificationData): Promise<voi
       data: data,
       sound: data.silent ? null : 'default',
       badge: data.silent ? 0 : 1,
-      priority: data.type === 'urgent' 
-        ? Notifications.AndroidNotificationPriority?.MAX ?? 5
-        : Notifications.AndroidNotificationPriority?.HIGH ?? 4,
+      priority: data.type === 'urgent' || data.type === 'message'
+        ? Notifications.AndroidNotificationPriority.MAX
+        : Notifications.AndroidNotificationPriority.HIGH,
     };
+
+    // Agregar canal de Android
+    if (Platform.OS === 'android') {
+      notificationContent.channelId = channelId;
+    }
 
     // Agregar imagen si está disponible
     if (data.imageUrl) {
@@ -915,9 +986,11 @@ export const scheduleTestNotification = async (): Promise<void> => {
         body: 'Esta es una notificación de prueba de BarLive',
         data: { type: 'cheers' },
         sound: 'default',
+        priority: Notifications.AndroidNotificationPriority.MAX,
       },
       trigger: {
         seconds: 2,
+        channelId: 'default',
       },
     });
     
