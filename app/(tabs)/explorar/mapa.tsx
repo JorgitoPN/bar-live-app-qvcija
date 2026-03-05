@@ -52,7 +52,7 @@ const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
  * - ✅ Quick clear button for advanced filters
  */
 
-// ✅ v451.0 SYNCHRONIZED WITH FILTROS-SIMPLES - EXACT SAME ICONS
+// ✅ v452.0 SYNCHRONIZED WITH FILTROS-SIMPLES - EXACT SAME ICONS
 // These icons MUST match EXACTLY with app/(tabs)/explorar/filtros-simples.tsx
 // Using IDENTICAL icon names for both iOS and Android
 const CATEGORIAS = [

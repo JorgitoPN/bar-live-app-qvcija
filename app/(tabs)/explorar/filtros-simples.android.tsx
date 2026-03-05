@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 
-// ✅ v451.0 SYNCHRONIZED WITH MAPA PAGE - EXACT SAME ICONS
+// ✅ v452.0 SYNCHRONIZED WITH MAPA PAGE - EXACT SAME ICONS
 // These icons MUST match EXACTLY with app/(tabs)/explorar/mapa.tsx
 // Using IDENTICAL icon names for both iOS and Android
 const CATEGORIAS = [
