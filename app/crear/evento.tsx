@@ -685,27 +685,22 @@ export default function CrearEventoScreen() {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{isEditing ? 'Editar Evento' : 'Crear Evento'}</Text>
         <View style={{ width: 40 }} />
       </LinearGradient>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      <ScrollView 
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView 
-            style={styles.content}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-          >
             <View style={styles.form}>
               {!isEditing && localData && localData.suscripcion && (
                 <View style={styles.planInfoBanner}>
-                  <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
+                  <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
                   <View style={styles.planInfoText}>
                     <Text style={styles.planInfoTitle}>
                       Local: {localData.nombre}
@@ -723,7 +718,7 @@ export default function CrearEventoScreen() {
                   <Image source={{ uri: displayImage }} style={styles.imagen} />
                 ) : (
                   <View style={styles.imagenPlaceholder}>
-                    <IconSymbol name="photo" size={48} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={48} color={colors.textSecondary} />
                     <Text style={styles.imagenText}>Añadir imagen del evento</Text>
                   </View>
                 )}
@@ -732,7 +727,7 @@ export default function CrearEventoScreen() {
               {!isEditing && localData && (
                 <View style={styles.addressContainer}>
                   <View style={styles.addressHeader}>
-                    <IconSymbol name="location.fill" size={18} color={colors.primary} />
+                    <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
                     <Text style={styles.addressLabel}>Ubicación del evento</Text>
                   </View>
                   <Text style={styles.addressText}>{getLocalAddress()}</Text>
@@ -765,7 +760,7 @@ export default function CrearEventoScreen() {
 
               {/* Start Date and Time */}
               <View style={styles.sectionHeader}>
-                <IconSymbol name="play.circle.fill" size={20} color={colors.primary} />
+                <IconSymbol ios_icon_name="play.circle.fill" android_material_icon_name="play_circle" size={20} color={colors.primary} />
                 <Text style={styles.sectionTitle}>Inicio del Evento</Text>
               </View>
 
@@ -776,7 +771,7 @@ export default function CrearEventoScreen() {
                     style={styles.dateTimeButton}
                     onPress={() => setShowDateInicioPicker(true)}
                   >
-                    <IconSymbol name="calendar" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="calendar" android_material_icon_name="calendar_today" size={20} color={colors.primary} />
                     <Text style={styles.dateTimeText}>{formatDisplayDate(fechaInicio)}</Text>
                   </TouchableOpacity>
                 </View>
@@ -787,7 +782,7 @@ export default function CrearEventoScreen() {
                     style={styles.dateTimeButton}
                     onPress={() => setShowTimeInicioPicker(true)}
                   >
-                    <IconSymbol name="clock.fill" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={20} color={colors.primary} />
                     <Text style={styles.dateTimeText}>{formatTime(horaInicio)}</Text>
                   </TouchableOpacity>
                 </View>
@@ -795,7 +790,7 @@ export default function CrearEventoScreen() {
 
               {/* End Date and Time */}
               <View style={styles.sectionHeader}>
-                <IconSymbol name="stop.circle.fill" size={20} color={colors.secondary} />
+                <IconSymbol ios_icon_name="stop.circle.fill" android_material_icon_name="stop_circle" size={20} color={colors.secondary} />
                 <Text style={styles.sectionTitle}>Fin del Evento</Text>
               </View>
 
@@ -806,7 +801,7 @@ export default function CrearEventoScreen() {
                     style={styles.dateTimeButton}
                     onPress={() => setShowDateFinPicker(true)}
                   >
-                    <IconSymbol name="calendar" size={20} color={colors.secondary} />
+                    <IconSymbol ios_icon_name="calendar" android_material_icon_name="calendar_today" size={20} color={colors.secondary} />
                     <Text style={styles.dateTimeText}>{formatDisplayDate(fechaFin)}</Text>
                   </TouchableOpacity>
                 </View>
@@ -817,7 +812,7 @@ export default function CrearEventoScreen() {
                     style={styles.dateTimeButton}
                     onPress={() => setShowTimeFinPicker(true)}
                   >
-                    <IconSymbol name="clock.fill" size={20} color={colors.secondary} />
+                    <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={20} color={colors.secondary} />
                     <Text style={styles.dateTimeText}>{formatTime(horaFin)}</Text>
                   </TouchableOpacity>
                 </View>
@@ -881,9 +876,7 @@ export default function CrearEventoScreen() {
                 </LinearGradient>
               </TouchableOpacity>
             </View>
-          </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+        </ScrollView>
 
       {/* Date Inicio Picker Modal */}
       <Modal
@@ -899,7 +892,7 @@ export default function CrearEventoScreen() {
                 <View style={styles.pickerHeader}>
                   <Text style={styles.pickerTitle}>Fecha de Inicio</Text>
                   <TouchableOpacity onPress={closeDateInicioPicker} style={styles.closeButton}>
-                    <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
                 <DateTimePicker
@@ -939,7 +932,7 @@ export default function CrearEventoScreen() {
                 <View style={styles.pickerHeader}>
                   <Text style={styles.pickerTitle}>Hora de Inicio</Text>
                   <TouchableOpacity onPress={closeTimeInicioPicker} style={styles.closeButton}>
-                    <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
                 <DateTimePicker
@@ -979,7 +972,7 @@ export default function CrearEventoScreen() {
                 <View style={styles.pickerHeader}>
                   <Text style={styles.pickerTitle}>Fecha de Fin</Text>
                   <TouchableOpacity onPress={closeDateFinPicker} style={styles.closeButton}>
-                    <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
                 <DateTimePicker
@@ -1019,7 +1012,7 @@ export default function CrearEventoScreen() {
                 <View style={styles.pickerHeader}>
                   <Text style={styles.pickerTitle}>Hora de Fin</Text>
                   <TouchableOpacity onPress={closeTimeFinPicker} style={styles.closeButton}>
-                    <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
                 <DateTimePicker

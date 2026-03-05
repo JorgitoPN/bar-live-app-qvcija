@@ -572,11 +572,7 @@ export default function EditarPublicacionScreen() {
   }
 
   return (
-    <KeyboardAvoidingView 
-      style={commonStyles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}
-    >
+    <View style={commonStyles.container}>
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -852,7 +848,7 @@ export default function EditarPublicacionScreen() {
         progress={uploadProgress}
         message={imagenes.length > 1 ? `Guardando ${imagenes.length} imágenes...` : "Guardando cambios..."}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

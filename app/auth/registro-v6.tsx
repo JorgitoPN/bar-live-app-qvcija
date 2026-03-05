@@ -465,11 +465,7 @@ export default function RegistroV6Screen() {
 
   return (
     <React.Fragment>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
+      <View style={styles.container}>
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={[
@@ -480,8 +476,6 @@ export default function RegistroV6Screen() {
         showsVerticalScrollIndicator={false}
         bounces={true}
         scrollEventThrottle={16}
-        automaticallyAdjustKeyboardInsets={true}
-        automaticallyAdjustContentInsets={false}
       >
         {/* ✅ HEADER NOW SCROLLS WITH CONTENT */}
         <LinearGradient
@@ -835,7 +829,7 @@ export default function RegistroV6Screen() {
           </Animated.View>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
 
     {/* Cookie Consent Modal */}
     <Modal

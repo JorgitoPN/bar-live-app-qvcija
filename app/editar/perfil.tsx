@@ -352,16 +352,11 @@ export default function EditarPerfilScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      <ScrollView 
+        style={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView 
-          style={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
           <View style={styles.form}>
             <TouchableOpacity 
               style={styles.avatarContainer} 
@@ -498,8 +493,7 @@ export default function EditarPerfilScreen() {
             </View>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+      </View>
   );
 }
 

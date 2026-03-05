@@ -580,11 +580,7 @@ export default function CrearPublicacionScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={commonStyles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}
-    >
+    <View style={commonStyles.container}>
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -620,13 +616,12 @@ export default function CrearPublicacionScreen() {
         </View>
       )}
 
-      <View style={{ flex: 1 }}>
-        <ScrollView 
-          style={styles.content} 
-          contentContainerStyle={styles.contentContainer}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={styles.contentContainer}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
           <View style={styles.textInputSection}>
             <TextInput
               style={[styles.textInput, { fontSize: scaleFontSize(16) }]}
@@ -832,7 +827,6 @@ export default function CrearPublicacionScreen() {
           onSelectHashtag={handleSelectInlineHashtag}
           keyboardHeight={keyboardHeight}
         />
-      </View>
 
       <TaggingModalV5
         visible={showTagModal}
@@ -846,7 +840,7 @@ export default function CrearPublicacionScreen() {
         progress={uploadProgress}
         message={imagenes.length > 1 ? `Subiendo ${imagenes.length} imágenes...` : "Publicando contenido..."}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
