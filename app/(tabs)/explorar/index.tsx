@@ -1,10 +1,16 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 EXPLORAR SCREEN v34.0.0 - FIXED ADVANCED FILTERS
+ * 🚀 EXPLORAR SCREEN v34.1.0 - FIXED TIPO FILTER SYNCHRONIZATION
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v34.0.0 (FIXED ADVANCED FILTERS):
+ * 🎯 NEW IN v34.1.0 (FIXED TIPO FILTER):
+ * 1️⃣ TIPO FILTER: Advanced Filters tipo selection now correctly filters venues ✅
+ * 2️⃣ BIDIRECTIONAL SYNC: Tipo selection syncs between Advanced Filters and Explore ✅
+ * 3️⃣ SINGLE SELECTION: Only one tipo can be selected at a time (exclusive) ✅
+ * 4️⃣ RESULT: Selecting "Restaurante" in Advanced Filters shows only restaurants ✅
+ * 
+ * 🎯 v34.0.0 (FIXED ADVANCED FILTERS):
  * 1️⃣ SERVICIOS FILTER: Now returns only venues with selected services set to TRUE ✅
  * 2️⃣ AMBIENTE FILTER: Now returns only venues with selected ambience set to TRUE ✅
  * 3️⃣ CLIENTELA FILTER: Now returns only venues with selected clientele set to TRUE ✅
