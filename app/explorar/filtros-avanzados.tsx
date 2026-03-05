@@ -19,7 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Filtros } from '@/types';
 import { useFilters } from '@/contexts/FilterContext';
 import { useRouter } from 'expo-router';
-import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
@@ -45,18 +45,14 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ FILTROS AVANZADOS v5.0 - SIN TIPO DE LOCAL
+ * ✅ FILTROS AVANZADOS v6.0 - DISEÑO MEJORADO
  * 
- * FILTROS DISPONIBLES:
- * - 📍 Ubicación (Comunidad, Provincia, Radio)
- * - ✅ Servicios
- * - ✨ Ambiente
- * - 👥 Clientela
- * 
- * 🚫 TIPO DE LOCAL NO ESTÁ AQUÍ
- * El filtro de tipo de local solo está disponible en:
- * - Página Explorar (barra de filtros superior)
- * - Página Mapa (selector de mapa)
+ * MEJORAS:
+ * - 🎨 Diseño más limpio y moderno
+ * - 📱 Mejor organización visual
+ * - ✨ Animaciones suaves
+ * - 🎯 Mejor UX con chips más grandes
+ * - 🌈 Colores más vibrantes
  */
 export default function FiltrosAvanzadosScreen() {
   const router = useRouter();
@@ -76,15 +72,9 @@ export default function FiltrosAvanzadosScreen() {
   const [showProvinciaModal, setShowProvinciaModal] = useState(false);
   const [searchComunidad, setSearchComunidad] = useState('');
   const [searchProvincia, setSearchProvincia] = useState('');
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    ubicacion: true,
-    servicios: false,
-    ambiente: false,
-    clientela: false,
-  });
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados v5.0] 🔄 Inicializando - SIN filtro de tipo de local');
+    console.log('[FiltrosAvanzados v6.0] 🎨 Inicializando diseño mejorado');
     setFiltrosTemp(contextFiltros);
     refreshDynamicOptions();
   }, [contextFiltros, refreshDynamicOptions]);
@@ -119,13 +109,13 @@ export default function FiltrosAvanzadosScreen() {
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v5.0] ✅ Aplicando filtros:', filtrosTemp);
+    console.log('[FiltrosAvanzados v6.0] ✅ Aplicando filtros:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     router.back();
   }, [filtrosTemp, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v5.0] 🧹 Limpiando filtros');
+    console.log('[FiltrosAvanzados v6.0] 🧹 Limpiando filtros');
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     setTimeout(() => {
@@ -134,7 +124,7 @@ export default function FiltrosAvanzadosScreen() {
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v5.0] 📍 Comunidad seleccionada:', selectedComunidad);
+    console.log('[FiltrosAvanzados v6.0] 📍 Comunidad seleccionada:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -158,7 +148,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v5.0] 📍 Provincia seleccionada:', provincia);
+    console.log('[FiltrosAvanzados v6.0] 📍 Provincia seleccionada:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -168,7 +158,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados v5.0] 📏 Radio cambiado a:', value, 'km');
+    console.log('[FiltrosAvanzados v6.0] 📏 Radio cambiado a:', value, 'km');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: value,
@@ -176,7 +166,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const activateDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v5.0] 🎯 Activando filtro de distancia');
+    console.log('[FiltrosAvanzados v6.0] 🎯 Activando filtro de distancia');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: 50,
@@ -184,17 +174,10 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const resetDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v5.0] 🔄 Reseteando radio de búsqueda');
+    console.log('[FiltrosAvanzados v6.0] 🔄 Reseteando radio de búsqueda');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: undefined,
-    }));
-  }, []);
-
-  const toggleSection = useCallback((section: string) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section],
     }));
   }, []);
 
@@ -290,7 +273,6 @@ export default function FiltrosAvanzadosScreen() {
     return clientela;
   }, [dynamicOptions.clientela]);
 
-  // Contador de filtros activos (sin tipo de local)
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (filtrosTemp.servicios && filtrosTemp.servicios.length > 0) count++;
@@ -306,354 +288,506 @@ export default function FiltrosAvanzadosScreen() {
   const scrollContentPaddingBottom = Platform.OS === 'android' ? 120 + insets.bottom : 120;
   const isDistanceFilterActive = filtrosTemp.distancia !== undefined && filtrosTemp.distancia !== null;
 
+  const distanceDisplayValue = isDistanceFilterActive ? `${Math.round(filtrosTemp.distancia!)} km` : 'Sin límite';
+
   return (
     <View style={styles.container}>
+      {/* HEADER MEJORADO */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.header}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={scaleIconSize(24)} color={colors.headerText} />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={[styles.headerTitle, { fontSize: scaleFontSize(20) }]}>Filtros Avanzados</Text>
-          {activeFiltersCount > 0 && (
-            <View style={styles.filterCountBadge}>
-              <Text style={[styles.filterCountText, { fontSize: scaleFontSize(11) }]}>{activeFiltersCount}</Text>
-            </View>
-          )}
-        </View>
-        <TouchableOpacity onPress={handleLimpiar} style={styles.clearButton}>
-          <Text style={[styles.limpiarText, { fontSize: scaleFontSize(13) }]}>Limpiar</Text>
-        </TouchableOpacity>
-      </LinearGradient>
-
-      <ScrollView 
-        style={styles.content} 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.contentContainer, { paddingBottom: scrollContentPaddingBottom }]}
-      >
-        {isLoadingOptions && (
-          <View style={styles.loadingBanner}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.loadingBannerText, { fontSize: scaleFontSize(13) }]}>Cargando opciones...</Text>
-          </View>
-        )}
-
-        {/* 📍 UBICACIÓN */}
-        <View style={styles.section}>
-          <TouchableOpacity 
-            style={styles.sectionHeader}
-            onPress={() => toggleSection('ubicacion')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.sectionHeaderLeft}>
-              <View style={styles.sectionIconContainer}>
-                <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={scaleIconSize(16)} color={colors.primary} />
-              </View>
-              <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Ubicación</Text>
-            </View>
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <IconSymbol 
-              ios_icon_name={expandedSections.ubicacion ? "chevron.up" : "chevron.down"} 
-              android_material_icon_name={expandedSections.ubicacion ? "expand_less" : "expand_more"} 
-              size={scaleIconSize(18)} 
-              color={colors.textSecondary} 
+              ios_icon_name="chevron.left" 
+              android_material_icon_name="arrow_back" 
+              size={scaleIconSize(24)} 
+              color={colors.headerText} 
             />
           </TouchableOpacity>
           
-          {expandedSections.ubicacion && (
-            <View style={styles.sectionContent}>
-              <View style={styles.locationGrid}>
-                <TouchableOpacity
-                  style={styles.locationButton}
-                  onPress={() => setShowComunidadModal(true)}
-                >
-                  <Text style={[styles.locationLabel, { fontSize: scaleFontSize(9) }]}>Comunidad</Text>
-                  <Text style={[styles.locationValue, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>
+          <View style={styles.headerCenter}>
+            <Text style={[styles.headerTitle, { fontSize: scaleFontSize(22) }]}>Filtros Avanzados</Text>
+            {activeFiltersCount > 0 && (
+              <View style={styles.headerBadge}>
+                <Text style={[styles.headerBadgeText, { fontSize: scaleFontSize(12) }]}>
+                  {activeFiltersCount}
+                </Text>
+              </View>
+            )}
+          </View>
+          
+          <TouchableOpacity onPress={handleLimpiar} style={styles.clearButton}>
+            <IconSymbol 
+              ios_icon_name="trash" 
+              android_material_icon_name="delete" 
+              size={scaleIconSize(20)} 
+              color={colors.headerText} 
+            />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollContentPaddingBottom }]}
+      >
+        {isLoadingOptions && (
+          <View style={styles.loadingCard}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={[styles.loadingText, { fontSize: scaleFontSize(14) }]}>
+              Cargando opciones...
+            </Text>
+          </View>
+        )}
+
+        {/* 📍 UBICACIÓN - DISEÑO MEJORADO */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              <View style={[styles.iconCircle, { backgroundColor: '#3B82F6' + '20' }]}>
+                <IconSymbol 
+                  ios_icon_name="mappin.circle.fill" 
+                  android_material_icon_name="location_on" 
+                  size={scaleIconSize(20)} 
+                  color="#3B82F6" 
+                />
+              </View>
+              <Text style={[styles.cardTitle, { fontSize: scaleFontSize(16) }]}>Ubicación</Text>
+            </View>
+          </View>
+
+          <View style={styles.cardContent}>
+            {/* Selectores de ubicación */}
+            <View style={styles.locationRow}>
+              <TouchableOpacity
+                style={styles.locationSelector}
+                onPress={() => setShowComunidadModal(true)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.locationSelectorContent}>
+                  <Text style={[styles.locationSelectorLabel, { fontSize: scaleFontSize(11) }]}>
+                    COMUNIDAD
+                  </Text>
+                  <Text 
+                    style={[styles.locationSelectorValue, { fontSize: scaleFontSize(14) }]} 
+                    numberOfLines={1}
+                  >
                     {filtrosTemp.comunidad || 'Todas'}
                   </Text>
-                  <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={scaleIconSize(12)} color={colors.textSecondary} />
-                </TouchableOpacity>
+                </View>
+                <IconSymbol 
+                  ios_icon_name="chevron.right" 
+                  android_material_icon_name="chevron_right" 
+                  size={scaleIconSize(18)} 
+                  color={colors.textSecondary} 
+                />
+              </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[
-                    styles.locationButton,
-                    (!filtrosTemp.comunidad || filtrosTemp.comunidad === 'Todas las Comunidades') && styles.locationButtonDisabled
-                  ]}
-                  onPress={() => {
-                    if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
-                      setShowProvinciaModal(true);
-                    }
-                  }}
-                  disabled={!filtrosTemp.comunidad || filtrosTemp.comunidad === 'Todas las Comunidades'}
-                >
-                  <Text style={[styles.locationLabel, { fontSize: scaleFontSize(9) }]}>Provincia</Text>
-                  <Text style={[styles.locationValue, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>
-                    {filtrosTemp.provincia || (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades' ? 'Todas' : 'Selecciona')}
+              <TouchableOpacity
+                style={[
+                  styles.locationSelector,
+                  (!filtrosTemp.comunidad || filtrosTemp.comunidad === 'Todas las Comunidades') && 
+                  styles.locationSelectorDisabled
+                ]}
+                onPress={() => {
+                  if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
+                    setShowProvinciaModal(true);
+                  }
+                }}
+                disabled={!filtrosTemp.comunidad || filtrosTemp.comunidad === 'Todas las Comunidades'}
+                activeOpacity={0.7}
+              >
+                <View style={styles.locationSelectorContent}>
+                  <Text style={[styles.locationSelectorLabel, { fontSize: scaleFontSize(11) }]}>
+                    PROVINCIA
                   </Text>
-                  <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={scaleIconSize(12)} color={colors.textSecondary} />
-                </TouchableOpacity>
+                  <Text 
+                    style={[styles.locationSelectorValue, { fontSize: scaleFontSize(14) }]} 
+                    numberOfLines={1}
+                  >
+                    {filtrosTemp.provincia || 
+                     (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades' 
+                       ? 'Todas' 
+                       : 'Selecciona')}
+                  </Text>
+                </View>
+                <IconSymbol 
+                  ios_icon_name="chevron.right" 
+                  android_material_icon_name="chevron_right" 
+                  size={scaleIconSize(18)} 
+                  color={colors.textSecondary} 
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Radio de búsqueda mejorado */}
+            <View style={styles.distanceCard}>
+              <View style={styles.distanceCardHeader}>
+                <View style={styles.distanceCardHeaderLeft}>
+                  <View style={[styles.iconCircleSmall, { backgroundColor: '#10B981' + '20' }]}>
+                    <IconSymbol 
+                      ios_icon_name="location.circle" 
+                      android_material_icon_name="my_location" 
+                      size={scaleIconSize(16)} 
+                      color="#10B981" 
+                    />
+                  </View>
+                  <Text style={[styles.distanceCardTitle, { fontSize: scaleFontSize(13) }]}>
+                    Radio de búsqueda
+                  </Text>
+                </View>
+                <View style={[
+                  styles.distanceBadge,
+                  isDistanceFilterActive && styles.distanceBadgeActive
+                ]}>
+                  <Text style={[
+                    styles.distanceBadgeText,
+                    { fontSize: scaleFontSize(13) },
+                    isDistanceFilterActive && styles.distanceBadgeTextActive
+                  ]}>
+                    {distanceDisplayValue}
+                  </Text>
+                </View>
               </View>
 
-              <View style={styles.distanceContainer}>
-                <View style={styles.distanceHeader}>
-                  <View style={styles.distanceLabelRow}>
-                    <IconSymbol ios_icon_name="location.circle" android_material_icon_name="location_on" size={scaleIconSize(14)} color={colors.primary} />
-                    <Text style={[styles.distanceLabel, { fontSize: scaleFontSize(12) }]}>Radio de búsqueda</Text>
-                  </View>
-                  <View style={[
-                    styles.distanceValueBadge,
-                    !isDistanceFilterActive && styles.distanceValueBadgeInactive
-                  ]}>
-                    <Text style={[
-                      styles.distanceValueText, 
-                      { fontSize: scaleFontSize(14) },
-                      !isDistanceFilterActive && styles.distanceValueTextInactive
-                    ]}>
-                      {isDistanceFilterActive ? `${Math.round(filtrosTemp.distancia!)} km` : 'Sin límite'}
+              {isDistanceFilterActive ? (
+                <>
+                  <Slider
+                    style={styles.distanceSlider}
+                    minimumValue={1}
+                    maximumValue={100}
+                    step={1}
+                    value={filtrosTemp.distancia || 50}
+                    onValueChange={handleDistanciaChange}
+                    minimumTrackTintColor="#10B981"
+                    maximumTrackTintColor={colors.cardBorder}
+                    thumbTintColor="#10B981"
+                  />
+                  
+                  <View style={styles.distanceSliderLabels}>
+                    <Text style={[styles.distanceSliderLabel, { fontSize: scaleFontSize(11) }]}>
+                      1 km
+                    </Text>
+                    <Text style={[styles.distanceSliderLabel, { fontSize: scaleFontSize(11) }]}>
+                      100 km
                     </Text>
                   </View>
-                </View>
-                
-                {isDistanceFilterActive && (
-                  <>
-                    <Slider
-                      style={styles.slider}
-                      minimumValue={1}
-                      maximumValue={100}
-                      step={1}
-                      value={filtrosTemp.distancia || 50}
-                      onValueChange={handleDistanciaChange}
-                      minimumTrackTintColor={colors.primary}
-                      maximumTrackTintColor={colors.cardBorder}
-                      thumbTintColor={colors.primary}
-                    />
-                    
-                    <View style={styles.sliderLabels}>
-                      <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>1 km</Text>
-                      <Text style={[styles.sliderLabelText, { fontSize: scaleFontSize(11) }]}>100 km</Text>
-                    </View>
-                  </>
-                )}
-                
-                {!isDistanceFilterActive ? (
+
                   <TouchableOpacity 
-                    style={styles.activateRangeButton}
-                    onPress={activateDistanceFilter}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol ios_icon_name="slider.horizontal.3" android_material_icon_name="tune" size={scaleIconSize(16)} color={colors.primary} />
-                    <Text style={[styles.activateRangeButtonText, { fontSize: scaleFontSize(13) }]}>
-                      Activar filtro de distancia
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity 
-                    style={styles.resetRangeButton}
+                    style={styles.distanceResetButton}
                     onPress={resetDistanceFilter}
                     activeOpacity={0.7}
                   >
-                    <IconSymbol ios_icon_name="arrow.counterclockwise" android_material_icon_name="refresh" size={scaleIconSize(14)} color={colors.textSecondary} />
-                    <Text style={[styles.resetRangeButtonText, { fontSize: scaleFontSize(12) }]}>
-                      Volver a "Sin límite"
+                    <IconSymbol 
+                      ios_icon_name="arrow.counterclockwise" 
+                      android_material_icon_name="refresh" 
+                      size={scaleIconSize(14)} 
+                      color={colors.textSecondary} 
+                    />
+                    <Text style={[styles.distanceResetText, { fontSize: scaleFontSize(12) }]}>
+                      Quitar límite
                     </Text>
                   </TouchableOpacity>
-                )}
-              </View>
+                </>
+              ) : (
+                <TouchableOpacity 
+                  style={styles.distanceActivateButton}
+                  onPress={activateDistanceFilter}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol 
+                    ios_icon_name="slider.horizontal.3" 
+                    android_material_icon_name="tune" 
+                    size={scaleIconSize(18)} 
+                    color="#10B981" 
+                  />
+                  <Text style={[styles.distanceActivateText, { fontSize: scaleFontSize(14) }]}>
+                    Activar filtro de distancia
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
-          )}
+          </View>
         </View>
 
-        {/* ✅ SERVICIOS */}
+        {/* ✅ SERVICIOS - DISEÑO MEJORADO */}
         {serviciosDisponibles.length > 0 && (
-          <View style={styles.section}>
-            <TouchableOpacity 
-              style={styles.sectionHeader}
-              onPress={() => toggleSection('servicios')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.sectionHeaderLeft}>
-                <View style={styles.sectionIconContainer}>
-                  <IconSymbol ios_icon_name="checkmark.seal.fill" android_material_icon_name="verified" size={scaleIconSize(16)} color={colors.primary} />
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardHeaderLeft}>
+                <View style={[styles.iconCircle, { backgroundColor: '#8B5CF6' + '20' }]}>
+                  <IconSymbol 
+                    ios_icon_name="checkmark.seal.fill" 
+                    android_material_icon_name="verified" 
+                    size={scaleIconSize(20)} 
+                    color="#8B5CF6" 
+                  />
                 </View>
-                <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Servicios</Text>
-                <Text style={[styles.sectionCount, { fontSize: scaleFontSize(11) }]}>({serviciosDisponibles.length})</Text>
+                <Text style={[styles.cardTitle, { fontSize: scaleFontSize(16) }]}>Servicios</Text>
+                <View style={styles.countBadge}>
+                  <Text style={[styles.countBadgeText, { fontSize: scaleFontSize(11) }]}>
+                    {serviciosDisponibles.length}
+                  </Text>
+                </View>
               </View>
-              <IconSymbol 
-                ios_icon_name={expandedSections.servicios ? "chevron.up" : "chevron.down"} 
-                android_material_icon_name={expandedSections.servicios ? "expand_less" : "expand_more"} 
-                size={scaleIconSize(18)} 
-                color={colors.textSecondary} 
-              />
-            </TouchableOpacity>
-            
-            {expandedSections.servicios && (
-              <View style={styles.sectionContent}>
-                <View style={styles.chipContainer}>
-                  {serviciosDisponibles.map((servicio) => {
-                    const isSelected = filtrosTemp.servicios?.includes(servicio.id);
-                    
-                    return (
-                      <TouchableOpacity
-                        key={servicio.id}
+            </View>
+
+            <View style={styles.cardContent}>
+              <View style={styles.chipsGrid}>
+                {serviciosDisponibles.map((servicio) => {
+                  const isSelected = filtrosTemp.servicios?.includes(servicio.id);
+                  
+                  return (
+                    <TouchableOpacity
+                      key={servicio.id}
+                      style={[
+                        styles.chipLarge,
+                        isSelected && styles.chipLargeActive,
+                      ]}
+                      onPress={() => handleServicioToggle(servicio.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.chipLargeIcon, { fontSize: scaleFontSize(18) }]}>
+                        {servicio.icon}
+                      </Text>
+                      <Text 
                         style={[
-                          styles.chip,
-                          isSelected && styles.chipActive,
+                          styles.chipLargeText, 
+                          { fontSize: scaleFontSize(12) },
+                          isSelected && styles.chipLargeTextActive
                         ]}
-                        onPress={() => handleServicioToggle(servicio.id)}
                       >
-                        <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>{servicio.icon}</Text>
-                        <Text style={[styles.chipText, { fontSize: scaleFontSize(11) }, isSelected && styles.chipTextActive]}>
-                          {servicio.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                        {servicio.label}
+                      </Text>
+                      {isSelected && (
+                        <View style={styles.chipCheckmark}>
+                          <IconSymbol 
+                            ios_icon_name="checkmark" 
+                            android_material_icon_name="check" 
+                            size={scaleIconSize(12)} 
+                            color={colors.headerText} 
+                          />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-            )}
+            </View>
           </View>
         )}
 
-        {/* ✨ AMBIENTE */}
+        {/* ✨ AMBIENTE - DISEÑO MEJORADO */}
         {ambientesDisponibles.length > 1 && (
-          <View style={styles.section}>
-            <TouchableOpacity 
-              style={styles.sectionHeader}
-              onPress={() => toggleSection('ambiente')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.sectionHeaderLeft}>
-                <View style={styles.sectionIconContainer}>
-                  <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={scaleIconSize(16)} color={colors.primary} />
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardHeaderLeft}>
+                <View style={[styles.iconCircle, { backgroundColor: '#F59E0B' + '20' }]}>
+                  <IconSymbol 
+                    ios_icon_name="sparkles" 
+                    android_material_icon_name="auto_awesome" 
+                    size={scaleIconSize(20)} 
+                    color="#F59E0B" 
+                  />
                 </View>
-                <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Ambiente</Text>
-                <Text style={[styles.sectionCount, { fontSize: scaleFontSize(11) }]}>({ambientesDisponibles.length - 1})</Text>
+                <Text style={[styles.cardTitle, { fontSize: scaleFontSize(16) }]}>Ambiente</Text>
+                <View style={styles.countBadge}>
+                  <Text style={[styles.countBadgeText, { fontSize: scaleFontSize(11) }]}>
+                    {ambientesDisponibles.length - 1}
+                  </Text>
+                </View>
               </View>
-              <IconSymbol 
-                ios_icon_name={expandedSections.ambiente ? "chevron.up" : "chevron.down"} 
-                android_material_icon_name={expandedSections.ambiente ? "expand_less" : "expand_more"} 
-                size={scaleIconSize(18)} 
-                color={colors.textSecondary} 
-              />
-            </TouchableOpacity>
-            
-            {expandedSections.ambiente && (
-              <View style={styles.sectionContent}>
-                <View style={styles.chipContainer}>
-                  {ambientesDisponibles.map((ambiente) => {
-                    const isSelected = ambiente.id === 'cualquiera'
-                      ? !filtrosTemp.ambiente || filtrosTemp.ambiente.length === 0
-                      : filtrosTemp.ambiente?.includes(ambiente.id);
-                    
-                    return (
-                      <TouchableOpacity
-                        key={ambiente.id}
+            </View>
+
+            <View style={styles.cardContent}>
+              <View style={styles.chipsGrid}>
+                {ambientesDisponibles.map((ambiente) => {
+                  const isSelected = ambiente.id === 'cualquiera'
+                    ? !filtrosTemp.ambiente || filtrosTemp.ambiente.length === 0
+                    : filtrosTemp.ambiente?.includes(ambiente.id);
+                  
+                  return (
+                    <TouchableOpacity
+                      key={ambiente.id}
+                      style={[
+                        styles.chipLarge,
+                        isSelected && styles.chipLargeActive,
+                      ]}
+                      onPress={() => handleAmbienteToggle(ambiente.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.chipLargeIcon, { fontSize: scaleFontSize(18) }]}>
+                        {ambiente.icon}
+                      </Text>
+                      <Text 
                         style={[
-                          styles.chip,
-                          isSelected && styles.chipActive,
+                          styles.chipLargeText, 
+                          { fontSize: scaleFontSize(12) },
+                          isSelected && styles.chipLargeTextActive
                         ]}
-                        onPress={() => handleAmbienteToggle(ambiente.id)}
                       >
-                        <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>{ambiente.icon}</Text>
-                        <Text style={[styles.chipText, { fontSize: scaleFontSize(11) }, isSelected && styles.chipTextActive]}>
-                          {ambiente.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                        {ambiente.label}
+                      </Text>
+                      {isSelected && (
+                        <View style={styles.chipCheckmark}>
+                          <IconSymbol 
+                            ios_icon_name="checkmark" 
+                            android_material_icon_name="check" 
+                            size={scaleIconSize(12)} 
+                            color={colors.headerText} 
+                          />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-            )}
+            </View>
           </View>
         )}
 
-        {/* 👥 CLIENTELA */}
+        {/* 👥 CLIENTELA - DISEÑO MEJORADO */}
         {clientelaDisponible.length > 1 && (
-          <View style={styles.section}>
-            <TouchableOpacity 
-              style={styles.sectionHeader}
-              onPress={() => toggleSection('clientela')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.sectionHeaderLeft}>
-                <View style={styles.sectionIconContainer}>
-                  <IconSymbol ios_icon_name="person.3.fill" android_material_icon_name="people" size={scaleIconSize(16)} color={colors.primary} />
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardHeaderLeft}>
+                <View style={[styles.iconCircle, { backgroundColor: '#EC4899' + '20' }]}>
+                  <IconSymbol 
+                    ios_icon_name="person.3.fill" 
+                    android_material_icon_name="people" 
+                    size={scaleIconSize(20)} 
+                    color="#EC4899" 
+                  />
                 </View>
-                <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Clientela Típica</Text>
-                <Text style={[styles.sectionCount, { fontSize: scaleFontSize(11) }]}>({clientelaDisponible.length - 1})</Text>
+                <Text style={[styles.cardTitle, { fontSize: scaleFontSize(16) }]}>Clientela Típica</Text>
+                <View style={styles.countBadge}>
+                  <Text style={[styles.countBadgeText, { fontSize: scaleFontSize(11) }]}>
+                    {clientelaDisponible.length - 1}
+                  </Text>
+                </View>
               </View>
-              <IconSymbol 
-                ios_icon_name={expandedSections.clientela ? "chevron.up" : "chevron.down"} 
-                android_material_icon_name={expandedSections.clientela ? "expand_less" : "expand_more"} 
-                size={scaleIconSize(18)} 
-                color={colors.textSecondary} 
-              />
-            </TouchableOpacity>
-            
-            {expandedSections.clientela && (
-              <View style={styles.sectionContent}>
-                <View style={styles.chipContainer}>
-                  {clientelaDisponible.map((clientela) => {
-                    const isSelected = clientela.id === 'cualquiera'
-                      ? !filtrosTemp.clientela || filtrosTemp.clientela.length === 0
-                      : filtrosTemp.clientela?.includes(clientela.id);
-                    
-                    return (
-                      <TouchableOpacity
-                        key={clientela.id}
+            </View>
+
+            <View style={styles.cardContent}>
+              <View style={styles.chipsGrid}>
+                {clientelaDisponible.map((clientela) => {
+                  const isSelected = clientela.id === 'cualquiera'
+                    ? !filtrosTemp.clientela || filtrosTemp.clientela.length === 0
+                    : filtrosTemp.clientela?.includes(clientela.id);
+                  
+                  return (
+                    <TouchableOpacity
+                      key={clientela.id}
+                      style={[
+                        styles.chipLarge,
+                        isSelected && styles.chipLargeActive,
+                      ]}
+                      onPress={() => handleClientelaToggle(clientela.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.chipLargeIcon, { fontSize: scaleFontSize(18) }]}>
+                        {clientela.icon}
+                      </Text>
+                      <Text 
                         style={[
-                          styles.chip,
-                          isSelected && styles.chipActive,
+                          styles.chipLargeText, 
+                          { fontSize: scaleFontSize(12) },
+                          isSelected && styles.chipLargeTextActive
                         ]}
-                        onPress={() => handleClientelaToggle(clientela.id)}
                       >
-                        <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>{clientela.icon}</Text>
-                        <Text style={[styles.chipText, { fontSize: scaleFontSize(11) }, isSelected && styles.chipTextActive]}>
-                          {clientela.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                        {clientela.label}
+                      </Text>
+                      {isSelected && (
+                        <View style={styles.chipCheckmark}>
+                          <IconSymbol 
+                            ios_icon_name="checkmark" 
+                            android_material_icon_name="check" 
+                            size={scaleIconSize(12)} 
+                            color={colors.headerText} 
+                          />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-            )}
+            </View>
           </View>
         )}
 
-        {(serviciosDisponibles.length === 0 && ambientesDisponibles.length === 1 && clientelaDisponible.length === 1) && !isLoadingOptions && (
+        {/* ESTADO VACÍO */}
+        {(serviciosDisponibles.length === 0 && 
+          ambientesDisponibles.length === 1 && 
+          clientelaDisponible.length === 1) && 
+          !isLoadingOptions && (
           <View style={styles.emptyState}>
-            <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="warning" size={scaleIconSize(48)} color={colors.textSecondary} />
-            <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(14) }]}>
-              No hay opciones de filtro disponibles
+            <View style={[styles.emptyStateIcon, { backgroundColor: colors.primary + '15' }]}>
+              <IconSymbol 
+                ios_icon_name="exclamationmark.triangle" 
+                android_material_icon_name="warning" 
+                size={scaleIconSize(48)} 
+                color={colors.primary} 
+              />
+            </View>
+            <Text style={[styles.emptyStateTitle, { fontSize: scaleFontSize(16) }]}>
+              No hay opciones disponibles
             </Text>
-            <Text style={[styles.emptyStateSubtext, { fontSize: scaleFontSize(12) }]}>
+            <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(13) }]}>
               Los filtros se generan automáticamente basados en los locales activos
             </Text>
             <TouchableOpacity 
-              style={styles.refreshButton}
+              style={styles.emptyStateButton}
               onPress={refreshDynamicOptions}
               activeOpacity={0.7}
             >
-              <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={scaleIconSize(16)} color={colors.white} />
-              <Text style={[styles.refreshButtonText, { fontSize: scaleFontSize(13) }]}>Recargar opciones</Text>
+              <IconSymbol 
+                ios_icon_name="arrow.clockwise" 
+                android_material_icon_name="refresh" 
+                size={scaleIconSize(18)} 
+                color={colors.headerText} 
+              />
+              <Text style={[styles.emptyStateButtonText, { fontSize: scaleFontSize(14) }]}>
+                Recargar opciones
+              </Text>
             </TouchableOpacity>
           </View>
         )}
       </ScrollView>
 
+      {/* FOOTER MEJORADO */}
       <View style={[styles.footer, { paddingBottom: footerPaddingBottom }]}>
-        <TouchableOpacity style={styles.aplicarButton} onPress={handleAplicar}>
+        <TouchableOpacity 
+          style={styles.applyButton} 
+          onPress={handleAplicar}
+          activeOpacity={0.8}
+        >
           <LinearGradient
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.aplicarGradient}
+            style={styles.applyButtonGradient}
           >
-            <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={scaleIconSize(20)} color={colors.headerText} />
-            <Text style={[styles.aplicarText, { fontSize: scaleFontSize(15) }]}>Aplicar filtros</Text>
+            <IconSymbol 
+              ios_icon_name="checkmark.circle.fill" 
+              android_material_icon_name="check_circle" 
+              size={scaleIconSize(22)} 
+              color={colors.headerText} 
+            />
+            <Text style={[styles.applyButtonText, { fontSize: scaleFontSize(16) }]}>
+              Aplicar Filtros
+            </Text>
+            {activeFiltersCount > 0 && (
+              <View style={styles.applyButtonBadge}>
+                <Text style={[styles.applyButtonBadgeText, { fontSize: scaleFontSize(12) }]}>
+                  {activeFiltersCount}
+                </Text>
+              </View>
+            )}
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -666,21 +800,36 @@ export default function FiltrosAvanzadosScreen() {
         onRequestClose={() => setShowComunidadModal(false)}
       >
         <Pressable
-          style={styles.selectorModalOverlay}
+          style={styles.modalOverlay}
           onPress={() => setShowComunidadModal(false)}
         >
-          <Pressable style={styles.selectorModalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.selectorModalHeader}>
-              <Text style={[styles.selectorModalTitle, { fontSize: scaleFontSize(16) }]}>Comunidad Autónoma</Text>
-              <TouchableOpacity onPress={() => setShowComunidadModal(false)}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={scaleIconSize(22)} color={colors.text} />
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(18) }]}>
+                Comunidad Autónoma
+              </Text>
+              <TouchableOpacity 
+                onPress={() => setShowComunidadModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <IconSymbol 
+                  ios_icon_name="xmark.circle.fill" 
+                  android_material_icon_name="cancel" 
+                  size={scaleIconSize(28)} 
+                  color={colors.textSecondary} 
+                />
               </TouchableOpacity>
             </View>
             
-            <View style={styles.searchContainer}>
-              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={scaleIconSize(18)} color={colors.textSecondary} />
+            <View style={styles.modalSearchContainer}>
+              <IconSymbol 
+                ios_icon_name="magnifyingglass" 
+                android_material_icon_name="search" 
+                size={scaleIconSize(20)} 
+                color={colors.textSecondary} 
+              />
               <TextInput
-                style={[styles.searchInput, { fontSize: scaleFontSize(14) }]}
+                style={[styles.modalSearchInput, { fontSize: scaleFontSize(15) }]}
                 placeholder="Buscar comunidad..."
                 placeholderTextColor={colors.textSecondary}
                 value={searchComunidad}
@@ -688,39 +837,58 @@ export default function FiltrosAvanzadosScreen() {
               />
               {searchComunidad.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchComunidad('')}>
-                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(18)} color={colors.textSecondary} />
+                  <IconSymbol 
+                    ios_icon_name="xmark.circle.fill" 
+                    android_material_icon_name="cancel" 
+                    size={scaleIconSize(20)} 
+                    color={colors.textSecondary} 
+                  />
                 </TouchableOpacity>
               )}
             </View>
 
-            <ScrollView style={styles.selectorModalBody}>
+            <ScrollView style={styles.modalList}>
               {filteredComunidades.length > 0 ? (
-                filteredComunidades.map((comunidad) => (
-                  <TouchableOpacity
-                    key={comunidad}
-                    style={[
-                      styles.selectorModalOption,
-                      filtrosTemp.comunidad === comunidad && styles.selectorModalOptionActive,
-                    ]}
-                    onPress={() => handleComunidadSelect(comunidad)}
-                  >
-                    <Text
+                filteredComunidades.map((comunidad) => {
+                  const isSelected = filtrosTemp.comunidad === comunidad;
+                  
+                  return (
+                    <TouchableOpacity
+                      key={comunidad}
                       style={[
-                        styles.selectorModalOptionText,
-                        { fontSize: scaleFontSize(14) },
-                        filtrosTemp.comunidad === comunidad && styles.selectorModalOptionTextActive,
+                        styles.modalOption,
+                        isSelected && styles.modalOptionActive,
                       ]}
+                      onPress={() => handleComunidadSelect(comunidad)}
+                      activeOpacity={0.7}
                     >
-                      {comunidad}
-                    </Text>
-                    {filtrosTemp.comunidad === comunidad && (
-                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={scaleIconSize(22)} color={colors.primary} />
-                    )}
-                  </TouchableOpacity>
-                ))
+                      <Text
+                        style={[
+                          styles.modalOptionText,
+                          { fontSize: scaleFontSize(15) },
+                          isSelected && styles.modalOptionTextActive,
+                        ]}
+                      >
+                        {comunidad}
+                      </Text>
+                      {isSelected && (
+                        <View style={styles.modalOptionCheck}>
+                          <IconSymbol 
+                            ios_icon_name="checkmark.circle.fill" 
+                            android_material_icon_name="check_circle" 
+                            size={scaleIconSize(24)} 
+                            color={colors.primary} 
+                          />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })
               ) : (
-                <View style={styles.emptyModalState}>
-                  <Text style={[styles.emptyModalText, { fontSize: scaleFontSize(14) }]}>No se encontraron comunidades</Text>
+                <View style={styles.modalEmpty}>
+                  <Text style={[styles.modalEmptyText, { fontSize: scaleFontSize(14) }]}>
+                    No se encontraron comunidades
+                  </Text>
                 </View>
               )}
             </ScrollView>
@@ -736,23 +904,41 @@ export default function FiltrosAvanzadosScreen() {
         onRequestClose={() => setShowProvinciaModal(false)}
       >
         <Pressable
-          style={styles.selectorModalOverlay}
+          style={styles.modalOverlay}
           onPress={() => setShowProvinciaModal(false)}
         >
-          <Pressable style={styles.selectorModalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.selectorModalHeader}>
-              <Text style={[styles.selectorModalTitle, { fontSize: scaleFontSize(16) }]}>
-                Provincia {filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades' ? `de ${filtrosTemp.comunidad}` : ''}
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(18) }]}>
+                Provincia
+                {filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades' && (
+                  <Text style={[styles.modalSubtitle, { fontSize: scaleFontSize(14) }]}>
+                    {' '}de {filtrosTemp.comunidad}
+                  </Text>
+                )}
               </Text>
-              <TouchableOpacity onPress={() => setShowProvinciaModal(false)}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={scaleIconSize(22)} color={colors.text} />
+              <TouchableOpacity 
+                onPress={() => setShowProvinciaModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <IconSymbol 
+                  ios_icon_name="xmark.circle.fill" 
+                  android_material_icon_name="cancel" 
+                  size={scaleIconSize(28)} 
+                  color={colors.textSecondary} 
+                />
               </TouchableOpacity>
             </View>
             
-            <View style={styles.searchContainer}>
-              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={scaleIconSize(18)} color={colors.textSecondary} />
+            <View style={styles.modalSearchContainer}>
+              <IconSymbol 
+                ios_icon_name="magnifyingglass" 
+                android_material_icon_name="search" 
+                size={scaleIconSize(20)} 
+                color={colors.textSecondary} 
+              />
               <TextInput
-                style={[styles.searchInput, { fontSize: scaleFontSize(14) }]}
+                style={[styles.modalSearchInput, { fontSize: scaleFontSize(15) }]}
                 placeholder="Buscar provincia..."
                 placeholderTextColor={colors.textSecondary}
                 value={searchProvincia}
@@ -760,40 +946,59 @@ export default function FiltrosAvanzadosScreen() {
               />
               {searchProvincia.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchProvincia('')}>
-                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={scaleIconSize(18)} color={colors.textSecondary} />
+                  <IconSymbol 
+                    ios_icon_name="xmark.circle.fill" 
+                    android_material_icon_name="cancel" 
+                    size={scaleIconSize(20)} 
+                    color={colors.textSecondary} 
+                  />
                 </TouchableOpacity>
               )}
             </View>
 
-            <ScrollView style={styles.selectorModalBody}>
+            <ScrollView style={styles.modalList}>
               {filteredProvincias.length > 0 ? (
-                filteredProvincias.map((provincia) => (
-                  <TouchableOpacity
-                    key={provincia}
-                    style={[
-                      styles.selectorModalOption,
-                      filtrosTemp.provincia === provincia && styles.selectorModalOptionActive,
-                    ]}
-                    onPress={() => handleProvinciaSelect(provincia)}
-                  >
-                    <Text
+                filteredProvincias.map((provincia) => {
+                  const isSelected = filtrosTemp.provincia === provincia;
+                  
+                  return (
+                    <TouchableOpacity
+                      key={provincia}
                       style={[
-                        styles.selectorModalOptionText,
-                        { fontSize: scaleFontSize(14) },
-                        filtrosTemp.provincia === provincia && styles.selectorModalOptionTextActive,
+                        styles.modalOption,
+                        isSelected && styles.modalOptionActive,
                       ]}
+                      onPress={() => handleProvinciaSelect(provincia)}
+                      activeOpacity={0.7}
                     >
-                      {provincia}
-                    </Text>
-                    {filtrosTemp.provincia === provincia && (
-                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={scaleIconSize(22)} color={colors.primary} />
-                    )}
-                  </TouchableOpacity>
-                ))
+                      <Text
+                        style={[
+                          styles.modalOptionText,
+                          { fontSize: scaleFontSize(15) },
+                          isSelected && styles.modalOptionTextActive,
+                        ]}
+                      >
+                        {provincia}
+                      </Text>
+                      {isSelected && (
+                        <View style={styles.modalOptionCheck}>
+                          <IconSymbol 
+                            ios_icon_name="checkmark.circle.fill" 
+                            android_material_icon_name="check_circle" 
+                            size={scaleIconSize(24)} 
+                            color={colors.primary} 
+                          />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })
               ) : (
-                <View style={styles.emptyModalState}>
-                  <Text style={[styles.emptyModalText, { fontSize: scaleFontSize(14) }]}>
-                    {filtrosTemp.comunidad ? 'No hay provincias disponibles' : 'Selecciona primero una comunidad'}
+                <View style={styles.modalEmpty}>
+                  <Text style={[styles.modalEmptyText, { fontSize: scaleFontSize(14) }]}>
+                    {filtrosTemp.comunidad 
+                      ? 'No hay provincias disponibles' 
+                      : 'Selecciona primero una comunidad'}
                   </Text>
                 </View>
               )}
@@ -810,307 +1015,101 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  
+  // HEADER MEJORADO
   header: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 48,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 48,
-    paddingBottom: 14,
   },
-  closeButton: {
-    width: 36,
-    height: 36,
+  backButton: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
-  clearButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  headerTitleContainer: {
+  headerCenter: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    gap: 10,
   },
   headerTitle: {
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.headerText,
+    letterSpacing: 0.5,
   },
-  filterCountBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+  headerBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
   },
-  filterCountText: {
+  headerBadgeText: {
     fontWeight: '800',
     color: colors.headerText,
   },
-  limpiarText: {
-    fontWeight: '600',
-    color: colors.headerText,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-  },
-  loadingBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: colors.primary + '10',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.primary + '20',
-  },
-  loadingBannerText: {
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  section: {
-    marginBottom: 10,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    overflow: 'hidden',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  sectionHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  sectionIconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.primary + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sectionTitle: {
-    fontWeight: '700',
-    color: colors.text,
-  },
-  sectionCount: {
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  sectionContent: {
-    paddingHorizontal: 14,
-    paddingBottom: 14,
-  },
-  locationGrid: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
-  },
-  locationButton: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  locationButtonDisabled: {
-    opacity: 0.5,
-  },
-  locationLabel: {
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  locationValue: {
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 2,
-  },
-  distanceContainer: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  distanceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  distanceLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  distanceLabel: {
-    fontWeight: '600',
-    color: colors.text,
-  },
-  distanceValueBadge: {
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.primary + '40',
-  },
-  distanceValueBadgeInactive: {
-    backgroundColor: colors.cardBorder + '30',
-    borderColor: colors.cardBorder,
-  },
-  distanceValueText: {
-    fontWeight: '700',
-    color: colors.primary,
-    letterSpacing: 0.5,
-  },
-  distanceValueTextInactive: {
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  slider: {
-    width: '100%',
+  clearButton: {
+    width: 40,
     height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
-  sliderLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
+  
+  // SCROLL VIEW
+  scrollView: {
+    flex: 1,
   },
-  sliderLabelText: {
-    fontWeight: '500',
-    color: colors.textSecondary,
+  scrollContent: {
+    padding: 16,
   },
-  activateRangeButton: {
+  
+  // LOADING CARD
+  loadingCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: colors.primary + '15',
+    gap: 12,
+    backgroundColor: colors.primary + '10',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: colors.primary + '30',
-    borderRadius: 10,
-    paddingVertical: 12,
-    marginTop: 8,
   },
-  activateRangeButtonText: {
-    fontWeight: '700',
+  loadingText: {
+    fontWeight: '600',
     color: colors.primary,
   },
-  resetRangeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 8,
-    paddingVertical: 8,
-    marginTop: 10,
-  },
-  resetRangeButtonText: {
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  chipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  chipIcon: {
-  },
-  chipText: {
-    fontWeight: '600',
-    color: colors.text,
-  },
-  chipTextActive: {
-    color: colors.headerText,
-    fontWeight: '700',
-  },
-  footer: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
+  
+  // CARDS MEJORADAS
+  card: {
     backgroundColor: colors.cardBackground,
-  },
-  aplicarButton: {
-    borderRadius: 12,
+    borderRadius: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     overflow: 'hidden',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  aplicarGradient: {
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  aplicarText: {
-    fontWeight: '700',
-    color: colors.headerText,
-  },
-  selectorModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  selectorModalContent: {
-    backgroundColor: colors.cardBackground,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 20,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  selectorModalHeader: {
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1118,87 +1117,392 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
-  selectorModalTitle: {
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconCircleSmall: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardTitle: {
     fontWeight: '700',
     color: colors.text,
   },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
+  countBadge: {
+    backgroundColor: colors.cardBorder,
     borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginHorizontal: 18,
-    marginTop: 14,
-    marginBottom: 10,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
-  searchInput: {
+  countBadgeText: {
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  cardContent: {
+    padding: 18,
+  },
+  
+  // UBICACIÓN
+  locationRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  locationSelector: {
     flex: 1,
-    color: colors.text,
-  },
-  selectorModalBody: {
-    maxHeight: 400,
-  },
-  selectorModalOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: colors.background,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
+    borderRadius: 14,
     padding: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
   },
-  selectorModalOptionActive: {
-    backgroundColor: colors.primary + '10',
+  locationSelectorDisabled: {
+    opacity: 0.5,
   },
-  selectorModalOptionText: {
-    color: colors.text,
-    fontWeight: '500',
+  locationSelectorContent: {
+    flex: 1,
   },
-  selectorModalOptionTextActive: {
+  locationSelectorLabel: {
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.textSecondary,
+    marginBottom: 4,
+    letterSpacing: 0.8,
   },
-  emptyState: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyStateText: {
+  locationSelectorValue: {
     fontWeight: '600',
     color: colors.text,
-    textAlign: 'center',
-    marginTop: 14,
   },
-  emptyStateSubtext: {
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 8,
+  
+  // DISTANCIA MEJORADA
+  distanceCard: {
+    backgroundColor: colors.background,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
+    borderRadius: 14,
+    padding: 16,
   },
-  emptyModalState: {
-    padding: 40,
+  distanceCardHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
-  emptyModalText: {
+  distanceCardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  distanceCardTitle: {
+    fontWeight: '600',
+    color: colors.text,
+  },
+  distanceBadge: {
+    backgroundColor: colors.cardBorder + '40',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
+  },
+  distanceBadgeActive: {
+    backgroundColor: '#10B981' + '20',
+    borderColor: '#10B981' + '50',
+  },
+  distanceBadgeText: {
+    fontWeight: '700',
+    color: colors.textSecondary,
+    letterSpacing: 0.5,
+  },
+  distanceBadgeTextActive: {
+    color: '#10B981',
+  },
+  distanceSlider: {
+    width: '100%',
+    height: 40,
+    marginVertical: 8,
+  },
+  distanceSliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  distanceSliderLabel: {
     fontWeight: '600',
     color: colors.textSecondary,
-    textAlign: 'center',
   },
-  refreshButton: {
+  distanceResetButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 18,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
     paddingVertical: 10,
-    borderRadius: 10,
-    marginTop: 14,
   },
-  refreshButtonText: {
+  distanceResetText: {
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  distanceActivateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#10B981' + '15',
+    borderWidth: 1.5,
+    borderColor: '#10B981' + '40',
+    borderRadius: 12,
+    paddingVertical: 14,
+  },
+  distanceActivateText: {
     fontWeight: '700',
-    color: colors.white,
+    color: '#10B981',
+  },
+  
+  // CHIPS MEJORADOS
+  chipsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  chipLarge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: colors.background,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
+    position: 'relative',
+  },
+  chipLargeActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipLargeIcon: {
+  },
+  chipLargeText: {
+    fontWeight: '600',
+    color: colors.text,
+  },
+  chipLargeTextActive: {
+    color: colors.headerText,
+    fontWeight: '700',
+  },
+  chipCheckmark: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.cardBackground,
+  },
+  
+  // FOOTER MEJORADO
+  footer: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  applyButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  applyButtonGradient: {
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  applyButtonText: {
+    fontWeight: '800',
+    color: colors.headerText,
+    letterSpacing: 0.5,
+  },
+  applyButtonBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  applyButtonBadgeText: {
+    fontWeight: '800',
+    color: colors.headerText,
+  },
+  
+  // MODALES MEJORADOS
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '85%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  modalTitle: {
+    fontWeight: '800',
+    color: colors.text,
+    flex: 1,
+  },
+  modalSubtitle: {
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 12,
+    gap: 12,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorder,
+  },
+  modalSearchInput: {
+    flex: 1,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  modalList: {
+    maxHeight: 450,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  modalOptionActive: {
+    backgroundColor: colors.primary + '10',
+  },
+  modalOptionText: {
+    color: colors.text,
+    fontWeight: '500',
+    flex: 1,
+  },
+  modalOptionTextActive: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  modalOptionCheck: {
+    marginLeft: 12,
+  },
+  modalEmpty: {
+    padding: 48,
+    alignItems: 'center',
+  },
+  modalEmptyText: {
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  
+  // ESTADO VACÍO MEJORADO
+  emptyState: {
+    padding: 48,
+    alignItems: 'center',
+  },
+  emptyStateIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  emptyStateTitle: {
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptyStateText: {
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  emptyStateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 14,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  emptyStateButtonText: {
+    fontWeight: '700',
+    color: colors.headerText,
   },
 });
