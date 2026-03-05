@@ -147,17 +147,17 @@ const ICON_MAPPING: Record<string, string> = {
   'menu-open': 'menu-open',
   'notification-important': 'notifications-active',
   'notifications-active': 'notifications-active',
-  // ✅ v455.0 CATEGORY ICONS - EXACT MAPPING FOR CONSISTENCY
+  // ✅ v456.0 CATEGORY ICONS - FIXED MATERIAL ICONS NAMES
+  // CRITICAL: Material Icons use underscores, not hyphens
   // These MUST match the androidIcon values in CATEGORIAS arrays
-  // CRITICAL: All category filters use these exact mappings
   'star': 'star',
-  'local-cafe': 'local-cafe',
-  'local_cafe': 'local-cafe',
+  'local-cafe': 'local_cafe',
+  'local_cafe': 'local_cafe',
   'restaurant': 'restaurant',
-  'local-bar': 'local-bar',
-  'local_bar': 'local-bar',
-  'sports-bar': 'sports-bar',
-  'sports_bar': 'sports-bar',
+  'local-bar': 'local_bar',
+  'local_bar': 'local_bar',
+  'sports-bar': 'sports_bar',
+  'sports_bar': 'sports_bar',
   'liquor': 'liquor',
   'nightlife': 'nightlife',
   'nightlife_dining': 'nightlife',

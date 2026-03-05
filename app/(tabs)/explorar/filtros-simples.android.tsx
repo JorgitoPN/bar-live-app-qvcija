@@ -13,28 +13,28 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 
-// ✅ v455.0 ICON CONSISTENCY FIX - FINAL VERSION
+// ✅ v456.0 ICON CONSISTENCY FIX - MATERIAL ICONS USE UNDERSCORES
 // These icons are IDENTICAL across ALL pages:
 // - app/(tabs)/explorar/filtros-simples.tsx
 // - app/(tabs)/explorar/filtros-simples.android.tsx (THIS FILE)
 // - app/(tabs)/explorar/mapa.tsx
-// CRITICAL: Material icon names use hyphens (local-cafe, local-bar, sports-bar)
+// CRITICAL: Material icon names use UNDERSCORES (local_cafe, local_bar, sports_bar)
 // CRITICAL: These exact names are mapped in components/IconSymbol.tsx
 // 
 // ICON REFERENCE (DO NOT CHANGE):
 // - Todas: star (⭐)
-// - Cafés: local-cafe (☕)
+// - Cafés: local_cafe (☕)
 // - Restaurantes: restaurant (🍽️)
-// - Bares: local-bar (🍷)
-// - Pubs: sports-bar (🍺)
+// - Bares: local_bar (🍷)
+// - Pubs: sports_bar (🍺)
 // - Coctelería: liquor (🍹)
 // - Discotecas: nightlife (🎵)
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
-  { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local-cafe' },
+  { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
   { id: 'restaurante', nombre: 'Restaurantes', iosIcon: 'fork.knife', androidIcon: 'restaurant' },
-  { id: 'bar', nombre: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local-bar' },
-  { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports-bar' },
+  { id: 'bar', nombre: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local_bar' },
+  { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports_bar' },
   { id: 'cocteleria', nombre: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'liquor' },
   { id: 'discoteca', nombre: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
 ];
