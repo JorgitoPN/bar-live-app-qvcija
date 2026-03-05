@@ -44,7 +44,7 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
   'Melilla': ['Melilla'],
 };
 
-// ✅ UNIQUE ICON MAPPING FOR SERVICIOS - SINGLE COLOR BLUE THEME
+// ✅ UNIQUE ICON MAPPING FOR SERVICIOS - TURQUOISE BLUE THEME (#14B8A6)
 const getServicioIcon = (servicioId: string) => {
   const iconMap: Record<string, { ios: string; android: string }> = {
     'terraza': { ios: 'sun.max.fill', android: 'wb_sunny' },
@@ -66,7 +66,7 @@ const getServicioIcon = (servicioId: string) => {
   return iconMap[servicioId] || { ios: 'checkmark.circle.fill', android: 'check_circle' };
 };
 
-// ✅ UNIQUE ICON MAPPING FOR AMBIENTE - SINGLE COLOR BLUE THEME
+// ✅ UNIQUE ICON MAPPING FOR AMBIENTE - TURQUOISE BLUE THEME (#14B8A6)
 const getAmbienteIcon = (ambienteId: string) => {
   const iconMap: Record<string, { ios: string; android: string }> = {
     'cualquiera': { ios: 'sparkles', android: 'auto_awesome' },
@@ -83,7 +83,7 @@ const getAmbienteIcon = (ambienteId: string) => {
   return iconMap[ambienteId] || { ios: 'star.fill', android: 'star' };
 };
 
-// ✅ UNIQUE ICON MAPPING FOR CLIENTELA - SINGLE COLOR BLUE THEME
+// ✅ UNIQUE ICON MAPPING FOR CLIENTELA - TURQUOISE BLUE THEME (#14B8A6)
 const getClientelaIcon = (clientelaId: string) => {
   const iconMap: Record<string, { ios: string; android: string }> = {
     'cualquiera': { ios: 'person.3.fill', android: 'people' },
@@ -655,7 +655,7 @@ export default function FiltrosAvanzadosScreen() {
                         ios_icon_name={servicio.iosIcon}
                         android_material_icon_name={servicio.androidIcon}
                         size={scaleIconSize(16)}
-                        color={isSelected ? '#FFFFFF' : '#3B82F6'}
+                        color={isSelected ? '#FFFFFF' : '#14B8A6'}
                       />
                       <Text 
                         style={[
@@ -708,7 +708,7 @@ export default function FiltrosAvanzadosScreen() {
                         ios_icon_name={ambiente.iosIcon}
                         android_material_icon_name={ambiente.androidIcon}
                         size={scaleIconSize(16)}
-                        color={isSelected ? '#FFFFFF' : '#3B82F6'}
+                        color={isSelected ? '#FFFFFF' : '#14B8A6'}
                       />
                       <Text 
                         style={[
@@ -761,7 +761,7 @@ export default function FiltrosAvanzadosScreen() {
                         ios_icon_name={clientela.iosIcon}
                         android_material_icon_name={clientela.androidIcon}
                         size={scaleIconSize(16)}
-                        color={isSelected ? '#FFFFFF' : '#3B82F6'}
+                        color={isSelected ? '#FFFFFF' : '#14B8A6'}
                       />
                       <Text 
                         style={[
@@ -1251,7 +1251,7 @@ const styles = StyleSheet.create({
     color: '#10B981',
   },
   
-  // CHIPS COMPACTOS - BLUE THEME
+  // CHIPS COMPACTOS - TURQUOISE BLUE THEME (#14B8A6)
   chipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1266,17 +1266,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: colors.background,
     borderWidth: 1.5,
-    borderColor: '#3B82F6' + '30',
+    borderColor: '#14B8A6' + '30',
   },
   chipActive: {
-    backgroundColor: '#3B82F6',
-    borderColor: '#3B82F6',
+    backgroundColor: '#14B8A6',
+    borderColor: '#14B8A6',
   },
   chipIcon: {
   },
   chipText: {
     fontWeight: '600',
-    color: '#3B82F6',
+    color: '#14B8A6',
   },
   chipTextActive: {
     color: '#FFFFFF',

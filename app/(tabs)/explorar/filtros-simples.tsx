@@ -14,14 +14,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 
-// ✅ SAME ICONS AS ADVANCED FILTERS - CONSISTENT ACROSS MAP AND EXPLORE
+// ✅ SAME ICONS AS MAP - CONSISTENT ACROSS MAP AND EXPLORE
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
-  { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'coffee' },
+  { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
   { id: 'restaurante', nombre: 'Restaurantes', iosIcon: 'fork.knife', androidIcon: 'restaurant' },
   { id: 'bar', nombre: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local_bar' },
   { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports_bar' },
-  { id: 'cocteleria', nombre: 'Coctelería', iosIcon: 'cup.and.saucer.fill', androidIcon: 'liquor' },
+  { id: 'cocteleria', nombre: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'liquor' },
   { id: 'discoteca', nombre: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
   { id: 'terraza', nombre: 'Terrazas', iosIcon: 'sun.max.fill', androidIcon: 'wb_sunny' },
   { id: 'rooftop', nombre: 'Rooftops', iosIcon: 'building.2.fill', androidIcon: 'apartment' },
