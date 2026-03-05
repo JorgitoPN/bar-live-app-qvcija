@@ -317,27 +317,12 @@ export const setupErrorLogging = () => {
 
   // Override console.error to capture and send to server
   console.error = (...args: any[]) => {
+    // Queue log for sending to server (skip muted messages)
     const message = stringifyArgs(args);
-    
-    // Check if it's an AbortError
-    const hasAbortError = args.some(arg => 
-      (arg && typeof arg === 'object' && arg.name === 'AbortError') ||
-      (typeof arg === 'string' && arg.toLowerCase().includes('abort'))
-    );
-    
-    // ✅ FASE 14: Completely suppress AbortErrors - they're expected behavior
-    // AbortErrors occur when queries are cancelled (timeout, unmount, navigation)
-    // These are NOT real errors and should not clutter the console
-    if (hasAbortError) {
-      // Silently ignore - don't log to console or send to server
-      return;
-    }
-    
-    // Always call original first (even for AbortErrors during debugging)
-    originalConsoleError.apply(console, args);
-    
-    // Skip muted messages
     if (shouldMuteMessage(message)) return;
+
+    // Always call original first
+    originalConsoleError.apply(console, args);
 
     const source = getCallerInfo();
     queueLog('error', message, source);

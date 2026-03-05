@@ -17,7 +17,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Filtros } from '@/types';
-import { useFilters } from '@/contexts/FilterContext';
+import { useFilterStore } from '@/src/store/useFilterStore';
 import { useRouter } from 'expo-router';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -45,40 +45,39 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ FILTROS AVANZADOS v7.0 - DISEÑO ULTRA COMPACTO Y ORIGINAL
+ * ✅ FILTROS AVANZADOS v43.0 - DISEÑO MODERNO UNIFICADO
  * 
- * MEJORAS v7.0:
- * - 🎨 Diseño más compacto y minimalista
+ * MEJORAS v43.0:
+ * - 🎨 Diseño ultra compacto y minimalista
  * - 📱 Chips más pequeños y organizados
  * - ✨ Colores vibrantes y modernos
  * - 🎯 Mejor uso del espacio vertical
  * - 🌈 Diseño original y atractivo
- * - 🚀 Caché limpiada (cache key v7.0)
+ * - 🔄 Sincronización con Zustand store
+ * - 🌐 Funciona en web, iOS y Android
  */
 export default function FiltrosAvanzadosScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   
-  const { 
-    filtros: contextFiltros, 
-    aplicarFiltros: contextAplicarFiltros, 
-    limpiarFiltros: contextLimpiarFiltros,
-    dynamicOptions,
-    refreshDynamicOptions,
-    isLoadingOptions,
-  } = useFilters();
+  const filtros = useFilterStore(state => state.filtros);
+  const setFiltros = useFilterStore(state => state.setFiltros);
+  const limpiarFiltros = useFilterStore(state => state.limpiarFiltros);
+  const dynamicOptions = useFilterStore(state => state.dynamicOptions);
+  const refreshDynamicOptions = useFilterStore(state => state.refreshDynamicOptions);
+  const isLoadingOptions = useFilterStore(state => state.isLoadingOptions);
   
-  const [filtrosTemp, setFiltrosTemp] = useState<Filtros>(contextFiltros);
+  const [filtrosTemp, setFiltrosTemp] = useState<Filtros>(filtros);
   const [showComunidadModal, setShowComunidadModal] = useState(false);
   const [showProvinciaModal, setShowProvinciaModal] = useState(false);
   const [searchComunidad, setSearchComunidad] = useState('');
   const [searchProvincia, setSearchProvincia] = useState('');
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados v7.0] 🎨 Inicializando diseño ultra compacto');
-    setFiltrosTemp(contextFiltros);
+    console.log('[FiltrosAvanzados v43.0] 🎨 Inicializando diseño moderno unificado');
+    setFiltrosTemp(filtros);
     refreshDynamicOptions();
-  }, [contextFiltros, refreshDynamicOptions]);
+  }, [filtros, refreshDynamicOptions]);
 
   const toggleArrayItem = useCallback((array: string[] | undefined, item: string): string[] => {
     const arr = array || [];
@@ -86,6 +85,24 @@ export default function FiltrosAvanzadosScreen() {
       return arr.filter((i) => i !== item);
     }
     return [...arr, item];
+  }, []);
+
+  const handleTipoToggle = useCallback((tipoId: string) => {
+    console.log('[FiltrosAvanzados v43.0] 🏷️ Category toggled:', tipoId);
+    
+    setFiltrosTemp(prev => {
+      if (tipoId === 'todos') {
+        return {
+          ...prev,
+          tipo: undefined,
+        };
+      } else {
+        return {
+          ...prev,
+          tipo: [tipoId],
+        };
+      }
+    });
   }, []);
 
   const handleServicioToggle = useCallback((servicioId: string) => {
@@ -110,22 +127,22 @@ export default function FiltrosAvanzadosScreen() {
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v7.0] ✅ Aplicando filtros:', filtrosTemp);
-    contextAplicarFiltros(filtrosTemp);
+    console.log('[FiltrosAvanzados v43.0] ✅ Aplicando filtros:', filtrosTemp);
+    setFiltros(filtrosTemp);
     router.back();
-  }, [filtrosTemp, contextAplicarFiltros, router]);
+  }, [filtrosTemp, setFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v7.0] 🧹 Limpiando filtros');
+    console.log('[FiltrosAvanzados v43.0] 🧹 Limpiando filtros');
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     setTimeout(() => {
-      contextLimpiarFiltros();
+      limpiarFiltros();
     }, 0);
-  }, [contextLimpiarFiltros]);
+  }, [limpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v7.0] 📍 Comunidad seleccionada:', selectedComunidad);
+    console.log('[FiltrosAvanzados v43.0] 📍 Comunidad seleccionada:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -149,7 +166,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v7.0] 📍 Provincia seleccionada:', provincia);
+    console.log('[FiltrosAvanzados v43.0] 📍 Provincia seleccionada:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -159,7 +176,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados v7.0] 📏 Radio cambiado a:', value, 'km');
+    console.log('[FiltrosAvanzados v43.0] 📏 Radio cambiado a:', value, 'km');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: value,
@@ -167,7 +184,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const activateDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v7.0] 🎯 Activando filtro de distancia');
+    console.log('[FiltrosAvanzados v43.0] 🎯 Activando filtro de distancia');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: 50,
@@ -175,7 +192,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const resetDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v7.0] 🔄 Reseteando radio de búsqueda');
+    console.log('[FiltrosAvanzados v43.0] 🔄 Reseteando radio de búsqueda');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: undefined,
@@ -215,6 +232,34 @@ export default function FiltrosAvanzadosScreen() {
       p.toLowerCase().includes(query)
     );
   }, [availableProvincias, searchProvincia]);
+
+  const tiposLocales = useMemo(() => {
+    const tipos = [{ id: 'todos', label: 'Todos', icon: '🏪' }];
+    
+    const filteredTipos = dynamicOptions.tipos.filter(tipo => 
+      tipo !== 'lounge' && tipo !== 'sala_conciertos'
+    );
+    
+    filteredTipos.forEach(tipo => {
+      let icon = '📍';
+      if (tipo === 'cafe') icon = '☕';
+      else if (tipo === 'bar') icon = '🍷';
+      else if (tipo === 'restaurante') icon = '🍽️';
+      else if (tipo === 'pub') icon = '🍺';
+      else if (tipo === 'cocteleria') icon = '🍹';
+      else if (tipo === 'discoteca') icon = '🎵';
+      else if (tipo === 'terraza') icon = '☀️';
+      else if (tipo === 'rooftop') icon = '🏢';
+      
+      tipos.push({
+        id: tipo,
+        label: tipo.charAt(0).toUpperCase() + tipo.slice(1),
+        icon: icon,
+      });
+    });
+    
+    return tipos;
+  }, [dynamicOptions.tipos]);
 
   const serviciosDisponibles = useMemo(() => {
     return dynamicOptions.servicios.map(servicio => {
@@ -276,6 +321,7 @@ export default function FiltrosAvanzadosScreen() {
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
+    if (filtrosTemp.tipo && filtrosTemp.tipo.length > 0) count++;
     if (filtrosTemp.servicios && filtrosTemp.servicios.length > 0) count++;
     if (filtrosTemp.ambiente && filtrosTemp.ambiente.length > 0) count++;
     if (filtrosTemp.clientela && filtrosTemp.clientela.length > 0) count++;
@@ -343,6 +389,56 @@ export default function FiltrosAvanzadosScreen() {
             <Text style={[styles.loadingText, { fontSize: scaleFontSize(13) }]}>
               Cargando...
             </Text>
+          </View>
+        )}
+
+        {/* 🏷️ TIPO DE LOCAL - COMPACTO */}
+        {tiposLocales.length > 1 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.iconDot, { backgroundColor: '#F59E0B' }]} />
+              <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Tipo de Local</Text>
+              <View style={styles.countBadge}>
+                <Text style={[styles.countBadgeText, { fontSize: scaleFontSize(10) }]}>
+                  {tiposLocales.length - 1}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.sectionContent}>
+              <View style={styles.chipsContainer}>
+                {tiposLocales.map((tipo) => {
+                  const isSelected = tipo.id === 'todos' 
+                    ? !filtrosTemp.tipo || filtrosTemp.tipo.length === 0
+                    : filtrosTemp.tipo?.includes(tipo.id);
+                  
+                  return (
+                    <TouchableOpacity
+                      key={tipo.id}
+                      style={[
+                        styles.chip,
+                        isSelected && styles.chipActive,
+                      ]}
+                      onPress={() => handleTipoToggle(tipo.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>
+                        {tipo.icon}
+                      </Text>
+                      <Text 
+                        style={[
+                          styles.chipText, 
+                          { fontSize: scaleFontSize(11) },
+                          isSelected && styles.chipTextActive
+                        ]}
+                      >
+                        {tipo.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
           </View>
         )}
 
@@ -512,7 +608,7 @@ export default function FiltrosAvanzadosScreen() {
         {ambientesDisponibles.length > 1 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <View style={[styles.iconDot, { backgroundColor: '#F59E0B' }]} />
+              <View style={[styles.iconDot, { backgroundColor: '#EC4899' }]} />
               <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Ambiente</Text>
               <View style={styles.countBadge}>
                 <Text style={[styles.countBadgeText, { fontSize: scaleFontSize(10) }]}>
@@ -562,7 +658,7 @@ export default function FiltrosAvanzadosScreen() {
         {clientelaDisponible.length > 1 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <View style={[styles.iconDot, { backgroundColor: '#EC4899' }]} />
+              <View style={[styles.iconDot, { backgroundColor: '#10B981' }]} />
               <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Clientela</Text>
               <View style={styles.countBadge}>
                 <Text style={[styles.countBadgeText, { fontSize: scaleFontSize(10) }]}>
