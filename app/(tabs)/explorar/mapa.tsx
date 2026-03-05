@@ -52,16 +52,19 @@ const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
  * - ✅ Quick clear button for advanced filters
  */
 
-// ✅ v453.0 SYNCHRONIZED WITH FILTROS-SIMPLES - EXACT SAME ICONS AND STRUCTURE
-// These icons MUST match EXACTLY with app/(tabs)/explorar/filtros-simples.tsx
-// Using IDENTICAL icon names for both iOS and Android
+// ✅ v454.0 ICON CONSISTENCY FIX - EXACT SAME ICONS ACROSS ALL PAGES
+// These icons MUST match EXACTLY with:
+// - app/(tabs)/explorar/filtros-simples.tsx
+// - app/(tabs)/explorar/filtros-simples.android.tsx
+// CRITICAL: Using IDENTICAL icon names for both iOS and Android
 // CRITICAL: Using 'nombre' property to match filtros-simples exactly
+// CRITICAL: Material icon names use hyphens (local-cafe, local-bar, sports-bar)
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
-  { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
+  { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local-cafe' },
   { id: 'restaurante', nombre: 'Restaurantes', iosIcon: 'fork.knife', androidIcon: 'restaurant' },
-  { id: 'bar', nombre: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local_bar' },
-  { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports_bar' },
+  { id: 'bar', nombre: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local-bar' },
+  { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports-bar' },
   { id: 'cocteleria', nombre: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'liquor' },
   { id: 'discoteca', nombre: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
 ];

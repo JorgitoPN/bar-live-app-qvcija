@@ -13,15 +13,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 
-// ✅ v452.0 SYNCHRONIZED WITH MAPA PAGE - EXACT SAME ICONS
-// These icons MUST match EXACTLY with app/(tabs)/explorar/mapa.tsx
-// Using IDENTICAL icon names for both iOS and Android
+// ✅ v454.0 ICON CONSISTENCY FIX - EXACT SAME ICONS ACROSS ALL PAGES
+// These icons MUST match EXACTLY with:
+// - app/(tabs)/explorar/filtros-simples.tsx
+// - app/(tabs)/explorar/mapa.tsx
+// CRITICAL: Using IDENTICAL icon names for both iOS and Android
+// CRITICAL: Material icon names use hyphens (local-cafe, local-bar, sports-bar)
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
-  { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
+  { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local-cafe' },
   { id: 'restaurante', nombre: 'Restaurantes', iosIcon: 'fork.knife', androidIcon: 'restaurant' },
-  { id: 'bar', nombre: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local_bar' },
-  { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports_bar' },
+  { id: 'bar', nombre: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local-bar' },
+  { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports-bar' },
   { id: 'cocteleria', nombre: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'liquor' },
   { id: 'discoteca', nombre: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
 ];

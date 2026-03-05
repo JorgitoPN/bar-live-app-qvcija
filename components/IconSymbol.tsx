@@ -141,6 +141,17 @@ const ICON_MAPPING: Record<string, string> = {
   'menu-open': 'menu-open',
   'notification-important': 'notifications-active',
   'notifications-active': 'notifications-active',
+  // Category icons for Explorar/Mapa filters
+  'local_cafe': 'local-cafe',
+  'local-cafe': 'local-cafe',
+  'restaurant': 'restaurant',
+  'local_bar': 'local-bar',
+  'local-bar': 'local-bar',
+  'sports_bar': 'sports-bar',
+  'sports-bar': 'sports-bar',
+  'liquor': 'liquor',
+  'nightlife': 'nightlife',
+  'nightlife_dining': 'nightlife',
 };
 
 // Get valid icon name with fallback
