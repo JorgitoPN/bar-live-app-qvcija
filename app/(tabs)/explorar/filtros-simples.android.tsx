@@ -102,12 +102,14 @@ export default function FiltrosSimplesScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <IconSymbol
-                  ios_icon_name={categoria.iosIcon}
-                  android_material_icon_name={categoria.androidIcon}
-                  size={scaleIconSize(20)}
-                  color={selectedCategory === categoria.id ? colors.white : colors.primary}
-                />
+                <View style={styles.categoryIconWrapper}>
+                  <IconSymbol
+                    ios_icon_name={categoria.iosIcon as any}
+                    android_material_icon_name={categoria.androidIcon}
+                    size={scaleIconSize(20)}
+                    color={selectedCategory === categoria.id ? colors.white : colors.primary}
+                  />
+                </View>
                 <Text
                   style={[
                     styles.categoryFilterText,
@@ -236,9 +238,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
+  categoryIconWrapper: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   categoryFilterText: {
     fontWeight: '600',
     color: colors.text,
+    flex: 1,
   },
   categoryFilterTextActive: {
     color: colors.white,
