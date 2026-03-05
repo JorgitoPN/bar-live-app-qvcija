@@ -1,18 +1,17 @@
 
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Animated, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/commonStyles';
 
 /**
- * ✅ INITIAL LOADING SCREEN v3.0 - OPTIMIZED FOR PERFORMANCE
+ * ✅ INITIAL LOADING SCREEN v3.1 - LOGO REAL DE BARLIVE
  * 
- * CHANGES v3.0:
+ * CHANGES v3.1:
+ * - ✅ LOGO REAL: Usa el logo oficial de BarLive
+ * - ✅ MENSAJE ACTUALIZADO: "La actividad de tus locales, en vivo"
  * - ✅ PROGRESS TRACKING: Shows actual loading progress
- * - ✅ SMART MESSAGES: Context-aware loading messages
  * - ✅ SMOOTH ANIMATIONS: Minimal CPU load
- * - ✅ INSTANT RENDER: No fade-in delay
- * - ✅ RESULT: Faster perceived load time, better UX
  */
 
 interface InitialLoadingScreenProps {
@@ -52,8 +51,15 @@ export default function InitialLoadingScreen({ progress = 0 }: InitialLoadingScr
       style={styles.container}
     >
       <View style={styles.content}>
-        <Text style={styles.logo}>🍺 BarLive</Text>
-        <Text style={styles.subtitle}>Tu vida nocturna, en vivo</Text>
+        {/* ✅ Logo real de BarLive */}
+        <Image
+          source={require('@/assets/images/0bc5d522-34a4-4e44-ab69-2b6add00d6f7.jpeg')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        
+        {/* ✅ Mensaje actualizado */}
+        <Text style={styles.subtitle}>La actividad de tus locales, en vivo</Text>
         
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.headerText} />
@@ -92,9 +98,8 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   logo: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: colors.headerText,
+    width: 120,
+    height: 120,
     marginBottom: 8,
   },
   subtitle: {
@@ -102,6 +107,7 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     opacity: 0.9,
     textAlign: 'center',
+    fontWeight: '500',
   },
   loadingContainer: {
     alignItems: 'center',
