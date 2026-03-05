@@ -126,10 +126,11 @@ const KeyboardAvoidingWrapper: React.FC<KeyboardAvoidingWrapperProps> = ({
     });
   };
 
-  // Calculate the correct keyboardVerticalOffset for iOS
-  // We need to subtract the header height and any safe area insets to eliminate the gap
+  // ✅ FIXED v10.0: iOS keyboard offset - NO EXTRA SPACE
+  // The input should sit DIRECTLY on top of the keyboard with NO gap
+  // Setting offset to 0 ensures the input is flush with the keyboard
   const iosKeyboardOffset = Platform.OS === 'ios' 
-    ? -(insets.bottom) + extraOffset  // Negative offset to eliminate the gap
+    ? 0 + extraOffset  // Zero offset = input sits directly on keyboard (no gap)
     : extraOffset;
 
   return (

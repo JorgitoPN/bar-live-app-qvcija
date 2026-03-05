@@ -3361,38 +3361,37 @@ function SalaVirtualEnhancedScreen() {
     const baseInputHeight = 68;
     const quickMessagesHeight = showQuickMessages && activeTab === 'chat' ? 60 : 0;
     
-    // ✅ v8.0: FIXED - Matching comments page behavior
+    // ✅ v10.0: FIXED - NO EXTRA SPACE between input and keyboard
     // Dynamic padding based on keyboard state
-    // iOS: No extra padding when keyboard is open (input sits on keyboard)
-    // Android: Add keyboard height + extra spacing to push content well above keyboard
-    // Increased to 100px for maximum visibility above keyboard
+    // iOS: No extra padding when keyboard is open (input sits DIRECTLY on keyboard)
+    // Android: Add keyboard height to push content above keyboard
     const dynamicPadding = Platform.OS === 'ios'
       ? (isKeyboardVisible ? 0 : Math.max(insets.bottom, 8))
-      : (isKeyboardVisible ? keyboardHeight + 100 : Math.max(insets.bottom, 8));
+      : (isKeyboardVisible ? keyboardHeight : Math.max(insets.bottom, 8));
     
     const totalPadding = baseInputHeight + quickMessagesHeight + dynamicPadding;
     
-    console.log('[SalaVirtual v8.0] 📏 Content padding bottom:', totalPadding, 'px (keyboard:', isKeyboardVisible ? 'open' : 'closed', ', height:', keyboardHeight, ')');
+    console.log('[SalaVirtual v10.0] 📏 Content padding bottom:', totalPadding, 'px (keyboard:', isKeyboardVisible ? 'open' : 'closed', ', height:', keyboardHeight, ')');
     
     return totalPadding;
   }, [showQuickMessages, activeTab, insets.bottom, isKeyboardVisible, keyboardHeight]);
 
-  // ✅ v8.0: FIXED - Input container positioning (matching comments page)
-  // Keyboard OPEN: bottom = keyboardHeight + 50 (input rises well above keyboard with clearance)
+  // ✅ v10.0: FIXED - Input container positioning (NO EXTRA SPACE)
+  // Keyboard OPEN: bottom = keyboardHeight (input sits DIRECTLY on keyboard, no gap)
   // Keyboard CLOSED: bottom = 0 (input sits at screen bottom)
   const inputContainerBottom = useMemo(() => {
-    const bottomValue = isKeyboardVisible ? keyboardHeight + 50 : 0;
-    console.log('[SalaVirtual v8.0] 📐 Input container bottom:', bottomValue, 
+    const bottomValue = isKeyboardVisible ? keyboardHeight : 0;
+    console.log('[SalaVirtual v10.0] 📐 Input container bottom:', bottomValue, 
       '(keyboard:', isKeyboardVisible ? 'OPEN' : 'CLOSED', ')');
     return bottomValue;
   }, [isKeyboardVisible, keyboardHeight]);
 
-  // ✅ v8.0: FIXED - Input container padding (matching comments page)
-  // Keyboard OPEN: paddingBottom = 8 (minimal, input is already elevated)
+  // ✅ v10.0: FIXED - Input container padding (NO EXTRA SPACE)
+  // Keyboard OPEN: paddingBottom = 0 (input sits DIRECTLY on keyboard, no gap)
   // Keyboard CLOSED: paddingBottom = Math.max(insets.bottom, 8) (respects system buttons)
   const inputContainerPaddingBottom = useMemo(() => {
-    const paddingValue = isKeyboardVisible ? 8 : Math.max(insets.bottom, 8);
-    console.log('[SalaVirtual v8.0] 📐 Input container paddingBottom:', paddingValue, 
+    const paddingValue = isKeyboardVisible ? 0 : Math.max(insets.bottom, 8);
+    console.log('[SalaVirtual v10.0] 📐 Input container paddingBottom:', paddingValue, 
       '(keyboard:', isKeyboardVisible ? 'OPEN' : 'CLOSED', ')');
     return paddingValue;
   }, [isKeyboardVisible, insets.bottom]);
