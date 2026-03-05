@@ -52,17 +52,18 @@ const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
  * - ✅ Quick clear button for advanced filters
  */
 
-// ✅ v452.0 SYNCHRONIZED WITH FILTROS-SIMPLES - EXACT SAME ICONS
+// ✅ v453.0 SYNCHRONIZED WITH FILTROS-SIMPLES - EXACT SAME ICONS AND STRUCTURE
 // These icons MUST match EXACTLY with app/(tabs)/explorar/filtros-simples.tsx
 // Using IDENTICAL icon names for both iOS and Android
+// CRITICAL: Using 'nombre' property to match filtros-simples exactly
 const CATEGORIAS = [
-  { id: 'todas', label: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
-  { id: 'cafe', label: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
-  { id: 'restaurante', label: 'Restaurantes', iosIcon: 'fork.knife', androidIcon: 'restaurant' },
-  { id: 'bar', label: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local_bar' },
-  { id: 'pub', label: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports_bar' },
-  { id: 'cocteleria', label: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'liquor' },
-  { id: 'discoteca', label: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
+  { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
+  { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
+  { id: 'restaurante', nombre: 'Restaurantes', iosIcon: 'fork.knife', androidIcon: 'restaurant' },
+  { id: 'bar', nombre: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local_bar' },
+  { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports_bar' },
+  { id: 'cocteleria', nombre: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'liquor' },
+  { id: 'discoteca', nombre: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
 ];
 
 const CategoriaButton = React.memo(({ 
@@ -96,7 +97,7 @@ const CategoriaButton = React.memo(({
         styles.categoriaLabelCompact,
         isSelected && styles.categoriaLabelActive
       ]} numberOfLines={1}>
-        {categoria.label}
+        {categoria.nombre}
       </Text>
     </TouchableOpacity>
   );
