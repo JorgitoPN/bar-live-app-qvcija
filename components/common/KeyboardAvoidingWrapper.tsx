@@ -1,238 +1,169 @@
 
-import React, { useEffect, useState, ReactNode, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
-  Keyboard,
   StyleSheet,
-  ViewStyle,
+  View,
+  Keyboard,
   ScrollView,
-  KeyboardEvent,
+  TextInput,
+  LayoutChangeEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-/**
- * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 KEYBOARD AVOIDING WRAPPER v2.0 - SOLUCIÓN GLOBAL MEJORADA
- * ═══════════════════════════════════════════════════════════════════════════
- * 
- * PROBLEMA IDENTIFICADO:
- * - Teclado se despliega encima de los campos de texto
- * - En Android, campos quedan debajo de la barra de navegación del sistema
- * - Comportamiento inconsistente entre iOS y Android
- * - Falta de padding inferior para evitar conflicto con botones del sistema
- * - Cambios rápidos entre campos causan problemas de posicionamiento
- * 
- * SOLUCIÓN v2.0 IMPLEMENTADA:
- * 
- * 1. COMPORTAMIENTO POR PLATAFORMA (MEJORADO):
- *    iOS:
- *    - behavior="padding" (empuja el contenido hacia arriba)
- *    - keyboardVerticalOffset dinámico basado en safe area insets
- *    - Transiciones suaves nativas de iOS
- *    - ScrollView interno para manejar contenido largo
- *    
- *    Android:
- *    - behavior="height" (ajusta la altura del contenedor)
- *    - Padding inferior dinámico basado en altura del teclado
- *    - Manejo explícito de la barra de navegación del sistema
- *    - Padding adicional de 40px para evitar solapamiento
- * 
- * 2. SAFE AREA INSETS (MEJORADO):
- *    - Respeta los insets del dispositivo (notch, barra de navegación)
- *    - Padding inferior automático cuando el teclado está cerrado
- *    - Ajuste dinámico cuando el teclado se abre
- *    - Manejo de diferentes alturas de teclado (con/sin sugerencias)
- * 
- * 3. LISTENERS DE TECLADO (MEJORADO):
- *    - keyboardWillShow/keyboardDidShow para detectar apertura
- *    - keyboardWillHide/keyboardDidHide para detectar cierre
- *    - Actualización de altura del teclado en tiempo real
- *    - Debouncing para evitar actualizaciones excesivas
- * 
- * 4. SCROLLVIEW INTERNO (NUEVO):
- *    - ScrollView interno para manejar contenido que excede la pantalla
- *    - keyboardShouldPersistTaps="handled" para mejor UX
- *    - Auto-scroll al campo activo cuando el teclado se abre
- * 
- * 5. GARANTÍAS:
- *    - ✅ Campo activo siempre visible sobre el teclado
- *    - ✅ Desplazamiento suave automático
- *    - ✅ No conflicto con barra de navegación en Android
- *    - ✅ Comportamiento consistente en toda la app
- *    - ✅ Funciona con cambios rápidos entre campos
- *    - ✅ Maneja diferentes alturas de teclado (con/sin sugerencias)
- *    - ✅ Contenido largo se puede desplazar sin problemas
- * 
- * USO:
- * ```tsx
- * <KeyboardAvoidingWrapper>
- *   <TextInput placeholder="Email" />
- *   <TextInput placeholder="Password" />
- *   <TextInput placeholder="Confirm Password" />
- * </KeyboardAvoidingWrapper>
- * ```
- * 
- * PROPS:
- * - children: Contenido a envolver
- * - style: Estilos adicionales (opcional)
- * - extraOffset: Offset adicional personalizado (opcional)
- * - scrollEnabled: Habilitar scroll interno (default: true)
- * 
- * ═══════════════════════════════════════════════════════════════════════════
- */
+import { useHeaderHeight } from '@react-navigation/elements';
 
 interface KeyboardAvoidingWrapperProps {
-  children: ReactNode;
-  style?: ViewStyle;
+  children: React.ReactNode;
+  style?: object;
   extraOffset?: number;
+  scrollViewRef?: React.RefObject<ScrollView>;
+  contentContainerStyle?: object;
   scrollEnabled?: boolean;
 }
 
-export default function KeyboardAvoidingWrapper({
+const KeyboardAvoidingWrapper: React.FC<KeyboardAvoidingWrapperProps> = ({
   children,
   style,
   extraOffset = 0,
+  scrollViewRef,
+  contentContainerStyle,
   scrollEnabled = true,
-}: KeyboardAvoidingWrapperProps) {
+}) => {
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const internalScrollViewRef = useRef<ScrollView>(null);
+  const activeInputRef = useRef<TextInput | null>(null);
+  const currentScrollViewRef = scrollViewRef || internalScrollViewRef;
 
   useEffect(() => {
-    console.log('[KeyboardAvoidingWrapper v2.0] 🎹 Setting up keyboard listeners');
-    console.log('[KeyboardAvoidingWrapper v2.0] 📱 Platform:', Platform.OS);
-    console.log('[KeyboardAvoidingWrapper v2.0] 📏 Safe area insets:', insets);
+    const keyboardShowEvent = Platform.select({
+      ios: 'keyboardWillShow',
+      android: 'keyboardDidShow',
+      default: 'keyboardDidShow',
+    });
+    const keyboardHideEvent = Platform.select({
+      ios: 'keyboardWillHide',
+      android: 'keyboardDidHide',
+      default: 'keyboardDidHide',
+    });
 
-    // ✅ PASO 1: Detectar apertura del teclado
-    const keyboardWillShowListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e: KeyboardEvent) => {
-        console.log('[KeyboardAvoidingWrapper v2.0] ⬆️ Keyboard opened');
-        console.log('[KeyboardAvoidingWrapper v2.0] 📐 Keyboard height:', e.endCoordinates.height);
-        
-        // ✅ Debounce para evitar actualizaciones excesivas
-        if (debounceTimerRef.current) {
-          clearTimeout(debounceTimerRef.current);
+    const keyboardDidShowListener = Keyboard.addListener(
+      keyboardShowEvent,
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        setIsKeyboardVisible(true);
+
+        // Auto-scroll to active input
+        if (activeInputRef.current && currentScrollViewRef.current) {
+          activeInputRef.current.measureLayout(
+            currentScrollViewRef.current.getInnerViewNode(),
+            (x, y, width, height) => {
+              const inputBottom = y + height;
+              const keyboardTop = e.endCoordinates.screenY;
+
+              // If input is covered by keyboard
+              if (inputBottom > keyboardTop) {
+                const scrollAmount = inputBottom - keyboardTop + 10;
+                currentScrollViewRef.current?.scrollTo({ y: scrollAmount, animated: true });
+              }
+            },
+            () => { /* Failed to measure layout */ }
+          );
         }
-        
-        debounceTimerRef.current = setTimeout(() => {
-          setKeyboardHeight(e.endCoordinates.height);
-          setIsKeyboardVisible(true);
-          
-          // ✅ Auto-scroll al final cuando el teclado se abre
-          if (scrollEnabled && scrollViewRef.current) {
-            setTimeout(() => {
-              scrollViewRef.current?.scrollToEnd({ animated: true });
-            }, 100);
-          }
-        }, 50);
       }
     );
-
-    // ✅ PASO 2: Detectar cierre del teclado
-    const keyboardWillHideListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+    const keyboardDidHideListener = Keyboard.addListener(
+      keyboardHideEvent,
       () => {
-        console.log('[KeyboardAvoidingWrapper v2.0] ⬇️ Keyboard closed');
-        
-        // ✅ Debounce para evitar actualizaciones excesivas
-        if (debounceTimerRef.current) {
-          clearTimeout(debounceTimerRef.current);
-        }
-        
-        debounceTimerRef.current = setTimeout(() => {
-          setKeyboardHeight(0);
-          setIsKeyboardVisible(false);
-        }, 50);
+        setKeyboardHeight(0);
+        setIsKeyboardVisible(false);
       }
     );
 
     return () => {
-      console.log('[KeyboardAvoidingWrapper v2.0] 🧹 Cleaning up keyboard listeners');
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-      keyboardWillShowListener.remove();
-      keyboardWillHideListener.remove();
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
     };
-  }, [insets, scrollEnabled]);
+  }, [headerHeight, extraOffset]);
 
-  // ✅ PASO 3: Calcular offset vertical dinámico
-  const keyboardVerticalOffset = Platform.select({
-    // iOS: Offset basado en safe area + header + extra
-    ios: insets.top + 60 + extraOffset,
-    
-    // Android: Offset mínimo (el behavior="height" maneja el resto)
-    android: extraOffset,
-    
-    default: 0,
-  });
+  // Handlers to track the currently focused TextInput
+  const handleFocus = (event: any) => {
+    activeInputRef.current = event.target;
+  };
 
-  // ✅ PASO 4: Calcular padding inferior dinámico para Android
-  // CRÍTICO: Padding adicional de 40px para evitar que el campo quede debajo de la barra de navegación
-  const contentPaddingBottom = Platform.select({
-    // iOS: KeyboardAvoidingView maneja todo automáticamente
-    ios: Math.max(insets.bottom, 8),
-    
-    // Android: Padding dinámico basado en estado del teclado
-    android: isKeyboardVisible 
-      ? keyboardHeight + 40 // ✅ CRÍTICO: +40px para evitar solapamiento con barra de navegación
-      : Math.max(insets.bottom, 8), // Teclado cerrado: respeta barra de navegación
-    
-    default: 0,
-  });
+  const handleBlur = () => {
+    activeInputRef.current = null;
+  };
 
-  console.log('[KeyboardAvoidingWrapper v2.0] 📊 Current state:', {
-    isKeyboardVisible,
-    keyboardHeight,
-    keyboardVerticalOffset,
-    contentPaddingBottom,
-    platform: Platform.OS,
-  });
+  // Recursively clone children to inject onFocus and onBlur props into TextInputs
+  const renderChildrenWithFocusHandlers = (children: React.ReactNode): React.ReactNode => {
+    return React.Children.map(children, (child) => {
+      if (React.isValidElement(child)) {
+        // If the child has children, process them recursively
+        if (child.props.children) {
+          return React.cloneElement(child, {
+            children: renderChildrenWithFocusHandlers(child.props.children),
+          });
+        }
+        // If it's a TextInput, inject onFocus and onBlur
+        if (child.type === TextInput || (child.type as any).displayName === 'TextInput') {
+          return React.cloneElement(child, {
+            onFocus: (e: any) => {
+              handleFocus(e);
+              child.props.onFocus && child.props.onFocus(e);
+            },
+            onBlur: (e: any) => {
+              handleBlur();
+              child.props.onBlur && child.props.onBlur(e);
+            },
+          });
+        }
+      }
+      return child;
+    });
+  };
 
-  const content = scrollEnabled ? (
-    <ScrollView
-      ref={scrollViewRef}
-      style={styles.scrollView}
-      contentContainerStyle={[
-        styles.scrollViewContent,
-        { paddingBottom: contentPaddingBottom },
-      ]}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
-    >
-      {children}
-    </ScrollView>
-  ) : (
-    <>{children}</>
-  );
+  // Calculate the correct keyboardVerticalOffset for iOS
+  // We need to subtract the header height and any safe area insets to eliminate the gap
+  const iosKeyboardOffset = Platform.OS === 'ios' 
+    ? -(insets.bottom) + extraOffset  // Negative offset to eliminate the gap
+    : extraOffset;
 
   return (
     <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={iosKeyboardOffset}
       style={[styles.container, style]}
-      behavior={Platform.select({
-        ios: 'padding', // iOS: Empuja el contenido hacia arriba
-        android: 'height', // Android: Ajusta la altura del contenedor
-      })}
-      keyboardVerticalOffset={keyboardVerticalOffset}
-      enabled
     >
-      {content}
+      <ScrollView
+        ref={currentScrollViewRef}
+        contentContainerStyle={[
+          contentContainerStyle,
+          Platform.OS === 'android' && {
+            paddingBottom: isKeyboardVisible ? keyboardHeight + 20 : Math.max(insets.bottom, 8),
+          },
+          // For iOS, we don't add extra paddingBottom when keyboard is visible
+          // because the KeyboardAvoidingView with padding behavior handles it
+          Platform.OS === 'ios' && {
+            paddingBottom: isKeyboardVisible ? 0 : Math.max(insets.bottom, 8),
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        scrollEnabled={scrollEnabled}
+      >
+        {renderChildrenWithFocusHandlers(children)}
+      </ScrollView>
     </KeyboardAvoidingView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollViewContent: {
-    flexGrow: 1,
-  },
 });
+
+export default KeyboardAvoidingWrapper;
