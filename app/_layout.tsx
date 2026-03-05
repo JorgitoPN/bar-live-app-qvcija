@@ -9,7 +9,7 @@ import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { LocationProvider } from '@/contexts/LocationContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { colors } from '@/styles/commonStyles';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Platform, AppState, AppStateStatus, InteractionManager } from 'react-native';
 import * as SystemUI from 'expo-system-ui';
@@ -25,6 +25,7 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import { supabaseStorage } from '@/src/lib/supabaseStorage';
 import { supabase } from '@/utils/supabase';
 import { PerformanceTracker } from '@/utils/performanceTracker';
+import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 
 /**
  * ✅ ROOT LAYOUT v24.0 - PASO 1: INTERACTIONMANAGER DEFERRED LOADING
@@ -96,6 +97,23 @@ const persister = createAsyncStoragePersister({
 console.log('[TanStack Query v24.0 - PASO 1] ✅ Cache persister initialized');
 
 export default function RootLayout() {
+  // ✅ NEW: Track initialization state for loading screen
+  const isInitializing = useAuthStore(state => state.isInitializing);
+  const initialLoadingProgress = useAuthStore(state => state.initialLoadingProgress);
+  const [showLoadingScreen, setShowLoadingScreen] = useState(true);
+  
+  // ✅ Hide loading screen once initialization is complete
+  useEffect(() => {
+    if (!isInitializing && initialLoadingProgress >= 1) {
+      // Small delay to ensure smooth transition
+      const timer = setTimeout(() => {
+        setShowLoadingScreen(false);
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isInitializing, initialLoadingProgress]);
+  
   // ✅ PASO 1: DIAGNÓSTICO DE HILO PRINCIPAL - InteractionManager.runAfterInteractions
   useEffect(() => {
     const startTime = performance.now();
@@ -310,6 +328,11 @@ export default function RootLayout() {
     return () => clearTimeout(timer);
   }, []);
 
+  // ✅ Show loading screen during initialization
+  if (showLoadingScreen) {
+    return <InitialLoadingScreen progress={initialLoadingProgress} />;
+  }
+  
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ErrorBoundary>

@@ -49,25 +49,17 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ ADVANCED FILTERS SHEET v42.0 - ZUSTAND SYNC FIX
+ * ✅ ADVANCED FILTERS SHEET v43.0 - WEB/iOS NAVIGATION FIX
  * 
- * CRITICAL FIXES v42.0:
- * - 🔥 ZUSTAND SYNC: Now uses useFilterStore instead of FilterContext
- * - ✅ FILTER UPDATES: Advanced filters now properly update the venue list
+ * CRITICAL FIXES v43.0:
+ * - 🔥 WEB/iOS FIX: Now redirects to full-screen page like Android
+ * - ✅ CONSISTENT BEHAVIOR: Same navigation pattern across all platforms
+ * - 🎯 SINGLE SOURCE OF TRUTH: Uses /explorar/filtros-avanzados route
+ * 
+ * Previous features v42.0:
+ * - 🔥 ZUSTAND SYNC: Uses useFilterStore instead of FilterContext
+ * - ✅ FILTER UPDATES: Advanced filters properly update the venue list
  * - 🎯 SINGLE SOURCE OF TRUTH: Same store as useBaresQuery hook
- * 
- * Previous features v41.0:
- * - 🎯 "Sin límite" as default for search range on ALL PLATFORMS (iOS, Android, Web)
- * - ⚡ Auto-activate filter when user modifies range
- * - 🔄 Option to return to "Sin límite" after setting a range
- * - ✅ Clear visual feedback for active/inactive distance filter
- * - 🌐 Unified behavior across all platforms
- * 
- * Previous features v40.0:
- * - 🔥 SINGLE SELECTION: Only one category can be selected at a time
- * - 🔥 BIDIRECTIONAL SYNC: Category syncs with Explorar page category filter
- * - ✅ Dynamic filters based on active locales
- * - ✅ Instant clear with smooth UX
  */
 
 export default function FiltrosAvanzadosSheet({
@@ -76,44 +68,20 @@ export default function FiltrosAvanzadosSheet({
   filtros: propFiltros,
   onAplicarFiltros: propOnAplicarFiltros,
 }: FiltrosAvanzadosSheetProps) {
-  // ✅ v42.0 FIX: Use Zustand store instead of FilterContext for proper synchronization
-  const filtros = useFilterStore(state => state.filtros);
-  const setFiltros = useFilterStore(state => state.setFiltros);
-  const limpiarFiltros = useFilterStore(state => state.limpiarFiltros);
-  const dynamicOptions = useFilterStore(state => state.dynamicOptions);
-  const refreshDynamicOptions = useFilterStore(state => state.refreshDynamicOptions);
-  const isLoadingOptions = useFilterStore(state => state.isLoadingOptions);
-  
-  const contextFiltros = propFiltros || filtros;
-  
-  const initialFiltros = propFiltros || contextFiltros;
-  
-  const [filtrosTemp, setFiltrosTemp] = useState<Filtros>(initialFiltros);
-  const [showComunidadModal, setShowComunidadModal] = useState(false);
-  const [showProvinciaModal, setShowProvinciaModal] = useState(false);
-  const [searchComunidad, setSearchComunidad] = useState('');
-  const [searchProvincia, setSearchProvincia] = useState('');
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    ubicacion: true,
-    tipo: true,
-    servicios: false,
-    ambiente: false,
-    clientela: false,
-  });
+  const router = useRouter();
 
   useEffect(() => {
     if (visible) {
-      console.log('[FiltrosAvanzados v42.0] 🔄 Modal opened - Loading current filters from Zustand');
-      
-      // ✅ v42.0 FIX: Load current filters from Zustand store
-      setFiltrosTemp(contextFiltros);
-      
-      // ✅ BACKGROUND: Refrescar opciones en segundo plano
-      requestAnimationFrame(() => {
-        refreshDynamicOptions();
-      });
+      console.log('[FiltrosAvanzados v43.0] 🚀 Opening full-screen filters page (Web/iOS)');
+      // ✅ v43.0 FIX: Navigate to full-screen page on ALL platforms
+      router.push('/explorar/filtros-avanzados');
+      // Close the modal immediately
+      onClose();
     }
-  }, [visible, contextFiltros, refreshDynamicOptions]);
+  }, [visible, router, onClose]);
+
+  // Return null - we're using navigation instead of modal on all platforms
+  return null;
 
   const toggleArrayItem = useCallback((array: string[] | undefined, item: string): string[] => {
     const arr = array || [];
