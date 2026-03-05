@@ -126,16 +126,16 @@ const KeyboardAvoidingWrapper: React.FC<KeyboardAvoidingWrapperProps> = ({
     });
   };
 
-  // ✅ FIXED v11.0: iOS keyboard offset - 1PX SPACE
-  // Adding 1px of space between the text field and the keyboard on iOS
-  // This prevents the input from being too close to the keyboard
+  // ✅ FIXED v12.0: 
+  // - Android: Restored working configuration (no behavior prop, padding handled via ScrollView)
+  // - iOS: 1px offset for breathing space between input and keyboard
   const iosKeyboardOffset = Platform.OS === 'ios' 
     ? 1 + extraOffset  // 1px offset = small breathing space between input and keyboard
-    : extraOffset;
+    : 0; // Android doesn't use keyboardVerticalOffset
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={iosKeyboardOffset}
       style={[styles.container, style]}
     >
