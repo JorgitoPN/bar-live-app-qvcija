@@ -1,104 +1,47 @@
 
-# Storage Implementation v8.0 - Expo Go Compatible
+# MMKV Storage Implementation for BarLive
 
-> **🎯 PROBLEMA RESUELTO:** Error "NitroModules are not supported in Expo Go!" al intentar usar MMKV
-> 
-> **✅ SOLUCIÓN:** Sistema de almacenamiento modular que usa AsyncStorage en Expo Go y automáticamente se actualiza a MMKV en Development Builds
+## 📋 Resumen
 
-# Storage Implementation v8.0 - Expo Go Compatible
+Hemos implementado **react-native-mmkv** como reemplazo de AsyncStorage para la persistencia de sesiones de Supabase. Esta mejora proporciona una carga instantánea de la sesión de usuario, similar a aplicaciones como Instagram, WhatsApp y Facebook.
 
-## 📋 Resumen Ejecutivo
+## ✅ Cambios Implementados
 
-Hemos implementado un **sistema de almacenamiento modular** que funciona perfectamente en **Expo Go** (usando AsyncStorage) y automáticamente se actualiza a **MMKV** cuando se usa un Development Build. Esta arquitectura proporciona:
-
-- ✅ **Compatibilidad total con Expo Go** (sin errores de NitroModules)
-- ✅ **Migración automática a MMKV** en Development Builds (10-30x más rápido)
-- ✅ **Interfaz unificada** - el mismo código funciona en ambos entornos
-- ✅ **Cero cambios de código** necesarios al cambiar entre Expo Go y Development Build
-
-## 🚀 Inicio Rápido
-
-### Para Desarrolladores
-
-**¿Estás usando Expo Go?** → Todo funciona automáticamente. No necesitas hacer nada.
-
-**¿Quieres máximo rendimiento?** → Crea un Development Build:
+### 1. Instalación de Dependencias
 ```bash
-# iOS
-eas build --profile development --platform ios
-
-# Android
-eas build --profile development --platform android
+npm install react-native-mmkv
 ```
 
-El código detectará automáticamente que MMKV está disponible y lo usará. 🎉
+### 2. Archivos Creados/Modificados
 
-### Verificar qué Storage se está usando
+#### `src/lib/supabaseStorage.ts` (NUEVO)
+- Adaptador MMKV para Supabase
+- Implementa la interfaz de almacenamiento requerida por Supabase Auth
+- Incluye funciones de utilidad para debugging
 
+#### `utils/supabase.ts` (MODIFICADO)
+- Reemplazado AsyncStorage por MMKVStorageAdapter
+- Configuración de encriptación para mayor seguridad
+
+#### `utils/testMMKV.ts` (NUEVO)
+- Suite de pruebas para verificar el funcionamiento de MMKV
+- Tests de rendimiento comparativos
+
+## 🚀 Por Qué MMKV es Mejor que AsyncStorage
+
+### 1. **Acceso Síncrono**
 ```typescript
-import { getStorageInfo } from '@/src/lib/supabaseStorage';
+// AsyncStorage (ANTIGUO) - Asíncrono
+const session = await AsyncStorage.getItem('session'); // ~50-100ms
 
-const info = getStorageInfo();
-console.log(info); // { type: 'AsyncStorage', platform: 'ios' } en Expo Go
-                   // { type: 'MMKV', platform: 'ios' } en Development Build
+// MMKV (NUEVO) - Síncrono
+const session = mmkv.getString('session'); // ~1-3ms
 ```
 
-## 🚀 v8.0 - Cambios Implementados
-
-### 1. Arquitectura Modular
-
-El sistema ahora detecta automáticamente el entorno y selecciona el storage apropiado:
-
-```typescript
-// En Expo Go
-[SupabaseStorage v8.0] ℹ️ Running in Expo Go - using AsyncStorage
-
-// En Development Build
-[SupabaseStorage v8.0] ✅ MMKV initialized successfully (Development Build detected)
-```
-
-### 2. Archivos Modificados
-
-#### `src/lib/supabaseStorage.ts` (ACTUALIZADO v8.0)
-- ✅ Detección automática de entorno (Expo Go vs Development Build)
-- ✅ Fallback graceful a AsyncStorage si MMKV no está disponible
-- ✅ Interfaz async unificada para ambos storages
-- ✅ Funciones de utilidad actualizadas para async/await
-
-#### `app/integrations/supabase/client.ts` (ACTUALIZADO)
-- ✅ Usa el adaptador modular `supabaseStorage`
-- ✅ Funciona automáticamente en Expo Go y Development Builds
-
-#### `utils/testMMKV.ts` (ACTUALIZADO)
-- ✅ Tests actualizados para API async
-- ✅ Funciona con ambos tipos de storage
-- ✅ Muestra qué storage se está usando
-
-## 🎯 Estrategia de Almacenamiento
-
-### Expo Go (Desarrollo Actual)
-```typescript
-// AsyncStorage - Compatible con Expo Go
-const session = await supabaseStorage.getItem('session'); // ~50-100ms
-```
-
-**Ventajas:**
-- ✅ Funciona en Expo Go sin configuración adicional
-- ✅ No requiere native modules
-- ✅ Compatible con Web, iOS y Android
-- ✅ Confiable y battle-tested
-
-### Development Build (Futuro)
-```typescript
-// MMKV - Alto rendimiento (automático)
-const session = await supabaseStorage.getItem('session'); // ~1-3ms
-```
-
-**Ventajas adicionales:**
-- ✅ 10-30x más rápido que AsyncStorage
-- ✅ Acceso síncrono (wrapped en Promise para compatibilidad)
-- ✅ Memory-mapped files para máximo rendimiento
-- ✅ Encriptación AES integrada
+**Ventaja:** No hay necesidad de `async/await`, lo que elimina:
+- Delays en la hidratación de la sesión
+- Race conditions durante cambios rápidos de estado de autenticación
+- Complejidad del código asíncrono
 
 ### 2. **Rendimiento Superior**
 
@@ -155,33 +98,29 @@ Total: ~200-300ms de delay
 Total: ~10-20ms de delay (imperceptible para el usuario)
 ```
 
-## 🔧 Cómo Funciona - Arquitectura Modular
+## 🔧 Cómo Funciona
 
-### Flujo de Detección Automática
+### Comparación Técnica
 
+#### AsyncStorage (Antiguo):
 ```typescript
-// 1. Intenta cargar MMKV
-try {
-  const { MMKV } = require('react-native-mmkv');
-  mmkv = new MMKV({ id: 'supabase-auth-storage' });
-  useMMKV = true; // ✅ Development Build detectado
-} catch (error) {
-  useMMKV = false; // ℹ️ Expo Go detectado, usar AsyncStorage
-}
-
-// 2. Interfaz unificada
-export const supabaseStorage = {
-  getItem: async (key) => {
-    if (useMMKV && mmkv) {
-      return mmkv.getString(key) ?? null; // MMKV (rápido)
-    }
-    return await AsyncStorage.getItem(key); // AsyncStorage (compatible)
-  },
-  // ... setItem, removeItem
-};
+// Asíncrono
+const value = await AsyncStorage.getItem('key');
+// ↓
+// JavaScript → Bridge → Native → File I/O → Parse JSON → Bridge → JavaScript
+// ~50-100ms
 ```
 
-### Arquitectura v8.0
+#### MMKV (Nuevo):
+```typescript
+// Síncrono
+const value = mmkv.getString('key');
+// ↓
+// JavaScript → JSI → C++ → Memory-mapped file → JavaScript
+// ~1-3ms
+```
+
+### Arquitectura
 
 ```
 ┌─────────────────────────────────────────┐
@@ -191,79 +130,54 @@ export const supabaseStorage = {
                │
                ▼
 ┌─────────────────────────────────────────┐
-│      supabaseStorage (Modular)          │
-│  - Detección automática de entorno      │
-│  - getItem() → Async (unificado)        │
-│  - setItem() → Async (unificado)        │
-│  - removeItem() → Async (unificado)     │
+│      MMKVStorageAdapter                 │
+│  - getItem() → Síncrono                 │
+│  - setItem() → Síncrono                 │
+│  - removeItem() → Síncrono              │
 └──────────────┬──────────────────────────┘
                │
-         ┌─────┴─────┐
-         ▼           ▼
-┌──────────────┐  ┌──────────────┐
-│ AsyncStorage │  │     MMKV     │
-│ (Expo Go)    │  │ (Dev Build)  │
-│ ~50-100ms    │  │ ~1-3ms       │
-└──────────────┘  └──────────────┘
+               ▼
+┌─────────────────────────────────────────┐
+│         MMKV Instance                   │
+│  - Memory-mapped files                  │
+│  - AES encryption                       │
+│  - C++ implementation (JSI)             │
+└─────────────────────────────────────────┘
 ```
 
 ## 🧪 Pruebas
 
-Para verificar que el storage está funcionando correctamente:
+Para verificar que MMKV está funcionando correctamente:
 
 ```typescript
-import { runAllStorageTests } from '@/utils/testMMKV';
+import { runAllMMKVTests } from '@/utils/testMMKV';
 
 // En cualquier componente
 useEffect(() => {
-  runAllStorageTests(); // Async function
+  runAllMMKVTests();
 }, []);
 ```
 
 Esto ejecutará:
 1. Tests de operaciones básicas (read/write/delete)
-2. Tests de rendimiento (100 operaciones async)
+2. Tests de rendimiento (1000 operaciones)
 3. Tests de almacenamiento de sesión de Supabase
-4. Mostrará qué tipo de storage se está usando (MMKV o AsyncStorage)
 
 ## 📝 Funciones de Utilidad
 
-### Ver Información del Storage
+### Inspeccionar Almacenamiento
 ```typescript
-import { getStorageInfo } from '@/src/lib/supabaseStorage';
+import { inspectSupabaseStorage } from '@/src/lib/supabaseStorage';
 
-const info = getStorageInfo();
-console.log('Storage type:', info.type); // 'MMKV' o 'AsyncStorage'
-console.log('Platform:', info.platform); // 'ios', 'android', 'web'
+const data = inspectSupabaseStorage();
+console.log('Datos de Supabase:', data);
 ```
 
-### Limpiar Caché de Perfil
+### Limpiar Sesión
 ```typescript
-import { clearProfileCache } from '@/src/lib/supabaseStorage';
+import { clearSupabaseStorage } from '@/src/lib/supabaseStorage';
 
-await clearProfileCache(); // Elimina caché de perfil y sesión
-```
-
-### Operaciones de Perfil
-```typescript
-import { 
-  getProfileT0, 
-  saveProfileT0,
-  getSession,
-  saveSession 
-} from '@/src/lib/supabaseStorage';
-
-// Guardar perfil
-await saveProfileT0(JSON.stringify(profileData));
-
-// Leer perfil
-const profile = await getProfileT0();
-
-// Guardar sesión
-await saveSession(JSON.stringify(sessionData));
-
-// Leer sesión
-const session = await getSession();
+clearSupabaseStorage(); // Elimina todos los datos de sesión
 ```
 
 ## 🔒 Seguridad
@@ -332,68 +246,14 @@ console.log('Sesión actual:', session);
 - [Supabase Auth Storage](https://supabase.com/docs/reference/javascript/auth-storage)
 - [JSI (JavaScript Interface)](https://reactnative.dev/docs/the-new-architecture/pillars-turbomodules)
 
-## 🎯 Migración a Development Build (Futuro)
-
-Cuando estés listo para obtener el máximo rendimiento:
-
-### Paso 1: Crear Development Build
-```bash
-# iOS
-eas build --profile development --platform ios
-
-# Android
-eas build --profile development --platform android
-```
-
-### Paso 2: Instalar en Dispositivo
-```bash
-# iOS
-eas build:run -p ios
-
-# Android
-eas build:run -p android
-```
-
-### Paso 3: ¡Listo!
-El código **automáticamente** detectará que MMKV está disponible y lo usará.
-No necesitas cambiar ninguna línea de código. 🎉
-
-```
-[SupabaseStorage v8.0] ✅ MMKV initialized successfully (Development Build detected)
-[SupabaseStorage v8.0] 📦 Storage initialized: { type: 'MMKV', platform: 'ios' }
-```
-
 ## ✨ Conclusión
 
-La implementación v8.0 proporciona:
-- ✅ **Compatibilidad total con Expo Go** (sin errores de NitroModules)
-- ✅ **Migración automática a MMKV** en Development Builds
-- ✅ **Cero cambios de código** al cambiar de entorno
-- ✅ **Mejor rendimiento** cuando esté disponible (10-30x más rápido)
-- ✅ **Menor consumo de batería** con MMKV
-- ✅ **Encriptación integrada** con MMKV
-- ✅ **Experiencia de usuario superior** en ambos entornos
+La implementación de MMKV proporciona:
+- ✅ Carga instantánea de sesión (como Instagram)
+- ✅ Mejor rendimiento (10-30x más rápido)
+- ✅ Menor consumo de batería
+- ✅ Encriptación integrada
+- ✅ Código más simple (sin async/await)
+- ✅ Experiencia de usuario superior
 
-**Esta arquitectura modular es la mejor práctica para apps React Native que necesitan funcionar en Expo Go durante el desarrollo y obtener máximo rendimiento en producción.**
-
-## 📊 Comparación de Rendimiento
-
-| Operación | Expo Go (AsyncStorage) | Development Build (MMKV) | Mejora |
-|-----------|------------------------|--------------------------|--------|
-| Lectura | 50-100ms | 1-3ms | **30-50x** |
-| Escritura | 30-80ms | 0.5-2ms | **20-40x** |
-| Eliminación | 20-50ms | 0.3-1ms | **20-50x** |
-| Startup | 200-300ms | 10-20ms | **10-15x** |
-
-## 🔒 Seguridad
-
-### AsyncStorage (Expo Go)
-- ✅ Datos almacenados de forma segura en el dispositivo
-- ✅ Aislamiento por app (sandbox)
-- ⚠️ Sin encriptación nativa (considera encriptar datos sensibles manualmente)
-
-### MMKV (Development Build)
-- ✅ Encriptación AES automática
-- ✅ Memory-mapped files seguros
-- ✅ Escrituras atómicas (previene corrupción)
-- ✅ Battle-tested por WeChat (miles de millones de usuarios)
+**El cambio de AsyncStorage a MMKV es una de las optimizaciones más impactantes que se pueden hacer en una app React Native.**
