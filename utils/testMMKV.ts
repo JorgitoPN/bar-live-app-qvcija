@@ -1,43 +1,46 @@
-
 /**
- * MMKV Test Utility
+ * ✅ v8.0: Storage Test Utility (Expo Go Compatible)
  * 
- * Use this file to test MMKV storage and verify it's working correctly.
- * Run this from any component to see MMKV in action.
+ * Use this file to test storage and verify it's working correctly.
+ * Works with both MMKV (Development Build) and AsyncStorage (Expo Go).
+ * Run this from any component to see storage in action.
  */
 
-import { mmkvStorage, MMKVStorageAdapter, inspectSupabaseStorage } from '../src/lib/supabaseStorage';
+import { supabaseStorage, getStorageInfo } from '../src/lib/supabaseStorage';
 
 /**
- * Test MMKV basic operations
+ * Test basic storage operations
  */
-export const testMMKVBasicOperations = () => {
-  console.log('\n=== MMKV Basic Operations Test ===\n');
+export const testBasicOperations = async () => {
+  console.log('\n=== Storage Basic Operations Test ===\n');
+
+  const storageInfo = getStorageInfo();
+  console.log(`Using: ${storageInfo.type} on ${storageInfo.platform}`);
 
   // Test 1: Write and Read
-  console.log('Test 1: Write and Read');
-  MMKVStorageAdapter.setItem('test-key', 'test-value');
-  const value = MMKVStorageAdapter.getItem('test-key');
+  console.log('\nTest 1: Write and Read');
+  await supabaseStorage.setItem('test-key', 'test-value');
+  const value = await supabaseStorage.getItem('test-key');
   console.log('✓ Read value:', value);
   console.assert(value === 'test-value', 'Value should match');
 
   // Test 2: Overwrite
   console.log('\nTest 2: Overwrite');
-  MMKVStorageAdapter.setItem('test-key', 'new-value');
-  const newValue = MMKVStorageAdapter.getItem('test-key');
+  await supabaseStorage.setItem('test-key', 'new-value');
+  const newValue = await supabaseStorage.getItem('test-key');
   console.log('✓ New value:', newValue);
   console.assert(newValue === 'new-value', 'Value should be updated');
 
   // Test 3: Delete
   console.log('\nTest 3: Delete');
-  MMKVStorageAdapter.removeItem('test-key');
-  const deletedValue = MMKVStorageAdapter.getItem('test-key');
+  await supabaseStorage.removeItem('test-key');
+  const deletedValue = await supabaseStorage.getItem('test-key');
   console.log('✓ After delete:', deletedValue);
   console.assert(deletedValue === null, 'Value should be null after delete');
 
   // Test 4: Non-existent key
   console.log('\nTest 4: Non-existent key');
-  const nonExistent = MMKVStorageAdapter.getItem('non-existent-key');
+  const nonExistent = await supabaseStorage.getItem('non-existent-key');
   console.log('✓ Non-existent key:', nonExistent);
   console.assert(nonExistent === null, 'Non-existent key should return null');
 
@@ -45,55 +48,67 @@ export const testMMKVBasicOperations = () => {
 };
 
 /**
- * Test MMKV performance vs AsyncStorage
+ * Test storage performance
  */
-export const testMMKVPerformance = () => {
-  console.log('\n=== MMKV Performance Test ===\n');
+export const testStoragePerformance = async () => {
+  console.log('\n=== Storage Performance Test ===\n');
 
-  const iterations = 1000;
+  const storageInfo = getStorageInfo();
+  console.log(`Testing: ${storageInfo.type} on ${storageInfo.platform}`);
+
+  const iterations = 100; // Reduced for async operations
   const testData = JSON.stringify({ user: 'test', token: 'abc123', timestamp: Date.now() });
 
-  // Test MMKV write performance
-  console.log(`Writing ${iterations} items with MMKV...`);
-  const mmkvWriteStart = performance.now();
+  // Test write performance
+  console.log(`\nWriting ${iterations} items...`);
+  const writeStart = performance.now();
   for (let i = 0; i < iterations; i++) {
-    MMKVStorageAdapter.setItem(`perf-test-${i}`, testData);
+    await supabaseStorage.setItem(`perf-test-${i}`, testData);
   }
-  const mmkvWriteEnd = performance.now();
-  const mmkvWriteTime = mmkvWriteEnd - mmkvWriteStart;
-  console.log(`✓ MMKV write time: ${mmkvWriteTime.toFixed(2)}ms (${(mmkvWriteTime / iterations).toFixed(3)}ms per item)`);
+  const writeEnd = performance.now();
+  const writeTime = writeEnd - writeStart;
+  console.log(`✓ Write time: ${writeTime.toFixed(2)}ms (${(writeTime / iterations).toFixed(3)}ms per item)`);
 
-  // Test MMKV read performance
-  console.log(`\nReading ${iterations} items with MMKV...`);
-  const mmkvReadStart = performance.now();
+  // Test read performance
+  console.log(`\nReading ${iterations} items...`);
+  const readStart = performance.now();
   for (let i = 0; i < iterations; i++) {
-    MMKVStorageAdapter.getItem(`perf-test-${i}`);
+    await supabaseStorage.getItem(`perf-test-${i}`);
   }
-  const mmkvReadEnd = performance.now();
-  const mmkvReadTime = mmkvReadEnd - mmkvReadStart;
-  console.log(`✓ MMKV read time: ${mmkvReadTime.toFixed(2)}ms (${(mmkvReadTime / iterations).toFixed(3)}ms per item)`);
+  const readEnd = performance.now();
+  const readTime = readEnd - readStart;
+  console.log(`✓ Read time: ${readTime.toFixed(2)}ms (${(readTime / iterations).toFixed(3)}ms per item)`);
 
   // Cleanup
   console.log('\nCleaning up test data...');
   for (let i = 0; i < iterations; i++) {
-    MMKVStorageAdapter.removeItem(`perf-test-${i}`);
+    await supabaseStorage.removeItem(`perf-test-${i}`);
   }
   console.log('✓ Cleanup complete');
 
   console.log('\n=== Performance Summary ===');
-  console.log(`Total write time: ${mmkvWriteTime.toFixed(2)}ms`);
-  console.log(`Total read time: ${mmkvReadTime.toFixed(2)}ms`);
-  console.log(`Average write: ${(mmkvWriteTime / iterations).toFixed(3)}ms per item`);
-  console.log(`Average read: ${(mmkvReadTime / iterations).toFixed(3)}ms per item`);
-  console.log('\nNote: MMKV is typically 10-30x faster than AsyncStorage');
-  console.log('AsyncStorage would take ~500-1500ms for the same operations\n');
+  console.log(`Total write time: ${writeTime.toFixed(2)}ms`);
+  console.log(`Total read time: ${readTime.toFixed(2)}ms`);
+  console.log(`Average write: ${(writeTime / iterations).toFixed(3)}ms per item`);
+  console.log(`Average read: ${(readTime / iterations).toFixed(3)}ms per item`);
+  
+  if (storageInfo.type === 'MMKV') {
+    console.log('\n✨ Using MMKV - High performance storage!');
+  } else {
+    console.log('\n📦 Using AsyncStorage - Reliable Expo Go compatible storage');
+    console.log('💡 For better performance, use a Development Build to enable MMKV');
+  }
+  console.log('');
 };
 
 /**
  * Test Supabase session storage
  */
-export const testSupabaseSessionStorage = () => {
+export const testSupabaseSessionStorage = async () => {
   console.log('\n=== Supabase Session Storage Test ===\n');
+
+  const storageInfo = getStorageInfo();
+  console.log(`Using: ${storageInfo.type}`);
 
   // Simulate a Supabase session
   const mockSession = {
@@ -106,12 +121,12 @@ export const testSupabaseSessionStorage = () => {
     },
   };
 
-  console.log('Storing mock session...');
-  MMKVStorageAdapter.setItem('supabase.auth.token', JSON.stringify(mockSession));
+  console.log('\nStoring mock session...');
+  await supabaseStorage.setItem('supabase.auth.token', JSON.stringify(mockSession));
   console.log('✓ Session stored');
 
   console.log('\nReading session...');
-  const storedSession = MMKVStorageAdapter.getItem('supabase.auth.token');
+  const storedSession = await supabaseStorage.getItem('supabase.auth.token');
   console.log('✓ Session retrieved:', storedSession ? 'Yes' : 'No');
 
   if (storedSession) {
@@ -123,32 +138,31 @@ export const testSupabaseSessionStorage = () => {
     });
   }
 
-  console.log('\nInspecting all Supabase storage...');
-  const allData = inspectSupabaseStorage();
-  console.log('✓ Found', Object.keys(allData).length, 'Supabase keys');
-
   console.log('\nCleaning up mock session...');
-  MMKVStorageAdapter.removeItem('supabase.auth.token');
+  await supabaseStorage.removeItem('supabase.auth.token');
   console.log('✓ Cleanup complete\n');
 };
 
 /**
  * Run all tests
  */
-export const runAllMMKVTests = () => {
+export const runAllStorageTests = async () => {
   console.log('\n╔════════════════════════════════════════╗');
-  console.log('║     MMKV Storage Test Suite           ║');
+  console.log('║     Storage Test Suite v8.0            ║');
   console.log('╚════════════════════════════════════════╝\n');
 
   try {
-    testMMKVBasicOperations();
-    testMMKVPerformance();
-    testSupabaseSessionStorage();
+    await testBasicOperations();
+    await testStoragePerformance();
+    await testSupabaseSessionStorage();
 
     console.log('╔════════════════════════════════════════╗');
-    console.log('║   ✓ All MMKV tests passed!            ║');
+    console.log('║   ✓ All storage tests passed!          ║');
     console.log('╚════════════════════════════════════════╝\n');
   } catch (error) {
     console.error('❌ Test failed:', error);
   }
 };
+
+// Export legacy name for backwards compatibility
+export const runAllMMKVTests = runAllStorageTests;

@@ -7,18 +7,20 @@ import { Session } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
 /**
- * ✅ AUTH STORE v2.0 - FASE 9: PERFIL INSTANTÁNEO (<100ms)
+ * ✅ AUTH STORE v8.0 - EXPO GO COMPATIBLE + FAST PROFILE LOADING
  * 
- * OPTIMIZACIONES FASE 9:
- * - ✅ STALE-WHILE-REVALIDATE: Perfil cacheado en MMKV, carga síncrona
- * - ✅ T0 vs T1 PRIORIZACIÓN: Perfil básico (T0) vs datos extendidos (T1)
- * - ✅ RACE CONDITION FIX: Prevenir múltiples fetches simultáneos
- * - ✅ ABORT ERRORS: Silenciados en errorLogger.ts
+ * v8.0 OPTIMIZATIONS:
+ * - ✅ EXPO GO COMPATIBLE: Uses AsyncStorage (no MMKV errors)
+ * - ✅ MODULAR STORAGE: Automatically upgrades to MMKV in Development Builds
+ * - ✅ STALE-WHILE-REVALIDATE: Profile cached in storage, fast loading
+ * - ✅ T0 vs T1 PRIORITIZATION: Basic profile (T0) vs extended data (T1)
+ * - ✅ RACE CONDITION FIX: Prevent multiple simultaneous fetches
+ * - ✅ ABORT ERRORS: Silenced in errorLogger.ts
  * 
- * RESULTADO ESPERADO:
- * - Usuario visible en UI en <100ms tras abrir la app
- * - Perfil básico (nombre, avatar) cargado síncronamente desde MMKV
- * - Datos extendidos (estadísticas, historial) cargados en background
+ * EXPECTED RESULTS:
+ * - User visible in UI quickly after opening app
+ * - Basic profile (name, avatar) loaded from cache (MMKV if available, AsyncStorage in Expo Go)
+ * - Extended data (stats, history) loaded in background
  * 
  * BENEFITS OF ZUSTAND OVER CONTEXT:
  * - ✅ ATOMIC UPDATES: Components only re-render when their specific slice changes
@@ -232,24 +234,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   
-  // ✅ FASE 9: PERFIL INSTANTÁNEO - STALE-WHILE-REVALIDATE
+  // ✅ v8.0: PERFIL RÁPIDO - STALE-WHILE-REVALIDATE (Expo Go Compatible)
   initialize: async () => {
     const startTime = performance.now();
-    console.log('[AuthStore FASE 9] 🚀 Initializing with INSTANT profile hydration...');
+    console.log('[AuthStore v8.0] 🚀 Initializing with fast profile hydration...');
     
     try {
       // ═══════════════════════════════════════════════════════════════════════════
-      // ✅ PASO 1: LECTURA SÍNCRONA INMEDIATA desde MMKV (SESSION + PROFILE T0)
+      // ✅ PASO 1: LECTURA RÁPIDA desde Storage (SESSION + PROFILE T0)
       // ═══════════════════════════════════════════════════════════════════════════
-      const { getSessionSync, getProfileT0Sync } = require('@/src/lib/supabaseStorage');
+      const { getSession, getProfileT0 } = require('@/src/lib/supabaseStorage');
       
-      // 1.1 - Cargar sesión desde MMKV
-      const cachedSessionData = getSessionSync();
+      // 1.1 - Cargar sesión desde storage (MMKV si disponible, AsyncStorage en Expo Go)
+      const cachedSessionData = await getSession();
       
       if (cachedSessionData) {
         try {
           const parsedSession = JSON.parse(cachedSessionData);
-          console.log('[AuthStore FASE 9] ⚡ SYNC session found in MMKV (<1ms)');
+          console.log('[AuthStore v8.0] ⚡ Cached session found in storage');
           
           // Actualizar estado INMEDIATAMENTE con la sesión cacheada
           set({ 
@@ -259,34 +261,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             loading: false 
           });
         } catch (parseError) {
-          console.error('[AuthStore FASE 9] ❌ Failed to parse cached session:', parseError);
+          console.error('[AuthStore v8.0] ❌ Failed to parse cached session:', parseError);
         }
       } else {
-        console.log('[AuthStore FASE 9] ℹ️ No cached session in MMKV');
+        console.log('[AuthStore v8.0] ℹ️ No cached session in storage');
         set({ loading: false, sessionReady: true });
       }
       
-      // 1.2 - Cargar perfil T0 desde MMKV (NUEVO - FASE 9)
-      const cachedProfileT0 = getProfileT0Sync();
+      // 1.2 - Cargar perfil T0 desde storage
+      const cachedProfileT0 = await getProfileT0();
       
       if (cachedProfileT0) {
         try {
           const parsedProfileT0 = JSON.parse(cachedProfileT0);
-          console.log('[AuthStore FASE 9] ⚡ SYNC profile T0 found in MMKV (<1ms)');
+          console.log('[AuthStore v8.0] ⚡ Cached profile T0 found in storage');
           
-          // ✅ CRITICAL: Perfil visible INMEDIATAMENTE en la UI
+          // ✅ CRITICAL: Perfil visible RÁPIDAMENTE en la UI
           set({ 
             profileT0: parsedProfileT0,
             isProfileHydrated: true,
           });
           
-          const syncTime = performance.now() - startTime;
-          console.log(`[AuthStore FASE 9] ✅ Profile visible in UI in ${syncTime.toFixed(0)}ms (SYNC)`);
+          const cacheTime = performance.now() - startTime;
+          console.log(`[AuthStore v8.0] ✅ Profile visible in UI in ${cacheTime.toFixed(0)}ms (cached)`);
         } catch (parseError) {
-          console.error('[AuthStore FASE 9] ❌ Failed to parse cached profile T0:', parseError);
+          console.error('[AuthStore v8.0] ❌ Failed to parse cached profile T0:', parseError);
         }
       } else {
-        console.log('[AuthStore FASE 9] ℹ️ No cached profile T0 in MMKV');
+        console.log('[AuthStore v8.0] ℹ️ No cached profile T0 in storage');
       }
       
       // ═══════════════════════════════════════════════════════════════════════════
@@ -350,7 +352,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               const profileTime = performance.now() - profileStart;
               
               if (!profileError && profileData) {
-                console.log(`[AuthStore FASE 9] ✅ Profile T0 loaded in ${profileTime.toFixed(0)}ms`);
+                console.log(`[AuthStore v8.0] ✅ Profile T0 loaded in ${profileTime.toFixed(0)}ms`);
                 
                 const profileT0: UserProfileT0 = {
                   id: profileData.id,
@@ -365,9 +367,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                   isProfileHydrated: true,
                 });
                 
-                // ✅ STALE-WHILE-REVALIDATE: Guardar en MMKV para próxima vez
-                const { saveProfileT0Sync } = require('@/src/lib/supabaseStorage');
-                saveProfileT0Sync(JSON.stringify(profileT0));
+                // ✅ STALE-WHILE-REVALIDATE: Guardar en storage para próxima vez
+                const { saveProfileT0 } = require('@/src/lib/supabaseStorage');
+                saveProfileT0(JSON.stringify(profileT0)).catch(() => {});
                 
                 // ✅ PASO 4: CARGAR PERFIL T1 (muy diferido, no crítico)
                 setTimeout(() => {
@@ -380,7 +382,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                         .single();
                       
                       if (!extendedError && extendedData) {
-                        console.log('[AuthStore FASE 9] ✅ Profile T1 loaded (deferred)');
+                        console.log('[AuthStore v8.0] ✅ Profile T1 loaded (deferred)');
                         
                         const profileT1: UserProfileT1 = {
                           bio: extendedData.bio,
@@ -397,13 +399,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                         
                         set({ profileT1 });
                         
-                        // ✅ Guardar T1 en MMKV
-                        const { saveProfileT1Sync } = require('@/src/lib/supabaseStorage');
-                        saveProfileT1Sync(JSON.stringify(profileT1));
+                        // ✅ Guardar T1 en storage
+                        const { saveProfileT1 } = require('@/src/lib/supabaseStorage');
+                        saveProfileT1(JSON.stringify(profileT1)).catch(() => {});
                       }
                     } catch (t1Error: any) {
                       if (t1Error.name !== 'AbortError') {
-                        console.error('[AuthStore FASE 9] ❌ Profile T1 error (non-critical):', t1Error);
+                        console.error('[AuthStore v8.0] ❌ Profile T1 error (non-critical):', t1Error);
                       }
                     }
                   })();
@@ -450,14 +452,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       
       const totalTime = performance.now() - startTime;
-      console.log(`[AuthStore FASE 9] ✅ Total initialization: ${totalTime.toFixed(0)}ms`);
-      console.log('[AuthStore FASE 9] 📊 Breakdown:');
-      console.log('  - MMKV sync read (session + profile T0): <1ms');
+      console.log(`[AuthStore v8.0] ✅ Total initialization: ${totalTime.toFixed(0)}ms`);
+      console.log('[AuthStore v8.0] 📊 Breakdown:');
+      console.log('  - Storage read (session + profile T0): fast (MMKV if available, AsyncStorage in Expo Go)');
       console.log(`  - Network validation: ${networkTime.toFixed(0)}ms`);
       console.log('  - Profile T0 revalidation: background (non-blocking)');
       console.log('  - Profile T1 load: deferred (2s delay)');
     } catch (err) {
-      console.error('[AuthStore FASE 9] ❌ Initialization error (non-blocking):', err);
+      console.error('[AuthStore v8.0] ❌ Initialization error (non-blocking):', err);
       // ✅ CRITICAL: Always mark as ready, even on error
       set({ loading: false, sessionReady: true });
     }
