@@ -12,7 +12,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-console.log('[Supabase] Initializing client with platform-aware storage (MMKV on native, AsyncStorage on Web)...');
+console.log('[Supabase] Initializing client with AsyncStorage (Expo Go compatible)...');
+console.log('[Supabase] To enable MMKV for production, set USE_MMKV=true in src/lib/supabaseStorage.ts');
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

@@ -366,3 +366,101 @@ La app ahora carga la sesión de usuario **INSTANTÁNEAMENTE** (<1ms), proporcio
 **Fecha de implementación:** 2025-01-XX
 **Versión:** BLOQUE 1 (Fase 3 - Diseño de Intervención)
 **Estado:** ✅ Completado y Listo para Testing Real
+
+---
+
+# 🔄 ACTUALIZACIÓN v8.0: Expo Go Compatible
+
+## 🚨 Cambio Importante
+
+El sistema de storage ha sido refactorizado para ser compatible con **Expo Go**. El error `NitroModules are not supported in Expo Go!` ha sido resuelto.
+
+## ✅ Solución Implementada
+
+### Configuración Modular
+**Archivo:** `src/lib/supabaseStorage.ts`
+
+```typescript
+// 🔧 CONFIGURATION: Set to true to use MMKV (requires Development Build)
+// Set to false to use AsyncStorage (works in Expo Go)
+const USE_MMKV = false; // ← Actualmente en modo AsyncStorage
+```
+
+### Modo Actual: AsyncStorage (Expo Go Compatible)
+- ✅ Funciona en Expo Go sin errores
+- ✅ Compatible con iOS, Android y Web
+- ⚠️ Rendimiento más lento que MMKV (pero suficiente para desarrollo)
+
+### Modo Futuro: MMKV (Production)
+Para habilitar MMKV en producción:
+1. Cambiar `USE_MMKV = true` en `src/lib/supabaseStorage.ts`
+2. Crear un Development Build (no Expo Go)
+3. MMKV se usará automáticamente
+
+## 📊 Comparación
+
+| Característica | AsyncStorage (Actual) | MMKV (Futuro) |
+|---------------|----------------------|---------------|
+| Expo Go | ✅ Sí | ❌ No |
+| Velocidad | ~100ms | ~1ms (100x más rápido) |
+| Desarrollo | ✅ Ideal | ⚠️ Requiere build |
+| Producción | ⚠️ Funciona | ✅ Recomendado |
+
+## 🔍 Verificación
+
+### Logs Esperados (AsyncStorage Mode)
+```
+[SupabaseStorage v8.0] ✅ Using AsyncStorage (Expo Go compatible mode)
+[Supabase] Initializing client with AsyncStorage (Expo Go compatible)...
+```
+
+### Verificar Backend Activo
+```typescript
+import { storageInfo } from '@/src/lib/supabaseStorage';
+
+console.log('Backend:', storageInfo.backend); // "AsyncStorage"
+console.log('MMKV Enabled:', storageInfo.isMMKVEnabled); // false
+console.log('AsyncStorage Mode:', storageInfo.isAsyncStorageMode); // true
+```
+
+## 📝 Archivos Modificados
+
+1. **`src/lib/supabaseStorage.ts`**
+   - Agregado flag `USE_MMKV` para control modular
+   - Inicialización condicional de MMKV
+   - Métodos async para AsyncStorage
+   - Exportado `storageInfo`
+
+2. **`utils/supabase.ts`**
+   - Logs actualizados
+
+3. **`utils/testMMKV.ts`**
+   - Tests actualizados para ambos backends
+   - Soporte async/await
+
+4. **`README.md`**
+   - Documentación completa del sistema
+
+## ✅ Resultado
+
+- ✅ **Error resuelto:** No más `NitroModules are not supported in Expo Go!`
+- ✅ **Expo Go funciona:** Desarrollo sin problemas
+- ✅ **Modular:** Fácil migración a MMKV en producción
+- ✅ **Sin breaking changes:** Todo el código existente funciona
+
+## 🚀 Próximos Pasos
+
+### Para Desarrollo (Ahora)
+- Continuar usando Expo Go con AsyncStorage
+- Sin cambios necesarios
+
+### Para Producción (Futuro)
+1. Cambiar `USE_MMKV = true`
+2. Crear Development Build
+3. Disfrutar de 100x mejor rendimiento
+
+---
+
+**Actualización:** 2025-01-XX  
+**Versión:** v8.0 - Expo Go Compatible  
+**Estado:** ✅ Funcionando en Expo Go
