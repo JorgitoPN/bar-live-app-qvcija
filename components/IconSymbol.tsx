@@ -12,7 +12,13 @@ import {
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-// Comprehensive icon mapping with fallbacks
+// ✅ v455.0 COMPREHENSIVE ICON MAPPING WITH FALLBACKS
+// CRITICAL: Category icons (star, local-cafe, restaurant, local-bar, sports-bar, liquor, nightlife)
+// MUST match EXACTLY with the androidIcon values in CATEGORIAS arrays in:
+// - app/(tabs)/explorar/filtros-simples.tsx
+// - app/(tabs)/explorar/filtros-simples.android.tsx
+// - app/(tabs)/explorar/mapa.tsx
+// DO NOT CHANGE THESE MAPPINGS WITHOUT UPDATING ALL THREE FILES
 const ICON_MAPPING: Record<string, string> = {
   // Common icons
   'home': 'home',
@@ -141,46 +147,55 @@ const ICON_MAPPING: Record<string, string> = {
   'menu-open': 'menu-open',
   'notification-important': 'notifications-active',
   'notifications-active': 'notifications-active',
-  // Category icons for Explorar/Mapa filters
-  'local_cafe': 'local-cafe',
+  // ✅ v455.0 CATEGORY ICONS - EXACT MAPPING FOR CONSISTENCY
+  // These MUST match the androidIcon values in CATEGORIAS arrays
+  // CRITICAL: All category filters use these exact mappings
+  'star': 'star',
   'local-cafe': 'local-cafe',
+  'local_cafe': 'local-cafe',
   'restaurant': 'restaurant',
-  'local_bar': 'local-bar',
   'local-bar': 'local-bar',
-  'sports_bar': 'sports-bar',
+  'local_bar': 'local-bar',
   'sports-bar': 'sports-bar',
+  'sports_bar': 'sports-bar',
   'liquor': 'liquor',
   'nightlife': 'nightlife',
   'nightlife_dining': 'nightlife',
 };
 
-// Get valid icon name with fallback
+// ✅ v455.0 Get valid icon name with fallback
+// CRITICAL: This function resolves icon names to valid Material Icons
+// For category icons, it uses the ICON_MAPPING above
 function getValidIconName(iconName: string): { name: string; library: 'material' | 'ionicons' } {
   // If no icon name provided, return default
   if (!iconName) {
+    console.warn('⚠️ IconSymbol: No icon name provided, using fallback');
     return { name: 'help-outline', library: 'material' };
   }
 
   // Convert to lowercase and remove common prefixes/suffixes
   const normalizedName = iconName.toLowerCase().trim();
   
-  // Check if mapped
+  // ✅ STEP 1: Check if mapped (HIGHEST PRIORITY for category icons)
   if (ICON_MAPPING[normalizedName]) {
     const mappedName = ICON_MAPPING[normalizedName];
+    console.log(`✅ IconSymbol: Mapped "${iconName}" → "${mappedName}"`);
     return { name: mappedName, library: 'material' };
   }
   
-  // Check if exists in MaterialIcons directly
+  // ✅ STEP 2: Check if exists in MaterialIcons directly
   if (normalizedName in MaterialIcons.glyphMap) {
+    console.log(`✅ IconSymbol: Found "${iconName}" in MaterialIcons`);
     return { name: normalizedName, library: 'material' };
   }
   
-  // Check if exists in Ionicons
+  // ✅ STEP 3: Check if exists in Ionicons
   if (normalizedName in Ionicons.glyphMap) {
+    console.log(`✅ IconSymbol: Found "${iconName}" in Ionicons`);
     return { name: normalizedName, library: 'ionicons' };
   }
   
-  // Try with common variations
+  // ✅ STEP 4: Try with common variations
   const variations = [
     normalizedName.replace(/-/g, '_'),
     normalizedName.replace(/_/g, '-'),
@@ -189,15 +204,17 @@ function getValidIconName(iconName: string): { name: string; library: 'material'
   
   for (const variation of variations) {
     if (variation in MaterialIcons.glyphMap) {
+      console.log(`✅ IconSymbol: Found variation "${iconName}" → "${variation}" in MaterialIcons`);
       return { name: variation, library: 'material' };
     }
     if (variation in Ionicons.glyphMap) {
+      console.log(`✅ IconSymbol: Found variation "${iconName}" → "${variation}" in Ionicons`);
       return { name: variation, library: 'ionicons' };
     }
   }
   
-  // Fallback to help-outline
-  console.warn(`Icon "${iconName}" not found. Using fallback icon.`);
+  // ✅ STEP 5: Fallback to help-outline
+  console.warn(`❌ IconSymbol: Icon "${iconName}" not found. Using fallback icon "help-outline"`);
   return { name: 'help-outline', library: 'material' };
 }
 
@@ -205,6 +222,22 @@ function getValidIconName(iconName: string): { name: string; library: 'material'
  * An icon component that uses native SFSymbols on iOS, and MaterialIcons on Android and web. This ensures a consistent look across platforms, and optimal resource usage.
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
+ */
+/**
+ * ✅ v455.0 IconSymbol Component
+ * 
+ * An icon component that uses native SFSymbols on iOS, and MaterialIcons on Android and web.
+ * This ensures a consistent look across platforms, and optimal resource usage.
+ * 
+ * CRITICAL: For category icons (Explorar/Mapa filters), the android_material_icon_name
+ * MUST match the values in CATEGORIAS arrays:
+ * - star (Todas)
+ * - local-cafe (Cafés)
+ * - restaurant (Restaurantes)
+ * - local-bar (Bares)
+ * - sports-bar (Pubs)
+ * - liquor (Coctelería)
+ * - nightlife (Discotecas)
  */
 export function IconSymbol({
   ios_icon_name = undefined,

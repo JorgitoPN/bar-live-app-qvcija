@@ -33,9 +33,15 @@ const HEADER_MIN_HEIGHT = 0;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 /**
- * 🗺️ MAPA SCREEN v447.0 - MAP MARKER STATUS FIX
+ * 🗺️ MAPA SCREEN v455.0 - ICON CONSISTENCY FIX
  * 
- * CRITICAL FIXES v447.0:
+ * CRITICAL FIXES v455.0:
+ * - 🔥 ICON CONSISTENCY: All category icons now IDENTICAL across Explorar and Mapa
+ * - 🔥 EXACT MAPPING: Icons use exact Material Icons names (local-cafe, local-bar, sports-bar)
+ * - 🔥 DOCUMENTED: Icon reference added to prevent future changes
+ * - ✅ No more icon mismatches between pages
+ * 
+ * Previous fixes v447.0:
  * - 🔥 MAP MARKER STATUS: Markers now use Spain timezone matching backend
  * - 🔥 CORRECT COLORS: Green=open, Red=closed (matching backend RPC)
  * - 🔥 OVERNIGHT SCHEDULES: Correctly handled for venues open past midnight
@@ -52,13 +58,22 @@ const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
  * - ✅ Quick clear button for advanced filters
  */
 
-// ✅ v454.0 ICON CONSISTENCY FIX - EXACT SAME ICONS ACROSS ALL PAGES
-// These icons MUST match EXACTLY with:
+// ✅ v455.0 ICON CONSISTENCY FIX - FINAL VERSION
+// These icons are IDENTICAL across ALL pages:
 // - app/(tabs)/explorar/filtros-simples.tsx
 // - app/(tabs)/explorar/filtros-simples.android.tsx
-// CRITICAL: Using IDENTICAL icon names for both iOS and Android
-// CRITICAL: Using 'nombre' property to match filtros-simples exactly
+// - app/(tabs)/explorar/mapa.tsx (THIS FILE)
 // CRITICAL: Material icon names use hyphens (local-cafe, local-bar, sports-bar)
+// CRITICAL: These exact names are mapped in components/IconSymbol.tsx
+// 
+// ICON REFERENCE (DO NOT CHANGE):
+// - Todas: star (⭐)
+// - Cafés: local-cafe (☕)
+// - Restaurantes: restaurant (🍽️)
+// - Bares: local-bar (🍷)
+// - Pubs: sports-bar (🍺)
+// - Coctelería: liquor (🍹)
+// - Discotecas: nightlife (🎵)
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
   { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local-cafe' },

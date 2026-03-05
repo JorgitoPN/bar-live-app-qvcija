@@ -14,12 +14,22 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 
-// ✅ v454.0 ICON CONSISTENCY FIX - EXACT SAME ICONS ACROSS ALL PAGES
-// These icons MUST match EXACTLY with:
+// ✅ v455.0 ICON CONSISTENCY FIX - FINAL VERSION
+// These icons are IDENTICAL across ALL pages:
+// - app/(tabs)/explorar/filtros-simples.tsx (THIS FILE)
 // - app/(tabs)/explorar/filtros-simples.android.tsx
 // - app/(tabs)/explorar/mapa.tsx
-// CRITICAL: Using IDENTICAL icon names for both iOS and Android
 // CRITICAL: Material icon names use hyphens (local-cafe, local-bar, sports-bar)
+// CRITICAL: These exact names are mapped in components/IconSymbol.tsx
+// 
+// ICON REFERENCE (DO NOT CHANGE):
+// - Todas: star (⭐)
+// - Cafés: local-cafe (☕)
+// - Restaurantes: restaurant (🍽️)
+// - Bares: local-bar (🍷)
+// - Pubs: sports-bar (🍺)
+// - Coctelería: liquor (🍹)
+// - Discotecas: nightlife (🎵)
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
   { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local-cafe' },
