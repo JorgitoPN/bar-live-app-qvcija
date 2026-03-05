@@ -1,8 +1,14 @@
 
 /**
- * ✅ FILTER CONTEXT v3.2 - ALIASED TO ZUSTAND STORE
+ * ✅ FILTER CONTEXT v4.0 - SYNCHRONIZED SINGLE LOCAL TYPE SELECTION
  * 
- * CRITICAL CHANGES v3.2 (PASO 3.2 - HOOK ALIASING):
+ * CRITICAL CHANGES v4.0:
+ * - 🎯 SINGLE SELECTION: Only one "Tipo de Local" can be active at a time
+ * - 🔄 BIDIRECTIONAL SYNC: Changes sync between Advanced Filters and Explore filter bar
+ * - ✅ EXCLUSIVE TOGGLE: New toggleLocalType action for single-selection behavior
+ * - 🌐 GLOBAL STATE: selectedLocalType tracked in Zustand store
+ * 
+ * PREVIOUS CHANGES v3.2 (PASO 3.2 - HOOK ALIASING):
  * - ✅ ALIASING: useFilters now internally calls useFilterStore
  * - ✅ NO PROVIDER NEEDED: Components can use useFilters without FilterProvider
  * - ✅ BACKWARD COMPATIBLE: Old components work without changes
@@ -37,6 +43,8 @@ interface FilterContextType {
   hasActiveFilters: boolean;
   selectedCategory: string | null;
   setSelectedCategory: (category: string | null) => void;
+  selectedLocalType: string | null; // ✅ NEW: Single selected local type
+  toggleLocalType: (tipo: string) => void; // ✅ NEW: Toggle single local type
 }
 
 /**
@@ -60,6 +68,8 @@ export function useFilters(): FilterContextType {
   const hasActiveFilters = useFilterStore(state => state.hasActiveFilters);
   const selectedCategory = useFilterStore(state => state.selectedCategory);
   const setSelectedCategory = useFilterStore(state => state.setSelectedCategory);
+  const selectedLocalType = useFilterStore(state => state.selectedLocalType); // ✅ NEW
+  const toggleLocalType = useFilterStore(state => state.toggleLocalType); // ✅ NEW
   
   // Return the same interface as before
   return {
@@ -73,6 +83,8 @@ export function useFilters(): FilterContextType {
     hasActiveFilters,
     selectedCategory,
     setSelectedCategory,
+    selectedLocalType, // ✅ NEW
+    toggleLocalType, // ✅ NEW
   };
 }
 
@@ -80,6 +92,6 @@ export function useFilters(): FilterContextType {
 // The component is kept for backward compatibility but does nothing
 // All state is managed by useFilterStore
 export function FilterProvider({ children }: { children: React.ReactNode }) {
-  console.warn('[FilterContext v3.2] ⚠️ FilterProvider is deprecated. Remove it from your app - Zustand handles state now.');
+  console.warn('[FilterContext v4.0] ⚠️ FilterProvider is deprecated. Remove it from your app - Zustand handles state now.');
   return <>{children}</>;
 }

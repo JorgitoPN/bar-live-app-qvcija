@@ -4,7 +4,13 @@ import { Filtros } from '@/types';
 import { supabase } from '@/utils/supabase';
 
 /**
- * ✅ FILTER STORE v1.0 - ZUSTAND ATOMIC STATE MANAGEMENT
+ * ✅ FILTER STORE v2.0 - SYNCHRONIZED SINGLE LOCAL TYPE SELECTION
+ * 
+ * NEW FEATURES v2.0:
+ * - 🎯 SINGLE SELECTION: Only one "Tipo de Local" can be active at a time
+ * - 🔄 BIDIRECTIONAL SYNC: Changes in Advanced Filters sync with Explore filter bar
+ * - ✅ EXCLUSIVE TOGGLE: Selecting a new type automatically deselects the previous one
+ * - 🌐 GLOBAL STATE: Both components consume the same state variable
  * 
  * BENEFITS:
  * - ✅ ATOMIC UPDATES: Only filter-using components re-render
@@ -30,6 +36,7 @@ interface DynamicFilterOptions {
 interface FilterState {
   // State
   filtros: Filtros;
+  selectedLocalType: string | null; // ✅ NEW: Single selected local type
   selectedCategory: string | null;
   dynamicOptions: DynamicFilterOptions;
   isLoadingOptions: boolean;
@@ -40,12 +47,14 @@ interface FilterState {
   aplicarFiltros: (filtros: Filtros) => void;
   limpiarFiltros: () => void;
   setSelectedCategory: (category: string | null) => void;
+  toggleLocalType: (tipo: string) => void; // ✅ NEW: Toggle single local type
   refreshDynamicOptions: () => Promise<void>;
 }
 
 export const useFilterStore = create<FilterState>((set, get) => ({
   // Initial state
   filtros: {},
+  selectedLocalType: null, // ✅ NEW: Track single selected local type
   selectedCategory: null,
   dynamicOptions: {
     tipos: [],
@@ -60,10 +69,14 @@ export const useFilterStore = create<FilterState>((set, get) => ({
   
   // Set filters
   setFiltros: (nuevosFiltros) => {
-    console.log('[FilterStore] 🔄 Setting filters:', nuevosFiltros);
+    console.log('[FilterStore v2.0] 🔄 Setting filters:', nuevosFiltros);
+    
+    // ✅ Extract selectedLocalType from filtros.tipo (single value)
+    const selectedType = nuevosFiltros.tipo || null;
     
     // Calculate if any filters are active
     const hasActive = !!(
+      nuevosFiltros.tipo ||
       (nuevosFiltros.servicios && nuevosFiltros.servicios.length > 0) ||
       (nuevosFiltros.ambiente && nuevosFiltros.ambiente.length > 0) ||
       (nuevosFiltros.clientela && nuevosFiltros.clientela.length > 0) ||
@@ -72,20 +85,25 @@ export const useFilterStore = create<FilterState>((set, get) => ({
       nuevosFiltros.distancia
     );
     
-    set({ filtros: nuevosFiltros, hasActiveFilters: hasActive });
+    set({ 
+      filtros: nuevosFiltros, 
+      selectedLocalType: selectedType,
+      hasActiveFilters: hasActive 
+    });
   },
   
   // Apply filters (same as setFiltros)
   aplicarFiltros: (nuevosFiltros) => {
-    console.log('[FilterStore] ✅ Applying filters:', nuevosFiltros);
+    console.log('[FilterStore v2.0] ✅ Applying filters:', nuevosFiltros);
     get().setFiltros(nuevosFiltros);
   },
   
   // Clear all filters
   limpiarFiltros: () => {
-    console.log('[FilterStore] 🧹 Clearing all filters');
+    console.log('[FilterStore v2.0] 🧹 Clearing all filters');
     set({ 
       filtros: {}, 
+      selectedLocalType: null, // ✅ Clear selected local type
       selectedCategory: null,
       hasActiveFilters: false,
     });
@@ -93,13 +111,49 @@ export const useFilterStore = create<FilterState>((set, get) => ({
   
   // Set selected category
   setSelectedCategory: (category) => {
-    console.log('[FilterStore] 🏷️ Setting category:', category);
+    console.log('[FilterStore v2.0] 🏷️ Setting category:', category);
     set({ selectedCategory: category });
+  },
+  
+  // ✅ NEW: Toggle single local type (exclusive selection)
+  toggleLocalType: (tipo) => {
+    const currentType = get().selectedLocalType;
+    const currentFiltros = get().filtros;
+    
+    // If clicking the same type, deselect it
+    if (currentType === tipo) {
+      console.log('[FilterStore v2.0] 🔄 Deselecting local type:', tipo);
+      const newFiltros = { ...currentFiltros };
+      delete newFiltros.tipo;
+      
+      set({ 
+        selectedLocalType: null,
+        filtros: newFiltros,
+        hasActiveFilters: !!(
+          (newFiltros.servicios && newFiltros.servicios.length > 0) ||
+          (newFiltros.ambiente && newFiltros.ambiente.length > 0) ||
+          (newFiltros.clientela && newFiltros.clientela.length > 0) ||
+          newFiltros.comunidad ||
+          newFiltros.provincia ||
+          newFiltros.distancia
+        ),
+      });
+    } else {
+      // Select new type (automatically deselects previous)
+      console.log('[FilterStore v2.0] ✅ Selecting local type:', tipo, '(previous:', currentType, ')');
+      const newFiltros = { ...currentFiltros, tipo };
+      
+      set({ 
+        selectedLocalType: tipo,
+        filtros: newFiltros,
+        hasActiveFilters: true,
+      });
+    }
   },
   
   // Refresh dynamic filter options from database
   refreshDynamicOptions: async () => {
-    console.log('[FilterStore] 🔍 Loading dynamic filter options...');
+    console.log('[FilterStore v2.0] 🔍 Loading dynamic filter options...');
     
     set({ isLoadingOptions: true });
     
@@ -110,13 +164,13 @@ export const useFilterStore = create<FilterState>((set, get) => ({
         .eq('activo', true);
 
       if (error) {
-        console.error('[FilterStore] ❌ Error loading dynamic options:', error);
+        console.error('[FilterStore v2.0] ❌ Error loading dynamic options:', error);
         set({ isLoadingOptions: false });
         return;
       }
 
       if (!locales || locales.length === 0) {
-        console.log('[FilterStore] ⚠️ No active locals found');
+        console.log('[FilterStore v2.0] ⚠️ No active locals found');
         set({ 
           dynamicOptions: {
             tipos: [],
@@ -131,7 +185,7 @@ export const useFilterStore = create<FilterState>((set, get) => ({
         return;
       }
 
-      console.log('[FilterStore] 📊 Processing', locales.length, 'active locals...');
+      console.log('[FilterStore v2.0] 📊 Processing', locales.length, 'active locals...');
 
       // Extract unique tipos
       const tiposSet = new Set<string>();
@@ -206,7 +260,7 @@ export const useFilterStore = create<FilterState>((set, get) => ({
         provincias: Array.from(provinciasSet).sort(),
       };
 
-      console.log('[FilterStore] ✅ Dynamic options loaded:', {
+      console.log('[FilterStore v2.0] ✅ Dynamic options loaded:', {
         tipos: newOptions.tipos.length,
         servicios: newOptions.servicios.length,
         ambientes: newOptions.ambientes.length,
@@ -217,7 +271,7 @@ export const useFilterStore = create<FilterState>((set, get) => ({
 
       set({ dynamicOptions: newOptions, isLoadingOptions: false });
     } catch (error) {
-      console.error('[FilterStore] ❌ Error refreshing dynamic options:', error);
+      console.error('[FilterStore v2.0] ❌ Error refreshing dynamic options:', error);
       set({ isLoadingOptions: false });
     }
   },
