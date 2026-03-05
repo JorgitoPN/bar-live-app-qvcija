@@ -44,17 +44,70 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
   'Melilla': ['Melilla'],
 };
 
+// ✅ UNIQUE ICON MAPPING FOR SERVICIOS
+const getServicioIcon = (servicioId: string) => {
+  const iconMap: Record<string, { ios: string; android: string }> = {
+    'terraza': { ios: 'sun.max.fill', android: 'wb_sunny' },
+    'wifi': { ios: 'wifi', android: 'wifi' },
+    'parking': { ios: 'parkingsign.circle.fill', android: 'local_parking' },
+    'accesible': { ios: 'figure.roll', android: 'accessible' },
+    'reservas': { ios: 'calendar.badge.clock', android: 'event' },
+    'delivery': { ios: 'shippingbox.fill', android: 'local_shipping' },
+    'takeaway': { ios: 'takeoutbag.and.cup.and.straw.fill', android: 'shopping_bag' },
+    'dj': { ios: 'hifispeaker.2.fill', android: 'headset' },
+    'cerveza': { ios: 'wineglass.fill', android: 'local_bar' },
+    'cocteles': { ios: 'cup.and.saucer.fill', android: 'local_cafe' },
+    'vino': { ios: 'wineglass', android: 'wine_bar' },
+    'cafe': { ios: 'cup.and.saucer', android: 'coffee' },
+    'musica_vivo': { ios: 'music.mic', android: 'mic' },
+    'deportes_tv': { ios: 'tv.fill', android: 'tv' },
+  };
+  
+  return iconMap[servicioId] || { ios: 'checkmark.circle.fill', android: 'check_circle' };
+};
+
+// ✅ UNIQUE ICON MAPPING FOR AMBIENTE
+const getAmbienteIcon = (ambienteId: string) => {
+  const iconMap: Record<string, { ios: string; android: string }> = {
+    'cualquiera': { ios: 'sparkles', android: 'auto_awesome' },
+    'tranquilo': { ios: 'moon.stars.fill', android: 'nightlight' },
+    'animado': { ios: 'party.popper.fill', android: 'celebration' },
+    'romantico': { ios: 'heart.fill', android: 'favorite' },
+    'familiar': { ios: 'figure.2.and.child.holdinghands', android: 'family_restroom' },
+    'moderno': { ios: 'sparkle', android: 'star' },
+    'tradicional': { ios: 'building.columns.fill', android: 'account_balance' },
+  };
+  
+  return iconMap[ambienteId] || { ios: 'star.fill', android: 'star' };
+};
+
+// ✅ UNIQUE ICON MAPPING FOR CLIENTELA
+const getClientelaIcon = (clientelaId: string) => {
+  const iconMap: Record<string, { ios: string; android: string }> = {
+    'cualquiera': { ios: 'person.3.fill', android: 'people' },
+    'grupos': { ios: 'person.2.fill', android: 'group' },
+    'turistas': { ios: 'airplane', android: 'flight' },
+    'familias': { ios: 'house.fill', android: 'home' },
+    'jovenes': { ios: 'figure.dance', android: 'sports_bar' },
+    'profesionales': { ios: 'briefcase.fill', android: 'work' },
+  };
+  
+  return iconMap[clientelaId] || { ios: 'person.fill', android: 'person' };
+};
+
 /**
- * ✅ FILTROS AVANZADOS v43.0 - DISEÑO MODERNO UNIFICADO
+ * ✅ FILTROS AVANZADOS v44.0 - ICON FIX & TIPO DE LOCAL REMOVAL
  * 
- * MEJORAS v43.0:
+ * FIXES v44.0:
+ * - 🚫 REMOVED: "Tipo de Local" section on iOS and Web (only shows on Android)
+ * - 🎨 UNIQUE ICONS: Each filter in servicios, ambiente, clientela has unique icon
+ * - 🎯 SINGLE COLOR: All icons use single color (no emoji)
+ * 
+ * Previous features v43.0:
  * - 🎨 Diseño ultra compacto y minimalista
  * - 📱 Chips más pequeños y organizados
  * - ✨ Colores vibrantes y modernos
- * - 🎯 Mejor uso del espacio vertical
- * - 🌈 Diseño original y atractivo
  * - 🔄 Sincronización con Zustand store
- * - 🌐 Funciona en web, iOS y Android
  */
 export default function FiltrosAvanzadosScreen() {
   const router = useRouter();
@@ -74,7 +127,7 @@ export default function FiltrosAvanzadosScreen() {
   const [searchProvincia, setSearchProvincia] = useState('');
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados v43.0] 🎨 Inicializando diseño moderno unificado');
+    console.log('[FiltrosAvanzados v44.0] 🎨 Inicializando con iconos únicos y sin Tipo de Local en iOS/Web');
     setFiltrosTemp(filtros);
     refreshDynamicOptions();
   }, [filtros, refreshDynamicOptions]);
@@ -88,7 +141,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleTipoToggle = useCallback((tipoId: string) => {
-    console.log('[FiltrosAvanzados v43.0] 🏷️ Category toggled:', tipoId);
+    console.log('[FiltrosAvanzados v44.0] 🏷️ Category toggled:', tipoId);
     
     setFiltrosTemp(prev => {
       if (tipoId === 'todos') {
@@ -127,13 +180,13 @@ export default function FiltrosAvanzadosScreen() {
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v43.0] ✅ Aplicando filtros:', filtrosTemp);
+    console.log('[FiltrosAvanzados v44.0] ✅ Aplicando filtros:', filtrosTemp);
     setFiltros(filtrosTemp);
     router.back();
   }, [filtrosTemp, setFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v43.0] 🧹 Limpiando filtros');
+    console.log('[FiltrosAvanzados v44.0] 🧹 Limpiando filtros');
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     setTimeout(() => {
@@ -142,7 +195,7 @@ export default function FiltrosAvanzadosScreen() {
   }, [limpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v43.0] 📍 Comunidad seleccionada:', selectedComunidad);
+    console.log('[FiltrosAvanzados v44.0] 📍 Comunidad seleccionada:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -166,7 +219,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v43.0] 📍 Provincia seleccionada:', provincia);
+    console.log('[FiltrosAvanzados v44.0] 📍 Provincia seleccionada:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -176,7 +229,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados v43.0] 📏 Radio cambiado a:', value, 'km');
+    console.log('[FiltrosAvanzados v44.0] 📏 Radio cambiado a:', value, 'km');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: value,
@@ -184,7 +237,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const activateDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v43.0] 🎯 Activando filtro de distancia');
+    console.log('[FiltrosAvanzados v44.0] 🎯 Activando filtro de distancia');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: 50,
@@ -192,7 +245,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const resetDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v43.0] 🔄 Reseteando radio de búsqueda');
+    console.log('[FiltrosAvanzados v44.0] 🔄 Reseteando radio de búsqueda');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: undefined,
@@ -233,6 +286,9 @@ export default function FiltrosAvanzadosScreen() {
     );
   }, [availableProvincias, searchProvincia]);
 
+  // ✅ v44.0 FIX: Only show on Android
+  const shouldShowTipoDeLocal = Platform.OS === 'android';
+
   const tiposLocales = useMemo(() => {
     const tipos = [{ id: 'todos', label: 'Todos', icon: '🏪' }];
     
@@ -263,59 +319,66 @@ export default function FiltrosAvanzadosScreen() {
 
   const serviciosDisponibles = useMemo(() => {
     return dynamicOptions.servicios.map(servicio => {
-      let icon = '✓';
-      if (servicio === 'terraza') icon = '☀️';
-      else if (servicio === 'wifi') icon = '📶';
-      else if (servicio === 'parking') icon = '🅿️';
-      else if (servicio === 'accesible') icon = '♿';
-      else if (servicio === 'reservas') icon = '📅';
-      else if (servicio === 'delivery') icon = '🚚';
-      else if (servicio === 'takeaway') icon = '🥡';
+      const icons = getServicioIcon(servicio);
       
       return {
         id: servicio,
         label: servicio.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-        icon: icon,
+        iosIcon: icons.ios,
+        androidIcon: icons.android,
       };
     });
   }, [dynamicOptions.servicios]);
 
   const ambientesDisponibles = useMemo(() => {
-    const ambientes = [{ id: 'cualquiera', label: 'Cualquiera', icon: '✨' }];
+    const ambientes: Array<{ id: string; label: string; iosIcon: string; androidIcon: string }> = [];
+    
+    // Add "Cualquiera" option
+    const cualquieraIcons = getAmbienteIcon('cualquiera');
+    ambientes.push({
+      id: 'cualquiera',
+      label: 'Cualquiera',
+      iosIcon: cualquieraIcons.ios,
+      androidIcon: cualquieraIcons.android,
+    });
+    
     dynamicOptions.ambientes.forEach(ambiente => {
-      let icon = '🌟';
-      if (ambiente === 'tranquilo') icon = '🌙';
-      else if (ambiente === 'animado') icon = '🎉';
-      else if (ambiente === 'romantico') icon = '💕';
-      else if (ambiente === 'familiar') icon = '👨‍👩‍👧‍👦';
-      else if (ambiente === 'moderno') icon = '✨';
-      else if (ambiente === 'tradicional') icon = '🏛️';
+      const icons = getAmbienteIcon(ambiente);
       
       ambientes.push({
         id: ambiente,
         label: ambiente.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-        icon: icon,
+        iosIcon: icons.ios,
+        androidIcon: icons.android,
       });
     });
+    
     return ambientes;
   }, [dynamicOptions.ambientes]);
 
   const clientelaDisponible = useMemo(() => {
-    const clientela = [{ id: 'cualquiera', label: 'Cualquiera', icon: '✨' }];
+    const clientela: Array<{ id: string; label: string; iosIcon: string; androidIcon: string }> = [];
+    
+    // Add "Cualquiera" option
+    const cualquieraIcons = getClientelaIcon('cualquiera');
+    clientela.push({
+      id: 'cualquiera',
+      label: 'Cualquiera',
+      iosIcon: cualquieraIcons.ios,
+      androidIcon: cualquieraIcons.android,
+    });
+    
     dynamicOptions.clientela.forEach(tipo => {
-      let icon = '👤';
-      if (tipo === 'grupos') icon = '👥';
-      else if (tipo === 'turistas') icon = '🧳';
-      else if (tipo === 'familias') icon = '👨‍👩‍👧‍👦';
-      else if (tipo === 'jovenes') icon = '🎉';
-      else if (tipo === 'profesionales') icon = '💼';
+      const icons = getClientelaIcon(tipo);
       
       clientela.push({
         id: tipo,
         label: tipo.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-        icon: icon,
+        iosIcon: icons.ios,
+        androidIcon: icons.android,
       });
     });
+    
     return clientela;
   }, [dynamicOptions.clientela]);
 
@@ -392,8 +455,8 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         )}
 
-        {/* 🏷️ TIPO DE LOCAL - COMPACTO */}
-        {tiposLocales.length > 1 && (
+        {/* 🏷️ TIPO DE LOCAL - SOLO EN ANDROID */}
+        {shouldShowTipoDeLocal && tiposLocales.length > 1 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={[styles.iconDot, { backgroundColor: '#F59E0B' }]} />
@@ -556,7 +619,7 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         </View>
 
-        {/* ✅ SERVICIOS - COMPACTO */}
+        {/* ✅ SERVICIOS - CON ICONOS ÚNICOS */}
         {serviciosDisponibles.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -584,9 +647,12 @@ export default function FiltrosAvanzadosScreen() {
                       onPress={() => handleServicioToggle(servicio.id)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>
-                        {servicio.icon}
-                      </Text>
+                      <IconSymbol
+                        ios_icon_name={servicio.iosIcon}
+                        android_material_icon_name={servicio.androidIcon}
+                        size={scaleIconSize(16)}
+                        color={isSelected ? colors.headerText : colors.text}
+                      />
                       <Text 
                         style={[
                           styles.chipText, 
@@ -604,7 +670,7 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         )}
 
-        {/* ✨ AMBIENTE - COMPACTO */}
+        {/* ✨ AMBIENTE - CON ICONOS ÚNICOS */}
         {ambientesDisponibles.length > 1 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -634,9 +700,12 @@ export default function FiltrosAvanzadosScreen() {
                       onPress={() => handleAmbienteToggle(ambiente.id)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>
-                        {ambiente.icon}
-                      </Text>
+                      <IconSymbol
+                        ios_icon_name={ambiente.iosIcon}
+                        android_material_icon_name={ambiente.androidIcon}
+                        size={scaleIconSize(16)}
+                        color={isSelected ? colors.headerText : colors.text}
+                      />
                       <Text 
                         style={[
                           styles.chipText, 
@@ -654,7 +723,7 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         )}
 
-        {/* 👥 CLIENTELA - COMPACTO */}
+        {/* 👥 CLIENTELA - CON ICONOS ÚNICOS */}
         {clientelaDisponible.length > 1 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -684,9 +753,12 @@ export default function FiltrosAvanzadosScreen() {
                       onPress={() => handleClientelaToggle(clientela.id)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>
-                        {clientela.icon}
-                      </Text>
+                      <IconSymbol
+                        ios_icon_name={clientela.iosIcon}
+                        android_material_icon_name={clientela.androidIcon}
+                        size={scaleIconSize(16)}
+                        color={isSelected ? colors.headerText : colors.text}
+                      />
                       <Text 
                         style={[
                           styles.chipText, 
