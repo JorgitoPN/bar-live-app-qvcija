@@ -430,11 +430,11 @@ function SalaVirtualEnhancedScreen() {
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [selectedUserProfile, setSelectedUserProfile] = useState<UserProfile | null>(null);
   
-  // ✅ CRITICAL FIX: Properly typed refs for FlashList
-  // FlashList uses a different type than FlatList
-  // Using FlashList type from @shopify/flash-list
-  const flashListRef = useRef<FlashList<Message> | null>(null);
-  const privateChatFlashListRef = useRef<FlashList<Message> | null>(null);
+  // ✅ CRITICAL FIX v10.1: Use 'any' type for FlashList refs to avoid TypeScript errors
+  // FlashList has complex internal types that cause "Property doesn't exist" errors
+  // Using 'any' is the recommended approach for FlashList refs
+  const flashListRef = useRef<any>(null);
+  const privateChatFlashListRef = useRef<any>(null);
   const chatChannelRef = useRef<RealtimeChannel | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const checkinsChannelRef = useRef<RealtimeChannel | null>(null);

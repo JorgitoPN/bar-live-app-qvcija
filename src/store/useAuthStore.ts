@@ -289,14 +289,57 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           const isExpired = expiresAt <= now;
           
           if (isExpired) {
-            console.log('[AuthStore FASE 9.1] ⚠️ Cached session is expired, clearing...');
-            set({ 
-              session: null,
-              isAuthenticated: false,
-              sessionReady: true,
-              loading: false,
-              initialLoadingProgress: 0.25,
-            });
+            console.log('[AuthStore FASE 9.1] ⚠️ Cached session is expired, attempting refresh...');
+            
+            // ✅ FIX v10.1: Try to refresh expired session before clearing
+            try {
+              const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession({
+                refresh_token: parsedSession.refresh_token,
+              });
+              
+              if (!refreshError && refreshedSession) {
+                console.log('[AuthStore FASE 9.1] ✅ Expired session refreshed successfully');
+                
+                // Save refreshed session to storage
+                if (storageInfo.isMMKVEnabled) {
+                  saveSessionSync(JSON.stringify(refreshedSession));
+                } else {
+                  await saveSessionAsync(JSON.stringify(refreshedSession));
+                }
+                
+                // Update Supabase client with refreshed session
+                await supabase.auth.setSession({
+                  access_token: refreshedSession.access_token,
+                  refresh_token: refreshedSession.refresh_token,
+                });
+                
+                set({ 
+                  session: refreshedSession,
+                  isAuthenticated: true,
+                  sessionReady: true,
+                  loading: false,
+                  initialLoadingProgress: 0.25,
+                });
+              } else {
+                console.log('[AuthStore FASE 9.1] ❌ Failed to refresh expired session, clearing...');
+                set({ 
+                  session: null,
+                  isAuthenticated: false,
+                  sessionReady: true,
+                  loading: false,
+                  initialLoadingProgress: 0.25,
+                });
+              }
+            } catch (refreshError) {
+              console.error('[AuthStore FASE 9.1] ❌ Error refreshing expired session:', refreshError);
+              set({ 
+                session: null,
+                isAuthenticated: false,
+                sessionReady: true,
+                loading: false,
+                initialLoadingProgress: 0.25,
+              });
+            }
           } else {
             console.log('[AuthStore FASE 9.1] ✅ Cached session is valid');
             
@@ -310,9 +353,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               refresh_token: parsedSession.refresh_token,
             });
             
+            // ✅ FIX v10.1: Also load user data from cached session
+            const { user: userData } = await getCurrentUser();
+            
             // Actualizar estado INMEDIATAMENTE con la sesión cacheada
             set({ 
               session: parsedSession,
+              user: userData,
               isAuthenticated: true,
               sessionReady: true,
               loading: false 
@@ -400,6 +447,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (networkSession) {
         console.log('[AuthStore FASE 9.1] ✅ Network session validated');
         
+        // ✅ FIX v10.1: Load user data from network session
+        const { user: networkUserData } = await getCurrentUser();
+        
         // ✅ FIX: Guardar la sesión validada en storage para próxima vez
         try {
           if (storageInfo.isMMKVEnabled) {
@@ -412,7 +462,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           console.error('[AuthStore FASE 9.1] ❌ Error saving session to storage:', saveError);
         }
         
-        set({ session: networkSession, initialLoadingProgress: 0.8 });
+        set({ 
+          session: networkSession, 
+          user: networkUserData,
+          isAuthenticated: true,
+          initialLoadingProgress: 0.8 
+        });
         
         // ═══════════════════════════════════════════════════════════════════════════
         // ✅ PASO 3: CARGAR PERFIL T0 (en background, con race condition prevention)
