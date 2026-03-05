@@ -14,7 +14,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 
-// ✅ SAME ICONS AS MAP - CONSISTENT ACROSS MAP AND EXPLORE
+// ✅ v450.0 SYNCHRONIZED WITH MAPA PAGE - EXACT SAME ICONS
+// These icons MUST match exactly with app/(tabs)/explorar/mapa.tsx
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
   { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
