@@ -1,7 +1,7 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * SISTEMA DE NOTIFICACIONES PUSH - PRODUCCIÓN COMPLETA v1.2 - ANDROID FIX
+ * SISTEMA DE NOTIFICACIONES PUSH - PRODUCCIÓN COMPLETA v1.3 - SONIDO BRINDIS
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * 🎯 CARACTERÍSTICAS:
@@ -16,7 +16,7 @@
  * ✅ Notificaciones silenciosas
  * ✅ Segmentación preparada
  * ✅ Notificaciones programadas
- * ✅ SONIDO Y VIBRACIÓN EN ANDROID (v1.2)
+ * ✅ SONIDO PERSONALIZADO DE BRINDIS 🍻 (v1.3)
  * ✅ HEADS-UP NOTIFICATIONS EN ANDROID (v1.2)
  * 
  * 🔐 SEGURIDAD:
@@ -29,13 +29,10 @@
  * - Servidor: Edge Functions para envío (Supabase)
  * - Base de datos: Tabla push_tokens para gestión
  * 
- * 🆕 CAMBIOS v1.2 (ANDROID FIX):
- * - ✅ FIXED: Canales de Android se crean ANTES de solicitar permisos
- * - ✅ FIXED: Prioridad MAX para notificaciones heads-up
- * - ✅ FIXED: Sonido configurado correctamente en todos los canales
- * - ✅ FIXED: Vibración habilitada en todos los canales
- * - ✅ IMPROVED: Logging detallado para debugging
- * - ✅ ADDED: Verificación de creación exitosa de canales
+ * 🆕 CAMBIOS v1.3 (SONIDO BRINDIS):
+ * - ✅ ADDED: Sonido personalizado de brindis para notificaciones
+ * - ✅ UPDATED: Todos los canales usan el sonido de brindis
+ * - ✅ IMPROVED: Experiencia de notificación más festiva
  */
 
 import { Platform, Alert, Linking } from 'react-native';
@@ -75,7 +72,7 @@ export const arePushNotificationsAvailable = (): boolean => {
 // Configure notification behavior (foreground, background, closed)
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
-    console.log('[Notifications] 📬 Notificación recibida:', notification.request.content.title);
+    console.log('[Notifications] 🍻 Notificación recibida:', notification.request.content.title);
     
     // Personalizar comportamiento según tipo de notificación
     const notificationType = notification.request.content.data?.type;
@@ -150,9 +147,9 @@ export const showDevelopmentBuildInfo = (): void => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Configurar canales de notificación para Android
+ * Configurar canales de notificación para Android con sonido de brindis
  * 🚨 CRÍTICO: Esto DEBE ejecutarse ANTES de solicitar permisos
- * 🚨 CRÍTICO: Los canales determinan si hay sonido y si aparecen en pantalla
+ * 🍻 NUEVO: Todos los canales usan el sonido de brindis personalizado
  */
 const configureAndroidChannels = async (): Promise<boolean> => {
   if (Platform.OS !== 'android') {
@@ -161,31 +158,31 @@ const configureAndroidChannels = async (): Promise<boolean> => {
   }
 
   try {
-    console.log('[Notifications] 🔧 Configurando canales de Android...');
+    console.log('[Notifications] 🔧 Configurando canales de Android con sonido de brindis...');
 
-    // Canal por defecto - PRIORIDAD MAX para heads-up
+    // Canal por defecto - PRIORIDAD MAX con sonido de brindis
     const defaultChannel = await Notifications.setNotificationChannelAsync('default', {
       name: 'Notificaciones Generales',
-      importance: Notifications.AndroidImportance.MAX, // MAX para heads-up
+      importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#14B8A6',
-      sound: 'default', // Sonido por defecto del sistema
+      sound: 'brindis', // 🍻 Sonido de brindis personalizado
       enableVibrate: true,
       enableLights: true,
       showBadge: true,
-      description: 'Notificaciones generales de BarLive',
+      description: 'Notificaciones generales de BarLive con sonido de brindis',
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       bypassDnd: false,
     });
-    console.log('[Notifications] ✅ Canal "default" creado:', defaultChannel ? 'OK' : 'FAILED');
+    console.log('[Notifications] ✅ Canal "default" creado con sonido de brindis:', defaultChannel ? 'OK' : 'FAILED');
 
-    // Canal para mensajes - PRIORIDAD MAX
+    // Canal para mensajes - PRIORIDAD MAX con sonido de brindis
     const messagesChannel = await Notifications.setNotificationChannelAsync('messages', {
       name: 'Mensajes',
-      importance: Notifications.AndroidImportance.MAX, // MAX para heads-up
+      importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 300, 200, 300],
       lightColor: '#3B82F6',
-      sound: 'default',
+      sound: 'brindis', // 🍻 Sonido de brindis
       enableVibrate: true,
       enableLights: true,
       showBadge: true,
@@ -193,15 +190,15 @@ const configureAndroidChannels = async (): Promise<boolean> => {
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       bypassDnd: false,
     });
-    console.log('[Notifications] ✅ Canal "messages" creado:', messagesChannel ? 'OK' : 'FAILED');
+    console.log('[Notifications] ✅ Canal "messages" creado con sonido de brindis:', messagesChannel ? 'OK' : 'FAILED');
 
-    // Canal para eventos - PRIORIDAD HIGH
+    // Canal para eventos - PRIORIDAD HIGH con sonido de brindis
     const eventsChannel = await Notifications.setNotificationChannelAsync('events', {
       name: 'Eventos',
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 400, 200, 400],
       lightColor: '#8B5CF6',
-      sound: 'default',
+      sound: 'brindis', // 🍻 Sonido de brindis
       enableVibrate: true,
       enableLights: true,
       showBadge: true,
@@ -209,15 +206,15 @@ const configureAndroidChannels = async (): Promise<boolean> => {
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       bypassDnd: false,
     });
-    console.log('[Notifications] ✅ Canal "events" creado:', eventsChannel ? 'OK' : 'FAILED');
+    console.log('[Notifications] ✅ Canal "events" creado con sonido de brindis:', eventsChannel ? 'OK' : 'FAILED');
 
-    // Canal para brindis - PRIORIDAD MAX
+    // Canal para brindis - PRIORIDAD MAX con sonido de brindis
     const cheersChannel = await Notifications.setNotificationChannelAsync('cheers', {
       name: 'Brindis',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 500, 250, 500],
       lightColor: '#FACC15',
-      sound: 'default',
+      sound: 'brindis', // 🍻 Sonido de brindis
       enableVibrate: true,
       enableLights: true,
       showBadge: true,
@@ -225,15 +222,15 @@ const configureAndroidChannels = async (): Promise<boolean> => {
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       bypassDnd: false,
     });
-    console.log('[Notifications] ✅ Canal "cheers" creado:', cheersChannel ? 'OK' : 'FAILED');
+    console.log('[Notifications] ✅ Canal "cheers" creado con sonido de brindis:', cheersChannel ? 'OK' : 'FAILED');
 
-    // Canal para promociones - PRIORIDAD DEFAULT
+    // Canal para promociones - PRIORIDAD DEFAULT con sonido de brindis
     const promosChannel = await Notifications.setNotificationChannelAsync('promos', {
       name: 'Promociones',
       importance: Notifications.AndroidImportance.DEFAULT,
       vibrationPattern: [0, 200, 100, 200],
       lightColor: '#EF4444',
-      sound: 'default',
+      sound: 'brindis', // 🍻 Sonido de brindis
       enableVibrate: true,
       enableLights: true,
       showBadge: false,
@@ -241,15 +238,15 @@ const configureAndroidChannels = async (): Promise<boolean> => {
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       bypassDnd: false,
     });
-    console.log('[Notifications] ✅ Canal "promos" creado:', promosChannel ? 'OK' : 'FAILED');
+    console.log('[Notifications] ✅ Canal "promos" creado con sonido de brindis:', promosChannel ? 'OK' : 'FAILED');
 
-    // Canal para notificaciones de planes y suscripciones - PRIORIDAD HIGH
+    // Canal para notificaciones de planes y suscripciones - PRIORIDAD HIGH con sonido de brindis
     const subscriptionsChannel = await Notifications.setNotificationChannelAsync('subscriptions', {
       name: 'Planes y Suscripciones',
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 300, 150, 300],
       lightColor: '#10B981',
-      sound: 'default',
+      sound: 'brindis', // 🍻 Sonido de brindis
       enableVibrate: true,
       enableLights: true,
       showBadge: true,
@@ -257,9 +254,9 @@ const configureAndroidChannels = async (): Promise<boolean> => {
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       bypassDnd: false,
     });
-    console.log('[Notifications] ✅ Canal "subscriptions" creado:', subscriptionsChannel ? 'OK' : 'FAILED');
+    console.log('[Notifications] ✅ Canal "subscriptions" creado con sonido de brindis:', subscriptionsChannel ? 'OK' : 'FAILED');
 
-    // Canal para notificaciones silenciosas - PRIORIDAD LOW
+    // Canal para notificaciones silenciosas - PRIORIDAD LOW sin sonido
     const silentChannel = await Notifications.setNotificationChannelAsync('silent', {
       name: 'Silenciosas',
       importance: Notifications.AndroidImportance.LOW,
@@ -272,7 +269,7 @@ const configureAndroidChannels = async (): Promise<boolean> => {
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.SECRET,
       bypassDnd: false,
     });
-    console.log('[Notifications] ✅ Canal "silent" creado:', silentChannel ? 'OK' : 'FAILED');
+    console.log('[Notifications] ✅ Canal "silent" creado (sin sonido):', silentChannel ? 'OK' : 'FAILED');
 
     // Verificar que al menos el canal por defecto se creó
     if (!defaultChannel) {
@@ -280,7 +277,7 @@ const configureAndroidChannels = async (): Promise<boolean> => {
       return false;
     }
 
-    console.log('[Notifications] ✅ Todos los canales de Android configurados exitosamente');
+    console.log('[Notifications] ✅ Todos los canales de Android configurados con sonido de brindis 🍻');
     return true;
   } catch (error: any) {
     console.error('[Notifications] ❌ Error configurando canales:', error.message);
@@ -297,6 +294,7 @@ const configureAndroidChannels = async (): Promise<boolean> => {
  * Registrar dispositivo para notificaciones push
  * Maneja permisos, tokens y configuración de canales
  * 🚨 v1.2: Canales se configuran ANTES de solicitar permisos
+ * 🍻 v1.3: Todos los canales usan sonido de brindis
  */
 export const registerForPushNotifications = async (): Promise<string | null> => {
   try {
@@ -318,7 +316,7 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
 
     // ✅ CRÍTICO: Configurar canales de Android ANTES de solicitar permisos
     if (Platform.OS === 'android') {
-      console.log('[Notifications] 🔧 Configurando canales de Android ANTES de solicitar permisos...');
+      console.log('[Notifications] 🔧 Configurando canales de Android con sonido de brindis ANTES de solicitar permisos...');
       const channelsConfigured = await configureAndroidChannels();
       if (!channelsConfigured) {
         console.error('[Notifications] ❌ CRÍTICO: No se pudieron configurar los canales');
@@ -399,10 +397,10 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
 
       console.log('[Notifications] ✅ Sistema de notificaciones completamente configurado');
       console.log('[Notifications] 📊 Resumen:');
-      console.log('[Notifications]    - Canales: Configurados');
+      console.log('[Notifications]    - Canales: Configurados con sonido de brindis 🍻');
       console.log('[Notifications]    - Permisos: Otorgados');
       console.log('[Notifications]    - Token: Obtenido');
-      console.log('[Notifications]    - Sonido: Habilitado');
+      console.log('[Notifications]    - Sonido: Brindis personalizado');
       console.log('[Notifications]    - Vibración: Habilitada');
       console.log('[Notifications]    - Heads-up: Habilitado (prioridad MAX)');
 
@@ -539,6 +537,7 @@ export const savePushToken = async (userId: string, token: string, deviceData?: 
 /**
  * Enviar notificación local (sin servidor)
  * Útil para recordatorios y notificaciones programadas
+ * 🍻 Usa el sonido de brindis personalizado
  */
 export const sendLocalNotification = async (data: NotificationData): Promise<void> => {
   try {
@@ -547,7 +546,7 @@ export const sendLocalNotification = async (data: NotificationData): Promise<voi
       return;
     }
     
-    console.log('[Notifications] 📬 Enviando notificación local:', data.type);
+    console.log('[Notifications] 🍻 Enviando notificación local con sonido de brindis:', data.type);
     
     // Determinar canal según tipo
     const channelId = getChannelForType(data.type);
@@ -556,7 +555,7 @@ export const sendLocalNotification = async (data: NotificationData): Promise<voi
       title: data.title,
       body: data.body,
       data: data,
-      sound: data.silent ? null : 'default',
+      sound: data.silent ? null : 'brindis', // 🍻 Sonido de brindis
       badge: data.silent ? 0 : 1,
       priority: data.type === 'urgent' || data.type === 'message'
         ? Notifications.AndroidNotificationPriority.MAX
@@ -590,7 +589,7 @@ export const sendLocalNotification = async (data: NotificationData): Promise<voi
       trigger,
     });
     
-    console.log('[Notifications] ✅ Notificación local enviada');
+    console.log('[Notifications] ✅ Notificación local enviada con sonido de brindis 🍻');
   } catch (error: any) {
     console.error('[Notifications] ❌ Error enviando notificación local:', error.message);
   }
@@ -717,7 +716,7 @@ export const addNotificationReceivedListener = (
   console.log('[Notifications] 👂 Registrando listener de notificaciones recibidas');
   
   return Notifications.addNotificationReceivedListener((notification) => {
-    console.log('[Notifications] 📬 Notificación recibida en foreground');
+    console.log('[Notifications] 🍻 Notificación recibida en foreground');
     console.log('[Notifications] Tipo:', notification.request.content.data?.type);
     console.log('[Notifications] Título:', notification.request.content.title);
     
@@ -966,7 +965,7 @@ export const clearAllNotifications = async (): Promise<void> => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Programar notificación de prueba
+ * Programar notificación de prueba con sonido de brindis
  */
 export const scheduleTestNotification = async (): Promise<void> => {
   try {
@@ -983,9 +982,9 @@ export const scheduleTestNotification = async (): Promise<void> => {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: '🍻 ¡Salud!',
-        body: 'Esta es una notificación de prueba de BarLive',
+        body: 'Esta es una notificación de prueba de BarLive con sonido de brindis',
         data: { type: 'cheers' },
-        sound: 'default',
+        sound: 'brindis', // 🍻 Sonido de brindis
         priority: Notifications.AndroidNotificationPriority.MAX,
       },
       trigger: {
@@ -996,11 +995,11 @@ export const scheduleTestNotification = async (): Promise<void> => {
     
     Alert.alert(
       'Notificación Programada',
-      'Recibirás una notificación de prueba en 2 segundos',
+      'Recibirás una notificación de prueba con sonido de brindis en 2 segundos 🍻',
       [{ text: 'OK' }]
     );
     
-    console.log('[Notifications] ✅ Notificación de prueba programada');
+    console.log('[Notifications] ✅ Notificación de prueba programada con sonido de brindis');
   } catch (error: any) {
     console.error('[Notifications] ❌ Error programando notificación:', error.message);
   }
@@ -1046,7 +1045,7 @@ export const getNotificationStatus = async (): Promise<{
  */
 export const initializeNotifications = async (userId?: string): Promise<void> => {
   try {
-    console.log('[Notifications] 🚀 Inicializando sistema de notificaciones...');
+    console.log('[Notifications] 🚀 Inicializando sistema de notificaciones con sonido de brindis...');
     
     // Configurar categorías
     await setupNotificationCategories();
@@ -1059,7 +1058,7 @@ export const initializeNotifications = async (userId?: string): Promise<void> =>
       }
     }
     
-    console.log('[Notifications] ✅ Sistema de notificaciones inicializado');
+    console.log('[Notifications] ✅ Sistema de notificaciones inicializado con sonido de brindis 🍻');
   } catch (error: any) {
     console.error('[Notifications] ❌ Error inicializando notificaciones:', error.message);
   }
