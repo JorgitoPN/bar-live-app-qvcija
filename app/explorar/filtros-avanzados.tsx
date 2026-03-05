@@ -45,37 +45,17 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ CROSS-PLATFORM FILTERS PAGE v4.1 - TIPO DE LOCAL REMOVED
+ * ✅ FILTROS AVANZADOS v4.2 - TIPO DE LOCAL COMPLETAMENTE ELIMINADO
  * 
- * NEW FEATURES v4.1:
- * - 🚫 REMOVED "Tipo de Local" section from advanced filters
- * - ✅ Local type selection now only available in Explorar and Mapa pages
- * - 🎯 Simplified advanced filters focusing on location, services, ambiente, and clientela
+ * CAMBIOS v4.2:
+ * - 🚫 ELIMINADO COMPLETAMENTE: Sección "Tipos de local (6) 1 MÁX"
+ * - 🚫 NO SE MUESTRA: Ningún desplegable de tipos de local
+ * - ✅ SOLO DISPONIBLE EN: Página Explorar y Página Mapa
+ * - 🎯 FILTROS AVANZADOS: Ubicación, Servicios, Ambiente, Clientela
  * 
- * Previous features v4.0:
- * - 🎯 SINGLE SELECTION: Only one "Tipo de Local" can be active at a time
- * - 🔄 BIDIRECTIONAL SYNC: Changes sync with Explore filter bar automatically
- * - ✅ EXCLUSIVE TOGGLE: Selecting a new type deselects the previous one
- * - 🌐 GLOBAL STATE: Uses selectedLocalType from Zustand store
- * - 💫 SMOOTH UX: Visual feedback for active selection
- * 
- * Previous features v3.2 (iOS FIX):
- * - 🎯 "Sin límite" as default for search range on BOTH iOS and Android
- * - ⚡ Auto-activate filter when user modifies range (iOS + Android)
- * - 🔄 Option to return to "Sin límite" after setting a range (iOS + Android)
- * - ✅ Clear visual feedback for active/inactive distance filter
- * - 🍎 Verified iOS compatibility with all features
- * 
- * Previous features v3.1:
- * - 🎯 DYNAMIC FILTERS: Only show characteristics with active locales
- * - ⚡ INSTANT CLEAR: Synchronous UI update, background fetch
- * - 🎚️ SLIDER: Replaced text input with slider (1-100km range)
- * - ✅ Real-time value display on slider
- * - ✅ Smooth UX with no lag on clear
- * 
- * Previous fixes v2.0:
- * - ✅ Safe area insets for Android system buttons
- * - ✅ Proper padding to avoid hidden buttons
+ * NOTA: El filtro de tipo de local se gestiona exclusivamente desde:
+ * - app/(tabs)/explorar/index.tsx (barra de filtros)
+ * - app/(tabs)/explorar/mapa.tsx (selector de mapa)
  */
 export default function FiltrosAvanzadosScreen() {
   const router = useRouter();
@@ -103,7 +83,8 @@ export default function FiltrosAvanzadosScreen() {
   });
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados v4.1] 🔄 Page opened, loading filters (tipo de local removed)');
+    console.log('[FiltrosAvanzados v4.2] 🔄 Página abierta - TIPO DE LOCAL NO DISPONIBLE AQUÍ');
+    console.log('[FiltrosAvanzados v4.2] ℹ️ Tipo de local solo disponible en Explorar y Mapa');
     setFiltrosTemp(contextFiltros);
     refreshDynamicOptions();
   }, [contextFiltros, refreshDynamicOptions]);
@@ -137,29 +118,25 @@ export default function FiltrosAvanzadosScreen() {
     }));
   }, [toggleArrayItem]);
 
-
-
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v4.1] ✅ Applying filters:', filtrosTemp);
+    console.log('[FiltrosAvanzados v4.2] ✅ Aplicando filtros (sin tipo de local):', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     router.back();
   }, [filtrosTemp, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v4.1] 🧹 Clearing all filters - INSTANT UI UPDATE');
+    console.log('[FiltrosAvanzados v4.2] 🧹 Limpiando todos los filtros - UI INSTANTÁNEA');
     
-    // ✅ PASO 1: Actualizar UI INMEDIATAMENTE (síncrono)
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     
-    // ✅ PASO 2: Actualizar contexto en background (asíncrono)
     setTimeout(() => {
       contextLimpiarFiltros();
     }, 0);
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v4.1] 📍 Selected comunidad:', selectedComunidad);
+    console.log('[FiltrosAvanzados v4.2] 📍 Comunidad seleccionada:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -183,7 +160,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v4.1] 📍 Selected provincia:', provincia);
+    console.log('[FiltrosAvanzados v4.2] 📍 Provincia seleccionada:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -193,7 +170,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados v4.1] 📏 Radius changed to:', value, 'km - Auto-activating filter');
+    console.log('[FiltrosAvanzados v4.2] 📏 Radio cambiado a:', value, 'km');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: value,
@@ -201,7 +178,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const activateDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v4.1] 🎯 Activating search range filter with default 50km');
+    console.log('[FiltrosAvanzados v4.2] 🎯 Activando filtro de distancia con 50km por defecto');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: 50,
@@ -209,7 +186,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const resetDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v4.1] 🔄 Resetting search range to "Sin límite"');
+    console.log('[FiltrosAvanzados v4.2] 🔄 Reseteando radio de búsqueda a "Sin límite"');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: undefined,
@@ -257,8 +234,6 @@ export default function FiltrosAvanzadosScreen() {
       p.toLowerCase().includes(query)
     );
   }, [availableProvincias, searchProvincia]);
-
-
 
   const serviciosDisponibles = useMemo(() => {
     return dynamicOptions.servicios.map(servicio => {
@@ -318,7 +293,7 @@ export default function FiltrosAvanzadosScreen() {
     return clientela;
   }, [dynamicOptions.clientela]);
 
-  // Active filters count (without tipo filter)
+  // ✅ CONTADOR DE FILTROS ACTIVOS (SIN TIPO DE LOCAL)
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (filtrosTemp.servicios && filtrosTemp.servicios.length > 0) count++;
@@ -327,6 +302,7 @@ export default function FiltrosAvanzadosScreen() {
     if (filtrosTemp.comunidad) count++;
     if (filtrosTemp.provincia) count++;
     if (filtrosTemp.distancia !== undefined && filtrosTemp.distancia !== null) count++;
+    // 🚫 NO SE CUENTA selectedLocalType - ese filtro no existe en esta página
     return count;
   }, [filtrosTemp]);
 
@@ -376,7 +352,7 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         )}
 
-        {/* LOCATION SECTION */}
+        {/* 📍 SECCIÓN UBICACIÓN */}
         <View style={styles.section}>
           <TouchableOpacity 
             style={styles.sectionHeader}
@@ -403,7 +379,7 @@ export default function FiltrosAvanzadosScreen() {
                 <TouchableOpacity
                   style={styles.locationButton}
                   onPress={() => {
-                    console.log('[FiltrosAvanzados v4.1] 🔍 Opening comunidad modal');
+                    console.log('[FiltrosAvanzados v4.2] 🔍 Abriendo modal de comunidad');
                     setShowComunidadModal(true);
                   }}
                 >
@@ -421,7 +397,7 @@ export default function FiltrosAvanzadosScreen() {
                   ]}
                   onPress={() => {
                     if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
-                      console.log('[FiltrosAvanzados v4.1] 🔍 Opening provincia modal');
+                      console.log('[FiltrosAvanzados v4.2] 🔍 Abriendo modal de provincia');
                       setShowProvinciaModal(true);
                     }
                   }}
@@ -504,9 +480,11 @@ export default function FiltrosAvanzadosScreen() {
           )}
         </View>
 
+        {/* 🚫 NOTA: SECCIÓN "TIPOS DE LOCAL" ELIMINADA */}
+        {/* Esta sección ya no aparece en Filtros Avanzados */}
+        {/* El filtro de tipo de local solo está disponible en Explorar y Mapa */}
 
-
-        {/* SERVICIOS SECTION */}
+        {/* ✅ SECCIÓN SERVICIOS */}
         {serviciosDisponibles.length > 0 && (
           <View style={styles.section}>
             <TouchableOpacity 
@@ -557,7 +535,7 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         )}
 
-        {/* AMBIENTE SECTION */}
+        {/* ✨ SECCIÓN AMBIENTE */}
         {ambientesDisponibles.length > 1 && (
           <View style={styles.section}>
             <TouchableOpacity 
@@ -610,7 +588,7 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         )}
 
-        {/* CLIENTELA SECTION */}
+        {/* 👥 SECCIÓN CLIENTELA */}
         {clientelaDisponible.length > 1 && (
           <View style={styles.section}>
             <TouchableOpacity 
@@ -698,7 +676,7 @@ export default function FiltrosAvanzadosScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* COMUNIDAD MODAL */}
+      {/* MODAL COMUNIDAD */}
       <Modal
         visible={showComunidadModal}
         transparent
@@ -768,7 +746,7 @@ export default function FiltrosAvanzadosScreen() {
         </Pressable>
       </Modal>
 
-      {/* PROVINCIA MODAL */}
+      {/* MODAL PROVINCIA */}
       <Modal
         visible={showProvinciaModal}
         transparent
@@ -956,37 +934,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textSecondary,
   },
-  singleSelectionBadge: {
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    marginLeft: 4,
-  },
-  singleSelectionText: {
-    fontWeight: '700',
-    color: colors.primary,
-  },
   sectionContent: {
     paddingHorizontal: 14,
     paddingBottom: 14,
-  },
-  singleSelectionInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.primary + '10',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: colors.primary + '20',
-  },
-  singleSelectionInfoText: {
-    flex: 1,
-    fontWeight: '600',
-    color: colors.primary,
-    lineHeight: 16,
   },
   locationGrid: {
     flexDirection: 'row',
