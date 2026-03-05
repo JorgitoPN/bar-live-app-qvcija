@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Dimensions,
@@ -33,6 +32,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { getEstadoLocal } from '@/utils/timeUtils';
 import LoginPrompt from '@/components/common/LoginPrompt';
 import VirtualRoomLoginModal from '@/components/common/VirtualRoomLoginModal';
+import KeyboardAvoidingWrapper from '@/components/common/KeyboardAvoidingWrapper';
 import { scaleFontSize, scaleIconSize, getActionButtonPaddingVertical } from '@/utils/androidScaling';
 import { calcularDistancia } from '@/utils/locationUtils';
 
@@ -3696,11 +3696,7 @@ function SalaVirtualEnhancedScreen() {
         </View>
 
         {activeTab === 'chat' && (
-          <KeyboardAvoidingView
-            style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? (insets.bottom + 90) : 0}
-          >
+          <KeyboardAvoidingWrapper style={styles.chatContainer}>
             <FlashList
               ref={flashListRef}
               data={messages}
@@ -3816,7 +3812,7 @@ function SalaVirtualEnhancedScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </KeyboardAvoidingView>
+          </KeyboardAvoidingWrapper>
         )}
 
         {activeTab === 'users' && (
@@ -3879,11 +3875,7 @@ function SalaVirtualEnhancedScreen() {
         )}
 
         {activeTab === 'private' && selectedPrivateChat && (
-          <KeyboardAvoidingView
-            style={styles.chatContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? (insets.bottom + 90) : 0}
-          >
+          <KeyboardAvoidingWrapper style={styles.chatContainer}>
             <TouchableOpacity
               style={[styles.privateChatHeader, { backgroundColor: themeColors.cardBg, borderBottomColor: themeColors.cardBorder }]}
               onPress={handlePrivateChatUserPress}
@@ -4028,7 +4020,7 @@ function SalaVirtualEnhancedScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </KeyboardAvoidingView>
+          </KeyboardAvoidingWrapper>
         )}
 
         {renderBottomSheet()}
