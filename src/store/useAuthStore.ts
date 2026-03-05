@@ -242,7 +242,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   
-  // ✅ FASE 9.1: PERFIL INSTANTÁNEO - STALE-WHILE-REVALIDATE + ABORT ERROR FIX + LOADING SCREEN
+  // ✅ FASE 9.1: PERFIL INSTANTÁNEO - STALE-WHILE-REVALIDATE + ABORT ERROR FIX + LOADING SCREEN + SESSION PERSISTENCE FIX
   initialize: async () => {
     const startTime = performance.now();
     console.log('[AuthStore FASE 9.1] 🚀 Initializing with INSTANT profile hydration...');
@@ -252,41 +252,91 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     
     try {
       // ═══════════════════════════════════════════════════════════════════════════
-      // ✅ PASO 1: LECTURA SÍNCRONA INMEDIATA desde MMKV (SESSION + PROFILE T0)
+      // ✅ PASO 1: LECTURA SÍNCRONA/ASÍNCRONA desde Storage (SESSION + PROFILE T0)
       // ═══════════════════════════════════════════════════════════════════════════
-      const { getSessionSync, getProfileT0Sync } = require('@/src/lib/supabaseStorage');
+      const { 
+        getSessionSync, 
+        getProfileT0Sync, 
+        saveSessionSync,
+        getSessionAsync,
+        getProfileT0Async,
+        saveSessionAsync,
+        storageInfo,
+      } = require('@/src/lib/supabaseStorage');
       
-      // ✅ Progress: 10% - Starting MMKV read
+      // ✅ Progress: 10% - Starting storage read
       set({ initialLoadingProgress: 0.1 });
       
-      // 1.1 - Cargar sesión desde MMKV
-      const cachedSessionData = getSessionSync();
+      // 1.1 - Cargar sesión desde storage (sync si MMKV, async si AsyncStorage)
+      let cachedSessionData: string | undefined | null;
+      
+      if (storageInfo.isMMKVEnabled) {
+        // MMKV - Lectura síncrona
+        cachedSessionData = getSessionSync();
+      } else {
+        // AsyncStorage - Lectura asíncrona
+        cachedSessionData = await getSessionAsync();
+      }
       
       if (cachedSessionData) {
         try {
           const parsedSession = JSON.parse(cachedSessionData);
           console.log('[AuthStore FASE 9.1] ⚡ SYNC session found in MMKV (<1ms)');
           
-          // ✅ Progress: 25% - Session loaded
-          set({ initialLoadingProgress: 0.25 });
+          // ✅ FIX: Verificar que la sesión no esté expirada
+          const expiresAt = parsedSession.expires_at * 1000;
+          const now = Date.now();
+          const isExpired = expiresAt <= now;
           
-          // Actualizar estado INMEDIATAMENTE con la sesión cacheada
-          set({ 
-            session: parsedSession,
-            isAuthenticated: true,
-            sessionReady: true,
-            loading: false 
-          });
+          if (isExpired) {
+            console.log('[AuthStore FASE 9.1] ⚠️ Cached session is expired, clearing...');
+            set({ 
+              session: null,
+              isAuthenticated: false,
+              sessionReady: true,
+              loading: false,
+              initialLoadingProgress: 0.25,
+            });
+          } else {
+            console.log('[AuthStore FASE 9.1] ✅ Cached session is valid');
+            
+            // ✅ Progress: 25% - Session loaded
+            set({ initialLoadingProgress: 0.25 });
+            
+            // ✅ FIX: Actualizar Supabase client con la sesión cacheada
+            // Esto es CRÍTICO para que las peticiones autenticadas funcionen
+            await supabase.auth.setSession({
+              access_token: parsedSession.access_token,
+              refresh_token: parsedSession.refresh_token,
+            });
+            
+            // Actualizar estado INMEDIATAMENTE con la sesión cacheada
+            set({ 
+              session: parsedSession,
+              isAuthenticated: true,
+              sessionReady: true,
+              loading: false 
+            });
+          }
         } catch (parseError) {
           console.error('[AuthStore FASE 9.1] ❌ Failed to parse cached session:', parseError);
+          set({ loading: false, sessionReady: true, initialLoadingProgress: 0.25 });
         }
       } else {
         console.log('[AuthStore FASE 9.1] ℹ️ No cached session in MMKV');
         set({ loading: false, sessionReady: true, initialLoadingProgress: 0.25 });
       }
       
-      // 1.2 - Cargar perfil T0 desde MMKV (NUEVO - FASE 9)
-      const cachedProfileT0 = getProfileT0Sync();
+      // 1.2 - Cargar perfil T0 desde storage (sync si MMKV, async si AsyncStorage)
+      let cachedProfileT0: string | undefined | null;
+      
+      if (storageInfo.isMMKVEnabled) {
+        // MMKV - Lectura síncrona
+        cachedProfileT0 = getProfileT0Sync();
+      } else {
+        // AsyncStorage - Lectura asíncrona
+        cachedProfileT0 = await getProfileT0Async();
+      }
       
       if (cachedProfileT0) {
         try {
@@ -349,6 +399,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Si la red devuelve una sesión diferente, actualizar
       if (networkSession) {
         console.log('[AuthStore FASE 9.1] ✅ Network session validated');
+        
+        // ✅ FIX: Guardar la sesión validada en storage para próxima vez
+        try {
+          if (storageInfo.isMMKVEnabled) {
+            saveSessionSync(JSON.stringify(networkSession));
+          } else {
+            await saveSessionAsync(JSON.stringify(networkSession));
+          }
+          console.log('[AuthStore FASE 9.1] ✅ Session saved to storage for persistence');
+        } catch (saveError) {
+          console.error('[AuthStore FASE 9.1] ❌ Error saving session to storage:', saveError);
+        }
+        
         set({ session: networkSession, initialLoadingProgress: 0.8 });
         
         // ═══════════════════════════════════════════════════════════════════════════
@@ -399,9 +462,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                   initialLoadingProgress: 0.9,
                 });
                 
-                // ✅ STALE-WHILE-REVALIDATE: Guardar en MMKV para próxima vez
-                const { saveProfileT0Sync } = require('@/src/lib/supabaseStorage');
-                saveProfileT0Sync(JSON.stringify(profileT0));
+                // ✅ STALE-WHILE-REVALIDATE: Guardar en storage para próxima vez
+                const { saveProfileT0Sync, saveProfileT0Async, storageInfo: si } = require('@/src/lib/supabaseStorage');
+                if (si.isMMKVEnabled) {
+                  saveProfileT0Sync(JSON.stringify(profileT0));
+                } else {
+                  await saveProfileT0Async(JSON.stringify(profileT0));
+                }
                 
                 // ✅ PASO 4: CARGAR PERFIL T1 (muy diferido, no crítico)
                 setTimeout(() => {
@@ -431,9 +498,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                         
                         set({ profileT1 });
                         
-                        // ✅ Guardar T1 en MMKV
-                        const { saveProfileT1Sync } = require('@/src/lib/supabaseStorage');
-                        saveProfileT1Sync(JSON.stringify(profileT1));
+                        // ✅ Guardar T1 en storage
+                        const { saveProfileT1Sync, saveProfileT1Async, storageInfo: si2 } = require('@/src/lib/supabaseStorage');
+                        if (si2.isMMKVEnabled) {
+                          saveProfileT1Sync(JSON.stringify(profileT1));
+                        } else {
+                          await saveProfileT1Async(JSON.stringify(profileT1));
+                        }
                       }
                     } catch (t1Error: any) {
                       // ✅ FASE 9.1: Silenciar AbortError completamente

@@ -623,15 +623,10 @@ export default function ExplorarScreen() {
       );
     }
     
-    // ✅ Skeleton loader
+    // ✅ FIX: Skeleton loader - Show while loading initial data
+    // This provides visual feedback to the user that data is being loaded
     if ((isLoading || isFetching) && allVenues.length === 0 && !data) {
-      return (
-        <View style={styles.skeletonContainer}>
-          {[...Array(8)].map((_, index) => (
-            <SkeletonCard key={index} />
-          ))}
-        </View>
-      );
+      return null; // Return null here, skeleton will be shown in the main render
     }
     
     // Show error state
@@ -1013,7 +1008,17 @@ export default function ExplorarScreen() {
       </Animated.View>
 
       {/* ✅ v32.3.0: FLASHLIST WITH DATABASE ORDER PRESERVED */}
-      {allVenues.length > 0 || isLoading || isFetching ? (
+      {/* ✅ FIX: Show skeleton loader while loading initial data */}
+      {(isLoading || isFetching) && allVenues.length === 0 && !data ? (
+        <ScrollView 
+          style={[styles.listContent, { marginTop: HEADER_MAX_HEIGHT }]}
+          contentContainerStyle={styles.skeletonContainer}
+        >
+          {[...Array(8)].map((_, index) => (
+            <SkeletonCard key={index} />
+          ))}
+        </ScrollView>
+      ) : allVenues.length > 0 ? (
         <Animated.View style={{ flex: 1, opacity: showContent ? contentOpacity : 1 }}>
           <AnimatedFlashList
             key={listKey}

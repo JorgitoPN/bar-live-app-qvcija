@@ -432,8 +432,9 @@ function SalaVirtualEnhancedScreen() {
   
   // ✅ CRITICAL FIX: Properly typed refs for FlashList
   // FlashList uses a different type than FlatList
-  const flashListRef = useRef<any>(null);
-  const privateChatFlashListRef = useRef<any>(null);
+  // Using FlashList type from @shopify/flash-list
+  const flashListRef = useRef<FlashList<Message> | null>(null);
+  const privateChatFlashListRef = useRef<FlashList<Message> | null>(null);
   const chatChannelRef = useRef<RealtimeChannel | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const checkinsChannelRef = useRef<RealtimeChannel | null>(null);
