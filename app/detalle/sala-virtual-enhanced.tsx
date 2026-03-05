@@ -435,6 +435,10 @@ function SalaVirtualEnhancedScreen() {
   // Using 'any' is the recommended approach for FlashList refs
   const flashListRef = useRef<any>(null);
   const privateChatFlashListRef = useRef<any>(null);
+  
+  // ✅ CRITICAL FIX v10.2: Alias for backward compatibility with existing code
+  // Some parts of the code use 'flatListRef' instead of 'flashListRef'
+  const flatListRef = flashListRef;
   const chatChannelRef = useRef<RealtimeChannel | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const checkinsChannelRef = useRef<RealtimeChannel | null>(null);
