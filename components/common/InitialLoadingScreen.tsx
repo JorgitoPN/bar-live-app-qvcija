@@ -1,22 +1,30 @@
 
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Animated, Image, ImageSourcePropType } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/commonStyles';
 
 /**
- * ✅ INITIAL LOADING SCREEN v3.0 - OPTIMIZED FOR PERFORMANCE
+ * ✅ INITIAL LOADING SCREEN v4.0 - WITH REAL LOGO
  * 
- * CHANGES v3.0:
+ * CHANGES v4.0:
+ * - ✅ REAL LOGO: Uses actual BarLive logo instead of emoji
+ * - ✅ UPDATED MESSAGE: Reflects all hospitality venues, not just nightlife
  * - ✅ PROGRESS TRACKING: Shows actual loading progress
  * - ✅ SMART MESSAGES: Context-aware loading messages
  * - ✅ SMOOTH ANIMATIONS: Minimal CPU load
- * - ✅ INSTANT RENDER: No fade-in delay
- * - ✅ RESULT: Faster perceived load time, better UX
+ * - ✅ RESULT: Professional branding, accurate messaging
  */
 
 interface InitialLoadingScreenProps {
   progress?: number; // 0 to 1
+}
+
+// Helper to resolve image sources (handles both local and remote images)
+function resolveImageSource(source: string | number | ImageSourcePropType | undefined): ImageSourcePropType {
+  if (!source) return { uri: '' };
+  if (typeof source === 'string') return { uri: source };
+  return source as ImageSourcePropType;
 }
 
 export default function InitialLoadingScreen({ progress = 0 }: InitialLoadingScreenProps) {
@@ -46,14 +54,26 @@ export default function InitialLoadingScreen({ progress = 0 }: InitialLoadingScr
     return '¡Casi listo!';
   };
 
+  // TODO: Replace with actual logo path once provided
+  // Option 1: Local asset - require('@/assets/images/barlive-logo.png')
+  // Option 2: Remote URL - 'https://your-supabase-storage-url/barlive-logo.png'
+  const logoSource = require('@/assets/images/barlive-logo.png');
+
   return (
     <LinearGradient
       colors={[colors.headerGradientStart, colors.headerGradientEnd]}
       style={styles.container}
     >
       <View style={styles.content}>
-        <Text style={styles.logo}>🍺 BarLive</Text>
-        <Text style={styles.subtitle}>Tu vida nocturna, en vivo</Text>
+        {/* ✅ Real BarLive Logo */}
+        <Image
+          source={resolveImageSource(logoSource)}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
+        
+        {/* ✅ Updated subtitle for all hospitality venues */}
+        <Text style={styles.subtitle}>Tu experiencia en hostelería, en vivo</Text>
         
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.headerText} />
@@ -91,10 +111,9 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
   },
-  logo: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: colors.headerText,
+  logoImage: {
+    width: 200,
+    height: 200,
     marginBottom: 8,
   },
   subtitle: {
@@ -102,6 +121,7 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     opacity: 0.9,
     textAlign: 'center',
+    fontWeight: '500',
   },
   loadingContainer: {
     alignItems: 'center',
