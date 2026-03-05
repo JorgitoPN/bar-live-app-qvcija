@@ -52,14 +52,17 @@ const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
  * - ✅ Quick clear button for advanced filters
  */
 
+// ✅ v451.0 SYNCHRONIZED WITH FILTROS-SIMPLES - EXACT SAME ICONS
+// These icons MUST match EXACTLY with app/(tabs)/explorar/filtros-simples.tsx
+// Using IDENTICAL icon names for both iOS and Android
 const CATEGORIAS = [
-  { id: 'todas', label: 'Todas', icon: 'sparkles', androidIcon: 'star' },
-  { id: 'cafe', label: 'Cafés', icon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
-  { id: 'restaurante', label: 'Restaurantes', icon: 'fork.knife', androidIcon: 'restaurant' },
-  { id: 'bar', label: 'Bares', icon: 'wineglass.fill', androidIcon: 'local_bar' },
-  { id: 'pub', label: 'Pubs', icon: 'mug.fill', androidIcon: 'sports_bar' },
-  { id: 'cocteleria', label: 'Coctelería', icon: 'wineglass', androidIcon: 'liquor' },
-  { id: 'discoteca', label: 'Discotecas', icon: 'music.note', androidIcon: 'nightlife' },
+  { id: 'todas', label: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
+  { id: 'cafe', label: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
+  { id: 'restaurante', label: 'Restaurantes', iosIcon: 'fork.knife', androidIcon: 'restaurant' },
+  { id: 'bar', label: 'Bares', iosIcon: 'wineglass.fill', androidIcon: 'local_bar' },
+  { id: 'pub', label: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports_bar' },
+  { id: 'cocteleria', label: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'liquor' },
+  { id: 'discoteca', label: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
 ];
 
 const CategoriaButton = React.memo(({ 
@@ -83,7 +86,7 @@ const CategoriaButton = React.memo(({
         isSelected && styles.categoriaIconContainerActive
       ]}>
         <IconSymbol 
-          ios_icon_name={categoria.icon as any}
+          ios_icon_name={categoria.iosIcon as any}
           android_material_icon_name={categoria.androidIcon}
           size={Platform.OS === 'android' ? 16 : 18}
           color={isSelected ? colors.primary : colors.white}

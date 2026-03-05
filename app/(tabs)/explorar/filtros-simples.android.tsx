@@ -13,8 +13,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 
-// ✅ v450.0 SYNCHRONIZED WITH MAPA PAGE - EXACT SAME ICONS
-// These icons MUST match exactly with app/(tabs)/explorar/mapa.tsx
+// ✅ v451.0 SYNCHRONIZED WITH MAPA PAGE - EXACT SAME ICONS
+// These icons MUST match EXACTLY with app/(tabs)/explorar/mapa.tsx
+// Using IDENTICAL icon names for both iOS and Android
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
   { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local_cafe' },
@@ -23,8 +24,6 @@ const CATEGORIAS = [
   { id: 'pub', nombre: 'Pubs', iosIcon: 'mug.fill', androidIcon: 'sports_bar' },
   { id: 'cocteleria', nombre: 'Coctelería', iosIcon: 'wineglass', androidIcon: 'liquor' },
   { id: 'discoteca', nombre: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
-  { id: 'terraza', nombre: 'Terrazas', iosIcon: 'sun.max.fill', androidIcon: 'wb_sunny' },
-  { id: 'rooftop', nombre: 'Rooftops', iosIcon: 'building.2.fill', androidIcon: 'apartment' },
 ];
 
 const PROVINCIAS = [
