@@ -45,14 +45,15 @@ const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
 };
 
 /**
- * ✅ FILTROS AVANZADOS v6.0 - DISEÑO MEJORADO
+ * ✅ FILTROS AVANZADOS v7.0 - DISEÑO ULTRA COMPACTO Y ORIGINAL
  * 
- * MEJORAS:
- * - 🎨 Diseño más limpio y moderno
- * - 📱 Mejor organización visual
- * - ✨ Animaciones suaves
- * - 🎯 Mejor UX con chips más grandes
- * - 🌈 Colores más vibrantes
+ * MEJORAS v7.0:
+ * - 🎨 Diseño más compacto y minimalista
+ * - 📱 Chips más pequeños y organizados
+ * - ✨ Colores vibrantes y modernos
+ * - 🎯 Mejor uso del espacio vertical
+ * - 🌈 Diseño original y atractivo
+ * - 🚀 Caché limpiada (cache key v7.0)
  */
 export default function FiltrosAvanzadosScreen() {
   const router = useRouter();
@@ -74,7 +75,7 @@ export default function FiltrosAvanzadosScreen() {
   const [searchProvincia, setSearchProvincia] = useState('');
 
   useEffect(() => {
-    console.log('[FiltrosAvanzados v6.0] 🎨 Inicializando diseño mejorado');
+    console.log('[FiltrosAvanzados v7.0] 🎨 Inicializando diseño ultra compacto');
     setFiltrosTemp(contextFiltros);
     refreshDynamicOptions();
   }, [contextFiltros, refreshDynamicOptions]);
@@ -109,13 +110,13 @@ export default function FiltrosAvanzadosScreen() {
   }, [toggleArrayItem]);
 
   const handleAplicar = useCallback(() => {
-    console.log('[FiltrosAvanzados v6.0] ✅ Aplicando filtros:', filtrosTemp);
+    console.log('[FiltrosAvanzados v7.0] ✅ Aplicando filtros:', filtrosTemp);
     contextAplicarFiltros(filtrosTemp);
     router.back();
   }, [filtrosTemp, contextAplicarFiltros, router]);
 
   const handleLimpiar = useCallback(() => {
-    console.log('[FiltrosAvanzados v6.0] 🧹 Limpiando filtros');
+    console.log('[FiltrosAvanzados v7.0] 🧹 Limpiando filtros');
     const emptyFiltros = {};
     setFiltrosTemp(emptyFiltros);
     setTimeout(() => {
@@ -124,7 +125,7 @@ export default function FiltrosAvanzadosScreen() {
   }, [contextLimpiarFiltros]);
 
   const handleComunidadSelect = useCallback((selectedComunidad: string) => {
-    console.log('[FiltrosAvanzados v6.0] 📍 Comunidad seleccionada:', selectedComunidad);
+    console.log('[FiltrosAvanzados v7.0] 📍 Comunidad seleccionada:', selectedComunidad);
     setFiltrosTemp(prev => {
       const newFiltros = {
         ...prev,
@@ -148,7 +149,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleProvinciaSelect = useCallback((provincia: string) => {
-    console.log('[FiltrosAvanzados v6.0] 📍 Provincia seleccionada:', provincia);
+    console.log('[FiltrosAvanzados v7.0] 📍 Provincia seleccionada:', provincia);
     setFiltrosTemp(prev => ({
       ...prev,
       provincia: prev.provincia === provincia ? undefined : provincia,
@@ -158,7 +159,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const handleDistanciaChange = useCallback((value: number) => {
-    console.log('[FiltrosAvanzados v6.0] 📏 Radio cambiado a:', value, 'km');
+    console.log('[FiltrosAvanzados v7.0] 📏 Radio cambiado a:', value, 'km');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: value,
@@ -166,7 +167,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const activateDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v6.0] 🎯 Activando filtro de distancia');
+    console.log('[FiltrosAvanzados v7.0] 🎯 Activando filtro de distancia');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: 50,
@@ -174,7 +175,7 @@ export default function FiltrosAvanzadosScreen() {
   }, []);
 
   const resetDistanceFilter = useCallback(() => {
-    console.log('[FiltrosAvanzados v6.0] 🔄 Reseteando radio de búsqueda');
+    console.log('[FiltrosAvanzados v7.0] 🔄 Reseteando radio de búsqueda');
     setFiltrosTemp(prev => ({
       ...prev,
       distancia: undefined,
@@ -284,15 +285,15 @@ export default function FiltrosAvanzadosScreen() {
     return count;
   }, [filtrosTemp]);
 
-  const footerPaddingBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 20) : 20;
-  const scrollContentPaddingBottom = Platform.OS === 'android' ? 120 + insets.bottom : 120;
+  const footerPaddingBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 16) : 16;
+  const scrollContentPaddingBottom = Platform.OS === 'android' ? 100 + insets.bottom : 100;
   const isDistanceFilterActive = filtrosTemp.distancia !== undefined && filtrosTemp.distancia !== null;
 
   const distanceDisplayValue = isDistanceFilterActive ? `${Math.round(filtrosTemp.distancia!)} km` : 'Sin límite';
 
   return (
     <View style={styles.container}>
-      {/* HEADER MEJORADO */}
+      {/* HEADER COMPACTO */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -304,16 +305,16 @@ export default function FiltrosAvanzadosScreen() {
             <IconSymbol 
               ios_icon_name="chevron.left" 
               android_material_icon_name="arrow_back" 
-              size={scaleIconSize(24)} 
+              size={scaleIconSize(22)} 
               color={colors.headerText} 
             />
           </TouchableOpacity>
           
           <View style={styles.headerCenter}>
-            <Text style={[styles.headerTitle, { fontSize: scaleFontSize(22) }]}>Filtros Avanzados</Text>
+            <Text style={[styles.headerTitle, { fontSize: scaleFontSize(18) }]}>Filtros</Text>
             {activeFiltersCount > 0 && (
               <View style={styles.headerBadge}>
-                <Text style={[styles.headerBadgeText, { fontSize: scaleFontSize(12) }]}>
+                <Text style={[styles.headerBadgeText, { fontSize: scaleFontSize(11) }]}>
                   {activeFiltersCount}
                 </Text>
               </View>
@@ -324,7 +325,7 @@ export default function FiltrosAvanzadosScreen() {
             <IconSymbol 
               ios_icon_name="trash" 
               android_material_icon_name="delete" 
-              size={scaleIconSize(20)} 
+              size={scaleIconSize(18)} 
               color={colors.headerText} 
             />
           </TouchableOpacity>
@@ -339,60 +340,43 @@ export default function FiltrosAvanzadosScreen() {
         {isLoadingOptions && (
           <View style={styles.loadingCard}>
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.loadingText, { fontSize: scaleFontSize(14) }]}>
-              Cargando opciones...
+            <Text style={[styles.loadingText, { fontSize: scaleFontSize(13) }]}>
+              Cargando...
             </Text>
           </View>
         )}
 
-        {/* 📍 UBICACIÓN - DISEÑO MEJORADO */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardHeaderLeft}>
-              <View style={[styles.iconCircle, { backgroundColor: '#3B82F6' + '20' }]}>
-                <IconSymbol 
-                  ios_icon_name="mappin.circle.fill" 
-                  android_material_icon_name="location_on" 
-                  size={scaleIconSize(20)} 
-                  color="#3B82F6" 
-                />
-              </View>
-              <Text style={[styles.cardTitle, { fontSize: scaleFontSize(16) }]}>Ubicación</Text>
-            </View>
+        {/* 📍 UBICACIÓN - ULTRA COMPACTO */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.iconDot, { backgroundColor: '#3B82F6' }]} />
+            <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Ubicación</Text>
           </View>
 
-          <View style={styles.cardContent}>
-            {/* Selectores de ubicación */}
+          <View style={styles.sectionContent}>
+            {/* Selectores compactos */}
             <View style={styles.locationRow}>
               <TouchableOpacity
-                style={styles.locationSelector}
+                style={styles.locationButton}
                 onPress={() => setShowComunidadModal(true)}
                 activeOpacity={0.7}
               >
-                <View style={styles.locationSelectorContent}>
-                  <Text style={[styles.locationSelectorLabel, { fontSize: scaleFontSize(11) }]}>
-                    COMUNIDAD
-                  </Text>
-                  <Text 
-                    style={[styles.locationSelectorValue, { fontSize: scaleFontSize(14) }]} 
-                    numberOfLines={1}
-                  >
-                    {filtrosTemp.comunidad || 'Todas'}
-                  </Text>
-                </View>
-                <IconSymbol 
-                  ios_icon_name="chevron.right" 
-                  android_material_icon_name="chevron_right" 
-                  size={scaleIconSize(18)} 
-                  color={colors.textSecondary} 
-                />
+                <Text style={[styles.locationLabel, { fontSize: scaleFontSize(10) }]}>
+                  COMUNIDAD
+                </Text>
+                <Text 
+                  style={[styles.locationValue, { fontSize: scaleFontSize(13) }]} 
+                  numberOfLines={1}
+                >
+                  {filtrosTemp.comunidad || 'Todas'}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
-                  styles.locationSelector,
+                  styles.locationButton,
                   (!filtrosTemp.comunidad || filtrosTemp.comunidad === 'Todas las Comunidades') && 
-                  styles.locationSelectorDisabled
+                  styles.locationButtonDisabled
                 ]}
                 onPress={() => {
                   if (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades') {
@@ -402,52 +386,34 @@ export default function FiltrosAvanzadosScreen() {
                 disabled={!filtrosTemp.comunidad || filtrosTemp.comunidad === 'Todas las Comunidades'}
                 activeOpacity={0.7}
               >
-                <View style={styles.locationSelectorContent}>
-                  <Text style={[styles.locationSelectorLabel, { fontSize: scaleFontSize(11) }]}>
-                    PROVINCIA
-                  </Text>
-                  <Text 
-                    style={[styles.locationSelectorValue, { fontSize: scaleFontSize(14) }]} 
-                    numberOfLines={1}
-                  >
-                    {filtrosTemp.provincia || 
-                     (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades' 
-                       ? 'Todas' 
-                       : 'Selecciona')}
-                  </Text>
-                </View>
-                <IconSymbol 
-                  ios_icon_name="chevron.right" 
-                  android_material_icon_name="chevron_right" 
-                  size={scaleIconSize(18)} 
-                  color={colors.textSecondary} 
-                />
+                <Text style={[styles.locationLabel, { fontSize: scaleFontSize(10) }]}>
+                  PROVINCIA
+                </Text>
+                <Text 
+                  style={[styles.locationValue, { fontSize: scaleFontSize(13) }]} 
+                  numberOfLines={1}
+                >
+                  {filtrosTemp.provincia || 
+                   (filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades' 
+                     ? 'Todas' 
+                     : 'Selecciona')}
+                </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Radio de búsqueda mejorado */}
-            <View style={styles.distanceCard}>
-              <View style={styles.distanceCardHeader}>
-                <View style={styles.distanceCardHeaderLeft}>
-                  <View style={[styles.iconCircleSmall, { backgroundColor: '#10B981' + '20' }]}>
-                    <IconSymbol 
-                      ios_icon_name="location.circle" 
-                      android_material_icon_name="my_location" 
-                      size={scaleIconSize(16)} 
-                      color="#10B981" 
-                    />
-                  </View>
-                  <Text style={[styles.distanceCardTitle, { fontSize: scaleFontSize(13) }]}>
-                    Radio de búsqueda
-                  </Text>
-                </View>
+            {/* Radio compacto */}
+            <View style={styles.distanceContainer}>
+              <View style={styles.distanceHeader}>
+                <Text style={[styles.distanceLabel, { fontSize: scaleFontSize(12) }]}>
+                  Radio de búsqueda
+                </Text>
                 <View style={[
                   styles.distanceBadge,
                   isDistanceFilterActive && styles.distanceBadgeActive
                 ]}>
                   <Text style={[
                     styles.distanceBadgeText,
-                    { fontSize: scaleFontSize(13) },
+                    { fontSize: scaleFontSize(11) },
                     isDistanceFilterActive && styles.distanceBadgeTextActive
                   ]}>
                     {distanceDisplayValue}
@@ -469,27 +435,12 @@ export default function FiltrosAvanzadosScreen() {
                     thumbTintColor="#10B981"
                   />
                   
-                  <View style={styles.distanceSliderLabels}>
-                    <Text style={[styles.distanceSliderLabel, { fontSize: scaleFontSize(11) }]}>
-                      1 km
-                    </Text>
-                    <Text style={[styles.distanceSliderLabel, { fontSize: scaleFontSize(11) }]}>
-                      100 km
-                    </Text>
-                  </View>
-
                   <TouchableOpacity 
                     style={styles.distanceResetButton}
                     onPress={resetDistanceFilter}
                     activeOpacity={0.7}
                   >
-                    <IconSymbol 
-                      ios_icon_name="arrow.counterclockwise" 
-                      android_material_icon_name="refresh" 
-                      size={scaleIconSize(14)} 
-                      color={colors.textSecondary} 
-                    />
-                    <Text style={[styles.distanceResetText, { fontSize: scaleFontSize(12) }]}>
+                    <Text style={[styles.distanceResetText, { fontSize: scaleFontSize(11) }]}>
                       Quitar límite
                     </Text>
                   </TouchableOpacity>
@@ -500,14 +451,8 @@ export default function FiltrosAvanzadosScreen() {
                   onPress={activateDistanceFilter}
                   activeOpacity={0.7}
                 >
-                  <IconSymbol 
-                    ios_icon_name="slider.horizontal.3" 
-                    android_material_icon_name="tune" 
-                    size={scaleIconSize(18)} 
-                    color="#10B981" 
-                  />
-                  <Text style={[styles.distanceActivateText, { fontSize: scaleFontSize(14) }]}>
-                    Activar filtro de distancia
+                  <Text style={[styles.distanceActivateText, { fontSize: scaleFontSize(12) }]}>
+                    Activar filtro
                   </Text>
                 </TouchableOpacity>
               )}
@@ -515,30 +460,21 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         </View>
 
-        {/* ✅ SERVICIOS - DISEÑO MEJORADO */}
+        {/* ✅ SERVICIOS - COMPACTO */}
         {serviciosDisponibles.length > 0 && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardHeaderLeft}>
-                <View style={[styles.iconCircle, { backgroundColor: '#8B5CF6' + '20' }]}>
-                  <IconSymbol 
-                    ios_icon_name="checkmark.seal.fill" 
-                    android_material_icon_name="verified" 
-                    size={scaleIconSize(20)} 
-                    color="#8B5CF6" 
-                  />
-                </View>
-                <Text style={[styles.cardTitle, { fontSize: scaleFontSize(16) }]}>Servicios</Text>
-                <View style={styles.countBadge}>
-                  <Text style={[styles.countBadgeText, { fontSize: scaleFontSize(11) }]}>
-                    {serviciosDisponibles.length}
-                  </Text>
-                </View>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.iconDot, { backgroundColor: '#8B5CF6' }]} />
+              <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Servicios</Text>
+              <View style={styles.countBadge}>
+                <Text style={[styles.countBadgeText, { fontSize: scaleFontSize(10) }]}>
+                  {serviciosDisponibles.length}
+                </Text>
               </View>
             </View>
 
-            <View style={styles.cardContent}>
-              <View style={styles.chipsGrid}>
+            <View style={styles.sectionContent}>
+              <View style={styles.chipsContainer}>
                 {serviciosDisponibles.map((servicio) => {
                   const isSelected = filtrosTemp.servicios?.includes(servicio.id);
                   
@@ -546,34 +482,24 @@ export default function FiltrosAvanzadosScreen() {
                     <TouchableOpacity
                       key={servicio.id}
                       style={[
-                        styles.chipLarge,
-                        isSelected && styles.chipLargeActive,
+                        styles.chip,
+                        isSelected && styles.chipActive,
                       ]}
                       onPress={() => handleServicioToggle(servicio.id)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.chipLargeIcon, { fontSize: scaleFontSize(18) }]}>
+                      <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>
                         {servicio.icon}
                       </Text>
                       <Text 
                         style={[
-                          styles.chipLargeText, 
-                          { fontSize: scaleFontSize(12) },
-                          isSelected && styles.chipLargeTextActive
+                          styles.chipText, 
+                          { fontSize: scaleFontSize(11) },
+                          isSelected && styles.chipTextActive
                         ]}
                       >
                         {servicio.label}
                       </Text>
-                      {isSelected && (
-                        <View style={styles.chipCheckmark}>
-                          <IconSymbol 
-                            ios_icon_name="checkmark" 
-                            android_material_icon_name="check" 
-                            size={scaleIconSize(12)} 
-                            color={colors.headerText} 
-                          />
-                        </View>
-                      )}
                     </TouchableOpacity>
                   );
                 })}
@@ -582,30 +508,21 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         )}
 
-        {/* ✨ AMBIENTE - DISEÑO MEJORADO */}
+        {/* ✨ AMBIENTE - COMPACTO */}
         {ambientesDisponibles.length > 1 && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardHeaderLeft}>
-                <View style={[styles.iconCircle, { backgroundColor: '#F59E0B' + '20' }]}>
-                  <IconSymbol 
-                    ios_icon_name="sparkles" 
-                    android_material_icon_name="auto_awesome" 
-                    size={scaleIconSize(20)} 
-                    color="#F59E0B" 
-                  />
-                </View>
-                <Text style={[styles.cardTitle, { fontSize: scaleFontSize(16) }]}>Ambiente</Text>
-                <View style={styles.countBadge}>
-                  <Text style={[styles.countBadgeText, { fontSize: scaleFontSize(11) }]}>
-                    {ambientesDisponibles.length - 1}
-                  </Text>
-                </View>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.iconDot, { backgroundColor: '#F59E0B' }]} />
+              <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Ambiente</Text>
+              <View style={styles.countBadge}>
+                <Text style={[styles.countBadgeText, { fontSize: scaleFontSize(10) }]}>
+                  {ambientesDisponibles.length - 1}
+                </Text>
               </View>
             </View>
 
-            <View style={styles.cardContent}>
-              <View style={styles.chipsGrid}>
+            <View style={styles.sectionContent}>
+              <View style={styles.chipsContainer}>
                 {ambientesDisponibles.map((ambiente) => {
                   const isSelected = ambiente.id === 'cualquiera'
                     ? !filtrosTemp.ambiente || filtrosTemp.ambiente.length === 0
@@ -615,34 +532,24 @@ export default function FiltrosAvanzadosScreen() {
                     <TouchableOpacity
                       key={ambiente.id}
                       style={[
-                        styles.chipLarge,
-                        isSelected && styles.chipLargeActive,
+                        styles.chip,
+                        isSelected && styles.chipActive,
                       ]}
                       onPress={() => handleAmbienteToggle(ambiente.id)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.chipLargeIcon, { fontSize: scaleFontSize(18) }]}>
+                      <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>
                         {ambiente.icon}
                       </Text>
                       <Text 
                         style={[
-                          styles.chipLargeText, 
-                          { fontSize: scaleFontSize(12) },
-                          isSelected && styles.chipLargeTextActive
+                          styles.chipText, 
+                          { fontSize: scaleFontSize(11) },
+                          isSelected && styles.chipTextActive
                         ]}
                       >
                         {ambiente.label}
                       </Text>
-                      {isSelected && (
-                        <View style={styles.chipCheckmark}>
-                          <IconSymbol 
-                            ios_icon_name="checkmark" 
-                            android_material_icon_name="check" 
-                            size={scaleIconSize(12)} 
-                            color={colors.headerText} 
-                          />
-                        </View>
-                      )}
                     </TouchableOpacity>
                   );
                 })}
@@ -651,30 +558,21 @@ export default function FiltrosAvanzadosScreen() {
           </View>
         )}
 
-        {/* 👥 CLIENTELA - DISEÑO MEJORADO */}
+        {/* 👥 CLIENTELA - COMPACTO */}
         {clientelaDisponible.length > 1 && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardHeaderLeft}>
-                <View style={[styles.iconCircle, { backgroundColor: '#EC4899' + '20' }]}>
-                  <IconSymbol 
-                    ios_icon_name="person.3.fill" 
-                    android_material_icon_name="people" 
-                    size={scaleIconSize(20)} 
-                    color="#EC4899" 
-                  />
-                </View>
-                <Text style={[styles.cardTitle, { fontSize: scaleFontSize(16) }]}>Clientela Típica</Text>
-                <View style={styles.countBadge}>
-                  <Text style={[styles.countBadgeText, { fontSize: scaleFontSize(11) }]}>
-                    {clientelaDisponible.length - 1}
-                  </Text>
-                </View>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.iconDot, { backgroundColor: '#EC4899' }]} />
+              <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(14) }]}>Clientela</Text>
+              <View style={styles.countBadge}>
+                <Text style={[styles.countBadgeText, { fontSize: scaleFontSize(10) }]}>
+                  {clientelaDisponible.length - 1}
+                </Text>
               </View>
             </View>
 
-            <View style={styles.cardContent}>
-              <View style={styles.chipsGrid}>
+            <View style={styles.sectionContent}>
+              <View style={styles.chipsContainer}>
                 {clientelaDisponible.map((clientela) => {
                   const isSelected = clientela.id === 'cualquiera'
                     ? !filtrosTemp.clientela || filtrosTemp.clientela.length === 0
@@ -684,34 +582,24 @@ export default function FiltrosAvanzadosScreen() {
                     <TouchableOpacity
                       key={clientela.id}
                       style={[
-                        styles.chipLarge,
-                        isSelected && styles.chipLargeActive,
+                        styles.chip,
+                        isSelected && styles.chipActive,
                       ]}
                       onPress={() => handleClientelaToggle(clientela.id)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.chipLargeIcon, { fontSize: scaleFontSize(18) }]}>
+                      <Text style={[styles.chipIcon, { fontSize: scaleFontSize(14) }]}>
                         {clientela.icon}
                       </Text>
                       <Text 
                         style={[
-                          styles.chipLargeText, 
-                          { fontSize: scaleFontSize(12) },
-                          isSelected && styles.chipLargeTextActive
+                          styles.chipText, 
+                          { fontSize: scaleFontSize(11) },
+                          isSelected && styles.chipTextActive
                         ]}
                       >
                         {clientela.label}
                       </Text>
-                      {isSelected && (
-                        <View style={styles.chipCheckmark}>
-                          <IconSymbol 
-                            ios_icon_name="checkmark" 
-                            android_material_icon_name="check" 
-                            size={scaleIconSize(12)} 
-                            color={colors.headerText} 
-                          />
-                        </View>
-                      )}
                     </TouchableOpacity>
                   );
                 })}
@@ -719,47 +607,9 @@ export default function FiltrosAvanzadosScreen() {
             </View>
           </View>
         )}
-
-        {/* ESTADO VACÍO */}
-        {(serviciosDisponibles.length === 0 && 
-          ambientesDisponibles.length === 1 && 
-          clientelaDisponible.length === 1) && 
-          !isLoadingOptions && (
-          <View style={styles.emptyState}>
-            <View style={[styles.emptyStateIcon, { backgroundColor: colors.primary + '15' }]}>
-              <IconSymbol 
-                ios_icon_name="exclamationmark.triangle" 
-                android_material_icon_name="warning" 
-                size={scaleIconSize(48)} 
-                color={colors.primary} 
-              />
-            </View>
-            <Text style={[styles.emptyStateTitle, { fontSize: scaleFontSize(16) }]}>
-              No hay opciones disponibles
-            </Text>
-            <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(13) }]}>
-              Los filtros se generan automáticamente basados en los locales activos
-            </Text>
-            <TouchableOpacity 
-              style={styles.emptyStateButton}
-              onPress={refreshDynamicOptions}
-              activeOpacity={0.7}
-            >
-              <IconSymbol 
-                ios_icon_name="arrow.clockwise" 
-                android_material_icon_name="refresh" 
-                size={scaleIconSize(18)} 
-                color={colors.headerText} 
-              />
-              <Text style={[styles.emptyStateButtonText, { fontSize: scaleFontSize(14) }]}>
-                Recargar opciones
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </ScrollView>
 
-      {/* FOOTER MEJORADO */}
+      {/* FOOTER COMPACTO */}
       <View style={[styles.footer, { paddingBottom: footerPaddingBottom }]}>
         <TouchableOpacity 
           style={styles.applyButton} 
@@ -772,18 +622,12 @@ export default function FiltrosAvanzadosScreen() {
             end={{ x: 1, y: 0 }}
             style={styles.applyButtonGradient}
           >
-            <IconSymbol 
-              ios_icon_name="checkmark.circle.fill" 
-              android_material_icon_name="check_circle" 
-              size={scaleIconSize(22)} 
-              color={colors.headerText} 
-            />
-            <Text style={[styles.applyButtonText, { fontSize: scaleFontSize(16) }]}>
+            <Text style={[styles.applyButtonText, { fontSize: scaleFontSize(15) }]}>
               Aplicar Filtros
             </Text>
             {activeFiltersCount > 0 && (
               <View style={styles.applyButtonBadge}>
-                <Text style={[styles.applyButtonBadgeText, { fontSize: scaleFontSize(12) }]}>
+                <Text style={[styles.applyButtonBadgeText, { fontSize: scaleFontSize(11) }]}>
                   {activeFiltersCount}
                 </Text>
               </View>
@@ -805,7 +649,7 @@ export default function FiltrosAvanzadosScreen() {
         >
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(18) }]}>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(16) }]}>
                 Comunidad Autónoma
               </Text>
               <TouchableOpacity 
@@ -815,7 +659,7 @@ export default function FiltrosAvanzadosScreen() {
                 <IconSymbol 
                   ios_icon_name="xmark.circle.fill" 
                   android_material_icon_name="cancel" 
-                  size={scaleIconSize(28)} 
+                  size={scaleIconSize(26)} 
                   color={colors.textSecondary} 
                 />
               </TouchableOpacity>
@@ -825,11 +669,11 @@ export default function FiltrosAvanzadosScreen() {
               <IconSymbol 
                 ios_icon_name="magnifyingglass" 
                 android_material_icon_name="search" 
-                size={scaleIconSize(20)} 
+                size={scaleIconSize(18)} 
                 color={colors.textSecondary} 
               />
               <TextInput
-                style={[styles.modalSearchInput, { fontSize: scaleFontSize(15) }]}
+                style={[styles.modalSearchInput, { fontSize: scaleFontSize(14) }]}
                 placeholder="Buscar comunidad..."
                 placeholderTextColor={colors.textSecondary}
                 value={searchComunidad}
@@ -840,7 +684,7 @@ export default function FiltrosAvanzadosScreen() {
                   <IconSymbol 
                     ios_icon_name="xmark.circle.fill" 
                     android_material_icon_name="cancel" 
-                    size={scaleIconSize(20)} 
+                    size={scaleIconSize(18)} 
                     color={colors.textSecondary} 
                   />
                 </TouchableOpacity>
@@ -865,7 +709,7 @@ export default function FiltrosAvanzadosScreen() {
                       <Text
                         style={[
                           styles.modalOptionText,
-                          { fontSize: scaleFontSize(15) },
+                          { fontSize: scaleFontSize(14) },
                           isSelected && styles.modalOptionTextActive,
                         ]}
                       >
@@ -876,7 +720,7 @@ export default function FiltrosAvanzadosScreen() {
                           <IconSymbol 
                             ios_icon_name="checkmark.circle.fill" 
                             android_material_icon_name="check_circle" 
-                            size={scaleIconSize(24)} 
+                            size={scaleIconSize(22)} 
                             color={colors.primary} 
                           />
                         </View>
@@ -886,7 +730,7 @@ export default function FiltrosAvanzadosScreen() {
                 })
               ) : (
                 <View style={styles.modalEmpty}>
-                  <Text style={[styles.modalEmptyText, { fontSize: scaleFontSize(14) }]}>
+                  <Text style={[styles.modalEmptyText, { fontSize: scaleFontSize(13) }]}>
                     No se encontraron comunidades
                   </Text>
                 </View>
@@ -909,10 +753,10 @@ export default function FiltrosAvanzadosScreen() {
         >
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(18) }]}>
+              <Text style={[styles.modalTitle, { fontSize: scaleFontSize(16) }]}>
                 Provincia
                 {filtrosTemp.comunidad && filtrosTemp.comunidad !== 'Todas las Comunidades' && (
-                  <Text style={[styles.modalSubtitle, { fontSize: scaleFontSize(14) }]}>
+                  <Text style={[styles.modalSubtitle, { fontSize: scaleFontSize(13) }]}>
                     {' '}de {filtrosTemp.comunidad}
                   </Text>
                 )}
@@ -924,7 +768,7 @@ export default function FiltrosAvanzadosScreen() {
                 <IconSymbol 
                   ios_icon_name="xmark.circle.fill" 
                   android_material_icon_name="cancel" 
-                  size={scaleIconSize(28)} 
+                  size={scaleIconSize(26)} 
                   color={colors.textSecondary} 
                 />
               </TouchableOpacity>
@@ -934,11 +778,11 @@ export default function FiltrosAvanzadosScreen() {
               <IconSymbol 
                 ios_icon_name="magnifyingglass" 
                 android_material_icon_name="search" 
-                size={scaleIconSize(20)} 
+                size={scaleIconSize(18)} 
                 color={colors.textSecondary} 
               />
               <TextInput
-                style={[styles.modalSearchInput, { fontSize: scaleFontSize(15) }]}
+                style={[styles.modalSearchInput, { fontSize: scaleFontSize(14) }]}
                 placeholder="Buscar provincia..."
                 placeholderTextColor={colors.textSecondary}
                 value={searchProvincia}
@@ -949,7 +793,7 @@ export default function FiltrosAvanzadosScreen() {
                   <IconSymbol 
                     ios_icon_name="xmark.circle.fill" 
                     android_material_icon_name="cancel" 
-                    size={scaleIconSize(20)} 
+                    size={scaleIconSize(18)} 
                     color={colors.textSecondary} 
                   />
                 </TouchableOpacity>
@@ -974,7 +818,7 @@ export default function FiltrosAvanzadosScreen() {
                       <Text
                         style={[
                           styles.modalOptionText,
-                          { fontSize: scaleFontSize(15) },
+                          { fontSize: scaleFontSize(14) },
                           isSelected && styles.modalOptionTextActive,
                         ]}
                       >
@@ -985,7 +829,7 @@ export default function FiltrosAvanzadosScreen() {
                           <IconSymbol 
                             ios_icon_name="checkmark.circle.fill" 
                             android_material_icon_name="check_circle" 
-                            size={scaleIconSize(24)} 
+                            size={scaleIconSize(22)} 
                             color={colors.primary} 
                           />
                         </View>
@@ -995,7 +839,7 @@ export default function FiltrosAvanzadosScreen() {
                 })
               ) : (
                 <View style={styles.modalEmpty}>
-                  <Text style={[styles.modalEmptyText, { fontSize: scaleFontSize(14) }]}>
+                  <Text style={[styles.modalEmptyText, { fontSize: scaleFontSize(13) }]}>
                     {filtrosTemp.comunidad 
                       ? 'No hay provincias disponibles' 
                       : 'Selecciona primero una comunidad'}
@@ -1016,10 +860,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   
-  // HEADER MEJORADO
+  // HEADER COMPACTO
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 48,
-    paddingBottom: 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : 44,
+    paddingBottom: 12,
     paddingHorizontal: 16,
   },
   headerContent: {
@@ -1028,11 +872,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 20,
+    borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   headerCenter: {
@@ -1040,32 +884,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
   },
   headerTitle: {
     fontWeight: '800',
     color: colors.headerText,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   headerBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
   },
   headerBadgeText: {
     fontWeight: '800',
     color: colors.headerText,
   },
   clearButton: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 20,
+    borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   
@@ -1074,7 +918,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: 12,
   },
   
   // LOADING CARD
@@ -1082,11 +926,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: colors.primary + '10',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.primary + '30',
   },
@@ -1095,127 +939,98 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   
-  // CARDS MEJORADAS
-  card: {
+  // SECCIONES COMPACTAS
+  section: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 20,
-    marginBottom: 16,
+    borderRadius: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
-  cardHeader: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 18,
+    gap: 10,
+    padding: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
-  cardHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  iconDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconCircleSmall: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardTitle: {
+  sectionTitle: {
     fontWeight: '700',
     color: colors.text,
+    flex: 1,
   },
   countBadge: {
     backgroundColor: colors.cardBorder,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
   countBadgeText: {
     fontWeight: '700',
     color: colors.textSecondary,
   },
-  cardContent: {
-    padding: 18,
+  sectionContent: {
+    padding: 14,
   },
   
-  // UBICACIÓN
+  // UBICACIÓN COMPACTA
   locationRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 12,
   },
-  locationSelector: {
+  locationButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: colors.background,
     borderWidth: 1.5,
     borderColor: colors.cardBorder,
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 12,
+    padding: 10,
   },
-  locationSelectorDisabled: {
+  locationButtonDisabled: {
     opacity: 0.5,
   },
-  locationSelectorContent: {
-    flex: 1,
-  },
-  locationSelectorLabel: {
+  locationLabel: {
     fontWeight: '700',
     color: colors.textSecondary,
-    marginBottom: 4,
-    letterSpacing: 0.8,
+    marginBottom: 3,
+    letterSpacing: 0.5,
   },
-  locationSelectorValue: {
+  locationValue: {
     fontWeight: '600',
     color: colors.text,
   },
   
-  // DISTANCIA MEJORADA
-  distanceCard: {
+  // DISTANCIA COMPACTA
+  distanceContainer: {
     backgroundColor: colors.background,
     borderWidth: 1.5,
     borderColor: colors.cardBorder,
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 12,
+    padding: 12,
   },
-  distanceCardHeader: {
+  distanceHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 10,
   },
-  distanceCardHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  distanceCardTitle: {
+  distanceLabel: {
     fontWeight: '600',
     color: colors.text,
   },
   distanceBadge: {
     backgroundColor: colors.cardBorder + '40',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
     borderWidth: 1.5,
     borderColor: colors.cardBorder,
   },
@@ -1226,150 +1041,114 @@ const styles = StyleSheet.create({
   distanceBadgeText: {
     fontWeight: '700',
     color: colors.textSecondary,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   distanceBadgeTextActive: {
     color: '#10B981',
   },
   distanceSlider: {
     width: '100%',
-    height: 40,
-    marginVertical: 8,
-  },
-  distanceSliderLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  distanceSliderLabel: {
-    fontWeight: '600',
-    color: colors.textSecondary,
+    height: 32,
+    marginVertical: 4,
   },
   distanceResetButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
     backgroundColor: colors.cardBackground,
     borderWidth: 1.5,
     borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingVertical: 10,
+    borderRadius: 10,
+    paddingVertical: 8,
+    marginTop: 4,
   },
   distanceResetText: {
     fontWeight: '600',
     color: colors.textSecondary,
   },
   distanceActivateButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
     backgroundColor: '#10B981' + '15',
     borderWidth: 1.5,
     borderColor: '#10B981' + '40',
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 10,
+    paddingVertical: 10,
   },
   distanceActivateText: {
     fontWeight: '700',
     color: '#10B981',
   },
   
-  // CHIPS MEJORADOS
-  chipsGrid: {
+  // CHIPS COMPACTOS
+  chipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
-  chipLarge: {
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 16,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
     backgroundColor: colors.background,
     borderWidth: 1.5,
     borderColor: colors.cardBorder,
-    position: 'relative',
   },
-  chipLargeActive: {
+  chipActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
-  chipLargeIcon: {
+  chipIcon: {
   },
-  chipLargeText: {
+  chipText: {
     fontWeight: '600',
     color: colors.text,
   },
-  chipLargeTextActive: {
+  chipTextActive: {
     color: colors.headerText,
     fontWeight: '700',
   },
-  chipCheckmark: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.cardBackground,
-  },
   
-  // FOOTER MEJORADO
+  // FOOTER COMPACTO
   footer: {
-    padding: 16,
+    padding: 12,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
     backgroundColor: colors.cardBackground,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
   },
   applyButton: {
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
   },
   applyButtonGradient: {
-    paddingVertical: 16,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
   },
   applyButtonText: {
     fontWeight: '800',
     color: colors.headerText,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   applyButtonBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
   },
   applyButtonBadgeText: {
     fontWeight: '800',
     color: colors.headerText,
   },
   
-  // MODALES MEJORADOS
+  // MODALES COMPACTOS
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
@@ -1377,20 +1156,15 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: colors.cardBackground,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '85%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 24,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
@@ -1410,13 +1184,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.background,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 12,
-    gap: 12,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 10,
+    gap: 10,
     borderWidth: 1.5,
     borderColor: colors.cardBorder,
   },
@@ -1426,13 +1200,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   modalList: {
-    maxHeight: 450,
+    maxHeight: 400,
   },
   modalOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 18,
+    padding: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
@@ -1449,60 +1223,15 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   modalOptionCheck: {
-    marginLeft: 12,
+    marginLeft: 10,
   },
   modalEmpty: {
-    padding: 48,
+    padding: 40,
     alignItems: 'center',
   },
   modalEmptyText: {
     fontWeight: '600',
     color: colors.textSecondary,
     textAlign: 'center',
-  },
-  
-  // ESTADO VACÍO MEJORADO
-  emptyState: {
-    padding: 48,
-    alignItems: 'center',
-  },
-  emptyStateIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  emptyStateTitle: {
-    fontWeight: '700',
-    color: colors.text,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  emptyStateText: {
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
-  },
-  emptyStateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 14,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  emptyStateButtonText: {
-    fontWeight: '700',
-    color: colors.headerText,
   },
 });
