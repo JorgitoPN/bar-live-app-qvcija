@@ -391,7 +391,7 @@ export default function SalaVirtualEnhancedScreen() {
       keyboardDidShowListener.remove();
       keyboardDidHideListener.remove();
     };
-  }, [activeTab, selectedPrivateChat, flashListRef, privateChatFlashListRef, insets.bottom]);
+  }, [activeTab, selectedPrivateChat, insets.bottom]);
 
   const getReadMessagesKey = useCallback((localId: string, userId: string) => {
     return `read_messages_${localId}_${userId}`;
