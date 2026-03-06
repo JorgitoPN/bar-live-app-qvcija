@@ -38614,3 +38614,42 @@ To reconnect:
 - Ensure that Metro is running and available on the same network
 - Reload this app (will trigger further help if Metro cannot be connected to)
       
+[2026-03-06T19:09:04.918Z] [Web] [LOG] [TanStack Query v24.0 - PASO 1] 🚀 Initializing with deferred loading strategy
+[2026-03-06T19:09:04.713Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-03-06T19:09:05.063Z] [Web] [WARN] Route "./integrations/supabase/client.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-03-06T19:09:04.748Z] [Web] [LOG] [Supabase] To enable MMKV for production, set USE_MMKV=true in src/lib/supabaseStorage.ts
+[2026-03-06T19:09:05.144Z] [Web] [LOG] [NotificationHandler] ✅ Sistema de notificaciones inicializado
+[2026-03-06T19:09:04.747Z] [Web] [LOG] [Supabase] Initializing client with AsyncStorage (Expo Go compatible)...
+[2026-03-06T19:09:04.756Z] [Web] [WARN] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-03-06T19:09:05.136Z] [Web] [WARN] Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+[2026-03-06T19:09:04.922Z] [Web] [LOG] [TanStack Query] ✅ Async cache persister initialized successfully
+[2026-03-06T19:09:05.039Z] [Web] [LOG] ✅ SALA VIRTUAL v10.0 - FAULT ISOLATION IMPLEMENTED - Session isolation + error containment
+[2026-03-06T19:09:04.921Z] [Web] [LOG] [TanStack Query] 🚀 Initializing async cache persister with supabaseStorage adapter
+[2026-03-06T19:09:05.143Z] [Web] [LOG] [NotificationHandler] 🚀 Inicializando sistema de notificaciones...
+[2026-03-06T19:09:05.102Z] [Web] [LOG] [AdvancedCache] 📦 Loaded 0 entries from disk
+[2026-03-06T19:09:05.142Z] [Web] [LOG] [RootLayout v23.0] 🔔 Inicializando sistema de notificaciones...
+[2026-03-06T19:09:05.141Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] ⏱️ Heavy logic will run AFTER login transition completes
+[2026-03-06T19:09:05.139Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] 🚀 Starting DEFERRED initialization...
+[2026-03-06T19:09:05.064Z] [Web] [WARN] Route "./integrations/supabase/types.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-03-06T19:09:04.750Z] [Web] [WARN] GoTrueClient@sb-embntaqwlwmgazvrglaf-auth-token:1 (2.90.1) 2026-03-06T19:09:04.748Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[2026-03-06T19:09:04.802Z] [Web] [LOG] [PerformanceTracker] 🚀 App launch started at 31836.60 ms
+[2026-03-06T19:09:05.043Z] [Web] [LOG] ⚠️ CHAT ACTIVADO - VERSIÓN 2.0
+[2026-03-06T19:09:04.746Z] [Web] [LOG] [SupabaseStorage v8.0] ✅ Using AsyncStorage (Expo Go compatible mode)
+[2026-03-06T19:09:05.138Z] [Web] [LOG] [PERF_START] app_initialization at 32172.90ms (336.30ms desde launch)
+[2026-03-06T19:09:04.778Z] [Web] [WARN] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-03-06T19:09:04.776Z] [Web] [WARN] "textShadow*" style props are deprecated. Use "textShadow".
+[2026-03-06T19:09:04.919Z] [Web] [LOG] [TanStack Query v24.0 - PASO 1] ✅ Cache persister initialized
+[2026-03-06T19:09:06.243Z] [Web] [LOG] [RootLayout v23.0] 🚀 Initializing background systems (graceful mode)
+[2026-03-06T19:09:06.243Z] [Web] [LOG] [BackgroundSync] 🚀 Initializing...
+[2026-03-06T19:09:06.244Z] [Web] [LOG] [BackgroundSync] ✅ Initialized successfully
+[2026-03-06T19:09:06.244Z] [Web] [LOG] [RootLayout v23.0] ✅ Background sync initialized
+[2026-03-06T19:09:06.244Z] [Web] [LOG] [RootLayout v23.0] ⚠️ Background location not started - will use foreground only
+[2026-03-06T19:13:23.326Z] [Web] [WARN] Disconnected from Metro (1006: "").
+
+To reconnect:
+- Ensure that Metro is running and available on the same network
+- Reload this app (will trigger further help if Metro cannot be connected to)
+      
