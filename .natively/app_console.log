@@ -31381,3 +31381,7 @@ To reconnect:
 [2026-03-06T00:44:59.619Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
 [2026-03-06T00:45:01.424Z] [Web] [LOG] [RootLayout v23.0] 📱 Estado de app cambió: background
 [2026-03-06T00:45:01.424Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-06T00:45:25.486Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-06T00:45:25.485Z] [Web] [LOG] [RootLayout v23.0] 📱 Estado de app cambió: active
+[2026-03-06T00:45:32.874Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-06T00:45:32.873Z] [Web] [LOG] [RootLayout v23.0] 📱 Estado de app cambió: background
