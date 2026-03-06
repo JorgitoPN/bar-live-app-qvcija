@@ -66,7 +66,9 @@
       "router": {
         "origin": false
       },
-      "eas": {}
+      "eas": {
+        "projectId": "a12429e7-cd75-4813-8907-593212e8d7ca"
+      }
     },
     "scheme": "barlive",
     "experiments": {
