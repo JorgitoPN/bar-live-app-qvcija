@@ -24,15 +24,17 @@ android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
     
-    // CAMBIO: Forzado a SDK 34 para estabilidad
-    compileSdk 34
+    // CAMBIO: Subimos a 35 para dar soporte a NitroModules y Stripe
+    compileSdk 35
 
     namespace 'com.barlive.app'
     defaultConfig {
         applicationId 'com.barlive.app'
-        minSdkVersion rootProject.ext.minSdkVersion
         
-        // CAMBIO: Forzado a SDK 34 para estabilidad
+        // Aseguramos valores mínimos para Expo 54
+        minSdkVersion 24 
+        
+        // Mantenemos target en 34 para máxima compatibilidad de tienda
         targetSdkVersion 34
         
         versionCode 1
@@ -55,7 +57,7 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // CAMBIO: Se elimina signingConfig para que EAS use tu barlive-key
+            // Sin signingConfig para que EAS inyecte la llave barlive-key automáticamente
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds
