@@ -28,7 +28,8 @@
       "node": "20.18.0",
       "android": {
         "buildType": "apk",
-        "credentialsSource": "remote"
+        "credentialsSource": "remote",
+        "gradleCommand": ":app:assembleRelease --no-daemon --max-workers=4"
       },
       "ios": {
         "buildConfiguration": "Release"
