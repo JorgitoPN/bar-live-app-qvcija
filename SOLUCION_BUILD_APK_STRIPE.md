@@ -1,7 +1,7 @@
 
-# Solución para Error de Build APK - Stripe Android SDK
+# ✅ SOLUCIÓN COMPLETA - Error de Build APK Stripe Android SDK
 
-## Problema
+## 🔴 Problema
 
 El build de APK falla con el siguiente error:
 
@@ -14,15 +14,19 @@ Could not GET 'https://www.jitpack.io/com/stripe/stripe-android/maven-metadata.x
 Read timed out
 ```
 
+## ⚠️ ACCIÓN REQUERIDA INMEDIATA
+
+**El archivo `android/build.gradle` necesita ser actualizado manualmente porque falta el bloque `resolutionStrategy` que fuerza la versión correcta de Stripe desde Maven Central.**
+
 ## Causa Raíz
 
 El paquete `@stripe/stripe-react-native` (versión 0.50.3) está intentando resolver su dependencia de Android SDK desde JitPack, que está causando timeouts. La dependencia de Stripe Android SDK debe resolverse desde Maven Central.
 
-## Solución
+## ✅ Solución Completa
 
-### Paso 1: Actualizar android/build.gradle
+### 🔧 Paso 1: Actualizar android/build.gradle (CRÍTICO)
 
-Reemplaza el contenido del archivo `android/build.gradle` con:
+**IMPORTANTE:** Abre el archivo `android/build.gradle` en tu editor y reemplaza TODO el contenido con el siguiente código:
 
 ```gradle
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
@@ -211,19 +215,43 @@ systemProp.https.proxyPort=your-proxy-port
 - ✅ **Orden de repositorios**: Google primero, luego Maven Central
 - ✅ **Timeouts**: 60 segundos es suficiente para la mayoría de conexiones
 
-## Estado Actual
+## 📊 Estado Actual del Fix
 
-- ✅ `eas.json` actualizado con gradleCommand optimizado
-- ⚠️ `android/build.gradle` requiere modificación manual (ver Paso 1)
-- ✅ `android/gradle.properties` ya contiene configuraciones de timeout
+- ✅ `eas.json` - Ya actualizado con gradleCommand optimizado
+- ✅ `android/gradle.properties` - Ya contiene configuraciones de timeout
+- ⚠️ **`android/build.gradle` - REQUIERE MODIFICACIÓN MANUAL AHORA**
 
-## Próximos Pasos
+## 🚀 Próximos Pasos (EJECUTAR EN ORDEN)
 
-1. Aplica la modificación manual al archivo `android/build.gradle`
-2. Ejecuta `cd android && ./gradlew clean && cd ..`
-3. Intenta el build nuevamente con `eas build --platform android --profile production`
-4. Si el build es exitoso, verifica que la app funcione correctamente
-5. Si el build falla, revisa la sección de Troubleshooting
+### 1️⃣ Aplicar el Fix al archivo android/build.gradle
+
+**ACCIÓN REQUERIDA:** Abre el archivo `android/build.gradle` y reemplaza TODO su contenido con el código del Paso 1 arriba.
+
+**Verificación:** Después de guardar, el archivo debe contener:
+- ✅ Repositorios: `google()` y `mavenCentral()` (sin JitPack)
+- ✅ Bloque `configurations.all { resolutionStrategy { ... } }`
+- ✅ `force 'com.stripe:stripe-android:20.49.0'`
+
+### 2️⃣ Limpiar el proyecto (Opcional pero recomendado)
+
+Si tienes acceso a la terminal:
+```bash
+cd android
+./gradlew clean
+cd ..
+```
+
+### 3️⃣ Intentar el build nuevamente
+
+El build debería funcionar ahora porque:
+- ✅ Stripe se resolverá desde Maven Central (no JitPack)
+- ✅ Versión específica 20.49.0 (no rango dinámico 21.22.+)
+- ✅ Timeouts configurados a 60 segundos
+- ✅ Gradle optimizado con `--no-daemon --max-workers=4`
+
+### 4️⃣ Si el build falla
+
+Revisa la sección de Troubleshooting abajo.
 
 ## Referencias
 
