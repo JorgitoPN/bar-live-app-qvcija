@@ -1,21 +1,21 @@
 
-# 🚨 FIX INMEDIATO - Error de Build APK Stripe
+# 🚨 IMMEDIATE FIX - APK Build Error (Stripe Timeout)
 
-## ⚡ Solución Rápida (1 minuto)
+## ⚡ Quick Solution (1 minute)
 
-El build está fallando porque Stripe intenta descargarse desde JitPack (que está dando timeout). La solución es forzar que se descargue desde Maven Central.
+The build is failing because Stripe is trying to download from JitPack (which is timing out). The solution is to force it to download from Maven Central instead.
 
 ---
 
-## 📋 INSTRUCCIONES PASO A PASO
+## 📋 STEP-BY-STEP INSTRUCTIONS
 
-### 1️⃣ Abre el archivo
+### 1️⃣ Open the file
 
-Navega a: **`android/build.gradle`**
+Navigate to: **`android/build.gradle`**
 
-### 2️⃣ Reemplaza TODO el contenido
+### 2️⃣ Replace ALL content
 
-Borra todo lo que hay en el archivo y pega este código:
+Delete everything in the file and paste this code:
 
 ```gradle
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
@@ -61,68 +61,68 @@ apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
 ```
 
-### 3️⃣ Guarda el archivo
+### 3️⃣ Save the file
 
-Presiona `Ctrl+S` (Windows/Linux) o `Cmd+S` (Mac)
+Press `Ctrl+S` (Windows/Linux) or `Cmd+S` (Mac)
 
-### 4️⃣ Intenta el build nuevamente
+### 4️⃣ Trigger a new build
 
-El build debería funcionar ahora. ✅
+The build should work now. ✅
 
 ---
 
-## 🔍 ¿Qué hace este fix?
+## 🔍 What does this fix do?
 
-| Cambio | Efecto |
+| Change | Effect |
 |--------|--------|
-| ❌ Elimina JitPack | Evita timeouts de red |
-| ✅ Usa Maven Central | Repositorio estable y rápido |
-| 🔒 Fuerza versión 20.49.0 | Evita rangos dinámicos (21.22.+) |
-| 🛡️ Intercepta resolución | Garantiza que Stripe use Maven Central |
+| ❌ Removes JitPack | Avoids network timeouts |
+| ✅ Uses Maven Central | Stable and fast repository |
+| 🔒 Forces version 20.49.0 | Avoids dynamic ranges (21.22.+) |
+| 🛡️ Intercepts resolution | Ensures Stripe uses Maven Central |
 
 ---
 
-## ✅ Verificación
+## ✅ Verification
 
-Después de guardar, tu archivo `android/build.gradle` debe tener:
+After saving, your `android/build.gradle` file should have:
 
-- ✅ Línea 11-12: `google()` y `mavenCentral()` (sin JitPack)
-- ✅ Línea 18-30: Bloque `configurations.all { resolutionStrategy { ... } }`
-- ✅ Línea 22: `force 'com.stripe:stripe-android:20.49.0'`
-- ✅ Línea 35-36: Plugins de Expo al final
-
----
-
-## 🆘 Si sigue fallando
-
-1. **Verifica que guardaste el archivo correctamente**
-2. **Asegúrate de que no hay errores de sintaxis** (copia el código exactamente como está)
-3. **Revisa que Maven Central sea accesible** desde tu red
-4. **Consulta** `SOLUCION_BUILD_APK_STRIPE.md` para troubleshooting avanzado
+- ✅ Lines 11-12: `google()` and `mavenCentral()` (no JitPack)
+- ✅ Lines 18-30: `configurations.all { resolutionStrategy { ... } }` block
+- ✅ Line 22: `force 'com.stripe:stripe-android:20.49.0'`
+- ✅ Lines 35-36: Expo plugins at the end
 
 ---
 
-## 📊 Archivos ya configurados
+## 🆘 If it still fails
 
-Estos archivos ya están correctamente configurados (no necesitas tocarlos):
-
-- ✅ `android/gradle.properties` - Timeouts de red configurados
-- ✅ `eas.json` - Gradle optimizado con `--no-daemon --max-workers=4`
+1. **Verify you saved the file correctly**
+2. **Make sure there are no syntax errors** (copy the code exactly as shown)
+3. **Check that Maven Central is accessible** from your network
+4. **Consult** `SOLUCION_BUILD_APK_STRIPE.md` for advanced troubleshooting
 
 ---
 
-## 🎯 Resultado esperado
+## 📊 Already configured files
+
+These files are already correctly configured (you don't need to touch them):
+
+- ✅ `android/gradle.properties` - Network timeouts configured
+- ✅ `eas.json` - Gradle optimized with `--no-daemon --max-workers=4`
+
+---
+
+## 🎯 Expected result
 
 ```
 ✅ BUILD SUCCESSFUL in 5m 23s
-✅ APK generado correctamente
-✅ Sin errores de Stripe
+✅ APK generated correctly
+✅ No Stripe errors
 ```
 
 ---
 
-## 📚 Documentación adicional
+## 📚 Additional documentation
 
-- **Solución completa:** `SOLUCION_BUILD_APK_STRIPE.md`
-- **Instrucciones detalladas:** `INSTRUCCIONES_BUILD_GRADLE.md`
-- **Stripe en Maven Central:** https://mvnrepository.com/artifact/com.stripe/stripe-android/20.49.0
+- **Complete solution:** `SOLUCION_BUILD_APK_STRIPE.md`
+- **Detailed instructions:** `INSTRUCCIONES_BUILD_GRADLE.md`
+- **Stripe on Maven Central:** https://mvnrepository.com/artifact/com.stripe/stripe-android/20.49.0
