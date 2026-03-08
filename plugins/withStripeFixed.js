@@ -4,35 +4,38 @@ const { withProjectBuildGradle } = require('@expo/config-plugins');
 /**
  * Local Expo Config Plugin to fix Stripe Android dependency resolution
  * 
- * This plugin forces version 20.49.0 ONLY for specific Stripe dependencies that use
- * dynamic versioning (20.x.x) to avoid JitPack timeout issues during APK builds.
+ * FINAL FIX (v3): Selective version forcing for Stripe dependencies
  * 
- * Problem: Gradle tries to resolve com.stripe:stripe-android and com.stripe:financial-connections
- * with dynamic versions (e.g., 20.48.+) from JitPack, which times out and causes build failures.
+ * Problem: 
+ * - stripe-android and financial-connections use dynamic versioning (20.48.+)
+ * - This causes JitPack timeout issues during APK builds
+ * - stripe-3ds2-android does NOT have version 20.49.0 available
  * 
- * Solution: Use eachDependency to intercept ONLY stripe-android and financial-connections,
- * forcing version 20.49.0 from mavenCentral(). Other Stripe dependencies (like stripe-3ds2-android)
- * are allowed to resolve their versions naturally to avoid compatibility issues.
+ * Solution:
+ * - Force version 20.49.0 ONLY for stripe-android and financial-connections
+ * - Allow stripe-3ds2-android to resolve its own compatible version naturally
+ * - Repository priority: google() and mavenCentral() first, JitPack last (configured in app.json)
  * 
  * This targeted approach:
- * - Fixes stripe-android and financial-connections (the problematic ones with + versioning)
- * - Allows stripe-3ds2-android to use its correct version (not 20.49.0, which doesn't exist)
- * - Eliminates JitPack timeouts by prioritizing mavenCentral and google repositories
+ * ✅ Fixes the problematic dependencies with + versioning
+ * ✅ Avoids forcing non-existent versions on other Stripe libraries
+ * ✅ Eliminates JitPack timeouts by prioritizing fast, reliable repositories
+ * ✅ Maintains compatibility across all Stripe SDK components
  */
 module.exports = (config) => {
   return withProjectBuildGradle(config, (config) => {
     if (config.modResults.language === 'groovy') {
       // Check if eachDependency resolutionStrategy already exists to avoid duplicate injection
       if (!config.modResults.contents.includes('eachDependency')) {
-        // Inject eachDependency resolutionStrategy into allprojects block
+        // Inject selective eachDependency resolutionStrategy into allprojects block
         config.modResults.contents = config.modResults.contents.replace(
           /allprojects\s*{/,
           `allprojects {
     configurations.all {
         resolutionStrategy {
-            // Only force versions for specific Stripe libraries that use 20.x.x versioning
-            // This allows other dependencies (like stripe-3ds2-android) to resolve naturally
             eachDependency { details ->
+                // Only force specific Stripe libraries that use dynamic versions (20.x.x)
+                // This allows other dependencies like stripe-3ds2-android to resolve naturally
                 if (details.requested.group == 'com.stripe' && 
                    (details.requested.name == 'stripe-android' || details.requested.name == 'financial-connections')) {
                     details.useVersion '20.49.0'
@@ -42,7 +45,10 @@ module.exports = (config) => {
     }`
         );
         
-        console.log('✅ Stripe targeted dependency fix applied: forcing stripe-android and financial-connections to 20.49.0');
+        console.log('✅ Stripe selective dependency fix applied:');
+        console.log('   - Forcing stripe-android → 20.49.0');
+        console.log('   - Forcing financial-connections → 20.49.0');
+        console.log('   - Allowing stripe-3ds2-android to resolve naturally');
       } else {
         console.log('ℹ️  Stripe dependency fix already present in build.gradle');
       }
