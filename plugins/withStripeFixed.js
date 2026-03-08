@@ -3,26 +3,28 @@ const { withProjectBuildGradle } = require('@expo/config-plugins');
 
 module.exports = (config) => {
   return withProjectBuildGradle(config, (config) => {
-    config.modResults.contents = config.modResults.contents.replace(
-      /allprojects\s*\{[\s\S]*?^\}/m,
-      `allprojects {
-    repositories {
-        // Primary repositories - order matters for resolution speed
-        google()
-        mavenCentral()
-        
-        // JitPack restricted to only BlurView to prevent Stripe timeout issues
-        maven { 
-            url 'https://jitpack.io' 
-            content {
-                // ONLY allow JitPack for BlurView (Dimezis)
-                // This prevents Gradle from searching JitPack for Stripe dependencies
-                includeGroup "com.github.Dimezis" 
+    // Evitamos duplicar el código si el plugin se ejecuta varias veces
+    if (config.modResults.contents.includes("STRIPE JITPACK FIX")) {
+      return config;
+    }
+
+    config.modResults.contents += `
+
+// --- STRIPE JITPACK FIX ---
+// Esto intercepta cualquier repositorio de JitPack y le prohíbe buscar Stripe.
+allprojects {
+    repositories.all { repo ->
+        if (repo instanceof MavenArtifactRepository && repo.url.toString().contains("jitpack")) {
+            repo.content {
+                // EXCLUSIÓN TOTAL: Nunca busques com.stripe aquí.
+                excludeGroup("com.stripe")
             }
         }
     }
+}
 
-    // Kotlin compiler options to allow experimental APIs and suppress warnings
+// Relajamos las advertencias de versión de Kotlin para los módulos de Stripe
+allprojects {
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
         kotlinOptions {
             freeCompilerArgs += [
@@ -31,8 +33,9 @@ module.exports = (config) => {
             ]
         }
     }
-}`
-    );
+}
+// --- END STRIPE JITPACK FIX ---
+`;
     return config;
   });
 };
