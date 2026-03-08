@@ -26686,3 +26686,5 @@ To reconnect:
 - Ensure that Metro is running and available on the same network
 - Reload this app (will trigger further help if Metro cannot be connected to)
       
+[2026-03-08T02:06:26.995Z] [Web] [LOG] [RootLayout v23.0] 📱 Estado de app cambió: background
+[2026-03-08T02:06:26.995Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
