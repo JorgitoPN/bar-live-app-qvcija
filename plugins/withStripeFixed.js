@@ -17,6 +17,7 @@ module.exports = (config) => {
         }
         google()
         mavenCentral()
+        maven { url 'https://jitpack.io' }
     }
     configurations.all {
         resolutionStrategy {
@@ -25,6 +26,10 @@ module.exports = (config) => {
                     if (details.requested.name == 'stripe-android' || details.requested.name == 'financial-connections') {
                         details.useVersion '20.51.0'
                     }
+                }
+                // Fix BlurView version format
+                if (details.requested.group == 'com.github.Dimezis' && details.requested.name == 'BlurView') {
+                    details.useVersion '2.0.6'
                 }
             }
             capabilitiesResolution.withCapability('com.google.guava:listenablefuture') {
