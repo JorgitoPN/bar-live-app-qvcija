@@ -2,25 +2,58 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-  repositories {
-    google()
-    mavenCentral()
-  }
-  dependencies {
-    classpath('com.android.tools.build:gradle')
-    classpath('com.facebook.react:react-native-gradle-plugin')
-    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
-  }
+    ext {
+        buildToolsVersion = findProperty('android.buildToolsVersion') ?: '35.0.0'
+        minSdkVersion = Integer.parseInt(findProperty('android.minSdkVersion') ?: '23')
+        compileSdkVersion = Integer.parseInt(findProperty('android.compileSdkVersion') ?: '35')
+        targetSdkVersion = Integer.parseInt(findProperty('android.targetSdkVersion') ?: '35')
+        ndkVersion = "27.0.12077973"
+        kotlinVersion = findProperty('android.kotlinVersion') ?: '2.1.0'
+
+        frescoVersion = findProperty('expo.frescoVersion') ?: '3.1.3'
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath('com.android.tools.build:gradle:8.7.3')
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+    }
 }
+
+apply plugin: "com.facebook.react.rootproject"
 
 allprojects {
-  repositories {
-    google()
-    mavenCentral()
-    // Removed JitPack - it's causing timeouts and Stripe doesn't need it
-    // All dependencies should resolve from Maven Central or Google
-  }
-}
+    repositories {
+        maven {
+            // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+            url(new File(['node', '--print', "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim(), '../android'))
+        }
+        maven {
+            // Android JSC is installed from npm
+            url(new File(['node', '--print', "require.resolve('jsc-android/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim(), '../dist'))
+        }
 
-apply plugin: "expo-root-project"
-apply plugin: "com.facebook.react.rootproject"
+        google()
+        mavenCentral()
+        maven { url 'https://www.jitpack.io' }
+    }
+
+    // 🔥 CRITICAL FIX: Force Stripe Android SDK to use a specific stable version from Maven Central
+    // This prevents Gradle from trying to fetch from JitPack which causes timeouts
+    configurations.all {
+        resolutionStrategy {
+            // Force version 20.49.0 for com.stripe:stripe-android
+            force 'com.stripe:stripe-android:20.49.0'
+
+            // Intercept any dependency request for stripe-android and ensure it uses the forced version
+            eachDependency { details ->
+                if (details.requested.group == 'com.stripe' && details.requested.name == 'stripe-android') {
+                    details.useVersion '20.49.0'
+                    details.because 'Force Stripe to use Maven Central version 20.49.0, avoiding JitPack timeouts'
+                }
+            }
+        }
+    }
+}
