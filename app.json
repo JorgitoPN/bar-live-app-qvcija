@@ -1,4 +1,3 @@
-
 {
   "expo": {
     "name": "BarLive",
@@ -89,10 +88,10 @@
             "proguardRules": "-keep class com.stripe.** { *; }\n-keep class com.google.android.gms.wallet.** { *; }",
             "usesCleartextTraffic": false,
             "extraMavenRepos": [
-              "google()",
-              "mavenCentral()"
+              "https://maven.google.com",
+              "https://repo1.maven.org/maven2"
             ],
-            "gradleProperties": {
+            "extraGradleProperties": {
               "android.useAndroidX": "true",
               "android.enableJetifier": "true",
               "org.gradle.daemon": "false",
