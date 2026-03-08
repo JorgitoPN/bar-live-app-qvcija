@@ -26441,3 +26441,36 @@ To reconnect:
 [2026-03-08T22:13:55.579Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
 [2026-03-08T22:13:57.229Z] [Web] [LOG] [LocationUtils v460.0] ⏱️ Location timeout (3s)
 [2026-03-08T22:13:58.243Z] [Web] [LOG] [LocationContext v1.0] ⏱️ Location timeout (5s)
+[2026-03-08T22:56:02.802Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-03-08T22:56:02.833Z] [Web] [LOG] [SupabaseStorage v8.0] ✅ Using AsyncStorage (Expo Go compatible mode)
+[2026-03-08T22:56:03.129Z] [Web] [LOG] ⚠️ CHAT ACTIVADO - VERSIÓN 2.0
+[2026-03-08T22:56:02.837Z] [Web] [WARN] GoTrueClient@sb-embntaqwlwmgazvrglaf-auth-token:1 (2.90.1) 2026-03-08T22:56:02.836Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[2026-03-08T22:56:02.864Z] [Web] [WARN] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-03-08T22:56:03.027Z] [Web] [LOG] [TanStack Query v24.0 - PASO 1] ✅ Cache persister initialized
+[2026-03-08T22:56:03.030Z] [Web] [LOG] [TanStack Query] ✅ Async cache persister initialized successfully
+[2026-03-08T22:56:02.836Z] [Web] [LOG] [Supabase] To enable MMKV for production, set USE_MMKV=true in src/lib/supabaseStorage.ts
+[2026-03-08T22:56:03.149Z] [Web] [WARN] Route "./integrations/supabase/types.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-03-08T22:56:03.029Z] [Web] [LOG] [TanStack Query] 🚀 Initializing async cache persister with supabaseStorage adapter
+[2026-03-08T22:56:03.226Z] [Web] [LOG] [RootLayout v23.0] 🔔 Inicializando sistema de notificaciones...
+[2026-03-08T22:56:02.844Z] [Web] [WARN] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-03-08T22:56:03.224Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] ⏱️ Heavy logic will run AFTER login transition completes
+[2026-03-08T22:56:03.124Z] [Web] [LOG] ✅ SALA VIRTUAL v10.0 - FAULT ISOLATION IMPLEMENTED - Session isolation + error containment
+[2026-03-08T22:56:02.896Z] [Web] [LOG] [PerformanceTracker] 🚀 App launch started at 19989.10 ms
+[2026-03-08T22:56:03.228Z] [Web] [LOG] [NotificationHandler] ✅ Sistema de notificaciones inicializado
+[2026-03-08T22:56:03.222Z] [Web] [LOG] [PERF_START] app_initialization at 20315.50ms (326.40ms desde launch)
+[2026-03-08T22:56:02.835Z] [Web] [LOG] [Supabase] Initializing client with AsyncStorage (Expo Go compatible)...
+[2026-03-08T22:56:02.862Z] [Web] [WARN] "textShadow*" style props are deprecated. Use "textShadow".
+[2026-03-08T22:56:03.026Z] [Web] [LOG] [TanStack Query v24.0 - PASO 1] 🚀 Initializing with deferred loading strategy
+[2026-03-08T22:56:03.223Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] 🚀 Starting DEFERRED initialization...
+[2026-03-08T22:56:03.227Z] [Web] [LOG] [NotificationHandler] 🚀 Inicializando sistema de notificaciones...
+[2026-03-08T22:56:03.188Z] [Web] [LOG] [AdvancedCache] 📦 Loaded 0 entries from disk
+[2026-03-08T22:56:03.148Z] [Web] [WARN] Route "./integrations/supabase/client.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-03-08T22:56:03.220Z] [Web] [WARN] Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+[2026-03-08T22:56:04.247Z] [Web] [LOG] [RootLayout v23.0] 🚀 Initializing background systems (graceful mode)
+[2026-03-08T22:56:04.248Z] [Web] [LOG] [BackgroundSync] 🚀 Initializing...
+[2026-03-08T22:56:04.248Z] [Web] [LOG] [RootLayout v23.0] ✅ Background sync initialized
+[2026-03-08T22:56:04.248Z] [Web] [LOG] [BackgroundSync] ✅ Initialized successfully
+[2026-03-08T22:56:04.249Z] [Web] [LOG] [RootLayout v23.0] ⚠️ Background location not started - will use foreground only
