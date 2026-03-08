@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "BarLive",
@@ -39,22 +40,7 @@
       "googleServicesFile": "./google-services.json",
       "jsEngine": "hermes",
       "newArchEnabled": true,
-      "softwareKeyboardLayoutMode": "pan",
-      "extraGradleProperties": {
-        "android.useAndroidX": "true",
-        "android.enableJetifier": "true",
-        "org.gradle.daemon": "false",
-        "org.gradle.parallel": "true",
-        "org.gradle.caching": "true",
-        "org.gradle.configureondemand": "true",
-        "systemProp.org.gradle.jvmargs": "-Xmx4096m -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError",
-        "systemProp.http.timeout": "600000",
-        "systemProp.http.socketTimeout": "600000",
-        "systemProp.networkTimeout": "900000",
-        "systemProp.connectionTimeout": "600000",
-        "systemProp.http.keepAlive": "true",
-        "systemProp.http.maxConnections": "50"
-      }
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -105,7 +91,8 @@
             "usesCleartextTraffic": false,
             "extraMavenRepos": [
               "google()",
-              "mavenCentral()"
+              "mavenCentral()",
+              "https://www.jitpack.io"
             ]
           }
         }
