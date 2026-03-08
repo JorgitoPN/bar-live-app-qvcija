@@ -26439,3 +26439,5 @@ To reconnect:
 [2026-03-08T22:13:54.889Z] [Web] [LOG] [useBaresQuery FASE 14] 📡 Supabase client ready: true
 [2026-03-08T22:13:55.579Z] [Web] [LOG] [RootLayout v23.0] 📱 Estado de app cambió: background
 [2026-03-08T22:13:55.579Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-08T22:13:57.229Z] [Web] [LOG] [LocationUtils v460.0] ⏱️ Location timeout (3s)
+[2026-03-08T22:13:58.243Z] [Web] [LOG] [LocationContext v1.0] ⏱️ Location timeout (5s)
