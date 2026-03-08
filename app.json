@@ -78,10 +78,9 @@
             "buildToolsVersion": "35.0.0",
             "extraMavenRepos": [
               "https://maven.google.com",
-              "https://repo1.maven.org/maven2",
-              "https://jitpack.io"
+              "https://repo1.maven.org/maven2"
             ],
-            "networkTimeout": 300000,
+            "networkTimeout": 600000,
             "usesCleartextTraffic": false,
             "extraProguardRules": "-keep class com.stripe.** { *; }\n-keep class com.google.android.gms.wallet.** { *; }",
             "packagingOptions": {
@@ -93,12 +92,15 @@
               ]
             },
             "gradleProperties": {
-              "org.gradle.internal.http.connectionTimeout": "180000",
-              "org.gradle.internal.http.socketTimeout": "180000",
+              "org.gradle.internal.http.connectionTimeout": "300000",
+              "org.gradle.internal.http.socketTimeout": "300000",
               "org.gradle.daemon": "false",
-              "org.gradle.jvmargs": "-Xmx4096m -XX:MaxMetaspaceSize=1024m",
+              "org.gradle.jvmargs": "-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError",
               "android.useAndroidX": "true",
-              "android.enableJetifier": "true"
+              "android.enableJetifier": "true",
+              "org.gradle.parallel": "true",
+              "org.gradle.caching": "true",
+              "org.gradle.configureondemand": "false"
             }
           }
         }
