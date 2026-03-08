@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "BarLive",
@@ -76,13 +77,6 @@
             "targetSdkVersion": 35,
             "minSdkVersion": 24,
             "buildToolsVersion": "35.0.0",
-            "extraMavenRepos": [
-              "google",
-              "mavenCentral"
-            ],
-            "networkTimeout": 600000,
-            "usesCleartextTraffic": false,
-            "enableProguardInReleaseBuilds": true,
             "packagingOptions": {
               "pickFirst": [
                 "lib/x86/libc++_shared.so",
@@ -91,13 +85,25 @@
                 "lib/arm64-v8a/libc++_shared.so"
               ]
             },
+            "enableProguardInReleaseBuilds": true,
+            "proguardRules": "-keep class com.stripe.** { *; }\n-keep class com.google.android.gms.wallet.** { *; }",
+            "usesCleartextTraffic": false,
+            "extraMavenRepos": [
+              "google()",
+              "mavenCentral()"
+            ],
             "gradleProperties": {
+              "android.useAndroidX": "true",
+              "android.enableJetifier": "true",
+              "org.gradle.daemon": "false",
               "org.gradle.parallel": "true",
               "org.gradle.caching": "true",
-              "org.gradle.daemon": "false",
               "org.gradle.jvmargs": "-Xmx4096m -XX:+HeapDumpOnOutOfMemoryError",
-              "android.useAndroidX": "true",
-              "android.enableJetifier": "true"
+              "systemProp.http.keepAlive": "true",
+              "systemProp.http.maxConnections": "10",
+              "systemProp.networkTimeout": "600000",
+              "systemProp.connectionTimeout": "300000",
+              "systemProp.socketTimeout": "300000"
             }
           }
         }
