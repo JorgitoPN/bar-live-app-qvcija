@@ -99,7 +99,7 @@
               "org.gradle.caching": "true",
               "org.gradle.jvmargs": "-Xmx4096m -XX:+HeapDumpOnOutOfMemoryError",
               "systemProp.http.keepAlive": "true",
-              "systemProp.http.maxConnections": "10",
+              "systemProp.http.maxConnections": "50",
               "systemProp.networkTimeout": "600000",
               "systemProp.connectionTimeout": "300000",
               "systemProp.socketTimeout": "300000"
