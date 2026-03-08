@@ -39,7 +39,22 @@
       "googleServicesFile": "./google-services.json",
       "jsEngine": "hermes",
       "newArchEnabled": true,
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "pan",
+      "extraGradleProperties": {
+        "android.useAndroidX": "true",
+        "android.enableJetifier": "true",
+        "org.gradle.daemon": "false",
+        "org.gradle.parallel": "true",
+        "org.gradle.caching": "true",
+        "org.gradle.configureondemand": "true",
+        "systemProp.org.gradle.jvmargs": "-Xmx4096m -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError",
+        "systemProp.http.timeout": "600000",
+        "systemProp.http.socketTimeout": "600000",
+        "systemProp.networkTimeout": "900000",
+        "systemProp.connectionTimeout": "600000",
+        "systemProp.http.keepAlive": "true",
+        "systemProp.http.maxConnections": "50"
+      }
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -88,26 +103,9 @@
             "proguardRules": "-keep class com.stripe.** { *; }\n-keep class com.google.android.gms.wallet.** { *; }",
             "usesCleartextTraffic": false,
             "extraMavenRepos": [
-              "https://maven.google.com",
-              "https://repo1.maven.org/maven2",
-              "https://jcenter.bintray.com"
-            ],
-            "extraGradleProperties": {
-              "android.useAndroidX": "true",
-              "android.enableJetifier": "true",
-              "org.gradle.daemon": "false",
-              "org.gradle.parallel": "true",
-              "org.gradle.caching": "true",
-              "org.gradle.configureondemand": "true",
-              "org.gradle.jvmargs": "-Xmx4096m -XX:+HeapDumpOnOutOfMemoryError -XX:MaxMetaspaceSize=512m",
-              "systemProp.http.keepAlive": "true",
-              "systemProp.http.maxConnections": "50",
-              "systemProp.networkTimeout": "900000",
-              "systemProp.connectionTimeout": "600000",
-              "systemProp.socketTimeout": "600000",
-              "systemProp.org.gradle.internal.http.connectionTimeout": "600000",
-              "systemProp.org.gradle.internal.http.socketTimeout": "600000"
-            }
+              "google()",
+              "mavenCentral()"
+            ]
           }
         }
       ]
