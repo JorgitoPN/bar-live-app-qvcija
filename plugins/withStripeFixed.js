@@ -4,20 +4,20 @@ const { withProjectBuildGradle } = require('@expo/config-plugins');
 /**
  * Local Expo Config Plugin to fix Stripe Android dependency resolution
  * 
- * FINAL FIX (v7): Repository Isolation + Version Forcing + ListenableFuture Conflict Resolution
+ * FINAL FIX (v8): Repository Isolation + ListenableFuture Conflict Resolution
  * 
  * Problems Fixed: 
- * - stripe-android and financial-connections use dynamic versioning (20.48.+)
+ * - "Unresolved reference 'currentActivity'" error with React Native 0.81.5
  * - JitPack timeouts cause APK build failures
  * - "Duplicate class com.google.common.util.concurrent.ListenableFuture" error
  *   (Classic conflict between Stripe SDK and Google Play Services libraries)
  * - Syntax errors from overly broad regex replacements
  * 
  * Solution:
+ * - Updated @stripe/stripe-react-native to latest version (compatible with RN 0.81.5)
  * - Use ONE precise regex replacement that targets the ENTIRE allprojects block
  * - ISOLATE com.stripe group to ONLY use mavenCentral via content filter
- * - Force version 20.49.0 ONLY for stripe-android and financial-connections
- * - Allow stripe-3ds2-android to resolve its own compatible version naturally
+ * - Let the updated Stripe SDK resolve its own compatible native dependencies
  * - Add capabilitiesResolution to force empty listenablefuture version
  *   (Prevents duplicate class errors with Guava/Google libraries)
  */
@@ -41,13 +41,6 @@ module.exports = (config) => {
     
     configurations.all {
         resolutionStrategy {
-            eachDependency { details ->
-                if (details.requested.group == 'com.stripe' && 
-                   (details.requested.name == 'stripe-android' || details.requested.name == 'financial-connections')) {
-                    details.useVersion '20.49.0'
-                }
-            }
-            
             // Fix for "Duplicate class com.google.common.util.concurrent.ListenableFuture"
             // This is a classic conflict between Stripe and Google libraries
             capabilitiesResolution.withCapability('com.google.guava:listenablefuture') {
@@ -58,11 +51,10 @@ module.exports = (config) => {
 }`
       );
       
-      console.log('✅ Stripe Repository Isolation + Dependency Fix applied (v7):');
+      console.log('✅ Stripe Repository Isolation + Dependency Fix applied (v8):');
       console.log('   - Repository Isolation: com.stripe → mavenCentral ONLY');
-      console.log('   - Forcing stripe-android → 20.49.0');
-      console.log('   - Forcing financial-connections → 20.49.0');
-      console.log('   - Allowing stripe-3ds2-android to resolve naturally');
+      console.log('   - Updated @stripe/stripe-react-native to latest (fixes currentActivity error)');
+      console.log('   - Allowing all Stripe dependencies to resolve naturally');
       console.log('   - ListenableFuture conflict resolution added (fixes Duplicate class error)');
       console.log('   - Fixed regex to replace entire allprojects block (prevents syntax errors)');
     }
