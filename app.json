@@ -94,15 +94,13 @@
             ],
             "extraGradleProperties": {
               "org.gradle.jvmargs": "-Xmx2048m -XX:MaxMetaspaceSize=512m",
-              "systemProp.http.timeout": "600000",
-              "systemProp.http.socketTimeout": "600000",
-              "systemProp.networkTimeout": "900000",
-              "systemProp.connectionTimeout": "600000",
-              "org.gradle.parallel": "true",
-              "org.gradle.caching": "true",
-              "org.gradle.configureondemand": "true",
-              "systemProp.http.keepAlive": "true",
-              "systemProp.http.maxConnections": "50"
+              "systemProp.http.connectionTimeout": "900000",
+              "systemProp.http.readTimeout": "900000",
+              "systemProp.org.gradle.internal.http.connectionTimeout": "900000",
+              "systemProp.org.gradle.internal.http.socketTimeout": "900000",
+              "systemProp.org.gradle.network.timeout": "900000",
+              "systemProp.org.gradle.daemon.idletimeout": "900000",
+              "systemProp.org.gradle.daemon.jvmargs": "-Xmx2048m -XX:MaxMetaspaceSize=512m"
             }
           }
         }
