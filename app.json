@@ -91,7 +91,19 @@
             "extraMavenRepos": [
               "google()",
               "mavenCentral()"
-            ]
+            ],
+            "extraGradleProperties": {
+              "org.gradle.jvmargs": "-Xmx4096m",
+              "systemProp.http.timeout": "600000",
+              "systemProp.http.socketTimeout": "600000",
+              "systemProp.networkTimeout": "900000",
+              "systemProp.connectionTimeout": "600000",
+              "org.gradle.parallel": "true",
+              "org.gradle.caching": "true",
+              "org.gradle.configureondemand": "true",
+              "systemProp.http.keepAlive": "true",
+              "systemProp.http.maxConnections": "50"
+            }
           }
         }
       ]
