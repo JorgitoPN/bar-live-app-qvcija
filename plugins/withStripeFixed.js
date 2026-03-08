@@ -9,22 +9,39 @@ module.exports = (config) => {
     repositories {
         google()
         mavenCentral()
-        maven { 
-            url 'https://jitpack.io' 
+
+        // FIX: Explicitly restrict com.stripe to Google and MavenCentral ONLY
+        // This prevents JitPack from being queried for Stripe dependencies
+        exclusiveContent {
+            forRepository {
+                google()
+            }
+            filter {
+                includeGroup "com.stripe"
+            }
+        }
+
+        exclusiveContent {
+            forRepository {
+                mavenCentral()
+            }
+            filter {
+                includeGroup "com.stripe"
+            }
+        }
+
+        // Allow JitPack only for com.github.Dimezis (BlurView)
+        maven {
+            url 'https://jitpack.io'
             content {
-                // SOLO JitPack para BlurView (Dimezis). 
-                // PROHIBIDO buscar Stripe aquí para evitar el timeout de 12 min.
-                includeGroup "com.github.Dimezis" 
+                includeGroup "com.github.Dimezis"
             }
         }
     }
 
-    // Quitamos el forzado de versiones para que stripe-react-native 
-    // maneje sus propias dependencias internas correctamente.
-
+    // Kotlin compiler options to allow experimental APIs and suppress warnings
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
         kotlinOptions {
-            // Esto silencia los errores de "API under construction"
             freeCompilerArgs += [
                 "-opt-in=kotlin.RequiresOptIn",
                 "-Xsuppress-version-warnings"
