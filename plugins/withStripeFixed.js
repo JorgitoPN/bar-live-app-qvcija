@@ -12,33 +12,20 @@ module.exports = (config) => {
         maven { 
             url 'https://jitpack.io' 
             content {
-                // SOLO permite entrar a JitPack para BlurView
+                // SOLO JitPack para BlurView. PROHIBIDO para Stripe.
                 includeGroup "com.github.Dimezis" 
             }
         }
     }
-    configurations.all {
-        resolutionStrategy {
-            eachDependency { details ->
-                if (details.requested.group == 'com.stripe') {
-                    // Forzamos versiones fijas para evitar que Gradle busque el "+" en JitPack
-                    if (details.requested.name == 'stripe-android' || 
-                        details.requested.name == 'financial-connections' ||
-                        details.requested.name == 'payment-method-messaging') {
-                        details.useVersion '20.51.0'
-                    }
-                }
-            }
-        }
-    }
+    // Eliminamos el forzado de versiones (ResolutionStrategy) 
+    // para evitar errores de compilación.
     
-    // FIX v13: Silenciar los errores de APIs experimentales de Stripe
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
         kotlinOptions {
+            // Esto permite usar las APIs de Stripe sin que Kotlin se bloquee
             freeCompilerArgs += [
-                "-opt-in=com.stripe.android.customersheet.ExperimentalCustomerSheetApi",
-                "-opt-in=com.stripe.android.paymentsheet.ExperimentalPaymentSheetApi",
-                "-opt-in=com.stripe.android.core.ExperimentalStripeApi"
+                "-opt-in=kotlin.RequiresOptIn",
+                "-Xsuppress-version-warnings"
             ]
         }
     }
