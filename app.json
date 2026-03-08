@@ -90,8 +90,7 @@
             "usesCleartextTraffic": false,
             "extraMavenRepos": [
               "google()",
-              "mavenCentral()",
-              "https://www.jitpack.io"
+              "mavenCentral()"
             ]
           }
         }
