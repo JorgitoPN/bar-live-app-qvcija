@@ -4,22 +4,22 @@ const { withProjectBuildGradle } = require('@expo/config-plugins');
 /**
  * Local Expo Config Plugin to fix Stripe Android dependency resolution
  * 
- * FINAL FIX (v8): Repository Isolation + ListenableFuture Conflict Resolution
+ * BRUTE FORCE FIX (v9): Complete JitPack Elimination + Forced Stable Version
  * 
  * Problems Fixed: 
- * - "Unresolved reference 'currentActivity'" error with React Native 0.81.5
- * - JitPack timeouts cause APK build failures
+ * - JitPack timeouts cause APK build failures (Read timed out)
+ * - Gradle attempting to resolve com.stripe:stripe-android:22.8.+ from JitPack
  * - "Duplicate class com.google.common.util.concurrent.ListenableFuture" error
- *   (Classic conflict between Stripe SDK and Google Play Services libraries)
- * - Syntax errors from overly broad regex replacements
+ * - Dynamic version resolution (22.8.+) causing unnecessary repository lookups
  * 
  * Solution:
- * - Updated @stripe/stripe-react-native to latest version (compatible with RN 0.81.5)
- * - Use ONE precise regex replacement that targets the ENTIRE allprojects block
+ * - FORCE com.stripe:stripe-android to version 20.51.0 (stable, no dynamic resolution)
  * - ISOLATE com.stripe group to ONLY use mavenCentral via content filter
- * - Let the updated Stripe SDK resolve its own compatible native dependencies
+ * - ELIMINATE any possibility of JitPack access for Stripe dependencies
  * - Add capabilitiesResolution to force empty listenablefuture version
- *   (Prevents duplicate class errors with Guava/Google libraries)
+ * - Use precise regex to replace entire allprojects block (prevents syntax errors)
+ * 
+ * This "brute force" approach ensures Gradle NEVER looks at JitPack for Stripe.
  */
 module.exports = (config) => {
   return withProjectBuildGradle(config, (config) => {
@@ -30,6 +30,8 @@ module.exports = (config) => {
         /allprojects\s*\{[\s\S]*?^\}/m,
         `allprojects {
     repositories {
+        // FIRST: MavenCentral with STRICT Stripe isolation
+        // This ensures com.stripe artifacts are ONLY resolved from MavenCentral
         mavenCentral {
             content {
                 includeGroup "com.stripe"
@@ -37,10 +39,15 @@ module.exports = (config) => {
         }
         google()
         mavenCentral()
+        // NOTE: JitPack is COMPLETELY REMOVED - it does not have official Stripe artifacts
     }
     
     configurations.all {
         resolutionStrategy {
+            // FORCE stable Stripe version - prevents dynamic resolution (22.8.+)
+            // Using a fixed version avoids Gradle searching multiple repositories
+            force 'com.stripe:stripe-android:20.51.0'
+            
             // Fix for "Duplicate class com.google.common.util.concurrent.ListenableFuture"
             // This is a classic conflict between Stripe and Google libraries
             capabilitiesResolution.withCapability('com.google.guava:listenablefuture') {
@@ -51,12 +58,12 @@ module.exports = (config) => {
 }`
       );
       
-      console.log('✅ Stripe Repository Isolation + Dependency Fix applied (v8):');
-      console.log('   - Repository Isolation: com.stripe → mavenCentral ONLY');
-      console.log('   - Updated @stripe/stripe-react-native to latest (fixes currentActivity error)');
-      console.log('   - Allowing all Stripe dependencies to resolve naturally');
-      console.log('   - ListenableFuture conflict resolution added (fixes Duplicate class error)');
-      console.log('   - Fixed regex to replace entire allprojects block (prevents syntax errors)');
+      console.log('✅ Stripe BRUTE FORCE Fix applied (v9):');
+      console.log('   - Repository Isolation: com.stripe → mavenCentral ONLY (FIRST in list)');
+      console.log('   - Version Forcing: stripe-android locked to 20.51.0 (no dynamic resolution)');
+      console.log('   - JitPack COMPLETELY REMOVED from repositories');
+      console.log('   - ListenableFuture conflict resolution added');
+      console.log('   - This prevents Gradle from ever attempting JitPack for Stripe');
     }
     return config;
   });
