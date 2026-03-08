@@ -22,14 +22,24 @@ module.exports = (config) => {
             eachDependency { details ->
                 if (details.requested.group == 'com.stripe') {
                     // Forzamos versiones fijas para evitar que Gradle busque el "+" en JitPack
-                    if (details.requested.name == 'stripe-android' || details.requested.name == 'financial-connections') {
-                        details.useVersion '20.51.0'
-                    }
-                    if (details.requested.name == 'payment-method-messaging') {
+                    if (details.requested.name == 'stripe-android' || 
+                        details.requested.name == 'financial-connections' ||
+                        details.requested.name == 'payment-method-messaging') {
                         details.useVersion '20.51.0'
                     }
                 }
             }
+        }
+    }
+    
+    // FIX v13: Silenciar los errores de APIs experimentales de Stripe
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            freeCompilerArgs += [
+                "-opt-in=com.stripe.android.customersheet.ExperimentalCustomerSheetApi",
+                "-opt-in=com.stripe.android.paymentsheet.ExperimentalPaymentSheetApi",
+                "-opt-in=com.stripe.android.core.ExperimentalStripeApi"
+            ]
         }
     }
 }`
