@@ -12,8 +12,8 @@ module.exports = (config) => {
         maven { 
             url 'https://jitpack.io' 
             content {
-                // REGLA DE ORO: Solo entrar a JitPack para lo que Maven no tiene
-                includeGroup "com.github.Dimezis"
+                // SOLO permite entrar a JitPack para BlurView
+                includeGroup "com.github.Dimezis" 
             }
         }
     }
@@ -21,7 +21,11 @@ module.exports = (config) => {
         resolutionStrategy {
             eachDependency { details ->
                 if (details.requested.group == 'com.stripe') {
+                    // Forzamos versiones fijas para evitar que Gradle busque el "+" en JitPack
                     if (details.requested.name == 'stripe-android' || details.requested.name == 'financial-connections') {
+                        details.useVersion '20.51.0'
+                    }
+                    if (details.requested.name == 'payment-method-messaging') {
                         details.useVersion '20.51.0'
                     }
                 }
