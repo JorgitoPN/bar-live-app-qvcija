@@ -59,6 +59,24 @@
           "androidCollapsedTitle": "BarLive",
           "iosDisplayInForeground": true
         }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.barlive.app",
+          "enableGooglePay": true
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraMavenRepos": [],
+            "networkTimeout": 120000,
+            "usesCleartextTraffic": false,
+            "extraProguardRules": "-keep class com.stripe.** { *; }"
+          }
+        }
       ]
     ],
     "extra": {
