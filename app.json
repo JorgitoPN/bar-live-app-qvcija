@@ -61,6 +61,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/withStripeFixed",
       [
         "expo-notifications",
         {
