@@ -65,21 +65,25 @@
         {
           "merchantIdentifier": "merchant.com.barlive.app",
           "enableGooglePay": true,
-          "setUrlSchemeOnAndroid": true,
-          "androidStripeVersion": "20.49.0"
+          "setUrlSchemeOnAndroid": true
         }
       ],
       [
         "expo-build-properties",
         {
           "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24,
+            "buildToolsVersion": "35.0.0",
             "extraMavenRepos": [
               "https://maven.google.com",
-              "https://repo1.maven.org/maven2"
+              "https://repo1.maven.org/maven2",
+              "https://jitpack.io"
             ],
-            "networkTimeout": 180000,
+            "networkTimeout": 300000,
             "usesCleartextTraffic": false,
-            "extraProguardRules": "-keep class com.stripe.** { *; }",
+            "extraProguardRules": "-keep class com.stripe.** { *; }\n-keep class com.google.android.gms.wallet.** { *; }",
             "packagingOptions": {
               "pickFirst": [
                 "lib/x86/libc++_shared.so",
@@ -89,8 +93,12 @@
               ]
             },
             "gradleProperties": {
-              "org.gradle.internal.http.connectionTimeout": "60000",
-              "org.gradle.internal.http.socketTimeout": "60000"
+              "org.gradle.internal.http.connectionTimeout": "180000",
+              "org.gradle.internal.http.socketTimeout": "180000",
+              "org.gradle.daemon": "false",
+              "org.gradle.jvmargs": "-Xmx4096m -XX:MaxMetaspaceSize=1024m",
+              "android.useAndroidX": "true",
+              "android.enableJetifier": "true"
             }
           }
         }
