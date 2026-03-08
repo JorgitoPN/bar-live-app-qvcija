@@ -93,7 +93,7 @@
               "mavenCentral()"
             ],
             "extraGradleProperties": {
-              "org.gradle.jvmargs": "-Xmx4096m",
+              "org.gradle.jvmargs": "-Xmx2048m -XX:MaxMetaspaceSize=512m",
               "systemProp.http.timeout": "600000",
               "systemProp.http.socketTimeout": "600000",
               "systemProp.networkTimeout": "900000",
