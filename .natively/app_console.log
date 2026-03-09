@@ -32600,3 +32600,75 @@ To reconnect:
 [2026-03-09T11:38:32.303Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
 [2026-03-09T11:38:32.224Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
 [2026-03-09T11:38:32.215Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-09T11:38:54.445Z] [iOS] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: inactive
+[2026-03-09T11:38:54.454Z] [iOS] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-09T11:39:02.025Z] [iOS] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-09T11:39:02.033Z] [iOS] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-09T11:39:02.045Z] [iOS] [LOG] [Conversacion v309.0] 📱 Screen height changed: 932 → 932
+[2026-03-09T11:39:09.464Z] [iOS] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: inactive
+[2026-03-09T11:39:09.472Z] [iOS] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-09T11:39:16.537Z] [iOS] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-09T11:39:16.528Z] [iOS] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-09T11:39:19.911Z] [iOS] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: inactive
+[2026-03-09T11:39:19.920Z] [iOS] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-09T11:39:26.660Z] [iOS] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-09T11:39:26.669Z] [iOS] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-09T11:39:29.040Z] [iOS] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: inactive
+[2026-03-09T11:39:29.050Z] [iOS] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-09T11:39:29.761Z] [iOS] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-09T11:39:29.769Z] [iOS] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-09T11:40:39.558Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-09T11:40:39.557Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-09T11:41:16.169Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-09T11:41:16.169Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-09T11:41:26.797Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-09T11:41:26.797Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-09T11:41:36.917Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /social
+[2026-03-09T11:41:36.894Z] [Web] [LOG] [FloatingTabBar v347.0] 🔘 Tab pressed: social | Active: false
+[2026-03-09T11:41:36.917Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T11:41:36.895Z] [Web] [LOG] [FloatingTabBar v347.0] ➡️ Pestaña inactiva - Usando router.replace()
+[2026-03-09T11:41:37.538Z] [Web] [LOG] [FloatingTabBar v347.0] 🔘 Tab pressed: explorar | Active: false
+[2026-03-09T11:41:37.557Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /explorar
+[2026-03-09T11:41:37.558Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T11:41:37.538Z] [Web] [LOG] [FloatingTabBar v347.0] ➡️ Pestaña inactiva - Usando router.replace()
+[2026-03-09T11:42:01.832Z] [iOS] [ERROR] [InternalBytecode.js:1] {}
+[2026-03-09T11:42:01.776Z] [iOS] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-09T11:42:01.656Z] [iOS] [LOG] [Conversacion] Subscription status: CHANNEL_ERROR
+[2026-03-09T11:42:01.639Z] [iOS] [LOG] [Chats] Subscription status: CHANNEL_ERROR
+[2026-03-09T11:42:01.781Z] [iOS] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-09T11:42:03.651Z] [iOS] [ERROR] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. .$0650cc5e-704d-4774-833f-32f7ae0f6e9c
+[2026-03-09T11:42:03.661Z] [iOS] [ERROR] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. .$dfbf64d0-4254-4874-a145-b93822dadb6c
+[2026-03-09T11:42:03.640Z] [iOS] [ERROR] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. .$158b0512-2fbb-45cc-975e-0f6fb18dea50
+[2026-03-09T11:42:04.255Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-03-09T11:42:03.670Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 14
+[2026-03-09T11:42:03.619Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-09T11:42:03.578Z] [iOS] [LOG] [Conversacion v309.0] ⌨️ Keyboard shown
+[2026-03-09T11:42:04.074Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 14
+[2026-03-09T11:42:03.679Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-09T11:42:03.592Z] [iOS] [LOG] [Conversacion v309.0] 📏 Bottom safe area: 34
+[2026-03-09T11:42:03.590Z] [iOS] [LOG] [Conversacion v309.0] 📏 Input container height: 93
+[2026-03-09T11:42:03.585Z] [iOS] [LOG] [Conversacion v309.0] 📏 Screen height change: 932 → 932 = 0
+[2026-03-09T11:42:03.594Z] [iOS] [LOG] [Conversacion v309.0] ✅ Using actual keyboard height (includes predictive text bar)
+[2026-03-09T11:42:05.043Z] [iOS] [LOG] [Conversacion v309.0] 🎹 Setting up precise keyboard listeners with predictive text detection
+[2026-03-09T11:42:03.587Z] [iOS] [LOG] [Conversacion v309.0] 📏 Actual keyboard height (including predictive text): 345
+[2026-03-09T11:42:03.583Z] [iOS] [LOG] [Conversacion v309.0] 📏 Reported keyboard height: 345
+[2026-03-09T11:42:04.981Z] [iOS] [LOG] [Conversacion v309.0] 🧹 Cleaning up keyboard listeners
+[2026-03-09T11:42:03.580Z] [iOS] [LOG] [Conversacion v309.0] 📱 Platform: ios
+[2026-03-09T11:42:03.571Z] [iOS] [LOG] [MomentoViewer v294.0] ⌨️ Keyboard shown, height: 345
+[2026-03-09T11:42:03.628Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-09T11:42:04.273Z] [iOS] [LOG] [Conversacion v308.0] 📏 Input container measured height: 59
+[2026-03-09T11:42:05.207Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] Subscription status: CHANNEL_ERROR
+[2026-03-09T11:42:05.339Z] [iOS] [ERROR] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. .$0650cc5e-704d-4774-833f-32f7ae0f6e9c
+[2026-03-09T11:42:05.316Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-09T11:42:05.202Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] Subscription status: CLOSED
+[2026-03-09T11:42:05.759Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 14
+[2026-03-09T11:42:05.938Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-03-09T11:42:05.367Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-09T11:42:05.329Z] [iOS] [ERROR] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. .$158b0512-2fbb-45cc-975e-0f6fb18dea50
+[2026-03-09T11:42:06.067Z] [iOS] [LOG] [Conversacion v309.0] 🎹 Setting up precise keyboard listeners with predictive text detection
+[2026-03-09T11:42:06.006Z] [iOS] [LOG] [Conversacion v309.0] 🧹 Cleaning up keyboard listeners
+[2026-03-09T11:42:05.349Z] [iOS] [ERROR] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. .$dfbf64d0-4254-4874-a145-b93822dadb6c
+[2026-03-09T11:42:05.359Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 14
+[2026-03-09T11:42:05.290Z] [iOS] [LOG] [Conversacion v308.0] 📏 Input container measured height: 75.33334350585938
+[2026-03-09T11:42:05.305Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-09T11:42:05.222Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion] Subscription status: SUBSCRIBED
