@@ -17,7 +17,7 @@ interface CommentPreviewData {
 }
 
 /**
- * ✅ COMMENT PREVIEW COMPONENT v1.0
+ * ✅ COMMENT PREVIEW COMPONENT v1.1 - FIXED FOREIGN KEY
  * 
  * Displays comment preview information for a post, showing ONLY comments
  * from users that the current user follows.
@@ -29,6 +29,8 @@ interface CommentPreviewData {
  * Display Format:
  * - Single comment: "Jorge ha escrito un comentario."
  * - Multiple comments: "Jorge y otras 2 personas han comentado esta publicación."
+ * 
+ * ✅ FIX v1.1: Changed usuario_id to autor_id (correct foreign key column)
  */
 export default function CommentPreview({ postId }: CommentPreviewProps) {
   const { user } = useAuth();
@@ -43,7 +45,7 @@ export default function CommentPreview({ postId }: CommentPreviewProps) {
     }
 
     try {
-      console.log('[CommentPreview v1.0] 🔄 Loading comment preview for post:', postId);
+      console.log('[CommentPreview v1.1] 🔄 Loading comment preview for post:', postId);
 
       // Step 1: Get all users that the current user follows
       const { data: followingData, error: followingError } = await supabase
@@ -52,7 +54,7 @@ export default function CommentPreview({ postId }: CommentPreviewProps) {
         .eq('seguidor_id', user.id);
 
       if (followingError) {
-        console.error('[CommentPreview v1.0] ❌ Error fetching following list:', followingError);
+        console.error('[CommentPreview v1.1] ❌ Error fetching following list:', followingError);
         setLoading(false);
         return;
       }
@@ -60,35 +62,37 @@ export default function CommentPreview({ postId }: CommentPreviewProps) {
       const followedUserIds = followingData?.map(f => f.seguido_id) || [];
 
       if (followedUserIds.length === 0) {
-        console.log('[CommentPreview v1.0] ℹ️ User is not following anyone, no preview to show');
+        console.log('[CommentPreview v1.1] ℹ️ User is not following anyone, no preview to show');
         setPreviewData(null);
         setLoading(false);
         return;
       }
 
-      console.log('[CommentPreview v1.0] ✅ User follows', followedUserIds.length, 'users');
+      console.log('[CommentPreview v1.1] ✅ User follows', followedUserIds.length, 'users');
 
       // Step 2: Get comments from followed users only
+      // ✅ CRITICAL FIX v1.1: Changed usuario_id to autor_id (correct foreign key column)
+      // ✅ CRITICAL FIX v1.1: Changed foreign key reference to comentarios_autor_id_fkey
       const { data: commentsData, error: commentsError } = await supabase
         .from('comentarios')
         .select(`
           id,
-          usuario_id,
+          autor_id,
           created_at,
-          usuario:usuarios!comentarios_usuario_id_fkey(nombre)
+          usuario:usuarios!comentarios_autor_id_fkey(nombre)
         `)
         .eq('post_id', postId)
-        .in('usuario_id', followedUserIds)
+        .in('autor_id', followedUserIds)
         .order('created_at', { ascending: false });
 
       if (commentsError) {
-        console.error('[CommentPreview v1.0] ❌ Error fetching comments:', commentsError);
+        console.error('[CommentPreview v1.1] ❌ Error fetching comments:', commentsError);
         setLoading(false);
         return;
       }
 
       if (!commentsData || commentsData.length === 0) {
-        console.log('[CommentPreview v1.0] ℹ️ No comments from followed users');
+        console.log('[CommentPreview v1.1] ℹ️ No comments from followed users');
         setPreviewData(null);
         setLoading(false);
         return;
@@ -99,8 +103,8 @@ export default function CommentPreview({ postId }: CommentPreviewProps) {
       const firstCommenterName = firstCommenter.usuario?.nombre || 'Usuario';
       const totalComments = commentsData.length;
 
-      console.log('[CommentPreview v1.0] ✅ Found', totalComments, 'comments from followed users');
-      console.log('[CommentPreview v1.0] ✅ First commenter:', firstCommenterName);
+      console.log('[CommentPreview v1.1] ✅ Found', totalComments, 'comments from followed users');
+      console.log('[CommentPreview v1.1] ✅ First commenter:', firstCommenterName);
 
       setPreviewData({
         firstCommenterName,
@@ -108,7 +112,7 @@ export default function CommentPreview({ postId }: CommentPreviewProps) {
       });
       setLoading(false);
     } catch (error) {
-      console.error('[CommentPreview v1.0] ❌ Error loading comment preview:', error);
+      console.error('[CommentPreview v1.1] ❌ Error loading comment preview:', error);
       setLoading(false);
     }
   }, [postId, user]);
@@ -125,12 +129,17 @@ export default function CommentPreview({ postId }: CommentPreviewProps) {
   const { firstCommenterName, totalComments } = previewData;
 
   const handlePress = () => {
-    console.log('[CommentPreview v1.0] 💬 Opening comments for post:', postId);
+    console.log('[CommentPreview v1.1] 💬 Opening comments for post:', postId);
     router.push({
       pathname: '/social/comentarios',
       params: { postId },
     });
   };
+
+  // ✅ ATOMIC JSX: Extract conditional text into variable
+  const commentText = totalComments === 1 
+    ? ' ha escrito un comentario.'
+    : ` y otras ${totalComments - 1} personas han comentado esta publicación.`;
 
   return (
     <TouchableOpacity 
@@ -140,10 +149,7 @@ export default function CommentPreview({ postId }: CommentPreviewProps) {
     >
       <Text style={[styles.text, { fontSize: scaleFontSize(13) }]}>
         <Text style={styles.name}>{firstCommenterName}</Text>
-        {totalComments === 1 
-          ? ' ha escrito un comentario.'
-          : ` y otras ${totalComments - 1} personas han comentado esta publicación.`
-        }
+        {commentText}
       </Text>
     </TouchableOpacity>
   );
