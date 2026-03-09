@@ -39626,3 +39626,91 @@ To reconnect:
 [2026-03-09T09:09:58.299Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion v304.0] ✅ Message sent successfully - keyboard stays open for continuous typing
 [2026-03-09T09:09:58.685Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
 [2026-03-09T09:09:58.324Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 14
+[2026-03-09T09:10:40.640Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-09T09:10:40.656Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 14
+[2026-03-09T09:10:40.647Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-09T09:10:40.663Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-09T09:10:40.613Z] [iOS] [LOG] [Conversacion v309.0] 📏 Actual keyboard height (including predictive text): 345
+[2026-03-09T09:10:40.980Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 14
+[2026-03-09T09:10:40.615Z] [iOS] [LOG] [Conversacion v309.0] 📏 Input container height: 93
+[2026-03-09T09:10:40.603Z] [iOS] [LOG] [Conversacion v309.0] ⌨️ Keyboard shown
+[2026-03-09T09:10:42.136Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion v304.0] 📤 enviarMensaje called - keyboard stays open, message sends immediately
+[2026-03-09T09:10:41.021Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-03-09T09:10:41.645Z] [iOS] [LOG] [Conversacion v309.0] 🎹 Setting up precise keyboard listeners with predictive text detection
+[2026-03-09T09:10:40.610Z] [iOS] [LOG] [Conversacion v309.0] 📏 Screen height change: 932 → 932 = 0
+[2026-03-09T09:10:40.608Z] [iOS] [LOG] [Conversacion v309.0] 📏 Reported keyboard height: 345
+[2026-03-09T09:10:40.620Z] [iOS] [LOG] [Conversacion v309.0] ✅ Using actual keyboard height (includes predictive text bar)
+[2026-03-09T09:10:40.605Z] [iOS] [LOG] [Conversacion v309.0] 📱 Platform: ios
+[2026-03-09T09:10:40.617Z] [iOS] [LOG] [Conversacion v309.0] 📏 Bottom safe area: 34
+[2026-03-09T09:10:40.598Z] [iOS] [LOG] [MomentoViewer v294.0] ⌨️ Keyboard shown, height: 345
+[2026-03-09T09:10:41.035Z] [iOS] [LOG] [Conversacion v308.0] 📏 Input container measured height: 59
+[2026-03-09T09:10:41.584Z] [iOS] [LOG] [Conversacion v309.0] 🧹 Cleaning up keyboard listeners
+[2026-03-09T09:10:42.638Z] [iOS] [LOG] [MomentoViewer v294.0] ⌨️ Keyboard hidden
+[2026-03-09T09:10:42.662Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-09T09:10:42.678Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 14
+[2026-03-09T09:10:42.669Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-09T09:10:42.642Z] [iOS] [LOG] [Conversacion v309.0] ⌨️ Keyboard hidden
+[2026-03-09T09:10:43.051Z] [iOS] [LOG] [Conversacion v308.0] 📏 Input container measured height: 93
+[2026-03-09T09:10:43.660Z] [iOS] [LOG] [Conversacion v309.0] 🎹 Setting up precise keyboard listeners with predictive text detection
+[2026-03-09T09:10:43.679Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 🔄 Force refreshing chats from database...
+[2026-03-09T09:10:43.676Z] [iOS] [LOG] [Chats] ⚡ INSTANT new message received: {"id":"690e2970-fe1d-4b45-8c8f-eb6751379b74","leido":false,"chat_id":"9d8103da-ac58-4395-81ed-80ca85c9a731","post_id":null,"leido_at":null,"contenido":"Vhh","entregado":false,"media_url":null,"created_at":"2026-03-09T09:10:42.749912+00:00","momento_id":null,"post_imagen":null,"entregado_at":null,"remitente_id":"4f3ce732-f479-43f2-acb2-e92831c6bec0","tipo_mensaje":"texto","ubicacion_lat":null,"ubicacion_lng":null,"media_duracion":null,"media_thumbnail":null,"ubicacion_nombre":null,"post_compartido_id":null,"eliminado_remitente":false,"eliminado_destinatario":false,"momento_screenshot_url":null}
+[2026-03-09T09:10:43.688Z] [iOS] [LOG] [Conversacion] ⚡ INSTANT new message received: {"id":"690e2970-fe1d-4b45-8c8f-eb6751379b74","leido":false,"chat_id":"9d8103da-ac58-4395-81ed-80ca85c9a731","post_id":null,"leido_at":null,"contenido":"Vhh","entregado":false,"media_url":null,"created_at":"2026-03-09T09:10:42.749912+00:00","momento_id":null,"post_imagen":null,"entregado_at":null,"remitente_id":"4f3ce732-f479-43f2-acb2-e92831c6bec0","tipo_mensaje":"texto","ubicacion_lat":null,"ubicacion_lng":null,"media_duracion":null,"media_thumbnail":null,"ubicacion_nombre":null,"post_compartido_id":null,"eliminado_remitente":false,"eliminado_destinatario":false,"momento_screenshot_url":null}
+[2026-03-09T09:10:43.696Z] [iOS] [LOG] [Chats] ⚡ Chat updated: {"id":"9d8103da-ac58-4395-81ed-80ca85c9a731","activo":true,"local_id":null,"created_at":"2025-12-23T23:02:38.801213+00:00","updated_at":"2026-03-09T09:10:42.749912+00:00","usuario1_id":"4f3ce732-f479-43f2-acb2-e92831c6bec0","usuario2_id":"da8f89d8-f384-4c52-a7cc-1583687943dc","ultimo_mensaje":"Vhh","archivado_usuario1":false,"archivado_usuario2":false,"ultimo_mensaje_fecha":"2026-03-09T09:10:42.749912+00:00","ultimo_mensaje_autor_id":"4f3ce732-f479-43f2-acb2-e92831c6bec0"}
+[2026-03-09T09:10:42.998Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 14
+[2026-03-09T09:10:43.599Z] [iOS] [LOG] [Conversacion v309.0] 🧹 Cleaning up keyboard listeners
+[2026-03-09T09:10:42.685Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-09T09:10:44.121Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-09T09:10:44.114Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-09T09:10:44.139Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 14
+[2026-03-09T09:10:44.131Z] [iOS] [ERROR] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. .$690e2970-fe1d-4b45-8c8f-eb6751379b74
+[2026-03-09T09:10:44.146Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-09T09:10:44.459Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 14
+[2026-03-09T09:10:44.520Z] [iOS] [LOG] VirtualizedList: You have a large list that is slow to update - make sure your renderItem function renders components that follow React performance best practices like PureComponent, shouldComponentUpdate, etc. {"dt":1469,"prevDt":43310,"contentLength":6305.66650390625}
+[2026-03-09T09:10:44.658Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded 4 chats from database
+[2026-03-09T09:10:44.810Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Benjamín Pérez username: benxaque
+[2026-03-09T09:10:44.903Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat ed636c44-3210-4b12-9756-da6028040e54 is USER-TO-USER, loading user info for: f730677c-1778-4db2-b945-a62b35264dfe
+[2026-03-09T09:10:44.672Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat ed636c44-3210-4b12-9756-da6028040e54 is USER-TO-USER, loading user info for: f730677c-1778-4db2-b945-a62b35264dfe
+[2026-03-09T09:10:44.781Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 🔄 Force refreshing chats from database...
+[2026-03-09T09:10:44.665Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat 3236db65-3aac-44bd-bc33-61f00920a4e1 is USER-TO-USER, loading user info for: 4f3ce732-f479-43f2-acb2-e92831c6bec0
+[2026-03-09T09:10:44.791Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Jorge Pérez username: jorge
+[2026-03-09T09:10:44.786Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Jorge Pérez username: jorgitopn
+[2026-03-09T09:10:44.669Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat 7f9dc780-ab6e-4f04-9c88-056120c37d96 is USER-TO-USER, loading user info for: a5def648-6df3-47ae-885e-d15d0a0266ae
+[2026-03-09T09:10:44.661Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat 9d8103da-ac58-4395-81ed-80ca85c9a731 is USER-TO-USER, loading user info for: da8f89d8-f384-4c52-a7cc-1583687943dc
+[2026-03-09T09:10:45.141Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Jorge Pérez username: jorge
+[2026-03-09T09:10:44.693Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion v304.0] 📬 Sending notification to: da8f89d8-f384-4c52-a7cc-1583687943dc (user)
+[2026-03-09T09:10:45.039Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Benjamín Pérez username: benxaque
+[2026-03-09T09:10:44.789Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Almudena Sanchez username: alma8
+[2026-03-09T09:10:44.906Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 3236db65-3aac-44bd-bc33-61f00920a4e1 has 0 unread messages
+[2026-03-09T09:10:44.909Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 7f9dc780-ab6e-4f04-9c88-056120c37d96 has 0 unread messages
+[2026-03-09T09:10:44.900Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat 7f9dc780-ab6e-4f04-9c88-056120c37d96 is USER-TO-USER, loading user info for: a5def648-6df3-47ae-885e-d15d0a0266ae
+[2026-03-09T09:10:44.778Z] [iOS] [LOG] [Chats] ⚡ Chat updated: {"id":"9d8103da-ac58-4395-81ed-80ca85c9a731","activo":true,"local_id":null,"created_at":"2025-12-23T23:02:38.801213+00:00","updated_at":"2026-03-09T09:10:44.106+00:00","usuario1_id":"4f3ce732-f479-43f2-acb2-e92831c6bec0","usuario2_id":"da8f89d8-f384-4c52-a7cc-1583687943dc","ultimo_mensaje":"Vhh","archivado_usuario1":false,"archivado_usuario2":false,"ultimo_mensaje_fecha":"2026-03-09T09:10:44.106+00:00","ultimo_mensaje_autor_id":"4f3ce732-f479-43f2-acb2-e92831c6bec0"}
+[2026-03-09T09:10:44.944Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-09T09:10:44.893Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat 9d8103da-ac58-4395-81ed-80ca85c9a731 is USER-TO-USER, loading user info for: da8f89d8-f384-4c52-a7cc-1583687943dc
+[2026-03-09T09:10:44.911Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 9d8103da-ac58-4395-81ed-80ca85c9a731 has 0 unread messages
+[2026-03-09T09:10:45.146Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Jorge Pérez username: jorgitopn
+[2026-03-09T09:10:45.024Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-03-09T09:10:44.957Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-03-09T09:10:45.143Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Almudena Sanchez username: alma8
+[2026-03-09T09:10:44.925Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Processed all chats with info
+[2026-03-09T09:10:44.951Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.pencil", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-09T09:10:44.896Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat 3236db65-3aac-44bd-bc33-61f00920a4e1 is USER-TO-USER, loading user info for: 4f3ce732-f479-43f2-acb2-e92831c6bec0
+[2026-03-09T09:10:44.923Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat ed636c44-3210-4b12-9756-da6028040e54 has 0 unread messages
+[2026-03-09T09:10:44.890Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded 4 chats from database
+[2026-03-09T09:10:44.937Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-09T09:10:45.257Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat ed636c44-3210-4b12-9756-da6028040e54 has 0 unread messages
+[2026-03-09T09:10:45.363Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-03-09T09:10:45.277Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-09T09:10:45.296Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-03-09T09:10:45.387Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-09T09:10:45.283Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-09T09:10:45.397Z] [iOS] [ERROR] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. .$690e2970-fe1d-4b45-8c8f-eb6751379b74
+[2026-03-09T09:10:45.723Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 14
+[2026-03-09T09:10:45.412Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-09T09:10:45.372Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion v304.0] ✅ Message sent successfully - keyboard stays open for continuous typing
+[2026-03-09T09:10:45.778Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-03-09T09:10:45.290Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.pencil", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-09T09:10:45.404Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 14
+[2026-03-09T09:10:45.259Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 9d8103da-ac58-4395-81ed-80ca85c9a731 has 0 unread messages
+[2026-03-09T09:10:45.263Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 3236db65-3aac-44bd-bc33-61f00920a4e1 has 0 unread messages
+[2026-03-09T09:10:45.265Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Processed all chats with info
+[2026-03-09T09:10:45.261Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 7f9dc780-ab6e-4f04-9c88-056120c37d96 has 0 unread messages
