@@ -1123,11 +1123,27 @@ function SalaVirtualEnhancedScreen() {
           });
           
           setMessages(prev => {
-            const updated = [...prev, ...uniqueNewMessages].sort((a, b) => 
+            // ✅ CRITICAL FIX v10.3: Ensure unique IDs in messages array
+            // Remove any existing messages with the same IDs before adding new ones
+            const existingIds = new Set(uniqueNewMessages.map(m => m.id));
+            const filteredPrev = prev.filter(m => !existingIds.has(m.id));
+            
+            const updated = [...filteredPrev, ...uniqueNewMessages].sort((a, b) => 
               new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             );
             
-            return updated;
+            // ✅ CRITICAL FIX v10.3: Final deduplication pass to ensure no duplicates
+            const seenIds = new Set<string>();
+            const deduplicated = updated.filter(msg => {
+              if (seenIds.has(msg.id)) {
+                console.warn('[SalaVirtual v10.3] ⚠️ Duplicate message ID detected and removed:', msg.id);
+                return false;
+              }
+              seenIds.add(msg.id);
+              return true;
+            });
+            
+            return deduplicated;
           });
           
           const latestMessage = uniqueNewMessages[uniqueNewMessages.length - 1];
@@ -1220,9 +1236,22 @@ function SalaVirtualEnhancedScreen() {
                   }
                 });
                 
-                return [...prev, ...uniqueNew].sort((a, b) => 
+                const updated = [...prev, ...uniqueNew].sort((a, b) => 
                   new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
                 );
+                
+                // ✅ CRITICAL FIX v10.3: Final deduplication pass for private messages
+                const seenIds = new Set<string>();
+                const deduplicated = updated.filter(msg => {
+                  if (seenIds.has(msg.id)) {
+                    console.warn('[SalaVirtual v10.3] ⚠️ Duplicate private message ID detected and removed:', msg.id);
+                    return false;
+                  }
+                  seenIds.add(msg.id);
+                  return true;
+                });
+                
+                return deduplicated;
               }
               
               return prev;
@@ -2025,6 +2054,7 @@ function SalaVirtualEnhancedScreen() {
       } else {
         if (isMounted.current) {
           setMessages(prev => {
+            // ✅ CRITICAL FIX v10.3: Remove optimistic message
             const withoutOptimistic = prev.filter(m => m.id !== messageId);
             
             messageIdsRef.current.delete(messageId);
@@ -2037,13 +2067,27 @@ function SalaVirtualEnhancedScreen() {
               usuario: currentUserProfile,
             };
             
+            // ✅ CRITICAL FIX v10.3: Check if real message already exists
             if (withoutOptimistic.some(m => m.id === realMessage.id)) {
               return withoutOptimistic;
             }
             
-            return [...withoutOptimistic, realMessage].sort((a, b) => 
+            const updated = [...withoutOptimistic, realMessage].sort((a, b) => 
               new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             );
+            
+            // ✅ CRITICAL FIX v10.3: Final deduplication pass
+            const seenIds = new Set<string>();
+            const deduplicated = updated.filter(msg => {
+              if (seenIds.has(msg.id)) {
+                console.warn('[SalaVirtual v10.3] ⚠️ Duplicate message ID in sendPublicMessage:', msg.id);
+                return false;
+              }
+              seenIds.add(msg.id);
+              return true;
+            });
+            
+            return deduplicated;
           });
         }
         
@@ -2436,6 +2480,7 @@ function SalaVirtualEnhancedScreen() {
       } else {
         if (isMounted.current) {
           setPrivateChatMessages(prev => {
+            // ✅ CRITICAL FIX v10.3: Remove optimistic message
             const withoutOptimistic = prev.filter(m => m.id !== messageId);
             
             const realMessage: Message = {
@@ -2445,13 +2490,27 @@ function SalaVirtualEnhancedScreen() {
               usuario: currentUserProfile,
             };
             
+            // ✅ CRITICAL FIX v10.3: Check if real message already exists
             if (withoutOptimistic.some(m => m.id === realMessage.id)) {
               return withoutOptimistic;
             }
             
-            return [...withoutOptimistic, realMessage].sort((a, b) => 
+            const updated = [...withoutOptimistic, realMessage].sort((a, b) => 
               new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             );
+            
+            // ✅ CRITICAL FIX v10.3: Final deduplication pass for private messages
+            const seenIds = new Set<string>();
+            const deduplicated = updated.filter(msg => {
+              if (seenIds.has(msg.id)) {
+                console.warn('[SalaVirtual v10.3] ⚠️ Duplicate private message ID in sendPrivateMessage:', msg.id);
+                return false;
+              }
+              seenIds.add(msg.id);
+              return true;
+            });
+            
+            return deduplicated;
           });
         }
         
