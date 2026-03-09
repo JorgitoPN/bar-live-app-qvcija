@@ -1515,6 +1515,24 @@ export default function PostViewerModal({
           </View>
         )}
 
+        {/* TODO: Backend Integration - GET /api/posts/:id/comments/preview
+            Expected response: { firstCommenter: { name: string }, totalComments: number }
+            Display: "Jorge ha escrito un comentario y otras personas..." or "Jorge y otras personas han comentado esta publicación."
+            
+            Example implementation:
+            {firstCommenter && totalComments > 0 && (
+              <View style={styles.commentPreviewContainer}>
+                <Text style={[styles.commentPreviewText, { fontSize: scaleFontSize(13) }]}>
+                  <Text style={styles.commentPreviewName}>{firstCommenter.name}</Text>
+                  {totalComments > 1 
+                    ? ` y otras ${totalComments - 1} personas han comentado esta publicación.`
+                    : ` ha escrito un comentario.`
+                  }
+                </Text>
+              </View>
+            )}
+        */}
+
         <TouchableOpacity 
           style={styles.commentsContainer}
           onPress={() => {
@@ -1540,11 +1558,6 @@ export default function PostViewerModal({
             </Text>
           )}
         </TouchableOpacity>
-
-        {/* TODO: Backend Integration - GET /api/posts/:id/comments/preview to fetch first commenter info
-            Expected response: { firstCommenter: { name: string }, totalComments: number }
-            Display: "Jorge ha escrito un comentario y otras personas..." or "Jorge y otras personas han comentado esta publicación."
-        */}
 
         <View style={styles.timeContainer}>
           <Text style={[styles.timeText, { fontSize: scaleFontSize(11) }]}>

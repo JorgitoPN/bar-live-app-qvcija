@@ -3820,13 +3820,13 @@ function SalaVirtualEnhancedScreen() {
                   disabled={!newMessage.trim() || sending}
                 >
                   {sending ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={colors.headerText} />
                   ) : (
                     <IconSymbol
                       ios_icon_name="paperplane.fill"
                       android_material_icon_name="send"
                       size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
-                      color="#FFFFFF"
+                      color={colors.headerText}
                     />
                   )}
                 </TouchableOpacity>
@@ -4040,13 +4040,13 @@ function SalaVirtualEnhancedScreen() {
                   disabled={!newMessage.trim() || sending}
                 >
                   {sending ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={colors.headerText} />
                   ) : (
                     <IconSymbol
                       ios_icon_name="paperplane.fill"
                       android_material_icon_name="send"
                       size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
-                      color="#FFFFFF"
+                      color={colors.headerText}
                     />
                   )}
                 </TouchableOpacity>
