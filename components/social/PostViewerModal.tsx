@@ -59,6 +59,7 @@ import ReportModal from './ReportModal';
 import * as Haptics from 'expo-haptics';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CommentPreview from './CommentPreview';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT_PHYSICAL = Dimensions.get('screen').height;
@@ -1515,23 +1516,7 @@ export default function PostViewerModal({
           </View>
         )}
 
-        {/* TODO: Backend Integration - GET /api/posts/:id/comments/preview
-            Expected response: { firstCommenter: { name: string }, totalComments: number }
-            Display: "Jorge ha escrito un comentario y otras personas..." or "Jorge y otras personas han comentado esta publicación."
-            
-            Example implementation:
-            {firstCommenter && totalComments > 0 && (
-              <View style={styles.commentPreviewContainer}>
-                <Text style={[styles.commentPreviewText, { fontSize: scaleFontSize(13) }]}>
-                  <Text style={styles.commentPreviewName}>{firstCommenter.name}</Text>
-                  {totalComments > 1 
-                    ? ` y otras ${totalComments - 1} personas han comentado esta publicación.`
-                    : ` ha escrito un comentario.`
-                  }
-                </Text>
-              </View>
-            )}
-        */}
+        <CommentPreview postId={post.id} />
 
         <TouchableOpacity 
           style={styles.commentsContainer}

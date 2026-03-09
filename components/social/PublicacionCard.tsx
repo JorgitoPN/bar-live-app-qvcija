@@ -24,6 +24,7 @@ import { useInteractionContext } from '@/hooks/useInteractionContext';
 import OptimizedImage from '@/components/common/OptimizedImage';
 import ParsedText from '@/components/social/ParsedText';
 import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
+import CommentPreview from '@/components/social/CommentPreview';
 
 import SharePostModal from '@/components/social/SharePostModal';
 import PostLikesAvatars from '@/components/social/PostLikesAvatars';
@@ -845,23 +846,7 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         </View>
       )}
 
-      {/* TODO: Backend Integration - GET /api/posts/:id/comments/preview
-          Expected response: { firstCommenter: { name: string }, totalComments: number }
-          Display: "Jorge ha escrito un comentario y otras personas..." or "Jorge y otras personas han comentado esta publicación."
-          
-          Example implementation:
-          {firstCommenter && totalComments > 0 && (
-            <View style={styles.commentPreviewContainer}>
-              <Text style={[styles.commentPreviewText, { fontSize: scaleFontSize(13) }]}>
-                <Text style={styles.commentPreviewName}>{firstCommenter.name}</Text>
-                {totalComments > 1 
-                  ? ` y otras ${totalComments - 1} personas han comentado esta publicación.`
-                  : ` ha escrito un comentario.`
-                }
-              </Text>
-            </View>
-          )}
-      */}
+      <CommentPreview postId={post.id} />
 
       <TouchableOpacity 
         style={styles.commentsContainer}
