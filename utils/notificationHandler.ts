@@ -18,6 +18,8 @@
  * ✅ NUEVO v3.0: Registro automático de push tokens
  * ✅ NUEVO v3.0: Sonidos personalizados con fallback
  * ✅ NUEVO v3.0: Sistema de prueba de notificaciones
+ * ✅ NUEVO v4.0: Volumen alto con NOTIFICATION_RINGTONE
+ * ✅ NUEVO v4.0: enforceAudibility y requestAudioFocus
  * 
  * TIPOS DE NOTIFICACIÓN SOPORTADOS (14 CATEGORÍAS):
  * 
@@ -49,6 +51,7 @@ import * as Notifications from 'expo-notifications';
 import { Alert, Platform, ToastAndroid } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Device from 'expo-device';
+import { supabase } from '@/utils/supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES & INTERFACES
@@ -207,6 +210,8 @@ class NotificationHandler {
   /**
    * NUEVO v3.0: Configurar canales de notificación para Android
    * Android 8+ requiere canales de notificación explícitos
+   * 
+   * v4.0: Añadido audioAttributes con NOTIFICATION_RINGTONE para volumen alto
    */
   private async setupNotificationChannels() {
     if (Platform.OS !== 'android') {
@@ -218,6 +223,7 @@ class NotificationHandler {
 
     try {
       // Canal por defecto (prioridad normal)
+      // ✅ FIX: Use audioAttributes with USAGE_NOTIFICATION_RINGTONE for maximum volume
       await Notifications.setNotificationChannelAsync('default', {
         name: 'Notificaciones Generales',
         description: 'Notificaciones generales de BarLive',
@@ -228,6 +234,15 @@ class NotificationHandler {
         enableVibrate: true,
         enableLights: true,
         showBadge: true,
+        // ✅ CRITICAL FIX: Use USAGE_NOTIFICATION_RINGTONE for louder sound
+        audioAttributes: {
+          usage: Notifications.AndroidAudioUsage.NOTIFICATION_RINGTONE,
+          contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+          flags: {
+            enforceAudibility: true,
+            requestAudioFocus: true,
+          },
+        },
       });
 
       // Canal para mensajes (prioridad alta)
@@ -241,6 +256,15 @@ class NotificationHandler {
         enableVibrate: true,
         enableLights: true,
         showBadge: true,
+        // ✅ CRITICAL FIX: Use USAGE_NOTIFICATION_RINGTONE for louder sound
+        audioAttributes: {
+          usage: Notifications.AndroidAudioUsage.NOTIFICATION_RINGTONE,
+          contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+          flags: {
+            enforceAudibility: true,
+            requestAudioFocus: true,
+          },
+        },
       });
 
       // Canal para alertas urgentes (prioridad máxima)
@@ -254,19 +278,37 @@ class NotificationHandler {
         enableVibrate: true,
         enableLights: true,
         showBadge: true,
+        // ✅ CRITICAL FIX: Use USAGE_NOTIFICATION_RINGTONE for louder sound
+        audioAttributes: {
+          usage: Notifications.AndroidAudioUsage.NOTIFICATION_RINGTONE,
+          contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+          flags: {
+            enforceAudibility: true,
+            requestAudioFocus: true,
+          },
+        },
       });
 
       // Canal para interacciones sociales (prioridad normal)
       await Notifications.setNotificationChannelAsync('social', {
         name: 'Interacciones Sociales',
         description: 'Me gusta, comentarios, seguidores',
-        importance: Notifications.AndroidImportance.DEFAULT,
+        importance: Notifications.AndroidImportance.HIGH, // ✅ Changed from DEFAULT to HIGH for better audibility
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#14B8A6',
         sound: 'brindis.wav',
         enableVibrate: true,
         enableLights: true,
         showBadge: true,
+        // ✅ CRITICAL FIX: Use USAGE_NOTIFICATION_RINGTONE for louder sound
+        audioAttributes: {
+          usage: Notifications.AndroidAudioUsage.NOTIFICATION_RINGTONE,
+          contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+          flags: {
+            enforceAudibility: true,
+            requestAudioFocus: true,
+          },
+        },
       });
 
       console.log('[NotificationHandler v3.0] ✅ Canales de notificación configurados');
@@ -339,12 +381,45 @@ class NotificationHandler {
       this.pushToken = tokenData.data;
       console.log('[NotificationHandler v3.0] ✅ Push Token obtenido:', this.pushToken);
 
-      // TODO: Guardar el token en el backend
-      // await savePushTokenToBackend(this.pushToken);
+      // ✅ Guardar el token en el backend
+      await this.savePushTokenToBackend(this.pushToken);
       
     } catch (error: any) {
       console.error('[NotificationHandler v3.0] ❌ Error obteniendo push token:', error.message);
       console.error('[NotificationHandler v3.0] 📊 Error details:', error);
+    }
+  }
+
+  /**
+   * NUEVO v3.0: Guardar push token en el backend
+   */
+  private async savePushTokenToBackend(token: string) {
+    try {
+      console.log('[NotificationHandler v3.0] 💾 Guardando push token en backend...');
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.warn('[NotificationHandler v3.0] ⚠️ Usuario no autenticado - no se puede guardar token');
+        return;
+      }
+      
+      // Guardar token en la tabla de usuarios
+      const { error } = await supabase
+        .from('usuarios')
+        .update({ 
+          push_token: token,
+          push_token_updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+      
+      if (error) {
+        console.error('[NotificationHandler v3.0] ❌ Error guardando token:', error.message);
+      } else {
+        console.log('[NotificationHandler v3.0] ✅ Push token guardado en backend');
+      }
+    } catch (error: any) {
+      console.error('[NotificationHandler v3.0] ❌ Error guardando token:', error.message);
     }
   }
 

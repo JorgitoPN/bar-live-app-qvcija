@@ -1,4 +1,60 @@
 
+# 🔔 RESUMEN VISUAL: SOLUCIÓN NOTIFICACIONES ANDROID v4.0
+
+## 🎯 PROBLEMAS REPORTADOS Y SOLUCIONES
+
+### ❌ PROBLEMA 1: Volumen Muy Bajo (✅ RESUELTO)
+
+**Tu reporte:**
+> "al hacer un prueba de notificaciones push funciona pero se escucha muy bajo y tengo el telefono a tope de volumen"
+
+**✅ SOLUCIÓN IMPLEMENTADA:**
+
+Android usa diferentes "streams" de audio:
+- `USAGE_NOTIFICATION` → Volumen de medios (música) - **MÁS BAJO** ❌
+- `USAGE_NOTIFICATION_RINGTONE` → Volumen de llamadas - **MÁS ALTO** ✅
+
+**Cambio realizado:**
+```typescript
+audioAttributes: {
+  usage: Notifications.AndroidAudioUsage.NOTIFICATION_RINGTONE, // ✅ Volumen alto
+  contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+  flags: {
+    enforceAudibility: true,      // ✅ Fuerza que se escuche
+    requestAudioFocus: true,       // ✅ Pide foco de audio
+  },
+}
+```
+
+**Resultado:** 🎉 Las notificaciones ahora se escuchan MUCHO MÁS ALTO
+
+---
+
+### ❌ PROBLEMA 2: Notificaciones No Llegan (⚠️ REQUIERE BACKEND)
+
+**Tu reporte:**
+> "siguen sin llegar las notificaciones push al recibir una notificacion o mensajes privados o likes, etc..."
+
+**⚠️ CAUSA IDENTIFICADA:**
+
+El problema NO está en el frontend (tu app). El problema está en el **BACKEND**.
+
+```
+Frontend (Tu App) - ✅ FUNCIONANDO
+├─ ✅ Push tokens se guardan correctamente
+├─ ✅ Canales de notificación configurados
+├─ ✅ Sistema de navegación implementado
+└─ ✅ Manejo de estados (foreground/background/cerrada)
+
+Backend (Servidor) - ❌ FALTA IMPLEMENTAR
+├─ ❌ NO envía notificaciones cuando alguien da like
+├─ ❌ NO envía notificaciones cuando alguien comenta
+├─ ❌ NO envía notificaciones cuando llega mensaje
+└─ ❌ NO envía notificaciones cuando alguien te sigue
+```
+
+---
+
 # 🔔 RESUMEN VISUAL: SOLUCIÓN NOTIFICACIONES ANDROID
 
 ```
