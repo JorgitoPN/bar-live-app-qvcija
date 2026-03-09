@@ -1,5 +1,106 @@
 
-# 🔔 SISTEMA ROBUSTO DE NOTIFICACIONES PUSH - IMPLEMENTACIÓN COMPLETA v4.0
+# 🔔 SISTEMA ROBUSTO DE NOTIFICACIONES PUSH - IMPLEMENTACIÓN COMPLETA v5.0
+
+## 🚨 PROBLEMA CRÍTICO RESUELTO EN v5.0
+
+### ❌ PROBLEMA IDENTIFICADO
+Las notificaciones push **NO se enviaban** cuando ocurrían eventos (likes, mensajes, comentarios, etc.), aunque las notificaciones de prueba funcionaban perfectamente.
+
+### 🔍 CAUSA RAÍZ
+El Edge Function `auto-send-push-notification` estaba consultando una tabla `push_tokens` que **NO EXISTE**:
+
+```typescript
+// ❌ CÓDIGO ANTIGUO (INCORRECTO)
+const { data: tokens, error: tokensError } = await supabase
+  .from('push_tokens')  // ❌ Esta tabla NO existe
+  .select('token, platform')
+  .eq('user_id', record.user_id)
+  .eq('active', true);
+```
+
+Mientras tanto, el frontend **correctamente** guardaba los tokens en `usuarios.push_token`:
+
+```typescript
+// ✅ FRONTEND (CORRECTO)
+const { error } = await supabase
+  .from('usuarios')
+  .update({ 
+    push_token: token,  // ✅ Guardado en usuarios.push_token
+    push_token_updated_at: new Date().toISOString(),
+  })
+  .eq('id', user.id);
+```
+
+### ✅ SOLUCIÓN IMPLEMENTADA
+
+**Edge Function actualizado** para consultar la tabla correcta:
+
+```typescript
+// ✅ CÓDIGO NUEVO (CORRECTO)
+const { data: user, error: userError } = await supabase
+  .from('usuarios')  // ✅ Ahora consulta la tabla correcta
+  .select('push_token')
+  .eq('id', record.user_id)
+  .single();
+
+if (!user || !user.push_token) {
+  console.log('[auto-send-push v2.0] ⚠️ No se encontró push token para el usuario');
+  return new Response(
+    JSON.stringify({ message: 'No push token found for user', sent: 0 }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } }
+  );
+}
+```
+
+### 🎯 MEJORAS ADICIONALES EN v5.0
+
+1. **Mapeo correcto de canales:**
+   - `message`, `mensaje`, `mensaje_privado` → canal `messages`
+   - `like`, `comment`, `follow`, `mention` → canal `social`
+   - `urgent`, `urgente`, `sistema` → canal `urgent`
+   - Otros → canal `default`
+
+2. **Sonido personalizado:**
+   - Usa `brindis.wav` en lugar de `default`
+   - Coincide con la configuración del frontend
+
+3. **Limpieza de tokens inválidos:**
+   - Si Expo devuelve `DeviceNotRegistered` o `InvalidCredentials`
+   - El token se limpia automáticamente de la base de datos
+
+### 📊 FLUJO COMPLETO AHORA FUNCIONAL
+
+```
+1. Usuario da LIKE a una publicación
+   ↓
+2. Trigger inserta en tabla 'notifications'
+   ↓
+3. Trigger 'invoke_auto_send_push' llama al Edge Function
+   ↓
+4. Edge Function consulta usuarios.push_token ✅ (ANTES: push_tokens ❌)
+   ↓
+5. Edge Function envía a Expo Push API
+   ↓
+6. Usuario recibe notificación con sonido ALTO 🔊
+   ↓
+7. Al tocar, navega a la publicación 🎯
+```
+
+### 🧪 CÓMO VERIFICAR QUE FUNCIONA
+
+1. **Enviar un like/comentario/mensaje desde otro usuario**
+2. **Verificar en logs del Edge Function:**
+   ```
+   [auto-send-push v2.0] 🚀 Iniciando envío automático
+   [auto-send-push v2.0] 📱 Push token encontrado para usuario: xxx
+   [auto-send-push v2.0] 📤 Enviando notificación push...
+   [auto-send-push v2.0] ✅ Notificación enviada
+   ```
+3. **El usuario debe recibir la notificación en su dispositivo**
+
+---
+
+# 🔔 SISTEMA ROBUSTO DE NOTIFICACIONES PUSH - IMPLEMENTACIÓN COMPLETA v5.0
 
 ## 🔧 CAMBIOS EN v4.0 - SOLUCIÓN DE PROBLEMAS CRÍTICOS
 
