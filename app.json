@@ -29,6 +29,10 @@
         "foregroundImage": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
         "backgroundColor": "#ffffff"
       },
+      "notification": {
+        "icon": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
+        "color": "#14B8A6"
+      },
       "package": "com.barlive.app",
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
@@ -54,7 +58,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/final_quest_240x240.png",
+          "icon": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
           "color": "#14B8A6",
           "sounds": [
             "./assets/sounds/brindis.wav"
@@ -121,7 +125,7 @@
       "typedRoutes": true
     },
     "notification": {
-      "icon": "./assets/images/final_quest_240x240.png",
+      "icon": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
       "color": "#14B8A6",
       "androidMode": "default",
       "androidCollapsedTitle": "BarLive"

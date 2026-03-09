@@ -496,7 +496,8 @@ class NotificationHandler {
 
   /**
    * PASO 3: Manejar notificación recibida en foreground
-   * Muestra un banner interno en lugar de la notificación del sistema
+   * Solo registra la notificación y proporciona feedback háptico
+   * La notificación del sistema se mostrará automáticamente en la parte superior
    */
   private handleForegroundNotification(notification: Notifications.Notification) {
     console.log('[NotificationHandler] 🔔 Notificación en FOREGROUND');
@@ -518,37 +519,8 @@ class NotificationHandler {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     
-    // Mostrar banner según plataforma
-    if (Platform.OS === 'android') {
-      // En Android, usar Toast para notificaciones no urgentes
-      if (!isUrgent) {
-        ToastAndroid.showWithGravityAndOffset(
-          `${title}: ${body}`,
-          ToastAndroid.LONG,
-          ToastAndroid.TOP,
-          0,
-          100
-        );
-        return;
-      }
-    }
-    
-    // Para notificaciones urgentes o iOS, mostrar Alert con opciones
-    Alert.alert(
-      title,
-      body,
-      [
-        { text: 'Cerrar', style: 'cancel' },
-        { 
-          text: 'Ver', 
-          onPress: () => {
-            console.log('[NotificationHandler] 👆 Usuario tocó "Ver" en banner');
-            this.navigateFromPayload(payload);
-          }
-        }
-      ],
-      { cancelable: true }
-    );
+    // ✅ NO mostrar modal ni toast - solo dejar que la notificación del sistema aparezca arriba
+    // La notificación se mostrará automáticamente en la parte superior gracias a shouldShowAlert: true
   }
 
   /**
