@@ -1576,30 +1576,34 @@ export default function NotificacionesScreen() {
       </ScrollView>
 
       {/* Settings Modal */}
+      {/* ✅ FIX v7.3: Settings Modal - Full Screen on Android */}
       <Modal
         visible={settingsVisible}
-        animationType="slide"
-        transparent={true}
+        animationType={Platform.OS === 'android' ? 'fade' : 'slide'}
+        transparent={Platform.OS === 'android' ? false : true}
         onRequestClose={() => setSettingsVisible(false)}
+        presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'pageSheet'}
       >
-        <Pressable 
-          style={styles.modalOverlay} 
-          onPress={() => setSettingsVisible(false)}
-        >
-          <Pressable style={styles.settingsModal} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Configuración de Notificaciones</Text>
-              <TouchableOpacity onPress={() => setSettingsVisible(false)}>
+        {Platform.OS === 'android' ? (
+          // ✅ Android: Full screen with header
+          <View style={styles.settingsModalFullScreen}>
+            <LinearGradient
+              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+              style={styles.settingsModalHeader}
+            >
+              <TouchableOpacity onPress={() => setSettingsVisible(false)} style={styles.settingsModalBackButton}>
                 <IconSymbol
-                  ios_icon_name="xmark"
-                  android_material_icon_name="close"
+                  ios_icon_name="chevron.left"
+                  android_material_icon_name="arrow_back"
                   size={scaleIconSize(24)}
-                  color={colors.text}
+                  color={colors.headerText}
                 />
               </TouchableOpacity>
-            </View>
+              <Text style={styles.settingsModalHeaderTitle}>Configuración de Notificaciones</Text>
+              <View style={{ width: 40 }} />
+            </LinearGradient>
 
-            <ScrollView style={styles.settingsContent}>
+            <ScrollView style={styles.settingsContentFullScreen}>
               <View style={styles.settingItem}>
                 <View>
                   <Text style={styles.settingLabel}>Pausar todas las notificaciones</Text>
@@ -1696,8 +1700,126 @@ export default function NotificacionesScreen() {
                 </TouchableOpacity>
               </View>
             </ScrollView>
+          </View>
+        ) : (
+          // ✅ iOS: Bottom sheet modal
+          <Pressable 
+            style={styles.modalOverlay} 
+            onPress={() => setSettingsVisible(false)}
+          >
+            <Pressable style={styles.settingsModal} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Configuración de Notificaciones</Text>
+                <TouchableOpacity onPress={() => setSettingsVisible(false)}>
+                  <IconSymbol
+                    ios_icon_name="xmark"
+                    android_material_icon_name="close"
+                    size={scaleIconSize(24)}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={styles.settingsContent}>
+                <View style={styles.settingItem}>
+                  <View>
+                    <Text style={styles.settingLabel}>Pausar todas las notificaciones</Text>
+                    <Text style={styles.settingDescription}>
+                      No recibirás notificaciones temporalmente
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.switch, settings.pauseAll && styles.switchActive]}
+                    onPress={() => setSettings({ ...settings, pauseAll: !settings.pauseAll })}
+                  >
+                    <View style={[styles.switchThumb, settings.pauseAll && styles.switchThumbActive]} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.settingsDivider} />
+
+                <Text style={styles.settingsSection}>Tipos de notificación</Text>
+
+                <View style={styles.settingItem}>
+                  <Text style={styles.settingLabel}>Likes</Text>
+                  <TouchableOpacity
+                    style={[styles.switch, settings.likes && styles.switchActive]}
+                    onPress={() => setSettings({ ...settings, likes: !settings.likes })}
+                  >
+                    <View style={[styles.switchThumb, settings.likes && styles.switchThumbActive]} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.settingItem}>
+                  <Text style={styles.settingLabel}>Comentarios</Text>
+                  <TouchableOpacity
+                    style={[styles.switch, settings.comments && styles.switchActive]}
+                    onPress={() => setSettings({ ...settings, comments: !settings.comments })}
+                  >
+                    <View style={[styles.switchThumb, settings.comments && styles.switchThumbActive]} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.settingItem}>
+                  <Text style={styles.settingLabel}>Nuevos seguidores</Text>
+                  <TouchableOpacity
+                    style={[styles.switch, settings.follows && styles.switchActive]}
+                    onPress={() => setSettings({ ...settings, follows: !settings.follows })}
+                  >
+                    <View style={[styles.switchThumb, settings.follows && styles.switchThumbActive]} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.settingItem}>
+                  <Text style={styles.settingLabel}>Menciones</Text>
+                  <TouchableOpacity
+                    style={[styles.switch, settings.mentions && styles.switchActive]}
+                    onPress={() => setSettings({ ...settings, mentions: !settings.mentions })}
+                  >
+                    <View style={[styles.switchThumb, settings.mentions && styles.switchThumbActive]} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.settingItem}>
+                  <Text style={styles.settingLabel}>Eventos</Text>
+                  <TouchableOpacity
+                    style={[styles.switch, settings.events && styles.switchActive]}
+                    onPress={() => setSettings({ ...settings, events: !settings.events })}
+                  >
+                    <View style={[styles.switchThumb, settings.events && styles.switchThumbActive]} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.settingItem}>
+                  <Text style={styles.settingLabel}>Mensajes</Text>
+                  <TouchableOpacity
+                    style={[styles.switch, settings.messages && styles.switchActive]}
+                    onPress={() => setSettings({ ...settings, messages: !settings.messages })}
+                  >
+                    <View style={[styles.switchThumb, settings.messages && styles.switchThumbActive]} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.settingsDivider} />
+
+                <View style={styles.settingItem}>
+                  <View>
+                    <Text style={styles.settingLabel}>Notificaciones push</Text>
+                    <Text style={styles.settingDescription}>
+                      Recibir notificaciones incluso cuando la app está cerrada
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.switch, settings.pushEnabled && styles.switchActive]}
+                    onPress={() => setSettings({ ...settings, pushEnabled: !settings.pushEnabled })}
+                  >
+                    <View style={[styles.switchThumb, settings.pushEnabled && styles.switchThumbActive]} />
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </Pressable>
           </Pressable>
-        </Pressable>
+        )}
       </Modal>
 
       {/* Delete All Confirmation Modal */}
@@ -1960,6 +2082,33 @@ const styles = StyleSheet.create({
         elevation: 8,
       },
     }),
+  },
+  // ✅ FIX v7.3: Android full screen modal styles
+  settingsModalFullScreen: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  settingsModalHeader: {
+    paddingTop: Platform.OS === 'android' ? 48 : 60,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  settingsModalBackButton: {
+    padding: 8,
+  },
+  settingsModalHeaderTitle: {
+    fontSize: scaleFontSize(18),
+    fontWeight: '700',
+    color: colors.headerText,
+    flex: 1,
+    textAlign: 'center',
+  },
+  settingsContentFullScreen: {
+    flex: 1,
+    padding: 20,
   },
   modalHeader: {
     flexDirection: 'row',

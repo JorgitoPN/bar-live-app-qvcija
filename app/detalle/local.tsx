@@ -767,6 +767,20 @@ export default function DetalleLocalScreen() {
 
   const handleToggleFavorito = async (e: any) => {
     e.stopPropagation();
+    
+    // ✅ FIX v339.1: Check if user is logged in before toggling favorite
+    if (!user) {
+      Alert.alert(
+        'Inicia sesión',
+        'Debes iniciar sesión para agregar locales a favoritos',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Iniciar sesión', onPress: () => router.push('/auth/login-v6') }
+        ]
+      );
+      return;
+    }
+    
     if (params.id) {
       await toggleFavorite(params.id as string);
     }

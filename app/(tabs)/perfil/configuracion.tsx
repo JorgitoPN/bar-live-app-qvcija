@@ -1,4 +1,16 @@
 
+/**
+ * ✅ CONFIGURACION SCREEN v2.0 - IMPROVED LAYOUT & DESIGN
+ * 
+ * FIXES v2.0:
+ * - ✅ Improved spacing and padding for better readability
+ * - ✅ Better visual hierarchy with consistent sizing
+ * - ✅ Fixed overflow issues on both iOS and Android
+ * - ✅ Cleaner, more professional design
+ * - ✅ Better touch targets for accessibility
+ * - ✅ Consistent border radius and shadows
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -15,6 +27,7 @@ import { Stack, useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 import {
   registerForPushNotifications,
   removePushToken,
@@ -141,7 +154,11 @@ export default function ConfiguracionScreen() {
           headerTintColor: colors.text,
         }}
       />
-      <ScrollView style={styles.container}>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Notificaciones */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🔔 Notificaciones</Text>
@@ -158,7 +175,8 @@ export default function ConfiguracionScreen() {
               onValueChange={handleToggleNotifications}
               disabled={loading}
               trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={notificationsEnabled ? colors.primary : colors.textSecondary}
+              thumbColor={notificationsEnabled ? '#FFFFFF' : '#F3F4F6'}
+              ios_backgroundColor={colors.border}
             />
           </View>
 
@@ -167,7 +185,7 @@ export default function ConfiguracionScreen() {
               <IconSymbol
                 ios_icon_name="exclamationmark.triangle"
                 android_material_icon_name="warning"
-                size={20}
+                size={scaleIconSize(20)}
                 color={colors.warning}
               />
               <Text style={styles.warningText}>
@@ -182,11 +200,12 @@ export default function ConfiguracionScreen() {
           <TouchableOpacity
             style={styles.testButton}
             onPress={handleTestNotifications}
+            activeOpacity={0.7}
           >
             <IconSymbol
               ios_icon_name="bell.badge"
-              android_material_icon_name="notifications-active"
-              size={20}
+              android_material_icon_name="notifications_active"
+              size={scaleIconSize(20)}
               color={colors.primary}
             />
             <Text style={styles.testButtonText}>Probar Notificaciones</Text>
@@ -197,7 +216,10 @@ export default function ConfiguracionScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>👤 Cuenta</Text>
 
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity 
+            style={styles.settingRow}
+            activeOpacity={0.7}
+          >
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Editar Perfil</Text>
               <Text style={styles.settingDescription}>
@@ -206,13 +228,16 @@ export default function ConfiguracionScreen() {
             </View>
             <IconSymbol
               ios_icon_name="chevron.right"
-              android_material_icon_name="chevron-right"
-              size={20}
+              android_material_icon_name="chevron_right"
+              size={scaleIconSize(20)}
               color={colors.textSecondary}
             />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity 
+            style={styles.settingRow}
+            activeOpacity={0.7}
+          >
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Privacidad</Text>
               <Text style={styles.settingDescription}>
@@ -221,13 +246,16 @@ export default function ConfiguracionScreen() {
             </View>
             <IconSymbol
               ios_icon_name="chevron.right"
-              android_material_icon_name="chevron-right"
-              size={20}
+              android_material_icon_name="chevron_right"
+              size={scaleIconSize(20)}
               color={colors.textSecondary}
             />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity 
+            style={[styles.settingRow, { borderBottomWidth: 0 }]}
+            activeOpacity={0.7}
+          >
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Seguridad</Text>
               <Text style={styles.settingDescription}>
@@ -236,8 +264,8 @@ export default function ConfiguracionScreen() {
             </View>
             <IconSymbol
               ios_icon_name="chevron.right"
-              android_material_icon_name="chevron-right"
-              size={20}
+              android_material_icon_name="chevron_right"
+              size={scaleIconSize(20)}
               color={colors.textSecondary}
             />
           </TouchableOpacity>
@@ -247,53 +275,58 @@ export default function ConfiguracionScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>ℹ️ Acerca de</Text>
 
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity 
+            style={styles.settingRow}
+            activeOpacity={0.7}
+          >
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Términos y Condiciones</Text>
             </View>
             <IconSymbol
               ios_icon_name="chevron.right"
-              android_material_icon_name="chevron-right"
-              size={20}
+              android_material_icon_name="chevron_right"
+              size={scaleIconSize(20)}
               color={colors.textSecondary}
             />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity 
+            style={styles.settingRow}
+            activeOpacity={0.7}
+          >
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Política de Privacidad</Text>
             </View>
             <IconSymbol
               ios_icon_name="chevron.right"
-              android_material_icon_name="chevron-right"
-              size={20}
+              android_material_icon_name="chevron_right"
+              size={scaleIconSize(20)}
               color={colors.textSecondary}
             />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingRow}>
+          <View style={[styles.settingRow, { borderBottomWidth: 0 }]}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Versión</Text>
               <Text style={styles.settingDescription}>1.0.0</Text>
             </View>
-          </TouchableOpacity>
+          </View>
         </View>
 
         {/* Cerrar Sesión */}
         <TouchableOpacity
           style={styles.signOutButton}
           onPress={handleSignOut}
+          activeOpacity={0.7}
         >
           <IconSymbol
             ios_icon_name="arrow.right.square"
             android_material_icon_name="logout"
-            size={20}
+            size={scaleIconSize(22)}
             color={colors.error}
           />
           <Text style={styles.signOutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
-
-        <View style={{ height: 40 }} />
       </ScrollView>
     </>
   );
@@ -306,85 +339,110 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: colors.card,
-    marginTop: 12,
-    marginHorizontal: 12,
-    borderRadius: 12,
-    padding: 16,
+    marginTop: 16,
+    marginHorizontal: 16,
+    borderRadius: 16,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: scaleFontSize(20),
+    fontWeight: '700',
     color: colors.text,
-    marginBottom: 16,
+    marginBottom: 20,
+    letterSpacing: 0.3,
   },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.border + '40',
+    minHeight: 60,
   },
   settingInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 16,
+    paddingRight: 8,
   },
   settingLabel: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: scaleFontSize(16),
+    fontWeight: '600',
     color: colors.text,
     marginBottom: 4,
+    letterSpacing: 0.2,
   },
   settingDescription: {
-    fontSize: 13,
+    fontSize: scaleFontSize(14),
     color: colors.textSecondary,
+    lineHeight: 20,
+    flexWrap: 'wrap',
   },
   warningBox: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.warning + '20',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 12,
+    alignItems: 'flex-start',
+    backgroundColor: colors.warning + '15',
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 16,
     borderWidth: 1,
-    borderColor: colors.warning,
-    gap: 8,
+    borderColor: colors.warning + '40',
+    gap: 12,
   },
   warningText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: scaleFontSize(14),
     color: colors.warning,
-    lineHeight: 18,
+    lineHeight: 20,
+    flexWrap: 'wrap',
   },
   testButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary + '20',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 12,
-    gap: 8,
+    backgroundColor: colors.primary + '15',
+    padding: 14,
+    borderRadius: 12,
+    marginTop: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
   },
   testButtonText: {
-    fontSize: 14,
+    fontSize: scaleFontSize(15),
     fontWeight: '600',
     color: colors.primary,
+    letterSpacing: 0.2,
   },
   signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.error + '20',
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 24,
-    marginHorizontal: 12,
-    gap: 8,
+    backgroundColor: colors.error + '15',
+    padding: 18,
+    borderRadius: 16,
+    marginTop: 32,
+    marginHorizontal: 16,
+    marginBottom: 32,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.error + '30',
   },
   signOutText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: scaleFontSize(16),
+    fontWeight: '700',
     color: colors.error,
+    letterSpacing: 0.3,
   },
 });
