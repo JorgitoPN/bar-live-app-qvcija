@@ -269,20 +269,29 @@ export default function RootLayout() {
 
   // ✅ v15.0: NOTIFICATION SYSTEM - Inicializar sistema de notificaciones
   useEffect(() => {
-    console.log('[RootLayout v23.0] 🔔 Inicializando sistema de notificaciones...');
+    console.log('[RootLayout v24.0] 🔔 Inicializando sistema de notificaciones v3.0...');
     
-    // Inicializar handler de notificaciones
-    notificationHandler.initialize();
+    // Inicializar handler de notificaciones (ahora es async)
+    const initNotifications = async () => {
+      try {
+        await notificationHandler.initialize();
+        console.log('[RootLayout v24.0] ✅ Sistema de notificaciones v3.0 inicializado');
+      } catch (error: any) {
+        console.error('[RootLayout v24.0] ❌ Error inicializando notificaciones:', error.message);
+      }
+    };
+    
+    initNotifications();
     
     // Listener para cambios de estado de la app (foreground/background)
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       const isInForeground = nextAppState === 'active';
-      console.log('[RootLayout v23.0] 📱 Estado de app cambió:', nextAppState);
+      console.log('[RootLayout v24.0] 📱 Estado de app cambió:', nextAppState);
       notificationHandler.setAppState(isInForeground);
     });
     
     return () => {
-      console.log('[RootLayout v23.0] 🧹 Limpiando sistema de notificaciones...');
+      console.log('[RootLayout v24.0] 🧹 Limpiando sistema de notificaciones...');
       notificationHandler.cleanup();
       subscription.remove();
     };

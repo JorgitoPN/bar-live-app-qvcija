@@ -105,7 +105,7 @@ importers:
         specifier: ^15.0.7
         version: 15.0.8(expo@54.0.31)
       expo-device:
-        specifier: ^8.0.9
+        specifier: ^8.0.10
         version: 8.0.10(expo@54.0.31)
       expo-document-picker:
         specifier: ^14.0.8

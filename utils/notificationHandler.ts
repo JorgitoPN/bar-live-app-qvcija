@@ -1,10 +1,10 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * NOTIFICATION HANDLER v2.0 - SISTEMA ROBUSTO DE NOTIFICACIONES PUSH
+ * NOTIFICATION HANDLER v3.0 - SISTEMA ROBUSTO DE NOTIFICACIONES PUSH
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 CARACTERÍSTICAS v2.0:
+ * 🎯 CARACTERÍSTICAS v3.0:
  * ✅ Paso 1: Definición de tipos de notificación (14 categorías completas)
  * ✅ Paso 2: Deep linking dinámico (navegación específica por tipo)
  * ✅ Paso 3: Manejo de estados (foreground, background, cerrada)
@@ -14,6 +14,10 @@
  * ✅ Logging detallado para debugging
  * ✅ Soporte para notificaciones programadas
  * ✅ Manejo de errores robusto
+ * ✅ NUEVO v3.0: Configuración de canales de notificación para Android
+ * ✅ NUEVO v3.0: Registro automático de push tokens
+ * ✅ NUEVO v3.0: Sonidos personalizados con fallback
+ * ✅ NUEVO v3.0: Sistema de prueba de notificaciones
  * 
  * TIPOS DE NOTIFICACIÓN SOPORTADOS (14 CATEGORÍAS):
  * 
@@ -44,6 +48,7 @@ import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { Alert, Platform, ToastAndroid } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import * as Device from 'expo-device';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES & INTERFACES
@@ -139,46 +144,254 @@ class NotificationHandler {
   private foregroundListener: Notifications.Subscription | null = null;
   private responseListener: Notifications.Subscription | null = null;
   private isAppInForeground: boolean = true;
+  private pushToken: string | null = null;
 
   /**
    * Inicializar el sistema de notificaciones
    * Configura listeners para foreground y background
    */
-  initialize() {
-    console.log('[NotificationHandler] 🚀 Inicializando sistema de notificaciones...');
+  async initialize() {
+    console.log('[NotificationHandler v3.0] 🚀 Inicializando sistema de notificaciones...');
     
-    // Configurar comportamiento de notificaciones
-    Notifications.setNotificationHandler({
-      handleNotification: async (notification) => {
-        const payload = notification.request.content.data as NotificationPayload;
-        const type = payload.type || payload.category;
-        
-        console.log('[NotificationHandler] 📬 Notificación recibida:', type);
-        console.log('[NotificationHandler] 📊 Payload completo:', JSON.stringify(payload, null, 2));
-        
-        // Determinar si mostrar alerta según estado de la app
-        const shouldShowAlert = this.isAppInForeground;
-        
-        return {
-          shouldShowAlert,
-          shouldPlaySound: true,
-          shouldSetBadge: true,
-          priority: this.getPriority(type),
-        };
-      },
-    });
+    try {
+      // PASO 1: Configurar canales de notificación para Android
+      await this.setupNotificationChannels();
+      
+      // PASO 2: Solicitar permisos
+      const hasPermissions = await this.requestPermissions();
+      if (!hasPermissions) {
+        console.warn('[NotificationHandler v3.0] ⚠️ Permisos de notificación denegados');
+        return;
+      }
+      
+      // PASO 3: Registrar para push notifications
+      await this.registerForPushNotifications();
+      
+      // PASO 4: Configurar comportamiento de notificaciones
+      Notifications.setNotificationHandler({
+        handleNotification: async (notification) => {
+          const payload = notification.request.content.data as NotificationPayload;
+          const type = payload.type || payload.category;
+          
+          console.log('[NotificationHandler v3.0] 📬 Notificación recibida:', type);
+          console.log('[NotificationHandler v3.0] 📊 Payload completo:', JSON.stringify(payload, null, 2));
+          
+          // Determinar si mostrar alerta según estado de la app
+          const shouldShowAlert = this.isAppInForeground;
+          
+          return {
+            shouldShowAlert,
+            shouldPlaySound: true,
+            shouldSetBadge: true,
+            priority: this.getPriority(type),
+          };
+        },
+      });
 
-    // Listener para notificaciones recibidas en foreground
-    this.foregroundListener = Notifications.addNotificationReceivedListener(
-      this.handleForegroundNotification.bind(this)
-    );
+      // PASO 5: Configurar listeners
+      this.foregroundListener = Notifications.addNotificationReceivedListener(
+        this.handleForegroundNotification.bind(this)
+      );
 
-    // Listener para cuando el usuario toca una notificación
-    this.responseListener = Notifications.addNotificationResponseReceivedListener(
-      this.handleNotificationResponse.bind(this)
-    );
+      this.responseListener = Notifications.addNotificationResponseReceivedListener(
+        this.handleNotificationResponse.bind(this)
+      );
 
-    console.log('[NotificationHandler] ✅ Sistema de notificaciones inicializado');
+      console.log('[NotificationHandler v3.0] ✅ Sistema de notificaciones inicializado completamente');
+      console.log('[NotificationHandler v3.0] 📱 Push Token:', this.pushToken ? 'Registrado' : 'No disponible');
+    } catch (error: any) {
+      console.error('[NotificationHandler v3.0] ❌ Error inicializando notificaciones:', error.message);
+    }
+  }
+
+  /**
+   * NUEVO v3.0: Configurar canales de notificación para Android
+   * Android 8+ requiere canales de notificación explícitos
+   */
+  private async setupNotificationChannels() {
+    if (Platform.OS !== 'android') {
+      console.log('[NotificationHandler v3.0] ℹ️ Canales de notificación solo necesarios en Android');
+      return;
+    }
+
+    console.log('[NotificationHandler v3.0] 📢 Configurando canales de notificación para Android...');
+
+    try {
+      // Canal por defecto (prioridad normal)
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'Notificaciones Generales',
+        description: 'Notificaciones generales de BarLive',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#14B8A6',
+        sound: 'brindis.wav', // Sonido personalizado
+        enableVibrate: true,
+        enableLights: true,
+        showBadge: true,
+      });
+
+      // Canal para mensajes (prioridad alta)
+      await Notifications.setNotificationChannelAsync('messages', {
+        name: 'Mensajes',
+        description: 'Mensajes directos y conversaciones',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#14B8A6',
+        sound: 'brindis.wav',
+        enableVibrate: true,
+        enableLights: true,
+        showBadge: true,
+      });
+
+      // Canal para alertas urgentes (prioridad máxima)
+      await Notifications.setNotificationChannelAsync('urgent', {
+        name: 'Alertas Urgentes',
+        description: 'Alertas importantes del sistema',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 500, 250, 500],
+        lightColor: '#FF0000',
+        sound: 'brindis.wav',
+        enableVibrate: true,
+        enableLights: true,
+        showBadge: true,
+      });
+
+      // Canal para interacciones sociales (prioridad normal)
+      await Notifications.setNotificationChannelAsync('social', {
+        name: 'Interacciones Sociales',
+        description: 'Me gusta, comentarios, seguidores',
+        importance: Notifications.AndroidImportance.DEFAULT,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#14B8A6',
+        sound: 'brindis.wav',
+        enableVibrate: true,
+        enableLights: true,
+        showBadge: true,
+      });
+
+      console.log('[NotificationHandler v3.0] ✅ Canales de notificación configurados');
+    } catch (error: any) {
+      console.error('[NotificationHandler v3.0] ❌ Error configurando canales:', error.message);
+    }
+  }
+
+  /**
+   * NUEVO v3.0: Solicitar permisos de notificación
+   */
+  private async requestPermissions(): Promise<boolean> {
+    console.log('[NotificationHandler v3.0] 🔐 Solicitando permisos de notificación...');
+
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        console.warn('[NotificationHandler v3.0] ⚠️ Permisos de notificación denegados');
+        
+        if (Platform.OS === 'android') {
+          Alert.alert(
+            'Permisos Requeridos',
+            'Para recibir notificaciones, necesitas habilitar los permisos en la configuración de la app.',
+            [
+              { text: 'Cancelar', style: 'cancel' },
+              { 
+                text: 'Abrir Configuración', 
+                onPress: () => Notifications.openSettingsAsync() 
+              }
+            ]
+          );
+        }
+        
+        return false;
+      }
+
+      console.log('[NotificationHandler v3.0] ✅ Permisos de notificación otorgados');
+      return true;
+    } catch (error: any) {
+      console.error('[NotificationHandler v3.0] ❌ Error solicitando permisos:', error.message);
+      return false;
+    }
+  }
+
+  /**
+   * NUEVO v3.0: Registrar dispositivo para push notifications
+   */
+  private async registerForPushNotifications() {
+    console.log('[NotificationHandler v3.0] 📱 Registrando dispositivo para push notifications...');
+
+    try {
+      // Verificar que estamos en un dispositivo físico
+      if (!Device.isDevice) {
+        console.warn('[NotificationHandler v3.0] ⚠️ Push notifications no funcionan en emulador');
+        return;
+      }
+
+      // Obtener el push token
+      const tokenData = await Notifications.getExpoPushTokenAsync({
+        projectId: '919b5976-08f5-4b6b-b35b-88d1cc737687', // Tu project ID de app.json
+      });
+
+      this.pushToken = tokenData.data;
+      console.log('[NotificationHandler v3.0] ✅ Push Token obtenido:', this.pushToken);
+
+      // TODO: Guardar el token en el backend
+      // await savePushTokenToBackend(this.pushToken);
+      
+    } catch (error: any) {
+      console.error('[NotificationHandler v3.0] ❌ Error obteniendo push token:', error.message);
+      console.error('[NotificationHandler v3.0] 📊 Error details:', error);
+    }
+  }
+
+  /**
+   * NUEVO v3.0: Obtener el push token actual
+   */
+  getPushToken(): string | null {
+    return this.pushToken;
+  }
+
+  /**
+   * NUEVO v3.0: Enviar notificación de prueba local
+   */
+  async sendTestNotification() {
+    console.log('[NotificationHandler v3.0] 🧪 Enviando notificación de prueba...');
+
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '🍻 ¡Notificación de Prueba!',
+          body: 'Si ves esto, las notificaciones están funcionando correctamente con sonido.',
+          data: {
+            type: 'cheers',
+            title: '🍻 ¡Notificación de Prueba!',
+            body: 'Si ves esto, las notificaciones están funcionando correctamente.',
+          },
+          sound: 'brindis.wav',
+          vibrate: [0, 250, 250, 250],
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+        },
+        trigger: {
+          seconds: 2,
+          channelId: 'default',
+        },
+      });
+
+      console.log('[NotificationHandler v3.0] ✅ Notificación de prueba programada para 2 segundos');
+      
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('Notificación de prueba enviada. Espera 2 segundos...', ToastAndroid.LONG);
+      } else {
+        Alert.alert('Notificación Enviada', 'Recibirás una notificación de prueba en 2 segundos');
+      }
+    } catch (error: any) {
+      console.error('[NotificationHandler v3.0] ❌ Error enviando notificación de prueba:', error.message);
+      Alert.alert('Error', 'No se pudo enviar la notificación de prueba');
+    }
   }
 
   /**
@@ -623,6 +836,29 @@ class NotificationHandler {
     
     return Notifications.AndroidNotificationPriority.DEFAULT;
   }
+
+  /**
+   * NUEVO v3.0: Obtener canal de notificación según tipo
+   */
+  private getNotificationChannel(type?: string): string {
+    if (!type) return 'default';
+    
+    const typeLower = type.toLowerCase();
+    
+    if (['message', 'mensaje', 'mensaje_privado'].includes(typeLower)) {
+      return 'messages';
+    }
+    
+    if (['urgent', 'urgente', 'sistema'].includes(typeLower)) {
+      return 'urgent';
+    }
+    
+    if (['like', 'comment', 'comentario', 'follow', 'seguidor', 'mention', 'mencion'].includes(typeLower)) {
+      return 'social';
+    }
+    
+    return 'default';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -630,3 +866,51 @@ class NotificationHandler {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const notificationHandler = new NotificationHandler();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * NUEVO v3.0: Enviar notificación de prueba
+ * Útil para verificar que las notificaciones funcionan
+ */
+export async function sendTestNotification() {
+  return notificationHandler.sendTestNotification();
+}
+
+/**
+ * NUEVO v3.0: Obtener el push token actual
+ */
+export function getPushToken(): string | null {
+  return notificationHandler.getPushToken();
+}
+
+/**
+ * NUEVO v3.0: Verificar estado de las notificaciones
+ */
+export async function getNotificationStatus() {
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    const pushToken = notificationHandler.getPushToken();
+    const isDevice = Device.isDevice;
+    
+    return {
+      permissionsGranted: status === 'granted',
+      pushTokenRegistered: !!pushToken,
+      pushToken: pushToken,
+      isPhysicalDevice: isDevice,
+      platform: Platform.OS,
+    };
+  } catch (error: any) {
+    console.error('[NotificationHandler v3.0] ❌ Error obteniendo estado:', error.message);
+    return {
+      permissionsGranted: false,
+      pushTokenRegistered: false,
+      pushToken: null,
+      isPhysicalDevice: false,
+      platform: Platform.OS,
+      error: error.message,
+    };
+  }
+}
