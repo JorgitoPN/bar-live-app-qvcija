@@ -2098,31 +2098,33 @@ function SalaVirtualEnhancedScreen() {
       });
       
       Animated.parallel([
-        Animated.spring(animationScale, {
-          toValue: 1.3,
-          friction: 4,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-        Animated.spring(animationScale, {
-          toValue: 1,
-          friction: 6,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.sequence([
-        Animated.timing(animationOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.delay(1200),
-        Animated.timing(animationOpacity, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
+        Animated.sequence([
+          Animated.spring(animationScale, {
+            toValue: 1.3,
+            friction: 4,
+            tension: 40,
+            useNativeDriver: true,
+          }),
+          Animated.spring(animationScale, {
+            toValue: 1,
+            friction: 6,
+            tension: 40,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(animationOpacity, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.delay(1200),
+          Animated.timing(animationOpacity, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ]),
       ]).start(() => {
         if (isMounted.current) {
           setShowAnimation(false);
