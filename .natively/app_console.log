@@ -28264,3 +28264,1241 @@ We recommend you instead use a development build to avoid limitations. Learn mor
 [2026-03-09T09:33:09.875Z] [Android] [LOG] [useBaresQuery FASE 7] 🛑 Query cancelled by React Query
 [2026-03-09T09:33:09.963Z] [Android] [LOG] ═══════════════════════════════════════════════════════════
 [2026-03-09T09:33:10.816Z] [Android] [LOG] [ExplorarScreen v34.0] 🔄 Forcing refetch after cache reset
+[2026-03-09T09:33:11.513Z] [Android] [LOG] [AdminAccess] Checking admin access: {"email":"jorgepereznoya@gmail.com","role":"propietario","hasAdminRole":false,"isAuthorizedEmail":false,"hasAccess":false}
+[2026-03-09T09:33:11.035Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T09:33:10.998Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ User role: propietario Current mode: cliente Pathname: /explorar Bottom inset: 48
+[2026-03-09T09:33:11.828Z] [Android] [LOG] [ProfileTab v344.0] 🖼️ Render state: {"userId":"da8f89d8","hasUrl":false,"shouldShowIcon":true,"isLoading":false,"imageError":false,"globalCacheSize":0}
+[2026-03-09T09:33:12.897Z] [Android] [LOG] [InternalBytecode.js:1] [UnifiedMomentoAvatar v54.0] 🔍 Checking momentos for: {"userId":"da8f89d8-f384-4c52-a7cc-1583687943dc"}
+[2026-03-09T09:33:12.945Z] [Android] [LOG] [InternalBytecode.js:1] [MomentoCarousel v168.0] 🔄 Loading momento authors...
+[2026-03-09T09:33:13.013Z] [Android] [LOG] [InternalBytecode.js:1] [GestionScreen v245.0] Loading locales for user: da8f89d8-f384-4c52-a7cc-1583687943dc
+[2026-03-09T09:33:13.049Z] [Android] [LOG] [InternalBytecode.js:1] [AdminLayout] 📋 Permission check: {"email":"jorgepereznoya@gmail.com","role":"propietario","isAdmin":false,"isAuthorizedEmail":false,"hasAccess":false,"authorizedEmails":["jorgepereznoyagh@gmail.com"]}
+[2026-03-09T09:33:13.032Z] [Android] [LOG] [InternalBytecode.js:1] [AdminLayout] 🔍 Checking admin access...
+[2026-03-09T09:33:13.064Z] [Android] [LOG] [InternalBytecode.js:1] [AdminLayout] ❌ Access denied - redirecting silently
+[2026-03-09T09:33:13.088Z] [Android] [LOG] [InternalBytecode.js:1] [ProfileTab v344.0] 🔄 Loading avatar for userId: da8f89d8
+[2026-03-09T09:33:13.288Z] [Android] [LOG] [InternalBytecode.js:1] [SelectedLocalContext v100.0] Loading user locales for: da8f89d8-f384-4c52-a7cc-1583687943dc
+[2026-03-09T09:33:13.600Z] [Android] [LOG] [Impersonation] 👑 Storing admin user: Jorge Pérez
+[2026-03-09T09:33:13.874Z] [Android] [LOG] [ProfileTab v344.0] 🖼️ Render state: {"userId":"da8f89d8","hasUrl":false,"shouldShowIcon":true,"isLoading":true,"imageError":false,"globalCacheSize":0}
+[2026-03-09T09:33:14.534Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 RPC Response received
+[2026-03-09T09:33:14.525Z] [Android] [LOG] [InternalBytecode.js:1] ═══════════════════════════════════════════════════════════
+[2026-03-09T09:33:14.552Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"1a105336-67b8-47cb-b6aa-594596130b09","nombre":"O Antoxo De Adriana (A Coruña)","is_favorite":false,"sorting_tier":1,"esta_abierto":true,"destacado":true},"allVenueNames":["O Antoxo De Adriana (A Coruña)","CAFE BAR UZAL","Bar A Coviña","Café bar A'Vasca","Casa Avelina - Bar Estanco"],"sortingTiers":[{"nombre":"O Antoxo De Adriana (A Coruña)","tier":1,"abierto":true,"destacado":true},{"nombre":"CAFE BAR UZAL","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar A Coviña","tier":2,"abierto":true,"destacado":false},{"nombre":"Café bar A'Vasca","tier":2,"abierto":true,"destacado":false},{"nombre":"Casa Avelina - Bar Estanco","tier":2,"abierto":true,"destacado":false},{"nombre":"Restaurante O Panadeiro","tier":2,"abierto":true,"destacado":false},{"nombre":"TABERNA DA POBRA","tier":2,"abierto":true,"destacado":false},{"nombre":"Casa Tia Teresa Bar-Pensión","tier":2,"abierto":true,"destacado":false},{"nombre":"Adega Bello","tier":2,"abierto":true,"destacado":false},{"nombre":"La Bodeguilla de San Lázaro","tier":2,"abierto":true,"destacado":false}],"loadTime":"8020ms"}
+[2026-03-09T09:33:14.562Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Full data sample (first 2): [
+  {
+    "id": "1a105336-67b8-47cb-b6aa-594596130b09",
+    "nombre": "O Antoxo De Adriana (A Coruña)",
+    "direccion": "Av. Conchiñas, 7, 15010 A Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1a105336-67b8-47cb-b6aa-594596130b09_0_1769019785245.jpg",
+    "latitud": 43.3617518,
+    "longitud": -8.4188075,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1a105336-67b8-47cb-b6aa-594596130b09_0_1769019785245.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1a105336-67b8-47cb-b6aa-594596130b09_1_1769019786057.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1a105336-67b8-47cb-b6aa-594596130b09_2_1769019786898.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1a105336-67b8-47cb-b6aa-594596130b09_3_1769019787684.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "09:00–22:00"
+      ],
+      "jueves": [
+        "09:00–22:00"
+      ],
+      "martes": [
+        "09:00–22:00"
+      ],
+      "sabado": [
+        "09:00–22:00"
+      ],
+      "domingo": [
+        "09:00–22:00"
+      ],
+      "viernes": [
+        "09:00–22:00"
+      ],
+      "miercoles": [
+        "09:00–22:00"
+      ]
+    },
+    "destacado": true,
+    "barlive_types": [
+      "bar"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 3.6,
+    "rating": 0,
+    "distancia": 35.6966840738879,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 1,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 43.3617518,
+      "lng": -8.4188075
+    }
+  },
+  {
+    "id": "a1d47a95-313f-4a8b-ae14-eee8d82582bf",
+    "nombre": "CAFE BAR UZAL",
+    "direccion": "Cruz, 4, 15685 Ordes, La Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "bar",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/a1d47a95-313f-4a8b-ae14-eee8d82582bf_0_1770773703983.jpg",
+    "latitud": 43.1231183,
+    "longitud": -8.3805969,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/a1d47a95-313f-4a8b-ae14-eee8d82582bf_0_1770773703983.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/a1d47a95-313f-4a8b-ae14-eee8d82582bf_1_1770773704774.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/a1d47a95-313f-4a8b-ae14-eee8d82582bf_2_1770773705596.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/a1d47a95-313f-4a8b-ae14-eee8d82582bf_3_1770773706419.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "08:00–22:00"
+      ],
+      "jueves": [
+        "08:00–22:00"
+      ],
+      "martes": [
+        "Cerrado"
+      ],
+      "sabado": [
+        "09:00–23:00"
+      ],
+      "domingo": [
+        "09:00–22:00"
+      ],
+      "viernes": [
+        "08:00–23:00"
+      ],
+      "miercoles": [
+        "08:00–22:00"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar",
+      "cafe",
+      "restaurante"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4.3,
+    "rating": 0,
+    "distancia": 9.80147898327963,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": true,
+    "coordenadas": {
+      "lat": 43.1231183,
+      "lng": -8.3805969
+    }
+  }
+]
+[2026-03-09T09:33:14.581Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 8020ms {"isFirstPage":true,"performance":"🐌 VERY SLOW","pageNumber":1}
+[2026-03-09T09:33:14.602Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3] 📍 Next cursor calculated: {"last_id":"98a425b1-c5fb-49e2-b59b-c6fa886e27ed","last_tier":2,"last_distance":"20.42","venue_name":"Restaurante Pumar","pageSize":20,"totalLoaded":20}
+[2026-03-09T09:33:14.592Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3.0] ✅ Venues enriched (NO RE-SORTING) {"totalVenues":20,"sampleOrder":[{"nombre":"O Antoxo De Adriana (A Coruña)","tier":1,"abierto":true,"destacado":true,"distancia":"35.70"},{"nombre":"CAFE BAR UZAL","tier":2,"abierto":true,"destacado":false,"distancia":"9.80"},{"nombre":"Bar A Coviña","tier":2,"abierto":true,"destacado":false,"distancia":"14.46"},{"nombre":"Café bar A'Vasca","tier":2,"abierto":true,"destacado":false,"distancia":"14.72"},{"nombre":"Casa Avelina - Bar Estanco","tier":2,"abierto":true,"destacado":false,"distancia":"15.50"}]}
+[2026-03-09T09:33:14.748Z] [Android] [LOG] [ExplorarScreen v34.0.0] 🔍 Processing venues - PRESERVING DB ORDER {"hasData":true,"hasPages":true,"pageCount":1,"isLoading":false,"isFetching":false,"isError":false}
+[2026-03-09T09:33:14.854Z] [Android] [LOG] [ExplorarScreen v34.0.0] ✅ RETURNING 20 venues IN DATABASE ORDER WITH CORRECT FILTERS
+[2026-03-09T09:33:14.798Z] [Android] [LOG] [ExplorarScreen v34.0.0] 📊 Venues processed - ORDER PRESERVED: {"total":20,"unique":20,"duplicates":0,"hasData":true,"isLoading":false,"isFetching":false,"isCircuitOpen":false,"sampleOrder":[{"nombre":"O Antoxo De Adriana (A Coruña)","tier":1,"abierto":true,"destacado":true,"distancia":"35.70"},{"nombre":"CAFE BAR UZAL","tier":2,"abierto":true,"destacado":false,"distancia":"9.80"},{"nombre":"Bar A Coviña","tier":2,"abierto":true,"destacado":false,"distancia":"14.46"},{"nombre":"Café bar A'Vasca","tier":2,"abierto":true,"destacado":false,"distancia":"14.72"},{"nombre":"Casa Avelina - Bar Estanco","tier":2,"abierto":true,"destacado":false,"distancia":"15.50"},{"nombre":"Restaurante O Panadeiro","tier":2,"abierto":true,"destacado":false,"distancia":"15.74"},{"nombre":"TABERNA DA POBRA","tier":2,"abierto":true,"destacado":false,"distancia":"16.91"},{"nombre":"Casa Tia Teresa Bar-Pensión","tier":2,"abierto":true,"destacado":false,"distancia":"17.21"},{"nombre":"Adega Bello","tier":2,"abierto":true,"destacado":false,"distancia":"17.37"},{"nombre":"La Bodeguilla de San Lázaro","tier":2,"abierto":true,"destacado":false,"distancia":"18.68"}]}
+[2026-03-09T09:33:16.105Z] [Android] [LOG] [useBaresQuery v25.0.0] 🚀 PREFETCH: Preparing next page {"currentPages":1,"totalVenues":20}
+[2026-03-09T09:33:16.496Z] [Android] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: O Antoxo De Adriana (A Coruña)
+[2026-03-09T09:33:16.625Z] [Android] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: CAFE BAR UZAL
+[2026-03-09T09:33:16.552Z] [Android] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"O Antoxo De Adriana (A Coruña)","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":true,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":1,"usedDatabaseStatus":true}
+[2026-03-09T09:33:16.680Z] [Android] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"CAFE BAR UZAL","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-09T09:33:17.134Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"1a105336-67b8-47cb-b6aa-594596130b09","nombre":"O Antoxo De Adriana (A Coruña)","is_favorite":false,"sorting_tier":1,"esta_abierto":true,"destacado":true},"allVenueNames":["O Antoxo De Adriana (A Coruña)","CAFE BAR UZAL","Bar A Coviña","Café bar A'Vasca","Casa Avelina - Bar Estanco"],"sortingTiers":[{"nombre":"O Antoxo De Adriana (A Coruña)","tier":1,"abierto":true,"destacado":true},{"nombre":"CAFE BAR UZAL","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar A Coviña","tier":2,"abierto":true,"destacado":false},{"nombre":"Café bar A'Vasca","tier":2,"abierto":true,"destacado":false},{"nombre":"Casa Avelina - Bar Estanco","tier":2,"abierto":true,"destacado":false},{"nombre":"Restaurante O Panadeiro","tier":2,"abierto":true,"destacado":false},{"nombre":"TABERNA DA POBRA","tier":2,"abierto":true,"destacado":false},{"nombre":"Casa Tia Teresa Bar-Pensión","tier":2,"abierto":true,"destacado":false},{"nombre":"Adega Bello","tier":2,"abierto":true,"destacado":false},{"nombre":"La Bodeguilla de San Lázaro","tier":2,"abierto":true,"destacado":false}],"loadTime":"10363ms"}
+[2026-03-09T09:33:17.162Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 10363ms {"isFirstPage":true,"performance":"🐌 VERY SLOW","pageNumber":1}
+[2026-03-09T09:33:17.446Z] [Android] [LOG] [InternalBytecode.js:1] ═══════════════════════════════════════════════════════════
+[2026-03-09T09:33:17.505Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 12] 📡 Calling RPC get_venues_with_auth
+[2026-03-09T09:33:17.459Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3] 📡 Fetching page: 2 {"isFirstPage":false,"pageParam":{"last_id":"98a425b1-c5fb-49e2-b59b-c6fa886e27ed","last_tier":2,"last_distance":20.4184934300225,"offset":20},"pageSize":20,"category":null,"search":"","hasFilters":false,"platform":"android"}
+[2026-03-09T09:33:17.483Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 10] 🚀 Using get_venues_with_auth RPC {"userId":"authenticated","hasSession":true,"userLocation":{"lat":43.0407424,"lng":-8.4235472}}
+[2026-03-09T09:33:17.517Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 12] 📡 RPC Parameters: {
+  "p_user_id": "da8f89d8-f384-4c52-a7cc-1583687943dc",
+  "p_user_lat": 43.0407424,
+  "p_user_lng": -8.4235472,
+  "p_limit": 20,
+  "p_last_id": "98a425b1-c5fb-49e2-b59b-c6fa886e27ed",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 20.4184934300225,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-09T09:33:17.583Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📡 RPC function name: get_venues_with_auth
+[2026-03-09T09:33:17.544Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 🚀 Calling supabase.rpc...
+[2026-03-09T09:33:17.560Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📡 Full RPC params: {
+  "p_user_id": "da8f89d8-f384-4c52-a7cc-1583687943dc",
+  "p_user_lat": 43.0407424,
+  "p_user_lng": -8.4235472,
+  "p_limit": 20,
+  "p_last_id": "98a425b1-c5fb-49e2-b59b-c6fa886e27ed",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 20.4184934300225,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-09T09:33:17.572Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📡 Supabase client ready: true
+[2026-03-09T09:33:17.596Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 🚀 RPC call initiated, waiting for response...
+[2026-03-09T09:33:17.608Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 🚀 Query promise created: true
+[2026-03-09T09:33:17.639Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 7] 🛑 Query cancelled by React Query
+[2026-03-09T09:33:17.821Z] [Android] [LOG] [InternalBytecode.js:1] [Empleo v94.0] Ofertas cargadas: 0
+[2026-03-09T09:33:18.346Z] [Android] [LOG] [useBaresQuery v25.0.0] 🚀 PREFETCH: Preparing next page {"currentPages":1,"totalVenues":20}
+[2026-03-09T09:33:18.733Z] [Android] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Bar A Coviña
+[2026-03-09T09:33:18.788Z] [Android] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Bar A Coviña","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-09T09:33:18.862Z] [Android] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Café bar A'Vasca
+[2026-03-09T09:33:18.990Z] [Android] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Casa Avelina - Bar Estanco
+[2026-03-09T09:33:19.041Z] [Android] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Casa Avelina - Bar Estanco","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-09T09:33:18.917Z] [Android] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Café bar A'Vasca","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-09T09:33:19.117Z] [Android] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Restaurante O Panadeiro
+[2026-03-09T09:33:19.173Z] [Android] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Restaurante O Panadeiro","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-09T09:33:19.258Z] [Android] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: TABERNA DA POBRA
+[2026-03-09T09:33:19.381Z] [Android] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Casa Tia Teresa Bar-Pensión
+[2026-03-09T09:33:19.312Z] [Android] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"TABERNA DA POBRA","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-09T09:33:19.511Z] [Android] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Adega Bello
+[2026-03-09T09:33:19.439Z] [Android] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Casa Tia Teresa Bar-Pensión","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-09T09:33:19.566Z] [Android] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Adega Bello","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-09T09:33:19.640Z] [Android] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: La Bodeguilla de San Lázaro
+[2026-03-09T09:33:19.702Z] [Android] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"La Bodeguilla de San Lázaro","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-09T09:33:19.774Z] [Android] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Restaurante O Afiador
+[2026-03-09T09:33:19.829Z] [Android] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Restaurante O Afiador","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-09T09:33:21.185Z] [Android] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Larada SCQ
+[2026-03-09T09:33:21.628Z] [Android] [LOG] [ExplorarScreen v34.0.0] 🔍 Processing venues - PRESERVING DB ORDER {"hasData":true,"hasPages":true,"pageCount":1,"isLoading":false,"isFetching":true,"isError":false}
+[2026-03-09T09:33:21.239Z] [Android] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Larada SCQ","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-09T09:33:21.681Z] [Android] [LOG] [ExplorarScreen v34.0.0] 📊 Venues processed - ORDER PRESERVED: {"total":20,"unique":20,"duplicates":0,"hasData":true,"isLoading":false,"isFetching":true,"isCircuitOpen":false,"sampleOrder":[{"nombre":"O Antoxo De Adriana (A Coruña)","tier":1,"abierto":true,"destacado":true,"distancia":"35.70"},{"nombre":"CAFE BAR UZAL","tier":2,"abierto":true,"destacado":false,"distancia":"9.80"},{"nombre":"Bar A Coviña","tier":2,"abierto":true,"destacado":false,"distancia":"14.46"},{"nombre":"Café bar A'Vasca","tier":2,"abierto":true,"destacado":false,"distancia":"14.72"},{"nombre":"Casa Avelina - Bar Estanco","tier":2,"abierto":true,"destacado":false,"distancia":"15.50"},{"nombre":"Restaurante O Panadeiro","tier":2,"abierto":true,"destacado":false,"distancia":"15.74"},{"nombre":"TABERNA DA POBRA","tier":2,"abierto":true,"destacado":false,"distancia":"16.91"},{"nombre":"Casa Tia Teresa Bar-Pensión","tier":2,"abierto":true,"destacado":false,"distancia":"17.21"},{"nombre":"Adega Bello","tier":2,"abierto":true,"destacado":false,"distancia":"17.37"},{"nombre":"La Bodeguilla de San Lázaro","tier":2,"abierto":true,"destacado":false,"distancia":"18.68"}]}
+[2026-03-09T09:33:21.735Z] [Android] [LOG] [ExplorarScreen v34.0.0] ✅ RETURNING 20 venues IN DATABASE ORDER WITH CORRECT FILTERS
+[2026-03-09T09:33:22.500Z] [Android] [LOG] [useBaresQuery FASE 7] 🛑 Aborting pending request on unmount/param change
+[2026-03-09T09:33:22.876Z] [Android] [LOG] [InternalBytecode.js:1] [Empleo v94.0] Perfiles cargados: 0
+[2026-03-09T09:33:22.944Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3] 📡 Fetching page: 2 {"isFirstPage":false,"pageParam":{"last_id":"98a425b1-c5fb-49e2-b59b-c6fa886e27ed","last_tier":2,"last_distance":20.4184934300225,"offset":20},"pageSize":20,"category":null,"search":"","hasFilters":true,"platform":"android"}
+[2026-03-09T09:33:22.931Z] [Android] [LOG] [InternalBytecode.js:1] ═══════════════════════════════════════════════════════════
+[2026-03-09T09:33:22.992Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 12] 📡 Calling RPC get_venues_with_auth
+[2026-03-09T09:33:22.968Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 10] 🚀 Using get_venues_with_auth RPC {"userId":"authenticated","hasSession":true,"userLocation":{"lat":43.0407424,"lng":-8.4235472}}
+[2026-03-09T09:33:23.004Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 12] 📡 RPC Parameters: {
+  "p_user_id": "da8f89d8-f384-4c52-a7cc-1583687943dc",
+  "p_user_lat": 43.0407424,
+  "p_user_lng": -8.4235472,
+  "p_limit": 20,
+  "p_last_id": "98a425b1-c5fb-49e2-b59b-c6fa886e27ed",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 20.4184934300225,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-09T09:33:23.028Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 🚀 Calling supabase.rpc...
+[2026-03-09T09:33:23.041Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📡 Full RPC params: {
+  "p_user_id": "da8f89d8-f384-4c52-a7cc-1583687943dc",
+  "p_user_lat": 43.0407424,
+  "p_user_lng": -8.4235472,
+  "p_limit": 20,
+  "p_last_id": "98a425b1-c5fb-49e2-b59b-c6fa886e27ed",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 20.4184934300225,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-09T09:33:23.052Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📡 Supabase client ready: true
+[2026-03-09T09:33:23.076Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 🚀 RPC call initiated, waiting for response...
+[2026-03-09T09:33:23.064Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📡 RPC function name: get_venues_with_auth
+[2026-03-09T09:33:23.087Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 🚀 Query promise created: true
+[2026-03-09T09:33:23.118Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 7] 🛑 Query cancelled by React Query
+[2026-03-09T09:33:23.912Z] [Android] [LOG] [InternalBytecode.js:1] [UnifiedMomentoAvatar v54.0] ℹ️ No momentos found
+[2026-03-09T09:33:23.922Z] [Android] [LOG] [InternalBytecode.js:1] [MomentoCarousel v168.0] ℹ️ No active momentos found
+[2026-03-09T09:33:23.933Z] [Android] [LOG] [InternalBytecode.js:1] [ShoppingCart v244.0] Cart items count: 0
+[2026-03-09T09:33:24.358Z] [Android] [LOG] [useBaresQuery FASE 7] 🛑 Aborting pending request on unmount/param change
+[2026-03-09T09:33:24.821Z] [Android] [LOG] [InternalBytecode.js:1] [SolicitudStatus v2.1] Loaded request: undefined
+[2026-03-09T09:33:24.972Z] [Android] [LOG] [AdminAccess] Checking admin access: {"email":"jorgepereznoya@gmail.com","role":"propietario","hasAdminRole":false,"isAuthorizedEmail":false,"hasAccess":false}
+[2026-03-09T09:33:24.920Z] [Android] [LOG] [InternalBytecode.js:1] [GestionScreen v245.0] No locales found for user
+[2026-03-09T09:33:24.830Z] [Android] [LOG] [InternalBytecode.js:1] [ShoppingCart v244.0] Cart items count: 0
+[2026-03-09T09:33:25.033Z] [Android] [LOG] [InternalBytecode.js:1] [ProfileTab v344.0] ✅ Avatar loaded and cached GLOBALLY
+[2026-03-09T09:33:25.042Z] [Android] [LOG] [InternalBytecode.js:1] [UnifiedMomentoAvatar v54.0] ℹ️ No momentos found
+[2026-03-09T09:33:25.055Z] [Android] [LOG] [InternalBytecode.js:1] [ShoppingCart v244.0] Cart items count: 0
+[2026-03-09T09:33:25.092Z] [Android] [LOG] [InternalBytecode.js:1] [MomentoCarousel v168.0] ℹ️ No active momentos found
+[2026-03-09T09:33:25.134Z] [Android] [LOG] [InternalBytecode.js:1] [SolicitudStatus v2.1] Loaded request: undefined
+[2026-03-09T09:33:25.083Z] [Android] [LOG] [InternalBytecode.js:1] [ProfileTab v344.0] 💾 Avatar saved to AsyncStorage
+[2026-03-09T09:33:25.149Z] [Android] [LOG] [InternalBytecode.js:1] [GestionScreen v245.0] No locales found for user
+[2026-03-09T09:33:25.167Z] [Android] [LOG] [InternalBytecode.js:1] [ProfileTab v344.0] ✅ Avatar loaded and cached GLOBALLY
+[2026-03-09T09:33:25.378Z] [Android] [LOG] [ProfileTab v344.0] 🖼️ Render state: {"userId":"da8f89d8","hasUrl":true,"shouldShowIcon":false,"isLoading":false,"imageError":false,"globalCacheSize":1}
+[2026-03-09T09:33:25.317Z] [Android] [LOG] [AdminAccess] Checking admin access: {"email":"jorgepereznoya@gmail.com","role":"propietario","hasAdminRole":false,"isAuthorizedEmail":false,"hasAccess":false}
+[2026-03-09T09:33:25.176Z] [Android] [LOG] [InternalBytecode.js:1] [SelectedLocalContext v100.0] No locales found for user
+[2026-03-09T09:33:25.631Z] [Android] [LOG] [InternalBytecode.js:1] ═══════════════════════════════════════════════════════════
+[2026-03-09T09:33:25.682Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 7945ms {"isFirstPage":false,"performance":"🐌 VERY SLOW","pageNumber":2}
+[2026-03-09T09:33:25.654Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"027d5c99-dc2e-410a-8781-9cf88eb45d4b","nombre":"Café - Bar Mazarelos","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Café - Bar Mazarelos","Bar Orense","Bar Caamaño (Santiago de Compostela)","Morriña Santiago","Cafe Bar Lago"],"sortingTiers":[{"nombre":"Café - Bar Mazarelos","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Orense","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Caamaño (Santiago de Compostela)","tier":2,"abierto":true,"destacado":false},{"nombre":"Morriña Santiago","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafe Bar Lago","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafetería Arena","tier":2,"abierto":true,"destacado":false},{"nombre":"cafe taperia Bolivar","tier":2,"abierto":true,"destacado":false},{"nombre":"Sole Cervexaría Taparía","tier":2,"abierto":true,"destacado":false},{"nombre":"City Cafe","tier":2,"abierto":true,"destacado":false},{"nombre":"Triskel (Santiago de Compostela)","tier":2,"abierto":true,"destacado":false}],"loadTime":"7945ms"}
+[2026-03-09T09:33:25.640Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 RPC Response received
+[2026-03-09T09:33:25.664Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Full data sample (first 2): [
+  {
+    "id": "027d5c99-dc2e-410a-8781-9cf88eb45d4b",
+    "nombre": "Café - Bar Mazarelos",
+    "direccion": "Praza de Mazarelos, 14, 15703 Santiago de Compostela, A Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "bar",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/027d5c99-dc2e-410a-8781-9cf88eb45d4b_0_1770773759712.jpg",
+    "latitud": 42.8782225,
+    "longitud": -8.542571,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/027d5c99-dc2e-410a-8781-9cf88eb45d4b_0_1770773759712.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/027d5c99-dc2e-410a-8781-9cf88eb45d4b_1_1770773760711.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/027d5c99-dc2e-410a-8781-9cf88eb45d4b_2_1770773761496.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/027d5c99-dc2e-410a-8781-9cf88eb45d4b_3_1770773762324.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "08:30–23:00"
+      ],
+      "jueves": [
+        "08:30–23:00"
+      ],
+      "martes": [
+        "08:30–23:00"
+      ],
+      "sabado": [
+        "09:00–00:00"
+      ],
+      "domingo": [
+        "11:00–23:00"
+      ],
+      "viernes": [
+        "08:30–23:00"
+      ],
+      "miercoles": [
+        "08:30–23:00"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 2.6,
+    "rating": 0,
+    "distancia": 20.5033712985408,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 42.8782225,
+      "lng": -8.542571
+    }
+  },
+  {
+    "id": "c6df6a39-c0f9-46cf-86c9-49a3a497d440",
+    "nombre": "Bar Orense",
+    "direccion": "Rúa da Raíña, 25, 15702 Santiago de Compostela, A Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/c6df6a39-c0f9-46cf-86c9-49a3a497d440_0_1769098873563.jpg",
+    "latitud": 42.8785306,
+    "longitud": -8.545008,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/c6df6a39-c0f9-46cf-86c9-49a3a497d440_0_1769098873563.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/c6df6a39-c0f9-46cf-86c9-49a3a497d440_1_1769098874196.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/c6df6a39-c0f9-46cf-86c9-49a3a497d440_2_1769098875671.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/c6df6a39-c0f9-46cf-86c9-49a3a497d440_3_1769098876578.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "10:30–15:00",
+        "18:30–00:00"
+      ],
+      "jueves": [
+        "10:30–15:00",
+        "18:30–01:00"
+      ],
+      "martes": [
+        "10:30–15:00",
+        "18:30–00:00"
+      ],
+      "sabado": [
+        "10:30–15:00"
+      ],
+      "domingo": [
+        "Cerrado"
+      ],
+      "viernes": [
+        "10:30–15:00",
+        "18:30–01:00"
+      ],
+      "miercoles": [
+        "10:30–15:00",
+        "18:30–00:30"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar",
+      "restaurante"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4.2,
+    "rating": 0,
+    "distancia": 20.5677333743201,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 42.8785306,
+      "lng": -8.545008
+    }
+  }
+]
+[2026-03-09T09:33:25.693Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3.0] ✅ Venues enriched (NO RE-SORTING) {"totalVenues":20,"sampleOrder":[{"nombre":"Café - Bar Mazarelos","tier":2,"abierto":true,"destacado":false,"distancia":"20.50"},{"nombre":"Bar Orense","tier":2,"abierto":true,"destacado":false,"distancia":"20.57"},{"nombre":"Bar Caamaño (Santiago de Compostela)","tier":2,"abierto":true,"destacado":false,"distancia":"20.58"},{"nombre":"Morriña Santiago","tier":2,"abierto":true,"destacado":false,"distancia":"20.68"},{"nombre":"Cafe Bar Lago","tier":2,"abierto":true,"destacado":false,"distancia":"21.03"}]}
+[2026-03-09T09:33:25.769Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 8237ms {"isFirstPage":false,"performance":"🐌 VERY SLOW","pageNumber":2}
+[2026-03-09T09:33:25.705Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3] 📍 Next cursor calculated: {"last_id":"390c2d5b-d4e1-42a7-8636-62800e5efafc","last_tier":2,"last_distance":"21.69","venue_name":"Bar Baema","pageSize":20,"totalLoaded":40}
+[2026-03-09T09:33:25.741Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"027d5c99-dc2e-410a-8781-9cf88eb45d4b","nombre":"Café - Bar Mazarelos","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Café - Bar Mazarelos","Bar Orense","Bar Caamaño (Santiago de Compostela)","Morriña Santiago","Cafe Bar Lago"],"sortingTiers":[{"nombre":"Café - Bar Mazarelos","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Orense","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Caamaño (Santiago de Compostela)","tier":2,"abierto":true,"destacado":false},{"nombre":"Morriña Santiago","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafe Bar Lago","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafetería Arena","tier":2,"abierto":true,"destacado":false},{"nombre":"cafe taperia Bolivar","tier":2,"abierto":true,"destacado":false},{"nombre":"Sole Cervexaría Taparía","tier":2,"abierto":true,"destacado":false},{"nombre":"City Cafe","tier":2,"abierto":true,"destacado":false},{"nombre":"Triskel (Santiago de Compostela)","tier":2,"abierto":true,"destacado":false}],"loadTime":"8237ms"}
+[2026-03-09T09:33:25.821Z] [Android] [LOG] [ProfileTab v344.0] ✅ Image rendered successfully
+[2026-03-09T09:33:25.945Z] [Android] [LOG] [ExplorarScreen v34.0.0] 🔍 Processing venues - PRESERVING DB ORDER {"hasData":true,"hasPages":true,"pageCount":2,"isLoading":false,"isFetching":false,"isError":false}
+[2026-03-09T09:33:26.003Z] [Android] [LOG] [ExplorarScreen v34.0.0] 📊 Venues processed - ORDER PRESERVED: {"total":40,"unique":40,"duplicates":0,"hasData":true,"isLoading":false,"isFetching":false,"isCircuitOpen":false,"sampleOrder":[{"nombre":"O Antoxo De Adriana (A Coruña)","tier":1,"abierto":true,"destacado":true,"distancia":"35.70"},{"nombre":"CAFE BAR UZAL","tier":2,"abierto":true,"destacado":false,"distancia":"9.80"},{"nombre":"Bar A Coviña","tier":2,"abierto":true,"destacado":false,"distancia":"14.46"},{"nombre":"Café bar A'Vasca","tier":2,"abierto":true,"destacado":false,"distancia":"14.72"},{"nombre":"Casa Avelina - Bar Estanco","tier":2,"abierto":true,"destacado":false,"distancia":"15.50"},{"nombre":"Restaurante O Panadeiro","tier":2,"abierto":true,"destacado":false,"distancia":"15.74"},{"nombre":"TABERNA DA POBRA","tier":2,"abierto":true,"destacado":false,"distancia":"16.91"},{"nombre":"Casa Tia Teresa Bar-Pensión","tier":2,"abierto":true,"destacado":false,"distancia":"17.21"},{"nombre":"Adega Bello","tier":2,"abierto":true,"destacado":false,"distancia":"17.37"},{"nombre":"La Bodeguilla de San Lázaro","tier":2,"abierto":true,"destacado":false,"distancia":"18.68"}]}
+[2026-03-09T09:33:26.055Z] [Android] [LOG] [ExplorarScreen v34.0.0] ✅ RETURNING 40 venues IN DATABASE ORDER WITH CORRECT FILTERS
+[2026-03-09T09:33:26.518Z] [Android] [LOG] [ProfileTab v344.0] 🖼️ Render state: {"userId":"da8f89d8","hasUrl":true,"shouldShowIcon":false,"isLoading":false,"imageError":false,"globalCacheSize":1}
+[2026-03-09T09:33:26.875Z] [Android] [LOG] [useBaresQuery v25.0.0] 🚀 PREFETCH: Preparing next page {"currentPages":2,"totalVenues":40}
+[2026-03-09T09:33:27.231Z] [Android] [LOG] [InternalBytecode.js:1] ═══════════════════════════════════════════════════════════
+[2026-03-09T09:33:27.240Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 RPC Response received
+[2026-03-09T09:33:27.251Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"027d5c99-dc2e-410a-8781-9cf88eb45d4b","nombre":"Café - Bar Mazarelos","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Café - Bar Mazarelos","Bar Orense","Bar Caamaño (Santiago de Compostela)","Morriña Santiago","Cafe Bar Lago"],"sortingTiers":[{"nombre":"Café - Bar Mazarelos","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Orense","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Caamaño (Santiago de Compostela)","tier":2,"abierto":true,"destacado":false},{"nombre":"Morriña Santiago","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafe Bar Lago","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafetería Arena","tier":2,"abierto":true,"destacado":false},{"nombre":"cafe taperia Bolivar","tier":2,"abierto":true,"destacado":false},{"nombre":"Sole Cervexaría Taparía","tier":2,"abierto":true,"destacado":false},{"nombre":"City Cafe","tier":2,"abierto":true,"destacado":false},{"nombre":"Triskel (Santiago de Compostela)","tier":2,"abierto":true,"destacado":false}],"loadTime":"4266ms"}
+[2026-03-09T09:33:27.261Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Full data sample (first 2): [
+  {
+    "id": "027d5c99-dc2e-410a-8781-9cf88eb45d4b",
+    "nombre": "Café - Bar Mazarelos",
+    "direccion": "Praza de Mazarelos, 14, 15703 Santiago de Compostela, A Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "bar",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/027d5c99-dc2e-410a-8781-9cf88eb45d4b_0_1770773759712.jpg",
+    "latitud": 42.8782225,
+    "longitud": -8.542571,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/027d5c99-dc2e-410a-8781-9cf88eb45d4b_0_1770773759712.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/027d5c99-dc2e-410a-8781-9cf88eb45d4b_1_1770773760711.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/027d5c99-dc2e-410a-8781-9cf88eb45d4b_2_1770773761496.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/027d5c99-dc2e-410a-8781-9cf88eb45d4b_3_1770773762324.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "08:30–23:00"
+      ],
+      "jueves": [
+        "08:30–23:00"
+      ],
+      "martes": [
+        "08:30–23:00"
+      ],
+      "sabado": [
+        "09:00–00:00"
+      ],
+      "domingo": [
+        "11:00–23:00"
+      ],
+      "viernes": [
+        "08:30–23:00"
+      ],
+      "miercoles": [
+        "08:30–23:00"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 2.6,
+    "rating": 0,
+    "distancia": 20.5033712985408,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 42.8782225,
+      "lng": -8.542571
+    }
+  },
+  {
+    "id": "c6df6a39-c0f9-46cf-86c9-49a3a497d440",
+    "nombre": "Bar Orense",
+    "direccion": "Rúa da Raíña, 25, 15702 Santiago de Compostela, A Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/c6df6a39-c0f9-46cf-86c9-49a3a497d440_0_1769098873563.jpg",
+    "latitud": 42.8785306,
+    "longitud": -8.545008,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/c6df6a39-c0f9-46cf-86c9-49a3a497d440_0_1769098873563.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/c6df6a39-c0f9-46cf-86c9-49a3a497d440_1_1769098874196.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/c6df6a39-c0f9-46cf-86c9-49a3a497d440_2_1769098875671.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/c6df6a39-c0f9-46cf-86c9-49a3a497d440_3_1769098876578.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "10:30–15:00",
+        "18:30–00:00"
+      ],
+      "jueves": [
+        "10:30–15:00",
+        "18:30–01:00"
+      ],
+      "martes": [
+        "10:30–15:00",
+        "18:30–00:00"
+      ],
+      "sabado": [
+        "10:30–15:00"
+      ],
+      "domingo": [
+        "Cerrado"
+      ],
+      "viernes": [
+        "10:30–15:00",
+        "18:30–01:00"
+      ],
+      "miercoles": [
+        "10:30–15:00",
+        "18:30–00:30"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar",
+      "restaurante"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4.2,
+    "rating": 0,
+    "distancia": 20.5677333743201,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 42.8785306,
+      "lng": -8.545008
+    }
+  }
+]
+[2026-03-09T09:33:27.328Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"027d5c99-dc2e-410a-8781-9cf88eb45d4b","nombre":"Café - Bar Mazarelos","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Café - Bar Mazarelos","Bar Orense","Bar Caamaño (Santiago de Compostela)","Morriña Santiago","Cafe Bar Lago"],"sortingTiers":[{"nombre":"Café - Bar Mazarelos","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Orense","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Caamaño (Santiago de Compostela)","tier":2,"abierto":true,"destacado":false},{"nombre":"Morriña Santiago","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafe Bar Lago","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafetería Arena","tier":2,"abierto":true,"destacado":false},{"nombre":"cafe taperia Bolivar","tier":2,"abierto":true,"destacado":false},{"nombre":"Sole Cervexaría Taparía","tier":2,"abierto":true,"destacado":false},{"nombre":"City Cafe","tier":2,"abierto":true,"destacado":false},{"nombre":"Triskel (Santiago de Compostela)","tier":2,"abierto":true,"destacado":false}],"loadTime":"4144ms"}
+[2026-03-09T09:33:27.362Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 4144ms {"isFirstPage":false,"performance":"🐌 VERY SLOW","pageNumber":2}
+[2026-03-09T09:33:27.279Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 4266ms {"isFirstPage":false,"performance":"🐌 VERY SLOW","pageNumber":2}
+[2026-03-09T09:33:27.415Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"1d135eca-3e17-49ce-95bd-de156aa4f724","nombre":"Tercer Tiempo Bar","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Tercer Tiempo Bar","Andaluz","Vinoteca Delicatessen Las Barricas","Luna Nueva Restbar","Mesón Castaño"],"sortingTiers":[{"nombre":"Tercer Tiempo Bar","tier":2,"abierto":true,"destacado":false},{"nombre":"Andaluz","tier":2,"abierto":true,"destacado":false},{"nombre":"Vinoteca Delicatessen Las Barricas","tier":2,"abierto":true,"destacado":false},{"nombre":"Luna Nueva Restbar","tier":2,"abierto":true,"destacado":false},{"nombre":"Mesón Castaño","tier":2,"abierto":true,"destacado":false},{"nombre":"Restaurante Dr. Peña","tier":2,"abierto":true,"destacado":false},{"nombre":"Restaurante O Rei de Copas","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Manolo","tier":2,"abierto":true,"destacado":false},{"nombre":"Torre De Andrade","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Tienda CASA MIRANDA","tier":2,"abierto":true,"destacado":false}],"loadTime":"21107ms"}
+[2026-03-09T09:33:27.426Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Full data sample (first 2): [
+  {
+    "id": "1d135eca-3e17-49ce-95bd-de156aa4f724",
+    "nombre": "Tercer Tiempo Bar",
+    "direccion": "C. de María Zayas, 4, Tetuán, 28039 Madrid, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1d135eca-3e17-49ce-95bd-de156aa4f724_0_1769458526347.jpg",
+    "latitud": 40.4591366,
+    "longitud": -3.7006374,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1d135eca-3e17-49ce-95bd-de156aa4f724_0_1769458526347.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1d135eca-3e17-49ce-95bd-de156aa4f724_1_1769458526979.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1d135eca-3e17-49ce-95bd-de156aa4f724_2_1769458527575.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1d135eca-3e17-49ce-95bd-de156aa4f724_3_1769458528117.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "09:30–00:00"
+      ],
+      "jueves": [
+        "09:30–00:00"
+      ],
+      "martes": [
+        "09:30–00:00"
+      ],
+      "sabado": [
+        "09:30–00:00"
+      ],
+      "domingo": [
+        "09:30–00:00"
+      ],
+      "viernes": [
+        "09:30–00:00"
+      ],
+      "miercoles": [
+        "09:30–00:00"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4.2,
+    "rating": 0,
+    "distancia": 4.71521787328247,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 40.4591366,
+      "lng": -3.7006374
+    }
+  },
+  {
+    "id": "46dd08a1-7efc-4186-b2cc-f19feed14bca",
+    "nombre": "Andaluz",
+    "direccion": "C. Antonio Varela, 15, 28400 Collado Villalba, Madrid, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/46dd08a1-7efc-4186-b2cc-f19feed14bca_0_1769458933104.jpg",
+    "latitud": 40.626826,
+    "longitud": -4.009592,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/46dd08a1-7efc-4186-b2cc-f19feed14bca_0_1769458933104.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/46dd08a1-7efc-4186-b2cc-f19feed14bca_1_1769458933587.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/46dd08a1-7efc-4186-b2cc-f19feed14bca_2_1769458934402.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/46dd08a1-7efc-4186-b2cc-f19feed14bca_3_1769458935336.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "09:00–22:00"
+      ],
+      "jueves": [
+        "09:00–22:00"
+      ],
+      "martes": [
+        "09:00–22:00"
+      ],
+      "sabado": [
+        "09:00–22:00"
+      ],
+      "domingo": [
+        "Cerrado"
+      ],
+      "viernes": [
+        "09:00–22:00"
+      ],
+      "miercoles": [
+        "09:00–22:00"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar",
+      "restaurante",
+      "discoteca"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4.4,
+    "rating": 0,
+    "distancia": 34.8350615512595,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 40.626826,
+      "lng": -4.009592
+    }
+  }
+]
+[2026-03-09T09:33:27.443Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 21107ms {"isFirstPage":true,"performance":"🐌 VERY SLOW","pageNumber":1}
+[2026-03-09T09:33:27.454Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3.0] ✅ Venues enriched (NO RE-SORTING) {"totalVenues":20,"sampleOrder":[{"nombre":"Tercer Tiempo Bar","tier":2,"abierto":true,"destacado":false,"distancia":"4.72"},{"nombre":"Andaluz","tier":2,"abierto":true,"destacado":false,"distancia":"34.84"},{"nombre":"Vinoteca Delicatessen Las Barricas","tier":2,"abierto":true,"destacado":false,"distancia":"214.67"},{"nombre":"Luna Nueva Restbar","tier":2,"abierto":true,"destacado":false,"distancia":"322.23"},{"nombre":"Mesón Castaño","tier":2,"abierto":true,"destacado":false,"distancia":"344.46"}]}
+[2026-03-09T09:33:27.463Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3] 📍 Next cursor calculated: {"last_id":"56029df8-5f09-4a2c-bbaf-9579aaa67dae","last_tier":2,"last_distance":"462.02","venue_name":"Bar Paporrubio","pageSize":20,"totalLoaded":20}
+[2026-03-09T09:33:27.587Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 10] 🚀 Using get_venues_with_auth RPC {"userId":"authenticated","hasSession":true,"userLocation":{"lat":43.0407424,"lng":-8.4235472}}
+[2026-03-09T09:33:27.563Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3] 📡 Fetching page: 3 {"isFirstPage":false,"pageParam":{"last_id":"390c2d5b-d4e1-42a7-8636-62800e5efafc","last_tier":2,"last_distance":21.6869475750007,"offset":40},"pageSize":20,"category":null,"search":"","hasFilters":false,"platform":"android"}
+[2026-03-09T09:33:27.611Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 12] 📡 Calling RPC get_venues_with_auth
+[2026-03-09T09:33:27.650Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 🚀 Calling supabase.rpc...
+[2026-03-09T09:33:27.626Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 12] 📡 RPC Parameters: {
+  "p_user_id": "da8f89d8-f384-4c52-a7cc-1583687943dc",
+  "p_user_lat": 43.0407424,
+  "p_user_lng": -8.4235472,
+  "p_limit": 20,
+  "p_last_id": "390c2d5b-d4e1-42a7-8636-62800e5efafc",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 21.6869475750007,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-09T09:33:27.663Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📡 Full RPC params: {
+  "p_user_id": "da8f89d8-f384-4c52-a7cc-1583687943dc",
+  "p_user_lat": 43.0407424,
+  "p_user_lng": -8.4235472,
+  "p_limit": 20,
+  "p_last_id": "390c2d5b-d4e1-42a7-8636-62800e5efafc",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 21.6869475750007,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-09T09:33:27.675Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📡 Supabase client ready: true
+[2026-03-09T09:33:27.688Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📡 RPC function name: get_venues_with_auth
+[2026-03-09T09:33:27.701Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 🚀 RPC call initiated, waiting for response...
+[2026-03-09T09:33:27.712Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 🚀 Query promise created: true
+[2026-03-09T09:33:27.749Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 7] 🛑 Query cancelled by React Query
+[2026-03-09T09:33:27.764Z] [Android] [LOG] [InternalBytecode.js:1] ═══════════════════════════════════════════════════════════
+[2026-03-09T09:33:28.361Z] [Android] [LOG] [useBaresQuery v25.0.0] 🚀 PREFETCH: Preparing next page {"currentPages":2,"totalVenues":40}
+[2026-03-09T09:33:28.828Z] [Android] [LOG] [ExplorarScreen v34.0.0] 🔍 Processing venues - PRESERVING DB ORDER {"hasData":true,"hasPages":true,"pageCount":2,"isLoading":false,"isFetching":true,"isError":false}
+[2026-03-09T09:33:28.885Z] [Android] [LOG] [ExplorarScreen v34.0.0] 📊 Venues processed - ORDER PRESERVED: {"total":40,"unique":40,"duplicates":0,"hasData":true,"isLoading":false,"isFetching":true,"isCircuitOpen":false,"sampleOrder":[{"nombre":"O Antoxo De Adriana (A Coruña)","tier":1,"abierto":true,"destacado":true,"distancia":"35.70"},{"nombre":"CAFE BAR UZAL","tier":2,"abierto":true,"destacado":false,"distancia":"9.80"},{"nombre":"Bar A Coviña","tier":2,"abierto":true,"destacado":false,"distancia":"14.46"},{"nombre":"Café bar A'Vasca","tier":2,"abierto":true,"destacado":false,"distancia":"14.72"},{"nombre":"Casa Avelina - Bar Estanco","tier":2,"abierto":true,"destacado":false,"distancia":"15.50"},{"nombre":"Restaurante O Panadeiro","tier":2,"abierto":true,"destacado":false,"distancia":"15.74"},{"nombre":"TABERNA DA POBRA","tier":2,"abierto":true,"destacado":false,"distancia":"16.91"},{"nombre":"Casa Tia Teresa Bar-Pensión","tier":2,"abierto":true,"destacado":false,"distancia":"17.21"},{"nombre":"Adega Bello","tier":2,"abierto":true,"destacado":false,"distancia":"17.37"},{"nombre":"La Bodeguilla de San Lázaro","tier":2,"abierto":true,"destacado":false,"distancia":"18.68"}]}
+[2026-03-09T09:33:28.940Z] [Android] [LOG] [ExplorarScreen v34.0.0] ✅ RETURNING 40 venues IN DATABASE ORDER WITH CORRECT FILTERS
+[2026-03-09T09:33:29.720Z] [Android] [LOG] [useBaresQuery FASE 7] 🛑 Aborting pending request on unmount/param change
+[2026-03-09T09:33:30.152Z] [Android] [LOG] [InternalBytecode.js:1] ═══════════════════════════════════════════════════════════
+[2026-03-09T09:33:30.188Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 10] 🚀 Using get_venues_with_auth RPC {"userId":"authenticated","hasSession":true,"userLocation":{"lat":43.0407424,"lng":-8.4235472}}
+[2026-03-09T09:33:30.165Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3] 📡 Fetching page: 3 {"isFirstPage":false,"pageParam":{"last_id":"390c2d5b-d4e1-42a7-8636-62800e5efafc","last_tier":2,"last_distance":21.6869475750007,"offset":40},"pageSize":20,"category":null,"search":"","hasFilters":true,"platform":"android"}
+[2026-03-09T09:33:30.211Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 12] 📡 Calling RPC get_venues_with_auth
+[2026-03-09T09:33:30.223Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 12] 📡 RPC Parameters: {
+  "p_user_id": "da8f89d8-f384-4c52-a7cc-1583687943dc",
+  "p_user_lat": 43.0407424,
+  "p_user_lng": -8.4235472,
+  "p_limit": 20,
+  "p_last_id": "390c2d5b-d4e1-42a7-8636-62800e5efafc",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 21.6869475750007,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-09T09:33:30.247Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 🚀 Calling supabase.rpc...
+[2026-03-09T09:33:30.260Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📡 Full RPC params: {
+  "p_user_id": "da8f89d8-f384-4c52-a7cc-1583687943dc",
+  "p_user_lat": 43.0407424,
+  "p_user_lng": -8.4235472,
+  "p_limit": 20,
+  "p_last_id": "390c2d5b-d4e1-42a7-8636-62800e5efafc",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 21.6869475750007,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-09T09:33:30.271Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📡 Supabase client ready: true
+[2026-03-09T09:33:30.283Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📡 RPC function name: get_venues_with_auth
+[2026-03-09T09:33:30.296Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 🚀 RPC call initiated, waiting for response...
+[2026-03-09T09:33:30.308Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 🚀 Query promise created: true
+[2026-03-09T09:33:30.359Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 7] 🛑 Query cancelled by React Query
+[2026-03-09T09:33:30.989Z] [Android] [LOG] [useBaresQuery FASE 7] 🛑 Aborting pending request on unmount/param change
+[2026-03-09T09:33:31.697Z] [Android] [LOG] [useInteractionContext] 🎭 Interaction context: {"interactionUserId":"da8f89d8-f384-4c52-a7cc-1583687943dc","interactionType":"usuario","interactionLocalId":null,"isInteractingAsLocal":false,"displayName":"Jorge Pérez","displayAvatar":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/avatars/da8f89d8-f384-4c52-a7cc-1583687943dc/da8f89d8-f384-4c52-a7cc-1583687943dc-1770775520396.png"}
+[2026-03-09T09:33:32.163Z] [Android] [LOG] [InternalBytecode.js:1] ═══════════════════════════════════════════════════════════
+[2026-03-09T09:33:31.747Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":null,"imageError":false,"shouldShowImage":true}
+[2026-03-09T09:33:32.171Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 RPC Response received
+[2026-03-09T09:33:32.183Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"7a5149be-81e6-4ea9-9f85-adf1e2731e4d","nombre":"Bar Marlo (Santiago de Compostela)","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Bar Marlo (Santiago de Compostela)","Bar Roel","Café- Bar Los Cruces","Café Bar Os Arcos","Bar Lamelas N° 8"],"sortingTiers":[{"nombre":"Bar Marlo (Santiago de Compostela)","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Roel","tier":2,"abierto":true,"destacado":false},{"nombre":"Café- Bar Los Cruces","tier":2,"abierto":true,"destacado":false},{"nombre":"Café Bar Os Arcos","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Lamelas N° 8","tier":2,"abierto":true,"destacado":false},{"nombre":"Casa Adolfo","tier":2,"abierto":true,"destacado":false},{"nombre":"Cervexaría Boca Grande","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafetería BREVIS","tier":2,"abierto":true,"destacado":false},{"nombre":"Salazón","tier":2,"abierto":true,"destacado":false},{"nombre":"Café-Bar Lodeiro","tier":2,"abierto":true,"destacado":false}],"loadTime":"4580ms"}
+[2026-03-09T09:33:32.192Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Full data sample (first 2): [
+  {
+    "id": "7a5149be-81e6-4ea9-9f85-adf1e2731e4d",
+    "nombre": "Bar Marlo (Santiago de Compostela)",
+    "direccion": "4,, Rúa de Ricardo Bescansa, 2, 15706 Santiago de Compostela, A Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/7a5149be-81e6-4ea9-9f85-adf1e2731e4d_0_1769182244247.jpg",
+    "latitud": 42.8681696,
+    "longitud": -8.5553104,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/7a5149be-81e6-4ea9-9f85-adf1e2731e4d_0_1769182244247.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/7a5149be-81e6-4ea9-9f85-adf1e2731e4d_1_1769182245139.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/7a5149be-81e6-4ea9-9f85-adf1e2731e4d_2_1769182245826.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/7a5149be-81e6-4ea9-9f85-adf1e2731e4d_3_1769182246539.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "07:30–22:00"
+      ],
+      "jueves": [
+        "07:30–22:00"
+      ],
+      "martes": [
+        "07:30–22:00"
+      ],
+      "sabado": [
+        "08:30–15:00"
+      ],
+      "domingo": [
+        "Cerrado"
+      ],
+      "viernes": [
+        "07:30–22:00"
+      ],
+      "miercoles": [
+        "07:30–22:00"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4.4,
+    "rating": 0,
+    "distancia": 21.9821488207607,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 42.8681696,
+      "lng": -8.5553104
+    }
+  },
+  {
+    "id": "8b211256-0c81-44b3-9f81-39395b086274",
+    "nombre": "Bar Roel",
+    "direccion": "Atalaia, 12, 15175 Carral, A Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/8b211256-0c81-44b3-9f81-39395b086274_0_1769458857409.jpg",
+    "latitud": 43.2335408,
+    "longitud": -8.3322159,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/8b211256-0c81-44b3-9f81-39395b086274_0_1769458857409.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "08:00–22:00"
+      ],
+      "jueves": [
+        "08:00–22:00"
+      ],
+      "martes": [
+        "08:00–22:00"
+      ],
+      "sabado": [
+        "08:00–22:00"
+      ],
+      "domingo": [
+        "08:00–22:00"
+      ],
+      "viernes": [
+        "08:00–22:00"
+      ],
+      "miercoles": [
+        "08:00–22:00"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4,
+    "rating": 0,
+    "distancia": 22.6829266201207,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 43.2335408,
+      "lng": -8.3322159
+    }
+  }
+]
+[2026-03-09T09:33:32.210Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 4580ms {"isFirstPage":false,"performance":"🐌 VERY SLOW","pageNumber":3}
+[2026-03-09T09:33:32.231Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3] 📍 Next cursor calculated: {"last_id":"fbbc5ece-086a-499c-89e1-96f8f7fe541e","last_tier":2,"last_distance":"27.01","venue_name":"Bar Venezuela","pageSize":20,"totalLoaded":60}
+[2026-03-09T09:33:32.221Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3.0] ✅ Venues enriched (NO RE-SORTING) {"totalVenues":20,"sampleOrder":[{"nombre":"Bar Marlo (Santiago de Compostela)","tier":2,"abierto":true,"destacado":false,"distancia":"21.98"},{"nombre":"Bar Roel","tier":2,"abierto":true,"destacado":false,"distancia":"22.68"},{"nombre":"Café- Bar Los Cruces","tier":2,"abierto":true,"destacado":false,"distancia":"22.74"},{"nombre":"Café Bar Os Arcos","tier":2,"abierto":true,"destacado":false,"distancia":"23.01"},{"nombre":"Bar Lamelas N° 8","tier":2,"abierto":true,"destacado":false,"distancia":"23.35"}]}
+[2026-03-09T09:33:32.261Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"7a5149be-81e6-4ea9-9f85-adf1e2731e4d","nombre":"Bar Marlo (Santiago de Compostela)","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Bar Marlo (Santiago de Compostela)","Bar Roel","Café- Bar Los Cruces","Café Bar Os Arcos","Bar Lamelas N° 8"],"sortingTiers":[{"nombre":"Bar Marlo (Santiago de Compostela)","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Roel","tier":2,"abierto":true,"destacado":false},{"nombre":"Café- Bar Los Cruces","tier":2,"abierto":true,"destacado":false},{"nombre":"Café Bar Os Arcos","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Lamelas N° 8","tier":2,"abierto":true,"destacado":false},{"nombre":"Casa Adolfo","tier":2,"abierto":true,"destacado":false},{"nombre":"Cervexaría Boca Grande","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafetería BREVIS","tier":2,"abierto":true,"destacado":false},{"nombre":"Salazón","tier":2,"abierto":true,"destacado":false},{"nombre":"Café-Bar Lodeiro","tier":2,"abierto":true,"destacado":false}],"loadTime":"4442ms"}
+[2026-03-09T09:33:32.287Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 4442ms {"isFirstPage":false,"performance":"🐌 VERY SLOW","pageNumber":3}
+[2026-03-09T09:33:32.347Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"7a5149be-81e6-4ea9-9f85-adf1e2731e4d","nombre":"Bar Marlo (Santiago de Compostela)","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Bar Marlo (Santiago de Compostela)","Bar Roel","Café- Bar Los Cruces","Café Bar Os Arcos","Bar Lamelas N° 8"],"sortingTiers":[{"nombre":"Bar Marlo (Santiago de Compostela)","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Roel","tier":2,"abierto":true,"destacado":false},{"nombre":"Café- Bar Los Cruces","tier":2,"abierto":true,"destacado":false},{"nombre":"Café Bar Os Arcos","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Lamelas N° 8","tier":2,"abierto":true,"destacado":false},{"nombre":"Casa Adolfo","tier":2,"abierto":true,"destacado":false},{"nombre":"Cervexaría Boca Grande","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafetería BREVIS","tier":2,"abierto":true,"destacado":false},{"nombre":"Salazón","tier":2,"abierto":true,"destacado":false},{"nombre":"Café-Bar Lodeiro","tier":2,"abierto":true,"destacado":false}],"loadTime":"1920ms"}
+[2026-03-09T09:33:32.375Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 1920ms {"isFirstPage":false,"performance":"⚠️ SLOW","pageNumber":3}
+[2026-03-09T09:33:32.450Z] [Android] [LOG] [InternalBytecode.js:1] [PublicacionCard v328.0] 🔄 Loading initial likes for post: 378fa29e-39cd-4f0a-be15-2240816741ba
+[2026-03-09T09:33:32.489Z] [Android] [LOG] [InternalBytecode.js:1] [PublicacionCard v328.0] 🔄 Loading initial likes for post: e2a8e363-3785-41c3-a1c5-a21f2c59ca1f
+[2026-03-09T09:33:32.596Z] [Android] [LOG] ═══════════════════════════════════════════════════════════
+[2026-03-09T09:33:32.534Z] [Android] [LOG] [InternalBytecode.js:1] [PublicacionCard v328.0] 🔄 Loading initial likes for post: 9bbe9ddf-5058-4000-92c2-dd831db9c91e
+[2026-03-09T09:33:32.648Z] [Android] [LOG] [ExplorarScreen v34.0.0] 🔍 Processing venues - PRESERVING DB ORDER {"hasData":true,"hasPages":true,"pageCount":3,"isLoading":false,"isFetching":false,"isError":false}
+[2026-03-09T09:33:32.759Z] [Android] [LOG] [ExplorarScreen v34.0.0] ✅ RETURNING 60 venues IN DATABASE ORDER WITH CORRECT FILTERS
+[2026-03-09T09:33:32.706Z] [Android] [LOG] [ExplorarScreen v34.0.0] 📊 Venues processed - ORDER PRESERVED: {"total":60,"unique":60,"duplicates":0,"hasData":true,"isLoading":false,"isFetching":false,"isCircuitOpen":false,"sampleOrder":[{"nombre":"O Antoxo De Adriana (A Coruña)","tier":1,"abierto":true,"destacado":true,"distancia":"35.70"},{"nombre":"CAFE BAR UZAL","tier":2,"abierto":true,"destacado":false,"distancia":"9.80"},{"nombre":"Bar A Coviña","tier":2,"abierto":true,"destacado":false,"distancia":"14.46"},{"nombre":"Café bar A'Vasca","tier":2,"abierto":true,"destacado":false,"distancia":"14.72"},{"nombre":"Casa Avelina - Bar Estanco","tier":2,"abierto":true,"destacado":false,"distancia":"15.50"},{"nombre":"Restaurante O Panadeiro","tier":2,"abierto":true,"destacado":false,"distancia":"15.74"},{"nombre":"TABERNA DA POBRA","tier":2,"abierto":true,"destacado":false,"distancia":"16.91"},{"nombre":"Casa Tia Teresa Bar-Pensión","tier":2,"abierto":true,"destacado":false,"distancia":"17.21"},{"nombre":"Adega Bello","tier":2,"abierto":true,"destacado":false,"distancia":"17.37"},{"nombre":"La Bodeguilla de San Lázaro","tier":2,"abierto":true,"destacado":false,"distancia":"18.68"}]}
+[2026-03-09T09:33:32.995Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":null,"imageError":false,"shouldShowImage":true}
+[2026-03-09T09:33:34.043Z] [Android] [LOG] [useBaresQuery v25.0.0] 🚀 PREFETCH: Preparing next page {"currentPages":3,"totalVenues":60}
+[2026-03-09T09:33:32.947Z] [Android] [LOG] [useInteractionContext] 🎭 Interaction context: {"interactionUserId":"da8f89d8-f384-4c52-a7cc-1583687943dc","interactionType":"usuario","interactionLocalId":null,"isInteractingAsLocal":false,"displayName":"Jorge Pérez","displayAvatar":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/avatars/da8f89d8-f384-4c52-a7cc-1583687943dc/da8f89d8-f384-4c52-a7cc-1583687943dc-1770775520396.png"}
+[2026-03-09T09:33:34.521Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 RPC Response received
+[2026-03-09T09:33:34.533Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"7a5149be-81e6-4ea9-9f85-adf1e2731e4d","nombre":"Bar Marlo (Santiago de Compostela)","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Bar Marlo (Santiago de Compostela)","Bar Roel","Café- Bar Los Cruces","Café Bar Os Arcos","Bar Lamelas N° 8"],"sortingTiers":[{"nombre":"Bar Marlo (Santiago de Compostela)","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Roel","tier":2,"abierto":true,"destacado":false},{"nombre":"Café- Bar Los Cruces","tier":2,"abierto":true,"destacado":false},{"nombre":"Café Bar Os Arcos","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Lamelas N° 8","tier":2,"abierto":true,"destacado":false},{"nombre":"Casa Adolfo","tier":2,"abierto":true,"destacado":false},{"nombre":"Cervexaría Boca Grande","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafetería BREVIS","tier":2,"abierto":true,"destacado":false},{"nombre":"Salazón","tier":2,"abierto":true,"destacado":false},{"nombre":"Café-Bar Lodeiro","tier":2,"abierto":true,"destacado":false}],"loadTime":"4330ms"}
+[2026-03-09T09:33:34.572Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3.0] ✅ Venues enriched (NO RE-SORTING) {"totalVenues":20,"sampleOrder":[{"nombre":"Bar Marlo (Santiago de Compostela)","tier":2,"abierto":true,"destacado":false,"distancia":"21.98"},{"nombre":"Bar Roel","tier":2,"abierto":true,"destacado":false,"distancia":"22.68"},{"nombre":"Café- Bar Los Cruces","tier":2,"abierto":true,"destacado":false,"distancia":"22.74"},{"nombre":"Café Bar Os Arcos","tier":2,"abierto":true,"destacado":false,"distancia":"23.01"},{"nombre":"Bar Lamelas N° 8","tier":2,"abierto":true,"destacado":false,"distancia":"23.35"}]}
+[2026-03-09T09:33:34.561Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 4330ms {"isFirstPage":false,"performance":"🐌 VERY SLOW","pageNumber":3}
+[2026-03-09T09:33:34.543Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Full data sample (first 2): [
+  {
+    "id": "7a5149be-81e6-4ea9-9f85-adf1e2731e4d",
+    "nombre": "Bar Marlo (Santiago de Compostela)",
+    "direccion": "4,, Rúa de Ricardo Bescansa, 2, 15706 Santiago de Compostela, A Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/7a5149be-81e6-4ea9-9f85-adf1e2731e4d_0_1769182244247.jpg",
+    "latitud": 42.8681696,
+    "longitud": -8.5553104,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/7a5149be-81e6-4ea9-9f85-adf1e2731e4d_0_1769182244247.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/7a5149be-81e6-4ea9-9f85-adf1e2731e4d_1_1769182245139.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/7a5149be-81e6-4ea9-9f85-adf1e2731e4d_2_1769182245826.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/7a5149be-81e6-4ea9-9f85-adf1e2731e4d_3_1769182246539.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "07:30–22:00"
+      ],
+      "jueves": [
+        "07:30–22:00"
+      ],
+      "martes": [
+        "07:30–22:00"
+      ],
+      "sabado": [
+        "08:30–15:00"
+      ],
+      "domingo": [
+        "Cerrado"
+      ],
+      "viernes": [
+        "07:30–22:00"
+      ],
+      "miercoles": [
+        "07:30–22:00"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4.4,
+    "rating": 0,
+    "distancia": 21.9821488207607,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 42.8681696,
+      "lng": -8.5553104
+    }
+  },
+  {
+    "id": "8b211256-0c81-44b3-9f81-39395b086274",
+    "nombre": "Bar Roel",
+    "direccion": "Atalaia, 12, 15175 Carral, A Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/8b211256-0c81-44b3-9f81-39395b086274_0_1769458857409.jpg",
+    "latitud": 43.2335408,
+    "longitud": -8.3322159,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/8b211256-0c81-44b3-9f81-39395b086274_0_1769458857409.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "08:00–22:00"
+      ],
+      "jueves": [
+        "08:00–22:00"
+      ],
+      "martes": [
+        "08:00–22:00"
+      ],
+      "sabado": [
+        "08:00–22:00"
+      ],
+      "domingo": [
+        "08:00–22:00"
+      ],
+      "viernes": [
+        "08:00–22:00"
+      ],
+      "miercoles": [
+        "08:00–22:00"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4,
+    "rating": 0,
+    "distancia": 22.6829266201207,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 43.2335408,
+      "lng": -8.3322159
+    }
+  }
+]
+[2026-03-09T09:33:34.581Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3] 📍 Next cursor calculated: {"last_id":"fbbc5ece-086a-499c-89e1-96f8f7fe541e","last_tier":2,"last_distance":"27.01","venue_name":"Bar Venezuela","pageSize":20,"totalLoaded":60}
+[2026-03-09T09:33:35.782Z] [Android] [LOG] [DetalleLocal v338.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-03-09T09:33:35.853Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v339.0] 🚀 Starting optimized location fetch
+[2026-03-09T09:33:35.868Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v339.0] ⚡ Using cached location (instant)
+[2026-03-09T09:33:35.736Z] [Android] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:33:35.882Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v339.0] 📍 Cached coords: 43.0407424 -8.4235472
+[2026-03-09T09:33:35.962Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ User role: propietario Current mode: cliente Pathname: /detalle/local Bottom inset: 48
+[2026-03-09T09:33:35.999Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T09:33:36.612Z] [Android] [LOG] [InternalBytecode.js:1] ═══════════════════════════════════════════════════════════
+[2026-03-09T09:33:36.671Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 12] 📡 Calling RPC get_venues_with_auth
+[2026-03-09T09:33:36.625Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3] 📡 Fetching page: 4 {"isFirstPage":false,"pageParam":{"last_id":"fbbc5ece-086a-499c-89e1-96f8f7fe541e","last_tier":2,"last_distance":27.0110499806058,"offset":60},"pageSize":20,"category":null,"search":"","hasFilters":false,"platform":"android"}
+[2026-03-09T09:33:36.682Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 12] 📡 RPC Parameters: {
+  "p_user_id": "da8f89d8-f384-4c52-a7cc-1583687943dc",
+  "p_user_lat": 43.0407424,
+  "p_user_lng": -8.4235472,
+  "p_limit": 20,
+  "p_last_id": "fbbc5ece-086a-499c-89e1-96f8f7fe541e",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 27.0110499806058,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-09T09:33:36.648Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 10] 🚀 Using get_venues_with_auth RPC {"userId":"authenticated","hasSession":true,"userLocation":{"lat":43.0407424,"lng":-8.4235472}}
+[2026-03-09T09:33:36.706Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 🚀 Calling supabase.rpc...
+[2026-03-09T09:33:36.730Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📡 Supabase client ready: true
+[2026-03-09T09:33:36.718Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📡 Full RPC params: {
+  "p_user_id": "da8f89d8-f384-4c52-a7cc-1583687943dc",
+  "p_user_lat": 43.0407424,
+  "p_user_lng": -8.4235472,
+  "p_limit": 20,
+  "p_last_id": "fbbc5ece-086a-499c-89e1-96f8f7fe541e",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 27.0110499806058,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-09T09:33:36.743Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📡 RPC function name: get_venues_with_auth
+[2026-03-09T09:33:36.756Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 🚀 RPC call initiated, waiting for response...
+[2026-03-09T09:33:36.768Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 🚀 Query promise created: true
+[2026-03-09T09:33:36.801Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 7] 🛑 Query cancelled by React Query
+[2026-03-09T09:33:36.992Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3] 📡 Fetching page: 4 {"isFirstPage":false,"pageParam":{"last_id":"fbbc5ece-086a-499c-89e1-96f8f7fe541e","last_tier":2,"last_distance":27.0110499806058,"offset":60},"pageSize":20,"category":null,"search":"","hasFilters":true,"platform":"android"}
+[2026-03-09T09:33:37.475Z] [Android] [LOG] [ExplorarScreen v34.0.0] 🔍 Processing venues - PRESERVING DB ORDER {"hasData":true,"hasPages":true,"pageCount":3,"isLoading":false,"isFetching":true,"isError":false}
+[2026-03-09T09:33:37.526Z] [Android] [LOG] [ExplorarScreen v34.0.0] 📊 Venues processed - ORDER PRESERVED: {"total":60,"unique":60,"duplicates":0,"hasData":true,"isLoading":false,"isFetching":true,"isCircuitOpen":false,"sampleOrder":[{"nombre":"O Antoxo De Adriana (A Coruña)","tier":1,"abierto":true,"destacado":true,"distancia":"35.70"},{"nombre":"CAFE BAR UZAL","tier":2,"abierto":true,"destacado":false,"distancia":"9.80"},{"nombre":"Bar A Coviña","tier":2,"abierto":true,"destacado":false,"distancia":"14.46"},{"nombre":"Café bar A'Vasca","tier":2,"abierto":true,"destacado":false,"distancia":"14.72"},{"nombre":"Casa Avelina - Bar Estanco","tier":2,"abierto":true,"destacado":false,"distancia":"15.50"},{"nombre":"Restaurante O Panadeiro","tier":2,"abierto":true,"destacado":false,"distancia":"15.74"},{"nombre":"TABERNA DA POBRA","tier":2,"abierto":true,"destacado":false,"distancia":"16.91"},{"nombre":"Casa Tia Teresa Bar-Pensión","tier":2,"abierto":true,"destacado":false,"distancia":"17.21"},{"nombre":"Adega Bello","tier":2,"abierto":true,"destacado":false,"distancia":"17.37"},{"nombre":"La Bodeguilla de San Lázaro","tier":2,"abierto":true,"destacado":false,"distancia":"18.68"}]}
+[2026-03-09T09:33:37.584Z] [Android] [LOG] [ExplorarScreen v34.0.0] ✅ RETURNING 60 venues IN DATABASE ORDER WITH CORRECT FILTERS
+[2026-03-09T09:33:38.102Z] [Android] [LOG] [useInteractionContext] 🎭 Interaction context: {"interactionUserId":"da8f89d8-f384-4c52-a7cc-1583687943dc","interactionType":"usuario","interactionLocalId":null,"isInteractingAsLocal":false,"displayName":"Jorge Pérez","displayAvatar":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/avatars/da8f89d8-f384-4c52-a7cc-1583687943dc/da8f89d8-f384-4c52-a7cc-1583687943dc-1770775520396.png"}
+[2026-03-09T09:33:38.925Z] [Android] [LOG] [InternalBytecode.js:1] [PublicacionCard v328.0] 🔄 Loading initial likes for post: b83ad647-533a-4b84-9f27-54a89e05f51d
+[2026-03-09T09:33:38.148Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":null,"imageError":false,"shouldShowImage":true}
+[2026-03-09T09:33:38.568Z] [Android] [LOG] [useBaresQuery FASE 7] 🛑 Aborting pending request on unmount/param change
+[2026-03-09T09:33:39.934Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":null,"imageError":false,"shouldShowImage":true}
+[2026-03-09T09:33:40.066Z] [Android] [LOG] [InternalBytecode.js:1] [PublicacionCard v328.0] ✅ Loaded initial likes: 1
+[2026-03-09T09:33:40.078Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v338.0] ✅ Local loaded: {"id":"1a105336-67b8-47cb-b6aa-594596130b09","nombre":"O Antoxo De Adriana (A Coruña)","propietario_id":null,"rating":0,"google_rating":3.6}
+[2026-03-09T09:33:40.056Z] [Android] [LOG] [InternalBytecode.js:1] [TagDisplay] Loaded tags: 0
+[2026-03-09T09:33:39.900Z] [Android] [LOG] [useInteractionContext] 🎭 Interaction context: {"interactionUserId":"da8f89d8-f384-4c52-a7cc-1583687943dc","interactionType":"usuario","interactionLocalId":null,"isInteractingAsLocal":false,"displayName":"Jorge Pérez","displayAvatar":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/avatars/da8f89d8-f384-4c52-a7cc-1583687943dc/da8f89d8-f384-4c52-a7cc-1583687943dc-1770775520396.png"}
+[2026-03-09T09:33:40.148Z] [Android] [LOG] [InternalBytecode.js:1] [PublicacionCard v328.0] 🔄 Loading initial likes for post: b83ad647-533a-4b84-9f27-54a89e05f51d
+[2026-03-09T09:33:40.259Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":null,"imageError":false,"shouldShowImage":true}
+[2026-03-09T09:33:40.317Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-01-18T06:11:24.429709+00:00","imageError":false,"shouldShowImage":true}
+[2026-03-09T09:33:40.397Z] [Android] [LOG] [DetalleLocal v338.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-03-09T09:33:40.361Z] [Android] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:33:40.453Z] [Android] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:33:40.399Z","spainTimeString":"2026-03-09 10:33:40","spainTime":"2026-03-09T09:33:40.000Z","localHour":10,"localMinute":33}
+[2026-03-09T09:33:40.530Z] [Android] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:33:40.493Z] [Android] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"O Antoxo De Adriana (A Coruña)","diaActual":"lunes","horaActual":10,"minutoActual":33,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:33:40.660Z] [Android] [LOG] [getEstadoLocal v456.0] ✅ Result: {"badge":"Abierto ahora","estaAbierto":true,"claseBg":"bg-green-500"}
+[2026-03-09T09:33:40.617Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 📋 Today's schedule: {"diaActual":"lunes","horarioActual":["09:00–22:00"],"hasSchedule":true}
+[2026-03-09T09:33:40.574Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:33","horaActualMinutos":633}
+[2026-03-09T09:33:41.214Z] [Android] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"O Antoxo De Adriana (A Coruña)","diaActual":"lunes","horaActual":10,"minutoActual":33,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:33:41.099Z] [Android] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:33:41.036Z] [Android] [LOG] [InternalBytecode.js:1] [TagDisplay] Loaded tags: 0
+[2026-03-09T09:33:41.138Z] [Android] [LOG] [DetalleLocal v338.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-03-09T09:33:41.179Z] [Android] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:33:41.139Z","spainTimeString":"2026-03-09 10:33:41","spainTime":"2026-03-09T09:33:41.000Z","localHour":10,"localMinute":33}
+[2026-03-09T09:33:41.667Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 RPC Response received
+[2026-03-09T09:33:41.250Z] [Android] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:33:41.290Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:33","horaActualMinutos":633}
+[2026-03-09T09:33:41.334Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 📋 Today's schedule: {"diaActual":"lunes","horarioActual":["09:00–22:00"],"hasSchedule":true}
+[2026-03-09T09:33:41.368Z] [Android] [LOG] [getEstadoLocal v456.0] ✅ Result: {"badge":"Abierto ahora","estaAbierto":true,"claseBg":"bg-green-500"}
+[2026-03-09T09:33:41.557Z] [Android] [LOG] [InternalBytecode.js:1] [PublicacionCard v328.0] ✅ Loaded initial likes: 1
+[2026-03-09T09:33:41.578Z] [Android] [LOG] [InternalBytecode.js:1] [TagDisplay] Loaded tags: 0
+[2026-03-09T09:33:41.568Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v338.0] ✅ Loaded checked-in users: 0
+[2026-03-09T09:33:41.658Z] [Android] [LOG] [InternalBytecode.js:1] ═══════════════════════════════════════════════════════════
+[2026-03-09T09:33:41.679Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"fbbc5ece-086a-499c-89e1-96f8f7fe541e","nombre":"Bar Venezuela","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Bar Venezuela","Cervecería Barral","Bar A Farmacia","Bar El Sauce","Café Bar Casa Rufino"],"sortingTiers":[{"nombre":"Bar Venezuela","tier":2,"abierto":true,"destacado":false},{"nombre":"Cervecería Barral","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar A Farmacia","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar El Sauce","tier":2,"abierto":true,"destacado":false},{"nombre":"Café Bar Casa Rufino","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafe Bar Pedregal","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafe Bar A Galleguiña","tier":2,"abierto":true,"destacado":false},{"nombre":"Oito Bar (Carballo)","tier":2,"abierto":true,"destacado":false},{"nombre":"Café Bar FOMENTO","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafeteria J B","tier":2,"abierto":true,"destacado":false}],"loadTime":"5013ms"}
+[2026-03-09T09:33:41.689Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Full data sample (first 2): [
+  {
+    "id": "fbbc5ece-086a-499c-89e1-96f8f7fe541e",
+    "nombre": "Bar Venezuela",
+    "direccion": "Pontido, 14, 15181 Pontido, La Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/fbbc5ece-086a-499c-89e1-96f8f7fe541e_0_1769019688757.jpg",
+    "latitud": 43.2800297,
+    "longitud": -8.3661998,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/fbbc5ece-086a-499c-89e1-96f8f7fe541e_0_1769019688757.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/fbbc5ece-086a-499c-89e1-96f8f7fe541e_1_1769019690226.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/fbbc5ece-086a-499c-89e1-96f8f7fe541e_2_1769019694746.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/fbbc5ece-086a-499c-89e1-96f8f7fe541e_3_1769019695797.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "09:00–16:00",
+        "18:30–22:00"
+      ],
+      "jueves": [
+        "Cerrado"
+      ],
+      "martes": [
+        "09:00–16:00",
+        "18:30–22:30"
+      ],
+      "sabado": [
+        "12:00–15:00"
+      ],
+      "domingo": [
+        "Cerrado"
+      ],
+      "viernes": [
+        "09:00–23:30"
+      ],
+      "miercoles": [
+        "09:00–16:00",
+        "18:30–22:30"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4.3,
+    "rating": 0,
+    "distancia": 27.0110499806058,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 43.2800297,
+      "lng": -8.3661998
+    }
+  },
+  {
+    "id": "8493ef68-45f7-4fdd-9e96-0576dd4a844e",
+    "nombre": "Cervecería Barral",
+    "direccion": "Vilar, 104, 15318 Crendes, La Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/8493ef68-45f7-4fdd-9e96-0576dd4a844e_0_1771718081434.jpg",
+    "latitud": 43.2599553,
+    "longitud": -8.2733786,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/8493ef68-45f7-4fdd-9e96-0576dd4a844e_0_1771718081434.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/8493ef68-45f7-4fdd-9e96-0576dd4a844e_1_1771718082500.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/8493ef68-45f7-4fdd-9e96-0576dd4a844e_2_1771718083767.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/8493ef68-45f7-4fdd-9e96-0576dd4a844e_3_1771718084800.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "07:30–01:30"
+      ],
+      "jueves": [
+        "07:30–01:30"
+      ],
+      "martes": [
+        "07:30–01:30"
+      ],
+      "sabado": [
+        "08:00–02:30"
+      ],
+      "domingo": [
+        "08:00–02:30"
+      ],
+      "viernes": [
+        "07:30–01:30"
+      ],
+      "miercoles": [
+        "07:30–01:30"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar",
+      "restaurante",
+      "cafe"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4.5,
+    "rating": 0,
+    "distancia": 27.2500240485963,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 43.2599553,
+      "lng": -8.2733786
+    }
+  }
+]
+[2026-03-09T09:33:41.708Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 5013ms {"isFirstPage":false,"performance":"🐌 VERY SLOW","pageNumber":4}
+[2026-03-09T09:33:41.720Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3.0] ✅ Venues enriched (NO RE-SORTING) {"totalVenues":20,"sampleOrder":[{"nombre":"Bar Venezuela","tier":2,"abierto":true,"destacado":false,"distancia":"27.01"},{"nombre":"Cervecería Barral","tier":2,"abierto":true,"destacado":false,"distancia":"27.25"},{"nombre":"Bar A Farmacia","tier":2,"abierto":true,"destacado":false,"distancia":"27.35"},{"nombre":"Bar El Sauce","tier":2,"abierto":true,"destacado":false,"distancia":"27.45"},{"nombre":"Café Bar Casa Rufino","tier":2,"abierto":true,"destacado":false,"distancia":"27.49"}]}
+[2026-03-09T09:33:41.730Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery v26.3] 📍 Next cursor calculated: {"last_id":"9071f383-ba45-44a4-8ab1-f76a21372f93","last_tier":2,"last_distance":"29.68","venue_name":"Casa Touceda","pageSize":20,"totalLoaded":80}
+[2026-03-09T09:33:41.769Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"fbbc5ece-086a-499c-89e1-96f8f7fe541e","nombre":"Bar Venezuela","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Bar Venezuela","Cervecería Barral","Bar A Farmacia","Bar El Sauce","Café Bar Casa Rufino"],"sortingTiers":[{"nombre":"Bar Venezuela","tier":2,"abierto":true,"destacado":false},{"nombre":"Cervecería Barral","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar A Farmacia","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar El Sauce","tier":2,"abierto":true,"destacado":false},{"nombre":"Café Bar Casa Rufino","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafe Bar Pedregal","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafe Bar A Galleguiña","tier":2,"abierto":true,"destacado":false},{"nombre":"Oito Bar (Carballo)","tier":2,"abierto":true,"destacado":false},{"nombre":"Café Bar FOMENTO","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafeteria J B","tier":2,"abierto":true,"destacado":false}],"loadTime":"4895ms"}
+[2026-03-09T09:33:41.796Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 4895ms {"isFirstPage":false,"performance":"🐌 VERY SLOW","pageNumber":4}
+[2026-03-09T09:33:41.858Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"fbbc5ece-086a-499c-89e1-96f8f7fe541e","nombre":"Bar Venezuela","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Bar Venezuela","Cervecería Barral","Bar A Farmacia","Bar El Sauce","Café Bar Casa Rufino"],"sortingTiers":[{"nombre":"Bar Venezuela","tier":2,"abierto":true,"destacado":false},{"nombre":"Cervecería Barral","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar A Farmacia","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar El Sauce","tier":2,"abierto":true,"destacado":false},{"nombre":"Café Bar Casa Rufino","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafe Bar Pedregal","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafe Bar A Galleguiña","tier":2,"abierto":true,"destacado":false},{"nombre":"Oito Bar (Carballo)","tier":2,"abierto":true,"destacado":false},{"nombre":"Café Bar FOMENTO","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafeteria J B","tier":2,"abierto":true,"destacado":false}],"loadTime":"4824ms"}
+[2026-03-09T09:33:41.885Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 4824ms {"isFirstPage":false,"performance":"🐌 VERY SLOW","pageNumber":4}
+[2026-03-09T09:33:41.938Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"fbbc5ece-086a-499c-89e1-96f8f7fe541e","nombre":"Bar Venezuela","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Bar Venezuela","Cervecería Barral","Bar A Farmacia","Bar El Sauce","Café Bar Casa Rufino"],"sortingTiers":[{"nombre":"Bar Venezuela","tier":2,"abierto":true,"destacado":false},{"nombre":"Cervecería Barral","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar A Farmacia","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar El Sauce","tier":2,"abierto":true,"destacado":false},{"nombre":"Café Bar Casa Rufino","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafe Bar Pedregal","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafe Bar A Galleguiña","tier":2,"abierto":true,"destacado":false},{"nombre":"Oito Bar (Carballo)","tier":2,"abierto":true,"destacado":false},{"nombre":"Café Bar FOMENTO","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafeteria J B","tier":2,"abierto":true,"destacado":false}],"loadTime":"4701ms"}
+[2026-03-09T09:33:41.965Z] [Android] [LOG] [InternalBytecode.js:1] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 4701ms {"isFirstPage":false,"performance":"🐌 VERY SLOW","pageNumber":4}
+[2026-03-09T09:33:42.133Z] [Android] [LOG] [ExplorarScreen v34.0.0] 🔍 Processing venues - PRESERVING DB ORDER {"hasData":true,"hasPages":true,"pageCount":4,"isLoading":false,"isFetching":false,"isError":false}
+[2026-03-09T09:33:42.185Z] [Android] [LOG] [ExplorarScreen v34.0.0] 📊 Venues processed - ORDER PRESERVED: {"total":80,"unique":79,"duplicates":1,"hasData":true,"isLoading":false,"isFetching":false,"isCircuitOpen":false,"sampleOrder":[{"nombre":"O Antoxo De Adriana (A Coruña)","tier":1,"abierto":true,"destacado":true,"distancia":"35.70"},{"nombre":"CAFE BAR UZAL","tier":2,"abierto":true,"destacado":false,"distancia":"9.80"},{"nombre":"Bar A Coviña","tier":2,"abierto":true,"destacado":false,"distancia":"14.46"},{"nombre":"Café bar A'Vasca","tier":2,"abierto":true,"destacado":false,"distancia":"14.72"},{"nombre":"Casa Avelina - Bar Estanco","tier":2,"abierto":true,"destacado":false,"distancia":"15.50"},{"nombre":"Restaurante O Panadeiro","tier":2,"abierto":true,"destacado":false,"distancia":"15.74"},{"nombre":"TABERNA DA POBRA","tier":2,"abierto":true,"destacado":false,"distancia":"16.91"},{"nombre":"Casa Tia Teresa Bar-Pensión","tier":2,"abierto":true,"destacado":false,"distancia":"17.21"},{"nombre":"Adega Bello","tier":2,"abierto":true,"destacado":false,"distancia":"17.37"},{"nombre":"La Bodeguilla de San Lázaro","tier":2,"abierto":true,"destacado":false,"distancia":"18.68"}]}
+[2026-03-09T09:33:42.400Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-02-11T02:05:22.481713+00:00","imageError":false,"shouldShowImage":true}
+[2026-03-09T09:33:42.242Z] [Android] [LOG] [ExplorarScreen v34.0.0] ✅ RETURNING 79 venues IN DATABASE ORDER WITH CORRECT FILTERS
+[2026-03-09T09:33:42.079Z] [Android] [LOG] ═══════════════════════════════════════════════════════════
+[2026-03-09T09:33:42.482Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-01-18T06:11:24.429709+00:00","imageError":false,"shouldShowImage":true}
+[2026-03-09T09:33:43.096Z] [Android] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:33:43.151Z] [Android] [LOG] [DetalleLocal v338.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-03-09T09:33:43.249Z] [Android] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"O Antoxo De Adriana (A Coruña)","diaActual":"lunes","horaActual":10,"minutoActual":33,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:33:43.202Z] [Android] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:33:43.152Z","spainTimeString":"2026-03-09 10:33:43","spainTime":"2026-03-09T09:33:43.000Z","localHour":10,"localMinute":33}
+[2026-03-09T09:33:43.294Z] [Android] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:33:43.352Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:33","horaActualMinutos":633}
+[2026-03-09T09:33:43.657Z] [Android] [LOG] [InternalBytecode.js:1] [TagDisplay] Loaded tags: 0
+[2026-03-09T09:33:43.399Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 📋 Today's schedule: {"diaActual":"lunes","horarioActual":["09:00–22:00"],"hasSchedule":true}
+[2026-03-09T09:33:43.448Z] [Android] [LOG] [getEstadoLocal v456.0] ✅ Result: {"badge":"Abierto ahora","estaAbierto":true,"claseBg":"bg-green-500"}
+[2026-03-09T09:33:43.943Z] [Android] [LOG] [InternalBytecode.js:1] [PublicacionCard v328.0] ✅ Loaded initial likes: 1
+[2026-03-09T09:33:44.137Z] [Android] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:33:43.966Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v338.0] ✅ Loaded unified reviews: {"barlive":0,"google":5,"total":5}
+[2026-03-09T09:33:43.975Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v338.0] 📊 Using Google rating: 3.6
+[2026-03-09T09:33:44.019Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-01-18T06:11:24.429709+00:00","imageError":false,"shouldShowImage":true}
+[2026-03-09T09:33:44.169Z] [Android] [LOG] [DetalleLocal v338.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-03-09T09:33:44.211Z] [Android] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:33:44.169Z","spainTimeString":"2026-03-09 10:33:44","spainTime":"2026-03-09T09:33:44.000Z","localHour":10,"localMinute":33}
+[2026-03-09T09:33:44.284Z] [Android] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:33:44.327Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:33","horaActualMinutos":633}
+[2026-03-09T09:33:44.248Z] [Android] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"O Antoxo De Adriana (A Coruña)","diaActual":"lunes","horaActual":10,"minutoActual":33,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:33:44.366Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 📋 Today's schedule: {"diaActual":"lunes","horarioActual":["09:00–22:00"],"hasSchedule":true}
+[2026-03-09T09:33:44.404Z] [Android] [LOG] [getEstadoLocal v456.0] ✅ Result: {"badge":"Abierto ahora","estaAbierto":true,"claseBg":"bg-green-500"}
+[2026-03-09T09:33:44.632Z] [Android] [LOG] [InternalBytecode.js:1] [TagDisplay] Loaded tags: 0
+[2026-03-09T09:33:44.755Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-01-18T06:11:24.429709+00:00","imageError":false,"shouldShowImage":true}
+[2026-03-09T09:33:44.710Z] [Android] [LOG] [InternalBytecode.js:1] [PublicacionCard v328.0] ✅ Loaded initial likes: 1
+[2026-03-09T09:33:44.824Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-02-11T02:05:22.481713+00:00","imageError":false,"shouldShowImage":true}
