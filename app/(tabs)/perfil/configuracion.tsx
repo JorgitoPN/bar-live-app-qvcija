@@ -172,58 +172,7 @@ export default function ConfiguracionScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Notificaciones */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔔 Notificaciones</Text>
-
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Notificaciones Push</Text>
-              <Text style={styles.settingDescription}>
-                Recibe notificaciones de mensajes, likes y eventos
-              </Text>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={handleToggleNotifications}
-              disabled={loading}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={notificationsEnabled ? '#FFFFFF' : '#F3F4F6'}
-              ios_backgroundColor={colors.border}
-            />
-          </View>
-
-          {notificationStatus && !notificationStatus.available && (
-            <View style={styles.warningBox}>
-              <IconSymbol
-                ios_icon_name="exclamationmark.triangle"
-                android_material_icon_name="warning"
-                size={scaleIconSize(20)}
-                color={colors.warning}
-              />
-              <Text style={styles.warningText}>
-                Las notificaciones push no están disponibles.{'\n'}
-                {notificationStatus.isExpoGo
-                  ? 'Necesitas una APK generada con EAS Build.'
-                  : 'Verifica que estés en un dispositivo físico.'}
-              </Text>
-            </View>
-          )}
-
-          <TouchableOpacity
-            style={styles.testButton}
-            onPress={handleTestNotifications}
-            activeOpacity={0.7}
-          >
-            <IconSymbol
-              ios_icon_name="bell.badge"
-              android_material_icon_name="notifications_active"
-              size={scaleIconSize(20)}
-              color={colors.primary}
-            />
-            <Text style={styles.testButtonText}>Probar Notificaciones</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Notificaciones - REMOVED: Duplicate options now in /perfil/notificaciones */}
 
         {/* Cuenta */}
         <View style={styles.section}>

@@ -1042,19 +1042,22 @@ export const getNotificationStatus = async (): Promise<{
 /**
  * Inicializar sistema completo de notificaciones
  * Llamar al inicio de la app
+ * 🆕 v1.4: Notificaciones activadas por defecto para todos los usuarios
  */
 export const initializeNotifications = async (userId?: string): Promise<void> => {
   try {
     console.log('[Notifications] 🚀 Inicializando sistema de notificaciones con sonido de brindis...');
+    console.log('[Notifications] 🔔 Notificaciones activadas por defecto para todos los usuarios');
     
     // Configurar categorías
     await setupNotificationCategories();
     
-    // Registrar para notificaciones si hay usuario
+    // ✅ v1.4: Registrar para notificaciones SIEMPRE si hay usuario (activadas por defecto)
     if (userId) {
       const token = await registerForPushNotifications();
       if (token) {
         await savePushToken(userId, token);
+        console.log('[Notifications] ✅ Notificaciones activadas por defecto para usuario:', userId);
       }
     }
     

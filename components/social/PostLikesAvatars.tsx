@@ -244,11 +244,11 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
   }, [user, router]);
 
-  // ✅ CRITICAL FIX v101.0: Memoize text generation with stable dependencies
+  // ✅ CRITICAL FIX v318.0: Show avatar and name even when there's only 1 like
   const getLikesText = useMemo(() => {
     const otherUsers = tempProfiles.filter(u => u.id !== user?.id);
     
-    console.log('[PostLikesAvatars v101.0] 📊 Generating text:', {
+    console.log('[PostLikesAvatars v318.0] 📊 Generating text:', {
       currentUserHasLiked,
       currentTotalLikes,
       tempProfilesCount: tempProfiles.length,
@@ -291,6 +291,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       }
     }
 
+    // ✅ FIX v318.0: Show avatar and name even when there's only 1 like
     if (currentTotalLikes === 1 && otherUsers.length > 0) {
       const username = otherUsers[0].username || otherUsers[0].nombre;
       return (
@@ -352,6 +353,7 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       );
     }
     
+    // ✅ FIX v318.0: Fallback - show generic text if no profiles loaded yet
     if (currentTotalLikes === 1) {
       return <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>1 me gusta</Text>;
     }

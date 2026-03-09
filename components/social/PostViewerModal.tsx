@@ -1541,6 +1541,11 @@ export default function PostViewerModal({
           )}
         </TouchableOpacity>
 
+        {/* TODO: Backend Integration - GET /api/posts/:id/comments/preview to fetch first commenter info
+            Expected response: { firstCommenter: { name: string }, totalComments: number }
+            Display: "Jorge ha escrito un comentario y otras personas..." or "Jorge y otras personas han comentado esta publicación."
+        */}
+
         <View style={styles.timeContainer}>
           <Text style={[styles.timeText, { fontSize: scaleFontSize(11) }]}>
             {formatTimeAgo(post.created_at)}

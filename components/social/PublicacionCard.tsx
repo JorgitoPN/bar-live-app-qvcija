@@ -861,6 +861,11 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
         )}
       </TouchableOpacity>
 
+      {/* TODO: Backend Integration - GET /api/posts/:id/comments/preview to fetch first commenter info
+          Expected response: { firstCommenter: { name: string }, totalComments: number }
+          Display: "Jorge ha escrito un comentario y otras personas..." or "Jorge y otras personas han comentado esta publicación."
+      */}
+
       <SharePostModal
         visible={shareModalVisible}
         postId={post.id}
