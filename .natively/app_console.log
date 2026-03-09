@@ -32587,3 +32587,159 @@ We recommend you instead use a development build to avoid limitations. Learn mor
 [2026-03-09T09:45:34.340Z] [Android] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
 [2026-03-09T09:45:34.419Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 📋 Today's schedule: {"diaActual":"lunes","horarioActual":["10:00–00:00"],"hasSchedule":true}
 [2026-03-09T09:45:34.379Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:45","horaActualMinutos":645}
+[2026-03-09T09:45:37.132Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v339.1] ✅ Usuario autenticado, toggling favorite
+[2026-03-09T09:45:37.160Z] [Android] [LOG] [InternalBytecode.js:1] [FavoritesStore] ⚠️ No user logged in
+[2026-03-09T09:45:39.364Z] [Android] [LOG] [DetalleLocal v339.1] 🔙 Close button pressed - using fast navigation
+[2026-03-09T09:45:39.600Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ User role: propietario Current mode: cliente Pathname: /explorar Bottom inset: 48
+[2026-03-09T09:45:39.417Z] [Android] [LOG] [DetalleLocal v339.1] ✅ Fast navigation executed - scroll position preserved
+[2026-03-09T09:45:39.638Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T09:45:39.975Z] [Android] [LOG] [ProfileTab v344.0] ✅ Image rendered successfully
+[2026-03-09T09:45:41.149Z] [Android] [LOG] [FloatingTabBar v347.0] ➡️ Pestaña inactiva - Usando router.replace()
+[2026-03-09T09:45:41.075Z] [Android] [LOG] [FloatingTabBar v347.0] 🔘 Tab pressed: perfil | Active: false
+[2026-03-09T09:45:41.844Z] [Android] [LOG] [InternalBytecode.js:1] [ProfileCache] ✅ Cache hit for user:da8f89d8-f384-4c52-a7cc-1583687943dc! (age: 130s)
+[2026-03-09T09:45:41.593Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T09:45:41.551Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ User role: propietario Current mode: cliente Pathname: /perfil Bottom inset: 48
+[2026-03-09T09:45:43.653Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ User role: propietario Current mode: cliente Pathname: /perfil/configuracion Bottom inset: 48
+[2026-03-09T09:45:43.702Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T09:45:44.302Z] [Android] [LOG] [InternalBytecode.js:1] [ProfileCache] 💾 Cached user:da8f89d8-f384-4c52-a7cc-1583687943dc (1 posts)
+[2026-03-09T09:45:47.334Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ User role: propietario Current mode: cliente Pathname: /social Bottom inset: 48
+[2026-03-09T09:45:46.865Z] [Android] [LOG] [FloatingTabBar v347.0] 🔘 Tab pressed: social | Active: false
+[2026-03-09T09:45:46.938Z] [Android] [LOG] [FloatingTabBar v347.0] ➡️ Pestaña inactiva - Usando router.replace()
+[2026-03-09T09:45:47.377Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T09:45:47.744Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-02-11T02:05:22.481713+00:00","imageError":false,"shouldShowImage":true}
+[2026-03-09T09:45:47.675Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] ✅ Image loaded successfully: https://embntaqwlwmgazvrglaf.supabase.co/storage/v
+[2026-03-09T09:45:48.308Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-01-18T06:11:24.429709+00:00","imageError":false,"shouldShowImage":true}
+[2026-03-09T09:45:48.210Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-02-11T02:05:22.481713+00:00","imageError":false,"shouldShowImage":true}
+[2026-03-09T09:45:49.315Z] [Android] [LOG] [InternalBytecode.js:1] [MomentoCarousel v168.0] 🔄 Loading momento authors...
+[2026-03-09T09:45:49.277Z] [Android] [LOG] [InternalBytecode.js:1] [UnifiedMomentoAvatar v54.0] 🔍 Checking momentos for: {"userId":"da8f89d8-f384-4c52-a7cc-1583687943dc"}
+[2026-03-09T09:45:49.488Z] [Android] [LOG] [InternalBytecode.js:1] [MomentoCarousel v168.0] ℹ️ No active momentos found
+[2026-03-09T09:45:49.572Z] [Android] [LOG] [InternalBytecode.js:1] [UnifiedMomentoAvatar v54.0] ℹ️ No momentos found
+[2026-03-09T09:45:50.456Z] [Android] [LOG] [useInteractionContext] 🎭 Interaction context: {"interactionUserId":"da8f89d8-f384-4c52-a7cc-1583687943dc","interactionType":"usuario","interactionLocalId":null,"isInteractingAsLocal":false,"displayName":"Jorge Pérez","displayAvatar":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/avatars/da8f89d8-f384-4c52-a7cc-1583687943dc/da8f89d8-f384-4c52-a7cc-1583687943dc-1770775520396.png"}
+[2026-03-09T09:45:51.279Z] [Android] [LOG] [PostLikesAvatars v101.0] ✅ State updated: {"userLiked":false,"totalLikes":0}
+[2026-03-09T09:45:50.497Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":null,"imageError":false,"shouldShowImage":true}
+[2026-03-09T09:45:50.960Z] [Android] [LOG] [PostLikesAvatars v101.0] 🔄 localLikes changed for post: 663ba04f-7930-461b-b50c-1c1252a9dd78 {"count":0,"users":[]}
+[2026-03-09T09:45:50.581Z] [Android] [LOG] [PostLikesAvatars v101.0] 📊 Generating text: {"currentUserHasLiked":false,"currentTotalLikes":1,"tempProfilesCount":0,"otherUsersCount":0}
+[2026-03-09T09:45:51.321Z] [Android] [LOG] [InternalBytecode.js:1] [PublicacionCard v328.0] 🔄 Loading initial likes for post: 663ba04f-7930-461b-b50c-1c1252a9dd78
+[2026-03-09T09:45:51.298Z] [Android] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ℹ️ No likes to display, clearing tempProfiles
+[2026-03-09T09:45:51.377Z] [Android] [LOG] [FloatingTabBar v347.0] 🔘 Tab pressed: explorar | Active: false
+[2026-03-09T09:45:51.415Z] [Android] [LOG] [FloatingTabBar v347.0] ➡️ Pestaña inactiva - Usando router.replace()
+[2026-03-09T09:45:51.533Z] [Android] [LOG] [PostLikesAvatars v101.0] 📊 Generating text: {"currentUserHasLiked":false,"currentTotalLikes":1,"tempProfilesCount":0,"otherUsersCount":0}
+[2026-03-09T09:45:51.912Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T09:45:51.867Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ User role: propietario Current mode: cliente Pathname: /explorar Bottom inset: 48
+[2026-03-09T09:45:52.518Z] [Android] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-01-18T06:11:24.429709+00:00","imageError":false,"shouldShowImage":true}
+[2026-03-09T09:45:52.421Z] [Android] [LOG] [InternalBytecode.js:1] [PublicacionCard v328.0] ✅ Loaded initial likes: 3
+[2026-03-09T09:45:53.184Z] [Android] [LOG] [PostLikesAvatars v101.0] ✅ State updated: {"userLiked":true,"totalLikes":3}
+[2026-03-09T09:45:52.447Z] [Android] [LOG] [InternalBytecode.js:1] [TagDisplay] Loaded tags: 0
+[2026-03-09T09:45:52.866Z] [Android] [LOG] [PostLikesAvatars v101.0] 🔄 localLikes changed for post: 663ba04f-7930-461b-b50c-1c1252a9dd78 {"count":3,"users":["4f3ce732-f479-43f2-acb2-e92831c6bec0","a5def648-6df3-47ae-885e-d15d0a0266ae","da8f89d8-f384-4c52-a7cc-1583687943dc"]}
+[2026-03-09T09:45:53.202Z] [Android] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ➕ OPTIMISTIC: Adding current user profile IMMEDIATELY
+[2026-03-09T09:45:53.235Z] [Android] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] 🔍 Fetching user data in background for: ["4f3ce732-f479-43f2-acb2-e92831c6bec0","a5def648-6df3-47ae-885e-d15d0a0266ae","da8f89d8-f384-4c52-a7cc-1583687943dc"]
+[2026-03-09T09:45:53.218Z] [Android] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ✅ OPTIMISTIC: User avatar added instantly
+[2026-03-09T09:45:53.508Z] [Android] [LOG] [PostLikesAvatars v101.0] 📊 Generating text: {"currentUserHasLiked":true,"currentTotalLikes":3,"tempProfilesCount":3,"otherUsersCount":2}
+[2026-03-09T09:45:53.308Z] [Android] [LOG] [PostLikesAvatars v101.0] 📊 Generating text: {"currentUserHasLiked":true,"currentTotalLikes":3,"tempProfilesCount":1,"otherUsersCount":0}
+[2026-03-09T09:45:53.385Z] [Android] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ✅ Loaded 3 like users
+[2026-03-09T09:45:53.723Z] [Android] [LOG] [DetalleLocal v339.1] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-03-09T09:45:53.677Z] [Android] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:45:53.774Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v339.1] 🚀 Starting optimized location fetch
+[2026-03-09T09:45:53.789Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v339.1] ⚡ Using cached location (instant)
+[2026-03-09T09:45:53.888Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ User role: propietario Current mode: cliente Pathname: /detalle/local Bottom inset: 48
+[2026-03-09T09:45:53.804Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v339.1] 📍 Cached coords: 43.0407424 -8.4235472
+[2026-03-09T09:45:53.933Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T09:45:54.449Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v339.1] ✅ Local loaded: {"id":"c133f75d-7e51-4596-864a-90139097ce8d","nombre":"Café bar A'Vasca","propietario_id":null,"rating":0,"google_rating":3.8}
+[2026-03-09T09:45:54.595Z] [Android] [LOG] [DetalleLocal v339.1] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-03-09T09:45:54.638Z] [Android] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:45:54.596Z","spainTimeString":"2026-03-09 10:45:54","spainTime":"2026-03-09T09:45:54.000Z","localHour":10,"localMinute":45}
+[2026-03-09T09:45:54.675Z] [Android] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"Café bar A'Vasca","diaActual":"lunes","horaActual":10,"minutoActual":45,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:45:54.548Z] [Android] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:45:54.712Z] [Android] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:45:54.750Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:45","horaActualMinutos":645}
+[2026-03-09T09:45:54.826Z] [Android] [LOG] [getEstadoLocal v456.0] ✅ Result: {"badge":"Abierto ahora","estaAbierto":true,"claseBg":"bg-green-500"}
+[2026-03-09T09:45:54.789Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 📋 Today's schedule: {"diaActual":"lunes","horarioActual":["10:00–00:00"],"hasSchedule":true}
+[2026-03-09T09:45:54.945Z] [Android] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:45:54.977Z] [Android] [LOG] [DetalleLocal v339.1] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-03-09T09:45:55.058Z] [Android] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"Café bar A'Vasca","diaActual":"lunes","horaActual":10,"minutoActual":45,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:45:55.020Z] [Android] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:45:54.977Z","spainTimeString":"2026-03-09 10:45:54","spainTime":"2026-03-09T09:45:54.000Z","localHour":10,"localMinute":45}
+[2026-03-09T09:45:55.095Z] [Android] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:45:55.135Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:45","horaActualMinutos":645}
+[2026-03-09T09:45:55.303Z] [Android] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:45:55.388Z] [Android] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:45:55.340Z","spainTimeString":"2026-03-09 10:45:55","spainTime":"2026-03-09T09:45:55.000Z","localHour":10,"localMinute":45}
+[2026-03-09T09:45:55.456Z] [Android] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:45:55.421Z] [Android] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"Café bar A'Vasca","diaActual":"lunes","horaActual":10,"minutoActual":45,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:45:55.339Z] [Android] [LOG] [DetalleLocal v339.1] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-03-09T09:45:55.505Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:45","horaActualMinutos":645}
+[2026-03-09T09:45:55.588Z] [Android] [LOG] [getEstadoLocal v456.0] ✅ Result: {"badge":"Abierto ahora","estaAbierto":true,"claseBg":"bg-green-500"}
+[2026-03-09T09:45:55.625Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v339.1] ✅ Loaded checked-in users: 0
+[2026-03-09T09:45:55.549Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 📋 Today's schedule: {"diaActual":"lunes","horarioActual":["10:00–00:00"],"hasSchedule":true}
+[2026-03-09T09:45:55.682Z] [Android] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:45:55.723Z] [Android] [LOG] [DetalleLocal v339.1] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-03-09T09:45:55.794Z] [Android] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"Café bar A'Vasca","diaActual":"lunes","horaActual":10,"minutoActual":45,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:45:55.760Z] [Android] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:45:55.723Z","spainTimeString":"2026-03-09 10:45:55","spainTime":"2026-03-09T09:45:55.000Z","localHour":10,"localMinute":45}
+[2026-03-09T09:45:55.825Z] [Android] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:45:55.864Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:45","horaActualMinutos":645}
+[2026-03-09T09:45:55.992Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v339.1] ✅ Loaded unified reviews: {"barlive":0,"google":5,"total":5}
+[2026-03-09T09:45:56.039Z] [Android] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:45:56.119Z] [Android] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:45:56.078Z","spainTimeString":"2026-03-09 10:45:56","spainTime":"2026-03-09T09:45:56.000Z","localHour":10,"localMinute":45}
+[2026-03-09T09:45:56.078Z] [Android] [LOG] [DetalleLocal v339.1] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-03-09T09:45:56.001Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v339.1] 📊 Using Google rating: 3.8
+[2026-03-09T09:45:56.157Z] [Android] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"Café bar A'Vasca","diaActual":"lunes","horaActual":10,"minutoActual":45,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:45:56.272Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 📋 Today's schedule: {"diaActual":"lunes","horarioActual":["10:00–00:00"],"hasSchedule":true}
+[2026-03-09T09:45:56.237Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:45","horaActualMinutos":645}
+[2026-03-09T09:45:56.193Z] [Android] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:45:56.321Z] [Android] [LOG] [getEstadoLocal v456.0] ✅ Result: {"badge":"Abierto ahora","estaAbierto":true,"claseBg":"bg-green-500"}
+[2026-03-09T09:45:57.686Z] [Android] [LOG] [DetalleLocal v339.1] 🔙 Close button pressed - using fast navigation
+[2026-03-09T09:45:57.744Z] [Android] [LOG] [DetalleLocal v339.1] ✅ Fast navigation executed - scroll position preserved
+[2026-03-09T09:45:57.974Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T09:45:57.932Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ User role: propietario Current mode: cliente Pathname: /explorar Bottom inset: 48
+[2026-03-09T09:45:58.209Z] [Android] [LOG] [ProfileTab v344.0] ✅ Image rendered successfully
+[2026-03-09T09:45:57.568Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-09T09:45:57.568Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-09T09:45:58.207Z] [Web] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:45:58.208Z] [Web] [LOG] [DetalleLocal v338.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-03-09T09:45:58.494Z] [Web] [LOG] [calcularEstadoHorarioNormal v456.0] 📋 Today's schedule: {"diaActual":"lunes","horarioActual":["09:30–22:30"],"hasSchedule":true}
+[2026-03-09T09:45:58.492Z] [Web] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:45:58.516Z] [Web] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:45:58.515Z","spainTimeString":"2026-03-09 10:45:58","spainTime":"2026-03-09T09:45:58.000Z","localHour":10,"localMinute":45}
+[2026-03-09T09:45:58.493Z] [Web] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:45","horaActualMinutos":645}
+[2026-03-09T09:45:58.212Z] [Web] [LOG] [DetalleLocal v339.0] 🚀 Starting optimized location fetch
+[2026-03-09T09:45:58.220Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T09:45:58.294Z] [Web] [LOG] [DetalleLocal v339.0] ✅ Location obtained
+[2026-03-09T09:45:58.663Z] [Web] [LOG] [getEstadoLocal v456.0] ✅ Result: {"badge":"Abierto ahora","estaAbierto":true,"claseBg":"bg-green-500"}
+[2026-03-09T09:45:58.236Z] [Web] [LOG] [LocationUtils v461.0] 📍 Requesting location (parallel mode)
+[2026-03-09T09:45:58.295Z] [Web] [LOG] [DetalleLocal v339.0] 📍 Fresh coords: 53.3493 -6.2605
+[2026-03-09T09:45:58.659Z] [Web] [LOG] [DetalleLocal v338.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-03-09T09:45:58.491Z] [Web] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"Bar Casa Talin","diaActual":"lunes","horaActual":10,"minutoActual":45,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:45:58.658Z] [Web] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:45:58.219Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /detalle/local
+[2026-03-09T09:45:58.674Z] [Web] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:45:58.673Z","spainTimeString":"2026-03-09 10:45:58","spainTime":"2026-03-09T09:45:58.000Z","localHour":10,"localMinute":45}
+[2026-03-09T09:45:58.661Z] [Web] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:45:58.490Z] [Web] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:45:58.485Z","spainTimeString":"2026-03-09 10:45:58","spainTime":"2026-03-09T09:45:58.000Z","localHour":10,"localMinute":45}
+[2026-03-09T09:45:58.214Z] [Web] [LOG] [DetalleLocal v339.0] 🔍 No cache, fetching fresh location...
+[2026-03-09T09:45:58.662Z] [Web] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:45","horaActualMinutos":645}
+[2026-03-09T09:45:58.485Z] [Web] [LOG] [DetalleLocal v338.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-03-09T09:45:58.663Z] [Web] [LOG] [calcularEstadoHorarioNormal v456.0] 📋 Today's schedule: {"diaActual":"lunes","horarioActual":["09:30–22:30"],"hasSchedule":true}
+[2026-03-09T09:45:58.494Z] [Web] [LOG] [getEstadoLocal v456.0] ✅ Result: {"badge":"Abierto ahora","estaAbierto":true,"claseBg":"bg-green-500"}
+[2026-03-09T09:45:58.215Z] [Web] [LOG] [LocationUtils v461.0] 🎯 Fetching location (STABLE mode)
+[2026-03-09T09:45:58.484Z] [Web] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:45:58.660Z] [Web] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"Bar Casa Talin","diaActual":"lunes","horaActual":10,"minutoActual":45,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:45:58.483Z] [Web] [LOG] [DetalleLocal v338.0] ✅ Local loaded: {"id":"f236b09c-6fb6-40ab-b327-51bf5c6bdc17","nombre":"Bar Casa Talin","propietario_id":null,"rating":0,"google_rating":3.9}
+[2026-03-09T09:45:58.657Z] [Web] [LOG] [DetalleLocal v338.0] ✅ Loaded checked-in users: 0
+[2026-03-09T09:45:58.660Z] [Web] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:45:58.659Z","spainTimeString":"2026-03-09 10:45:58","spainTime":"2026-03-09T09:45:58.000Z","localHour":10,"localMinute":45}
+[2026-03-09T09:45:58.294Z] [Web] [LOG] [LocationUtils v461.0] ✅ Location obtained from current
+[2026-03-09T09:45:58.809Z] [Web] [LOG] [DetalleLocal v338.0] ✅ Loaded unified reviews: {"barlive":0,"google":5,"total":5}
+[2026-03-09T09:45:58.812Z] [Web] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"Bar Casa Talin","diaActual":"lunes","horaActual":10,"minutoActual":45,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:45:58.809Z] [Web] [LOG] [DetalleLocal v338.0] 📊 Using Google rating: 3.9
+[2026-03-09T09:45:58.812Z] [Web] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:45:58.811Z","spainTimeString":"2026-03-09 10:45:58","spainTime":"2026-03-09T09:45:58.000Z","localHour":10,"localMinute":45}
+[2026-03-09T09:45:58.813Z] [Web] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:45:58.811Z] [Web] [LOG] [DetalleLocal v338.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":null,"shouldShowButtons":true}
+[2026-03-09T09:45:58.810Z] [Web] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:45:58.815Z] [Web] [LOG] [calcularEstadoHorarioNormal v456.0] 📋 Today's schedule: {"diaActual":"lunes","horarioActual":["09:30–22:30"],"hasSchedule":true}
+[2026-03-09T09:45:59.170Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:45:59.299Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:45:58.814Z] [Web] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:45","horaActualMinutos":645}
+[2026-03-09T09:45:58.815Z] [Web] [LOG] [getEstadoLocal v456.0] ✅ Result: {"badge":"Abierto ahora","estaAbierto":true,"claseBg":"bg-green-500"}
+[2026-03-09T09:45:59.065Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:45:59.409Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:45:59.616Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:45:59.511Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:45:59.648Z] [Web] [LOG] [DetalleLocal v338.0] ✅ Fast navigation executed - scroll position preserved
+[2026-03-09T09:45:59.654Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T09:45:59.653Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /explorar
+[2026-03-09T09:45:59.647Z] [Web] [LOG] [DetalleLocal v338.0] 🔙 Close button pressed - using fast navigation
+[2026-03-09T09:46:01.238Z] [Web] [LOG] [LocationUtils v461.0] ⏱️ Location timeout (3s) - will use default
