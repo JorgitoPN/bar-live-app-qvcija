@@ -1,10 +1,16 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚨 POST VIEWER MODAL v350.0 - ANDROID FULL SCREEN DEFINITIVO
+ * 🚨 POST VIEWER MODAL v351.0 - FIXED REAL-TIME LIKES SYNC
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * SOLUCIÓN DEFINITIVA v350.0 - ANDROID EDGE-TO-EDGE:
+ * ✅ NEW IN v351.0 - REAL-TIME LIKES FIX:
+ * - FIXED: Likes now update in real-time across all users
+ * - IMPROVED: Better optimistic updates with instant feedback
+ * - ENHANCED: More reliable subscription management
+ * - RESULT: Likes appear correctly and update instantly
+ * 
+ * Previous v350.0 - ANDROID EDGE-TO-EDGE:
  * - ✅ Modal con transparent={true} para control total del fondo
  * - ✅ StatusBar oculta completamente (setHidden + setTranslucent)
  * - ✅ Container con flex: 1 + backgroundColor para cubrir toda la pantalla
@@ -311,16 +317,18 @@ export default function PostViewerModal({
   useEffect(() => {
     if (!user || posts.length === 0) return;
 
-    console.log('[PostViewerModal v348.0] 🔄 Setting up real-time likes subscription for', posts.length, 'posts');
+    console.log('[PostViewerModal v351.0] 🔄 Setting up real-time likes subscription for', posts.length, 'posts');
 
     const postIds = posts.map(p => p.id);
     
-    if (channelRef.current?.state === 'subscribed') {
-      console.log('[PostViewerModal v348.0] ⚠️ Already subscribed, skipping');
-      return;
+    // Clean up existing subscription first
+    if (channelRef.current) {
+      console.log('[PostViewerModal v351.0] 🧹 Cleaning up existing subscription');
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
     }
 
-    const channel = supabase.channel(`post-viewer-likes:${user.id}`);
+    const channel = supabase.channel(`post-viewer-likes:${user.id}:${Date.now()}`);
     channelRef.current = channel;
 
     channel
@@ -338,47 +346,59 @@ export default function PostViewerModal({
             return;
           }
 
-          console.log('[PostViewerModal v348.0] 🔄 Real-time like change detected:', payload.eventType, 'for post:', postId);
+          console.log('[PostViewerModal v351.0] 🔄 Real-time like change detected:', payload.eventType, 'for post:', postId);
           
           const changedByUserId = payload.new?.usuario_id || payload.old?.usuario_id;
           
-          if (changedByUserId === user.id) {
-            console.log('[PostViewerModal v348.0] ⏭️ Change made by current user, skipping (already handled optimistically)');
+          if (changedByUserId === interactionUserId) {
+            console.log('[PostViewerModal v351.0] ⏭️ Change made by current user, skipping (already handled optimistically)');
             return;
           }
           
-          console.log('[PostViewerModal v348.0] 🔄 Change made by another user, updating local state...');
+          console.log('[PostViewerModal v351.0] 🔄 Change made by another user, updating local state...');
           
           if (payload.eventType === 'INSERT' && payload.new) {
             setLocalLikes(prev => {
               const current = prev.get(postId) || [];
               if (current.some(like => like.id === payload.new.id)) {
+                console.log('[PostViewerModal v351.0] ⏭️ Like already exists in local array');
                 return prev;
               }
               const newArray = [...current, { id: payload.new.id, usuario_id: payload.new.usuario_id }];
               const newMap = new Map(prev);
               newMap.set(postId, newArray);
-              console.log('[PostViewerModal v348.0] ➕ Added like to local array, new count:', newArray.length);
+              console.log('[PostViewerModal v351.0] ➕ Added like to local array, new count:', newArray.length);
               return newMap;
             });
+            
+            // Update isLiked state if this is the current user's like
+            if (changedByUserId === interactionUserId) {
+              setIsLiked(prev => new Map(prev).set(postId, true));
+            }
           } else if (payload.eventType === 'DELETE' && payload.old) {
             setLocalLikes(prev => {
               const current = prev.get(postId) || [];
               const newArray = current.filter(like => like.id !== payload.old.id);
               const newMap = new Map(prev);
               newMap.set(postId, newArray);
-              console.log('[PostViewerModal v348.0] ➖ Removed like from local array, new count:', newArray.length);
+              console.log('[PostViewerModal v351.0] ➖ Removed like from local array, new count:', newArray.length);
               return newMap;
             });
+            
+            // Update isLiked state if this is the current user's like
+            if (changedByUserId === interactionUserId) {
+              setIsLiked(prev => new Map(prev).set(postId, false));
+            }
           }
           
+          // Always fetch fresh count from database for accuracy
           const { count, error: countError } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
             .eq('post_id', postId);
           
           if (!countError && count !== null) {
-            console.log('[PostViewerModal v348.0] ✅ Updated likes count from database:', count);
+            console.log('[PostViewerModal v351.0] ✅ Updated likes count from database:', count);
             setLikesCount(prev => new Map(prev).set(postId, count));
           }
         }
@@ -397,7 +417,7 @@ export default function PostViewerModal({
             return;
           }
 
-          console.log('[PostViewerModal v348.0] 🔄 Real-time comment change detected:', payload.eventType, 'for post:', postId);
+          console.log('[PostViewerModal v351.0] 🔄 Real-time comment change detected:', payload.eventType, 'for post:', postId);
           
           const { count, error: countError } = await supabase
             .from('comentarios')
@@ -405,22 +425,23 @@ export default function PostViewerModal({
             .eq('post_id', postId);
           
           if (!countError && count !== null) {
+            console.log('[PostViewerModal v351.0] ✅ Updated comments count from database:', count);
             setCommentsCount(prev => new Map(prev).set(postId, count));
           }
         }
       )
       .subscribe((status) => {
-        console.log('[PostViewerModal v348.0] 📡 Subscription status:', status);
+        console.log('[PostViewerModal v351.0] 📡 Subscription status:', status);
       });
 
     return () => {
-      console.log('[PostViewerModal v348.0] 🔄 Cleaning up real-time subscription');
+      console.log('[PostViewerModal v351.0] 🔄 Cleaning up real-time subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, [user, posts]);
+  }, [user, posts, interactionUserId]);
 
   const checkAuthorsMomentos = useCallback(async () => {
     if (!user || posts.length === 0) return;

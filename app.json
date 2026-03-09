@@ -31,7 +31,8 @@
       },
       "notification": {
         "icon": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
-        "color": "#14B8A6"
+        "color": "#14B8A6",
+        "androidMode": "default"
       },
       "package": "com.barlive.app",
       "permissions": [
