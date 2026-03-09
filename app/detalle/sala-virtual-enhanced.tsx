@@ -3131,6 +3131,1238 @@ function SalaVirtualEnhancedScreen() {
 
             <View style={[styles.divider, { backgroundColor: themeColors.cardBorder }]} />
 
+            <View style={styles.predefinedMessagesSection}>
+              <Text style={[styles.sectionTitle, { fontSize: scaleFontSize(16), color: themeColors.text }]}>
+                Mensajes Predefinidos
+              </Text>
+              
+              <View style={styles.predefinedMessagesCategory}>
+                <Text style={[styles.categoryTitle, { fontSize: scaleFontSize(14), color: themeColors.textSecondary }]}>
+                  💃 Coqueteo
+                </Text>
+                {PREDEFINED_MESSAGES.flirtatious.map((msg) => (
+                  <TouchableOpacity
+                    key={msg.id}
+                    style={[
+                      styles.predefinedMessageButton,
+                      { 
+                        backgroundColor: themeColors.primary + '15',
+                        borderColor: themeColors.primary + '30',
+                      },
+                    ]}
+                    onPress={() => sendPredefinedMessage(selectedUser.id, msg.text)}
+                  >
+                    <Text style={styles.predefinedMessageEmoji}>{msg.emoji}</Text>
+                    <Text style={[styles.predefinedMessageText, { fontSize: scaleFontSize(14), color: themeColors.text }]}>
+                      {msg.text}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.predefinedMessagesCategory}>
+                <Text style={[styles.categoryTitle, { fontSize: scaleFontSize(14), color: themeColors.textSecondary }]}>
+                  🥂 Invitación
+                </Text>
+                {PREDEFINED_MESSAGES.invitation.map((msg) => (
+                  <TouchableOpacity
+                    key={msg.id}
+                    style={[
+                      styles.predefinedMessageButton,
+                      { 
+                        backgroundColor: themeColors.primary + '15',
+                        borderColor: themeColors.primary + '30',
+                      },
+                    ]}
+                    onPress={() => sendPredefinedMessage(selectedUser.id, msg.text)}
+                  >
+                    <Text style={styles.predefinedMessageEmoji}>{msg.emoji}</Text>
+                    <Text style={[styles.predefinedMessageText, { fontSize: scaleFontSize(14), color: themeColors.text }]}>
+                      {msg.text}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.predefinedMessagesCategory}>
+                <Text style={[styles.categoryTitle, { fontSize: scaleFontSize(14), color: themeColors.textSecondary }]}>
+                  😊 Rompehielos
+                </Text>
+                {PREDEFINED_MESSAGES.icebreaker.map((msg) => (
+                  <TouchableOpacity
+                    key={msg.id}
+                    style={[
+                      styles.predefinedMessageButton,
+                      { 
+                        backgroundColor: themeColors.primary + '15',
+                        borderColor: themeColors.primary + '30',
+                      },
+                    ]}
+                    onPress={() => sendPredefinedMessage(selectedUser.id, msg.text)}
+                  >
+                    <Text style={styles.predefinedMessageEmoji}>{msg.emoji}</Text>
+                    <Text style={[styles.predefinedMessageText, { fontSize: scaleFontSize(14), color: themeColors.text }]}>
+                      {msg.text}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
+        </Animated.View>
+      </React.Fragment>
+    );
+  };
+
+  if (showLoginModal) {
+    return (
+      <VirtualRoomLoginModal
+        visible={showLoginModal}
+        onClose={() => {
+          setShowLoginModal(false);
+          router.back();
+        }}
+        onLoginSuccess={() => {
+          setShowLoginModal(false);
+        }}
+      />
+    );
+  }
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: themeColors.background[0] }]}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={themeColors.primary} />
+          <Text style={[styles.loadingText, { fontSize: scaleFontSize(16), color: themeColors.text }]}>
+            Cargando sala virtual...
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (localClosed) {
+    return (
+      <View style={[styles.container, { backgroundColor: themeColors.background[0] }]}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.closedContainer}>
+          <IconSymbol
+            ios_icon_name="moon.zzz.fill"
+            android_material_icon_name="nightlight"
+            size={Platform.OS === 'android' ? scaleIconSize(80) : 80}
+            color={themeColors.textSecondary}
+          />
+          <Text style={[styles.closedTitle, { fontSize: scaleFontSize(24), color: themeColors.text }]}>
+            Local Cerrado
+          </Text>
+          <Text style={[styles.closedText, { fontSize: scaleFontSize(16), color: themeColors.textSecondary }]}>
+            La sala virtual está cerrada porque el local no está abierto en este momento.
+          </Text>
+          <TouchableOpacity
+            style={[styles.closedButton, { backgroundColor: themeColors.primary }]}
+            onPress={() => router.back()}
+          >
+            <Text style={[styles.closedButtonText, { fontSize: scaleFontSize(16) }]}>
+              Volver
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <SalaVirtualErrorBoundary>
+      <LinearGradient
+        colors={themeColors.background}
+        style={styles.container}
+      >
+        <Stack.Screen
+          options={{
+            headerShown: true,
+            title: local?.nombre || 'Sala Virtual',
+            headerStyle: {
+              backgroundColor: themeColors.cardBg,
+            },
+            headerTintColor: themeColors.text,
+            headerRight: () => (
+              <TouchableOpacity
+                onPress={handleCheckOut}
+                style={[styles.closeButton, { paddingVertical: getActionButtonPaddingVertical() }]}
+              >
+                <IconSymbol
+                  ios_icon_name="xmark.circle.fill"
+                  android_material_icon_name="cancel"
+                  size={Platform.OS === 'android' ? scaleIconSize(28) : 28}
+                  color={themeColors.text}
+                />
+              </TouchableOpacity>
+            ),
+          }}
+        />
+
+        {closingWarning && (
+          <View style={[styles.warningBanner, { backgroundColor: themeColors.danger + '20', borderBottomColor: themeColors.danger }]}>
+            <Text style={[styles.warningText, { fontSize: scaleFontSize(13), color: themeColors.danger }]}>
+              {closingWarning}
+            </Text>
+          </View>
+        )}
+
+        <View style={[styles.tabBar, { backgroundColor: themeColors.cardBg, borderBottomColor: themeColors.cardBorder }]}>
+          <TouchableOpacity
+            style={[
+              styles.tab,
+              activeTab === 'chat' && { borderBottomColor: themeColors.primary, borderBottomWidth: 2 },
+            ]}
+            onPress={() => setActiveTab('chat')}
+          >
+            <IconSymbol
+              ios_icon_name="bubble.left.and.bubble.right.fill"
+              android_material_icon_name="chat"
+              size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
+              color={activeTab === 'chat' ? themeColors.primary : themeColors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                { fontSize: scaleFontSize(14) },
+                activeTab === 'chat' ? { color: themeColors.primary } : { color: themeColors.textSecondary },
+              ]}
+            >
+              Chat
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.tab,
+              activeTab === 'users' && { borderBottomColor: themeColors.primary, borderBottomWidth: 2 },
+            ]}
+            onPress={() => setActiveTab('users')}
+          >
+            <IconSymbol
+              ios_icon_name="person.3.fill"
+              android_material_icon_name="group"
+              size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
+              color={activeTab === 'users' ? themeColors.primary : themeColors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                { fontSize: scaleFontSize(14) },
+                activeTab === 'users' ? { color: themeColors.primary } : { color: themeColors.textSecondary },
+              ]}
+            >
+              Usuarios ({uniqueActiveUsers.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.tab,
+              activeTab === 'private' && { borderBottomColor: themeColors.primary, borderBottomWidth: 2 },
+            ]}
+            onPress={() => setActiveTab('private')}
+          >
+            <IconSymbol
+              ios_icon_name="lock.fill"
+              android_material_icon_name="lock"
+              size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
+              color={activeTab === 'private' ? themeColors.primary : themeColors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                { fontSize: scaleFontSize(14) },
+                activeTab === 'private' ? { color: themeColors.primary } : { color: themeColors.textSecondary },
+              ]}
+            >
+              Privados
+            </Text>
+            {privateChats.some(chat => chat.unreadCount > 0) && (
+              <Animated.View 
+                style={[
+                  styles.tabBadge, 
+                  { 
+                    backgroundColor: '#06B6D4',
+                    transform: [{ scale: pulseAnim }],
+                  }
+                ]}
+              >
+                <View style={styles.tabBadgeDot} />
+              </Animated.View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {activeTab === 'chat' && (
+          <KeyboardAvoidingWrapper>
+            <View style={styles.chatContainer}>
+              {messages.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <IconSymbol
+                    ios_icon_name="bubble.left.and.bubble.right"
+                    android_material_icon_name="chat_bubble_outline"
+                    size={Platform.OS === 'android' ? scaleIconSize(64) : 64}
+                    color={themeColors.textSecondary}
+                  />
+                  <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(16), color: themeColors.textSecondary }]}>
+                    No hay mensajes aún.{'\n'}¡Sé el primero en escribir!
+                  </Text>
+                </View>
+              ) : (
+                <FlashList
+                  ref={flashListRef}
+                  data={messages}
+                  renderItem={renderMessage}
+                  keyExtractor={(item, index) => `${item.id}-${index}`}
+                  estimatedItemSize={80}
+                  contentContainerStyle={[
+                    styles.messagesList,
+                    { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 120 : 120 }
+                  ]}
+                  onContentSizeChange={() => {
+                    setTimeout(() => {
+                      flashListRef.current?.scrollToEnd({ animated: true });
+                    }, 100);
+                  }}
+                />
+              )}
+
+              {showQuickMessages && renderQuickMessagesBar()}
+
+              <View 
+                style={[
+                  styles.inputContainer, 
+                  { 
+                    backgroundColor: themeColors.cardBg, 
+                    borderTopColor: themeColors.cardBorder,
+                    bottom: keyboardHeight > 0 ? keyboardHeight : 0,
+                  }
+                ]}
+              >
+                <TextInput
+                  style={[
+                    styles.input,
+                    { 
+                      fontSize: scaleFontSize(15), 
+                      color: themeColors.text, 
+                      backgroundColor: themeColors.background[0] + '80',
+                    }
+                  ]}
+                  placeholder="Escribe un mensaje..."
+                  placeholderTextColor={themeColors.textSecondary}
+                  value={newMessage}
+                  onChangeText={setNewMessage}
+                  multiline
+                  maxLength={500}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.sendButton,
+                    { backgroundColor: themeColors.primary },
+                    (!newMessage.trim() || sending) && { opacity: 0.5 },
+                  ]}
+                  onPress={() => {
+                    if (newMessage.trim() && !sending) {
+                      sendPublicMessage(newMessage.trim());
+                    }
+                  }}
+                  disabled={!newMessage.trim() || sending}
+                >
+                  {sending ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <IconSymbol
+                      ios_icon_name="paperplane.fill"
+                      android_material_icon_name="send"
+                      size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
+                      color="#FFFFFF"
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingWrapper>
+        )}
+
+        {activeTab === 'users' && (
+          <View style={styles.usersContainer}>
+            {uniqueActiveUsers.length === 0 ? (
+              <View style={styles.emptyState}>
+                <IconSymbol
+                  ios_icon_name="person.3"
+                  android_material_icon_name="group"
+                  size={Platform.OS === 'android' ? scaleIconSize(64) : 64}
+                  color={themeColors.textSecondary}
+                />
+                <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(16), color: themeColors.textSecondary }]}>
+                  No hay usuarios en la sala.
+                </Text>
+              </View>
+            ) : (
+              <FlashList
+                data={uniqueActiveUsers}
+                renderItem={renderUserItem}
+                keyExtractor={(item, index) => `${item.id}-${index}`}
+                numColumns={3}
+                estimatedItemSize={120}
+                contentContainerStyle={styles.gridUsersList}
+              />
+            )}
+          </View>
+        )}
+
+        {activeTab === 'private' && !selectedPrivateChat && (
+          <View style={styles.privateChatsContainer}>
+            {privateChats.length === 0 ? (
+              <View style={styles.emptyState}>
+                <IconSymbol
+                  ios_icon_name="lock.fill"
+                  android_material_icon_name="lock"
+                  size={Platform.OS === 'android' ? scaleIconSize(64) : 64}
+                  color={themeColors.textSecondary}
+                />
+                <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(16), color: themeColors.textSecondary }]}>
+                  No tienes conversaciones privadas.{'\n'}¡Envía un mensaje a alguien!
+                </Text>
+              </View>
+            ) : (
+              <FlashList
+                data={privateChats}
+                renderItem={renderPrivateChatItem}
+                keyExtractor={(item, index) => `${item.userId}-${index}`}
+                estimatedItemSize={80}
+                contentContainerStyle={styles.privateChatsListContent}
+              />
+            )}
+          </View>
+        )}
+
+        {activeTab === 'private' && selectedPrivateChat && (
+          <KeyboardAvoidingWrapper>
+            <View style={styles.privateChatScreen}>
+              <View style={[styles.privateChatHeader, { backgroundColor: themeColors.cardBg, borderBottomColor: themeColors.cardBorder }]}>
+                <TouchableOpacity
+                  onPress={closePrivateChat}
+                  style={styles.privateChatBackButton}
+                >
+                  <IconSymbol
+                    ios_icon_name="chevron.left"
+                    android_material_icon_name="arrow_back"
+                    size={Platform.OS === 'android' ? scaleIconSize(24) : 24}
+                    color={themeColors.text}
+                  />
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.privateChatHeaderInfo}
+                  onPress={handlePrivateChatUserPress}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.privateChatHeaderAvatar}>
+                    {selectedPrivateChat.avatar ? (
+                      <Image
+                        source={resolveImageSource(selectedPrivateChat.avatar)}
+                        style={styles.privateChatHeaderAvatarImage}
+                      />
+                    ) : (
+                      <View style={[styles.privateChatHeaderAvatarPlaceholder, { backgroundColor: themeColors.primary + '30' }]}>
+                        <IconSymbol
+                          ios_icon_name="person.fill"
+                          android_material_icon_name="person"
+                          size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
+                          color={themeColors.text}
+                        />
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.privateChatHeaderTextContainer}>
+                    <Text style={[styles.privateChatHeaderName, { fontSize: scaleFontSize(16), color: themeColors.text }]}>
+                      {selectedPrivateChat.username 
+                        ? selectedPrivateChat.username.replace('@', '')
+                        : selectedPrivateChat.nombre
+                      }
+                    </Text>
+                    {typingUsers.has(selectedPrivateChat.userId) && (
+                      <Text style={[styles.privateChatHeaderTyping, { fontSize: scaleFontSize(12), color: themeColors.primary }]}>
+                        escribiendo...
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {privateChatMessages.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <IconSymbol
+                    ios_icon_name="lock.fill"
+                    android_material_icon_name="lock"
+                    size={Platform.OS === 'android' ? scaleIconSize(64) : 64}
+                    color={themeColors.textSecondary}
+                  />
+                  <Text style={[styles.emptyStateText, { fontSize: scaleFontSize(16), color: themeColors.textSecondary }]}>
+                    Inicia la conversación
+                  </Text>
+                </View>
+              ) : (
+                <FlashList
+                  ref={privateChatFlashListRef}
+                  data={privateChatMessages}
+                  renderItem={renderMessage}
+                  keyExtractor={(item, index) => `${item.id}-${index}`}
+                  estimatedItemSize={80}
+                  contentContainerStyle={[
+                    styles.messagesList,
+                    { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : 80 }
+                  ]}
+                  onContentSizeChange={() => {
+                    setTimeout(() => {
+                      privateChatFlashListRef.current?.scrollToEnd({ animated: true });
+                    }, 100);
+                  }}
+                />
+              )}
+
+              <View 
+                style={[
+                  styles.inputContainer, 
+                  { 
+                    backgroundColor: themeColors.cardBg, 
+                    borderTopColor: themeColors.cardBorder,
+                    bottom: keyboardHeight > 0 ? keyboardHeight : 0,
+                  }
+                ]}
+              >
+                <TextInput
+                  style={[
+                    styles.input,
+                    { 
+                      fontSize: scaleFontSize(15), 
+                      color: themeColors.text, 
+                      backgroundColor: themeColors.background[0] + '80',
+                    }
+                  ]}
+                  placeholder="Escribe un mensaje privado..."
+                  placeholderTextColor={themeColors.textSecondary}
+                  value={newMessage}
+                  onChangeText={handlePrivateMessageChange}
+                  multiline
+                  maxLength={500}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.sendButton,
+                    { backgroundColor: themeColors.primary },
+                    (!newMessage.trim() || sending) && { opacity: 0.5 },
+                  ]}
+                  onPress={() => {
+                    if (newMessage.trim() && !sending && selectedPrivateChat) {
+                      sendPrivateMessage(selectedPrivateChat.userId, newMessage.trim());
+                      setNewMessage('');
+                    }
+                  }}
+                  disabled={!newMessage.trim() || sending}
+                >
+                  {sending ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <IconSymbol
+                      ios_icon_name="paperplane.fill"
+                      android_material_icon_name="send"
+                      size={Platform.OS === 'android' ? scaleIconSize(20) : 20}
+                      color="#FFFFFF"
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingWrapper>
+        )}
+
+        {renderBottomSheet()}
+
+        {showAnimation && (
+          <View style={styles.animationOverlay} pointerEvents="none">
+            <Animated.View
+              style={[
+                styles.animationContainer,
+                {
+                  transform: [{ scale: animationScale }],
+                  opacity: animationOpacity,
+                },
+              ]}
+            >
+              <Text style={styles.animationEmoji}>{animationEmoji}</Text>
+            </Animated.View>
+          </View>
+        )}
+
+        {floatingParticles.map((particle) => (
+          <Animated.View
+            key={particle.id}
+            style={[
+              styles.floatingParticle,
+              {
+                transform: [
+                  { translateX: particle.x },
+                  { translateY: particle.y },
+                  { scale: particle.scale },
+                ],
+                opacity: particle.opacity,
+              },
+            ]}
+            pointerEvents="none"
+          >
+            <Text style={styles.floatingParticleEmoji}>{particle.emoji}</Text>
+          </Animated.View>
+        ))}
+
+        <Modal
+          visible={showDeleteModal}
+          transparent
+          animationType="fade"
+          onRequestClose={cancelDeleteMessage}
+        >
+          <Pressable style={styles.deleteModalOverlay} onPress={cancelDeleteMessage}>
+            <Pressable style={[styles.deleteModalContent, { backgroundColor: themeColors.cardBg }]}>
+              <Text style={[styles.deleteModalTitle, { fontSize: scaleFontSize(18), color: themeColors.text }]}>
+                Eliminar Mensaje
+              </Text>
+              <Text style={[styles.deleteModalText, { fontSize: scaleFontSize(14), color: themeColors.textSecondary }]}>
+                ¿Estás seguro de que quieres eliminar este mensaje?
+              </Text>
+              <View style={styles.deleteModalButtons}>
+                <TouchableOpacity
+                  style={[styles.deleteModalButton, { backgroundColor: themeColors.textSecondary + '20' }]}
+                  onPress={cancelDeleteMessage}
+                  disabled={deleting}
+                >
+                  <Text style={[styles.deleteModalButtonText, { fontSize: scaleFontSize(15), color: themeColors.text }]}>
+                    Cancelar
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.deleteModalButton, { backgroundColor: themeColors.danger }]}
+                  onPress={confirmDeleteMessage}
+                  disabled={deleting}
+                >
+                  {deleting ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={[styles.deleteModalButtonText, { fontSize: scaleFontSize(15), color: '#FFFFFF' }]}>
+                      Eliminar
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      </LinearGradient>
+    </SalaVirtualErrorBoundary>
+  );
+}
+
+export default function SalaVirtualEnhancedScreenWrapper() {
+  return (
+    <SalaVirtualErrorBoundary>
+      <SalaVirtualEnhancedScreen />
+    </SalaVirtualErrorBoundary>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontWeight: '500',
+  },
+  closedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  closedTitle: {
+    fontWeight: 'bold',
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  closedText: {
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  closedButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  closedButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  closeButton: {
+    marginRight: 8,
+  },
+  warningBanner: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+  },
+  warningText: {
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  tabBar: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 6,
+  },
+  tabText: {
+    fontWeight: '600',
+  },
+  tabBadge: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginLeft: 4,
+  },
+  tabBadgeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+  },
+  chatContainer: {
+    flex: 1,
+  },
+  messagesList: {
+    paddingHorizontal: 12,
+    paddingTop: 12,
+  },
+  messageWrapper: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    alignItems: 'flex-end',
+  },
+  messageWrapperOwn: {
+    justifyContent: 'flex-end',
+  },
+  messageWrapperOther: {
+    justifyContent: 'flex-start',
+  },
+  messageAvatar: {
+    marginHorizontal: 8,
+  },
+  messageAvatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  messageAvatarPlaceholder: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  messageContentContainer: {
+    maxWidth: '70%',
+  },
+  messageBubble: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  messageSender: {
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  messageText: {
+    lineHeight: 20,
+  },
+  messageTime: {
+    marginTop: 4,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  emptyStateText: {
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  quickMessagesBar: {
+    borderTopWidth: 1,
+    paddingVertical: 8,
+  },
+  quickMessagesContent: {
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  quickMessageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 6,
+  },
+  quickMessageEmoji: {
+    fontSize: 18,
+  },
+  quickMessageText: {
+    fontWeight: '500',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    gap: 8,
+  },
+  input: {
+    flex: 1,
+    maxHeight: 100,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  usersContainer: {
+    flex: 1,
+  },
+  gridUsersList: {
+    padding: 12,
+  },
+  gridUserItem: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 8,
+    margin: 4,
+  },
+  gridUserAvatarContainer: {
+    position: 'relative',
+    marginBottom: 8,
+  },
+  gridUserAvatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+  },
+  gridUserAvatarPlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gridProximityHalo: {
+    position: 'absolute',
+    top: -8,
+    left: -8,
+    right: -8,
+    bottom: -8,
+    borderRadius: 43,
+    zIndex: -1,
+  },
+  gridUserOnlineDot: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  gridUserName: {
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  gridProximityBadge: {
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  gridProximityText: {
+    fontWeight: '600',
+  },
+  privateChatsContainer: {
+    flex: 1,
+  },
+  privateChatsListContent: {
+    padding: 12,
+  },
+  privateChatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    marginBottom: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  privateChatAvatar: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  privateChatAvatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  privateChatAvatarPlaceholder: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  privateChatOnlineDot: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  privateChatInfo: {
+    flex: 1,
+  },
+  privateChatHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  privateChatName: {
+    fontWeight: '600',
+    flex: 1,
+  },
+  privateChatTime: {
+    marginLeft: 8,
+  },
+  privateChatLastMessage: {
+    marginTop: 2,
+  },
+  privateChatUnreadBadge: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginLeft: 12,
+  },
+  privateChatUnreadDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+  },
+  privateChatScreen: {
+    flex: 1,
+  },
+  privateChatHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+  },
+  privateChatBackButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  privateChatHeaderInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  privateChatHeaderAvatar: {
+    marginRight: 12,
+  },
+  privateChatHeaderAvatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  privateChatHeaderAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  privateChatHeaderTextContainer: {
+    flex: 1,
+  },
+  privateChatHeaderName: {
+    fontWeight: '600',
+  },
+  privateChatHeaderTyping: {
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  bottomSheetOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 999,
+  },
+  bottomSheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    maxHeight: SCREEN_HEIGHT * 0.85,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 1,
+    zIndex: 1000,
+  },
+  bottomSheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  bottomSheetScroll: {
+    flex: 1,
+  },
+  bottomSheetContent: {
+    paddingBottom: 32,
+  },
+  coverContainer: {
+    width: '100%',
+    height: 200,
+    overflow: 'hidden',
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+  },
+  coverGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '100%',
+  },
+  coverGlowEffect: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  coverGlowCircle: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+  },
+  coverTextOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 20,
+  },
+  coverUserName: {
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  coverUserBio: {
+    lineHeight: 20,
+  },
+  bottomSheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  bottomSheetTitle: {
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  profileSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  profileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  profileButtonText: {
+    flex: 1,
+    fontWeight: '600',
+  },
+  divider: {
+    height: 1,
+    marginHorizontal: 20,
+  },
+  predefinedMessagesSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  sectionTitle: {
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  predefinedMessagesCategory: {
+    marginBottom: 20,
+  },
+  categoryTitle: {
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  predefinedMessageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+    gap: 12,
+  },
+  predefinedMessageEmoji: {
+    fontSize: 20,
+  },
+  predefinedMessageText: {
+    flex: 1,
+  },
+  animationOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  animationContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  animationEmoji: {
+    fontSize: 80,
+  },
+  floatingParticle: {
+    position: 'absolute',
+    zIndex: 9998,
+  },
+  floatingParticleEmoji: {
+    fontSize: 32,
+  },
+  deleteModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteModalContent: {
+    width: '80%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 24,
+  },
+  deleteModalTitle: {
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  deleteModalText: {
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  deleteModalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  deleteModalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  deleteModalButtonText: {
+    fontWeight: '600',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  errorTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1E293B',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  errorButton: {
+    backgroundColor: '#0EA5E9',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  errorButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
+
 <write file="components/social/CommentPreview.tsx">
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
