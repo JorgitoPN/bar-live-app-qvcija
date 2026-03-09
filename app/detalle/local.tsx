@@ -768,8 +768,13 @@ export default function DetalleLocalScreen() {
   const handleToggleFavorito = async (e: any) => {
     e.stopPropagation();
     
-    // ✅ FIX v339.1: Check if user is logged in before toggling favorite
-    if (!user) {
+    // ✅ FIX v340.0: Use effectiveUser (userId) instead of user for authentication check
+    // This fixes the issue where the button shows "login required" even when logged in
+    console.log('[DetalleLocal v340.0] 🔍 Favorite button clicked');
+    console.log('[DetalleLocal v340.0] 📊 Auth state:', { user: !!user, userId, isImpersonating });
+    
+    if (!userId) {
+      console.log('[DetalleLocal v340.0] ⚠️ No userId - showing login prompt');
       Alert.alert(
         'Inicia sesión',
         'Debes iniciar sesión para agregar locales a favoritos',
@@ -781,6 +786,7 @@ export default function DetalleLocalScreen() {
       return;
     }
     
+    console.log('[DetalleLocal v340.0] ✅ User authenticated - toggling favorite');
     if (params.id) {
       await toggleFavorite(params.id as string);
     }

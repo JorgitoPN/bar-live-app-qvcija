@@ -1,6 +1,14 @@
 
 /**
- * ✅ CONFIGURACION SCREEN v2.0 - IMPROVED LAYOUT & DESIGN
+ * ✅ CONFIGURACION SCREEN v3.0 - FIXED LAYOUT & ANDROID SHADOWS
+ * 
+ * FIXES v3.0:
+ * - ✅ Fixed content overflow on iOS and Android
+ * - ✅ Removed gray shadow on Android sections
+ * - ✅ Added proper safe area insets for header
+ * - ✅ Fixed content being hidden behind header/footer
+ * - ✅ Improved spacing and alignment
+ * - ✅ Cleaner, more professional design
  * 
  * FIXES v2.0:
  * - ✅ Improved spacing and padding for better readability
@@ -28,6 +36,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   registerForPushNotifications,
   removePushToken,
@@ -38,6 +47,7 @@ import {
 export default function ConfiguracionScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const insets = useSafeAreaInsets();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationStatus, setNotificationStatus] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -156,7 +166,10 @@ export default function ConfiguracionScreen() {
       />
       <ScrollView 
         style={styles.container}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ 
+          paddingTop: 16,
+          paddingBottom: Math.max(insets.bottom + 100, 140)
+        }}
         showsVerticalScrollIndicator={false}
       >
         {/* Notificaciones */}
@@ -339,10 +352,11 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: colors.card,
-    marginTop: 16,
+    marginBottom: 16,
     marginHorizontal: 16,
     borderRadius: 16,
     padding: 20,
+    // ✅ FIX v3.0: Remove Android elevation to eliminate gray shadow
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -351,7 +365,9 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
       },
       android: {
-        elevation: 2,
+        // No elevation - removes gray shadow
+        borderWidth: 1,
+        borderColor: colors.border + '20',
       },
     }),
   },

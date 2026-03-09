@@ -28372,3 +28372,293 @@ We recommend you instead use a development build to avoid limitations. Learn mor
 [2026-03-09T09:48:32.770Z] [Android] [LOG] [getEstadoLocal v456.0] ✅ Result: {"badge":"Abierto ahora","estaAbierto":true,"claseBg":"bg-green-500"}
 [2026-03-09T09:48:32.896Z] [Android] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
 [2026-03-09T09:48:32.853Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v338.0] ✅ Loaded checked-in users: 0
+[2026-03-09T09:48:32.930Z] [Android] [LOG] [DetalleLocal v338.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-03-09T09:48:32.973Z] [Android] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:48:32.930Z","spainTimeString":"2026-03-09 10:48:32","spainTime":"2026-03-09T09:48:32.000Z","localHour":10,"localMinute":48}
+[2026-03-09T09:48:33.051Z] [Android] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:48:33.013Z] [Android] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"O Antoxo De Adriana (A Coruña)","diaActual":"lunes","horaActual":10,"minutoActual":48,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:48:33.092Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:48","horaActualMinutos":648}
+[2026-03-09T09:48:33.129Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 📋 Today's schedule: {"diaActual":"lunes","horarioActual":["09:00–22:00"],"hasSchedule":true}
+[2026-03-09T09:48:33.380Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v338.0] ✅ Loaded unified reviews: {"barlive":0,"google":5,"total":5}
+[2026-03-09T09:48:33.391Z] [Android] [LOG] [InternalBytecode.js:1] [DetalleLocal v338.0] 📊 Using Google rating: 3.6
+[2026-03-09T09:48:33.433Z] [Android] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:48:33.511Z] [Android] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:48:33.469Z","spainTimeString":"2026-03-09 10:48:33","spainTime":"2026-03-09T09:48:33.000Z","localHour":10,"localMinute":48}
+[2026-03-09T09:48:33.469Z] [Android] [LOG] [DetalleLocal v338.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-03-09T09:48:30.034Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:29.912Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:30.147Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:30.372Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:30.260Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:33.551Z] [Android] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"O Antoxo De Adriana (A Coruña)","diaActual":"lunes","horaActual":10,"minutoActual":48,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:48:33.588Z] [Android] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:48:33.628Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:48","horaActualMinutos":648}
+[2026-03-09T09:48:33.716Z] [Android] [LOG] [getEstadoLocal v456.0] ✅ Result: {"badge":"Abierto ahora","estaAbierto":true,"claseBg":"bg-green-500"}
+[2026-03-09T09:48:33.677Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 📋 Today's schedule: {"diaActual":"lunes","horarioActual":["09:00–22:00"],"hasSchedule":true}
+[2026-03-09T09:48:30.939Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:30.598Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:30.485Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:30.711Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:30.823Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:31.162Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:31.050Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:31.272Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:31.384Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:31.495Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:31.607Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:31.831Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:31.719Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:32.061Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:31.952Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:32.174Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:32.287Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:32.511Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:32.399Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:32.622Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:32.735Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:32.847Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:33.216Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:33.104Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:32.980Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:33.445Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:33.787Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:33.674Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:33.329Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:33.562Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:33.929Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:34.049Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:34.167Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:34.409Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:34.306Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:34.634Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:34.522Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:34.872Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:34.993Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:34.747Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:35.115Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:35.222Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:35.432Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:35.537Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:35.327Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:35.645Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:35.888Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:35.754Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:36.129Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:36.004Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:36.251Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:36.623Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:36.373Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:36.502Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:36.747Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:36.867Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:37.004Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:37.123Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:37.241Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:37.356Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:37.471Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:37.815Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:37.585Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:37.699Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:37.930Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:38.049Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:38.164Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:38.276Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:38.503Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:38.390Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:38.618Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:38.733Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:39.106Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:38.849Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:38.988Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:39.464Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:39.350Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:39.234Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:39.690Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:39.579Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:39.805Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:39.915Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:40.034Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:40.247Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:40.143Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:40.352Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:40.668Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:40.775Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:40.563Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:40.458Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:40.895Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:41.013Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:41.341Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:41.131Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:41.237Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:41.446Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:41.551Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:41.869Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:41.656Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:41.760Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:42.033Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:42.140Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:42.244Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:42.350Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:42.456Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:42.564Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:42.669Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:42.885Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:42.772Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:42.994Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:43.130Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:43.489Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:43.377Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:43.602Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:43.260Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:43.717Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:43.831Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:44.061Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:43.951Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:44.174Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:44.407Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:44.288Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:44.526Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:44.754Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:44.639Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:45.012Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:44.874Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:45.141Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:45.254Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:45.367Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:45.481Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:45.592Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:45.803Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:45.935Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:45.697Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:46.038Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:46.145Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:46.250Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:46.355Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:46.461Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:46.568Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:46.898Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:46.779Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:46.672Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:47.008Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:47.119Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:47.550Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:47.331Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:47.224Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:47.440Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:47.762Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:48.001Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:48.128Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:47.656Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:47.895Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:48.242Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:48.470Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:48.585Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:48.708Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:48.355Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:48.836Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:49.190Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:48.968Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:49.076Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:49.304Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:49.419Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:49.654Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:49.890Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:49.769Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:49.538Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:50.025Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:50.143Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:50.257Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:50.288Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-09T09:48:50.287Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-09T09:48:51.276Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:52.276Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:48:53.271Z] [Web] [ERROR] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+[2026-03-09T09:50:44.737Z] [Android] [WARN] Cannot connect to Metro.
+
+Try the following to fix the issue:
+- Ensure that Metro is running and available on the same network
+- Ensure that your device/emulator is connected to your machine and has USB debugging enabled - run 'adb devices' to see a list of connected devices
+- If you're on a physical device connected to the same machine, run 'adb reverse tcp:8081 tcp:8081' to forward requests from your device
+- If your device is on the same Wi-Fi network, set 'Debug server host & port for device' in 'Dev settings' to your machine's IP address and the port of the local dev server - e.g. 10.0.1.1:8081
+
+URL: 70a44d27-89ce-4ec6-8e9d-479093288a40.newly.dev:443
+
+Error: undefined
+[2026-03-09T09:50:41.015Z] [Web] [WARN] Disconnected from Metro (1006: "").
+
+To reconnect:
+- Ensure that Metro is running and available on the same network
+- Reload this app (will trigger further help if Metro cannot be connected to)
+      
+[2026-03-09T09:50:52.304Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-09T09:50:52.305Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-09T09:50:57.694Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-09T09:50:57.694Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-09T09:51:03.168Z] [Android] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:51:03.360Z] [Android] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"O Antoxo De Adriana (A Coruña)","diaActual":"lunes","horaActual":10,"minutoActual":51,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:51:03.452Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:51","horaActualMinutos":651}
+[2026-03-09T09:51:03.507Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 📋 Today's schedule: {"diaActual":"lunes","horarioActual":["09:00–22:00"],"hasSchedule":true}
+[2026-03-09T09:51:03.312Z] [Android] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:51:03.242Z","spainTimeString":"2026-03-09 10:51:03","spainTime":"2026-03-09T09:51:03.000Z","localHour":10,"localMinute":51}
+[2026-03-09T09:51:03.242Z] [Android] [LOG] [DetalleLocal v338.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-03-09T09:51:03.404Z] [Android] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:51:03.550Z] [Android] [LOG] [getEstadoLocal v456.0] ✅ Result: {"badge":"Abierto ahora","estaAbierto":true,"claseBg":"bg-green-500"}
+[2026-03-09T09:51:03.714Z] [Android] [LOG] [ImageGalleryModal v38.0] 📸 Displaying gallery: {"visible":true,"totalImages":5,"currentIndex":0,"initialIndex":0}
+[2026-03-09T09:51:04.174Z] [Android] [LOG] [ImageGalleryModal v38.0] 🎬 Modal opened - setting full-screen mode
+[2026-03-09T09:51:04.276Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ User role: propietario Current mode: cliente Pathname: /detalle/local Bottom inset: 48
+[2026-03-09T09:51:04.306Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T09:51:04.528Z] [Android] [LOG] [ImageGalleryModal v38.0] 📸 Displaying gallery: {"visible":true,"totalImages":5,"currentIndex":0,"initialIndex":0}
+[2026-03-09T09:51:05.379Z] [Android] [LOG] [DetalleLocal v338.0] 🎭 Mode check: {"currentMode":"cliente","activeProfileType":"cliente","isClientMode":true,"isOwnerOfLocal":false,"shouldShowButtons":true}
+[2026-03-09T09:51:05.313Z] [Android] [WARN] [FavoritesStore v2.0] ⚠️ isFavorite() is deprecated. Use is_favorite from database response instead.
+[2026-03-09T09:51:05.444Z] [Android] [LOG] [timeUtils v456.0] 🕐 Spain time calculated: {"utcTime":"2026-03-09T09:51:05.379Z","spainTimeString":"2026-03-09 10:51:05","spainTime":"2026-03-09T09:51:05.000Z","localHour":10,"localMinute":51}
+[2026-03-09T09:51:05.491Z] [Android] [LOG] [getEstadoLocal v456.0] 📍 Calculating status for: {"localNombre":"O Antoxo De Adriana (A Coruña)","diaActual":"lunes","horaActual":10,"minutoActual":51,"hasHorarios":true,"horariosKeys":["lunes","jueves","martes","sabado","domingo","viernes","miercoles"]}
+[2026-03-09T09:51:05.536Z] [Android] [LOG] [getEstadoLocal v456.0] 📅 Calculating normal schedule status
+[2026-03-09T09:51:05.585Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 🔍 Checking schedule: {"diaActual":"lunes","horaActual":"10:51","horaActualMinutos":651}
+[2026-03-09T09:51:05.635Z] [Android] [LOG] [calcularEstadoHorarioNormal v456.0] 📋 Today's schedule: {"diaActual":"lunes","horarioActual":["09:00–22:00"],"hasSchedule":true}
+[2026-03-09T09:51:05.686Z] [Android] [LOG] [getEstadoLocal v456.0] ✅ Result: {"badge":"Abierto ahora","estaAbierto":true,"claseBg":"bg-green-500"}
+[2026-03-09T09:51:05.997Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ User role: propietario Current mode: cliente Pathname: /detalle/local Bottom inset: 48
+[2026-03-09T09:51:06.051Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T09:51:06.649Z] [Android] [LOG] [DetalleLocal v338.0] ✅ Fast navigation executed - scroll position preserved
+[2026-03-09T09:51:06.591Z] [Android] [LOG] [DetalleLocal v338.0] 🔙 Close button pressed - using fast navigation
+[2026-03-09T09:51:06.880Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-09T09:51:06.841Z] [Android] [LOG] [TabLayout Android v82.0] ⚡ User role: propietario Current mode: cliente Pathname: /explorar Bottom inset: 48
+[2026-03-09T09:51:07.141Z] [Android] [LOG] [ProfileTab v344.0] ✅ Image rendered successfully
+[2026-03-09T09:52:24.132Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-03-09T09:52:24.173Z] [Web] [LOG] [Supabase] To enable MMKV for production, set USE_MMKV=true in src/lib/supabaseStorage.ts
+[2026-03-09T09:52:24.205Z] [Web] [WARN] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-03-09T09:52:24.397Z] [Web] [LOG] [TanStack Query] 🚀 Initializing async cache persister with supabaseStorage adapter
+[2026-03-09T09:52:24.171Z] [Web] [LOG] [SupabaseStorage v8.0] ✅ Using AsyncStorage (Expo Go compatible mode)
+[2026-03-09T09:52:24.172Z] [Web] [LOG] [Supabase] Initializing client with AsyncStorage (Expo Go compatible)...
+[2026-03-09T09:52:24.592Z] [Web] [WARN] Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+[2026-03-09T09:52:24.183Z] [Web] [WARN] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-03-09T09:52:24.494Z] [Web] [LOG] ⚠️ CHAT ACTIVADO - VERSIÓN 2.0
+[2026-03-09T09:52:24.175Z] [Web] [WARN] GoTrueClient@sb-embntaqwlwmgazvrglaf-auth-token:1 (2.90.1) 2026-03-09T09:52:24.174Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[2026-03-09T09:52:24.556Z] [Web] [LOG] [AdvancedCache] 📦 Loaded 0 entries from disk
+[2026-03-09T09:52:24.595Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] 🚀 Starting DEFERRED initialization...
+[2026-03-09T09:52:24.515Z] [Web] [WARN] Route "./integrations/supabase/types.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-03-09T09:52:24.599Z] [Web] [LOG] [NotificationHandler v3.0] 🚀 Inicializando sistema de notificaciones...
+[2026-03-09T09:52:24.594Z] [Web] [LOG] [PERF_START] app_initialization at 13105.20ms (353.80ms desde launch)
+[2026-03-09T09:52:24.202Z] [Web] [WARN] "textShadow*" style props are deprecated. Use "textShadow".
+[2026-03-09T09:52:24.395Z] [Web] [LOG] [TanStack Query v24.0 - PASO 1] ✅ Cache persister initialized
+[2026-03-09T09:52:24.597Z] [Web] [LOG] [RootLayout v24.0] 🔔 Inicializando sistema de notificaciones v3.0...
+[2026-03-09T09:52:24.490Z] [Web] [LOG] ✅ SALA VIRTUAL v10.0 - FAULT ISOLATION IMPLEMENTED - Session isolation + error containment
+[2026-03-09T09:52:24.241Z] [Web] [LOG] [PerformanceTracker] 🚀 App launch started at 12751.40 ms
+[2026-03-09T09:52:24.394Z] [Web] [LOG] [TanStack Query v24.0 - PASO 1] 🚀 Initializing with deferred loading strategy
+[2026-03-09T09:52:24.618Z] [Web] [WARN] [NotificationHandler v3.0] ⚠️ Permisos de notificación denegados
+[2026-03-09T09:52:24.514Z] [Web] [WARN] Route "./integrations/supabase/client.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-03-09T09:52:24.398Z] [Web] [LOG] [TanStack Query] ✅ Async cache persister initialized successfully
+[2026-03-09T09:52:24.610Z] [Web] [LOG] [NotificationHandler v3.0] 🔐 Solicitando permisos de notificación...
+[2026-03-09T09:52:24.600Z] [Web] [LOG] [NotificationHandler v3.0] ℹ️ Canales de notificación solo necesarios en Android
+[2026-03-09T09:52:24.596Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] ⏱️ Heavy logic will run AFTER login transition completes
+[2026-03-09T09:52:24.618Z] [Web] [LOG] [RootLayout v24.0] ✅ Sistema de notificaciones v3.0 inicializado
+[2026-03-09T09:52:26.233Z] [Web] [LOG] [RootLayout v23.0] 🚀 Initializing background systems (graceful mode)
+[2026-03-09T09:52:26.234Z] [Web] [LOG] [BackgroundSync] 🚀 Initializing...
+[2026-03-09T09:52:26.234Z] [Web] [LOG] [RootLayout v23.0] ✅ Background sync initialized
+[2026-03-09T09:52:26.234Z] [Web] [LOG] [BackgroundSync] ✅ Initialized successfully
+[2026-03-09T09:52:26.234Z] [Web] [LOG] [RootLayout v23.0] ⚠️ Background location not started - will use foreground only
+[2026-03-09T09:58:18.155Z] [Web] [WARN] Disconnected from Metro (1006: "").
+
+To reconnect:
+- Ensure that Metro is running and available on the same network
+- Reload this app (will trigger further help if Metro cannot be connected to)
+      
