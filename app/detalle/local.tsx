@@ -317,13 +317,19 @@ const formatOpeningHours = (hours: string[]): string => {
 };
 
 /**
- * ✅ DETALLE LOCAL SCREEN v339.1 - FIXED FAVORITE BUTTON AUTH CHECK
+ * ✅ DETALLE LOCAL SCREEN v339.0 - VERIFIED LOCATION UTILITIES
  * 
- * 🚨 FIX v339.1:
- * - ✅ FIXED: Icono del corazón ahora verifica autenticación antes de agregar a favoritos
- * - ✅ VERIFIED: Muestra alerta "Debes iniciar sesión" si el usuario no está autenticado
- * - ✅ VERIFIED: Funciona igual que el icono del corazón en la lista de locales "Explorar"
- * - ✅ RESULT: No más mensaje "Debes iniciar sesión" cuando ya estás logeado
+ * 🚨 VERIFIED v339.0:
+ * - ✅ VERIFIED: getCachedLocation properly imported from locationUtils (line 15)
+ * - ✅ VERIFIED: getOptimizedUserLocation properly imported from locationUtils (line 15)
+ * - ✅ VERIFIED: calcularDistancia properly imported from locationUtils (line 15)
+ * - ✅ VERIFIED: All location utilities are correctly used in the component
+ * - ✅ RESULT: No "Property doesn't exist" errors
+ * 
+ * LOCATION FLOW:
+ * 1. Check cached location first (getCachedLocation) - instant
+ * 2. Fetch optimized location (getOptimizedUserLocation) - fast
+ * 3. Calculate distance (calcularDistancia) - accurate
  */
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
@@ -434,7 +440,7 @@ export default function DetalleLocalScreen() {
     outputRange: [0.3, 0.8],
   });
 
-  console.log('[DetalleLocal v339.1] 🎭 Mode check:', {
+  console.log('[DetalleLocal v338.0] 🎭 Mode check:', {
     currentMode,
     activeProfileType,
     isClientMode,
@@ -445,13 +451,13 @@ export default function DetalleLocalScreen() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[DetalleLocal v339.1] 🚀 Starting optimized location fetch');
+        console.log('[DetalleLocal v339.0] 🚀 Starting optimized location fetch');
         
         // ✅ STEP 1: Check cached location first (instant)
         const cached = getCachedLocation();
         if (cached) {
-          console.log('[DetalleLocal v339.1] ⚡ Using cached location (instant)');
-          console.log('[DetalleLocal v339.1] 📍 Cached coords:', cached.latitude, cached.longitude);
+          console.log('[DetalleLocal v339.0] ⚡ Using cached location (instant)');
+          console.log('[DetalleLocal v339.0] 📍 Cached coords:', cached.latitude, cached.longitude);
           setUserLocation({
             latitude: cached.latitude,
             longitude: cached.longitude,
@@ -460,23 +466,23 @@ export default function DetalleLocalScreen() {
         }
         
         // ✅ STEP 2: Fetch with optimized strategy
-        console.log('[DetalleLocal v339.1] 🔍 No cache, fetching fresh location...');
+        console.log('[DetalleLocal v339.0] 🔍 No cache, fetching fresh location...');
         const location = await getOptimizedUserLocation();
         
         if (location) {
-          console.log('[DetalleLocal v339.1] ✅ Location obtained');
-          console.log('[DetalleLocal v339.1] 📍 Fresh coords:', location.coords.latitude, location.coords.longitude);
+          console.log('[DetalleLocal v339.0] ✅ Location obtained');
+          console.log('[DetalleLocal v339.0] 📍 Fresh coords:', location.coords.latitude, location.coords.longitude);
           setUserLocation({
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
           });
         } else {
-          console.log('[DetalleLocal v339.1] ⚠️ Location not available');
+          console.log('[DetalleLocal v339.0] ⚠️ Location not available');
           setUserLocation(null);
         }
       } catch (error: any) {
-        console.error('[DetalleLocal v339.1] ❌ Error getting location:', error?.message);
-        console.error('[DetalleLocal v339.1] ❌ Full error:', error);
+        console.error('[DetalleLocal v339.0] ❌ Error getting location:', error?.message);
+        console.error('[DetalleLocal v339.0] ❌ Full error:', error);
         setUserLocation(null);
       }
     })();
@@ -538,9 +544,9 @@ export default function DetalleLocalScreen() {
       });
 
       setCheckedInUsers(visibleUsers);
-      console.log('[DetalleLocal v339.1] ✅ Loaded checked-in users:', visibleUsers.length);
+      console.log('[DetalleLocal v338.0] ✅ Loaded checked-in users:', visibleUsers.length);
     } catch (error) {
-      console.error('[DetalleLocal v339.1] Error loading checked-in users:', error);
+      console.error('[DetalleLocal v338.0] Error loading checked-in users:', error);
     } finally {
       setLoadingCheckIns(false);
     }
@@ -558,13 +564,13 @@ export default function DetalleLocalScreen() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[DetalleLocal v339.1] Error checking check-in status:', error);
+        console.error('[DetalleLocal v338.0] Error checking check-in status:', error);
         return;
       }
 
       setIsCheckedIn(!!data);
     } catch (error) {
-      console.error('[DetalleLocal v339.1] Error checking check-in status:', error);
+      console.error('[DetalleLocal v338.0] Error checking check-in status:', error);
     }
   }, [user, params.id]);
 
@@ -585,7 +591,7 @@ export default function DetalleLocalScreen() {
         .order('created_at', { ascending: false });
 
       if (barliveError) {
-        console.error('[DetalleLocal v339.1] Error loading Barlive reviews:', barliveError);
+        console.error('[DetalleLocal v338.0] Error loading Barlive reviews:', barliveError);
       }
 
       const { data: localData } = await supabase
@@ -606,7 +612,7 @@ export default function DetalleLocalScreen() {
       });
 
       setAllReviews(combinedReviews);
-      console.log('[DetalleLocal v339.1] ✅ Loaded unified reviews:', {
+      console.log('[DetalleLocal v338.0] ✅ Loaded unified reviews:', {
         barlive: barliveReviews?.length || 0,
         google: googleReviews.length,
         total: combinedReviews.length,
@@ -616,7 +622,7 @@ export default function DetalleLocalScreen() {
         const avg = barliveReviews.reduce((sum, r) => sum + r.rating, 0) / barliveReviews.length;
         setAverageRating(avg);
         
-        console.log('[DetalleLocal v339.1] 📊 Calculated average rating:', avg.toFixed(2), 'from', barliveReviews.length, 'reviews');
+        console.log('[DetalleLocal v338.0] 📊 Calculated average rating:', avg.toFixed(2), 'from', barliveReviews.length, 'reviews');
         
         const { error: updateError } = await supabase
           .from('locales')
@@ -624,18 +630,18 @@ export default function DetalleLocalScreen() {
           .eq('id', params.id);
 
         if (updateError) {
-          console.error('[DetalleLocal v339.1] ❌ Error updating rating:', updateError);
+          console.error('[DetalleLocal v338.0] ❌ Error updating rating:', updateError);
         } else {
-          console.log('[DetalleLocal v339.1] ✅ Rating updated in database');
+          console.log('[DetalleLocal v338.0] ✅ Rating updated in database');
         }
       } else if (localData?.google_rating) {
         setAverageRating(localData.google_rating);
-        console.log('[DetalleLocal v339.1] 📊 Using Google rating:', localData.google_rating);
+        console.log('[DetalleLocal v338.0] 📊 Using Google rating:', localData.google_rating);
       }
 
       setLoadingReviews(false);
     } catch (error) {
-      console.error('[DetalleLocal v339.1] Error loading reviews:', error);
+      console.error('[DetalleLocal v338.0] Error loading reviews:', error);
       setLoadingReviews(false);
     }
   }, [params.id]);
@@ -653,14 +659,14 @@ export default function DetalleLocalScreen() {
         .limit(3);
 
       if (error) {
-        console.error('[DetalleLocal v339.1] Error loading eventos:', error);
+        console.error('[DetalleLocal v338.0] Error loading eventos:', error);
         return;
       }
 
       setEventos(data || []);
       setLoadingEventos(false);
     } catch (error) {
-      console.error('[DetalleLocal v339.1] Error loading eventos:', error);
+      console.error('[DetalleLocal v338.0] Error loading eventos:', error);
       setLoadingEventos(false);
     }
   }, [params.id]);
@@ -671,12 +677,12 @@ export default function DetalleLocalScreen() {
       const { data, error } = await supabase.from('locales').select('*').eq('id', params.id).single();
 
       if (error) {
-        console.error('[DetalleLocal v339.1] Error loading local:', error);
+        console.error('[DetalleLocal v338.0] Error loading local:', error);
         setLoading(false);
         return;
       }
 
-      console.log('[DetalleLocal v339.1] ✅ Local loaded:', {
+      console.log('[DetalleLocal v338.0] ✅ Local loaded:', {
         id: data.id,
         nombre: data.nombre,
         propietario_id: data.propietario_id,
@@ -691,7 +697,7 @@ export default function DetalleLocalScreen() {
       checkUserCheckInStatus();
       loadCheckedInUsers();
     } catch (error) {
-      console.error('[DetalleLocal v339.1] Error:', error);
+      console.error('[DetalleLocal v338.0] Error:', error);
       setLoading(false);
     }
   }, [params.id, cargarReviewsUnificadas, cargarEventos, checkUserCheckInStatus, loadCheckedInUsers]);
@@ -716,7 +722,7 @@ export default function DetalleLocalScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         () => {
-          console.log('[DetalleLocal v339.1] 🔄 Reviews changed, reloading...');
+          console.log('[DetalleLocal v338.0] 🔄 Reviews changed, reloading...');
           cargarReviewsUnificadas();
         }
       )
@@ -741,7 +747,7 @@ export default function DetalleLocalScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         () => {
-          console.log('[DetalleLocal v339.1] Check-ins changed, reloading...');
+          console.log('[DetalleLocal v338.0] Check-ins changed, reloading...');
           loadCheckedInUsers();
           checkUserCheckInStatus();
         }
@@ -754,9 +760,9 @@ export default function DetalleLocalScreen() {
   }, [params.id, user, loadCheckedInUsers, checkUserCheckInStatus]);
 
   const handleClose = useCallback(() => {
-    console.log('[DetalleLocal v339.1] 🔙 Close button pressed - using fast navigation');
+    console.log('[DetalleLocal v338.0] 🔙 Close button pressed - using fast navigation');
     router.back();
-    console.log('[DetalleLocal v339.1] ✅ Fast navigation executed - scroll position preserved');
+    console.log('[DetalleLocal v338.0] ✅ Fast navigation executed - scroll position preserved');
   }, [router]);
 
   const handleToggleFavorito = async (e: any) => {
@@ -764,7 +770,6 @@ export default function DetalleLocalScreen() {
     
     // ✅ FIX v339.1: Check if user is logged in before toggling favorite
     if (!user) {
-      console.log('[DetalleLocal v339.1] ⚠️ Usuario no autenticado intentó agregar a favoritos');
       Alert.alert(
         'Inicia sesión',
         'Debes iniciar sesión para agregar locales a favoritos',
@@ -776,7 +781,6 @@ export default function DetalleLocalScreen() {
       return;
     }
     
-    console.log('[DetalleLocal v339.1] ✅ Usuario autenticado, toggling favorite');
     if (params.id) {
       await toggleFavorite(params.id as string);
     }
@@ -857,7 +861,7 @@ export default function DetalleLocalScreen() {
         title: local?.nombre || 'Local en BarLive',
       });
     } catch (error) {
-      console.error('[DetalleLocal v339.1] Error sharing:', error);
+      console.error('[DetalleLocal v338.0] Error sharing:', error);
     }
   };
 
@@ -928,7 +932,7 @@ export default function DetalleLocalScreen() {
               Alert.alert('✅ Check-out realizado', 'Ya no estás en este local');
               loadCheckedInUsers();
             } catch (error) {
-              console.error('[DetalleLocal v339.1] Error checking out:', error);
+              console.error('[DetalleLocal v338.0] Error checking out:', error);
               Alert.alert('Error', 'No se pudo realizar el check-out');
             }
           },
@@ -938,7 +942,7 @@ export default function DetalleLocalScreen() {
   };
 
   const handleClaimLocal = () => {
-    console.log('[DetalleLocal v339.1] User tapped Claim Local button');
+    console.log('[DetalleLocal v338.0] User tapped Claim Local button');
     router.push({
       pathname: '/solicitudes/solicitar-propiedad',
       params: { localId: params.id, type: 'reclamar_local' },
@@ -946,7 +950,7 @@ export default function DetalleLocalScreen() {
   };
 
   const handleLoadMoreReviews = () => {
-    console.log('[DetalleLocal v339.1] 📄 Loading more reviews...');
+    console.log('[DetalleLocal v338.0] 📄 Loading more reviews...');
     setDisplayedReviewsCount(prev => prev + 5);
   };
 
@@ -965,7 +969,7 @@ export default function DetalleLocalScreen() {
       return;
     }
 
-    console.log('[DetalleLocal v339.1] 🚀 Navigating to virtual room from local details');
+    console.log('[DetalleLocal v338.0] 🚀 Navigating to virtual room from local details');
     router.push({ 
       pathname: '/detalle/sala-virtual-enhanced', 
       params: { 
@@ -1228,8 +1232,685 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Rest of the component remains the same... */}
-        {/* I'm truncating here to save space, but the rest of the component continues unchanged */}
+        {allImages.length > 1 && (
+          <View style={styles.gallerySection}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
+              {allImages.slice(1, 6).map((image, index) => (
+                <TouchableOpacity 
+                  key={index} 
+                  style={[
+                    styles.galleryItem,
+                    {
+                      width: galleryThumbnailSize,
+                      height: galleryThumbnailSize,
+                    }
+                  ]} 
+                  onPress={() => handleOpenGallery(index + 1)}
+                >
+                  <OptimizedImage source={{ uri: image }} style={styles.galleryImage} resizeMode="cover" />
+                </TouchableOpacity>
+              ))}
+              {allImages.length > 6 && (
+                <TouchableOpacity 
+                  style={[
+                    styles.galleryItem,
+                    {
+                      width: galleryThumbnailSize,
+                      height: galleryThumbnailSize,
+                    }
+                  ]} 
+                  onPress={() => handleOpenGallery(6)}
+                >
+                  <OptimizedImage source={{ uri: allImages[6] }} style={styles.galleryImage} resizeMode="cover" />
+                  <View style={styles.galleryOverlay}>
+                    <Text style={[styles.galleryOverlayText, { fontSize: scaleFontSize(20) }]}>+{allImages.length - 6}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+          </View>
+        )}
+
+        <View style={styles.contentCard}>
+          <View style={styles.headerSection}>
+            <Text style={[styles.localNameText, { fontSize: scaleFontSize(28) }]}>{local.nombre}</Text>
+
+            {allCategories.length > 0 && (
+              <View style={styles.categoriesRow}>
+                {allCategories.map((categoria, index) => {
+                  const icon = getCategoryIcon(categoria);
+                  return (
+                    <View 
+                      key={index} 
+                      style={[
+                        styles.categoryChipHighlighted, 
+                        { 
+                          backgroundColor: icon.color,
+                          paddingHorizontal: categoryBadgePaddingH,
+                          paddingVertical: categoryBadgePaddingV,
+                        }
+                      ]}
+                    >
+                      <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={Platform.OS === 'android' ? 16 : 18} color="#fff" />
+                      <Text style={[styles.categoryChipTextHighlighted, { fontSize: scaleFontSize(13) }]}>{categoria.toUpperCase()}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            {local.direccion && (
+              <View style={styles.addressCompact}>
+                <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
+                <Text style={[styles.addressTextCompact, { fontSize: scaleFontSize(14) }]} numberOfLines={1}>
+                  {local.direccion}
+                </Text>
+              </View>
+            )}
+
+            {distance && (
+              <View style={styles.distanceContainer}>
+                <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={16} color={colors.primary} />
+                <Text style={[styles.distanceText, { fontSize: scaleFontSize(14) }]}>A {distance} de tu ubicación</Text>
+              </View>
+            )}
+          </View>
+
+          {!hasOwner && (
+            <TouchableOpacity 
+              style={styles.claimLocalCard}
+              onPress={handleClaimLocal}
+              activeOpacity={0.8}
+            >
+              <View style={styles.claimLocalCardContent}>
+                <IconSymbol 
+                  ios_icon_name="building.2" 
+                  android_material_icon_name="business" 
+                  size={16} 
+                  color={colors.primary} 
+                />
+                <Text style={[styles.claimLocalCardText, { fontSize: scaleFontSize(13) }]}>
+                  ¿Este es tu local? Reclámalo ahora
+                </Text>
+                <IconSymbol 
+                  ios_icon_name="chevron.right" 
+                  android_material_icon_name="chevron_right" 
+                  size={14} 
+                  color={colors.textSecondary} 
+                />
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {checkedInUsers.length > 0 && (
+            <TouchableOpacity 
+              style={styles.checkedInSection}
+              onPress={() => setShowUsersModal(true)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.checkedInHeader}>
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color={colors.primary} />
+                <Text style={[styles.checkedInTitle, { fontSize: scaleFontSize(15) }]}>
+                  {checkedInUsers.length} {checkedInUsers.length === 1 ? 'persona está' : 'personas están'} en este local
+                </Text>
+                <IconSymbol
+                  ios_icon_name="chevron.right"
+                  android_material_icon_name="chevron_right"
+                  size={18}
+                  color={colors.primary}
+                />
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.checkedInUsersScroll}>
+                {checkedInUsers.slice(0, 5).map((checkedUser) => (
+                  <View
+                    key={checkedUser.id}
+                    style={styles.checkedInUserCard}
+                  >
+                    <View style={styles.checkedInUserAvatar}>
+                      {checkedUser.avatar ? (
+                        <RNImage 
+                          source={{ uri: checkedUser.avatar }} 
+                          style={styles.checkedInUserAvatarImage}
+                        />
+                      ) : (
+                        <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.headerText} />
+                      )}
+                    </View>
+                    <Text style={[styles.checkedInUserName, { fontSize: scaleFontSize(12) }]} numberOfLines={1}>
+                      {checkedUser.nombre}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </TouchableOpacity>
+          )}
+
+
+
+          {/* Primary Actions Grid - Organized by importance and logic */}
+          <View style={styles.primaryActionsGrid}>
+            {/* Row 1: Check-in (most important when open) */}
+            {user && isOpen && isClientMode && (
+              <View style={styles.actionGridFullWidth}>
+                {!isCheckedIn ? (
+                  <TouchableOpacity style={styles.checkInButtonCompact} onPress={handleCheckIn}>
+                    <LinearGradient colors={['#10B981', '#059669']} style={styles.checkInButtonGradientCompact}>
+                      <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="add_location" size={20} color="#fff" />
+                      <Text style={[styles.checkInButtonTextCompact, { fontSize: scaleFontSize(14) }]}>Estoy en este local</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={styles.checkOutButtonCompact} onPress={handleCheckOut}>
+                    <LinearGradient colors={['#9CA3AF', '#6B7280']} style={styles.checkInButtonGradientCompact}>
+                      <IconSymbol ios_icon_name="mappin.slash.circle.fill" android_material_icon_name="location_off" size={20} color="#fff" />
+                      <Text style={[styles.checkInButtonTextCompact, { fontSize: scaleFontSize(14) }]}>Ya no estoy aquí</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            {/* Row 2: Virtual Room (when open and client mode) */}
+            {isOpen && isClientMode && (
+              <TouchableOpacity
+                style={styles.virtualRoomCompact}
+                onPress={handleVirtualRoom}
+                activeOpacity={0.85}
+              >
+                <LinearGradient 
+                  colors={['#7C3AED', '#A855F7', '#C084FC']} 
+                  start={{ x: 0, y: 0 }} 
+                  end={{ x: 1, y: 0 }} 
+                  style={styles.virtualRoomGradient}
+                >
+                  {/* Animated glow */}
+                  <Animated.View 
+                    style={[
+                      styles.virtualRoomGlow,
+                      { opacity: glowOpacity }
+                    ]}
+                  />
+                  
+                  {/* Icon with animation */}
+                  <Animated.View 
+                    style={[
+                      styles.virtualRoomIconWrapper,
+                      {
+                        transform: [
+                          { scale: glowAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [1, 1.1],
+                          })},
+                        ],
+                      },
+                    ]}
+                  >
+                    <View style={styles.virtualRoomIconCircle}>
+                      <IconSymbol 
+                        ios_icon_name="person.3.fill" 
+                        android_material_icon_name="groups" 
+                        size={22} 
+                        color="#fff" 
+                      />
+                    </View>
+                  </Animated.View>
+
+                  {/* Content */}
+                  <View style={styles.virtualRoomContent}>
+                    <View style={styles.virtualRoomHeader}>
+                      <Text style={[styles.virtualRoomTitle, { fontSize: scaleFontSize(16) }]}>
+                        Sala Virtual
+                      </Text>
+                      <View style={styles.liveIndicatorCompact}>
+                        <View style={styles.liveDotCompact} />
+                        <Text style={[styles.liveTextCompact, { fontSize: scaleFontSize(10) }]}>LIVE</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.virtualRoomSubtitle, { fontSize: scaleFontSize(12) }]}>
+                      Conecta con otros usuarios ahora
+                    </Text>
+                  </View>
+
+                  {/* Arrow */}
+                  <IconSymbol 
+                    ios_icon_name="chevron.right" 
+                    android_material_icon_name="chevron_right" 
+                    size={20} 
+                    color="rgba(255, 255, 255, 0.8)" 
+                  />
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+
+            {/* Row 3: Contact Actions (Call & Directions) */}
+            <View style={styles.actionGridRow}>
+              {local.telefono && (
+                <TouchableOpacity style={styles.actionGridItem} onPress={handleCall}>
+                  <LinearGradient 
+                    colors={['#10B981', '#059669']} 
+                    start={{ x: 0, y: 0 }} 
+                    end={{ x: 1, y: 1 }} 
+                    style={styles.actionGridItemGradient}
+                  >
+                    <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
+                    <Text style={[styles.actionGridItemText, { fontSize: scaleFontSize(13) }]}>Llamar</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+
+              {local.latitud && local.longitud && (
+                <TouchableOpacity style={styles.actionGridItem} onPress={handleDirections}>
+                  <LinearGradient 
+                    colors={[colors.primary, colors.secondary]} 
+                    start={{ x: 0, y: 0 }} 
+                    end={{ x: 1, y: 1 }} 
+                    style={styles.actionGridItemGradient}
+                  >
+                    <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
+                    <Text style={[styles.actionGridItemText, { fontSize: scaleFontSize(13) }]}>Cómo llegar</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Row 4: Social & Web Actions */}
+            {(hasSocialProfile || local.website || local.email) && (
+              <View style={styles.actionGridRow}>
+                {hasSocialProfile && (
+                  <TouchableOpacity style={styles.actionGridItem} onPress={handleSocialProfile}>
+                    <LinearGradient 
+                      colors={[colors.primary, colors.secondary]} 
+                      start={{ x: 0, y: 0 }} 
+                      end={{ x: 1, y: 1 }} 
+                      style={styles.actionGridItemGradient}
+                    >
+                      <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color="#fff" />
+                      <Text style={[styles.actionGridItemText, { fontSize: scaleFontSize(13) }]}>Perfil Social</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+
+                {(local.website || local.email) && (
+                  <TouchableOpacity 
+                    style={styles.actionGridItem} 
+                    onPress={() => {
+                      if (local.website) {
+                        Linking.openURL(local.website.startsWith('http') ? local.website : `https://${local.website}`);
+                      } else if (local.email) {
+                        Linking.openURL(`mailto:${local.email}`);
+                      }
+                    }}
+                  >
+                    <LinearGradient 
+                      colors={['#10B981', '#059669']} 
+                      start={{ x: 0, y: 0 }} 
+                      end={{ x: 1, y: 1 }} 
+                      style={styles.actionGridItemGradient}
+                    >
+                      <IconSymbol 
+                        ios_icon_name={local.website ? "globe" : "envelope.fill"} 
+                        android_material_icon_name={local.website ? "language" : "email"} 
+                        size={20} 
+                        color="#fff" 
+                      />
+                      <Text style={[styles.actionGridItemText, { fontSize: scaleFontSize(13) }]}>
+                        {local.website ? 'Sitio Web' : 'Email'}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
+
+          {eventos.length > 0 && (
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <View style={[styles.compactIconCircle, { backgroundColor: colors.primary + '20' }]}>
+                  <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={20} color={colors.primary} />
+                </View>
+                <Text style={[styles.compactSectionTitle, { fontSize: scaleFontSize(18) }]}>Eventos Próximos</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.eventsScroll}>
+                {eventos.map((evento) => (
+                  <TouchableOpacity
+                    key={evento.id}
+                    style={styles.eventCard}
+                    onPress={() => router.push({ pathname: '/detalle/evento', params: { id: evento.id } })}
+                  >
+                    {evento.imagen_url && (
+                      <OptimizedImage source={{ uri: `${evento.imagen_url}?v=${Date.now()}` }} style={styles.eventImage} resizeMode="cover" />
+                    )}
+                    <View style={styles.eventContent}>
+                      <Text style={[styles.eventTitle, { fontSize: scaleFontSize(14) }]} numberOfLines={2}>
+                        {evento.titulo}
+                      </Text>
+                      <Text style={[styles.eventDate, { fontSize: scaleFontSize(12) }]}>
+                        {new Date(evento.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <View style={[styles.compactIconCircle, { backgroundColor: '#3B82F6' + '20' }]}>
+                  <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={20} color="#3B82F6" />
+                </View>
+                <Text style={[styles.compactSectionTitle, { fontSize: scaleFontSize(18) }]}>Horarios</Text>
+              </View>
+              <View style={styles.scheduleCompact}>
+                {orderedDaysDisplay.map((dayDisplay) => {
+                  const dayNormalized = normalizeDayName(dayDisplay);
+                  const hours = local.horarios_completos?.[dayNormalized] || [];
+                  const isToday = dayNormalized.toLowerCase() === normalizeDayName(diaLogicoParaResaltar).toLowerCase();
+
+                  const formattedHours = formatOpeningHours(hours);
+
+                  return (
+                    <View key={dayDisplay} style={[styles.scheduleRow, isToday && styles.scheduleRowToday]}>
+                      <View style={styles.scheduleDayContainer}>
+                        <Text style={[styles.scheduleDayCompact, { fontSize: scaleFontSize(13) }, isToday && styles.scheduleDayTodayCompact]}>
+                          {dayDisplay.charAt(0).toUpperCase() + dayDisplay.slice(1, 3)}
+                        </Text>
+                        {isToday && <View style={styles.todayDot} />}
+                      </View>
+                      <Text style={[styles.scheduleHoursCompact, { fontSize: scaleFontSize(12) }, isToday && styles.scheduleHoursTodayCompact]} numberOfLines={2}>
+                        {formattedHours}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {allServices.length > 0 && (
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <View style={[styles.compactIconCircle, { backgroundColor: '#10B981' + '20' }]}>
+                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
+                </View>
+                <Text style={[styles.compactSectionTitle, { fontSize: scaleFontSize(18) }]}>Servicios Disponibles</Text>
+              </View>
+              <View style={styles.tagsGrid}>
+                {allServices.map((servicio, index) => {
+                  const icon = getServiceIcon(servicio);
+                  return (
+                    <View 
+                      key={index} 
+                      style={[
+                        styles.tag, 
+                        { 
+                          backgroundColor: icon.color + '15', 
+                          borderColor: icon.color + '30',
+                          paddingHorizontal: categoryBadgePaddingH + 2,
+                          paddingVertical: categoryBadgePaddingV + 3,
+                        }
+                      ]}
+                    >
+                      <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
+                      <Text style={[styles.tagText, { fontSize: scaleFontSize(13), color: icon.color }]}>{servicio}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {ambienteTags.length > 0 && (
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <View style={[styles.compactIconCircle, { backgroundColor: '#8B5CF6' + '20' }]}>
+                  <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={20} color="#8B5CF6" />
+                </View>
+                <Text style={[styles.compactSectionTitle, { fontSize: scaleFontSize(18) }]}>Ambiente</Text>
+              </View>
+              <View style={styles.tagsGrid}>
+                {ambienteTags.map((tag, index) => {
+                  const icon = getAmbienteIcon(tag);
+                  return (
+                    <View 
+                      key={index} 
+                      style={[
+                        styles.tag, 
+                        { 
+                          backgroundColor: icon.color + '15', 
+                          borderColor: icon.color + '30',
+                          paddingHorizontal: categoryBadgePaddingH + 2,
+                          paddingVertical: categoryBadgePaddingV + 3,
+                        }
+                      ]}
+                    >
+                      <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
+                      <Text style={[styles.tagText, { fontSize: scaleFontSize(13), color: icon.color }]}>{tag}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {clientelaTags.length > 0 && (
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <View style={[styles.compactIconCircle, { backgroundColor: '#EC4899' + '20' }]}>
+                  <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color="#EC4899" />
+                </View>
+                <Text style={[styles.compactSectionTitle, { fontSize: scaleFontSize(18) }]}>Clientela Típica</Text>
+              </View>
+              <View style={styles.tagsGrid}>
+                {clientelaTags.map((tag, index) => {
+                  const icon = getClientelaIcon(tag);
+                  return (
+                    <View 
+                      key={index} 
+                      style={[
+                        styles.tag, 
+                        { 
+                          backgroundColor: icon.color + '15', 
+                          borderColor: icon.color + '30',
+                          paddingHorizontal: categoryBadgePaddingH + 2,
+                          paddingVertical: categoryBadgePaddingV + 3,
+                        }
+                      ]}
+                    >
+                      <IconSymbol ios_icon_name={icon.ios} android_material_icon_name={icon.android} size={16} color={icon.color} />
+                      <Text style={[styles.tagText, { fontSize: scaleFontSize(13), color: icon.color }]}>{tag}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {((local.analisis_reviews && Object.keys(local.analisis_reviews).length > 0) || allReviews.length > 0) && (
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <View style={[styles.compactIconCircle, { backgroundColor: '#F59E0B' + '20' }]}>
+                  <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="analytics" size={20} color="#F59E0B" />
+                </View>
+                <Text style={[styles.compactSectionTitle, { fontSize: scaleFontSize(18) }]}>Análisis de Reseñas</Text>
+              </View>
+              <View style={styles.analysisBox}>
+                {averageRating > 0 && (
+                  <View style={styles.analysisItem}>
+                    <Text style={[styles.analysisLabel, { fontSize: scaleFontSize(13) }]}>Sentimiento General</Text>
+                    <View style={[styles.sentimentBadge, { backgroundColor: calculateSentiment(averageRating).color + '20' }]}>
+                      <Text style={[styles.sentimentText, { fontSize: scaleFontSize(14), color: calculateSentiment(averageRating).color }]}>
+                        {calculateSentiment(averageRating).sentiment}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+                {local.analisis_reviews?.palabras_destacadas_google && local.analisis_reviews.palabras_destacadas_google.length > 0 && (
+                  <View style={styles.analysisItem}>
+                    <Text style={[styles.analysisLabel, { fontSize: scaleFontSize(13) }]}>Palabras Clave</Text>
+                    <View style={styles.keywordsRow}>
+                      {local.analisis_reviews.palabras_destacadas_google.slice(0, 5).map((keyword: string, index: number) => (
+                        <View key={index} style={[styles.keywordTag, { backgroundColor: '#F59E0B' + '20', borderColor: '#F59E0B' + '30' }]}>
+                          <Text style={[styles.keywordTagText, { fontSize: scaleFontSize(12), color: '#F59E0B' }]}>{keyword}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+                {local.analisis_reviews?.resumen_automatico && (
+                  <View style={styles.analysisItem}>
+                    <Text style={[styles.analysisLabel, { fontSize: scaleFontSize(13) }]}>Resumen</Text>
+                    <Text style={[styles.analysisSummary, { fontSize: scaleFontSize(13) }]}>{local.analisis_reviews.resumen_automatico}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {allReviews.length > 0 && (
+            <View style={styles.compactSection}>
+              <View style={styles.compactSectionHeader}>
+                <View style={[styles.compactIconCircle, { backgroundColor: '#FFD700' + '20' }]}>
+                  <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={20} color="#FFD700" />
+                </View>
+                <Text style={[styles.compactSectionTitle, { fontSize: scaleFontSize(18) }]}>Reseñas</Text>
+                <Text style={[styles.reviewsCount, { fontSize: scaleFontSize(16) }]}>({allReviews.length})</Text>
+              </View>
+
+              {displayedReviews.map((review, index) => {
+                const isGoogleReview = 'source' in review && review.source === 'google';
+                
+                if (isGoogleReview) {
+                  const googleReview = review as GoogleReview & { source: 'google' };
+                  const reviewText = googleReview.text || '';
+                  const { summary, needsExpansion } = summarizeText(reviewText, 150);
+                  const isExpanded = expandedReviews.has(`google-${index}`);
+                  const displayText = isExpanded ? reviewText : summary;
+
+                  return (
+                    <View key={`google-${index}`} style={styles.reviewCard}>
+                      <View style={styles.reviewHeader}>
+                        <View style={styles.reviewAvatar}>
+                          {googleReview.profile_photo_url ? (
+                            <RNImage 
+                              source={{ uri: googleReview.profile_photo_url }} 
+                              style={styles.avatar}
+                            />
+                          ) : (
+                            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={18} color={colors.headerText} />
+                            </View>
+                          )}
+                        </View>
+                        <View style={styles.reviewInfo}>
+                          <View style={styles.reviewAuthorRow}>
+                            <Text style={[styles.reviewAuthor, { fontSize: scaleFontSize(14) }]}>Cliente del local</Text>
+                          </View>
+                          <View style={styles.reviewRating}>
+                            <Ionicons name="star" size={14} color="#FFD700" />
+                            <Text style={[styles.reviewRatingText, { fontSize: scaleFontSize(13) }]}>{googleReview.rating}</Text>
+                          </View>
+                        </View>
+                        <Text style={[styles.googleReviewTime, { fontSize: scaleFontSize(12) }]}>{googleReview.relative_time_description}</Text>
+                      </View>
+                      {reviewText && (
+                        <React.Fragment>
+                          <Text style={[styles.reviewText, { fontSize: scaleFontSize(14) }]}>{displayText}</Text>
+                          {needsExpansion && (
+                            <TouchableOpacity onPress={() => toggleReviewExpansion(`google-${index}`)}>
+                              <Text style={[styles.expandButton, { fontSize: scaleFontSize(14) }]}>{isExpanded ? 'Ver menos' : 'Ver más'}</Text>
+                            </TouchableOpacity>
+                          )}
+                        </React.Fragment>
+                      )}
+                    </View>
+                  );
+                } else {
+                  const barliveReview = review as Review;
+                  const isExpanded = expandedReviews.has(barliveReview.id);
+                  const reviewText = barliveReview.texto || '';
+                  const { summary, needsExpansion } = summarizeText(reviewText);
+                  const displayText = isExpanded ? reviewText : summary;
+                  const isOwner = user && barliveReview.usuario_id === user.id;
+
+                  return (
+                    <View key={barliveReview.id} style={styles.reviewCard}>
+                      <View style={styles.reviewHeader}>
+                        <View style={styles.reviewAvatar}>
+                          {barliveReview.usuario?.avatar ? (
+                            <RNImage 
+                              source={{ uri: barliveReview.usuario.avatar }} 
+                              style={styles.avatar}
+                            />
+                          ) : (
+                            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={18} color={colors.headerText} />
+                            </View>
+                          )}
+                        </View>
+                        <View style={styles.reviewInfo}>
+                          <View style={styles.reviewAuthorRow}>
+                            <Text style={[styles.reviewAuthor, { fontSize: scaleFontSize(14) }]}>
+                              {isOwner ? 'Tu reseña' : barliveReview.usuario?.nombre || 'Usuario de Barlive'}
+                            </Text>
+                          </View>
+                          <View style={styles.reviewRating}>
+                            <Ionicons name="star" size={14} color="#FFD700" />
+                            <Text style={[styles.reviewRatingText, { fontSize: scaleFontSize(13) }]}>{barliveReview.rating}</Text>
+                          </View>
+                        </View>
+                      </View>
+                      {reviewText && (
+                        <React.Fragment>
+                          <ParsedText text={displayText} style={[styles.reviewText, { fontSize: scaleFontSize(14) }]} />
+                          {needsExpansion && (
+                            <TouchableOpacity onPress={() => toggleReviewExpansion(barliveReview.id)}>
+                              <Text style={[styles.expandButton, { fontSize: scaleFontSize(14) }]}>{isExpanded ? 'Ver menos' : 'Ver más'}</Text>
+                            </TouchableOpacity>
+                          )}
+                        </React.Fragment>
+                      )}
+                    </View>
+                  );
+                }
+              })}
+
+              {allReviews.length > displayedReviewsCount && (
+                <TouchableOpacity 
+                  style={styles.loadMoreReviewsButton}
+                  onPress={handleLoadMoreReviews}
+                >
+                  <Text style={[styles.loadMoreReviewsText, { fontSize: scaleFontSize(15) }]}>Ver más</Text>
+                  <IconSymbol
+                    ios_icon_name="chevron.down"
+                    android_material_icon_name="expand_more"
+                    size={16}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity style={styles.addReviewBtn} onPress={handleAddReview}>
+                <LinearGradient 
+                  colors={[colors.primary, colors.secondary]} 
+                  start={{ x: 0, y: 0 }} 
+                  end={{ x: 1, y: 0 }} 
+                  style={[
+                    styles.addReviewGradient,
+                    { paddingVertical: actionButtonPaddingVertical }
+                  ]}
+                >
+                  <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color="#fff" />
+                  <Text style={[styles.addReviewText, { fontSize: scaleFontSize(15) }]}>
+                    {allReviews.some((r) => 'usuario_id' in r && r.usuario_id === user?.id) ? 'Editar Reseña' : 'Añadir Reseña'}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </ScrollView>
 
       {galleryVisible && (
@@ -1466,5 +2147,579 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(25, 25, 25, 0.62)',
+  },
+  gallerySection: {
+    backgroundColor: colors.background,
+    paddingVertical: 12,
+  },
+  galleryScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  galleryItem: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginRight: 8,
+    position: 'relative',
+  },
+  galleryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  galleryOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  galleryOverlayText: {
+    fontWeight: '700',
+    color: '#fff',
+  },
+  contentCard: {
+    backgroundColor: colors.background,
+    padding: 16,
+  },
+  headerSection: {
+    marginBottom: 16,
+  },
+  localNameText: {
+    fontWeight: '800',
+    color: colors.text,
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  categoriesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  categoryChipHighlighted: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  categoryChipTextHighlighted: {
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
+  addressCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.cardBackground,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  addressTextCompact: {
+    flex: 1,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  distanceText: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  claimLocalCard: {
+    marginBottom: 16,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary + '20',
+  },
+  claimLocalCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  claimLocalCardText: {
+    flex: 1,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  checkedInSection: {
+    backgroundColor: colors.primary + '10',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  checkedInHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  checkedInTitle: {
+    flex: 1,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  checkedInUsersScroll: {
+    gap: 12,
+  },
+  checkedInUserCard: {
+    alignItems: 'center',
+    width: 80,
+  },
+  checkedInUserAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  checkedInUserAvatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  checkedInUserName: {
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  // 🎯 NEW: Organized Primary Actions Grid
+  primaryActionsGrid: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  actionGridFullWidth: {
+    width: '100%',
+  },
+  actionGridRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  actionGridItem: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  actionGridItemGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  actionGridItemText: {
+    fontWeight: '700',
+    color: '#fff',
+  },
+  // Check-in Compact Styles
+  checkInButtonCompact: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  checkOutButtonCompact: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  checkInButtonGradientCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  checkInButtonTextCompact: {
+    fontWeight: '700',
+    color: '#fff',
+  },
+  // 🎨 NEW: Compact Virtual Room Design
+  virtualRoomCompact: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  virtualRoomGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+    position: 'relative',
+    minHeight: 70,
+  },
+  virtualRoomGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(168, 85, 247, 0.2)',
+  },
+  virtualRoomIconWrapper: {
+    zIndex: 2,
+  },
+  virtualRoomIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  virtualRoomContent: {
+    flex: 1,
+    zIndex: 2,
+  },
+  virtualRoomHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  virtualRoomTitle: {
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
+  liveIndicatorCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(16, 185, 129, 0.3)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.5)',
+  },
+  liveDotCompact: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#10B981',
+  },
+  liveTextCompact: {
+    fontWeight: '800',
+    color: '#10B981',
+    letterSpacing: 0.3,
+  },
+  virtualRoomSubtitle: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontWeight: '500',
+  },
+  compactSection: {
+    marginTop: 20,
+  },
+  compactSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  compactIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compactSectionTitle: {
+    fontWeight: '700',
+    color: colors.text,
+  },
+  reviewsCount: {
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginLeft: 4,
+  },
+  eventsScroll: {
+    paddingRight: 16,
+    gap: 10,
+  },
+  eventCard: {
+    width: 180,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  eventImage: {
+    width: '100%',
+    height: 100,
+  },
+  eventContent: {
+    padding: 10,
+  },
+  eventTitle: {
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  eventDate: {
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  scheduleCompact: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 10,
+    gap: 6,
+  },
+  scheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  scheduleRowToday: {
+    backgroundColor: colors.primary + '15',
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+  },
+  scheduleDayContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 50,
+    gap: 4,
+  },
+  scheduleDayCompact: {
+    fontWeight: '600',
+    color: colors.text,
+    textTransform: 'capitalize',
+  },
+  scheduleDayTodayCompact: {
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  todayDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+  },
+  scheduleHoursCompact: {
+    flex: 1,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  scheduleHoursTodayCompact: {
+    color: colors.text,
+    fontWeight: '600',
+  },
+  tagsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    gap: 6,
+    borderWidth: 1,
+  },
+  tagText: {
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  analysisBox: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 14,
+  },
+  analysisItem: {
+    marginBottom: 12,
+  },
+  analysisLabel: {
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 6,
+  },
+  sentimentBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  sentimentText: {
+    fontWeight: '700',
+  },
+  keywordsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  keywordTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  keywordTagText: {
+    fontWeight: '600',
+  },
+  analysisSummary: {
+    color: colors.text,
+    lineHeight: 19,
+  },
+  reviewCard: {
+    backgroundColor: colors.cardBackground,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  googleReviewTime: {
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 10,
+  },
+  reviewAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  avatarPlaceholder: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reviewInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  reviewAuthorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  reviewAuthor: {
+    fontWeight: '700',
+    color: colors.text,
+  },
+  reviewRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  reviewRatingText: {
+    fontWeight: '800',
+    color: colors.text,
+  },
+  reviewText: {
+    color: colors.text,
+    lineHeight: 20,
+  },
+  loadMoreReviewsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    marginTop: 8,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  loadMoreReviewsText: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  noReviewsBox: {
+    backgroundColor: colors.cardBackground,
+    padding: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  noReviewsText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  addReviewBtn: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginTop: 10,
+  },
+  addReviewGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  addReviewText: {
+    fontWeight: '800',
+    color: '#fff',
+  },
+  expandButton: {
+    color: colors.primary,
+    fontWeight: '700',
+    marginTop: 6,
   },
 });
