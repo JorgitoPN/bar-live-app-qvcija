@@ -33751,3 +33751,5 @@ To reconnect:
 [2026-03-09T11:45:43.963Z] [Web] [LOG] [LocationContext v1.0] ⏱️ Location timeout (5s)
 [2026-03-09T11:45:44.436Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
 [2026-03-09T11:45:44.435Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-09T11:52:12.699Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-09T11:52:12.698Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
