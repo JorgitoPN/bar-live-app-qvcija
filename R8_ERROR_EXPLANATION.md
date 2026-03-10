@@ -117,6 +117,17 @@ ProGuard rules explicitly tell R8:
 - **Why:** Belt-and-suspenders approach for known problem areas
 - **Scope:** Targeted at the classes mentioned in the error
 
+### Rule 4: Kotlin Coroutines Protection (CRITICAL)
+```proguard
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembers class kotlinx.** { volatile <fields>; }
+```
+- **What it does:** Preserves Kotlin coroutines classes used for async operations
+- **Why:** Expo modules use coroutines extensively for async tasks
+- **Scope:** Protects coroutine dispatcher and exception handling classes
+- **Impact:** Without these, async operations in Expo modules will fail at runtime
+
 ## 🎯 Impact on Your App
 
 ### ✅ Benefits

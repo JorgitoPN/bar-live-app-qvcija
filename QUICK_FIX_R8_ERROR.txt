@@ -43,10 +43,22 @@ STEP 2: Add these lines at the END of the file
     public <methods>;
 }
 
+# Kotlin Coroutines - Required for async operations
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembers class kotlinx.** { volatile <fields>; }
+
 ═══════════════════════════════════════════════════════════════
-STEP 3: Clean Gradle cache (IMPORTANT!)
+STEP 3: Deep Clean (CRITICAL!)
 ═══════════════════════════════════════════════════════════════
 
+R8 caches aggressively. You MUST do a deep clean:
+
+1. Delete these folders manually (if they exist):
+   - android/.gradle
+   - android/app/build
+
+2. Run Gradle clean:
 cd android
 ./gradlew clean
 cd ..

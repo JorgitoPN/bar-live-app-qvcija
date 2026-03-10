@@ -4,31 +4,39 @@
 # Add them at the end of the file, after the existing rules
 # ============================================================
 
-# Expo Modules - CRITICAL: Prevent R8 from removing Expo module classes
+# ============================================================
+# Comprehensive ProGuard rules for Expo and Kotlin runtime
+# ============================================================
+# Add these rules to the END of android/app/proguard-rules.pro
+
+# Expo Modules - Keep all classes and members
 -keep class expo.modules.** { *; }
 -keepclassmembers class expo.modules.** { *; }
 -dontwarn expo.modules.**
 
-# Expo Kotlin Runtime - Fix for expo.modules.kotlin.runtime.Runtime missing class error
+# Expo Kotlin Runtime - Critical for module initialization
 -keep class expo.modules.kotlin.** { *; }
 -keepclassmembers class expo.modules.kotlin.** { *; }
 -dontwarn expo.modules.kotlin.**
 
-# Expo Media Library - Specific fix for the reported error
+# Expo Media Library - Specific module that was failing
 -keep class expo.modules.medialibrary.** { *; }
 -keepclassmembers class expo.modules.medialibrary.** { *; }
 -dontwarn expo.modules.medialibrary.**
 
-# Kotlin runtime and reflection
+# Kotlin Standard Library - Required for reflection
 -keep class kotlin.** { *; }
 -keep class kotlin.Metadata { *; }
 -dontwarn kotlin.**
--keepclassmembers class **$WhenMappings {
-    <fields>;
-}
--keepclassmembers class kotlin.Metadata {
-    public <methods>;
-}
+
+# Kotlin Reflection - Used by Expo modules
+-keepclassmembers class **$WhenMappings { <fields>; }
+-keepclassmembers class kotlin.Metadata { public <methods>; }
+
+# Kotlin Coroutines - Required for async operations
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembers class kotlinx.** { volatile <fields>; }
 
 
 # ============================================================

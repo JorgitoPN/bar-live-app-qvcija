@@ -1,82 +1,47 @@
 
 ═══════════════════════════════════════════════════════════════
-✅ APK BUILD FIX CHECKLIST
+✅ CHECKLIST: Fix R8 Error expo.modules.kotlin.runtime.Runtime
 ═══════════════════════════════════════════════════════════════
 
-Follow these steps to fix the R8 error:
+□ PASO 1: Abrir android/app/proguard-rules.pro
 
-□ STEP 1: Locate the ProGuard Rules File
-  File: android/app/proguard-rules.pro
-  
-□ STEP 2: Open the File in Your Editor
-  Use any text editor (VS Code, Android Studio, etc.)
-  
-□ STEP 3: Scroll to the End of the File
-  Find the last line in the file
-  
-□ STEP 4: Add These Lines (copy from PROGUARD_RULES_TO_ADD.txt)
-  
-  # Expo Modules - CRITICAL: Prevent R8 from removing Expo module classes
-  -keep class expo.modules.** { *; }
-  -dontwarn expo.modules.**
-  
-  # Expo Kotlin Runtime - Fix for expo.modules.kotlin.runtime.Runtime missing class error
-  -keep class expo.modules.kotlin.** { *; }
-  -dontwarn expo.modules.kotlin.**
-  
-  # Expo Media Library - Specific fix for the reported error
-  -keep class expo.modules.medialibrary.** { *; }
-  -dontwarn expo.modules.medialibrary.**
-  
-□ STEP 5: Save the File
-  Make sure to save your changes!
-  
-□ STEP 6: Rebuild Your APK
-  Run your build command again
-  
-□ STEP 7: Verify Success
-  Check that the build completes without R8 errors
-  
-═══════════════════════════════════════════════════════════════
-VERIFICATION
-═══════════════════════════════════════════════════════════════
+□ PASO 2: Copiar y pegar las reglas ProGuard al FINAL del archivo
+          (Ver archivo PROGUARD_RULES_TO_ADD.txt para las reglas completas)
 
-After completing the steps above, you should see:
+□ PASO 3: Eliminar carpetas de caché manualmente:
+          □ Eliminar android/.gradle (si existe)
+          □ Eliminar android/app/build (si existe)
 
-✅ Build completes successfully
-✅ No "Missing class expo.modules.kotlin.runtime.Runtime" error
-✅ APK file is created
-✅ App installs and runs correctly
+□ PASO 4: Ejecutar Gradle clean:
+          cd android
+          ./gradlew clean
+          cd ..
+
+□ PASO 5: Volver a compilar para Release
+
+□ PASO 6: Verificar que el build se completa sin errores
+
+□ PASO 7: Hacer commit y push:
+          git add android/app/proguard-rules.pro
+          git commit -m "fix: add comprehensive ProGuard keep rules for Expo and Kotlin runtime"
+          git push
 
 ═══════════════════════════════════════════════════════════════
-TROUBLESHOOTING
+⚠️ IMPORTANTE
 ═══════════════════════════════════════════════════════════════
 
-If the build still fails:
+- NO omitas el paso de eliminar las carpetas de caché manualmente
+- R8 es muy agresivo con su caché y puede usar configuraciones antiguas
+- Si el error persiste, repite los pasos 3 y 4
 
-□ Double-check that you added the rules to the correct file
-  (android/app/proguard-rules.pro)
-  
-□ Make sure there are no typos in the rules
-  
-□ Verify the file was saved
-  
-□ Check if the error message changed
-  (might be a different issue now)
-  
-□ Refer to the detailed guides:
-  - FIX_APK_BUILD_R8_ERROR.md
-  - R8_ERROR_EXPLANATION.md
-  
 ═══════════════════════════════════════════════════════════════
-NEED HELP?
+📁 ARCHIVOS DE REFERENCIA
 ═══════════════════════════════════════════════════════════════
 
-Reference files available:
-- PROGUARD_RULES_TO_ADD.txt (copy-paste ready)
-- QUICK_FIX_R8_ERROR.txt (quick reference)
-- FIX_APK_BUILD_R8_ERROR.md (complete guide)
-- R8_ERROR_EXPLANATION.md (detailed explanation)
-- ANDROID_R8_PROGUARD_FIX.md (Spanish guide)
+- SOLUCION_DEFINITIVA_R8_EXPO.md     → Guía completa paso a paso
+- PROGUARD_RULES_TO_ADD.txt          → Reglas ProGuard para copiar
+- QUICK_FIX_R8_ERROR.txt             → Solución rápida
+- R8_ERROR_EXPLANATION.md            → Explicación técnica detallada
+- ANDROID_R8_PROGUARD_FIX.md         → Guía en español
 
 ═══════════════════════════════════════════════════════════════

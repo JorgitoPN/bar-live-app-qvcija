@@ -1,268 +1,286 @@
 
-# ✅ Verificación Pre-Build: Checklist Completo
+# ✅ Verificación Pre-Build - Checklist Completo
 
-## 🎯 Objetivo
-Asegurar que el APK de producción se genere correctamente con todo el código y assets empaquetados.
+## 📋 Antes de Ejecutar el Build
+
+Usa este checklist para asegurarte de que todo está configurado correctamente antes de ejecutar el build de Release.
 
 ---
 
-## 📋 Checklist de Verificación
+## 1️⃣ Verificar Reglas ProGuard
 
-### **1. Configuración de EAS Build** ✅
+### ✅ Archivo Existe
+```bash
+ls -la android/app/proguard-rules.pro
+```
+**Debe existir:** ✅
 
-**Archivo**: `eas.json`
+### ✅ Reglas Agregadas
+Abre `android/app/proguard-rules.pro` y verifica que contiene:
 
-```json
-{
-  "build": {
-    "production": {
-      "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease --no-daemon --max-workers=4"
-      }
+```proguard
+# Expo Modules - Keep all classes and members
+-keep class expo.modules.** { *; }
+-keepclassmembers class expo.modules.** { *; }
+-dontwarn expo.modules.**
+
+# Expo Kotlin Runtime - Critical for module initialization
+-keep class expo.modules.kotlin.** { *; }
+-keepclassmembers class expo.modules.kotlin.** { *; }
+-dontwarn expo.modules.kotlin.**
+
+# Expo Media Library - Specific module that was failing
+-keep class expo.modules.medialibrary.** { *; }
+-keepclassmembers class expo.modules.medialibrary.** { *; }
+-dontwarn expo.modules.medialibrary.**
+
+# Kotlin Standard Library - Required for reflection
+-keep class kotlin.** { *; }
+-keep class kotlin.Metadata { *; }
+-dontwarn kotlin.**
+
+# Kotlin Reflection - Used by Expo modules
+-keepclassmembers class **$WhenMappings { <fields>; }
+-keepclassmembers class kotlin.Metadata { public <methods>; }
+
+# Kotlin Coroutines - Required for async operations
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembers class kotlinx.** { volatile <fields>; }
+```
+
+**Reglas presentes:** ✅
+
+---
+
+## 2️⃣ Verificar Configuración de build.gradle
+
+### ✅ ProGuard Habilitado
+Abre `android/app/build.gradle` y verifica:
+
+```gradle
+buildTypes {
+    release {
+        minifyEnabled true  // ← Debe ser true
+        proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
     }
-  }
 }
 ```
 
-✅ **Verificado**: 
-- `buildType: "apk"` → Genera APK (no AAB)
-- `gradleCommand` contiene `assembleRelease` → Build de producción
-- `--no-daemon` → Evita problemas de memoria
+**Configuración correcta:** ✅
 
 ---
 
-### **2. Empaquetado de Assets** ✅
+## 3️⃣ Limpieza de Caché
 
-**Archivo**: `app.json`
-
-```json
-{
-  "expo": {
-    "assetBundlePatterns": ["**/*"]
-  }
-}
-```
-
-✅ **Verificado**: Todos los assets se empaquetarán en el APK
-
-**Assets que se incluirán**:
-- ✅ `assets/images/` → Todas las imágenes
-- ✅ `assets/fonts/` → Todas las fuentes
-- ✅ `assets/sounds/` → Todos los sonidos
-- ✅ Iconos de notificaciones
-- ✅ Splash screen
-- ✅ Adaptive icons
-
----
-
-### **3. Motor JavaScript (Hermes)** ✅
-
-**Archivo**: `app.json`
-
-```json
-{
-  "android": {
-    "jsEngine": "hermes"
-  }
-}
-```
-
-✅ **Verificado**: Hermes habilitado para mejor rendimiento
-
-**Beneficios de Hermes**:
-- ⚡ Inicio de app más rápido
-- 📦 Bundle JavaScript más pequeño
-- 🚀 Mejor rendimiento en tiempo de ejecución
-
----
-
-### **4. Optimizaciones de Producción** ✅
-
-**Archivo**: `app.json` → `expo-build-properties`
-
-```json
-{
-  "android": {
-    "enableProguardInReleaseBuilds": true,
-    "proguardRules": "-keep class com.stripe.** { *; }\n-keep class com.google.android.gms.wallet.** { *; }"
-  }
-}
-```
-
-✅ **Verificado**: ProGuard habilitado para minificación
-
-**Optimizaciones aplicadas**:
-- 🗜️ Código minificado y ofuscado
-- 📉 Tamaño del APK reducido
-- 🔒 Código más difícil de descompilar
-
----
-
-### **5. Plugin de Stripe** ✅
-
-**Archivo**: `plugins/withStripeFixed.js`
-
-✅ **Verificado**: Plugin configurado correctamente
-
-**Funcionalidad**:
-- Excluye Stripe de JitPack (evita timeouts)
-- Configura opciones de Kotlin para Stripe
-- Previene errores de compilación
-
----
-
-### **6. Dependencias Críticas** ✅
-
-**Verificación de dependencias clave**:
-
-```json
-{
-  "dependencies": {
-    "expo": "~54.0.1",
-    "expo-router": "^6.0.0",
-    "react-native": "0.81.5",
-    "@stripe/stripe-react-native": "0.59.2"
-  }
-}
-```
-
-✅ **Verificado**: Todas las dependencias son compatibles
-
----
-
-## 🔍 Proceso de Build Detallado
-
-### **Fase 1: Prebuild (Generación de Archivos Nativos)**
+### ✅ Eliminar Carpetas de Caché
 
 ```bash
-# Esto se ejecuta automáticamente
-expo prebuild -p android --clean
+# Verificar si existen
+ls -la android/.gradle
+ls -la android/app/build
+
+# Eliminar si existen
+rm -rf android/.gradle
+rm -rf android/app/build
 ```
 
-**Resultado**:
-- ✅ Genera carpeta `android/`
-- ✅ Aplica plugins de Expo
-- ✅ Configura dependencias nativas
+**Carpetas eliminadas:** ✅
 
----
-
-### **Fase 2: Bundle JavaScript**
+### ✅ Ejecutar Gradle Clean
 
 ```bash
-# Esto se ejecuta automáticamente durante el build
-metro bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle
+cd android
+./gradlew clean
+cd ..
 ```
 
-**Resultado**:
-- ✅ Empaqueta todo el código JavaScript
-- ✅ Incluye todas las dependencias
-- ✅ Optimiza el código para producción
-- ✅ Genera el bundle en `android/app/src/main/assets/`
+**Clean ejecutado:** ✅
 
 ---
 
-### **Fase 3: Compilación Release**
+## 4️⃣ Verificar Dependencias
+
+### ✅ Node Modules Actualizados
 
 ```bash
-# Esto se ejecuta automáticamente
-cd android && ./gradlew assembleRelease --no-daemon --max-workers=4
+# Verificar que node_modules está actualizado
+npm install
+# o
+yarn install
 ```
 
-**Resultado**:
-- ✅ Compila el código nativo
-- ✅ Aplica ProGuard (minificación)
-- ✅ Incluye el bundle JavaScript
-- ✅ Empaqueta todos los assets
-- ✅ Genera el APK firmado
+**Dependencias actualizadas:** ✅
 
 ---
 
-### **Fase 4: Firma del APK**
+## 5️⃣ Verificar Configuración de Expo
 
-**Automático con EAS Build**:
-- ✅ Usa credenciales de producción
-- ✅ Firma el APK con keystore
-- ✅ Genera `app-release.apk` (firmado)
+### ✅ Expo Prebuild (si es necesario)
 
----
-
-## 📍 Ubicación Final del APK
-
-```
-android/app/build/outputs/apk/release/app-release.apk
-```
-
-**Tamaño esperado**: 30-50 MB (dependiendo de los assets)
-
----
-
-## 🧪 Pruebas Post-Build
-
-### **Test 1: Instalación**
 ```bash
-# Instalar el APK en un dispositivo
+# Solo si has modificado configuración nativa
+npx expo prebuild --clean
+```
+
+**Prebuild ejecutado (si necesario):** ✅
+
+---
+
+## 6️⃣ Checklist Final Pre-Build
+
+Marca cada item antes de ejecutar el build:
+
+- [ ] ✅ Reglas ProGuard agregadas a `android/app/proguard-rules.pro`
+- [ ] ✅ Carpeta `android/.gradle` eliminada
+- [ ] ✅ Carpeta `android/app/build` eliminada
+- [ ] ✅ `./gradlew clean` ejecutado exitosamente
+- [ ] ✅ `minifyEnabled true` en `build.gradle`
+- [ ] ✅ `proguardFiles` configurado correctamente
+- [ ] ✅ Dependencias de Node actualizadas
+- [ ] ✅ No hay cambios sin commitear (opcional)
+
+---
+
+## 7️⃣ Ejecutar el Build
+
+Una vez que todos los checks están ✅, ejecuta:
+
+```bash
+# Para APK
+cd android
+./gradlew assembleRelease
+cd ..
+
+# Para AAB (Google Play)
+cd android
+./gradlew bundleRelease
+cd ..
+```
+
+---
+
+## 8️⃣ Verificación Post-Build
+
+### ✅ Build Exitoso
+
+Verifica que el build se completó sin errores:
+
+```
+BUILD SUCCESSFUL in Xm Ys
+```
+
+**Build exitoso:** ✅
+
+### ✅ No Errores de R8
+
+Verifica que NO aparece:
+
+```
+ERROR: Missing class expo.modules.kotlin.runtime.Runtime
+```
+
+**Sin errores de R8:** ✅
+
+### ✅ APK/AAB Generado
+
+Verifica que el archivo fue creado:
+
+```bash
+# Para APK
+ls -lh android/app/build/outputs/apk/release/app-release.apk
+
+# Para AAB
+ls -lh android/app/build/outputs/bundle/release/app-release.aab
+```
+
+**Archivo generado:** ✅
+
+---
+
+## 9️⃣ Prueba del APK
+
+### ✅ Instalación
+
+```bash
+# Instalar en dispositivo conectado
 adb install android/app/build/outputs/apk/release/app-release.apk
 ```
 
-### **Test 2: Funcionamiento Offline**
-1. Instala el APK
-2. Desactiva WiFi y datos móviles
-3. Abre la app
-4. ✅ Si funciona → Bundle empaquetado correctamente
+**APK instalado correctamente:** ✅
 
-### **Test 3: Assets**
-1. Verifica que todas las imágenes se muestren
-2. Verifica que las fuentes se carguen
-3. Verifica que los sonidos funcionen
-4. ✅ Si todo funciona → Assets empaquetados correctamente
+### ✅ Funcionalidad
 
----
+Prueba en el dispositivo:
 
-## 🚨 Indicadores de Problemas
-
-### **❌ Problema: App se queda en splash screen**
-**Causa**: Bundle JavaScript no se empaquetó
-**Verificar**: 
-- `assetBundlePatterns` en `app.json`
-- Que el comando sea `assembleRelease` (no `assembleDebug`)
-
-### **❌ Problema: "Unable to load script from assets"**
-**Causa**: Bundle JavaScript no está en el APK
-**Verificar**:
-- Que el build sea de tipo `release`
-- Que Hermes esté habilitado
-
-### **❌ Problema: Imágenes no se muestran**
-**Causa**: Assets no se empaquetaron
-**Verificar**:
-- `assetBundlePatterns: ["**/*"]` en `app.json`
+- [ ] ✅ La app abre correctamente
+- [ ] ✅ No hay crashes al iniciar
+- [ ] ✅ Funcionalidades de Expo funcionan (cámara, media library, etc.)
+- [ ] ✅ No hay errores en logcat
 
 ---
 
-## ✅ Confirmación Final
+## 🔟 Commit y Push
 
-**Tu configuración está lista para producción si**:
+### ✅ Crear Commit
 
-1. ✅ `eas.json` tiene `gradleCommand: ":app:assembleRelease"`
-2. ✅ `app.json` tiene `assetBundlePatterns: ["**/*"]`
-3. ✅ `app.json` tiene `jsEngine: "hermes"`
-4. ✅ `expo-build-properties` tiene `enableProguardInReleaseBuilds: true`
-5. ✅ Plugin de Stripe está configurado
+```bash
+git add android/app/proguard-rules.pro
+git commit -m "fix: add comprehensive ProGuard keep rules for Expo and Kotlin runtime"
+```
 
-**Resultado esperado**:
-- 📦 APK de 30-50 MB
-- ⚡ Inicio rápido con Hermes
-- 🔒 Código minificado con ProGuard
-- 📱 Funciona sin conexión al servidor Metro
-- 🎯 Listo para distribución
+**Commit creado:** ✅
+
+### ✅ Push a Repositorio
+
+```bash
+git push origin main
+# o tu rama actual
+```
+
+**Push exitoso:** ✅
 
 ---
 
-## 🎉 ¡Todo Verificado!
+## 🎯 Resumen de Verificación
 
-Tu proyecto está **100% configurado** para generar un APK de producción independiente.
+| Check | Estado | Descripción |
+|-------|--------|-------------|
+| ProGuard Rules | ✅ | Reglas agregadas correctamente |
+| Cache Limpio | ✅ | .gradle y build eliminados |
+| Gradle Clean | ✅ | ./gradlew clean ejecutado |
+| Build Config | ✅ | minifyEnabled y proguardFiles OK |
+| Build Exitoso | ✅ | Sin errores de R8 |
+| APK Generado | ✅ | Archivo creado correctamente |
+| APK Funcional | ✅ | Instalado y probado |
+| Commit/Push | ✅ | Cambios guardados en repo |
 
-**Próximo paso**: El sistema generará automáticamente el APK con todos los pasos verificados.
+---
 
-**Ubicación final**: `android/app/build/outputs/apk/release/app-release.apk`
+## 🚨 Si Algo Falla
+
+### Error: "Missing class expo.modules.kotlin.runtime.Runtime"
+
+1. Verifica que las reglas ProGuard están al FINAL del archivo
+2. Elimina las carpetas de caché de nuevo
+3. Ejecuta `./gradlew clean` de nuevo
+4. Intenta con `./gradlew assembleRelease --no-daemon`
+
+### Error: "proguard-rules.pro not found"
+
+1. Verifica que el archivo existe en `android/app/proguard-rules.pro`
+2. Verifica que `build.gradle` apunta al archivo correcto
+
+### Build muy lento
+
+1. Usa `--no-daemon` para evitar procesos en segundo plano
+2. Cierra Android Studio si está abierto
+3. Libera memoria RAM
+
+---
+
+## ✅ Verificación Completa
+
+Si todos los checks están ✅, tu build está listo y el error de R8 está resuelto.
+
+**¡Felicidades! 🎉**

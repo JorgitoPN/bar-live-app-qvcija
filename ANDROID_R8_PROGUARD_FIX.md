@@ -42,6 +42,11 @@ Abre el archivo: `android/app/proguard-rules.pro`
 -keepclassmembers class kotlin.Metadata {
     public <methods>;
 }
+
+# Kotlin Coroutines - Required for async operations in Expo modules
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembers class kotlinx.** { volatile <fields>; }
 ```
 
 ### Paso 3: El archivo completo debería verse así:
@@ -87,21 +92,43 @@ Abre el archivo: `android/app/proguard-rules.pro`
 -keepclassmembers class kotlin.Metadata {
     public <methods>;
 }
+
+# Kotlin Coroutines - Required for async operations in Expo modules
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembers class kotlinx.** { volatile <fields>; }
 ```
 
-## 🧹 Paso 4: Limpiar el entorno
+## 🧹 Paso 4: Limpiar el entorno (CRÍTICO)
 
-Después de agregar las reglas, es importante limpiar la caché de Gradle:
+**R8 es muy agresivo con su caché.** Debes realizar una limpieza profunda:
 
+1. **Eliminar manualmente las carpetas de caché** (si existen):
+   - `android/.gradle`
+   - `android/app/build`
+
+2. **Ejecutar Gradle clean**:
 ```bash
 cd android
 ./gradlew clean
 cd ..
 ```
 
+**IMPORTANTE**: Si no eliminas las carpetas de caché manualmente, R8 puede seguir usando configuraciones antiguas y el error persistirá.
+
 ## 🚀 Paso 5: Volver a compilar
 
 Ahora puedes volver a ejecutar el comando de compilación para Release. El build debería completarse exitosamente.
+
+## 📤 Paso 6: Commit y Push
+
+Una vez que el build termine con éxito, crea un commit y haz push:
+
+```bash
+git add android/app/proguard-rules.pro
+git commit -m "fix: add comprehensive ProGuard keep rules for Expo and Kotlin runtime"
+git push
+```
 
 ## 📝 Explicación de las reglas
 
@@ -112,6 +139,8 @@ Ahora puedes volver a ejecutar el comando de compilación para Release. El build
 - **`-dontwarn expo.modules.**`**: Suprime las advertencias de R8 sobre clases faltantes o no referenciadas en el paquete `expo.modules`, evitando que el build falle por advertencias.
 
 - **Reglas de Kotlin**: Las reglas adicionales de Kotlin aseguran que el runtime de Kotlin y sus metadatos de reflexión se preserven, lo cual es crítico para que los módulos de Expo funcionen correctamente.
+
+- **Reglas de Coroutines**: Las reglas de `kotlinx.coroutines` protegen las clases de corrutinas que Expo usa para operaciones asíncronas. R8 no puede detectar estas dependencias porque se cargan dinámicamente en tiempo de ejecución.
 
 ## ✅ Verificación
 
