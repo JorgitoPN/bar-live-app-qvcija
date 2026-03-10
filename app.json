@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "BarLive",
@@ -6,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
     "userInterfaceStyle": "automatic",
-    "developmentClient": false,
+    "developmentClient": {},
     "splash": {
       "image": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
       "resizeMode": "contain",
@@ -28,11 +29,6 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
         "backgroundColor": "#ffffff"
-      },
-      "notification": {
-        "icon": "./assets/images/ChatGPT Image 4 oct 2025, 00_01_43.png",
-        "color": "#14B8A6",
-        "androidMode": "default"
       },
       "package": "com.barlive.app",
       "permissions": [
@@ -82,8 +78,8 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
             "minSdkVersion": 24,
             "buildToolsVersion": "35.0.0",
             "packagingOptions": {
