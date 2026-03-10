@@ -304,16 +304,9 @@ export default function ConversacionScreen() {
           .eq('leido', false);
       }
 
-      // ✅ CRITICAL FIX v321.0: Scroll to end with even longer delay for reliable positioning
-      // Ensures messages are fully rendered before scrolling (increased from 300ms to 500ms)
       setTimeout(() => {
-        try {
-          flatListRef.current?.scrollToEnd({ animated: true });
-          console.log('[Conversacion v321.0] ✅ Scrolled to end after loading messages');
-        } catch (error) {
-          console.error('[Conversacion v321.0] ❌ Error scrolling to end:', error);
-        }
-      }, 500);
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     } catch (error) {
       console.error('[Conversacion] Error:', error);
     }
@@ -635,16 +628,9 @@ export default function ConversacionScreen() {
               .then(() => console.log('[Conversacion] Message marked as read'));
           }
 
-          // ✅ CRITICAL FIX v321.0: Scroll to end with longer delay for new messages
-          // Increased from 150ms to 300ms for more reliable scrolling
           setTimeout(() => {
-            try {
-              flatListRef.current?.scrollToEnd({ animated: true });
-              console.log('[Conversacion v321.0] ✅ Scrolled to end after new message');
-            } catch (error) {
-              console.error('[Conversacion v321.0] ❌ Error scrolling to end:', error);
-            }
-          }, 300);
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 50);
         }
       )
       .subscribe((status) => {
@@ -1457,19 +1443,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   messageBubbleOther: {
-    backgroundColor: '#FFFFFF', // ✅ White/light gray background for incoming messages
-    // ✅ SEGUNDA PARTE: Soft grayish shadow for elevated appearance
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    backgroundColor: colors.cardBg,
   },
   // ✅ INSTAGRAM STYLE: Message text
   messageText: {

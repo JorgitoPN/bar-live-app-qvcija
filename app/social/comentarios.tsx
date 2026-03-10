@@ -247,17 +247,6 @@ export default function ComentariosScreen() {
   useEffect(() => {
     if (postId) {
       loadComments();
-      
-      // ✅ CRITICAL FIX v321.0: Scroll to end after loading comments
-      // Ensures user sees the most recent comments first
-      setTimeout(() => {
-        try {
-          flatListRef.current?.scrollToEnd({ animated: true });
-          console.log('[ComentariosScreen v321.0] ✅ Scrolled to end after loading comments');
-        } catch (error) {
-          console.error('[ComentariosScreen v321.0] ❌ Error scrolling to end:', error);
-        }
-      }, 500);
     }
   }, [postId, loadComments]);
 
