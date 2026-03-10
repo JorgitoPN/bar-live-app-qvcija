@@ -39277,3 +39277,113 @@ We recommend you instead use a development build to avoid limitations. Learn mor
 [2026-03-10T04:57:33.258Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
 [2026-03-10T04:57:33.238Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
 [2026-03-10T04:57:33.408Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-03-10T04:57:34.824Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:35.359Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-10T04:57:34.841Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-10T04:57:34.859Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-10T04:57:35.011Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-03-10T04:57:36.677Z] [iOS] [LOG] [Conversacion v308.0] 📏 Input container measured height: 75.33334350585938
+[2026-03-10T04:57:36.927Z] [iOS] [LOG] [Conversacion v309.0] 🧹 Cleaning up keyboard listeners
+[2026-03-10T04:57:35.511Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-03-10T04:57:36.988Z] [iOS] [LOG] [Conversacion v309.0] 🎹 Setting up precise keyboard listeners with predictive text detection
+[2026-03-10T04:57:35.325Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:36.995Z] [iOS] [LOG] [Conversacion v308.0] 📏 Input container measured height: 59
+[2026-03-10T04:57:35.341Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-10T04:57:38.042Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:38.289Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-10T04:57:38.276Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-10T04:57:38.213Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-03-10T04:57:38.064Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-10T04:57:38.051Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-10T04:57:38.267Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:38.914Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:39.100Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-03-10T04:57:38.950Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-10T04:57:38.929Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-10T04:57:42.381Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-10T04:57:42.347Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:42.534Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-03-10T04:57:42.363Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-10T04:57:44.677Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-03-10T04:57:44.495Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:44.527Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-10T04:57:44.508Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-10T04:57:45.202Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:45.384Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-03-10T04:57:45.233Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-10T04:57:45.216Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-10T04:57:45.802Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:45.817Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-10T04:57:46.245Z] [iOS] [LOG] [Conversacion v309.0] 🧹 Cleaning up keyboard listeners
+[2026-03-10T04:57:46.002Z] [iOS] [LOG] [Conversacion v308.0] 📏 Input container measured height: 59
+[2026-03-10T04:57:45.779Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion v304.0] 📤 enviarMensaje called - keyboard stays open, message sends immediately
+[2026-03-10T04:57:46.308Z] [iOS] [LOG] [Conversacion v309.0] 🎹 Setting up precise keyboard listeners with predictive text detection
+[2026-03-10T04:57:46.311Z] [iOS] [LOG] [MomentoViewer v294.0] ⌨️ Keyboard hidden
+[2026-03-10T04:57:45.835Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-10T04:57:46.315Z] [iOS] [LOG] [Conversacion v309.0] ⌨️ Keyboard hidden
+[2026-03-10T04:57:46.501Z] [iOS] [LOG] [Conversacion v308.0] 📏 Input container measured height: 93
+[2026-03-10T04:57:46.743Z] [iOS] [LOG] [Conversacion v309.0] 🧹 Cleaning up keyboard listeners
+[2026-03-10T04:57:46.533Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-10T04:57:46.520Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-10T04:57:46.897Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-10T04:57:46.804Z] [iOS] [LOG] [Conversacion v309.0] 🎹 Setting up precise keyboard listeners with predictive text detection
+[2026-03-10T04:57:47.067Z] [iOS] [LOG] [Chats] ⚡ Chat updated: {"id":"9d8103da-ac58-4395-81ed-80ca85c9a731","activo":true,"local_id":null,"created_at":"2025-12-23T23:02:38.801213+00:00","updated_at":"2026-03-10T04:57:46.422095+00:00","usuario1_id":"4f3ce732-f479-43f2-acb2-e92831c6bec0","usuario2_id":"da8f89d8-f384-4c52-a7cc-1583687943dc","ultimo_mensaje":"Buenos días, qué tal? Yo por aquí probando la app y parece que va más o menos bien","archivado_usuario1":false,"archivado_usuario2":false,"ultimo_mensaje_fecha":"2026-03-10T04:57:46.422095+00:00","ultimo_mensaje_autor_id":"4f3ce732-f479-43f2-acb2-e92831c6bec0"}
+[2026-03-10T04:57:46.510Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:47.059Z] [iOS] [LOG] [Conversacion] ⚡ INSTANT new message received: {"id":"82453eb1-f06c-4e33-914d-6b1f12d0b0b9","leido":false,"chat_id":"9d8103da-ac58-4395-81ed-80ca85c9a731","post_id":null,"leido_at":null,"contenido":"Buenos días, qué tal? Yo por aquí probando la app y parece que va más o menos bien","entregado":false,"media_url":null,"created_at":"2026-03-10T04:57:46.422095+00:00","momento_id":null,"post_imagen":null,"entregado_at":null,"remitente_id":"4f3ce732-f479-43f2-acb2-e92831c6bec0","tipo_mensaje":"texto","ubicacion_lat":null,"ubicacion_lng":null,"media_duracion":null,"media_thumbnail":null,"ubicacion_nombre":null,"post_compartido_id":null,"eliminado_remitente":false,"eliminado_destinatario":false,"momento_screenshot_url":null}
+[2026-03-10T04:57:47.047Z] [iOS] [LOG] [Chats] ⚡ INSTANT new message received: {"id":"82453eb1-f06c-4e33-914d-6b1f12d0b0b9","leido":false,"chat_id":"9d8103da-ac58-4395-81ed-80ca85c9a731","post_id":null,"leido_at":null,"contenido":"Buenos días, qué tal? Yo por aquí probando la app y parece que va más o menos bien","entregado":false,"media_url":null,"created_at":"2026-03-10T04:57:46.422095+00:00","momento_id":null,"post_imagen":null,"entregado_at":null,"remitente_id":"4f3ce732-f479-43f2-acb2-e92831c6bec0","tipo_mensaje":"texto","ubicacion_lat":null,"ubicacion_lng":null,"media_duracion":null,"media_thumbnail":null,"ubicacion_nombre":null,"post_compartido_id":null,"eliminado_remitente":false,"eliminado_destinatario":false,"momento_screenshot_url":null}
+[2026-03-10T04:57:47.050Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 🔄 Force refreshing chats from database...
+[2026-03-10T04:57:46.909Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-10T04:57:46.889Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:47.165Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion v304.0] 📬 Sending notification to: da8f89d8-f384-4c52-a7cc-1583687943dc (user)
+[2026-03-10T04:57:47.468Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Jorge Pérez username: jorge
+[2026-03-10T04:57:47.484Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Almudena Sanchez username: alma8
+[2026-03-10T04:57:47.209Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat 3236db65-3aac-44bd-bc33-61f00920a4e1 is USER-TO-USER, loading user info for: 4f3ce732-f479-43f2-acb2-e92831c6bec0
+[2026-03-10T04:57:47.488Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Jorge Pérez username: jorgitopn
+[2026-03-10T04:57:47.517Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat 9d8103da-ac58-4395-81ed-80ca85c9a731 is USER-TO-USER, loading user info for: da8f89d8-f384-4c52-a7cc-1583687943dc
+[2026-03-10T04:57:47.527Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat 7f9dc780-ab6e-4f04-9c88-056120c37d96 is USER-TO-USER, loading user info for: a5def648-6df3-47ae-885e-d15d0a0266ae
+[2026-03-10T04:57:47.199Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded 5 chats from database
+[2026-03-10T04:57:47.206Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat 0911cbb9-ea5d-42bb-a76c-580f4c632402 is USER-TO-USER, loading user info for: 0d03d159-b357-4145-bf9c-3909a508731b
+[2026-03-10T04:57:47.661Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Natividad username: nati
+[2026-03-10T04:57:47.664Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Benjamín Pérez username: benxaque
+[2026-03-10T04:57:47.271Z] [iOS] [LOG] [Chats] ⚡ Chat updated: {"id":"9d8103da-ac58-4395-81ed-80ca85c9a731","activo":true,"local_id":null,"created_at":"2025-12-23T23:02:38.801213+00:00","updated_at":"2026-03-10T04:57:46.879+00:00","usuario1_id":"4f3ce732-f479-43f2-acb2-e92831c6bec0","usuario2_id":"da8f89d8-f384-4c52-a7cc-1583687943dc","ultimo_mensaje":"Buenos días, qué tal? Yo por aquí probando la app y parece que va más o menos bien","archivado_usuario1":false,"archivado_usuario2":false,"ultimo_mensaje_fecha":"2026-03-10T04:57:46.879+00:00","ultimo_mensaje_autor_id":"4f3ce732-f479-43f2-acb2-e92831c6bec0"}
+[2026-03-10T04:57:47.654Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Jorge Pérez username: jorge
+[2026-03-10T04:57:47.202Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat 9d8103da-ac58-4395-81ed-80ca85c9a731 is USER-TO-USER, loading user info for: da8f89d8-f384-4c52-a7cc-1583687943dc
+[2026-03-10T04:57:47.651Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Almudena Sanchez username: alma8
+[2026-03-10T04:57:47.657Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Jorge Pérez username: jorgitopn
+[2026-03-10T04:57:47.520Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat 0911cbb9-ea5d-42bb-a76c-580f4c632402 is USER-TO-USER, loading user info for: 0d03d159-b357-4145-bf9c-3909a508731b
+[2026-03-10T04:57:47.274Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 🔄 Force refreshing chats from database...
+[2026-03-10T04:57:47.479Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Benjamín Pérez username: benxaque
+[2026-03-10T04:57:47.524Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat 3236db65-3aac-44bd-bc33-61f00920a4e1 is USER-TO-USER, loading user info for: 4f3ce732-f479-43f2-acb2-e92831c6bec0
+[2026-03-10T04:57:47.213Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat 7f9dc780-ab6e-4f04-9c88-056120c37d96 is USER-TO-USER, loading user info for: a5def648-6df3-47ae-885e-d15d0a0266ae
+[2026-03-10T04:57:47.216Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat ed636c44-3210-4b12-9756-da6028040e54 is USER-TO-USER, loading user info for: f730677c-1778-4db2-b945-a62b35264dfe
+[2026-03-10T04:57:47.514Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded 5 chats from database
+[2026-03-10T04:57:47.499Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Loaded user info: Natividad username: nati
+[2026-03-10T04:57:47.530Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Chat ed636c44-3210-4b12-9756-da6028040e54 is USER-TO-USER, loading user info for: f730677c-1778-4db2-b945-a62b35264dfe
+[2026-03-10T04:57:47.739Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 3236db65-3aac-44bd-bc33-61f00920a4e1 has 0 unread messages
+[2026-03-10T04:57:47.731Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 7f9dc780-ab6e-4f04-9c88-056120c37d96 has 0 unread messages
+[2026-03-10T04:57:47.799Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Processed all chats with info
+[2026-03-10T04:57:47.737Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat ed636c44-3210-4b12-9756-da6028040e54 has 0 unread messages
+[2026-03-10T04:57:47.817Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:47.733Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 0911cbb9-ea5d-42bb-a76c-580f4c632402 has 0 unread messages
+[2026-03-10T04:57:47.832Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.pencil", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:47.838Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-03-10T04:57:47.905Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-03-10T04:57:47.825Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:47.748Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 9d8103da-ac58-4395-81ed-80ca85c9a731 has 0 unread messages
+[2026-03-10T04:57:47.909Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 9d8103da-ac58-4395-81ed-80ca85c9a731 has 0 unread messages
+[2026-03-10T04:57:47.913Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 7f9dc780-ab6e-4f04-9c88-056120c37d96 has 0 unread messages
+[2026-03-10T04:57:48.067Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-03-10T04:57:47.929Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-10T04:57:47.911Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat ed636c44-3210-4b12-9756-da6028040e54 has 0 unread messages
+[2026-03-10T04:57:47.914Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion v304.0] ✅ Message sent successfully - keyboard stays open for continuous typing
+[2026-03-10T04:57:47.941Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-10T04:57:48.083Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 3236db65-3aac-44bd-bc33-61f00920a4e1 has 0 unread messages
+[2026-03-10T04:57:48.099Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:48.106Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.pencil", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:48.093Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:57:48.081Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 0911cbb9-ea5d-42bb-a76c-580f4c632402 has 0 unread messages
+[2026-03-10T04:57:48.112Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-03-10T04:57:48.085Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Processed all chats with info
+[2026-03-10T04:57:48.179Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-03-10T04:57:54.754Z] [iOS] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: inactive
+[2026-03-10T04:57:54.764Z] [iOS] [LOG] [NotificationHandler] 📱 Estado de app: Background
