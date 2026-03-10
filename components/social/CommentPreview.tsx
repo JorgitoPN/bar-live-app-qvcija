@@ -73,12 +73,12 @@ export default function CommentPreview({ postId }: CommentPreviewProps) {
         .from('comentarios')
         .select(`
           id,
-          usuario_id,
+          autor_id,
           created_at,
-          usuario:usuarios!comentarios_usuario_id_fkey(nombre)
+          usuario:usuarios!comentarios_autor_id_fkey(nombre)
         `)
         .eq('post_id', postId)
-        .in('usuario_id', followedUserIds)
+        .in('autor_id', followedUserIds)
         .order('created_at', { ascending: false });
 
       if (commentsError) {
