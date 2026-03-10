@@ -28,7 +28,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * NOTIFICACIONES SCREEN v7.4 - INSTAGRAM-INSPIRED SYSTEM WITH USER AVATARS
+ * NOTIFICACIONES SCREEN v7.5 - INSTAGRAM-INSPIRED SYSTEM WITH USER AVATARS
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * 🎯 INSTAGRAM-INSPIRED FEATURES:
@@ -46,6 +46,7 @@ import { Swipeable } from 'react-native-gesture-handler';
  * ✅ Stacked avatars for aggregated notifications
  * ✅ Settings panel for notification preferences
  * ✅ FIX v7.4: Proper avatar loading from usuarios table
+ * ✅ FIX v7.5: Show username initial immediately when no avatar (don't wait for error)
  */
 
 type NotificationType = 
@@ -1046,7 +1047,7 @@ export default function NotificacionesScreen() {
 
   /**
    * Render notification item (handles both English and Spanish fields)
-   * ✅ FIX v7.4: Proper avatar display with fallback
+   * ✅ FIX v7.5: Show username initial when no avatar URL (don't wait for error)
    */
   const renderNotification = useCallback((notification: NotificationItem) => {
     const timeAgo = formatTimeAgo(notification.created_at);
@@ -1061,14 +1062,16 @@ export default function NotificacionesScreen() {
     // Get first letter of username for fallback avatar
     const firstLetter = senderUsername.charAt(0).toUpperCase();
     
-    // Check if avatar failed to load
+    // Check if avatar failed to load OR if there's no avatar URL
     const avatarError = avatarErrors[notification.id] || false;
+    const shouldShowAvatar = avatar && !avatarError;
 
-    console.log('[Notificaciones v7.4] 🎨 Rendering notification:', {
+    console.log('[Notificaciones v7.5] 🎨 Rendering notification:', {
       id: notification.id,
       avatar,
       senderUsername,
       avatarError,
+      shouldShowAvatar,
       firstLetter
     });
 
@@ -1087,12 +1090,12 @@ export default function NotificacionesScreen() {
           activeOpacity={0.7}
         >
           <View style={styles.avatarSection}>
-            {avatar && !avatarError ? (
+            {shouldShowAvatar ? (
               <Image 
                 source={{ uri: avatar }} 
                 style={styles.avatar}
                 onError={() => {
-                  console.log('[Notificaciones v7.4] ⚠️ Error loading avatar:', avatar);
+                  console.log('[Notificaciones v7.5] ⚠️ Error loading avatar:', avatar);
                   handleAvatarError(notification.id);
                 }}
               />
@@ -1106,13 +1109,15 @@ export default function NotificacionesScreen() {
                 {notification.recent_senders.slice(1, 3).map((sender, index) => {
                   const senderFirstLetter = (sender.username || 'U').charAt(0).toUpperCase();
                   const stackedAvatarError = avatarErrors[`${notification.id}-${sender.id}`] || false;
-                  return sender.avatar_url && !stackedAvatarError ? (
+                  const shouldShowStackedAvatar = sender.avatar_url && !stackedAvatarError;
+                  
+                  return shouldShowStackedAvatar ? (
                     <Image
                       key={sender.id}
                       source={{ uri: sender.avatar_url }}
                       style={[styles.stackedAvatar, { right: (index + 1) * 12 }]}
                       onError={() => {
-                        console.log('[Notificaciones v7.4] ⚠️ Error loading stacked avatar:', sender.avatar_url);
+                        console.log('[Notificaciones v7.5] ⚠️ Error loading stacked avatar:', sender.avatar_url);
                         handleAvatarError(`${notification.id}-${sender.id}`);
                       }}
                     />

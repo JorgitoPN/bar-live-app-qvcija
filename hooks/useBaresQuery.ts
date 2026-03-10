@@ -1,10 +1,14 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 useBaresQuery v28.0.0 - FIXED ADVANCED FILTERS
+ * 🚀 useBaresQuery v28.1.0 - FIXED CAFETERIAS CATEGORY FILTER
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 🎯 NEW IN v28.0.0 (FIXED ADVANCED FILTERS):
+ * 🎯 NEW IN v28.1.0 (FIXED CAFETERIAS CATEGORY):
+ * 1️⃣ CAFETERIAS FILTER: Now correctly maps to 'cafe' (database format) ✅
+ * 2️⃣ RESULT: Selecting "Cafeterías" category now shows "Café" type establishments ✅
+ * 
+ * 🎯 v28.0.0 (FIXED ADVANCED FILTERS):
  * 1️⃣ SERVICIOS FILTER: Now properly checks for TRUE values in servicios_disponibles ✅
  * 2️⃣ AMBIENTE FILTER: Now properly checks for TRUE values in ambiente_completo ✅
  * 3️⃣ CLIENTELA FILTER: Now properly checks for TRUE values in clientela ✅
@@ -85,7 +89,7 @@ function generateQueryKey(params: UseBaresQueryParams) {
   );
   
   return [
-    'bares_infinite_v28.0.0',  // ✅ FIXED: Advanced filters now properly check for TRUE values
+    'bares_infinite_v28.1.0',  // ✅ FIXED: Cafeterias category now maps to 'cafe' correctly
     lat,
     lng,
     params.selectedCategory,
@@ -163,7 +167,7 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
           'pubs': 'pub',
           'bares': 'bar',
           'restaurantes': 'restaurante',
-          'cafeterias': 'cafeteria',
+          'cafeterias': 'cafe',  // ✅ FIX: Map to 'cafe' (database format) instead of 'cafeteria'
         };
         categoryFilter = [categoryMapping[selectedCategory] || selectedCategory];
       }
