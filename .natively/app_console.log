@@ -34954,3 +34954,5 @@ We recommend you instead use a development build to avoid limitations. Learn mor
 [2026-03-10T08:52:41.714Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.grid.3x3", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
 [2026-03-10T08:52:41.754Z] [iOS] [LOG] [InternalBytecode.js:1] [ProfileCache] 💾 Cached user:4f3ce732-f479-43f2-acb2-e92831c6bec0 (8 posts)
 [2026-03-10T08:52:41.707Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus.circle.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 18
+[2026-03-10T08:52:45.766Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T08:52:45.766Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
