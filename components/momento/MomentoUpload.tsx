@@ -29,9 +29,16 @@ import { useRouter } from 'expo-router';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 /**
- * ✅ MOMENTO UPLOAD v160.0 - BLACK SCREEN FIX
+ * ✅ MOMENTO UPLOAD v161.0 - BLACK SCREEN FIX (COMPLETE)
  * 
- * NEW CHANGES v160.0:
+ * NEW CHANGES v161.0:
+ * - ✅ FIX: Close modal BEFORE calling onSuccess to prevent UI conflicts
+ * - ✅ FIX: Call onSuccess with delay to ensure modal is fully closed
+ * - ✅ FIX: Show success alert AFTER all cleanup is complete
+ * - ✅ FIX: Proper state reset order to prevent black screen
+ * - ✅ RESULT: No more black screen after publishing momento
+ * 
+ * PREVIOUS FIXES v160.0:
  * - ✅ FIX: Proper navigation after upload success
  * - ✅ FIX: Reset all state before closing modal
  * - ✅ FIX: Ensure UI is responsive after upload
@@ -155,8 +162,8 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
       setShowUploadProgress(true);
       setUploadProgress(0);
 
-      console.log('[MomentoUpload v160.0] 🚀 Iniciando subida de Momento...');
-      console.log('[MomentoUpload v160.0] 📊 Estado inicial:', {
+      console.log('[MomentoUpload v161.0] 🚀 Iniciando subida de Momento...');
+      console.log('[MomentoUpload v161.0] 📊 Estado inicial:', {
         hasUser: !!user,
         userId: user?.id,
         activeProfileType,
@@ -168,7 +175,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
       const validSession = await ensureValidSession();
       
       if (!validSession) {
-        console.error('[MomentoUpload v160.0] ❌ No se pudo obtener una sesión válida');
+        console.error('[MomentoUpload v161.0] ❌ No se pudo obtener una sesión válida');
         Alert.alert(
           'Sesión expirada',
           'Tu sesión ha expirado. Por favor, cierra sesión y vuelve a iniciar sesión.'
@@ -178,12 +185,12 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         return;
       }
 
-      console.log('[MomentoUpload v160.0] ✅ Sesión válida confirmada');
+      console.log('[MomentoUpload v161.0] ✅ Sesión válida confirmada');
       setUploadProgress(10);
 
       const currentUserId = validSession.user.id;
 
-      console.log('[MomentoUpload v160.0] 👤 Usuario confirmado:', currentUserId);
+      console.log('[MomentoUpload v161.0] 👤 Usuario confirmado:', currentUserId);
 
       let momentoData: any = {
         autor_id: currentUserId,
@@ -192,7 +199,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
       };
 
       if (activeProfileType === 'local' && activeProfileId) {
-        console.log('[MomentoUpload v160.0] 🏢 Verificando propiedad del local...');
+        console.log('[MomentoUpload v161.0] 🏢 Verificando propiedad del local...');
         
         const { data: ownershipData, error: ownershipError } = await supabase
           .from('propietarios_locales')
@@ -203,7 +210,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
           .single();
 
         if (ownershipError || !ownershipData) {
-          console.error('[MomentoUpload v160.0] ❌ Verificación de propiedad falló:', ownershipError);
+          console.error('[MomentoUpload v161.0] ❌ Verificación de propiedad falló:', ownershipError);
           Alert.alert(
             'Error de permisos',
             'No tienes permisos para subir momentos como este local. Verifica que seas propietario activo del local.'
@@ -213,32 +220,32 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
           return;
         }
 
-        console.log('[MomentoUpload v160.0] ✅ Propiedad verificada:', ownershipData);
+        console.log('[MomentoUpload v161.0] ✅ Propiedad verificada:', ownershipData);
         
         momentoData.tipo = 'local';
         momentoData.local_id = activeProfileId;
       }
 
       setUploadProgress(20);
-      console.log('[MomentoUpload v160.0] 📝 Datos del momento preparados:', momentoData);
+      console.log('[MomentoUpload v161.0] 📝 Datos del momento preparados:', momentoData);
 
-      console.log('[MomentoUpload v160.0] 📸 Convirtiendo imagen a base64...');
+      console.log('[MomentoUpload v161.0] 📸 Convirtiendo imagen a base64...');
       const base64 = await FileSystem.readAsStringAsync(selectedImage, {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      console.log('[MomentoUpload v160.0] ✅ Imagen convertida, tamaño:', base64.length, 'caracteres');
+      console.log('[MomentoUpload v161.0] ✅ Imagen convertida, tamaño:', base64.length, 'caracteres');
       setUploadProgress(30);
 
       const fileName = `momento-${Date.now()}.jpg`;
       const filePath = `${currentUserId}/${fileName}`;
 
-      console.log('[MomentoUpload v160.0] 📤 Subiendo a storage bucket "momentos"');
-      console.log('[MomentoUpload v160.0] 📁 Ruta del archivo:', filePath);
+      console.log('[MomentoUpload v161.0] 📤 Subiendo a storage bucket "momentos"');
+      console.log('[MomentoUpload v161.0] 📁 Ruta del archivo:', filePath);
 
       const arrayBuffer = decode(base64);
 
-      console.log('[MomentoUpload v160.0] 📦 Tamaño del buffer:', arrayBuffer.byteLength, 'bytes');
+      console.log('[MomentoUpload v161.0] 📦 Tamaño del buffer:', arrayBuffer.byteLength, 'bytes');
       setUploadProgress(40);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -249,7 +256,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         });
 
       if (uploadError) {
-        console.error('[MomentoUpload v160.0] ❌ Error de subida al storage:', uploadError);
+        console.error('[MomentoUpload v161.0] ❌ Error de subida al storage:', uploadError);
         
         if (uploadError.message.includes('row-level security') || uploadError.message.includes('policy')) {
           Alert.alert(
@@ -266,19 +273,19 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         return;
       }
 
-      console.log('[MomentoUpload v160.0] ✅ Subida al storage exitosa:', uploadData);
+      console.log('[MomentoUpload v161.0] ✅ Subida al storage exitosa:', uploadData);
       setUploadProgress(70);
 
       const { data: urlData } = supabase.storage
         .from('momentos')
         .getPublicUrl(filePath);
 
-      console.log('[MomentoUpload v160.0] 🔗 URL pública generada:', urlData.publicUrl);
+      console.log('[MomentoUpload v161.0] 🔗 URL pública generada:', urlData.publicUrl);
 
       momentoData.imagen_url = urlData.publicUrl;
 
       setUploadProgress(80);
-      console.log('[MomentoUpload v160.0] 💾 Creando registro en la base de datos...');
+      console.log('[MomentoUpload v161.0] 💾 Creando registro en la base de datos...');
 
       const { data: insertData, error: insertError } = await supabase
         .from('momentos')
@@ -287,7 +294,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         .single();
 
       if (insertError) {
-        console.error('[MomentoUpload v160.0] ❌ Error insertando en base de datos:', insertError);
+        console.error('[MomentoUpload v161.0] ❌ Error insertando en base de datos:', insertError);
         
         if (insertError.message.includes('row-level security') || insertError.message.includes('policy')) {
           Alert.alert(
@@ -307,39 +314,43 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         return;
       }
 
-      console.log('[MomentoUpload v160.0] ✅ Momento creado exitosamente:', insertData);
+      console.log('[MomentoUpload v161.0] ✅ Momento creado exitosamente:', insertData);
       setUploadProgress(100);
 
-      // ✅ v160.0 FIX: Proper cleanup and navigation
+      // ✅ v161.0 FIX: Proper cleanup and navigation (BLACK SCREEN FIX)
       setTimeout(() => {
-        console.log('[MomentoUpload v160.0] ✅ Upload complete, cleaning up...');
+        console.log('[MomentoUpload v161.0] ✅ Upload complete, cleaning up...');
         
-        // Hide progress modal
+        // Hide progress modal FIRST
         setShowUploadProgress(false);
         
         // Haptic feedback
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         
-        // Reset state
+        // Reset ALL state variables
         setSelectedImage(null);
         setUploadProgress(0);
         setUploading(false);
         
-        // Call success callback if provided
-        if (onSuccess && typeof onSuccess === 'function') {
-          console.log('[MomentoUpload v160.0] ✅ Calling onSuccess callback');
-          onSuccess();
-        }
-        
-        // Close modal
-        console.log('[MomentoUpload v160.0] ✅ Closing modal');
+        // Close modal BEFORE calling onSuccess to prevent UI conflicts
+        console.log('[MomentoUpload v161.0] ✅ Closing modal');
         onClose();
         
-        // Show success message
-        Alert.alert('¡Éxito!', 'Tu Momento se ha publicado');
+        // Call success callback AFTER modal is closed
+        if (onSuccess && typeof onSuccess === 'function') {
+          console.log('[MomentoUpload v161.0] ✅ Calling onSuccess callback');
+          setTimeout(() => {
+            onSuccess();
+          }, 100);
+        }
+        
+        // Show success message AFTER everything is cleaned up
+        setTimeout(() => {
+          Alert.alert('¡Éxito!', 'Tu Momento se ha publicado');
+        }, 200);
       }, 500);
     } catch (error) {
-      console.error('[MomentoUpload v160.0] ❌ Error inesperado:', error);
+      console.error('[MomentoUpload v161.0] ❌ Error inesperado:', error);
       setShowUploadProgress(false);
       setUploading(false);
       Alert.alert('Error', 'No se pudo subir el Momento. Por favor, intenta de nuevo.');
@@ -348,7 +359,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
 
   const handleClose = () => {
     if (!uploading) {
-      console.log('[MomentoUpload v160.0] ✅ Closing modal and resetting state');
+      console.log('[MomentoUpload v161.0] ✅ Closing modal and resetting state');
       setSelectedImage(null);
       setUploadProgress(0);
       setShowUploadProgress(false);

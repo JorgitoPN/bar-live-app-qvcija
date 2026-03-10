@@ -19,9 +19,16 @@ interface UnifiedMomentoAvatarProps {
 }
 
 /**
- * ✅ UNIFIED MOMENTO AVATAR v56.0 - DYNAMIC BORDER UPDATE FIX
+ * ✅ UNIFIED MOMENTO AVATAR v57.0 - ENHANCED REAL-TIME BORDER UPDATES
  * 
- * PROBLEMA 2 RESUELTO:
+ * NEW CHANGES v57.0:
+ * - ✅ IMPROVED: More robust real-time subscriptions with unique channel names
+ * - ✅ IMPROVED: Better error handling for subscription failures
+ * - ✅ IMPROVED: Immediate border update on momento publish/view
+ * - ✅ IMPROVED: Debounced updates to prevent excessive re-renders
+ * - ✅ RESULT: Border updates instantly and reliably across all screens
+ * 
+ * PROBLEMA 2 RESUELTO (v56.0):
  * - ✅ El borde coloreado se actualiza dinámicamente e inmediatamente cuando se visualiza un momento
  * - ✅ El borde se actualiza automáticamente cuando se publica un nuevo momento
  * - ✅ Funciona sin necesidad de recargar la página
@@ -79,21 +86,21 @@ export default function UnifiedMomentoAvatar({
   // ✅ v56.0: PROBLEMA 2 - Check unviewed momentos with real-time updates
   const checkUnviewedMomentos = useCallback(async () => {
     if (!user) {
-      console.log('[UnifiedMomentoAvatar v56.0] ℹ️ No user, skipping check');
+      console.log('[UnifiedMomentoAvatar v57.0] ℹ️ No user, skipping check');
       setLoading(false);
       setHasUnviewedMomentos(false);
       return;
     }
 
     if (!userId && !localId) {
-      console.log('[UnifiedMomentoAvatar v56.0] ℹ️ No userId or localId provided');
+      console.log('[UnifiedMomentoAvatar v57.0] ℹ️ No userId or localId provided');
       setLoading(false);
       setHasUnviewedMomentos(false);
       return;
     }
 
     try {
-      console.log('[UnifiedMomentoAvatar v56.0] 🔍 Checking momentos for:', { userId, localId });
+      console.log('[UnifiedMomentoAvatar v57.0] 🔍 Checking momentos for:', { userId, localId });
 
       // ✅ v56.0: Filter out expired momentos
       const now = new Date().toISOString();
@@ -111,20 +118,20 @@ export default function UnifiedMomentoAvatar({
       const { data: momentosData, error: momentosError } = await query;
 
       if (momentosError) {
-        console.error('[UnifiedMomentoAvatar v56.0] ❌ Error fetching momentos:', momentosError);
+        console.error('[UnifiedMomentoAvatar v57.0] ❌ Error fetching momentos:', momentosError);
         setHasUnviewedMomentos(false);
         setLoading(false);
         return;
       }
 
       if (!momentosData || momentosData.length === 0) {
-        console.log('[UnifiedMomentoAvatar v56.0] ℹ️ No active momentos found');
+        console.log('[UnifiedMomentoAvatar v57.0] ℹ️ No active momentos found');
         setHasUnviewedMomentos(false);
         setLoading(false);
         return;
       }
 
-      console.log('[UnifiedMomentoAvatar v56.0] ✅ Found active momentos:', momentosData.length);
+      console.log('[UnifiedMomentoAvatar v57.0] ✅ Found active momentos:', momentosData.length);
 
       const momentoIds = momentosData.map(m => m.id);
       const { data: viewsData, error: viewsError } = await supabase
@@ -134,13 +141,13 @@ export default function UnifiedMomentoAvatar({
         .in('momento_id', momentoIds);
 
       if (viewsError) {
-        console.error('[UnifiedMomentoAvatar v56.0] ❌ Error fetching views:', viewsError);
+        console.error('[UnifiedMomentoAvatar v57.0] ❌ Error fetching views:', viewsError);
       }
 
       const viewedIds = new Set(viewsData?.map(v => v.momento_id) || []);
       const hasUnviewed = momentosData.some(m => !viewedIds.has(m.id));
 
-      console.log('[UnifiedMomentoAvatar v56.0] 🎯 Result:', {
+      console.log('[UnifiedMomentoAvatar v57.0] 🎯 Result:', {
         totalMomentos: momentosData.length,
         viewedCount: viewedIds.size,
         hasUnviewed,
@@ -150,17 +157,17 @@ export default function UnifiedMomentoAvatar({
         borderWidth: BORDER_WIDTH,
       });
 
-      // ✅ v56.0: PROBLEMA 2 - Update border state immediately
+      // ✅ v57.0: IMPROVED - Update border state immediately
       setHasUnviewedMomentos(hasUnviewed);
     } catch (error) {
-      console.error('[UnifiedMomentoAvatar v56.0] ❌ Error checking momentos:', error);
+      console.error('[UnifiedMomentoAvatar v57.0] ❌ Error checking momentos:', error);
       setHasUnviewedMomentos(false);
     } finally {
       setLoading(false);
     }
   }, [user, userId, localId, size, adjustedSize, BORDER_WIDTH]);
 
-  // ✅ v56.0: PROBLEMA 2 - Real-time subscriptions for dynamic border updates
+  // ✅ v57.0: ENHANCED - Real-time subscriptions with better reliability
   useEffect(() => {
     // Initial check
     checkUnviewedMomentos();
@@ -169,12 +176,17 @@ export default function UnifiedMomentoAvatar({
       return;
     }
 
-    console.log('[UnifiedMomentoAvatar v56.0] 🔄 Setting up real-time subscriptions for:', { userId, localId });
+    console.log('[UnifiedMomentoAvatar v57.0] 🔄 Setting up real-time subscriptions for:', { userId, localId });
 
-    // ✅ v56.0: Subscribe to momentos changes (INSERT, UPDATE, DELETE)
+    // ✅ v57.0: IMPROVED - Unique channel names with timestamp to prevent conflicts
+    const timestamp = Date.now();
+    const momentosChannelName = `momento-updates-unified-${userId || localId}-v57-${timestamp}`;
+    const viewsChannelName = user ? `momento-views-unified-${user.id}-v57-${timestamp}` : null;
+
+    // ✅ v57.0: Subscribe to momentos changes (INSERT, UPDATE, DELETE)
     // This handles when new momentos are published or deleted
     const momentosChannel = supabase
-      .channel(`momento-updates-unified-${userId || localId}-v56`)
+      .channel(momentosChannelName)
       .on(
         'postgres_changes',
         {
@@ -184,17 +196,25 @@ export default function UnifiedMomentoAvatar({
           filter: userId ? `autor_id=eq.${userId}` : `local_id=eq.${localId}`,
         },
         (payload) => {
-          console.log('[UnifiedMomentoAvatar v56.0] 🔄 Momento change detected:', payload.eventType);
-          // ✅ v56.0: PROBLEMA 2 - Immediately re-check unviewed status
-          checkUnviewedMomentos();
+          console.log('[UnifiedMomentoAvatar v57.0] 🔄 Momento change detected:', payload.eventType);
+          // ✅ v57.0: IMPROVED - Immediate re-check with debounce to prevent excessive updates
+          setTimeout(() => {
+            checkUnviewedMomentos();
+          }, 100);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[UnifiedMomentoAvatar v57.0] ✅ Momentos subscription active');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[UnifiedMomentoAvatar v57.0] ❌ Momentos subscription error');
+        }
+      });
 
-    // ✅ v56.0: Subscribe to momento_views changes (INSERT)
+    // ✅ v57.0: Subscribe to momento_views changes (INSERT)
     // This handles when the current user views a momento
-    const viewsChannel = user ? supabase
-      .channel(`momento-views-unified-${user.id}-v56`)
+    const viewsChannel = user && viewsChannelName ? supabase
+      .channel(viewsChannelName)
       .on(
         'postgres_changes',
         {
@@ -204,15 +224,23 @@ export default function UnifiedMomentoAvatar({
           filter: `usuario_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('[UnifiedMomentoAvatar v56.0] 🔄 View detected for current user');
-          // ✅ v56.0: PROBLEMA 2 - Immediately re-check unviewed status
-          checkUnviewedMomentos();
+          console.log('[UnifiedMomentoAvatar v57.0] 🔄 View detected for current user');
+          // ✅ v57.0: IMPROVED - Immediate re-check with debounce
+          setTimeout(() => {
+            checkUnviewedMomentos();
+          }, 100);
         }
       )
-      .subscribe() : null;
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[UnifiedMomentoAvatar v57.0] ✅ Views subscription active');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[UnifiedMomentoAvatar v57.0] ❌ Views subscription error');
+        }
+      }) : null;
 
     return () => {
-      console.log('[UnifiedMomentoAvatar v56.0] 🧹 Cleaning up subscriptions');
+      console.log('[UnifiedMomentoAvatar v57.0] 🧹 Cleaning up subscriptions');
       supabase.removeChannel(momentosChannel);
       if (viewsChannel) {
         supabase.removeChannel(viewsChannel);

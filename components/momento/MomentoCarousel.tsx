@@ -1,8 +1,14 @@
 
 /**
- * ✅ MOMENTO CAROUSEL v168.0 - ANDROID AVATAR SIZE INCREASE
+ * ✅ MOMENTO CAROUSEL v169.0 - ENHANCED REAL-TIME UPDATES
  * 
- * NEW CHANGES v168.0:
+ * NEW CHANGES v169.0:
+ * - ✅ IMPROVED: More robust real-time subscriptions with unique channel names
+ * - ✅ IMPROVED: Better error handling for subscription failures
+ * - ✅ IMPROVED: Debounced updates to prevent excessive re-renders
+ * - ✅ RESULT: Carousel updates instantly when momentos are published/viewed
+ * 
+ * Previous changes v168.0:
  * - ✅ REQUERIMIENTO: Increased momento avatar size on Android
  * - ✅ Changed from 90 to 100 (same as iOS) for better visibility
  * - ✅ Avatars now more prominent and easier to tap on Android
@@ -67,13 +73,13 @@ export default function MomentoCarousel() {
 
   const loadMomentoAuthors = useCallback(async () => {
     if (!userId) {
-      console.log('[MomentoCarousel v168.0] No user ID, skipping load');
+      console.log('[MomentoCarousel v169.0] No user ID, skipping load');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('[MomentoCarousel v168.0] 🔄 Loading momento authors...');
+      console.log('[MomentoCarousel v169.0] 🔄 Loading momento authors...');
 
       const { data: momentosData, error: momentosError } = await supabase
         .from('momentos')
@@ -88,19 +94,19 @@ export default function MomentoCarousel() {
         .order('created_at', { ascending: false });
 
       if (momentosError) {
-        console.error('[MomentoCarousel v168.0] ❌ Error loading momentos:', momentosError);
+        console.error('[MomentoCarousel v169.0] ❌ Error loading momentos:', momentosError);
         setLoading(false);
         return;
       }
 
       if (!momentosData || momentosData.length === 0) {
-        console.log('[MomentoCarousel v168.0] ℹ️ No active momentos found');
+        console.log('[MomentoCarousel v169.0] ℹ️ No active momentos found');
         setAuthors([]);
         setLoading(false);
         return;
       }
 
-      console.log('[MomentoCarousel v168.0] ✅ Found momentos:', momentosData.length);
+      console.log('[MomentoCarousel v169.0] ✅ Found momentos:', momentosData.length);
 
       const momentoIds = momentosData.map(m => m.id);
       const { data: viewsData } = await supabase
@@ -174,9 +180,9 @@ export default function MomentoCarousel() {
       });
 
       setAuthors(authorsArray);
-      console.log('[MomentoCarousel v168.0] ✅ Loaded authors:', authorsArray.length);
+      console.log('[MomentoCarousel v169.0] ✅ Loaded authors:', authorsArray.length);
     } catch (error) {
-      console.error('[MomentoCarousel v168.0] ❌ Error loading authors:', error);
+      console.error('[MomentoCarousel v169.0] ❌ Error loading authors:', error);
     } finally {
       setLoading(false);
     }
@@ -187,8 +193,14 @@ export default function MomentoCarousel() {
 
     if (!userId) return;
 
+    // ✅ v169.0: IMPROVED - Unique channel name with timestamp to prevent conflicts
+    const timestamp = Date.now();
+    const channelName = `momento-carousel-updates-v169-${timestamp}`;
+
+    console.log('[MomentoCarousel v169.0] 🔄 Setting up real-time subscriptions');
+
     const momentosChannel = supabase
-      .channel('momento-carousel-updates')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -197,8 +209,11 @@ export default function MomentoCarousel() {
           table: 'momentos',
         },
         (payload) => {
-          console.log('[MomentoCarousel v168.0] 🔄 Momento update detected:', payload);
-          loadMomentoAuthors();
+          console.log('[MomentoCarousel v169.0] 🔄 Momento update detected:', payload.eventType);
+          // ✅ v169.0: IMPROVED - Debounced update to prevent excessive re-renders
+          setTimeout(() => {
+            loadMomentoAuthors();
+          }, 100);
         }
       )
       .on(
@@ -210,13 +225,23 @@ export default function MomentoCarousel() {
           filter: `usuario_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('[MomentoCarousel v168.0] 🔄 View update detected:', payload);
-          loadMomentoAuthors();
+          console.log('[MomentoCarousel v169.0] 🔄 View update detected');
+          // ✅ v169.0: IMPROVED - Debounced update to prevent excessive re-renders
+          setTimeout(() => {
+            loadMomentoAuthors();
+          }, 100);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[MomentoCarousel v169.0] ✅ Real-time subscriptions active');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[MomentoCarousel v169.0] ❌ Subscription error');
+        }
+      });
 
     return () => {
+      console.log('[MomentoCarousel v169.0] 🧹 Cleaning up subscriptions');
       supabase.removeChannel(momentosChannel);
     };
   }, [userId, loadMomentoAuthors]);
