@@ -23,9 +23,14 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import MessageBubble from '@/components/chat/MessageBubble';
 import MomentoMessageBubble from '@/components/chat/MomentoMessageBubble';
+import ImageMessageBubble from '@/components/chat/ImageMessageBubble';
+import ImageShareModal from '@/components/chat/ImageShareModal';
+import ImageViewerModal from '@/components/chat/ImageViewerModal';
 import { scaleFontSize, scaleIconSize, getContentBottomPadding } from '@/utils/androidScaling';
 import * as SystemUI from 'expo-system-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 interface Message {
   id: string;
@@ -37,6 +42,10 @@ interface Message {
   post_imagen?: string;
   momento_id?: string;
   momento_screenshot_url?: string;
+  imagen_url?: string;
+  share_mode?: 'view_once' | 'allow_replay' | 'normal';
+  viewed?: boolean;
+  viewed_at?: string;
   leido: boolean;
   created_at: string;
 }
@@ -103,6 +112,12 @@ export default function ConversacionScreen() {
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [inputContainerHeight, setInputContainerHeight] = useState(0);
   const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height);
+  
+  // ✅ Image sharing states
+  const [showImageShareModal, setShowImageShareModal] = useState(false);
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [viewingImage, setViewingImage] = useState<{ url: string; mode: 'view_once' | 'allow_replay' | 'normal' } | null>(null);
 
   const channelRef = useRef<any>(null);
 
@@ -485,6 +500,136 @@ export default function ConversacionScreen() {
     };
   }, [chatId, user]);
 
+  // ✅ Image picker functions
+  const handlePickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permiso denegado', 'Necesitas dar permiso para acceder a la galería');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setSelectedImageUri(result.assets[0].uri);
+        setShowImageShareModal(true);
+      }
+    } catch (error) {
+      console.error('[Conversacion] Error picking image:', error);
+      Alert.alert('Error', 'No se pudo seleccionar la imagen');
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permiso denegado', 'Necesitas dar permiso para usar la cámara');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setSelectedImageUri(result.assets[0].uri);
+        setShowImageShareModal(true);
+      }
+    } catch (error) {
+      console.error('[Conversacion] Error taking photo:', error);
+      Alert.alert('Error', 'No se pudo tomar la foto');
+    }
+  };
+
+  const handleSendImage = async (shareMode: 'view_once' | 'allow_replay' | 'normal') => {
+    if (!user || !chatId || !selectedImageUri) return;
+
+    try {
+      console.log('[Conversacion] 📸 Sending image with mode:', shareMode);
+
+      // ✅ Compress image
+      const manipResult = await ImageManipulator.manipulateAsync(
+        selectedImageUri,
+        [{ resize: { width: 1080 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      // ✅ TODO: Backend Integration - POST /api/chat/upload-image
+      // Upload image to backend storage
+      // Body: { image: File, chatId: string, shareMode: string }
+      // Returns: { imageUrl: string, messageId: string }
+      
+      // For now, use the local URI (will be replaced with backend URL)
+      const imageUrl = manipResult.uri;
+
+      // ✅ Create message with image
+      const { data: insertedMessage, error } = await supabase
+        .from('mensajes')
+        .insert({
+          chat_id: chatId,
+          remitente_id: user.id,
+          contenido: shareMode === 'view_once' ? 'Imagen (ver una vez)' : shareMode === 'allow_replay' ? 'Imagen (volver a ver)' : 'Imagen',
+          tipo_mensaje: 'imagen',
+          imagen_url: imageUrl,
+          share_mode: shareMode,
+          viewed: false,
+          leido: false,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[Conversacion] Error sending image:', error);
+        Alert.alert('Error', 'No se pudo enviar la imagen');
+        return;
+      }
+
+      // ✅ Update chat
+      await supabase
+        .from('chats')
+        .update({
+          ultimo_mensaje: shareMode === 'view_once' ? '📷 Imagen (ver una vez)' : shareMode === 'allow_replay' ? '📷 Imagen (volver a ver)' : '📷 Imagen',
+          ultimo_mensaje_fecha: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', chatId);
+
+      // ✅ Send notification
+      const recipientId = isLocalChat && localInfo 
+        ? localInfo.propietario_id 
+        : otroUsuario?.id;
+
+      if (recipientId && recipientId !== user.id) {
+        await supabase.from('notificaciones').insert({
+          usuario_id: recipientId,
+          tipo: 'mensaje_privado',
+          titulo: 'Nueva imagen',
+          mensaje: `${user.nombre} te envió una imagen`,
+          usuario_origen_id: user.id,
+          local_id: isLocalChat ? localId : null,
+        });
+      }
+
+      console.log('[Conversacion] ✅ Image sent successfully');
+      setSelectedImageUri(null);
+    } catch (error) {
+      console.error('[Conversacion] Error:', error);
+      Alert.alert('Error', 'Ocurrió un error al enviar la imagen');
+    }
+  };
+
+  const handleViewImage = (imageUrl: string, shareMode: 'view_once' | 'allow_replay' | 'normal') => {
+    setViewingImage({ url: imageUrl, mode: shareMode });
+    setShowImageViewer(true);
+  };
+
   const enviarMensaje = async () => {
     console.log('[Conversacion v304.0] 📤 enviarMensaje called - keyboard stays open, message sends immediately');
     
@@ -701,6 +846,7 @@ export default function ConversacionScreen() {
   };
 
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
+    // ✅ Handle momento messages
     if (item.tipo_mensaje === 'momento' && item.momento_id) {
       return (
         <View style={[styles.messageContainer, item.remitente_id === user?.id && styles.messageContainerOwn]}>
@@ -708,6 +854,26 @@ export default function ConversacionScreen() {
             momentoId={item.momento_id}
             screenshotUrl={item.momento_screenshot_url || null}
             mensaje={item.contenido}
+          />
+        </View>
+      );
+    }
+
+    // ✅ Handle image messages
+    if (item.tipo_mensaje === 'imagen' && item.imagen_url) {
+      const isOwnMessage = item.remitente_id === user?.id;
+      
+      return (
+        <View style={[styles.messageContainer, isOwnMessage && styles.messageContainerOwn]}>
+          <ImageMessageBubble
+            messageId={item.id}
+            imageUrl={item.imagen_url}
+            shareMode={item.share_mode || 'normal'}
+            viewed={item.viewed || false}
+            viewedAt={item.viewed_at}
+            isOwnMessage={isOwnMessage}
+            onView={() => handleViewImage(item.imagen_url!, item.share_mode || 'normal')}
+            onDelete={() => handleDeleteMessage(item.id)}
           />
         </View>
       );
@@ -935,6 +1101,26 @@ export default function ConversacionScreen() {
         onLayout={onLayoutInputContainer} // ✅ Measure input container height for FlatList padding
       >
         <View style={styles.inputRow}>
+          {/* ✅ Image picker buttons */}
+          <View style={styles.imageButtonsContainer}>
+            <TouchableOpacity style={styles.imageButton} onPress={handlePickImage}>
+              <IconSymbol
+                ios_icon_name="photo"
+                android_material_icon_name="image"
+                size={scaleIconSize(24)}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.imageButton} onPress={handleTakePhoto}>
+              <IconSymbol
+                ios_icon_name="camera"
+                android_material_icon_name="camera"
+                size={scaleIconSize(24)}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          </View>
+
           <TextInput
             style={[styles.input, { fontSize: scaleFontSize(16) }]}
             placeholder="Escribe un mensaje..."
@@ -961,6 +1147,32 @@ export default function ConversacionScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* ✅ Image Share Modal */}
+      {selectedImageUri && (
+        <ImageShareModal
+          visible={showImageShareModal}
+          imageUri={selectedImageUri}
+          onClose={() => {
+            setShowImageShareModal(false);
+            setSelectedImageUri(null);
+          }}
+          onSend={handleSendImage}
+        />
+      )}
+
+      {/* ✅ Image Viewer Modal */}
+      {viewingImage && (
+        <ImageViewerModal
+          visible={showImageViewer}
+          imageUrl={viewingImage.url}
+          shareMode={viewingImage.mode}
+          onClose={() => {
+            setShowImageViewer(false);
+            setViewingImage(null);
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -1140,6 +1352,19 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 12,
     backgroundColor: '#FFFFFF', // ✅ WHITE BACKGROUND - Visible content area
+  },
+  imageButtonsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  imageButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.cardBg,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   input: {
     flex: 1,
