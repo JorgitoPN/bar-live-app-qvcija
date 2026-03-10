@@ -683,7 +683,24 @@ export default function ConversacionScreen() {
     setInputContainerHeight(height);
   };
 
-  const renderMessage = ({ item }: { item: Message }) => {
+  // ✅ INSTAGRAM STYLE: Helper to format timestamp
+  const formatTimestamp = (dateString: string) => {
+    const now = new Date();
+    const messageDate = new Date(dateString);
+    const diffMs = now.getTime() - messageDate.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return 'Ahora';
+    if (diffMins < 60) return `${diffMins} min`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} h`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return 'Ayer';
+    if (diffDays < 7) return `${diffDays} d`;
+    return messageDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  };
+
+  const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     if (item.tipo_mensaje === 'momento' && item.momento_id) {
       return (
         <View style={[styles.messageContainer, item.remitente_id === user?.id && styles.messageContainerOwn]}>
@@ -696,13 +713,97 @@ export default function ConversacionScreen() {
       );
     }
 
+    const isOwnMessage = item.remitente_id === user?.id;
+    
+    // ✅ INSTAGRAM STYLE: Group consecutive messages from same sender
+    const prevMessage = index > 0 ? mensajes[index - 1] : null;
+    const nextMessage = index < mensajes.length - 1 ? mensajes[index + 1] : null;
+    
+    const isFirstInGroup = !prevMessage || prevMessage.remitente_id !== item.remitente_id;
+    const isLastInGroup = !nextMessage || nextMessage.remitente_id !== item.remitente_id;
+    
+    // ✅ ATOMIC JSX: Calculate timestamp outside JSX
+    const timeDisplay = formatTimestamp(item.created_at);
+    
+    // ✅ ATOMIC JSX: Calculate avatar display outside JSX
+    const shouldShowAvatar = !isOwnMessage && isFirstInGroup;
+    
+    // ✅ ATOMIC JSX: Calculate bubble border radius outside JSX
+    const bubbleBorderRadius = {
+      borderTopLeftRadius: isOwnMessage ? 18 : (isFirstInGroup ? 18 : 4),
+      borderTopRightRadius: isOwnMessage ? (isFirstInGroup ? 18 : 4) : 18,
+      borderBottomLeftRadius: isOwnMessage ? 18 : (isLastInGroup ? 18 : 4),
+      borderBottomRightRadius: isOwnMessage ? (isLastInGroup ? 18 : 4) : 18,
+    };
+
     return (
-      <MessageBubble
-        message={item}
-        isOwn={item.remitente_id === user?.id}
-        otroUsuario={isLocalChat && localInfo ? { ...localInfo, nombre: localInfo.nombre, avatar: localInfo.imagen_url } : otroUsuario}
+      <TouchableOpacity
+        style={[
+          styles.messageWrapper,
+          isOwnMessage ? styles.messageWrapperOwn : styles.messageWrapperOther,
+          !isLastInGroup && { marginBottom: 2 }, // ✅ Tight spacing for grouped messages
+          isLastInGroup && { marginBottom: 12 }, // ✅ Larger spacing between groups
+        ]}
         onLongPress={() => handleDeleteMessage(item.id)}
-      />
+        delayLongPress={500}
+        activeOpacity={0.9}
+      >
+        {/* ✅ INSTAGRAM STYLE: Show avatar only on first message in group (receiver side) */}
+        {shouldShowAvatar && (
+          <View style={styles.messageAvatar}>
+            {displayAvatar ? (
+              <Image
+                source={{ uri: displayAvatar }}
+                style={styles.messageAvatarImage}
+              />
+            ) : (
+              <View style={styles.messageAvatarPlaceholder}>
+                <Text style={[styles.messageAvatarText, { fontSize: scaleFontSize(14) }]}>
+                  {displayName?.charAt(0).toUpperCase() || 'U'}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+        
+        {/* ✅ INSTAGRAM STYLE: Empty space for grouped messages (no avatar) */}
+        {!isOwnMessage && !isFirstInGroup && (
+          <View style={styles.messageAvatar} />
+        )}
+
+        <View style={styles.messageContentContainer}>
+          <View
+            style={[
+              styles.messageBubble,
+              isOwnMessage ? styles.messageBubbleOwn : styles.messageBubbleOther,
+              bubbleBorderRadius,
+            ]}
+          >
+            <Text
+              style={[
+                styles.messageText,
+                { fontSize: scaleFontSize(15) },
+                isOwnMessage ? styles.messageTextOwn : styles.messageTextOther,
+              ]}
+            >
+              {item.contenido}
+            </Text>
+            
+            {/* ✅ INSTAGRAM STYLE: Show timestamp only on last message in group */}
+            {isLastInGroup && (
+              <Text
+                style={[
+                  styles.messageTime,
+                  { fontSize: scaleFontSize(10) },
+                  isOwnMessage ? styles.messageTimeOwn : styles.messageTimeOther,
+                ]}
+              >
+                {timeDisplay}
+              </Text>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -934,6 +1035,77 @@ const styles = StyleSheet.create({
   },
   messageContainerOwn: {
     alignItems: 'flex-end',
+  },
+  // ✅ INSTAGRAM STYLE: Message wrapper with avatar and bubble
+  messageWrapper: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 12,
+  },
+  messageWrapperOwn: {
+    justifyContent: 'flex-end',
+  },
+  messageWrapperOther: {
+    justifyContent: 'flex-start',
+  },
+  // ✅ INSTAGRAM STYLE: Avatar (36x36, shown only on first message in group)
+  messageAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  messageAvatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  messageAvatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.primary + '30',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  messageAvatarText: {
+    fontWeight: '600',
+    color: colors.text,
+  },
+  // ✅ INSTAGRAM STYLE: Message content container
+  messageContentContainer: {
+    maxWidth: '70%',
+  },
+  // ✅ INSTAGRAM STYLE: Message bubble with dynamic border radius
+  messageBubble: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  messageBubbleOwn: {
+    backgroundColor: colors.primary,
+  },
+  messageBubbleOther: {
+    backgroundColor: colors.cardBg,
+  },
+  // ✅ INSTAGRAM STYLE: Message text
+  messageText: {
+    lineHeight: 20,
+  },
+  messageTextOwn: {
+    color: '#FFFFFF',
+  },
+  messageTextOther: {
+    color: colors.text,
+  },
+  // ✅ INSTAGRAM STYLE: Timestamp (shown only on last message in group)
+  messageTime: {
+    marginTop: 4,
+    opacity: 0.7,
+    alignSelf: 'flex-end',
+  },
+  messageTimeOwn: {
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  messageTimeOther: {
+    color: colors.textSecondary,
   },
   emptyState: {
     alignItems: 'center',
