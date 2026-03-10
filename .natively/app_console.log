@@ -28538,3 +28538,82 @@ We recommend you instead use a development build to avoid limitations. Learn mor
 [2026-03-10T04:39:59.012Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.75), size: 20
 [2026-03-10T04:39:58.999Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.75), size: 20
 [2026-03-10T04:39:58.992Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.75), size: 20
+[2026-03-10T04:40:00.846Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "xmark", OUTLINED, mode: monochrome, color: #fff, size: 24
+[2026-03-10T04:40:00.443Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.75), size: 20
+[2026-03-10T04:40:00.389Z] [iOS] [LOG] [MomentoViewer v179.0] 🛑 Long press detected - PAUSE
+[2026-03-10T04:40:00.418Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "xmark", OUTLINED, mode: monochrome, color: #fff, size: 24
+[2026-03-10T04:40:00.453Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "eye.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.75), size: 20
+[2026-03-10T04:40:00.891Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.75), size: 20
+[2026-03-10T04:40:00.871Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.75), size: 20
+[2026-03-10T04:40:00.824Z] [iOS] [LOG] [MomentoViewer v179.0] ▶️ Long press released - RESUME
+[2026-03-10T04:40:00.432Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.75), size: 20
+[2026-03-10T04:40:00.882Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "eye.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.75), size: 20
+[2026-03-10T04:40:00.860Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.75), size: 20
+[2026-03-10T04:40:01.017Z] [iOS] [LOG] [MomentoViewer v300.0] Progress: 0.068 - Remaining: 5593 ms
+[2026-03-10T04:40:00.956Z] [iOS] [LOG] [MomentoViewer v300.0] ▶️ Starting/resuming progress for momento 0 (INSTANT)
+[2026-03-10T04:40:00.461Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash.fill", FILLED, mode: monochrome, color: rgba(255, 255, 255, 0.75), size: 20
+[2026-03-10T04:40:02.651Z] [iOS] [LOG] [UsuarioPerfil v120.0] 🎯 NAVEGACIÓN CONTEXTUAL: Navigation params received:
+[2026-03-10T04:40:02.633Z] [iOS] [LOG] [MomentoViewer v179.0] ❌ Closing viewer
+[2026-03-10T04:40:02.693Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:40:02.673Z] [iOS] [LOG] [UsuarioPerfil v120.0] 🎯 NAVEGACIÓN CONTEXTUAL:   - returnTab: NOT SET
+[2026-03-10T04:40:02.683Z] [iOS] [LOG] [UsuarioPerfil v120.0] 🎯 NAVEGACIÓN CONTEXTUAL:   - localId: NOT SET
+[2026-03-10T04:40:02.714Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.stack.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 16
+[2026-03-10T04:40:02.703Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.grid.3x3", OUTLINED, mode: monochrome, color: #14B8A6, size: 24
+[2026-03-10T04:40:02.663Z] [iOS] [LOG] [UsuarioPerfil v120.0] 🎯 NAVEGACIÓN CONTEXTUAL:   - from: NOT SET
+[2026-03-10T04:40:03.718Z] [iOS] [LOG] [UsuarioPerfil v120.0] 🔙 NAVEGACIÓN CON router.setParams() + router.back(): Evaluating navigation context...
+[2026-03-10T04:40:03.730Z] [iOS] [LOG] [UsuarioPerfil v120.0] ℹ️ NAVEGACIÓN CON router.setParams() + router.back(): No context - using standard back navigation
+[2026-03-10T04:40:03.882Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-03-10T04:40:03.704Z] [iOS] [LOG] [UsuarioPerfil v120.0] 🔙 NAVEGACIÓN CON router.setParams() + router.back(): Back button pressed
+[2026-03-10T04:40:03.846Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /chat/conversacion
+[2026-03-10T04:40:03.833Z] [iOS] [LOG] [UsuarioPerfil v120.0] Screen unfocused - state persisted
+[2026-03-10T04:40:03.854Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-10T04:40:04.743Z] [iOS] [LOG] [Conversacion v309.0] 🧹 Cleaning up keyboard listeners
+[2026-03-10T04:40:04.803Z] [iOS] [LOG] [Conversacion] Cleaning up subscription
+[2026-03-10T04:40:04.811Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion] Subscription status: CLOSED
+[2026-03-10T04:40:04.859Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-03-10T04:40:04.832Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-10T04:40:04.824Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /perfil/chats
+[2026-03-10T04:40:08.617Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /chat/conversacion
+[2026-03-10T04:40:08.625Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-10T04:40:08.501Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-03-10T04:40:08.434Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-03-10T04:40:08.605Z] [iOS] [LOG] [Conversacion v309.0] 🎹 Setting up precise keyboard listeners with predictive text detection
+[2026-03-10T04:40:08.652Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-03-10T04:40:08.360Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Navigating to USER-TO-USER chat
+[2026-03-10T04:40:08.354Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Messages marked as read in database with timestamp
+[2026-03-10T04:40:08.425Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.pencil", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:40:08.238Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 🔥 Opening chat: {"chatId":"9d8103da-ac58-4395-81ed-80ca85c9a731","isLocalChat":false}
+[2026-03-10T04:40:08.415Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:40:08.404Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:40:08.821Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:40:09.198Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 14
+[2026-03-10T04:40:09.169Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:40:08.935Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion] Subscription status: SUBSCRIBED
+[2026-03-10T04:40:08.885Z] [iOS] [LOG] [Conversacion] ⚡ Setting up real-time subscription for chat: 9d8103da-ac58-4395-81ed-80ca85c9a731
+[2026-03-10T04:40:09.296Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-03-10T04:40:09.182Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-10T04:40:09.049Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T04:40:09.208Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bolt.fill", FILLED, mode: monochrome, color: #fff, size: 16
+[2026-03-10T04:40:09.308Z] [iOS] [LOG] [Conversacion v308.0] 📏 Input container measured height: 93
+[2026-03-10T04:40:09.742Z] [iOS] [LOG] [Conversacion v309.0] 🎹 Setting up precise keyboard listeners with predictive text detection
+[2026-03-10T04:40:09.215Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "hand.tap.fill", FILLED, mode: monochrome, color: #fff, size: 14
+[2026-03-10T04:40:09.677Z] [iOS] [LOG] [Conversacion v309.0] 🧹 Cleaning up keyboard listeners
+[2026-03-10T04:40:09.923Z] [iOS] [LOG] [InternalBytecode.js:1] [MomentoMessageBubble] Momento not found or error: {"code":"PGRST116","details":"The result contains 0 rows","hint":null,"message":"Cannot coerce the result to a single JSON object"}
+[2026-03-10T04:40:10.193Z] [iOS] [LOG] [InternalBytecode.js:1] [MomentoMessageBubble] Momento not found or error: {"code":"PGRST116","details":"The result contains 0 rows","hint":null,"message":"Cannot coerce the result to a single JSON object"}
+[2026-03-10T04:40:09.985Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 14
+[2026-03-10T04:40:09.940Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-10T04:40:10.207Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "clock.badge.xmark", OUTLINED, mode: monochrome, color: #6B7280, size: 32
+[2026-03-10T04:40:09.863Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 14
+[2026-03-10T04:40:10.264Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 14
+[2026-03-10T04:40:10.249Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 14
+[2026-03-10T04:40:10.395Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 14
+[2026-03-10T04:40:10.529Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 14
+[2026-03-10T04:40:10.664Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: rgba(255, 255, 255, 0.6), size: 14
+[2026-03-10T04:40:11.371Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /perfil/chats
+[2026-03-10T04:40:11.356Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion] Subscription status: CLOSED
+[2026-03-10T04:40:11.288Z] [iOS] [LOG] [Conversacion v309.0] 🧹 Cleaning up keyboard listeners
+[2026-03-10T04:40:11.406Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-03-10T04:40:11.379Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-10T04:40:11.349Z] [iOS] [LOG] [Conversacion] Cleaning up subscription
+[2026-03-10T04:40:12.688Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T04:40:12.688Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
