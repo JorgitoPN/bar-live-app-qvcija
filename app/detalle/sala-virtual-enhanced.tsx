@@ -2799,7 +2799,7 @@ function SalaVirtualEnhancedScreen() {
     }
   }, [selectedPrivateChat, localId, router, closePrivateChat]);
 
-  const renderMessage = ({ item }: { item: Message }) => {
+  const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isOwnMessage = user && item.usuario_id === user.id;
     const avatarSize = Platform.OS === 'android' ? scaleIconSize(36) : 36;
 
@@ -2807,17 +2807,43 @@ function SalaVirtualEnhancedScreen() {
       return null;
     }
 
-    const messageLabel = item.is_private ? '(Privado)' : '';
+    // ✅ INSTAGRAM STYLE: Group consecutive messages from same sender
+    const prevMessage = index > 0 ? (activeTab === 'private' && selectedPrivateChat ? privateChatMessages[index - 1] : messages[index - 1]) : null;
+    const nextMessage = index < (activeTab === 'private' && selectedPrivateChat ? privateChatMessages.length - 1 : messages.length - 1) 
+      ? (activeTab === 'private' && selectedPrivateChat ? privateChatMessages[index + 1] : messages[index + 1]) 
+      : null;
+    
+    const isFirstInGroup = !prevMessage || prevMessage.usuario_id !== item.usuario_id;
+    const isLastInGroup = !nextMessage || nextMessage.usuario_id !== item.usuario_id;
     
     const displayUsername = item.usuario.username 
       ? item.usuario.username.replace('@', '')
       : item.usuario.nombre;
+
+    // ✅ INSTAGRAM STYLE: Format timestamp
+    const formatTimestamp = (dateString: string) => {
+      const now = new Date();
+      const messageDate = new Date(dateString);
+      const diffMs = now.getTime() - messageDate.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      if (diffMins < 1) return 'Ahora';
+      if (diffMins < 60) return `${diffMins} min`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours} h`;
+      const diffDays = Math.floor(diffHours / 24);
+      if (diffDays === 1) return 'Ayer';
+      if (diffDays < 7) return `${diffDays} d`;
+      return messageDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    };
 
     return (
       <TouchableOpacity
         style={[
           styles.messageWrapper,
           isOwnMessage ? styles.messageWrapperOwn : styles.messageWrapperOther,
+          !isLastInGroup && { marginBottom: 2 }, // ✅ Tight spacing for grouped messages
+          isLastInGroup && { marginBottom: 12 }, // ✅ Larger spacing between groups
         ]}
         onLongPress={() => {
           if (isOwnMessage) {
@@ -2827,7 +2853,8 @@ function SalaVirtualEnhancedScreen() {
         delayLongPress={500}
         activeOpacity={0.9}
       >
-        {!isOwnMessage && (
+        {/* ✅ INSTAGRAM STYLE: Show avatar only on first message in group (receiver side) */}
+        {!isOwnMessage && isFirstInGroup && (
           <TouchableOpacity
             style={[styles.messageAvatar, { width: avatarSize, height: avatarSize }]}
             onPress={() => {
@@ -2854,12 +2881,26 @@ function SalaVirtualEnhancedScreen() {
             )}
           </TouchableOpacity>
         )}
+        
+        {/* ✅ INSTAGRAM STYLE: Empty space for grouped messages (no avatar) */}
+        {!isOwnMessage && !isFirstInGroup && (
+          <View style={[styles.messageAvatar, { width: avatarSize, height: avatarSize }]} />
+        )}
 
         <View style={styles.messageContentContainer}>
           <View
             style={[
               styles.messageBubble,
               isOwnMessage ? { backgroundColor: themeColors.primary } : { backgroundColor: themeColors.cardBg },
+              // ✅ INSTAGRAM STYLE: Rounded corners based on position in group
+              isOwnMessage && isFirstInGroup && { borderTopRightRadius: 18 },
+              isOwnMessage && !isFirstInGroup && { borderTopRightRadius: 4 },
+              isOwnMessage && isLastInGroup && { borderBottomRightRadius: 18 },
+              isOwnMessage && !isLastInGroup && { borderBottomRightRadius: 4 },
+              !isOwnMessage && isFirstInGroup && { borderTopLeftRadius: 18 },
+              !isOwnMessage && !isFirstInGroup && { borderTopLeftRadius: 4 },
+              !isOwnMessage && isLastInGroup && { borderBottomLeftRadius: 18 },
+              !isOwnMessage && !isLastInGroup && { borderBottomLeftRadius: 4 },
               mode === 'night' && !isOwnMessage && {
                 borderWidth: 1,
                 borderColor: themeColors.cardBorder,
@@ -2870,12 +2911,6 @@ function SalaVirtualEnhancedScreen() {
               },
             ]}
           >
-            {!isOwnMessage && (
-              <Text style={[styles.messageSender, { fontSize: scaleFontSize(12), color: themeColors.primary }]}>
-                {displayUsername} {messageLabel}
-              </Text>
-            )}
-            
             <Text
               style={[
                 styles.messageText,
@@ -2886,45 +2921,22 @@ function SalaVirtualEnhancedScreen() {
               {item.contenido}
             </Text>
             
-            <Text
-              style={[
-                styles.messageTime,
-                { fontSize: scaleFontSize(10) },
-                isOwnMessage ? { color: 'rgba(255, 255, 255, 0.7)' } : { color: themeColors.textSecondary },
-              ]}
-            >
-              {new Date(item.created_at).toLocaleTimeString('es-ES', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </Text>
+            {/* ✅ INSTAGRAM STYLE: Show timestamp only on last message in group */}
+            {isLastInGroup && (
+              <Text
+                style={[
+                  styles.messageTime,
+                  { fontSize: scaleFontSize(10) },
+                  isOwnMessage ? { color: 'rgba(255, 255, 255, 0.7)' } : { color: themeColors.textSecondary },
+                ]}
+              >
+                {formatTimestamp(item.created_at)}
+              </Text>
+            )}
           </View>
         </View>
 
-        {isOwnMessage && (
-          <TouchableOpacity
-            style={[styles.messageAvatar, { width: avatarSize, height: avatarSize }]}
-            onPress={() => {
-              router.push('/perfil');
-            }}
-          >
-            {item.usuario.avatar ? (
-              <Image
-                source={resolveImageSource(item.usuario.avatar)}
-                style={[styles.messageAvatarImage, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
-              />
-            ) : (
-              <View style={[styles.messageAvatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2, backgroundColor: themeColors.primary + '30' }]}>
-                <IconSymbol
-                  ios_icon_name="person.fill"
-                  android_material_icon_name="person"
-                  size={Platform.OS === 'android' ? scaleIconSize(18) : 18}
-                  color={themeColors.text}
-                />
-              </View>
-            )}
-          </TouchableOpacity>
-        )}
+        {/* ✅ INSTAGRAM STYLE: No avatar on sender side (cleaner look) */}
       </TouchableOpacity>
     );
   };
@@ -3033,7 +3045,9 @@ function SalaVirtualEnhancedScreen() {
       const diffHours = Math.floor(diffMins / 60);
       if (diffHours < 24) return `${diffHours} h`;
       const diffDays = Math.floor(diffHours / 24);
-      return `${diffDays} d`;
+      if (diffDays === 1) return 'Ayer';
+      if (diffDays < 7) return `${diffDays} d`;
+      return messageTime.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
     })();
 
     return (
@@ -3068,24 +3082,39 @@ function SalaVirtualEnhancedScreen() {
         
         <View style={styles.privateChatInfo}>
           <View style={styles.privateChatHeader}>
-            <Text style={[styles.privateChatName, { fontSize: scaleFontSize(16), color: themeColors.text }]} numberOfLines={1}>
+            <Text 
+              style={[
+                styles.privateChatName, 
+                { fontSize: scaleFontSize(16), color: themeColors.text },
+                item.unreadCount > 0 && { fontWeight: '700' }, // ✅ Bold name for unread
+              ]} 
+              numberOfLines={1}
+            >
               {displayName}
             </Text>
             <Text style={[styles.privateChatTime, { fontSize: scaleFontSize(12), color: themeColors.textSecondary }]}>
               {timeAgo}
             </Text>
           </View>
-          <Text style={[styles.privateChatLastMessage, { fontSize: scaleFontSize(14), color: themeColors.textSecondary }]} numberOfLines={1}>
+          <Text 
+            style={[
+              styles.privateChatLastMessage, 
+              { fontSize: scaleFontSize(14), color: themeColors.textSecondary },
+              item.unreadCount > 0 && { fontWeight: '600', color: themeColors.text }, // ✅ Bolder preview for unread
+            ]} 
+            numberOfLines={1}
+          >
             {item.lastMessage}
           </Text>
         </View>
         
+        {/* ✅ INSTAGRAM STYLE: Turquoise dot for unread messages */}
         {item.unreadCount > 0 && (
           <Animated.View 
             style={[
               styles.privateChatUnreadBadge, 
               { 
-                backgroundColor: '#06B6D4',
+                backgroundColor: '#1ABC9C', // ✅ Turquoise color
                 transform: [{ scale: pulseAnim }],
               }
             ]}
@@ -4350,8 +4379,8 @@ const styles = StyleSheet.create({
   },
   messageWrapper: {
     flexDirection: 'row',
-    marginBottom: 12,
     gap: 8,
+    paddingHorizontal: 12,
   },
   messageWrapperOwn: {
     justifyContent: 'flex-end',
@@ -4374,8 +4403,8 @@ const styles = StyleSheet.create({
     maxWidth: '70%',
   },
   messageBubble: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 18,
   },
   messageSender: {
@@ -4388,6 +4417,7 @@ const styles = StyleSheet.create({
   messageTime: {
     marginTop: 4,
     opacity: 0.7,
+    alignSelf: 'flex-end',
   },
   emptyMessages: {
     flex: 1,
@@ -4525,11 +4555,11 @@ const styles = StyleSheet.create({
   privateChatItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 16,
-    marginBottom: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     gap: 12,
-    borderWidth: 1,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
   },
   privateChatAvatar: {
     position: 'relative',
@@ -4574,17 +4604,16 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   privateChatUnreadBadge: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   privateChatUnreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FFFFFF',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   backButton: {
     padding: 4,
