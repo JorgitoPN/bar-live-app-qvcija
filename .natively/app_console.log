@@ -23504,3 +23504,990 @@ To reconnect:
 [2026-03-10T10:58:38.364Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
 [2026-03-10T10:58:51.359Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
 [2026-03-10T10:58:51.359Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T11:00:28.938Z] [Web] [LOG] Running application "main" with appParams:
+ {"rootTag":"#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+[2026-03-10T11:00:28.972Z] [Web] [LOG] [Supabase] To enable MMKV for production, set USE_MMKV=true in src/lib/supabaseStorage.ts
+[2026-03-10T11:00:28.998Z] [Web] [WARN] "textShadow*" style props are deprecated. Use "textShadow".
+[2026-03-10T11:00:29.000Z] [Web] [WARN] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-03-10T11:00:29.031Z] [Web] [LOG] [PerformanceTracker] 🚀 App launch started at 11165.20 ms
+[2026-03-10T11:00:28.980Z] [Web] [WARN] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-03-10T11:00:28.970Z] [Web] [LOG] [SupabaseStorage v8.0] ✅ Using AsyncStorage (Expo Go compatible mode)
+[2026-03-10T11:00:28.973Z] [Web] [WARN] GoTrueClient@sb-embntaqwlwmgazvrglaf-auth-token:1 (2.90.1) 2026-03-10T11:00:28.972Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[2026-03-10T11:00:28.971Z] [Web] [LOG] [Supabase] Initializing client with AsyncStorage (Expo Go compatible)...
+[2026-03-10T11:00:29.359Z] [Web] [LOG] [NotificationHandler v3.0] ℹ️ Canales de notificación solo necesarios en Android
+[2026-03-10T11:00:29.370Z] [Web] [LOG] [NotificationHandler v3.0] 🔐 Solicitando permisos de notificación...
+[2026-03-10T11:00:29.356Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] ⏱️ Heavy logic will run AFTER login transition completes
+[2026-03-10T11:00:29.357Z] [Web] [LOG] [RootLayout v24.0] 🔔 Inicializando sistema de notificaciones v3.0...
+[2026-03-10T11:00:29.375Z] [Web] [WARN] [NotificationHandler v3.0] ⚠️ Permisos de notificación denegados
+[2026-03-10T11:00:29.358Z] [Web] [LOG] [NotificationHandler v3.0] 🚀 Inicializando sistema de notificaciones...
+[2026-03-10T11:00:29.257Z] [Web] [LOG] ⚠️ CHAT ACTIVADO - VERSIÓN 2.0
+[2026-03-10T11:00:29.376Z] [Web] [LOG] [RootLayout v24.0] ✅ Sistema de notificaciones v3.0 inicializado
+[2026-03-10T11:00:29.355Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] 🚀 Starting DEFERRED initialization...
+[2026-03-10T11:00:29.276Z] [Web] [WARN] Route "./integrations/supabase/types.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-03-10T11:00:29.351Z] [Web] [WARN] Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+[2026-03-10T11:00:29.275Z] [Web] [WARN] Route "./integrations/supabase/client.ts" is missing the required default export. Ensure a React component is exported as default.
+[2026-03-10T11:00:29.354Z] [Web] [LOG] [PERF_START] app_initialization at 11487.90ms (322.70ms desde launch)
+[2026-03-10T11:00:29.156Z] [Web] [LOG] [TanStack Query v24.0 - PASO 1] 🚀 Initializing with deferred loading strategy
+[2026-03-10T11:00:29.157Z] [Web] [LOG] [TanStack Query v24.0 - PASO 1] ✅ Cache persister initialized
+[2026-03-10T11:00:29.158Z] [Web] [LOG] [TanStack Query] 🚀 Initializing async cache persister with supabaseStorage adapter
+[2026-03-10T11:00:29.252Z] [Web] [LOG] ✅ SALA VIRTUAL v10.0 - FAULT ISOLATION IMPLEMENTED - Session isolation + error containment
+[2026-03-10T11:00:29.314Z] [Web] [LOG] [AdvancedCache] 📦 Loaded 0 entries from disk
+[2026-03-10T11:00:29.159Z] [Web] [LOG] [TanStack Query] ✅ Async cache persister initialized successfully
+[2026-03-10T11:00:31.237Z] [Web] [LOG] [RootLayout v23.0] 🚀 Initializing background systems (graceful mode)
+[2026-03-10T11:00:31.238Z] [Web] [LOG] [BackgroundSync] 🚀 Initializing...
+[2026-03-10T11:00:31.238Z] [Web] [LOG] [BackgroundSync] ✅ Initialized successfully
+[2026-03-10T11:00:31.238Z] [Web] [LOG] [RootLayout v23.0] ⚠️ Background location not started - will use foreground only
+[2026-03-10T11:00:31.238Z] [Web] [LOG] [RootLayout v23.0] ✅ Background sync initialized
+[2026-03-10T11:02:34.441Z] [Web] [WARN] Disconnected from Metro (1006: "").
+
+To reconnect:
+- Ensure that Metro is running and available on the same network
+- Reload this app (will trigger further help if Metro cannot be connected to)
+      
+[2026-03-10T11:08:20.098Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T11:08:20.098Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T11:08:20.280Z] [Web] [LOG] [AuthStore v2.2] 🚀 Initializing with SESSION PERSISTENCE FIX...
+[2026-03-10T11:08:20.284Z] [Web] [LOG] [AuthStore v2.2] ℹ️ No cached profile T0 in storage
+[2026-03-10T11:08:20.286Z] [Web] [LOG] [AuthStore v2.2] 🌐 Network validation completed in 2ms
+[2026-03-10T11:08:20.286Z] [Web] [LOG] [AuthStore v2.2] ✅ Total initialization: 6ms
+[2026-03-10T11:08:20.280Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] ✅ Login transition complete - starting heavy tasks
+[2026-03-10T11:08:20.596Z] [Web] [WARN] Layout children must be of type Screen, all other children are ignored. To use custom children, create a custom <Layout />. Update Layout Route at: "app/_layout"
+[2026-03-10T11:08:20.286Z] [Web] [LOG] [AuthStore v2.2] 📊 Breakdown:
+[2026-03-10T11:08:20.283Z] [Web] [LOG] [AuthStore v2.2] ℹ️ No cached session in storage
+[2026-03-10T11:08:20.286Z] [Web] [LOG] [AuthStore v2.2] ℹ️ No network session (user logged out or timeout)
+[2026-03-10T11:08:20.286Z] [Web] [LOG]   - Profile T1 load: deferred (2s delay)
+[2026-03-10T11:08:20.286Z] [Web] [LOG]   - Network validation: 2ms
+[2026-03-10T11:08:20.286Z] [Web] [LOG]   - Storage sync read (session + profile T0): <1ms
+[2026-03-10T11:08:20.286Z] [Web] [LOG]   - Profile T0 revalidation: background (non-blocking)
+[2026-03-10T11:08:20.599Z] [Web] [WARN] [Layout children]: No route named "crear" exists in nested children: ["+not-found","_layout_instrumented","formsheet","index","modal","permissions-example","redbull-launch","test-mmkv","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-salas-virtuales","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/advanced-example","chat/conversacion","chat/example-chat","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","explorar/selector-modo","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/selector-perfil","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-03-10T11:08:20.601Z] [Web] [WARN] [Layout children]: No route named "chat" exists in nested children: ["+not-found","_layout_instrumented","formsheet","index","modal","permissions-example","redbull-launch","test-mmkv","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-salas-virtuales","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/advanced-example","chat/conversacion","chat/example-chat","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","explorar/selector-modo","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/selector-perfil","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-03-10T11:08:20.600Z] [Web] [WARN] [Layout children]: No route named "perfil" exists in nested children: ["+not-found","_layout_instrumented","formsheet","index","modal","permissions-example","redbull-launch","test-mmkv","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-salas-virtuales","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/advanced-example","chat/conversacion","chat/example-chat","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","explorar/selector-modo","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/selector-perfil","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-03-10T11:08:20.602Z] [Web] [WARN] [Layout children]: No route named "social" exists in nested children: ["+not-found","_layout_instrumented","formsheet","index","modal","permissions-example","redbull-launch","test-mmkv","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-salas-virtuales","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/advanced-example","chat/conversacion","chat/example-chat","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","explorar/selector-modo","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/selector-perfil","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-03-10T11:08:20.599Z] [Web] [WARN] [Layout children]: No route named "editar" exists in nested children: ["+not-found","_layout_instrumented","formsheet","index","modal","permissions-example","redbull-launch","test-mmkv","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-salas-virtuales","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/advanced-example","chat/conversacion","chat/example-chat","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","explorar/selector-modo","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/selector-perfil","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-03-10T11:08:20.604Z] [Web] [WARN] [Layout children]: No route named "admin" exists in nested children: ["+not-found","_layout_instrumented","formsheet","index","modal","permissions-example","redbull-launch","test-mmkv","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-salas-virtuales","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/advanced-example","chat/conversacion","chat/example-chat","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","explorar/selector-modo","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/selector-perfil","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-03-10T11:08:20.603Z] [Web] [WARN] [Layout children]: No route named "gestion" exists in nested children: ["+not-found","_layout_instrumented","formsheet","index","modal","permissions-example","redbull-launch","test-mmkv","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-salas-virtuales","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/advanced-example","chat/conversacion","chat/example-chat","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","explorar/selector-modo","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/selector-perfil","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-03-10T11:08:20.606Z] [Web] [WARN] [Layout children]: No route named "soporte" exists in nested children: ["+not-found","_layout_instrumented","formsheet","index","modal","permissions-example","redbull-launch","test-mmkv","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-salas-virtuales","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/advanced-example","chat/conversacion","chat/example-chat","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","explorar/selector-modo","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/selector-perfil","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-03-10T11:08:20.619Z] [Web] [LOG] [Index v2.0] 🔍 Checking URL hash: 
+[2026-03-10T11:08:20.603Z] [Web] [WARN] [Layout children]: No route named "explorar" exists in nested children: ["+not-found","_layout_instrumented","formsheet","index","modal","permissions-example","redbull-launch","test-mmkv","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-salas-virtuales","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/advanced-example","chat/conversacion","chat/example-chat","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","explorar/selector-modo","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/selector-perfil","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-03-10T11:08:20.605Z] [Web] [WARN] [Layout children]: No route named "solicitudes" exists in nested children: ["+not-found","_layout_instrumented","formsheet","index","modal","permissions-example","redbull-launch","test-mmkv","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-salas-virtuales","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/advanced-example","chat/conversacion","chat/example-chat","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","explorar/selector-modo","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/selector-perfil","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-03-10T11:08:20.624Z] [Web] [LOG] [Index v2.0] ⏳ Cargando... Progress: 10%
+[2026-03-10T11:08:20.621Z] [Web] [LOG] [LocationContext v1.0] 📍 Fetching user location...
+[2026-03-10T11:08:20.606Z] [Web] [WARN] [Layout children]: No route named "empleo" exists in nested children: ["+not-found","_layout_instrumented","formsheet","index","modal","permissions-example","redbull-launch","test-mmkv","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-salas-virtuales","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/advanced-example","chat/conversacion","chat/example-chat","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","explorar/selector-modo","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/selector-perfil","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-03-10T11:08:20.607Z] [Web] [WARN] [Layout children]: No route named "legal" exists in nested children: ["+not-found","_layout_instrumented","formsheet","index","modal","permissions-example","redbull-launch","test-mmkv","transparent-modal","(tabs)","admin/analisis-ingresos","admin/asignar-local-usuario","admin/asistente-stripe","admin/backups","admin/configuracion-general","admin/configuracion-supabase","admin/contenido-legal","admin/control-costes-api","admin/datos-maestros","admin/diagnostico-emails","admin/enriquecimiento-google","admin/escala-interfaz","admin/facturacion","admin/fix-avatar-urls","admin/gestion-emails","admin/gestion-terminos-legales","admin/gestionar-duplicados","admin/gestionar-eventos","admin/gestionar-locales-destacados","admin/gestionar-locales-inactivos","admin/gestionar-locales-v7","admin/gestionar-locales","admin/gestionar-pagos-stripe","admin/gestionar-planes-stripe","admin/gestionar-planes-v7","admin/gestionar-planes","admin/gestionar-reportes","admin/gestionar-salas-virtuales","admin/gestionar-solicitudes","admin/gestionar-usuarios","admin/historial-usernames","admin/importacion-masiva","admin/importacion-osm","admin/limpieza-osm-enriquecidos","admin/locales-excluidos","admin/locales-rechazados","admin/migrar-fotos-supabase","admin/navegacion-paginas","admin/probar-emails","admin/recategorizar-locales","admin/revisar-locales-invalidos","admin/seguridad-funciones","admin/sincronizacion","admin/sistema-limpieza-automatica","admin/solicitud-detalle-fresh","admin/solicitud-detalle-v2","admin/solicitud-detalle","admin/solicitudes-propietario","admin/soporte-ayuda","admin/validar-nombres-locales","admin/ver-ficha","admin/vision-finanzas","auth","chat/advanced-example","chat/conversacion","chat/example-chat","chat/nuevo-chat","crear/evento","crear/local","crear/oferta-trabajo","crear/perfil-profesional","crear/publicacion","detalle","editar/local","editar/perfil","editar/publicacion","editar/usuario","empleo/oferta-detalle","empleo/perfil-detalle","explorar/filtros-avanzados","explorar/selector-modo","gestion/carrito","gestion/mi-suscripcion","gestion/mis-eventos","gestion/mis-locales","gestion/panel-analisis","gestion/planes-suscripcion","legal/acerca-de","legal/privacidad","legal/terminos","perfil/contenido-oculto","perfil/local","perfil/seguidores","perfil/seguidos","perfil/selector-perfil","perfil/solicitudes-acceso-mensajes","perfil/usuario","perfil/usuarios-bloqueados","social/amigos","social/buscar-usuario","social/comentar","social/comentarios","social/configuracion","social/editar-descripcion","social/favoritos","social/gestionar-etiquetas","social/hashtag","social/likes","social/post","social/search","solicitudes/solicitar-propiedad-fresh","solicitudes/solicitar-propiedad-v2","solicitudes/solicitar-propiedad","solicitudes/solicitar-rol-propietario","soporte/centro-ayuda","soporte/reportar-problema"]
+[2026-03-10T11:08:20.617Z] [Web] [LOG] [Index v2.0] 🏠 Estado: {"hasUser":false,"loading":false,"sessionReady":true}
+[2026-03-10T11:08:20.627Z] [Web] [LOG] [Index v2.0] 🚀 Redirigiendo a explorar
+[2026-03-10T11:08:20.612Z] [Web] [LOG] [Index v2.0] ⏳ Cargando... Progress: 0%
+[2026-03-10T11:08:20.633Z] [Web] [LOG] [LocationContext v1.0] 📍 Fetching current location
+[2026-03-10T11:08:20.650Z] [Web] [LOG] [ExplorarScreen v34.0.0] 🔍 Processing venues - PRESERVING DB ORDER {"hasData":false,"hasPages":false,"pageCount":0,"isLoading":true,"isFetching":true,"isError":false}
+[2026-03-10T11:08:20.649Z] [Web] [LOG] ═══════════════════════════════════════════════════════════
+[2026-03-10T11:08:20.651Z] [Web] [LOG] [ExplorarScreen v34.0.0] ⚠️ No data.pages - returning empty array
+[2026-03-10T11:08:20.723Z] [Web] [LOG] [useBaresQuery v26.3] 📡 Fetching page: 1 {"isFirstPage":true,"pageSize":20,"category":null,"search":"","hasFilters":false,"platform":"web"}
+[2026-03-10T11:08:20.710Z] [Web] [LOG] [ProfileTab v344.0] 🖼️ Render state: {"hasUrl":false,"shouldShowIcon":true,"isLoading":false,"imageError":false,"globalCacheSize":0}
+[2026-03-10T11:08:20.641Z] [Web] [LOG] [TabLayout] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-10T11:08:20.735Z] [Web] [LOG] [useBaresQuery FASE 12] 📡 Calling RPC get_venues_with_auth
+[2026-03-10T11:08:20.737Z] [Web] [LOG] [useBaresQuery FASE 12] 📡 RPC Parameters: {
+  "p_user_id": null,
+  "p_user_lat": 40.4168,
+  "p_user_lng": -3.7038,
+  "p_limit": 20,
+  "p_last_id": null,
+  "p_last_sorting_tier": null,
+  "p_last_distance_km": null,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-10T11:08:20.742Z] [Web] [LOG] [useBaresQuery FASE 14] 📡 Full RPC params: {
+  "p_user_id": null,
+  "p_user_lat": 40.4168,
+  "p_user_lng": -3.7038,
+  "p_limit": 20,
+  "p_last_id": null,
+  "p_last_sorting_tier": null,
+  "p_last_distance_km": null,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-10T11:08:20.702Z] [Web] [WARN] props.pointerEvents is deprecated. Use style.pointerEvents
+[2026-03-10T11:08:20.726Z] [Web] [LOG] [useBaresQuery FASE 10] 🚀 Using get_venues_with_auth RPC {"userId":"anonymous","hasSession":false,"userLocation":{"lat":40.4168,"lng":-3.7038}}
+[2026-03-10T11:08:20.740Z] [Web] [LOG] [useBaresQuery FASE 14] 🚀 Calling supabase.rpc...
+[2026-03-10T11:08:20.640Z] [Web] [LOG] [TabLayout] ⚡ User role: cliente Current mode: cliente Pathname: /explorar
+[2026-03-10T11:08:20.744Z] [Web] [LOG] [useBaresQuery FASE 14] 📡 Supabase client ready: true
+[2026-03-10T11:08:20.746Z] [Web] [LOG] [useBaresQuery FASE 14] 📡 RPC function name: get_venues_with_auth
+[2026-03-10T11:08:20.748Z] [Web] [LOG] [useBaresQuery FASE 14] 🚀 RPC call initiated, waiting for response...
+[2026-03-10T11:08:20.750Z] [Web] [LOG] [useBaresQuery FASE 14] 🚀 Query promise created: true
+[2026-03-10T11:08:20.771Z] [Web] [LOG] [useBaresQuery FASE 10] 🚀 Using get_venues_with_auth RPC {"userId":"anonymous","hasSession":false,"userLocation":{}}
+[2026-03-10T11:08:20.756Z] [Web] [LOG] [LocationUtils v461.0] 🎯 Fetching location (STABLE mode)
+[2026-03-10T11:08:20.838Z] [Web] [LOG] [useBaresQuery FASE 7] 🛑 Aborting pending request on unmount/param change
+[2026-03-10T11:08:20.859Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] 🔄 Starting GlobalData initialization (deferred)
+[2026-03-10T11:08:20.752Z] [Web] [LOG] [ExplorarScreen v34.0] 🔄 FORCE RESETTING cache on mount (fixed advanced filters v28.0)
+[2026-03-10T11:08:20.864Z] [Web] [LOG] [LocationContext v1.0] ✅ Location obtained
+[2026-03-10T11:08:20.889Z] [Web] [LOG] [useBaresQuery v26.3] 📡 Fetching page: 1 {"isFirstPage":true,"pageSize":20,"category":null,"search":"","hasFilters":false,"platform":"web"}
+[2026-03-10T11:08:20.791Z] [Web] [LOG] [Empleo v94.0] Cargando ofertas...
+[2026-03-10T11:08:20.849Z] [Web] [LOG] [LocationUtils v461.0] 📍 Requesting location (parallel mode)
+[2026-03-10T11:08:20.868Z] [Web] [LOG] [ExplorarScreen v34.0.0] 🔍 Processing venues - PRESERVING DB ORDER {"hasData":true,"hasPages":true,"pageCount":4,"isLoading":false,"isFetching":true,"isError":false}
+[2026-03-10T11:08:20.864Z] [Web] [LOG] [LocationUtils v461.0] ✅ Location obtained from current
+[2026-03-10T11:08:20.886Z] [Web] [LOG] [useBaresQuery FASE 7] 🛑 Query cancelled by React Query
+[2026-03-10T11:08:20.767Z] [Web] [LOG] [useBaresQuery v26.3] 📡 Fetching page: 1 {"isFirstPage":true,"pageSize":20,"category":null,"search":"","hasFilters":true,"platform":"web"}
+[2026-03-10T11:08:20.793Z] [Web] [LOG] [Empleo v94.0] Cargando perfiles profesionales...
+[2026-03-10T11:08:20.869Z] [Web] [LOG] [ExplorarScreen v34.0.0] 📊 Venues processed - ORDER PRESERVED: {"total":80,"unique":78,"duplicates":2,"hasData":true,"isLoading":false,"isFetching":true,"isCircuitOpen":false,"sampleOrder":[{"nombre":"Bar Casa Talin","tier":2,"abierto":true,"destacado":false,"distancia":"1073.92"},{"nombre":"cafeteria a baiuca","tier":2,"abierto":true,"destacado":false,"distancia":"1074.85"},{"nombre":"A Taberna do Labrego","tier":2,"abierto":true,"destacado":false,"distancia":"1077.62"},{"nombre":"Mesón Marieta","tier":2,"abierto":true,"destacado":false,"distancia":"1085.24"},{"nombre":"Marinito Bar & Restaurante","tier":2,"abierto":true,"destacado":false,"distancia":"1096.51"},{"nombre":"A ESTRELA DE BALTAR","tier":2,"abierto":true,"destacado":false,"distancia":"1097.21"},{"nombre":"Casa Xunqueira","tier":2,"abierto":true,"destacado":false,"distancia":"1098.16"},{"nombre":"Bar La Muralla","tier":2,"abierto":true,"destacado":false,"distancia":"1100.46"},{"nombre":"Bar Pizzeria Campeón","tier":2,"abierto":true,"destacado":false,"distancia":"1100.59"},{"nombre":"Cerveceria La Abadia","tier":2,"abierto":true,"destacado":false,"distancia":"1100.82"}]}
+[2026-03-10T11:08:20.867Z] [Web] [LOG] ═══════════════════════════════════════════════════════════
+[2026-03-10T11:08:20.893Z] [Web] [LOG] [useBaresQuery FASE 10] 🚀 Using get_venues_with_auth RPC {"userId":"anonymous","hasSession":false,"userLocation":{"lat":53.3493,"lng":-6.2605}}
+[2026-03-10T11:08:20.869Z] [Web] [LOG] [ExplorarScreen v34.0.0] ✅ RETURNING 78 venues IN DATABASE ORDER WITH CORRECT FILTERS
+[2026-03-10T11:08:20.758Z] [Web] [LOG] [ExplorarScreen v34.0.0] 🔄 Filters changed - Resetting list
+[2026-03-10T11:08:20.864Z] [Web] [LOG] [ExplorarScreen v34.1.0] ✅ Location obtained: {"lat":"53.3493","lng":"-6.2605"}
+[2026-03-10T11:08:20.898Z] [Web] [LOG] [useBaresQuery FASE 12] 📡 RPC Parameters: {
+  "p_user_id": null,
+  "p_user_lat": 53.3493,
+  "p_user_lng": -6.2605,
+  "p_limit": 20,
+  "p_last_id": null,
+  "p_last_sorting_tier": null,
+  "p_last_distance_km": null,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-10T11:08:20.763Z] [Web] [LOG] [AdminLayout] ❌ No user found, redirecting silently
+[2026-03-10T11:08:20.897Z] [Web] [LOG] [useBaresQuery FASE 12] 📡 Calling RPC get_venues_with_auth
+[2026-03-10T11:08:20.904Z] [Web] [LOG] [useBaresQuery FASE 14] 📡 Full RPC params: {
+  "p_user_id": null,
+  "p_user_lat": 53.3493,
+  "p_user_lng": -6.2605,
+  "p_limit": 20,
+  "p_last_id": null,
+  "p_last_sorting_tier": null,
+  "p_last_distance_km": null,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-10T11:08:20.754Z] [Web] [LOG] [ExplorarScreen v34.1.0] 📍 Fetching location (attempt 1 )...
+[2026-03-10T11:08:20.943Z] [Web] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Bar Casa Talin","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-10T11:08:20.906Z] [Web] [LOG] [useBaresQuery FASE 14] 📡 Supabase client ready: true
+[2026-03-10T11:08:20.902Z] [Web] [LOG] [useBaresQuery FASE 14] 🚀 Calling supabase.rpc...
+[2026-03-10T11:08:20.967Z] [Web] [LOG] [useBaresQuery FASE 14] 🚀 Query promise created: true
+[2026-03-10T11:08:20.909Z] [Web] [LOG] [useBaresQuery FASE 14] 🚀 RPC call initiated, waiting for response...
+[2026-03-10T11:08:20.974Z] [Web] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"A Taberna do Labrego","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-10T11:08:20.987Z] [Web] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"A ESTRELA DE BALTAR","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-10T11:08:20.942Z] [Web] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Bar Casa Talin
+[2026-03-10T11:08:20.948Z] [Web] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: cafeteria a baiuca
+[2026-03-10T11:08:20.999Z] [Web] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Bar Pizzeria Campeón","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-10T11:08:21.006Z] [Web] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Cafe Bar El Quijote
+[2026-03-10T11:08:21.007Z] [Web] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Cafe Bar El Quijote","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-10T11:08:20.982Z] [Web] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Marinito Bar & Restaurante
+[2026-03-10T11:08:20.983Z] [Web] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Marinito Bar & Restaurante","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-10T11:08:20.973Z] [Web] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: A Taberna do Labrego
+[2026-03-10T11:08:20.979Z] [Web] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Mesón Marieta","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-10T11:08:20.907Z] [Web] [LOG] [useBaresQuery FASE 14] 📡 RPC function name: get_venues_with_auth
+[2026-03-10T11:08:20.950Z] [Web] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"cafeteria a baiuca","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-10T11:08:20.990Z] [Web] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Casa Xunqueira
+[2026-03-10T11:08:20.978Z] [Web] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Mesón Marieta
+[2026-03-10T11:08:21.002Z] [Web] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Cerveceria La Abadia
+[2026-03-10T11:08:21.010Z] [Web] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Mesón Ourra
+[2026-03-10T11:08:20.986Z] [Web] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: A ESTRELA DE BALTAR
+[2026-03-10T11:08:20.995Z] [Web] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Bar La Muralla","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-10T11:08:21.012Z] [Web] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Mesón Ourra","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-10T11:08:20.761Z] [Web] [LOG] [AdminLayout] 🔍 Checking admin access...
+[2026-03-10T11:08:20.998Z] [Web] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Bar Pizzeria Campeón
+[2026-03-10T11:08:20.991Z] [Web] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Casa Xunqueira","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-10T11:08:20.959Z] [Web] [LOG] [ExplorarScreen v34.0] 🔄 Forcing refetch after cache reset
+[2026-03-10T11:08:21.003Z] [Web] [LOG] [LocalCardV7.1] ✅ Memoized data calculated: {"nombre":"Cerveceria La Abadia","badge":"Abierto ahora","shouldDimImage":false,"isDestacado":false,"hasRating":true,"hasActiveEvent":false,"hasDistance":true,"estaAbierto":true,"sorting_tier":2,"usedDatabaseStatus":true}
+[2026-03-10T11:08:20.994Z] [Web] [LOG] [LocalCardV6.0] 🔄 Calculating memoized data for: Bar La Muralla
+[2026-03-10T11:08:21.290Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] 🔄 Starting Filter options refresh (deferred)
+[2026-03-10T11:08:21.428Z] [Web] [LOG] [useBaresQuery v26.3] 📍 Next cursor calculated: {"last_id":"b836f6b1-6527-41fe-8a7a-526fb4e31a2e","last_tier":2,"last_distance":"1103.59","venue_name":"Bar Eladio","pageSize":20,"totalLoaded":20}
+[2026-03-10T11:08:21.468Z] [Web] [LOG] [useBaresQuery v26.3] 📡 Fetching page: 2 {"isFirstPage":false,"pageParam":{"last_id":"b836f6b1-6527-41fe-8a7a-526fb4e31a2e","last_tier":2,"last_distance":1103.59113090226,"offset":20},"pageSize":20,"category":null,"search":"","hasFilters":false,"platform":"web"}
+[2026-03-10T11:08:21.461Z] [Web] [LOG] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 734ms {"isFirstPage":true,"performance":"✅ GOOD","pageNumber":1}
+[2026-03-10T11:08:21.461Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Full data sample (first 2): [
+  {
+    "id": "1d135eca-3e17-49ce-95bd-de156aa4f724",
+    "nombre": "Tercer Tiempo Bar",
+    "direccion": "C. de María Zayas, 4, Tetuán, 28039 Madrid, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1d135eca-3e17-49ce-95bd-de156aa4f724_0_1769458526347.jpg",
+    "latitud": 40.4591366,
+    "longitud": -3.7006374,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1d135eca-3e17-49ce-95bd-de156aa4f724_0_1769458526347.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1d135eca-3e17-49ce-95bd-de156aa4f724_1_1769458526979.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1d135eca-3e17-49ce-95bd-de156aa4f724_2_1769458527575.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1d135eca-3e17-49ce-95bd-de156aa4f724_3_1769458528117.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "09:30–00:00"
+      ],
+      "jueves": [
+        "09:30–00:00"
+      ],
+      "martes": [
+        "09:30–00:00"
+      ],
+      "sabado": [
+        "09:30–00:00"
+      ],
+      "domingo": [
+        "09:30–00:00"
+      ],
+      "viernes": [
+        "09:30–00:00"
+      ],
+      "miercoles": [
+        "09:30–00:00"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4.2,
+    "rating": 0,
+    "distancia": 4.71521787328247,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 40.4591366,
+      "lng": -3.7006374
+    }
+  },
+  {
+    "id": "46dd08a1-7efc-4186-b2cc-f19feed14bca",
+    "nombre": "Andaluz",
+    "direccion": "C. Antonio Varela, 15, 28400 Collado Villalba, Madrid, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/46dd08a1-7efc-4186-b2cc-f19feed14bca_0_1769458933104.jpg",
+    "latitud": 40.626826,
+    "longitud": -4.009592,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/46dd08a1-7efc-4186-b2cc-f19feed14bca_0_1769458933104.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/46dd08a1-7efc-4186-b2cc-f19feed14bca_1_1769458933587.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/46dd08a1-7efc-4186-b2cc-f19feed14bca_2_1769458934402.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/46dd08a1-7efc-4186-b2cc-f19feed14bca_3_1769458935336.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "09:00–22:00"
+      ],
+      "jueves": [
+        "09:00–22:00"
+      ],
+      "martes": [
+        "09:00–22:00"
+      ],
+      "sabado": [
+        "09:00–22:00"
+      ],
+      "domingo": [
+        "Cerrado"
+      ],
+      "viernes": [
+        "09:00–22:00"
+      ],
+      "miercoles": [
+        "09:00–22:00"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar",
+      "restaurante",
+      "discoteca"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4.4,
+    "rating": 0,
+    "distancia": 34.8350615512595,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 40.626826,
+      "lng": -4.009592
+    }
+  }
+]
+[2026-03-10T11:08:21.467Z] [Web] [LOG] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 503ms {"isFirstPage":true,"performance":"✅ GOOD","pageNumber":1}
+[2026-03-10T11:08:21.387Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T11:08:21.465Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"f236b09c-6fb6-40ab-b327-51bf5c6bdc17","nombre":"Bar Casa Talin","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Bar Casa Talin","cafeteria a baiuca","A Taberna do Labrego","Mesón Marieta","Marinito Bar & Restaurante"],"sortingTiers":[{"nombre":"Bar Casa Talin","tier":2,"abierto":true,"destacado":false},{"nombre":"cafeteria a baiuca","tier":2,"abierto":true,"destacado":false},{"nombre":"A Taberna do Labrego","tier":2,"abierto":true,"destacado":false},{"nombre":"Mesón Marieta","tier":2,"abierto":true,"destacado":false},{"nombre":"Marinito Bar & Restaurante","tier":2,"abierto":true,"destacado":false},{"nombre":"A ESTRELA DE BALTAR","tier":2,"abierto":true,"destacado":false},{"nombre":"Casa Xunqueira","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar La Muralla","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Pizzeria Campeón","tier":2,"abierto":true,"destacado":false},{"nombre":"Cerveceria La Abadia","tier":2,"abierto":true,"destacado":false}],"loadTime":"503ms"}
+[2026-03-10T11:08:21.470Z] [Web] [LOG] [useBaresQuery FASE 12] 📡 Calling RPC get_venues_with_auth
+[2026-03-10T11:08:21.347Z] [Web] [LOG] [Empleo v94.0] Perfiles cargados: 0
+[2026-03-10T11:08:21.290Z] [Web] [LOG] [FilterStore v2.0] 🔍 Loading dynamic filter options...
+[2026-03-10T11:08:21.333Z] [Web] [LOG] [Empleo v94.0] Ofertas cargadas: 0
+[2026-03-10T11:08:21.425Z] [Web] [LOG] ═══════════════════════════════════════════════════════════
+[2026-03-10T11:08:21.426Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"f236b09c-6fb6-40ab-b327-51bf5c6bdc17","nombre":"Bar Casa Talin","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Bar Casa Talin","cafeteria a baiuca","A Taberna do Labrego","Mesón Marieta","Marinito Bar & Restaurante"],"sortingTiers":[{"nombre":"Bar Casa Talin","tier":2,"abierto":true,"destacado":false},{"nombre":"cafeteria a baiuca","tier":2,"abierto":true,"destacado":false},{"nombre":"A Taberna do Labrego","tier":2,"abierto":true,"destacado":false},{"nombre":"Mesón Marieta","tier":2,"abierto":true,"destacado":false},{"nombre":"Marinito Bar & Restaurante","tier":2,"abierto":true,"destacado":false},{"nombre":"A ESTRELA DE BALTAR","tier":2,"abierto":true,"destacado":false},{"nombre":"Casa Xunqueira","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar La Muralla","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Pizzeria Campeón","tier":2,"abierto":true,"destacado":false},{"nombre":"Cerveceria La Abadia","tier":2,"abierto":true,"destacado":false}],"loadTime":"533ms"}
+[2026-03-10T11:08:21.460Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"1d135eca-3e17-49ce-95bd-de156aa4f724","nombre":"Tercer Tiempo Bar","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Tercer Tiempo Bar","Andaluz","Vinoteca Delicatessen Las Barricas","Luna Nueva Restbar","Mesón Real"],"sortingTiers":[{"nombre":"Tercer Tiempo Bar","tier":2,"abierto":true,"destacado":false},{"nombre":"Andaluz","tier":2,"abierto":true,"destacado":false},{"nombre":"Vinoteca Delicatessen Las Barricas","tier":2,"abierto":true,"destacado":false},{"nombre":"Luna Nueva Restbar","tier":2,"abierto":true,"destacado":false},{"nombre":"Mesón Real","tier":2,"abierto":true,"destacado":false},{"nombre":"Mesón Castaño","tier":2,"abierto":true,"destacado":false},{"nombre":"Restaurante Casa Ignacio","tier":2,"abierto":true,"destacado":false},{"nombre":"Restaurante Dr. Peña","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Orellas","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar O Canizo","tier":2,"abierto":true,"destacado":false}],"loadTime":"734ms"}
+[2026-03-10T11:08:21.387Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T11:08:21.425Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 RPC Response received
+[2026-03-10T11:08:21.426Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Full data sample (first 2): [
+  {
+    "id": "f236b09c-6fb6-40ab-b327-51bf5c6bdc17",
+    "nombre": "Bar Casa Talin",
+    "direccion": "Av Muelle, 13, 15337 Porto do Barqueiro, A Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/f236b09c-6fb6-40ab-b327-51bf5c6bdc17_0_1769102116051.jpg",
+    "latitud": 43.7378887,
+    "longitud": -7.7002114,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/f236b09c-6fb6-40ab-b327-51bf5c6bdc17_0_1769102116051.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/f236b09c-6fb6-40ab-b327-51bf5c6bdc17_1_1769102117220.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/f236b09c-6fb6-40ab-b327-51bf5c6bdc17_2_1769102117882.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/f236b09c-6fb6-40ab-b327-51bf5c6bdc17_3_1769102118619.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "09:30–22:30"
+      ],
+      "jueves": [
+        "09:30–22:30"
+      ],
+      "martes": [
+        "09:30–22:30"
+      ],
+      "sabado": [
+        "09:30–22:30"
+      ],
+      "domingo": [
+        "10:00–23:30"
+      ],
+      "viernes": [
+        "09:30–22:30"
+      ],
+      "miercoles": [
+        "09:30–22:30"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 3.9,
+    "rating": 0,
+    "distancia": 1073.92296655169,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 43.7378887,
+      "lng": -7.7002114
+    }
+  },
+  {
+    "id": "71662068-8ccd-49ca-bdb5-e32d23154c34",
+    "nombre": "cafeteria a baiuca",
+    "direccion": "Rúa Balbis, 7, 15360 Cariño, A Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "bar",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/71662068-8ccd-49ca-bdb5-e32d23154c34_0_1770774084450.jpg",
+    "latitud": 43.7412015,
+    "longitud": -7.8699804,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/71662068-8ccd-49ca-bdb5-e32d23154c34_0_1770774084450.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/71662068-8ccd-49ca-bdb5-e32d23154c34_1_1770774085182.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/71662068-8ccd-49ca-bdb5-e32d23154c34_2_1770774085952.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/71662068-8ccd-49ca-bdb5-e32d23154c34_3_1770774086648.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "10:00–02:00"
+      ],
+      "jueves": [
+        "10:00–02:00"
+      ],
+      "martes": [
+        "10:00–02:00"
+      ],
+      "sabado": [
+        "10:00–02:00"
+      ],
+      "domingo": [
+        "10:00–02:00"
+      ],
+      "viernes": [
+        "10:00–02:00"
+      ],
+      "miercoles": [
+        "10:00–02:00"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "cafe",
+      "bar",
+      "restaurante"
+    ],
+    "barlive_type": "cafe",
+    "google_rating": 4.5,
+    "rating": 0,
+    "distancia": 1074.84685654336,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 43.7412015,
+      "lng": -7.8699804
+    }
+  }
+]
+[2026-03-10T11:08:21.462Z] [Web] [LOG] [useBaresQuery v26.3] 📍 Next cursor calculated: {"last_id":"e15b48cb-e39a-4e41-8c58-9f2777c427ce","last_tier":2,"last_distance":"455.11","venue_name":"Bar Maceira BM","pageSize":20,"totalLoaded":20}
+[2026-03-10T11:08:21.427Z] [Web] [LOG] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 533ms {"isFirstPage":true,"performance":"✅ GOOD","pageNumber":1}
+[2026-03-10T11:08:21.462Z] [Web] [LOG] [useBaresQuery v26.3.0] ✅ Venues enriched (NO RE-SORTING) {"totalVenues":20,"sampleOrder":[{"nombre":"Tercer Tiempo Bar","tier":2,"abierto":true,"destacado":false,"distancia":"4.72"},{"nombre":"Andaluz","tier":2,"abierto":true,"destacado":false,"distancia":"34.84"},{"nombre":"Vinoteca Delicatessen Las Barricas","tier":2,"abierto":true,"destacado":false,"distancia":"214.67"},{"nombre":"Luna Nueva Restbar","tier":2,"abierto":true,"destacado":false,"distancia":"322.23"},{"nombre":"Mesón Real","tier":2,"abierto":true,"destacado":false,"distancia":"332.90"}]}
+[2026-03-10T11:08:21.469Z] [Web] [LOG] [useBaresQuery FASE 10] 🚀 Using get_venues_with_auth RPC {"userId":"anonymous","hasSession":false,"userLocation":{"lat":53.3493,"lng":-6.2605}}
+[2026-03-10T11:08:21.427Z] [Web] [LOG] [useBaresQuery v26.3.0] ✅ Venues enriched (NO RE-SORTING) {"totalVenues":20,"sampleOrder":[{"nombre":"Bar Casa Talin","tier":2,"abierto":true,"destacado":false,"distancia":"1073.92"},{"nombre":"cafeteria a baiuca","tier":2,"abierto":true,"destacado":false,"distancia":"1074.85"},{"nombre":"A Taberna do Labrego","tier":2,"abierto":true,"destacado":false,"distancia":"1077.62"},{"nombre":"Mesón Marieta","tier":2,"abierto":true,"destacado":false,"distancia":"1085.24"},{"nombre":"Marinito Bar & Restaurante","tier":2,"abierto":true,"destacado":false,"distancia":"1096.51"}]}
+[2026-03-10T11:08:21.472Z] [Web] [LOG] [useBaresQuery FASE 14] 📡 Supabase client ready: true
+[2026-03-10T11:08:21.470Z] [Web] [LOG] [useBaresQuery FASE 12] 📡 RPC Parameters: {
+  "p_user_id": null,
+  "p_user_lat": 53.3493,
+  "p_user_lng": -6.2605,
+  "p_limit": 20,
+  "p_last_id": "b836f6b1-6527-41fe-8a7a-526fb4e31a2e",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 1103.59113090226,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-10T11:08:21.473Z] [Web] [LOG] [useBaresQuery FASE 14] 🚀 Query promise created: true
+[2026-03-10T11:08:21.472Z] [Web] [LOG] [useBaresQuery FASE 14] 📡 Full RPC params: {
+  "p_user_id": null,
+  "p_user_lat": 53.3493,
+  "p_user_lng": -6.2605,
+  "p_limit": 20,
+  "p_last_id": "b836f6b1-6527-41fe-8a7a-526fb4e31a2e",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 1103.59113090226,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-10T11:08:21.472Z] [Web] [LOG] [useBaresQuery FASE 14] 📡 RPC function name: get_venues_with_auth
+[2026-03-10T11:08:21.473Z] [Web] [LOG] [useBaresQuery FASE 14] 🚀 RPC call initiated, waiting for response...
+[2026-03-10T11:08:21.471Z] [Web] [LOG] [useBaresQuery FASE 14] 🚀 Calling supabase.rpc...
+[2026-03-10T11:08:21.482Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"f236b09c-6fb6-40ab-b327-51bf5c6bdc17","nombre":"Bar Casa Talin","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Bar Casa Talin","cafeteria a baiuca","A Taberna do Labrego","Mesón Marieta","Marinito Bar & Restaurante"],"sortingTiers":[{"nombre":"Bar Casa Talin","tier":2,"abierto":true,"destacado":false},{"nombre":"cafeteria a baiuca","tier":2,"abierto":true,"destacado":false},{"nombre":"A Taberna do Labrego","tier":2,"abierto":true,"destacado":false},{"nombre":"Mesón Marieta","tier":2,"abierto":true,"destacado":false},{"nombre":"Marinito Bar & Restaurante","tier":2,"abierto":true,"destacado":false},{"nombre":"A ESTRELA DE BALTAR","tier":2,"abierto":true,"destacado":false},{"nombre":"Casa Xunqueira","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar La Muralla","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Pizzeria Campeón","tier":2,"abierto":true,"destacado":false},{"nombre":"Cerveceria La Abadia","tier":2,"abierto":true,"destacado":false}],"loadTime":"562ms"}
+[2026-03-10T11:08:21.493Z] [Web] [LOG] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 722ms {"isFirstPage":true,"performance":"✅ GOOD","pageNumber":1}
+[2026-03-10T11:08:21.485Z] [Web] [LOG] [useBaresQuery v26.3] 📡 Fetching page: 2 {"isFirstPage":false,"pageParam":{"last_id":"b836f6b1-6527-41fe-8a7a-526fb4e31a2e","last_tier":2,"last_distance":1103.59113090226,"offset":20},"pageSize":20,"category":null,"search":"","hasFilters":true,"platform":"web"}
+[2026-03-10T11:08:21.625Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Full data sample (first 2): [
+  {
+    "id": "32f2892b-fa24-473e-aaba-a6021c85827d",
+    "nombre": "Claudina estanco-bar",
+    "direccion": "Vila Eirexa Núcleo, 9, 15592 Ferrol, A Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/32f2892b-fa24-473e-aaba-a6021c85827d_0_1769458489853.jpg",
+    "latitud": 43.5119648,
+    "longitud": -8.3041795,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/32f2892b-fa24-473e-aaba-a6021c85827d_0_1769458489853.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/32f2892b-fa24-473e-aaba-a6021c85827d_1_1769458490854.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/32f2892b-fa24-473e-aaba-a6021c85827d_2_1769458491840.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/32f2892b-fa24-473e-aaba-a6021c85827d_3_1769458492707.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "08:00–22:30"
+      ],
+      "jueves": [
+        "08:00–22:30"
+      ],
+      "martes": [
+        "08:00–22:30"
+      ],
+      "sabado": [
+        "08:00–23:30"
+      ],
+      "domingo": [
+        "08:00–22:30"
+      ],
+      "viernes": [
+        "08:00–23:30"
+      ],
+      "miercoles": [
+        "08:00–22:30"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4.5,
+    "rating": 0,
+    "distancia": 1104.08273024113,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 43.5119648,
+      "lng": -8.3041795
+    }
+  },
+  {
+    "id": "049ef215-2175-4e74-a534-ffec3f6d0346",
+    "nombre": "El 17 De San Andres",
+    "direccion": "R. San Andrés, 17D, 15570 Narón, A Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "bar",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/049ef215-2175-4e74-a534-ffec3f6d0346_0_1771833659217.jpg",
+    "latitud": 43.5011428,
+    "longitud": -8.1909839,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/049ef215-2175-4e74-a534-ffec3f6d0346_0_1771833659217.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/049ef215-2175-4e74-a534-ffec3f6d0346_1_1771833659892.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/049ef215-2175-4e74-a534-ffec3f6d0346_2_1771833660850.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/049ef215-2175-4e74-a534-ffec3f6d0346_3_1771833661974.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "07:30–23:00"
+      ],
+      "jueves": [
+        "07:30–23:00"
+      ],
+      "martes": [
+        "07:30–23:00"
+      ],
+      "sabado": [
+        "09:00–23:00"
+      ],
+      "domingo": [
+        "09:00–23:00"
+      ],
+      "viernes": [
+        "07:30–23:00"
+      ],
+      "miercoles": [
+        "07:30–23:00"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar",
+      "cafe",
+      "restaurante"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4.2,
+    "rating": 0,
+    "distancia": 1104.18158942266,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 43.5011428,
+      "lng": -8.1909839
+    }
+  }
+]
+[2026-03-10T11:08:21.492Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"1d135eca-3e17-49ce-95bd-de156aa4f724","nombre":"Tercer Tiempo Bar","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Tercer Tiempo Bar","Andaluz","Vinoteca Delicatessen Las Barricas","Luna Nueva Restbar","Mesón Real"],"sortingTiers":[{"nombre":"Tercer Tiempo Bar","tier":2,"abierto":true,"destacado":false},{"nombre":"Andaluz","tier":2,"abierto":true,"destacado":false},{"nombre":"Vinoteca Delicatessen Las Barricas","tier":2,"abierto":true,"destacado":false},{"nombre":"Luna Nueva Restbar","tier":2,"abierto":true,"destacado":false},{"nombre":"Mesón Real","tier":2,"abierto":true,"destacado":false},{"nombre":"Mesón Castaño","tier":2,"abierto":true,"destacado":false},{"nombre":"Restaurante Casa Ignacio","tier":2,"abierto":true,"destacado":false},{"nombre":"Restaurante Dr. Peña","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Orellas","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar O Canizo","tier":2,"abierto":true,"destacado":false}],"loadTime":"722ms"}
+[2026-03-10T11:08:21.558Z] [Web] [LOG] [FilterStore v2.0] ✅ Dynamic options loaded: {"tipos":8,"servicios":21,"ambientes":10,"clientela":6,"comunidades":1,"provincias":1}
+[2026-03-10T11:08:21.626Z] [Web] [LOG] [useBaresQuery v26.3.0] ✅ Venues enriched (NO RE-SORTING) {"totalVenues":20,"sampleOrder":[{"nombre":"Claudina estanco-bar","tier":2,"abierto":true,"destacado":false,"distancia":"1104.08"},{"nombre":"El 17 De San Andres","tier":2,"abierto":true,"destacado":false,"distancia":"1104.18"},{"nombre":"Confeitura Narón","tier":2,"abierto":true,"destacado":false,"distancia":"1104.31"},{"nombre":"Meson A Criba","tier":2,"abierto":true,"destacado":false,"distancia":"1104.65"},{"nombre":"CAFÉ TRIANA","tier":2,"abierto":true,"destacado":false,"distancia":"1104.85"}]}
+[2026-03-10T11:08:21.630Z] [Web] [LOG] [useBaresQuery FASE 14] 📡 Full RPC params: {
+  "p_user_id": null,
+  "p_user_lat": 53.3493,
+  "p_user_lng": -6.2605,
+  "p_limit": 20,
+  "p_last_id": "4ae7059e-2ebd-451d-aceb-c29336665b24",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 1106.43182080362,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-10T11:08:21.626Z] [Web] [LOG] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 155ms {"isFirstPage":false,"performance":"⚡ FAST","pageNumber":2}
+[2026-03-10T11:08:21.624Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"32f2892b-fa24-473e-aaba-a6021c85827d","nombre":"Claudina estanco-bar","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Claudina estanco-bar","El 17 De San Andres","Confeitura Narón","Meson A Criba","CAFÉ TRIANA"],"sortingTiers":[{"nombre":"Claudina estanco-bar","tier":2,"abierto":true,"destacado":false},{"nombre":"El 17 De San Andres","tier":2,"abierto":true,"destacado":false},{"nombre":"Confeitura Narón","tier":2,"abierto":true,"destacado":false},{"nombre":"Meson A Criba","tier":2,"abierto":true,"destacado":false},{"nombre":"CAFÉ TRIANA","tier":2,"abierto":true,"destacado":false},{"nombre":"RESTAURANTE NUEVO RUMBO","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafe A Xuntanza Bar","tier":2,"abierto":true,"destacado":false},{"nombre":"Triple V","tier":2,"abierto":true,"destacado":false},{"nombre":"Australian","tier":2,"abierto":true,"destacado":false},{"nombre":"Cervecería Vinoteca La Quinta","tier":2,"abierto":true,"destacado":false}],"loadTime":"155ms"}
+[2026-03-10T11:08:21.629Z] [Web] [LOG] [useBaresQuery FASE 12] 📡 RPC Parameters: {
+  "p_user_id": null,
+  "p_user_lat": 53.3493,
+  "p_user_lng": -6.2605,
+  "p_limit": 20,
+  "p_last_id": "4ae7059e-2ebd-451d-aceb-c29336665b24",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 1106.43182080362,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-10T11:08:21.627Z] [Web] [LOG] [useBaresQuery v26.3] 📍 Next cursor calculated: {"last_id":"4ae7059e-2ebd-451d-aceb-c29336665b24","last_tier":2,"last_distance":"1106.43","venue_name":"Taberna Ó Xustiño","pageSize":20,"totalLoaded":40}
+[2026-03-10T11:08:21.483Z] [Web] [LOG] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 562ms {"isFirstPage":true,"performance":"✅ GOOD","pageNumber":1}
+[2026-03-10T11:08:21.648Z] [Web] [LOG] [useBaresQuery v26.3] 📡 Fetching page: 3 {"isFirstPage":false,"pageParam":{"last_id":"4ae7059e-2ebd-451d-aceb-c29336665b24","last_tier":2,"last_distance":1106.43182080362,"offset":40},"pageSize":20,"category":null,"search":"","hasFilters":true,"platform":"web"}
+[2026-03-10T11:08:21.645Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"32f2892b-fa24-473e-aaba-a6021c85827d","nombre":"Claudina estanco-bar","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Claudina estanco-bar","El 17 De San Andres","Confeitura Narón","Meson A Criba","CAFÉ TRIANA"],"sortingTiers":[{"nombre":"Claudina estanco-bar","tier":2,"abierto":true,"destacado":false},{"nombre":"El 17 De San Andres","tier":2,"abierto":true,"destacado":false},{"nombre":"Confeitura Narón","tier":2,"abierto":true,"destacado":false},{"nombre":"Meson A Criba","tier":2,"abierto":true,"destacado":false},{"nombre":"CAFÉ TRIANA","tier":2,"abierto":true,"destacado":false},{"nombre":"RESTAURANTE NUEVO RUMBO","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafe A Xuntanza Bar","tier":2,"abierto":true,"destacado":false},{"nombre":"Triple V","tier":2,"abierto":true,"destacado":false},{"nombre":"Australian","tier":2,"abierto":true,"destacado":false},{"nombre":"Cervecería Vinoteca La Quinta","tier":2,"abierto":true,"destacado":false}],"loadTime":"159ms"}
+[2026-03-10T11:08:21.779Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Full data sample (first 2): [
+  {
+    "id": "4ae7059e-2ebd-451d-aceb-c29336665b24",
+    "nombre": "Taberna Ó Xustiño",
+    "direccion": "R. Sol, 99, 15401 Ferrol, A Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/4ae7059e-2ebd-451d-aceb-c29336665b24_0_1769182266806.jpg",
+    "latitud": 43.4845273,
+    "longitud": -8.234709,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/4ae7059e-2ebd-451d-aceb-c29336665b24_0_1769182266806.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/4ae7059e-2ebd-451d-aceb-c29336665b24_1_1769182267842.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/4ae7059e-2ebd-451d-aceb-c29336665b24_2_1769182268834.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/4ae7059e-2ebd-451d-aceb-c29336665b24_3_1769182269772.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "11:00–15:00",
+        "18:00–00:00"
+      ],
+      "jueves": [
+        "11:00–15:00",
+        "18:00–00:00"
+      ],
+      "martes": [
+        "11:00–15:00",
+        "18:00–00:00"
+      ],
+      "sabado": [
+        "11:00–15:00",
+        "18:00–00:00"
+      ],
+      "domingo": [
+        "11:00–15:00",
+        "18:00–00:00"
+      ],
+      "viernes": [
+        "11:00–15:00",
+        "18:00–00:00"
+      ],
+      "miercoles": [
+        "Cerrado"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "bar"
+    ],
+    "barlive_type": "bar",
+    "google_rating": 4.6,
+    "rating": 0,
+    "distancia": 1106.43182080362,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 43.4845273,
+      "lng": -8.234709
+    }
+  },
+  {
+    "id": "3e0f329d-01d1-4125-b08d-ca7cadeb524c",
+    "nombre": "O FELGO",
+    "direccion": "Av. de Castelao, 62, 15406 Ferrol, La Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/3e0f329d-01d1-4125-b08d-ca7cadeb524c_0_1771718528798.jpg",
+    "latitud": 43.4817596,
+    "longitud": -8.2027963,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/3e0f329d-01d1-4125-b08d-ca7cadeb524c_0_1771718528798.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/3e0f329d-01d1-4125-b08d-ca7cadeb524c_1_1771718529616.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/3e0f329d-01d1-4125-b08d-ca7cadeb524c_2_1771718530321.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/3e0f329d-01d1-4125-b08d-ca7cadeb524c_3_1771718531147.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "08:30–15:00"
+      ],
+      "jueves": [
+        "08:30–15:00"
+      ],
+      "martes": [
+        "08:30–15:00"
+      ],
+      "sabado": [
+        "09:30–21:00"
+      ],
+      "domingo": [
+        "09:30–21:00"
+      ],
+      "viernes": [
+        "08:30–15:00"
+      ],
+      "miercoles": [
+        "08:30–15:00"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "cafe",
+      "restaurante"
+    ],
+    "barlive_type": "cafe",
+    "google_rating": 4.6,
+    "rating": 0,
+    "distancia": 1106.43348262297,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 43.4817596,
+      "lng": -8.2027963
+    }
+  }
+]
+[2026-03-10T11:08:21.781Z] [Web] [LOG] [useBaresQuery v26.3] 📍 Next cursor calculated: {"last_id":"79df3adf-a4f1-40ef-95f2-edfcacfee464","last_tier":2,"last_distance":"1111.03","venue_name":"Restaurante Dr. Peña","pageSize":20,"totalLoaded":60}
+[2026-03-10T11:08:21.627Z] [Web] [LOG] [useBaresQuery v26.3] 📡 Fetching page: 3 {"isFirstPage":false,"pageParam":{"last_id":"4ae7059e-2ebd-451d-aceb-c29336665b24","last_tier":2,"last_distance":1106.43182080362,"offset":40},"pageSize":20,"category":null,"search":"","hasFilters":false,"platform":"web"}
+[2026-03-10T11:08:21.554Z] [Web] [LOG] [FilterStore v2.0] 📊 Processing 794 active locals...
+[2026-03-10T11:08:21.782Z] [Web] [LOG] [useBaresQuery v26.3] 📡 Fetching page: 4 {"isFirstPage":false,"pageParam":{"last_id":"79df3adf-a4f1-40ef-95f2-edfcacfee464","last_tier":2,"last_distance":1111.03048439764,"offset":60},"pageSize":20,"category":null,"search":"","hasFilters":false,"platform":"web"}
+[2026-03-10T11:08:21.780Z] [Web] [LOG] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 150ms {"isFirstPage":false,"performance":"⚡ FAST","pageNumber":3}
+[2026-03-10T11:08:21.785Z] [Web] [LOG] [useBaresQuery FASE 14] 📡 Full RPC params: {
+  "p_user_id": null,
+  "p_user_lat": 53.3493,
+  "p_user_lng": -6.2605,
+  "p_limit": 20,
+  "p_last_id": "79df3adf-a4f1-40ef-95f2-edfcacfee464",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 1111.03048439764,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-10T11:08:21.784Z] [Web] [LOG] [useBaresQuery FASE 12] 📡 RPC Parameters: {
+  "p_user_id": null,
+  "p_user_lat": 53.3493,
+  "p_user_lng": -6.2605,
+  "p_limit": 20,
+  "p_last_id": "79df3adf-a4f1-40ef-95f2-edfcacfee464",
+  "p_last_sorting_tier": 2,
+  "p_last_distance_km": 1111.03048439764,
+  "p_category_filter": null,
+  "p_servicios_filter": null,
+  "p_ambiente_filter": null,
+  "p_clientela_filter": null,
+  "p_comunidad_filter": null,
+  "p_provincia_filter": null,
+  "p_max_distance_km": null,
+  "p_search_query": null
+}
+[2026-03-10T11:08:21.780Z] [Web] [LOG] [useBaresQuery v26.3.0] ✅ Venues enriched (NO RE-SORTING) {"totalVenues":20,"sampleOrder":[{"nombre":"Taberna Ó Xustiño","tier":2,"abierto":true,"destacado":false,"distancia":"1106.43"},{"nombre":"O FELGO","tier":2,"abierto":true,"destacado":false,"distancia":"1106.43"},{"nombre":"Cafetería Capitol","tier":2,"abierto":true,"destacado":false,"distancia":"1106.48"},{"nombre":"Cafetería Kalua","tier":2,"abierto":true,"destacado":false,"distancia":"1106.52"},{"nombre":"Gastrobar Nuá","tier":2,"abierto":true,"destacado":false,"distancia":"1106.61"}]}
+[2026-03-10T11:08:21.647Z] [Web] [LOG] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 159ms {"isFirstPage":false,"performance":"⚡ FAST","pageNumber":2}
+[2026-03-10T11:08:21.979Z] [Web] [LOG] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 159ms {"isFirstPage":false,"performance":"⚡ FAST","pageNumber":4}
+[2026-03-10T11:08:21.949Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Full data sample (first 2): [
+  {
+    "id": "79df3adf-a4f1-40ef-95f2-edfcacfee464",
+    "nombre": "Restaurante Dr. Peña",
+    "direccion": "Av. de Galicia, 11, 33005 Oviedo, Asturias, España",
+    "provincia": "A Coruña",
+    "tipo": "pub",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/79df3adf-a4f1-40ef-95f2-edfcacfee464_0_1769099049767.jpg",
+    "latitud": 43.3611436,
+    "longitud": -5.8555112,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/79df3adf-a4f1-40ef-95f2-edfcacfee464_0_1769099049767.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/79df3adf-a4f1-40ef-95f2-edfcacfee464_1_1769099050844.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/79df3adf-a4f1-40ef-95f2-edfcacfee464_2_1769099051891.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/79df3adf-a4f1-40ef-95f2-edfcacfee464_3_1769099052804.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "08:00–23:00"
+      ],
+      "jueves": [
+        "08:00–23:30"
+      ],
+      "martes": [
+        "08:00–23:30"
+      ],
+      "sabado": [
+        "10:00–23:30"
+      ],
+      "domingo": [
+        "11:00–23:00"
+      ],
+      "viernes": [
+        "08:00–23:30"
+      ],
+      "miercoles": [
+        "08:00–23:30"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "restaurante",
+      "bar",
+      "cafe"
+    ],
+    "barlive_type": "restaurante",
+    "google_rating": 4.5,
+    "rating": 0,
+    "distancia": 1111.03048439764,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 43.3611436,
+      "lng": -5.8555112
+    }
+  },
+  {
+    "id": "1765a011-42b1-453b-8f08-9423516e8e7e",
+    "nombre": "O Parral de Curro",
+    "direccion": "Cam. da Rega, 7, 15625, La Coruña, España",
+    "provincia": "A Coruña",
+    "tipo": "bar",
+    "imagen_url": "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1765a011-42b1-453b-8f08-9423516e8e7e_0_1768420093357.jpg",
+    "latitud": 43.4448274,
+    "longitud": -8.3018508,
+    "galeria_urls": [
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1765a011-42b1-453b-8f08-9423516e8e7e_0_1768420093357.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1765a011-42b1-453b-8f08-9423516e8e7e_1_1768420094037.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1765a011-42b1-453b-8f08-9423516e8e7e_2_1768420094854.jpg",
+      "https://embntaqwlwmgazvrglaf.supabase.co/storage/v1/object/public/locales/fotos/1765a011-42b1-453b-8f08-9423516e8e7e_3_1768420095644.jpg"
+    ],
+    "horarios_completos": {
+      "lunes": [
+        "10:00–22:00"
+      ],
+      "jueves": [
+        "10:00–22:00"
+      ],
+      "martes": [
+        "10:00–22:00"
+      ],
+      "sabado": [
+        "10:00–22:00"
+      ],
+      "domingo": [
+        "10:00–22:00"
+      ],
+      "viernes": [
+        "10:00–22:00"
+      ],
+      "miercoles": [
+        "10:00–22:00"
+      ]
+    },
+    "destacado": false,
+    "barlive_types": [
+      "restaurante"
+    ],
+    "barlive_type": "restaurante",
+    "google_rating": 4.1,
+    "rating": 0,
+    "distancia": 1111.46829525186,
+    "esta_abierto": true,
+    "is_open": true,
+    "sorting_tier": 2,
+    "is_favorite": false,
+    "coordenadas": {
+      "lat": 43.4448274,
+      "lng": -8.3018508
+    }
+  }
+]
+[2026-03-10T11:08:21.779Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"4ae7059e-2ebd-451d-aceb-c29336665b24","nombre":"Taberna Ó Xustiño","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Taberna Ó Xustiño","O FELGO","Cafetería Capitol","Cafetería Kalua","Gastrobar Nuá"],"sortingTiers":[{"nombre":"Taberna Ó Xustiño","tier":2,"abierto":true,"destacado":false},{"nombre":"O FELGO","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafetería Capitol","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafetería Kalua","tier":2,"abierto":true,"destacado":false},{"nombre":"Gastrobar Nuá","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Dique 2","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Beiramar","tier":2,"abierto":true,"destacado":false},{"nombre":"Cervecería Roiben","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Tienda CASA MIRANDA","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafetería Cuerda Floja","tier":2,"abierto":true,"destacado":false}],"loadTime":"150ms"}
+[2026-03-10T11:08:21.957Z] [Web] [LOG] [ExplorarScreen v34.0.0] 🔍 Processing venues - PRESERVING DB ORDER {"hasData":true,"hasPages":true,"pageCount":4,"isLoading":false,"isFetching":false,"isError":false}
+[2026-03-10T11:08:21.817Z] [Web] [LOG] [useBaresQuery v26.3] 📡 Fetching page: 4 {"isFirstPage":false,"pageParam":{"last_id":"79df3adf-a4f1-40ef-95f2-edfcacfee464","last_tier":2,"last_distance":1111.03048439764,"offset":60},"pageSize":20,"category":null,"search":"","hasFilters":true,"platform":"web"}
+[2026-03-10T11:08:21.815Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"4ae7059e-2ebd-451d-aceb-c29336665b24","nombre":"Taberna Ó Xustiño","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Taberna Ó Xustiño","O FELGO","Cafetería Capitol","Cafetería Kalua","Gastrobar Nuá"],"sortingTiers":[{"nombre":"Taberna Ó Xustiño","tier":2,"abierto":true,"destacado":false},{"nombre":"O FELGO","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafetería Capitol","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafetería Kalua","tier":2,"abierto":true,"destacado":false},{"nombre":"Gastrobar Nuá","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Dique 2","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Beiramar","tier":2,"abierto":true,"destacado":false},{"nombre":"Cervecería Roiben","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar Tienda CASA MIRANDA","tier":2,"abierto":true,"destacado":false},{"nombre":"Cafetería Cuerda Floja","tier":2,"abierto":true,"destacado":false}],"loadTime":"165ms"}
+[2026-03-10T11:08:21.950Z] [Web] [LOG] [useBaresQuery v26.3.0] ✅ Venues enriched (NO RE-SORTING) {"totalVenues":20,"sampleOrder":[{"nombre":"Restaurante Dr. Peña","tier":2,"abierto":true,"destacado":false,"distancia":"1111.03"},{"nombre":"O Parral de Curro","tier":2,"abierto":true,"destacado":false,"distancia":"1111.47"},{"nombre":"Los Sauces","tier":2,"abierto":true,"destacado":false,"distancia":"1111.48"},{"nombre":"A Casa Nova Ares","tier":2,"abierto":true,"destacado":false,"distancia":"1112.56"},{"nombre":"Mesón O’Mourón das Gemelas.","tier":2,"abierto":true,"destacado":false,"distancia":"1112.76"}]}
+[2026-03-10T11:08:21.816Z] [Web] [LOG] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 165ms {"isFirstPage":false,"performance":"⚡ FAST","pageNumber":3}
+[2026-03-10T11:08:21.978Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"79df3adf-a4f1-40ef-95f2-edfcacfee464","nombre":"Restaurante Dr. Peña","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Restaurante Dr. Peña","O Parral de Curro","Los Sauces","A Casa Nova Ares","Mesón O’Mourón das Gemelas."],"sortingTiers":[{"nombre":"Restaurante Dr. Peña","tier":2,"abierto":true,"destacado":false},{"nombre":"O Parral de Curro","tier":2,"abierto":true,"destacado":false},{"nombre":"Los Sauces","tier":2,"abierto":true,"destacado":false},{"nombre":"A Casa Nova Ares","tier":2,"abierto":true,"destacado":false},{"nombre":"Mesón O’Mourón das Gemelas.","tier":2,"abierto":true,"destacado":false},{"nombre":"As Parrochiñas","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar O Peirao","tier":2,"abierto":true,"destacado":false},{"nombre":"CAFÉ BAR A POUSADA DO MARIÑEIRO.","tier":2,"abierto":true,"destacado":false},{"nombre":"A Thayberna","tier":2,"abierto":true,"destacado":false},{"nombre":"Café-Bar O MURO","tier":2,"abierto":true,"destacado":false}],"loadTime":"159ms"}
+[2026-03-10T11:08:21.950Z] [Web] [LOG] [useBaresQuery FASE 14] ✅ Loaded 20 venues in 165ms {"isFirstPage":false,"performance":"⚡ FAST","pageNumber":4}
+[2026-03-10T11:08:21.951Z] [Web] [LOG] [useBaresQuery v26.3] 📍 Next cursor calculated: {"last_id":"489c3768-525b-4747-8a64-94f5b198209b","last_tier":2,"last_distance":"1119.55","venue_name":"Café bar Mesía","pageSize":20,"totalLoaded":80}
+[2026-03-10T11:08:21.962Z] [Web] [LOG] [ExplorarScreen v34.0.0] ✅ RETURNING 78 venues IN DATABASE ORDER WITH CORRECT FILTERS
+[2026-03-10T11:08:21.949Z] [Web] [LOG] [useBaresQuery FASE 14] 📦 Response details: {"hasError":false,"errorDetails":null,"dataType":"object","dataIsArray":true,"dataLength":20,"firstVenue":{"id":"79df3adf-a4f1-40ef-95f2-edfcacfee464","nombre":"Restaurante Dr. Peña","is_favorite":false,"sorting_tier":2,"esta_abierto":true,"destacado":false},"allVenueNames":["Restaurante Dr. Peña","O Parral de Curro","Los Sauces","A Casa Nova Ares","Mesón O’Mourón das Gemelas."],"sortingTiers":[{"nombre":"Restaurante Dr. Peña","tier":2,"abierto":true,"destacado":false},{"nombre":"O Parral de Curro","tier":2,"abierto":true,"destacado":false},{"nombre":"Los Sauces","tier":2,"abierto":true,"destacado":false},{"nombre":"A Casa Nova Ares","tier":2,"abierto":true,"destacado":false},{"nombre":"Mesón O’Mourón das Gemelas.","tier":2,"abierto":true,"destacado":false},{"nombre":"As Parrochiñas","tier":2,"abierto":true,"destacado":false},{"nombre":"Bar O Peirao","tier":2,"abierto":true,"destacado":false},{"nombre":"CAFÉ BAR A POUSADA DO MARIÑEIRO.","tier":2,"abierto":true,"destacado":false},{"nombre":"A Thayberna","tier":2,"abierto":true,"destacado":false},{"nombre":"Café-Bar O MURO","tier":2,"abierto":true,"destacado":false}],"loadTime":"165ms"}
+[2026-03-10T11:08:21.960Z] [Web] [LOG] [ExplorarScreen v34.0.0] 📊 Venues processed - ORDER PRESERVED: {"total":80,"unique":78,"duplicates":2,"hasData":true,"isLoading":false,"isFetching":false,"isCircuitOpen":false,"sampleOrder":[{"nombre":"Bar Casa Talin","tier":2,"abierto":true,"destacado":false,"distancia":"1073.92"},{"nombre":"cafeteria a baiuca","tier":2,"abierto":true,"destacado":false,"distancia":"1074.85"},{"nombre":"A Taberna do Labrego","tier":2,"abierto":true,"destacado":false,"distancia":"1077.62"},{"nombre":"Mesón Marieta","tier":2,"abierto":true,"destacado":false,"distancia":"1085.24"},{"nombre":"Marinito Bar & Restaurante","tier":2,"abierto":true,"destacado":false,"distancia":"1096.51"},{"nombre":"A ESTRELA DE BALTAR","tier":2,"abierto":true,"destacado":false,"distancia":"1097.21"},{"nombre":"Casa Xunqueira","tier":2,"abierto":true,"destacado":false,"distancia":"1098.16"},{"nombre":"Bar La Muralla","tier":2,"abierto":true,"destacado":false,"distancia":"1100.46"},{"nombre":"Bar Pizzeria Campeón","tier":2,"abierto":true,"destacado":false,"distancia":"1100.59"},{"nombre":"Cerveceria La Abadia","tier":2,"abierto":true,"destacado":false,"distancia":"1100.82"}]}
+[2026-03-10T11:08:22.247Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] 🚀 Prefetching first page (deferred, non-blocking)...
+[2026-03-10T11:08:22.248Z] [Web] [LOG] [AuthStore v2.2] ⏱️ Network validation timeout (1500ms)
+[2026-03-10T11:08:22.426Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] ✅ Prefetched 10 locales
+[2026-03-10T11:08:22.428Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] ✅ GlobalData (deferred) completed
+[2026-03-10T11:08:22.428Z] [Web] [LOG] [PerformanceTracker FASE 8] 📊 TTI Clasificación: 🐌 MUY LENTO
+[2026-03-10T11:08:22.428Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] 🎉 ALL background tasks settled in 473074ms
+[2026-03-10T11:08:22.429Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] ✅ Filters (deferred) completed
+[2026-03-10T11:08:22.427Z] [Web] [LOG] [PerformanceTracker FASE 8] 🎯 TTI registrado: 473397.40 ms
+[2026-03-10T11:08:22.427Z] [Web] [LOG] [PERF_END] app_initialization - Duration: 473074.40ms (473397.10ms desde launch) 🐌 MUY LENTO
+[2026-03-10T11:08:22.429Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] ✅ Prefetch (deferred) completed
+[2026-03-10T11:08:22.428Z] [Web] [LOG] [RootLayout v24.0 - PASO 1] ✅ Auth completed
+[2026-03-10T11:08:24.239Z] [Web] [LOG] [LocationUtils v461.0] ⏱️ Location timeout (3s) - will use default
+[2026-03-10T11:08:26.241Z] [Web] [LOG] [LocationContext v1.0] ⏱️ Location timeout (5s)
+[2026-03-10T11:08:40.846Z] [iOS] [ERROR] [MomentoCarousel v169.0] ❌ Subscription error
+[2026-03-10T11:08:40.810Z] [iOS] [ERROR] [UnifiedMomentoAvatar v58.0] ❌ Views subscription error
+[2026-03-10T11:08:40.793Z] [iOS] [ERROR] [UnifiedMomentoAvatar v58.0] ❌ Momentos subscription error
+[2026-03-10T11:08:43.862Z] [iOS] [LOG] [InternalBytecode.js:1] [UnifiedMomentoAvatar v58.0] ✅ Views subscription active
+[2026-03-10T11:08:43.983Z] [iOS] [LOG] [InternalBytecode.js:1] [MomentoCarousel v169.0] ✅ Real-time subscriptions active
+[2026-03-10T11:08:43.838Z] [iOS] [LOG] [InternalBytecode.js:1] [UnifiedMomentoAvatar v58.0] ✅ Momentos subscription active
+[2026-03-10T11:09:03.475Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T11:09:03.474Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T11:09:05.687Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T11:09:05.687Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T11:14:28.859Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T11:14:28.859Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T11:14:31.065Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T11:14:31.065Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T11:21:31.408Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T11:21:31.408Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T11:21:32.566Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T11:21:32.566Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T11:26:18.742Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T11:26:18.742Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T11:26:38.032Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T11:26:38.033Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T11:27:13.384Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T11:27:13.383Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T11:27:23.400Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T11:27:23.400Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
