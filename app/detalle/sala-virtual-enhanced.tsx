@@ -3768,7 +3768,7 @@ function SalaVirtualEnhancedScreen() {
               ref={flashListRef}
               data={messages}
               renderItem={renderMessage}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item, index) => `${item.id}-${index}`}
               estimatedItemSize={100}
               contentContainerStyle={[
                 styles.messagesList,
@@ -3998,7 +3998,7 @@ function SalaVirtualEnhancedScreen() {
               ref={privateChatFlashListRef}
               data={privateChatMessages}
               renderItem={renderMessage}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item, index) => `private-${item.id}-${index}`}
               estimatedItemSize={100}
               contentContainerStyle={[
                 styles.messagesList,
