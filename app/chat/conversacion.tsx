@@ -304,9 +304,10 @@ export default function ConversacionScreen() {
           .eq('leido', false);
       }
 
+      // ✅ FIX v328.0: Scroll to latest message with increased delay for reliability
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      }, 500);
     } catch (error) {
       console.error('[Conversacion] Error:', error);
     }
@@ -1443,7 +1444,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   messageBubbleOther: {
-    backgroundColor: colors.cardBg,
+    backgroundColor: '#FFFFFF', // ✅ White background for incoming messages
+    // ✅ SEGUNDA PARTE: Sombra grisácea suave para efecto "elevado"
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   // ✅ INSTAGRAM STYLE: Message text
   messageText: {

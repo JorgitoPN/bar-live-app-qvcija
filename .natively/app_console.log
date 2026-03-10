@@ -30624,3 +30624,31 @@ To reconnect:
 [2026-03-10T05:36:48.592Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 7f9dc780-ab6e-4f04-9c88-056120c37d96 has 0 unread messages
 [2026-03-10T05:36:48.692Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
 [2026-03-10T05:36:48.625Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-03-10T06:35:18.984Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T06:35:18.984Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T06:38:41.440Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T06:38:41.440Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T06:38:43.409Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T06:38:43.409Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T06:28:11.681Z] [iOS] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T06:28:11.690Z] [iOS] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T06:39:06.853Z] [iOS] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T06:39:06.842Z] [iOS] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T06:39:06.595Z] [iOS] [LOG] [Conversacion] Subscription status: CHANNEL_ERROR
+[2026-03-10T06:39:06.584Z] [iOS] [LOG] [Chats] Subscription status: CHANNEL_ERROR
+[2026-03-10T06:39:12.569Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion] Subscription status: SUBSCRIBED
+[2026-03-10T06:39:12.560Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] Subscription status: SUBSCRIBED
+[2026-03-10T06:39:33.025Z] [iOS] [LOG] [Conversacion] Subscription status: CHANNEL_ERROR
+[2026-03-10T06:39:33.005Z] [iOS] [LOG] [Chats] Subscription status: CHANNEL_ERROR
+[2026-03-10T06:39:36.052Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] Subscription status: SUBSCRIBED
+[2026-03-10T06:39:36.069Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion] Subscription status: SUBSCRIBED
+[2026-03-10T06:39:59.555Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T06:39:59.555Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T06:40:01.330Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T06:40:01.330Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T06:40:04.317Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T06:40:04.316Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T06:40:05.782Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T06:40:05.782Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T06:40:07.543Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T06:40:07.543Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground

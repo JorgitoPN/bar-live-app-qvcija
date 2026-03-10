@@ -958,9 +958,10 @@ export default function ComentariosScreen() {
                   }}
                   onFocus={() => {
                     console.log('[ComentariosScreen v327.0] 🎯 Input focused - scrolling to show input field');
+                    // ✅ FIX v328.0: Scroll to latest comment with increased delay for reliability
                     setTimeout(() => {
                       flatListRef.current?.scrollToEnd({ animated: true });
-                    }, 300);
+                    }, 500);
                   }}
                   multiline
                   maxLength={500}
