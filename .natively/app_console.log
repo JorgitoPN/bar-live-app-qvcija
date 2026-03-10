@@ -27868,3 +27868,27 @@ To reconnect:
 [2026-03-10T13:07:02.397Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
 [2026-03-10T13:11:34.186Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
 [2026-03-10T13:11:34.186Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T13:40:30.688Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T13:40:30.688Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T13:41:10.404Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T13:41:10.403Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T13:41:12.341Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T13:41:12.341Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T13:41:15.875Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T13:41:15.874Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T13:47:13.823Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T13:47:13.824Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T13:47:25.757Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T13:47:25.757Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T13:47:27.727Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T13:47:27.727Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T13:47:31.197Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T13:47:31.197Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T13:47:34.225Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T13:47:34.225Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T13:48:03.633Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T13:48:03.633Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T13:48:12.261Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T13:48:12.261Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T13:48:18.779Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T13:48:18.779Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground

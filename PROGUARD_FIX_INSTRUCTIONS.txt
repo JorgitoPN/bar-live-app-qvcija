@@ -1,0 +1,123 @@
+
+═══════════════════════════════════════════════════════════════════════════════
+🚨 CRITICAL FIX FOR ANDROID R8 BUILD ERROR - EXPO MODULES MISSING CLASS
+═══════════════════════════════════════════════════════════════════════════════
+
+ERROR: Missing class expo.modules.kotlin.runtime.Runtime
+This error occurs during the :app:minifyReleaseWithR8 task when building APK.
+
+ROOT CAUSE:
+R8 (Android's code shrinker) is removing essential Expo module classes during
+the release build process because it thinks they're unused. This breaks
+expo-media-library and other Expo modules that depend on the Kotlin runtime.
+
+═══════════════════════════════════════════════════════════════════════════════
+SOLUTION: ADD PROGUARD RULES
+═══════════════════════════════════════════════════════════════════════════════
+
+You need to add the following rules to: android/app/proguard-rules.pro
+
+Copy and paste these rules at the END of your proguard-rules.pro file:
+
+────────────────────────────────────────────────────────────────────────────────
+
+# ============================================================================
+# EXPO MODULES - CRITICAL: Prevent R8 from removing Expo module classes
+# ============================================================================
+# This fixes the "Missing class expo.modules.kotlin.runtime.Runtime" error
+# that occurs during R8 minification in release builds
+
+# Keep all Expo modules and their members
+-keep class expo.modules.** { *; }
+-keepclassmembers class expo.modules.** { *; }
+-dontwarn expo.modules.**
+
+# Keep Expo Kotlin runtime (fixes the specific error reported)
+-keep class expo.modules.kotlin.** { *; }
+-keepclassmembers class expo.modules.kotlin.** { *; }
+-dontwarn expo.modules.kotlin.**
+
+# Keep Expo Media Library (the module that references the missing class)
+-keep class expo.modules.medialibrary.** { *; }
+-keepclassmembers class expo.modules.medialibrary.** { *; }
+-dontwarn expo.modules.medialibrary.**
+
+# Keep Kotlin runtime and reflection (required for Kotlin-based modules)
+-keep class kotlin.** { *; }
+-keep class kotlin.Metadata { *; }
+-dontwarn kotlin.**
+-keepclassmembers class **$WhenMappings {
+    <fields>;
+}
+-keepclassmembers class kotlin.Metadata {
+    public <methods>;
+}
+
+# Keep Kotlin coroutines (used by many Expo modules)
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembers class kotlinx.** {
+    volatile <fields>;
+}
+
+────────────────────────────────────────────────────────────────────────────────
+
+═══════════════════════════════════════════════════════════════════════════════
+STEP-BY-STEP INSTRUCTIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Open the file: android/app/proguard-rules.pro
+
+2. Scroll to the bottom of the file (after the existing rules)
+
+3. Copy ALL the rules shown above (between the dashed lines)
+
+4. Paste them at the END of proguard-rules.pro
+
+5. Save the file
+
+6. Clean the build cache:
+   - Delete android/.gradle folder (if it exists)
+   - Delete android/app/build folder (if it exists)
+
+7. Rebuild your APK
+
+═══════════════════════════════════════════════════════════════════════════════
+VERIFICATION
+═══════════════════════════════════════════════════════════════════════════════
+
+After adding these rules, your proguard-rules.pro file should look like this:
+
+# Add project specific ProGuard rules here.
+# ... (existing comments and rules)
+
+# react-native-reanimated
+-keep class com.swmansion.reanimated.** { *; }
+-keep class com.facebook.react.turbomodule.** { *; }
+
+# ============================================================================
+# EXPO MODULES - CRITICAL: Prevent R8 from removing Expo module classes
+# ============================================================================
+# (all the new rules you just added)
+
+═══════════════════════════════════════════════════════════════════════════════
+WHY THIS WORKS
+═══════════════════════════════════════════════════════════════════════════════
+
+- The -keep rules tell R8 to preserve specific classes and their members
+- The -dontwarn rules suppress warnings about missing classes that are optional
+- Expo modules use reflection and dynamic class loading, which R8 can't detect
+- Without these rules, R8 removes "unused" classes that are actually needed at runtime
+- The Kotlin runtime classes are essential for all Kotlin-based Expo modules
+
+═══════════════════════════════════════════════════════════════════════════════
+ADDITIONAL NOTES
+═══════════════════════════════════════════════════════════════════════════════
+
+- These rules are safe and won't negatively impact your app
+- They only prevent R8 from removing essential Expo module code
+- The APK size increase is minimal (a few KB at most)
+- This is a known issue with Expo SDK 54+ and R8 minification
+- The fix is permanent - you won't need to modify these rules again
+
+═══════════════════════════════════════════════════════════════════════════════
