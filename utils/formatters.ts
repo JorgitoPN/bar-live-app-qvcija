@@ -87,3 +87,72 @@ export const formatFollowersCount = (count: number): string => {
     return mCount % 1 === 0 ? `${Math.floor(mCount)}M` : `${mCount}M`;
   }
 };
+
+/**
+ * ✅ NEW v311.0: Instagram DM-style timestamp formatter
+ * 
+ * Formats timestamps for conversation lists following Instagram DM style:
+ * - Less than 1 hour: "5 min", "12 min"
+ * - Less than 24 hours: "2 h", "8 h"
+ * - Yesterday: "Ayer"
+ * - Less than a week: "3 d", "5 d"
+ * - Older: "12 Feb" (short date format)
+ * 
+ * @param timestamp - ISO 8601 timestamp string or Date object
+ * @returns Formatted time string (e.g., "5 min", "2 h", "Ayer", "3 d", "12 Feb")
+ */
+export const formatLastMessageTime = (timestamp: string | Date): string => {
+  try {
+    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+    const now = new Date();
+    
+    // Calculate time differences
+    const diffMs = now.getTime() - date.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    // Less than 1 hour: show minutes
+    if (diffMinutes < 60) {
+      if (diffMinutes < 1) return 'Ahora';
+      return `${diffMinutes} min`;
+    }
+    
+    // Less than 24 hours: show hours
+    if (diffHours < 24) {
+      return `${diffHours} h`;
+    }
+    
+    // Yesterday
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (
+      date.getDate() === yesterday.getDate() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getFullYear() === yesterday.getFullYear()
+    ) {
+      return 'Ayer';
+    }
+    
+    // Less than a week: show days
+    if (diffDays < 7) {
+      return `${diffDays} d`;
+    }
+    
+    // Older than a week: show short date
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    
+    // If it's from this year, just show day and month
+    if (date.getFullYear() === now.getFullYear()) {
+      return `${day} ${month}`;
+    }
+    
+    // If it's from a previous year, include the year
+    return `${day} ${month} ${date.getFullYear()}`;
+  } catch (error) {
+    console.error('[formatLastMessageTime] Error formatting timestamp:', error);
+    return '';
+  }
+};

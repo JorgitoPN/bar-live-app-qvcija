@@ -22,6 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
+import { formatLastMessageTime } from '@/utils/formatters';
 
 interface Chat {
   id: string;
@@ -39,6 +40,7 @@ interface Chat {
     activo: boolean;
   };
   mensajes_no_leidos: number;
+  hasActiveMomento?: boolean;
 }
 
 export default function ChatsScreen() {
@@ -96,6 +98,8 @@ export default function ChatsScreen() {
           const otroUsuarioId = chat.usuario1_id === user.id ? chat.usuario2_id : chat.usuario1_id;
 
           let userData;
+          let hasActiveMomento = false;
+          
           if (chat.local_id) {
             console.log('[Chats] 🏢 Chat', chat.id, 'is LOCAL-SPECIFIC, loading local info for:', chat.local_id);
             
@@ -114,6 +118,17 @@ export default function ChatsScreen() {
                 activo: false,
               };
               console.log('[Chats] ✅ Loaded local info:', localData.nombre);
+              
+              // Check for active momentos for local
+              const { data: momentosData } = await supabase
+                .from('momentos')
+                .select('id')
+                .eq('local_id', chat.local_id)
+                .eq('tipo', 'local')
+                .gt('expires_at', new Date().toISOString())
+                .limit(1);
+              
+              hasActiveMomento = (momentosData && momentosData.length > 0);
             } else {
               console.error('[Chats] ❌ Failed to load local info for:', chat.local_id);
             }
@@ -129,6 +144,17 @@ export default function ChatsScreen() {
             userData = userDataResult;
             if (userData) {
               console.log('[Chats] ✅ Loaded user info:', userData.nombre, 'username:', userData.username);
+              
+              // Check for active momentos for user
+              const { data: momentosData } = await supabase
+                .from('momentos')
+                .select('id')
+                .eq('autor_id', otroUsuarioId)
+                .eq('tipo', 'usuario')
+                .gt('expires_at', new Date().toISOString())
+                .limit(1);
+              
+              hasActiveMomento = (momentosData && momentosData.length > 0);
             }
           }
 
@@ -152,6 +178,7 @@ export default function ChatsScreen() {
               activo: false,
             },
             mensajes_no_leidos: count || 0,
+            hasActiveMomento,
           };
         })
       );
@@ -599,6 +626,14 @@ export default function ChatsScreen() {
 
           const isSelected = selectedChats.has(chat.id);
           const hasUnread = chat.mensajes_no_leidos > 0;
+          
+          // ✅ ATOMIC JSX: Calculate timestamp outside JSX
+          const timeDisplay = formatLastMessageTime(chat.ultimo_mensaje_fecha || chat.updated_at);
+          
+          // ✅ ATOMIC JSX: Calculate avatar border style outside JSX
+          const avatarBorderStyle = chat.hasActiveMomento 
+            ? { borderWidth: 2, borderColor: '#00FF88' }
+            : {};
 
           return (
             <TouchableOpacity
@@ -634,10 +669,19 @@ export default function ChatsScreen() {
                 {chat.otro_usuario.avatar ? (
                   <Image 
                     source={{ uri: chat.otro_usuario.avatar }} 
-                    style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarRadius }]} 
+                    style={[
+                      styles.avatar, 
+                      { width: avatarSize, height: avatarSize, borderRadius: avatarRadius },
+                      avatarBorderStyle
+                    ]} 
                   />
                 ) : (
-                  <View style={[styles.avatar, styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarRadius }]}>
+                  <View style={[
+                    styles.avatar, 
+                    styles.avatarPlaceholder, 
+                    { width: avatarSize, height: avatarSize, borderRadius: avatarRadius },
+                    avatarBorderStyle
+                  ]}>
                     <Text style={[styles.avatarText, { fontSize: avatarTextSize }]}>
                       {chat.otro_usuario.nombre.charAt(0).toUpperCase()}
                     </Text>
@@ -646,16 +690,21 @@ export default function ChatsScreen() {
               </View>
 
               <View style={styles.chatContent}>
-                <Text 
-                  style={[
-                    styles.chatNombre, 
-                    { fontSize: scaleFontSize(16) },
-                    hasUnread && styles.chatNombreUnread
-                  ]}
-                  numberOfLines={1}
-                >
-                  {displayName}
-                </Text>
+                <View style={styles.chatHeader}>
+                  <Text 
+                    style={[
+                      styles.chatNombre, 
+                      { fontSize: scaleFontSize(16) },
+                      hasUnread && styles.chatNombreUnread
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {displayName}
+                  </Text>
+                  <Text style={[styles.chatTimestamp, { fontSize: scaleFontSize(12) }]}>
+                    {timeDisplay}
+                  </Text>
+                </View>
                 <Text
                   style={[
                     styles.chatUltimoMensaje,
@@ -809,12 +858,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
   },
+  chatHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   chatNombre: {
     fontWeight: '400',
     color: colors.text,
+    flex: 1,
   },
   chatNombreUnread: {
     fontWeight: '700',
+  },
+  chatTimestamp: {
+    color: colors.textSecondary,
+    fontWeight: '400',
   },
   chatUltimoMensaje: {
     color: colors.textSecondary,
