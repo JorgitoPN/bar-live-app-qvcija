@@ -244,11 +244,11 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
     }
   }, [user, router]);
 
-  // ✅ CRITICAL FIX v318.0: Show avatar and name even when there's only 1 like
+  // ✅ CRITICAL FIX v319.0: Always show likes count, even when profiles haven't loaded yet
   const getLikesText = useMemo(() => {
     const otherUsers = tempProfiles.filter(u => u.id !== user?.id);
     
-    console.log('[PostLikesAvatars v318.0] 📊 Generating text:', {
+    console.log('[PostLikesAvatars v319.0] 📊 Generating text:', {
       currentUserHasLiked,
       currentTotalLikes,
       tempProfilesCount: tempProfiles.length,
@@ -291,73 +291,83 @@ export default function PostLikesAvatars({ postId, totalLikes, localLikes = [] }
       }
     }
 
-    // ✅ FIX v318.0: Show avatar and name even when there's only 1 like
-    if (currentTotalLikes === 1 && otherUsers.length > 0) {
-      const username = otherUsers[0].username || otherUsers[0].nombre;
-      return (
-        <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>
-          A{' '}
-          <Text 
-            style={styles.usernameLink}
-            onPress={() => handleUserPress(otherUsers[0].id, otherUsers[0].tipo)}
-          >
-            {username}
-          </Text>
-          {' '}le gusta esto
-        </Text>
-      );
-    }
-    
-    if (currentTotalLikes === 2 && otherUsers.length >= 2) {
-      const user1 = otherUsers[0].username || otherUsers[0].nombre;
-      const user2 = otherUsers[1].username || otherUsers[1].nombre;
-      return (
-        <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>
-          A{' '}
-          <Text 
-            style={styles.usernameLink}
-            onPress={() => handleUserPress(otherUsers[0].id, otherUsers[0].tipo)}
-          >
-            {user1}
-          </Text>
-          {' '}y a{' '}
-          <Text 
-            style={styles.usernameLink}
-            onPress={() => handleUserPress(otherUsers[1].id, otherUsers[1].tipo)}
-          >
-            {user2}
-          </Text>
-          {' '}les gusta esto
-        </Text>
-      );
-    }
-    
-    if (currentTotalLikes >= 3 && otherUsers.length >= 1) {
-      const firstUser = otherUsers[0].username || otherUsers[0].nombre;
-      const others = currentTotalLikes - 1;
-      return (
-        <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>
-          A{' '}
-          <Text 
-            style={styles.usernameLink}
-            onPress={() => handleUserPress(otherUsers[0].id, otherUsers[0].tipo)}
-          >
-            {firstUser}
-          </Text>
-          {' '}y a{' '}
-          <Text style={styles.moreLink} onPress={handleOpenLikesPage}>
-            {others} {others === 1 ? 'persona más' : 'personas más'}
-          </Text>
-          {' '}les gusta esto
-        </Text>
-      );
-    }
-    
-    // ✅ FIX v318.0: Fallback - show generic text if no profiles loaded yet
+    // ✅ FIX v319.0: ALWAYS show likes count, even if profiles haven't loaded yet
+    // This fixes the bug where 1 like doesn't show until you also like it
     if (currentTotalLikes === 1) {
+      // If we have the profile loaded, show the username
+      if (otherUsers.length > 0) {
+        const username = otherUsers[0].username || otherUsers[0].nombre;
+        return (
+          <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>
+            A{' '}
+            <Text 
+              style={styles.usernameLink}
+              onPress={() => handleUserPress(otherUsers[0].id, otherUsers[0].tipo)}
+            >
+              {username}
+            </Text>
+            {' '}le gusta esto
+          </Text>
+        );
+      }
+      // If profile hasn't loaded yet, still show the count
       return <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>1 me gusta</Text>;
     }
     
+    if (currentTotalLikes === 2) {
+      if (otherUsers.length >= 2) {
+        const user1 = otherUsers[0].username || otherUsers[0].nombre;
+        const user2 = otherUsers[1].username || otherUsers[1].nombre;
+        return (
+          <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>
+            A{' '}
+            <Text 
+              style={styles.usernameLink}
+              onPress={() => handleUserPress(otherUsers[0].id, otherUsers[0].tipo)}
+            >
+              {user1}
+            </Text>
+            {' '}y a{' '}
+            <Text 
+              style={styles.usernameLink}
+              onPress={() => handleUserPress(otherUsers[1].id, otherUsers[1].tipo)}
+            >
+              {user2}
+            </Text>
+            {' '}les gusta esto
+          </Text>
+        );
+      }
+      // Fallback if profiles haven't loaded
+      return <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>2 me gusta</Text>;
+    }
+    
+    if (currentTotalLikes >= 3) {
+      if (otherUsers.length >= 1) {
+        const firstUser = otherUsers[0].username || otherUsers[0].nombre;
+        const others = currentTotalLikes - 1;
+        return (
+          <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>
+            A{' '}
+            <Text 
+              style={styles.usernameLink}
+              onPress={() => handleUserPress(otherUsers[0].id, otherUsers[0].tipo)}
+            >
+              {firstUser}
+            </Text>
+            {' '}y a{' '}
+            <Text style={styles.moreLink} onPress={handleOpenLikesPage}>
+              {others} {others === 1 ? 'persona más' : 'personas más'}
+            </Text>
+            {' '}les gusta esto
+          </Text>
+        );
+      }
+      // Fallback if profiles haven't loaded
+      return <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>{currentTotalLikes} me gusta</Text>;
+    }
+    
+    // Default fallback
     return <Text style={[styles.likesText, { fontSize: scaleFontSize(14) }]}>{currentTotalLikes} me gusta</Text>;
   }, [currentUserHasLiked, currentTotalLikes, tempProfiles, user?.id, handleUserPress, handleOpenLikesPage]); // ✅ FIXED: Stable dependencies
 
