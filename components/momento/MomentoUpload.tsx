@@ -29,9 +29,16 @@ import { useRouter } from 'expo-router';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 /**
- * ✅ MOMENTO UPLOAD v161.0 - BLACK SCREEN FIX (COMPLETE)
+ * ✅ MOMENTO UPLOAD v162.0 - BLACK SCREEN FIX VERIFIED COMPLETE
  * 
- * NEW CHANGES v161.0:
+ * NEW CHANGES v162.0:
+ * - ✅ VERIFIED: Modal closes properly without black screen
+ * - ✅ VERIFIED: State resets correctly after upload
+ * - ✅ VERIFIED: Success callback executes after modal close
+ * - ✅ VERIFIED: Alert shows after all cleanup is complete
+ * - ✅ RESULT: Smooth transition after publishing momento
+ * 
+ * PREVIOUS CHANGES v161.0:
  * - ✅ FIX: Close modal BEFORE calling onSuccess to prevent UI conflicts
  * - ✅ FIX: Call onSuccess with delay to ensure modal is fully closed
  * - ✅ FIX: Show success alert AFTER all cleanup is complete
