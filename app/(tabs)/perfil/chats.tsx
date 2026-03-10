@@ -465,6 +465,12 @@ export default function ChatsScreen() {
   const chatIconSize = Platform.OS === 'android' ? scaleIconSize(64) : 64;
   const localBadgeIconSize = Platform.OS === 'android' ? scaleIconSize(12) : 12;
   const checkIconSize = Platform.OS === 'android' ? scaleIconSize(16) : 16;
+  
+  // ✅ INSTAGRAM STYLE: Avatar and badge sizes
+  const avatarSize = Platform.OS === 'android' ? scaleIconSize(48) : 48;
+  const avatarRadius = avatarSize / 2;
+  const avatarTextSize = Platform.OS === 'android' ? scaleFontSize(20) : 20;
+  const unreadBadgeSize = Platform.OS === 'android' ? scaleIconSize(10) : 10;
 
   if (!user) {
     return (
@@ -592,19 +598,12 @@ export default function ChatsScreen() {
             : (chat.otro_usuario.username || chat.otro_usuario.nombre).replace(/^@/, '');
 
           const isSelected = selectedChats.has(chat.id);
-
-          // ✅ ANDROID SCALING: Avatar and badge sizes
-          const avatarSize = Platform.OS === 'android' ? scaleIconSize(56) : 56;
-          const avatarRadius = avatarSize / 2;
-          const avatarTextSize = Platform.OS === 'android' ? scaleFontSize(22) : 22;
-          const badgeSize = Platform.OS === 'android' ? scaleIconSize(20) : 20;
-          const badgeRadius = badgeSize / 2;
-          const selectionCircleSize = Platform.OS === 'android' ? scaleIconSize(24) : 24;
+          const hasUnread = chat.mensajes_no_leidos > 0;
 
           return (
             <TouchableOpacity
               key={chat.id}
-              style={[styles.chatCard, isSelected && styles.chatCardSelected]}
+              style={[styles.chatRow, isSelected && styles.chatRowSelected]}
               onPress={() => {
                 if (selectionMode) {
                   toggleChatSelection(chat.id);
@@ -622,18 +621,21 @@ export default function ChatsScreen() {
               {selectionMode && (
                 <View style={styles.selectionIndicator}>
                   {isSelected ? (
-                    <View style={[styles.selectedCircle, { width: selectionCircleSize, height: selectionCircleSize, borderRadius: selectionCircleSize / 2 }]}>
+                    <View style={styles.selectedCircle}>
                       <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={checkIconSize} color={colors.headerText} />
                     </View>
                   ) : (
-                    <View style={[styles.unselectedCircle, { width: selectionCircleSize, height: selectionCircleSize, borderRadius: selectionCircleSize / 2 }]} />
+                    <View style={styles.unselectedCircle} />
                   )}
                 </View>
               )}
 
               <View style={styles.avatarContainer}>
                 {chat.otro_usuario.avatar ? (
-                  <Image source={{ uri: chat.otro_usuario.avatar }} style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarRadius }]} />
+                  <Image 
+                    source={{ uri: chat.otro_usuario.avatar }} 
+                    style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarRadius }]} 
+                  />
                 ) : (
                   <View style={[styles.avatar, styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarRadius }]}>
                     <Text style={[styles.avatarText, { fontSize: avatarTextSize }]}>
@@ -641,36 +643,33 @@ export default function ChatsScreen() {
                     </Text>
                   </View>
                 )}
-                {chat.local_id && (
-                  <View style={[styles.localBadge, { width: badgeSize, height: badgeSize, borderRadius: badgeRadius }]}>
-                    <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={localBadgeIconSize} color={colors.white} />
-                  </View>
-                )}
               </View>
 
               <View style={styles.chatContent}>
-                <View style={styles.chatHeader}>
-                  <Text style={[styles.chatNombre, { fontSize: scaleFontSize(16) }]}>{displayName}</Text>
-                  <Text style={[styles.chatHora, { fontSize: scaleFontSize(12) }]}>{formatHora(chat.ultimo_mensaje_fecha)}</Text>
-                </View>
-                <View style={styles.chatFooter}>
-                  <Text
-                    style={[
-                      styles.chatUltimoMensaje,
-                      { fontSize: scaleFontSize(14) },
-                      chat.mensajes_no_leidos > 0 && styles.chatUltimoMensajeNoLeido,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {chat.ultimo_mensaje || 'Nuevo chat'}
-                  </Text>
-                  {chat.mensajes_no_leidos > 0 && (
-                    <View style={styles.badge}>
-                      <Text style={[styles.badgeText, { fontSize: scaleFontSize(12) }]}>{chat.mensajes_no_leidos}</Text>
-                    </View>
-                  )}
-                </View>
+                <Text 
+                  style={[
+                    styles.chatNombre, 
+                    { fontSize: scaleFontSize(16) },
+                    hasUnread && styles.chatNombreUnread
+                  ]}
+                  numberOfLines={1}
+                >
+                  {displayName}
+                </Text>
+                <Text
+                  style={[
+                    styles.chatUltimoMensaje,
+                    { fontSize: scaleFontSize(14) }
+                  ]}
+                  numberOfLines={1}
+                >
+                  {chat.ultimo_mensaje || 'Nuevo chat'}
+                </Text>
               </View>
+
+              {hasUnread && (
+                <View style={[styles.unreadBadge, { width: unreadBadgeSize, height: unreadBadgeSize, borderRadius: unreadBadgeSize / 2 }]} />
+              )}
             </TouchableOpacity>
           );
         })}
@@ -759,38 +758,39 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
     paddingBottom: 100,
   },
-  chatCard: {
+  // ✅ INSTAGRAM STYLE: Flat list row (no cards, no borders, no shadows)
+  chatRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    padding: 12,
-    marginBottom: 12,
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.background,
   },
-  chatCardSelected: {
-    backgroundColor: `${colors.primary}15`,
-    borderColor: colors.primary,
+  chatRowSelected: {
+    backgroundColor: `${colors.primary}10`,
   },
   selectionIndicator: {
-    marginRight: 8,
+    marginRight: 12,
   },
   selectedCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   unselectedCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: colors.cardBorder,
   },
   avatarContainer: {
-    position: 'relative',
+    marginRight: 12,
   },
   avatar: {
     backgroundColor: colors.cardBorder,
@@ -804,57 +804,25 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.headerText,
   },
-  localBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.cardBackground,
-  },
   chatContent: {
     flex: 1,
-    gap: 6,
-  },
-  chatHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
   },
   chatNombre: {
-    fontWeight: '600',
+    fontWeight: '400',
     color: colors.text,
   },
-  chatHora: {
-    color: colors.textSecondary,
-  },
-  chatFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  chatNombreUnread: {
+    fontWeight: '700',
   },
   chatUltimoMensaje: {
-    flex: 1,
     color: colors.textSecondary,
   },
-  chatUltimoMensajeNoLeido: {
-    fontWeight: '600',
-    color: colors.text,
-  },
-  badge: {
-    backgroundColor: colors.badgeNuevo,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  badgeText: {
-    color: colors.badgeNuevoText,
-    fontWeight: 'bold',
+  // ✅ INSTAGRAM STYLE: Turquoise unread badge (small circular dot)
+  unreadBadge: {
+    backgroundColor: '#1ABC9C',
+    marginLeft: 12,
   },
   emptyState: {
     alignItems: 'center',
