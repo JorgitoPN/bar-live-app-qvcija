@@ -40412,3 +40412,110 @@ To reconnect:
 [2026-03-10T02:41:43.379Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion] Subscription status: CLOSED
 [2026-03-10T02:41:43.402Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
 [2026-03-10T02:41:43.394Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /perfil/chats
+[2026-03-10T02:42:28.425Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T02:42:28.614Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /chat/conversacion
+[2026-03-10T02:42:28.604Z] [iOS] [LOG] [Conversacion v309.0] 🎹 Setting up precise keyboard listeners with predictive text detection
+[2026-03-10T02:42:28.435Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.pencil", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T02:42:28.230Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 🔥 Opening chat: {"chatId":"9d8103da-ac58-4395-81ed-80ca85c9a731","isLocalChat":false}
+[2026-03-10T02:42:28.368Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 👤 Navigating to USER-TO-USER chat
+[2026-03-10T02:42:28.513Z] [iOS] [WARN] Modal with 'pageSheet' presentation style and 'transparent' value is not supported.
+[2026-03-10T02:42:28.622Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-10T02:42:28.651Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-03-10T02:42:28.362Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] ✅ Messages marked as read in database with timestamp
+[2026-03-10T02:42:28.444Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-03-10T02:42:28.413Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T02:42:28.830Z] [iOS] [LOG] [Conversacion] ⚡ Setting up real-time subscription for chat: 9d8103da-ac58-4395-81ed-80ca85c9a731
+[2026-03-10T02:42:28.766Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T02:42:29.139Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "trash", OUTLINED, mode: monochrome, color: #FFFFFF, size: 22
+[2026-03-10T02:42:29.160Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bolt.fill", FILLED, mode: monochrome, color: #fff, size: 16
+[2026-03-10T02:42:29.151Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "checkmark.circle.fill", FILLED, mode: monochrome, color: #10B981, size: 14
+[2026-03-10T02:42:28.882Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T02:42:28.888Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion] Subscription status: SUBSCRIBED
+[2026-03-10T02:42:29.011Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T02:42:29.247Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 20
+[2026-03-10T02:42:29.855Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /perfil/chats
+[2026-03-10T02:42:29.692Z] [iOS] [LOG] [Conversacion v309.0] 🎹 Setting up precise keyboard listeners with predictive text detection
+[2026-03-10T02:42:29.863Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-10T02:42:29.167Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "hand.tap.fill", FILLED, mode: monochrome, color: #fff, size: 14
+[2026-03-10T02:42:29.258Z] [iOS] [LOG] [Conversacion v308.0] 📏 Input container measured height: 93
+[2026-03-10T02:42:29.128Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "chevron.left", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T02:42:29.834Z] [iOS] [LOG] [Conversacion] Cleaning up subscription
+[2026-03-10T02:42:29.890Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-03-10T02:42:29.842Z] [iOS] [LOG] [InternalBytecode.js:1] [Conversacion] Subscription status: CLOSED
+[2026-03-10T02:42:29.626Z] [iOS] [LOG] [Conversacion v309.0] 🧹 Cleaning up keyboard listeners
+[2026-03-10T02:42:30.001Z] [iOS] [LOG] [InternalBytecode.js:1] [MomentoMessageBubble] Momento not found or error: {"code":"PGRST116","details":"The result contains 0 rows","hint":null,"message":"Cannot coerce the result to a single JSON object"}
+[2026-03-10T02:42:30.691Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /perfil
+[2026-03-10T02:42:30.680Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] Subscription status: CLOSED
+[2026-03-10T02:42:30.672Z] [iOS] [LOG] [Chats] 🔄 Cleaning up subscription
+[2026-03-10T02:42:30.699Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-10T02:42:30.727Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-03-10T02:42:31.464Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T02:42:31.473Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T02:42:31.404Z] [iOS] [LOG] [FloatingTabBar v347.0] 🔘 Tab pressed: social | Active: false
+[2026-03-10T02:42:31.727Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "sparkles", OUTLINED, mode: monochrome, color: #FFFFFF, size: 28
+[2026-03-10T02:42:31.589Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ User role: admin Current mode: cliente Pathname: /social
+[2026-03-10T02:42:31.490Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bell.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T02:42:31.481Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "message.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T02:42:31.499Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "plus", OUTLINED, mode: monochrome, color: #FFFFFF, size: 16.2
+[2026-03-10T02:42:31.420Z] [iOS] [LOG] [FloatingTabBar v347.0] ➡️ Pestaña inactiva - Usando router.replace()
+[2026-03-10T02:42:31.736Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "person.2.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 24
+[2026-03-10T02:42:31.598Z] [iOS] [LOG] [TabLayout iOS v89.1] ⚡ Rendering tabs: ["eventos","favoritos","explorar","social","perfil"]
+[2026-03-10T02:42:33.264Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 100
+[2026-03-10T02:42:33.273Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-03-10T02:42:33.242Z] [iOS] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-02-11T02:05:22.481713+00:00","imageError":false,"shouldShowImage":true}
+[2026-03-10T02:42:33.202Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] ✅ Step 1: Updated liked to: false
+[2026-03-10T02:42:33.281Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "message", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-03-10T02:42:33.254Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "ellipsis", OUTLINED, mode: monochrome, color: #111827, size: 24
+[2026-03-10T02:42:33.196Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] 🎯 handleLike START: {"postId":"378fa29e-39cd-4f0a-be15-2240816741ba","currentLiked":true,"newLikedState":false,"currentLocalLikesCount":2,"userId":"4f3ce732-f479-43f2-acb2-e92831c6bec0","action":"UNLIKING"}
+[2026-03-10T02:42:33.223Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] ✅ Step 4: Local likes array updated. New array: [{"id":"910a1c0b-5e13-4b5e-9341-5e20633a0654","userId":"da8f89d8-f384-4c52-a7cc-1583687943dc"}]
+[2026-03-10T02:42:33.214Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] ➖ Step 3: UNLIKING - Removing avatar. Before: 2 After: 1
+[2026-03-10T02:42:33.431Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ➖ OPTIMISTIC: Removing current user profile IMMEDIATELY
+[2026-03-10T02:42:33.219Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] ➖ Removed user: 4f3ce732-f479-43f2-acb2-e92831c6bec0
+[2026-03-10T02:42:33.290Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-03-10T02:42:33.435Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ✅ OPTIMISTIC: User avatar removed instantly
+[2026-03-10T02:42:33.449Z] [iOS] [LOG] [PostLikesAvatars v318.0] 📊 Generating text: {"currentUserHasLiked":false,"currentTotalLikes":1,"tempProfilesCount":1,"otherUsersCount":1}
+[2026-03-10T02:42:33.654Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] ✅ Database: Like removed
+[2026-03-10T02:42:33.208Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] ✅ Step 2: Updated count from 2 to 1
+[2026-03-10T02:42:33.438Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] 🔍 Fetching user data in background for: ["da8f89d8-f384-4c52-a7cc-1583687943dc"]
+[2026-03-10T02:42:33.583Z] [iOS] [LOG] [PostLikesAvatars v318.0] 📊 Generating text: {"currentUserHasLiked":false,"currentTotalLikes":1,"tempProfilesCount":1,"otherUsersCount":1}
+[2026-03-10T02:42:33.298Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bookmark", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-03-10T02:42:33.538Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] 💾 Database: Removing like from database
+[2026-03-10T02:42:33.366Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 localLikes changed for post: 378fa29e-39cd-4f0a-be15-2240816741ba {"count":1,"users":["da8f89d8-f384-4c52-a7cc-1583687943dc"]}
+[2026-03-10T02:42:33.428Z] [iOS] [LOG] [PostLikesAvatars v101.0] ✅ State updated: {"userLiked":false,"totalLikes":1}
+[2026-03-10T02:42:33.570Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ✅ Loaded 1 like users
+[2026-03-10T02:42:33.756Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] ✅ Database: Verified count: 1
+[2026-03-10T02:42:35.136Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] ✅ Step 2: Updated count from 1 to 2
+[2026-03-10T02:42:35.149Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] ✅ Step 4: Local likes array updated. New array: [{"id":"910a1c0b-5e13-4b5e-9341-5e20633a0654","userId":"da8f89d8-f384-4c52-a7cc-1583687943dc"},{"id":"temp-1773110555136","userId":"4f3ce732-f479-43f2-acb2-e92831c6bec0"}]
+[2026-03-10T02:42:35.126Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] 🎯 handleLike START: {"postId":"378fa29e-39cd-4f0a-be15-2240816741ba","currentLiked":false,"newLikedState":true,"currentLocalLikesCount":1,"userId":"4f3ce732-f479-43f2-acb2-e92831c6bec0","action":"LIKING"}
+[2026-03-10T02:42:35.132Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] ✅ Step 1: Updated liked to: true
+[2026-03-10T02:42:35.185Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 100
+[2026-03-10T02:42:35.175Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "ellipsis", OUTLINED, mode: monochrome, color: #111827, size: 24
+[2026-03-10T02:42:35.145Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] ➕ Added user: 4f3ce732-f479-43f2-acb2-e92831c6bec0 with temp ID: temp-1773110555136
+[2026-03-10T02:42:35.210Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-03-10T02:42:35.202Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "message", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-03-10T02:42:35.141Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] ➕ Step 3: LIKING - Adding avatar. Before: 1 After: 2
+[2026-03-10T02:42:35.164Z] [iOS] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-02-11T02:05:22.481713+00:00","imageError":false,"shouldShowImage":true}
+[2026-03-10T02:42:35.193Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 26
+[2026-03-10T02:42:35.287Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 localLikes changed for post: 378fa29e-39cd-4f0a-be15-2240816741ba {"count":2,"users":["da8f89d8-f384-4c52-a7cc-1583687943dc","4f3ce732-f479-43f2-acb2-e92831c6bec0"]}
+[2026-03-10T02:42:35.359Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] 🔍 Fetching user data in background for: ["da8f89d8-f384-4c52-a7cc-1583687943dc","4f3ce732-f479-43f2-acb2-e92831c6bec0"]
+[2026-03-10T02:42:35.472Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ✅ Loaded 2 like users
+[2026-03-10T02:42:35.356Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ✅ OPTIMISTIC: User avatar added instantly
+[2026-03-10T02:42:35.353Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ➕ OPTIMISTIC: Adding current user profile IMMEDIATELY
+[2026-03-10T02:42:35.370Z] [iOS] [LOG] [PostLikesAvatars v318.0] 📊 Generating text: {"currentUserHasLiked":true,"currentTotalLikes":2,"tempProfilesCount":2,"otherUsersCount":1}
+[2026-03-10T02:42:35.218Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bookmark", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-03-10T02:42:35.349Z] [iOS] [LOG] [PostLikesAvatars v101.0] ✅ State updated: {"userLiked":true,"totalLikes":2}
+[2026-03-10T02:42:35.456Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] 💾 Database: Adding like to database
+[2026-03-10T02:42:36.147Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] ✅ Database: Like added, real ID: eb0980b6-75ea-4283-b79d-8d33a122f1ab
+[2026-03-10T02:42:36.177Z] [iOS] [LOG] [MiniFoodPlateAvatar v48.0] 🖼️ Image decision: {"imageUrl":"https://embntaqwlwmgazvrglaf.supabase.co/storage/v...","safeImageUrl":"valid","avatarTimestamp":"2026-02-11T02:05:22.481713+00:00","imageError":false,"shouldShowImage":true}
+[2026-03-10T02:42:36.189Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "ellipsis", OUTLINED, mode: monochrome, color: #111827, size: 24
+[2026-03-10T02:42:36.209Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #EF4444, size: 26
+[2026-03-10T02:42:36.200Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 100
+[2026-03-10T02:42:36.299Z] [iOS] [LOG] [PostLikesAvatars v101.0] 🔄 localLikes changed for post: 378fa29e-39cd-4f0a-be15-2240816741ba {"count":2,"users":["da8f89d8-f384-4c52-a7cc-1583687943dc","4f3ce732-f479-43f2-acb2-e92831c6bec0"]}
+[2026-03-10T02:42:36.218Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "message", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-03-10T02:42:36.366Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] ✅ Database: Verified count: 2
+[2026-03-10T02:42:36.225Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "paperplane", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-03-10T02:42:36.232Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "bookmark", OUTLINED, mode: monochrome, color: #111827, size: 26
+[2026-03-10T02:42:36.363Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] 🔍 Fetching user data in background for: ["da8f89d8-f384-4c52-a7cc-1583687943dc","4f3ce732-f479-43f2-acb2-e92831c6bec0"]
+[2026-03-10T02:42:36.360Z] [iOS] [LOG] [PostLikesAvatars v101.0] ✅ State updated: {"userLiked":true,"totalLikes":2}
+[2026-03-10T02:42:36.456Z] [iOS] [LOG] [InternalBytecode.js:1] [PostLikesAvatars v101.0] ✅ Loaded 2 like users
+[2026-03-10T02:42:36.469Z] [iOS] [LOG] [PostLikesAvatars v318.0] 📊 Generating text: {"currentUserHasLiked":true,"currentTotalLikes":2,"tempProfilesCount":2,"otherUsersCount":1}
