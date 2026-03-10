@@ -26140,3 +26140,5 @@ To reconnect:
 [2026-03-10T05:27:30.392Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "heart.fill", FILLED, mode: monochrome, color: #FFFFFF, size: 100
 [2026-03-10T05:27:30.578Z] [iOS] [LOG] [PostLikesAvatars v318.0] 📊 Generating text: {"currentUserHasLiked":false,"currentTotalLikes":1,"tempProfilesCount":1,"otherUsersCount":1}
 [2026-03-10T05:27:30.904Z] [iOS] [LOG] [InternalBytecode.js:1] [PublicacionCard v322.0] ✅ Database: Verified count: 1
+[2026-03-10T05:29:14.674Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T05:29:14.675Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
