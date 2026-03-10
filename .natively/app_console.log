@@ -24524,3 +24524,7 @@ We recommend you instead use a development build to avoid limitations. Learn mor
 [2026-03-10T04:29:35.481Z] [iOS] [LOG] [InternalBytecode.js:1] [Chats] 📊 Chat 9d8103da-ac58-4395-81ed-80ca85c9a731 has 0 unread messages
 [2026-03-10T04:29:35.519Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "square.and.pencil", OUTLINED, mode: monochrome, color: #FFFFFF, size: 24
 [2026-03-10T04:29:35.527Z] [iOS] [LOG] 🎨 [IconSymbol v26.0 iOS] Rendering "magnifyingglass", OUTLINED, mode: monochrome, color: #6B7280, size: 18
+[2026-03-10T04:29:56.438Z] [iOS] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T04:29:56.427Z] [iOS] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: inactive
+[2026-03-10T04:30:09.344Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T04:30:09.344Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
