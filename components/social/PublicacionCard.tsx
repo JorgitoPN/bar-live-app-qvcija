@@ -109,6 +109,9 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
   const [taggedUsers, setTaggedUsers] = useState<TaggableUser[]>([]);
 
   const [showReportModal, setShowReportModal] = useState(false);
+  
+  // ✅ v330.0: "Ver más/Ver menos" state for description
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -842,7 +845,34 @@ const PublicacionCard = memo(({ post, onUpdate }: PublicacionCardProps) => {
 
       {post.contenido && (
         <View style={styles.contentContainer}>
-          <ParsedText text={post.contenido} style={[styles.content, { fontSize: scaleFontSize(15) }]} />
+          {/* ✅ v330.0: Truncate description after 125 characters with "ver más" button */}
+          {(() => {
+            const MAX_LENGTH = 125;
+            const needsTruncation = post.contenido.length > MAX_LENGTH;
+            const displayText = needsTruncation && !isDescriptionExpanded
+              ? post.contenido.substring(0, MAX_LENGTH) + '...'
+              : post.contenido;
+            
+            return (
+              <>
+                <ParsedText 
+                  text={displayText} 
+                  style={[styles.content, { fontSize: scaleFontSize(15) }]} 
+                />
+                {needsTruncation && (
+                  <TouchableOpacity
+                    onPress={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                    activeOpacity={0.7}
+                    style={styles.expandButton}
+                  >
+                    <Text style={[styles.expandButtonText, { fontSize: scaleFontSize(14) }]}>
+                      {isDescriptionExpanded ? 'ver menos' : 'ver más'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            );
+          })()}
         </View>
       )}
 
@@ -1013,6 +1043,14 @@ const styles = StyleSheet.create({
   content: {
     color: colors.text,
     lineHeight: 22,
+  },
+  expandButton: {
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  expandButtonText: {
+    color: colors.textSecondary,
+    fontWeight: '600',
   },
   actions: {
     flexDirection: 'row',

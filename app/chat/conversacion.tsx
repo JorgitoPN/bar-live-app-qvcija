@@ -304,9 +304,28 @@ export default function ConversacionScreen() {
           .eq('leido', false);
       }
 
-      // ✅ FIX v328.0: Scroll to latest message with increased delay for reliability
+      // ✅ FIX v330.0: Scroll to last unread message or latest message
       setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
+        if (data && data.length > 0) {
+          // Find the first unread message from the other user
+          const firstUnreadIndex = data.findIndex(
+            msg => !msg.leido && msg.remitente_id !== user?.id
+          );
+          
+          if (firstUnreadIndex !== -1) {
+            // Scroll to the first unread message
+            console.log('[Conversacion v330.0] 📍 Scrolling to first unread message at index:', firstUnreadIndex);
+            flatListRef.current?.scrollToIndex({
+              index: firstUnreadIndex,
+              animated: true,
+              viewPosition: 0.5, // Center the unread message on screen
+            });
+          } else {
+            // No unread messages, scroll to the end
+            console.log('[Conversacion v330.0] 📍 No unread messages, scrolling to end');
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }
+        }
       }, 500);
     } catch (error) {
       console.error('[Conversacion] Error:', error);
@@ -1213,6 +1232,17 @@ export default function ConversacionScreen() {
         ]}
         renderItem={renderMessage}
         keyboardShouldPersistTaps="handled"
+        onScrollToIndexFailed={(info) => {
+          // ✅ FIX v330.0: Handle scroll to index failure gracefully
+          console.log('[Conversacion v330.0] ⚠️ Scroll to index failed, retrying...', info);
+          setTimeout(() => {
+            flatListRef.current?.scrollToIndex({
+              index: info.index,
+              animated: true,
+              viewPosition: 0.5,
+            });
+          }, 100);
+        }}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <IconSymbol ios_icon_name="bubble.left.and.bubble.right" android_material_icon_name="chat" size={scaleIconSize(64)} color={colors.textSecondary} />
