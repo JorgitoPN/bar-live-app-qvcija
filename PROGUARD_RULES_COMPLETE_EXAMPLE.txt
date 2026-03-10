@@ -1,4 +1,30 @@
 
+# This is what your android/app/proguard-rules.pro file should look like
+# after adding the fix for the R8 error.
+#
+# IMPORTANT: This is just an EXAMPLE showing the structure.
+# Your file may have different content at the top.
+# You should ADD the rules at the END, not replace your entire file.
+
+# ============================================================================
+# EXISTING CONTENT (Your file may have different rules here)
+# ============================================================================
+
+# Add project specific ProGuard rules here.
+# By default, the flags in this file are appended to flags specified
+# in /usr/local/Cellar/android-sdk/24.3.3/tools/proguard/proguard-android.txt
+
+# react-native-reanimated
+-keep class com.swmansion.reanimated.** { *; }
+-keep class com.facebook.react.turbomodule.** { *; }
+
+# Add any project specific keep options here:
+
+
+# ============================================================================
+# ADD THESE RULES BELOW (Copy from PROGUARD_RULES_TO_ADD.txt)
+# ============================================================================
+
 # ============================================================================
 # EXPO MODULES - CRITICAL FIX FOR R8 BUILD
 # ============================================================================
@@ -71,3 +97,7 @@
 # Keep all kotlinx.coroutines classes
 -keep class kotlinx.coroutines.** { *; }
 -dontwarn kotlinx.coroutines.**
+
+# ============================================================================
+# END OF ADDED RULES
+# ============================================================================

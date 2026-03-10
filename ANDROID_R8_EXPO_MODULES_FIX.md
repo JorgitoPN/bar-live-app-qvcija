@@ -1,21 +1,38 @@
 
-# Android R8 Build Fix - Expo Modules Runtime Missing Class
+# 🔧 Android R8 Build Fix - Expo Modules Runtime Missing Class
 
-## Problem
+## ⚠️ Problem
 The Android Release build is failing with R8 code shrinker error:
 ```
 ERROR: R8: Missing class expo.modules.kotlin.runtime.Runtime
+(referenced from: expo.modules.medialibrary.next.objects.album.Album)
 ```
 
-This happens because R8 (Android's code shrinker/obfuscator) is removing Expo module classes that are needed at runtime, specifically by `expo-media-library`.
+**Root Cause:** R8 (Android's code shrinker/obfuscator) is removing Expo module classes that are needed at runtime because it doesn't detect them as "used" (they're loaded dynamically via reflection).
+
+---
+
+## 🚀 Quick Fix (3 Steps)
+
+### 1️⃣ Open the ProGuard Rules File
+File location: `android/app/proguard-rules.pro`
+
+### 2️⃣ Copy and Paste the Rules Below
+Add these rules **at the end** of the `proguard-rules.pro` file (see full rules in next section)
+
+### 3️⃣ Rebuild the APK
+The build should now succeed without R8 errors.
+
+---
 
 ## Solution
 
 You need to add ProGuard keep rules to prevent R8 from removing these critical Expo module classes.
 
-### Step 1: Edit `android/app/proguard-rules.pro`
+### 📝 Complete ProGuard Rules to Add
 
-Add the following rules to the end of the file:
+**File:** `android/app/proguard-rules.pro`  
+**Action:** Add these rules **at the end** of the file:
 
 ```proguard
 # ============================================================================
@@ -26,11 +43,18 @@ Add the following rules to the end of the file:
 
 # Keep all Expo module classes and their runtime
 -keep class expo.modules.** { *; }
--keep class expo.modules.kotlin.runtime.Runtime { *; }
+-keepclassmembers class expo.modules.** { *; }
+-dontwarn expo.modules.**
+
+# Keep Expo Kotlin Runtime (fixes the missing Runtime class error)
 -keep class expo.modules.kotlin.** { *; }
+-keepclassmembers class expo.modules.kotlin.** { *; }
+-dontwarn expo.modules.kotlin.**
 
 # Keep Expo Media Library classes (specifically needed for this error)
 -keep class expo.modules.medialibrary.** { *; }
+-keepclassmembers class expo.modules.medialibrary.** { *; }
+-dontwarn expo.modules.medialibrary.**
 
 # Keep all Expo module interfaces and annotations
 -keepattributes *Annotation*
@@ -53,11 +77,46 @@ Add the following rules to the end of the file:
 -keep class * extends expo.modules.kotlin.views.ViewManager {
     *;
 }
+
+# ============================================================================
+# KOTLIN RUNTIME - Required for Expo modules
+# ============================================================================
+# Keep all Kotlin runtime classes that Expo uses via reflection
+-keep class kotlin.** { *; }
+-keep class kotlin.Metadata { *; }
+-dontwarn kotlin.**
+
+# Keep Kotlin metadata and when mappings
+-keepclassmembers class **$WhenMappings {
+    <fields>;
+}
+-keepclassmembers class kotlin.Metadata {
+    public <methods>;
+}
+
+# ============================================================================
+# KOTLIN COROUTINES - Critical for async operations in Expo modules
+# ============================================================================
+# Keep coroutine dispatchers and exception handlers
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembers class kotlinx.** { 
+    volatile <fields>; 
+}
+
+# Keep all kotlinx.coroutines classes
+-keep class kotlinx.coroutines.** { *; }
+-dontwarn kotlinx.coroutines.**
 ```
 
-### Step 2: Verify the Fix
+### ✅ Verify the Fix
 
-After adding these rules, rebuild your Android release APK. The R8 error should be resolved.
+After adding these rules:
+1. **Save** the `proguard-rules.pro` file
+2. **Rebuild** your Android release APK
+3. The R8 error should be **resolved** ✅
+
+**Expected Result:** Build completes successfully without "Missing class expo.modules.kotlin.runtime.Runtime" error.
 
 ### Why This Happens
 

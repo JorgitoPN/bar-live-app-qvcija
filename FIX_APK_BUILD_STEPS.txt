@@ -1,0 +1,89 @@
+
+═══════════════════════════════════════════════════════════════════
+🔧 FIX APK BUILD ERROR - STEP BY STEP GUIDE
+═══════════════════════════════════════════════════════════════════
+
+ERROR: Missing class expo.modules.kotlin.runtime.Runtime
+
+═══════════════════════════════════════════════════════════════════
+SOLUTION: Add ProGuard Rules
+═══════════════════════════════════════════════════════════════════
+
+STEP 1: Open the ProGuard Rules File
+────────────────────────────────────────────────────────────────────
+File location: android/app/proguard-rules.pro
+
+Open this file in your code editor.
+
+
+STEP 2: Copy the ProGuard Rules
+────────────────────────────────────────────────────────────────────
+The complete ProGuard rules are in the file:
+→ PROGUARD_RULES_TO_ADD.txt
+
+Copy ALL the content from that file.
+
+
+STEP 3: Paste at the End of proguard-rules.pro
+────────────────────────────────────────────────────────────────────
+1. Scroll to the END of android/app/proguard-rules.pro
+2. Paste the rules you copied from PROGUARD_RULES_TO_ADD.txt
+3. Save the file
+
+
+STEP 4: Rebuild the APK
+────────────────────────────────────────────────────────────────────
+Rebuild your Android release APK.
+
+The build should now complete successfully! ✅
+
+
+═══════════════════════════════════════════════════════════════════
+WHY THIS WORKS
+═══════════════════════════════════════════════════════════════════
+
+The Problem:
+• R8 (Android's code shrinker) removes "unused" classes
+• Expo modules use reflection to load classes dynamically
+• R8 doesn't detect dynamically loaded classes as "used"
+• R8 removes them → Build fails with "Missing class" error
+
+The Solution:
+• ProGuard rules tell R8 to KEEP specific classes
+• We keep all Expo modules, Kotlin runtime, and coroutines
+• R8 won't remove these classes anymore
+• Build succeeds! ✅
+
+
+═══════════════════════════════════════════════════════════════════
+VERIFICATION
+═══════════════════════════════════════════════════════════════════
+
+After the build completes, verify:
+✅ No "Missing class expo.modules" errors in build logs
+✅ APK builds successfully
+✅ App launches on Android device/emulator
+✅ Expo modules (camera, media library, etc.) work correctly
+
+
+═══════════════════════════════════════════════════════════════════
+TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════
+
+If the build still fails:
+1. Make sure you pasted the rules at the END of proguard-rules.pro
+2. Check for syntax errors (missing brackets, etc.)
+3. Clean build cache and rebuild
+4. Verify the file was saved correctly
+
+
+═══════════════════════════════════════════════════════════════════
+ADDITIONAL RESOURCES
+═══════════════════════════════════════════════════════════════════
+
+For more details, see:
+→ ANDROID_R8_EXPO_MODULES_FIX.md (comprehensive guide)
+→ PROGUARD_RULES_TO_ADD.txt (rules to copy)
+
+
+═══════════════════════════════════════════════════════════════════
