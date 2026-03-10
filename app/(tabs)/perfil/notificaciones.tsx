@@ -28,7 +28,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * NOTIFICACIONES SCREEN v7.1 - INSTAGRAM-INSPIRED SYSTEM WITH EXHAUSTIVE NAVIGATION
+ * NOTIFICACIONES SCREEN v7.3 - INSTAGRAM-INSPIRED SYSTEM WITH USER AVATARS
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * 🎯 INSTAGRAM-INSPIRED FEATURES:
@@ -42,7 +42,8 @@ import { Swipeable } from 'react-native-gesture-handler';
  * ✅ Priority system (direct interactions first, then social)
  * ✅ Real-time updates without refresh
  * ✅ Clean, minimalist UI
- * ✅ User avatars and timestamps
+ * ✅ User profile avatars with fallback to initials
+ * ✅ Stacked avatars for aggregated notifications
  * ✅ Settings panel for notification preferences
  * 
  * 🔔 NOTIFICATION CLICK BEHAVIOR (v7.1 - EXHAUSTIVO):
@@ -121,6 +122,10 @@ type NotificationType =
   | 'promocion'
   | 'reminder';
 
+interface AvatarState {
+  [key: string]: boolean;
+}
+
 interface NotificationItem {
   id: string;
   user_id?: string;
@@ -142,11 +147,11 @@ interface NotificationItem {
   data?: any;
   // For aggregation
   count?: number;
-  recent_senders?: Array<{
+  recent_senders?: {
     id: string;
     username: string;
     avatar_url?: string;
-  }>;
+  }[];
 }
 
 interface GroupedNotifications {
@@ -179,6 +184,7 @@ export default function NotificacionesScreen() {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [deleteAllModalVisible, setDeleteAllModalVisible] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [avatarErrors, setAvatarErrors] = useState<AvatarState>({});
   const [settings, setSettings] = useState<NotificationSettings>({
     likes: true,
     comments: true,
@@ -313,7 +319,7 @@ export default function NotificacionesScreen() {
   /**
    * Aggregate similar notifications (e.g., multiple likes on same post)
    */
-  const aggregateSimilarNotifications = (notifications: NotificationItem[]): NotificationItem[] => {
+  const aggregateSimilarNotifications = useCallback((notifications: NotificationItem[]): NotificationItem[] => {
     const aggregated: NotificationItem[] = [];
     const grouped = new Map<string, NotificationItem[]>();
 
@@ -363,7 +369,7 @@ export default function NotificacionesScreen() {
 
     // Sort again after aggregation
     return sortNotificationsByPriority(aggregated);
-  };
+  }, []);
 
   /**
    * Generate aggregated message (e.g., "Juan, María and 12 others liked your post")
@@ -371,7 +377,7 @@ export default function NotificacionesScreen() {
   const generateAggregatedMessage = (
     notif: NotificationItem,
     count: number,
-    senders: Array<{ username: string }>
+    senders: { username: string }[]
   ): string => {
     const type = notif.type || notif.tipo || '';
     const names = senders.map((s) => s.username).slice(0, 2);
@@ -500,7 +506,7 @@ export default function NotificacionesScreen() {
    * 3. Cambia el estilo visual de la notificación
    * 4. Decrementa el contador de no leídas
    */
-  const markAsRead = async (notificationId: string) => {
+  const markAsRead = useCallback(async (notificationId: string) => {
     if (!user?.id) {
       console.warn('[Notificaciones v6.0] ⚠️ No user ID, cannot mark as read');
       return;
@@ -565,7 +571,7 @@ export default function NotificacionesScreen() {
       // Revert optimistic update on exception
       loadNotifications();
     }
-  };
+  }, [user?.id, notifications, loadNotifications]);
 
   /**
    * Mark all as read (both tables)
@@ -1286,18 +1292,31 @@ export default function NotificacionesScreen() {
   };
 
   /**
-   * Render notification item (handles both English and Spanish fields)
+   * Handle avatar error
    */
-  const renderNotification = (notification: NotificationItem) => {
-    const icon = getNotificationIcon(notification);
+  const handleAvatarError = useCallback((notificationId: string) => {
+    setAvatarErrors((prev) => ({ ...prev, [notificationId]: true }));
+  }, []);
+
+  /**
+   * Render notification item (handles both English and Spanish fields)
+   * 🎨 v7.3 - ALWAYS show user avatar, with proper fallback
+   */
+  const renderNotification = useCallback((notification: NotificationItem) => {
     const timeAgo = formatTimeAgo(notification.created_at);
     
     // Handle both English and Spanish field names
-    const title = notification.title || notification.titulo || 'Notificación';
     const body = notification.body || notification.mensaje || '';
     const isRead = notification.read || notification.leida || false;
     const avatar = notification.sender_avatar_url;
+    const senderUsername = notification.sender_username || 'Usuario';
     const isAggregated = (notification.count || 0) > 1;
+
+    // Get first letter of username for fallback avatar
+    const firstLetter = senderUsername.charAt(0).toUpperCase();
+    
+    // Check if avatar failed to load
+    const avatarError = avatarErrors[notification.id] || false;
 
     return (
       <Swipeable
@@ -1314,24 +1333,44 @@ export default function NotificacionesScreen() {
           activeOpacity={0.7}
         >
           <View style={styles.avatarSection}>
-            {avatar ? (
-              <Image source={{ uri: avatar }} style={styles.avatar} />
+            {avatar && !avatarError ? (
+              <Image 
+                source={{ uri: avatar }} 
+                style={styles.avatar}
+                onError={() => {
+                  console.log('[Notificaciones] ⚠️ Error loading avatar:', avatar);
+                  handleAvatarError(notification.id);
+                }}
+              />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <Text style={styles.iconText}>{icon}</Text>
+                <Text style={styles.avatarLetter}>{firstLetter}</Text>
               </View>
             )}
             {isAggregated && notification.recent_senders && notification.recent_senders.length > 1 && (
               <View style={styles.avatarStack}>
-                {notification.recent_senders.slice(1, 3).map((sender, index) => (
-                  sender.avatar_url ? (
+                {notification.recent_senders.slice(1, 3).map((sender, index) => {
+                  const senderFirstLetter = (sender.username || 'U').charAt(0).toUpperCase();
+                  const stackedAvatarError = avatarErrors[`${notification.id}-${sender.id}`] || false;
+                  return sender.avatar_url && !stackedAvatarError ? (
                     <Image
                       key={sender.id}
                       source={{ uri: sender.avatar_url }}
                       style={[styles.stackedAvatar, { right: (index + 1) * 12 }]}
+                      onError={() => {
+                        console.log('[Notificaciones] ⚠️ Error loading stacked avatar:', sender.avatar_url);
+                        handleAvatarError(`${notification.id}-${sender.id}`);
+                      }}
                     />
-                  ) : null
-                ))}
+                  ) : (
+                    <View 
+                      key={sender.id}
+                      style={[styles.stackedAvatarPlaceholder, { right: (index + 1) * 12 }]}
+                    >
+                      <Text style={styles.stackedAvatarLetter}>{senderFirstLetter}</Text>
+                    </View>
+                  );
+                })}
               </View>
             )}
           </View>
@@ -1347,7 +1386,7 @@ export default function NotificacionesScreen() {
         </TouchableOpacity>
       </Swipeable>
     );
-  };
+  }, [avatarErrors, handleAvatarError, handleNotificationPress]);
 
   /**
    * Render section header
@@ -1885,6 +1924,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarLetter: {
+    fontSize: scaleFontSize(20),
+    fontWeight: '700',
+    color: colors.primary,
+  },
   avatarStack: {
     position: 'absolute',
     top: 0,
@@ -1898,6 +1942,22 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.background,
     position: 'absolute',
+  },
+  stackedAvatarPlaceholder: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.background,
+    backgroundColor: colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+  },
+  stackedAvatarLetter: {
+    fontSize: scaleFontSize(10),
+    fontWeight: '700',
+    color: colors.primary,
   },
   iconText: {
     fontSize: scaleFontSize(22),
