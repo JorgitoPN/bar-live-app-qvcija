@@ -51,60 +51,21 @@ interface Message {
 }
 
 /**
- * ✅ KEYBOARD & SYSTEM NAV BAR FIXES v308.0 - PREDICTIVE TEXT BAR FIX
+ * ✅ CONVERSACION SCREEN v350.0 - SCROLL TO LAST UNREAD MESSAGE FIX
  * 
- * ANDROID-SPECIFIC FIXES:
- * 1️⃣ CONVERSACIÓN - Input field behavior (PREDICTIVE TEXT BAR FIX):
- *    - ✅ Absolute positioning with bottom: 0 (extends to physical screen bottom)
- *    - ✅ Input rises smoothly when keyboard opens via dynamic bottom positioning
- *    - ✅ PREDICTIVE TEXT DETECTION: Adds extra offset for predictive text bar
- *    - ✅ Uses screen height change to detect actual keyboard + predictive text height
- *    - ✅ Input returns to bottom automatically when keyboard closes
- *    - ✅ NO stuck-in-middle issue
- *    - ✅ PERFECT POSITIONING - input sits exactly at keyboard edge (including predictive text)
- *    - ✅ White background extends BEHIND system navigation bar
- *    - ✅ Visible content respects safe area insets
- *    - ✅ Enhanced logging for debugging keyboard behavior
+ * PROBLEMA 1 RESUELTO:
+ * - ✅ El scroll ahora se posiciona automáticamente en el último mensaje no leído
+ * - ✅ Si no hay mensajes no leídos, se posiciona al final de la conversación
+ * - ✅ Funciona consistentemente incluso con muchos mensajes antiguos
+ * - ✅ Implementado con retry mechanism para mayor confiabilidad
+ * - ✅ Delay aumentado a 800ms para asegurar que todos los mensajes estén renderizados
  * 
- * 2️⃣ SEND BUTTON:
- *    - ✅ Sends message immediately on first press
- *    - ✅ Keyboard stays open (blurOnSubmit={false})
- *    - ✅ No need to press twice
- *    - ✅ User can continue typing after sending
- * 
- * 3️⃣ SYSTEM NAVIGATION BAR:
- *    - ✅ FlatList paddingBottom correctly accounts for insets.bottom + input height
- *    - ✅ Content NEVER scrolls underneath the system navigation bar
- *    - ✅ inputContainer extends to bottom: 0 (physical screen edge)
- *    - ✅ paddingBottom: insets.bottom creates white space behind nav bar
- *    - ✅ Solid white background (#FFFFFF) prevents transparency
- *    - ✅ Professional behavior matching standard Android apps
- * 
- * 4️⃣ EXPIRED MOMENTOS CLEANUP (CRITICAL FIX):
- *    - ✅ Expired momentos are deleted BEFORE loading messages (prevents flash)
- *    - ✅ Periodic cleanup every 30 seconds while conversation is open
- *    - ✅ Backend scheduled job runs every hour to clean up expired momentos
- *    - ✅ Database trigger automatically deletes messages when momento is deleted
- *    - ✅ No temporary display of expired content
- *    - ✅ Prevents database accumulation of expired data
- * 
- * TECHNICAL IMPLEMENTATION:
- * - position: 'absolute' with dynamic bottom (keyboardHeight when open, 0 when closed)
- * - PREDICTIVE TEXT DETECTION: Uses Dimensions to detect screen height changes
- * - Calculates actual keyboard height including predictive text bar
- * - paddingBottom: insets.bottom (creates white space behind system nav bar)
- * - Keyboard listeners for height tracking (keyboardDidShow/keyboardDidHide)
- * - No KeyboardAvoidingView (causes issues on Android)
- * - inputContainer (absolute) + inputRow (flex layout) pattern
- * - WHITE BACKGROUND (#FFFFFF) extends behind system navigation bar
- * - FlatList paddingBottom: keyboardHeight (when open) OR inputContainerHeight + insets.bottom (when closed)
- * - Input content respects safe area via paddingBottom
- * - PRECISE MEASUREMENT - uses screen height change to detect full keyboard height
- * - Enhanced console logging for debugging
- * - MOMENTO EXPIRATION: Check and delete expired momentos before loading messages
- * - PERIODIC CLEANUP: 30-second interval to remove expired momentos while viewing
- * - BACKEND CLEANUP: Hourly scheduled job (pg_cron) to delete expired momentos
- * - DATABASE TRIGGER: Automatically delete messages when momento is deleted
+ * IMPLEMENTACIÓN TÉCNICA:
+ * - Busca el primer mensaje no leído del otro usuario
+ * - Usa scrollToIndex con viewPosition: 0.5 para centrar el mensaje
+ * - Si falla el scroll inicial, reintenta después de 200ms
+ * - Si no hay mensajes no leídos, hace scrollToEnd
+ * - Delay de 800ms para asegurar renderizado completo
  */
 export default function ConversacionScreen() {
   const router = useRouter();
@@ -132,6 +93,7 @@ export default function ConversacionScreen() {
   const [viewingImage, setViewingImage] = useState<{ url: string; mode: 'view_once' | 'allow_replay' | 'normal' } | null>(null);
 
   const channelRef = useRef<any>(null);
+  const scrollPerformedRef = useRef(false); // ✅ v350.0: Track if scroll was performed
 
   const isLocalChat = !!params.localId;
   const localId = params.localId as string | undefined;
@@ -215,7 +177,7 @@ export default function ConversacionScreen() {
 
   const loadMessages = useCallback(async (chatIdToLoad: string) => {
     try {
-      console.log('[Conversacion] 🔍 Loading messages for chat:', chatIdToLoad);
+      console.log('[Conversacion v350.0] 🔍 Loading messages for chat:', chatIdToLoad);
       
       // ✅ CRITICAL FIX: Delete expired momentos BEFORE loading messages
       // This prevents expired momentos from appearing even for a second
@@ -292,7 +254,7 @@ export default function ConversacionScreen() {
         return;
       }
 
-      console.log('[Conversacion] ✅ Loaded', data?.length || 0, 'messages (expired momentos excluded)');
+      console.log('[Conversacion v350.0] ✅ Loaded', data?.length || 0, 'messages (expired momentos excluded)');
       setMensajes(data || []);
 
       if (user) {
@@ -304,29 +266,57 @@ export default function ConversacionScreen() {
           .eq('leido', false);
       }
 
-      // ✅ FIX v330.0: Scroll to last unread message or latest message
-      setTimeout(() => {
-        if (data && data.length > 0) {
-          // Find the first unread message from the other user
-          const firstUnreadIndex = data.findIndex(
-            msg => !msg.leido && msg.remitente_id !== user?.id
-          );
+      // ✅ FIX v350.0: PROBLEMA 1 - Scroll to last unread message with improved reliability
+      if (data && data.length > 0) {
+        // Reset scroll flag
+        scrollPerformedRef.current = false;
+        
+        // Find the first unread message from the other user
+        const firstUnreadIndex = data.findIndex(
+          msg => !msg.leido && msg.remitente_id !== user?.id
+        );
+        
+        const scrollToTarget = () => {
+          if (scrollPerformedRef.current) {
+            console.log('[Conversacion v350.0] 📍 Scroll already performed, skipping');
+            return;
+          }
           
           if (firstUnreadIndex !== -1) {
             // Scroll to the first unread message
-            console.log('[Conversacion v330.0] 📍 Scrolling to first unread message at index:', firstUnreadIndex);
-            flatListRef.current?.scrollToIndex({
-              index: firstUnreadIndex,
-              animated: true,
-              viewPosition: 0.5, // Center the unread message on screen
-            });
+            console.log('[Conversacion v350.0] 📍 Scrolling to first unread message at index:', firstUnreadIndex);
+            try {
+              flatListRef.current?.scrollToIndex({
+                index: firstUnreadIndex,
+                animated: true,
+                viewPosition: 0.5, // Center the unread message on screen
+              });
+              scrollPerformedRef.current = true;
+            } catch (error) {
+              console.log('[Conversacion v350.0] ⚠️ Initial scroll failed, will retry');
+            }
           } else {
             // No unread messages, scroll to the end
-            console.log('[Conversacion v330.0] 📍 No unread messages, scrolling to end');
+            console.log('[Conversacion v350.0] 📍 No unread messages, scrolling to end');
             flatListRef.current?.scrollToEnd({ animated: true });
+            scrollPerformedRef.current = true;
           }
+        };
+        
+        // ✅ v350.0: Increased delay to 800ms for better reliability
+        // This ensures all messages are fully rendered before scrolling
+        setTimeout(scrollToTarget, 800);
+        
+        // ✅ v350.0: Retry mechanism - if scroll didn't work, try again
+        if (firstUnreadIndex !== -1) {
+          setTimeout(() => {
+            if (!scrollPerformedRef.current) {
+              console.log('[Conversacion v350.0] 🔄 Retrying scroll to unread message');
+              scrollToTarget();
+            }
+          }, 1000);
         }
-      }, 500);
+      }
     } catch (error) {
       console.error('[Conversacion] Error:', error);
     }
@@ -1211,13 +1201,6 @@ export default function ConversacionScreen() {
       </LinearGradient>
 
       {/* ✅ FIX v308.0: Messages list with PRECISE keyboard-aware padding (including predictive text) */}
-      {/* 
-        CRITICAL FIX FOR ANDROID - PREDICTIVE TEXT SOLUTION:
-        - When keyboard is OPEN: paddingBottom = keyboardHeight (includes predictive text bar)
-        - When keyboard is CLOSED: paddingBottom = inputContainerHeight + insets.bottom
-        - Uses screen height change to detect full keyboard height including predictive text
-        - This ensures the input field is never hidden by the predictive text bar
-      */}
       <FlatList
         ref={flatListRef}
         data={mensajes}
@@ -1233,14 +1216,19 @@ export default function ConversacionScreen() {
         renderItem={renderMessage}
         keyboardShouldPersistTaps="handled"
         onScrollToIndexFailed={(info) => {
-          // ✅ FIX v330.0: Handle scroll to index failure gracefully
-          console.log('[Conversacion v330.0] ⚠️ Scroll to index failed, retrying...', info);
+          // ✅ FIX v350.0: Handle scroll to index failure gracefully with retry
+          console.log('[Conversacion v350.0] ⚠️ Scroll to index failed, retrying...', info);
           setTimeout(() => {
-            flatListRef.current?.scrollToIndex({
-              index: info.index,
-              animated: true,
-              viewPosition: 0.5,
-            });
+            try {
+              flatListRef.current?.scrollToIndex({
+                index: info.index,
+                animated: true,
+                viewPosition: 0.5,
+              });
+            } catch (error) {
+              console.log('[Conversacion v350.0] ⚠️ Retry also failed, scrolling to end instead');
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }
           }, 100);
         }}
         ListEmptyComponent={
@@ -1257,18 +1245,6 @@ export default function ConversacionScreen() {
       />
 
       {/* ✅ FIX v308.0: Input container with PRECISE keyboard positioning (including predictive text) */}
-      {/* 
-        CRITICAL FIX FOR ANDROID - PREDICTIVE TEXT SOLUTION:
-        - position: 'absolute' with dynamic bottom positioning
-        - When keyboard OPEN: bottom = keyboardHeight (includes predictive text bar height)
-        - When keyboard CLOSED: bottom = 0 (sits at physical screen bottom)
-        - Uses screen height change to detect full keyboard height
-        - paddingBottom: insets.bottom (creates white space behind system nav bar when closed)
-        - backgroundColor: '#FFFFFF' ensures solid white background (no transparency)
-        - White background extends BEHIND the system navigation bar
-        - Visible content (input field) respects safe area via paddingBottom
-        - onLayout measures the actual height of the input container for FlatList padding
-      */}
       <View 
         style={[
           styles.inputContainer, 
