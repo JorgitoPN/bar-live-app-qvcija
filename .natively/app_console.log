@@ -27860,3 +27860,11 @@ To reconnect:
 [2026-03-10T12:45:50.440Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
 [2026-03-10T12:46:53.602Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
 [2026-03-10T12:46:53.602Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T13:05:43.127Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T13:05:43.127Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T13:06:35.334Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
+[2026-03-10T13:06:35.334Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T13:07:02.397Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Background
+[2026-03-10T13:07:02.397Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: background
+[2026-03-10T13:11:34.186Z] [Web] [LOG] [NotificationHandler] 📱 Estado de app: Foreground
+[2026-03-10T13:11:34.186Z] [Web] [LOG] [RootLayout v24.0] 📱 Estado de app cambió: active
