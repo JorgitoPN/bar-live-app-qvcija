@@ -1456,7 +1456,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   messageBubbleOther: {
-    backgroundColor: colors.cardBg,
+    backgroundColor: '#FFFFFF', // ✅ White/light gray background for incoming messages
+    // ✅ SEGUNDA PARTE: Soft grayish shadow for elevated appearance
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   // ✅ INSTAGRAM STYLE: Message text
   messageText: {
