@@ -1,0 +1,24 @@
+
+# ============================================================
+# COPY THESE LINES TO: android/app/proguard-rules.pro
+# Add them at the end of the file, after the existing rules
+# ============================================================
+
+# Expo Modules - CRITICAL: Prevent R8 from removing Expo module classes
+-keep class expo.modules.** { *; }
+-dontwarn expo.modules.**
+
+# Expo Kotlin Runtime - Fix for expo.modules.kotlin.runtime.Runtime missing class error
+-keep class expo.modules.kotlin.** { *; }
+-dontwarn expo.modules.kotlin.**
+
+# Expo Media Library - Specific fix for the reported error
+-keep class expo.modules.medialibrary.** { *; }
+-dontwarn expo.modules.medialibrary.**
+
+# ============================================================
+# AFTER ADDING THESE RULES:
+# 1. Save the file
+# 2. The build system will automatically use these rules
+# 3. Rebuild your APK - the R8 error should be resolved
+# ============================================================

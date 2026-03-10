@@ -17,9 +17,17 @@ Abre el archivo: `android/app/proguard-rules.pro`
 ### Paso 2: Agregar las siguientes reglas al final del archivo
 
 ```proguard
-# Expo modules - Prevent R8 from removing Expo module classes
+# Expo Modules - CRITICAL: Prevent R8 from removing Expo module classes
 -keep class expo.modules.** { *; }
 -dontwarn expo.modules.**
+
+# Expo Kotlin Runtime - Fix for expo.modules.kotlin.runtime.Runtime missing class error
+-keep class expo.modules.kotlin.** { *; }
+-dontwarn expo.modules.kotlin.**
+
+# Expo Media Library - Specific fix for the reported error
+-keep class expo.modules.medialibrary.** { *; }
+-dontwarn expo.modules.medialibrary.**
 ```
 
 ### Paso 3: El archivo completo debería verse así:
@@ -40,9 +48,17 @@ Abre el archivo: `android/app/proguard-rules.pro`
 
 # Add any project specific keep options here:
 
-# Expo modules - Prevent R8 from removing Expo module classes
+# Expo Modules - CRITICAL: Prevent R8 from removing Expo module classes
 -keep class expo.modules.** { *; }
 -dontwarn expo.modules.**
+
+# Expo Kotlin Runtime - Fix for expo.modules.kotlin.runtime.Runtime missing class error
+-keep class expo.modules.kotlin.** { *; }
+-dontwarn expo.modules.kotlin.**
+
+# Expo Media Library - Specific fix for the reported error
+-keep class expo.modules.medialibrary.** { *; }
+-dontwarn expo.modules.medialibrary.**
 ```
 
 ## 🧹 Paso 4: Limpiar el entorno

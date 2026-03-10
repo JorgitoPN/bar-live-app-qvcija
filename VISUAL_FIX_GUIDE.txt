@@ -1,0 +1,111 @@
+
+╔═══════════════════════════════════════════════════════════════╗
+║                  APK BUILD FIX - VISUAL GUIDE                  ║
+╚═══════════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────────┐
+│ CURRENT SITUATION                                              │
+└───────────────────────────────────────────────────────────────┘
+
+Your Build:
+  ┌─────────────┐
+  │   Compile   │ ✅ Success
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐
+  │ R8 Minify   │ ❌ FAILS HERE
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐
+  │  Error:     │
+  │  Missing    │
+  │  class      │
+  └─────────────┘
+
+┌───────────────────────────────────────────────────────────────┐
+│ THE FIX                                                        │
+└───────────────────────────────────────────────────────────────┘
+
+File to Edit:
+┌─────────────────────────────────────────────────────────────┐
+│ android/app/proguard-rules.pro                              │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│ # react-native-reanimated                                  │
+│ -keep class com.swmansion.reanimated.** { *; }             │
+│ -keep class com.facebook.react.turbomodule.** { *; }       │
+│                                                             │
+│ # Add any project specific keep options here:              │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────┐   │
+│ │ ADD THESE LINES HERE ▼▼▼                            │   │
+│ │                                                      │   │
+│ │ # Expo Modules - CRITICAL                           │   │
+│ │ -keep class expo.modules.** { *; }                  │   │
+│ │ -dontwarn expo.modules.**                           │   │
+│ │                                                      │   │
+│ │ # Expo Kotlin Runtime                               │   │
+│ │ -keep class expo.modules.kotlin.** { *; }           │   │
+│ │ -dontwarn expo.modules.kotlin.**                    │   │
+│ │                                                      │   │
+│ │ # Expo Media Library                                │   │
+│ │ -keep class expo.modules.medialibrary.** { *; }     │   │
+│ │ -dontwarn expo.modules.medialibrary.**              │   │
+│ └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────┐
+│ AFTER THE FIX                                                  │
+└───────────────────────────────────────────────────────────────┘
+
+Your Build:
+  ┌─────────────┐
+  │   Compile   │ ✅ Success
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐
+  │ R8 Minify   │ ✅ Success (reads ProGuard rules)
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐
+  │ Package APK │ ✅ Success
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐
+  │   APK       │ ✅ Ready to install!
+  │   Created   │
+  └─────────────┘
+
+┌───────────────────────────────────────────────────────────────┐
+│ WHAT THE RULES DO                                              │
+└───────────────────────────────────────────────────────────────┘
+
+Before Rules:
+  R8: "expo.modules.kotlin.runtime.Runtime looks unused"
+  R8: "I'll remove it to save space"
+  R8: "Oops, the app needs it! Build failed!"
+
+After Rules:
+  R8: "Oh, ProGuard rules say to keep expo.modules.**"
+  R8: "I'll preserve all these classes"
+  R8: "Build successful!"
+
+┌───────────────────────────────────────────────────────────────┐
+│ QUICK STEPS                                                    │
+└───────────────────────────────────────────────────────────────┘
+
+1. Open: android/app/proguard-rules.pro
+2. Add: The 6 lines shown above
+3. Save: The file
+4. Build: Your APK again
+5. Success: Build completes! ✅
+
+╔═══════════════════════════════════════════════════════════════╗
+║ That's it! Simple 5-step fix for the R8 error.                ║
+╚═══════════════════════════════════════════════════════════════╝

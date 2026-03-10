@@ -1,0 +1,45 @@
+
+═══════════════════════════════════════════════════════════════
+🚨 QUICK FIX: Android APK Build R8 Error
+═══════════════════════════════════════════════════════════════
+
+ERROR: Missing class expo.modules.kotlin.runtime.Runtime
+
+SOLUTION: Add ProGuard rules to prevent R8 from removing Expo classes
+
+═══════════════════════════════════════════════════════════════
+STEP 1: Open this file
+═══════════════════════════════════════════════════════════════
+
+android/app/proguard-rules.pro
+
+═══════════════════════════════════════════════════════════════
+STEP 2: Add these lines at the END of the file
+═══════════════════════════════════════════════════════════════
+
+# Expo Modules - CRITICAL: Prevent R8 from removing Expo module classes
+-keep class expo.modules.** { *; }
+-dontwarn expo.modules.**
+
+# Expo Kotlin Runtime - Fix for expo.modules.kotlin.runtime.Runtime missing class error
+-keep class expo.modules.kotlin.** { *; }
+-dontwarn expo.modules.kotlin.**
+
+# Expo Media Library - Specific fix for the reported error
+-keep class expo.modules.medialibrary.** { *; }
+-dontwarn expo.modules.medialibrary.**
+
+═══════════════════════════════════════════════════════════════
+STEP 3: Rebuild your APK
+═══════════════════════════════════════════════════════════════
+
+The build should now complete successfully!
+
+═══════════════════════════════════════════════════════════════
+WHY THIS WORKS
+═══════════════════════════════════════════════════════════════
+
+R8 (Android's code optimizer) was removing Expo module classes because
+it thought they were unused. These ProGuard rules tell R8 to keep them.
+
+═══════════════════════════════════════════════════════════════

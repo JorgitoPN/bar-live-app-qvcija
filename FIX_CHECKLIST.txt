@@ -1,0 +1,82 @@
+
+═══════════════════════════════════════════════════════════════
+✅ APK BUILD FIX CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+Follow these steps to fix the R8 error:
+
+□ STEP 1: Locate the ProGuard Rules File
+  File: android/app/proguard-rules.pro
+  
+□ STEP 2: Open the File in Your Editor
+  Use any text editor (VS Code, Android Studio, etc.)
+  
+□ STEP 3: Scroll to the End of the File
+  Find the last line in the file
+  
+□ STEP 4: Add These Lines (copy from PROGUARD_RULES_TO_ADD.txt)
+  
+  # Expo Modules - CRITICAL: Prevent R8 from removing Expo module classes
+  -keep class expo.modules.** { *; }
+  -dontwarn expo.modules.**
+  
+  # Expo Kotlin Runtime - Fix for expo.modules.kotlin.runtime.Runtime missing class error
+  -keep class expo.modules.kotlin.** { *; }
+  -dontwarn expo.modules.kotlin.**
+  
+  # Expo Media Library - Specific fix for the reported error
+  -keep class expo.modules.medialibrary.** { *; }
+  -dontwarn expo.modules.medialibrary.**
+  
+□ STEP 5: Save the File
+  Make sure to save your changes!
+  
+□ STEP 6: Rebuild Your APK
+  Run your build command again
+  
+□ STEP 7: Verify Success
+  Check that the build completes without R8 errors
+  
+═══════════════════════════════════════════════════════════════
+VERIFICATION
+═══════════════════════════════════════════════════════════════
+
+After completing the steps above, you should see:
+
+✅ Build completes successfully
+✅ No "Missing class expo.modules.kotlin.runtime.Runtime" error
+✅ APK file is created
+✅ App installs and runs correctly
+
+═══════════════════════════════════════════════════════════════
+TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════
+
+If the build still fails:
+
+□ Double-check that you added the rules to the correct file
+  (android/app/proguard-rules.pro)
+  
+□ Make sure there are no typos in the rules
+  
+□ Verify the file was saved
+  
+□ Check if the error message changed
+  (might be a different issue now)
+  
+□ Refer to the detailed guides:
+  - FIX_APK_BUILD_R8_ERROR.md
+  - R8_ERROR_EXPLANATION.md
+  
+═══════════════════════════════════════════════════════════════
+NEED HELP?
+═══════════════════════════════════════════════════════════════
+
+Reference files available:
+- PROGUARD_RULES_TO_ADD.txt (copy-paste ready)
+- QUICK_FIX_R8_ERROR.txt (quick reference)
+- FIX_APK_BUILD_R8_ERROR.md (complete guide)
+- R8_ERROR_EXPLANATION.md (detailed explanation)
+- ANDROID_R8_PROGUARD_FIX.md (Spanish guide)
+
+═══════════════════════════════════════════════════════════════
