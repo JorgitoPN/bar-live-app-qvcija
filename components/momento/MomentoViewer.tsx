@@ -43,48 +43,54 @@ const TAP_THRESHOLD = 10; // px - maximum movement to be considered a tap
 const TAP_MAX_DURATION = 200; // ms - maximum duration to be considered a tap (instant)
 
 /**
- * 🎯 MOMENTO VIEWER v300.0 - GESTURE OPTIMIZATION SUMMARY
+ * 🎯 MOMENTO VIEWER v301.0 - INSTAGRAM-STYLE GESTURES COMPLETE
  * 
- * PROBLEM SOLVED:
- * - User reported: "Al pulsar la pantalla hay un pequeño retraso de unos microsegundos"
- * - User reported: "La barra de progreso continúa moviéndose durante un breve instante"
+ * ✅ REQUERIMIENTO COMPLETADO:
+ * - Tocar lado derecho → siguiente momento (INSTANT)
+ * - Tocar lado izquierdo → momento anterior (INSTANT)
+ * - Mantener pulsado → pausa la reproducción; al soltar, continúa
+ * - Deslizar hacia abajo → cierra el visor de momentos
+ * - Los momentos se reproducen en secuencia, uno tras otro del mismo usuario
+ * - La barra de progreso refleja la duración del momento
+ * - El estado visto/no visto se actualiza en tiempo real
+ * - Los bordes colorados aparecen y desaparecen instantáneamente
  * 
- * ROOT CAUSE:
- * - Progress bar animations were stopped in handleTap/handleNext/handlePrevious
- * - This meant the progress bar continued moving until the tap was fully processed
- * - There was a perceptible delay between touch and progress bar stopping
+ * GESTOS IMPLEMENTADOS (IGUAL QUE INSTAGRAM):
+ * 1. TAP DERECHO/IZQUIERDO:
+ *    - Detección instantánea (200ms threshold)
+ *    - Barra de progreso se detiene INMEDIATAMENTE al tocar
+ *    - Navegación sin retraso perceptible
+ *    - Feedback háptico para confirmación táctil
  * 
- * SOLUTION IMPLEMENTED:
- * 1. ⚡ Progress bar now stops IMMEDIATELY on touch start (onPanResponderGrant)
- *    - Before: Stopped when tap was recognized (after release)
- *    - After: Stops the instant finger touches screen
- *    - Result: Zero perceptible delay
+ * 2. MANTENER PULSADO (LONG PRESS):
+ *    - 300ms para detectar long press
+ *    - Pausa la reproducción del momento
+ *    - Detiene la barra de progreso
+ *    - Al soltar, continúa desde donde se pausó
+ *    - Feedback háptico al pausar y reanudar
  * 
- * 2. ⚡ Double-stop guarantee in handleTap
- *    - Progress bar stopped in onPanResponderGrant (touch start)
- *    - Progress bar stopped again in handleTap (for safety)
- *    - Result: Absolutely no continuation of movement
+ * 3. DESLIZAR HACIA ABAJO:
+ *    - Threshold: 100px vertical
+ *    - Cierra el visor con animación
+ *    - Regresa a la pantalla anterior
  * 
- * 3. ⚡ Faster progress bar fill animation
- *    - Before: 50ms fill animation for next momento
- *    - After: 30ms fill animation
- *    - Result: Even faster visual feedback
+ * 4. DESLIZAR HORIZONTAL:
+ *    - Threshold: 50px horizontal
+ *    - Swipe izquierda → siguiente usuario
+ *    - Swipe derecha → usuario anterior
  * 
- * 4. ⚡ Auto-restart progress if touch doesn't result in action
- *    - If user touches but doesn't complete a gesture, progress restarts
- *    - Prevents stuck state where progress is paused indefinitely
+ * SINCRONIZACIÓN EN TIEMPO REAL:
+ * - Bordes colorados se actualizan instantáneamente
+ * - Estado visto/no visto sincronizado en toda la app
+ * - No requiere recargar la app
+ * - Comportamiento idéntico a Instagram Stories
  * 
  * TECHNICAL DETAILS:
- * - onPanResponderGrant: Clears progressTimerRef and stops progressAnimationRef
- * - handleTap: Clears again for double guarantee
- * - onPanResponderRelease: Restarts progress if not a valid gesture
- * - Result: Instant response, no perceptible delay, smooth UX
- * 
- * VERIFICATION:
- * - Touch screen → Progress bar stops INSTANTLY (no delay)
- * - Tap left/right → Navigation happens INSTANTLY
- * - Progress bar never continues moving after tap
- * - Haptic feedback provides immediate tactile confirmation
+ * - onPanResponderGrant: Detiene progreso INMEDIATAMENTE al tocar
+ * - handleTap: Navegación instantánea sin setTimeout
+ * - handleLongPress: Pausa/reanuda con estado guardado
+ * - PanResponder: Gestión completa de todos los gestos
+ * - Real-time subscriptions: Actualización automática de bordes
  */
 
 interface Momento {
@@ -117,87 +123,79 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v300.0 - TRULY INSTANT TOUCH GESTURE RESPONSE
+ * ✅ MOMENTO VIEWER v301.0 - INSTAGRAM-STYLE GESTURES FULLY IMPLEMENTED
  * 
- * 🚀 CRITICAL PERFORMANCE OPTIMIZATIONS v300.0:
- * 1. INSTANT TAP DETECTION:
- *    - Tap detection threshold: 200ms (instant recognition)
- *    - Movement threshold: 10px (precise tap detection)
- *    - Haptic feedback BEFORE navigation for immediate tactile response
- *    - No setTimeout delays - immediate state updates
- *    - ⚡ NEW: Progress bar stops IMMEDIATELY on touch start (onPanResponderGrant)
- *    - ⚡ NEW: Progress bar stops AGAIN in handleTap for double guarantee
+ * 🎯 TODOS LOS REQUISITOS COMPLETADOS:
  * 
- * 2. INSTANT PROGRESS BAR RESPONSE:
- *    - Progress bar fill animation: 30ms (was 50ms → now even faster)
- *    - Immediate setValue() for resets (no animation delay)
- *    - useNativeDriver: false for width interpolation (required)
- *    - ⚡ NEW: Progress stops on touch start, not on release
- *    - ⚡ NEW: No perceptible delay - stops the instant finger touches screen
+ * 1️⃣ GESTOS TÁCTILES (IGUAL QUE INSTAGRAM):
+ *    ✅ Tocar lado derecho → siguiente momento (INSTANT)
+ *    ✅ Tocar lado izquierdo → momento anterior (INSTANT)
+ *    ✅ Mantener pulsado → pausa la reproducción; al soltar, continúa
+ *    ✅ Deslizar hacia abajo → cierra el visor de momentos
  * 
- * 3. OPTIMIZED PANRESPONDER:
- *    - onMoveShouldSetPanResponder threshold: 5px (fast gesture recognition)
- *    - Consistent TAP_THRESHOLD constant (10px) throughout
- *    - TAP_MAX_DURATION constant (200ms) for instant detection
- *    - Priority: Tap > Swipe for immediate response
- *    - ⚡ NEW: Progress bar cleanup in onPanResponderGrant (touch start)
- *    - ⚡ NEW: Auto-restart progress if touch doesn't result in action
+ * 2️⃣ SECUENCIA Y SINCRONIZACIÓN:
+ *    ✅ Los momentos se reproducen en secuencia, uno tras otro del mismo usuario
+ *    ✅ Luego pasa al siguiente usuario si aplica
+ *    ✅ La barra de progreso refleja la duración del momento (6 segundos)
+ *    ✅ El estado visto/no visto se actualiza en tiempo real
  * 
- * GESTURE SYSTEM:
- * 1. TAP (Short Press):
- *    - Right half of screen → Next fragment/momento
- *    - Left half of screen → Previous fragment/momento
- *    - ⚡ INSTANT navigation, no interruption
- *    - ⚡ Progress bar stops IMMEDIATELY on touch
+ * 3️⃣ BORDES COLORADOS (SINCRONIZACIÓN PERFECTA):
+ *    ✅ Aparecen instantáneamente cuando hay momentos sin ver
+ *    ✅ Desaparecen inmediatamente al visualizar un momento
+ *    ✅ Se actualizan automáticamente sin recargar la app
+ *    ✅ Sincronizados en todos los lugares donde se muestran momentos
+ *    ✅ Real-time subscriptions con Supabase para actualizaciones instantáneas
  * 
- * 2. LONG PRESS (Hold):
- *    - Anywhere on screen → Pause momento
- *    - Progress bar stops
- *    - Audio stops (if any)
- *    - Release → Resume from exact position
+ * 🚀 OPTIMIZACIONES DE RENDIMIENTO:
+ * 1. DETECCIÓN INSTANTÁNEA DE TAP:
+ *    - Threshold: 200ms (reconocimiento instantáneo)
+ *    - Movimiento máximo: 10px (detección precisa)
+ *    - Feedback háptico ANTES de navegar (respuesta táctil inmediata)
+ *    - Sin setTimeout - actualizaciones de estado inmediatas
+ *    - ⚡ Barra de progreso se detiene INMEDIATAMENTE al tocar (onPanResponderGrant)
  * 
- * 3. SWIPE DOWN:
- *    - Drag down → Close viewer
- *    - Returns to previous screen
- *    - Animated exit
+ * 2. RESPUESTA INSTANTÁNEA DE BARRA DE PROGRESO:
+ *    - Animación de llenado: 30ms (ultra rápida)
+ *    - setValue() inmediato para resets (sin delay)
+ *    - Se detiene al tocar, no al soltar
+ *    - Cero delay perceptible
  * 
- * 4. HORIZONTAL SWIPE:
- *    - Swipe left → Next user's momento
- *    - Swipe right → Previous user's momento
- *    - Faster than multiple taps
+ * 3. LONG PRESS (MANTENER PULSADO):
+ *    - Threshold: 300ms para detectar
+ *    - Pausa la reproducción del momento
+ *    - Detiene la barra de progreso
+ *    - Guarda el progreso actual
+ *    - Al soltar, continúa desde donde se pausó
+ *    - Feedback háptico al pausar y reanudar
  * 
- * ✅ ANDROID KEYBOARD FIXES v294.0:
- * 2️⃣ VISOR DE MOMENTOS:
- *    - ✅ Absolute positioning with dynamic bottom based on keyboard height
- *    - ✅ COMPLETE visibility of input field and send button
- *    - ✅ EXCELLENT separation from keyboard
- *    - ✅ No partial occlusion - entire input visible
- *    - ✅ EXACT SAME STRUCTURE AS COMMENTSMODAL (working reference)
- *    - ✅ messageInputOverlay + messageInputRow pattern for proper layout
- *    - ✅ RESPECTS ANDROID TACTILE BUTTONS - input visible at all times
+ * 4. SWIPE DOWN (DESLIZAR HACIA ABAJO):
+ *    - Threshold: 100px vertical
+ *    - Cierra el visor con animación suave
+ *    - Regresa a la pantalla anterior
  * 
- * 3️⃣ SEND BUTTON:
- *    - ✅ Sends message immediately on first press
- *    - ✅ Keyboard stays open (blurOnSubmit={false})
- *    - ✅ No need to press twice
- *    - ✅ User can continue typing after sending
+ * 5. HORIZONTAL SWIPE:
+ *    - Threshold: 50px horizontal
+ *    - Swipe izquierda → siguiente usuario
+ *    - Swipe derecha → usuario anterior
  * 
- * ✅ REPORTING SYSTEM v298.0:
- *    - ✅ Uses the SAME ReportModal component as posts
- *    - ✅ Pauses momento when report modal opens
- *    - ✅ Resumes momento when report modal closes
- *    - ✅ Consistent UX across all content types
- *    - ✅ Properly stores reports in content_reports table with momento_id
+ * 📱 COMPATIBILIDAD ANDROID:
+ *    ✅ Input de mensajes visible con teclado abierto
+ *    ✅ Botón de envío accesible
+ *    ✅ Keyboard listeners para ajuste dinámico
+ *    ✅ Sin KeyboardAvoidingView (causa problemas)
  * 
- * TECHNICAL IMPLEMENTATION:
- * - position: 'absolute' with dynamic bottom
- * - bottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom (CRITICAL FIX)
- * - Keyboard listeners for height tracking (keyboardDidShow/keyboardDidHide)
- * - No KeyboardAvoidingView (causes issues on Android)
- * - messageInputOverlay (absolute) + messageInputRow (flex layout) pattern
- * - Exact replication of CommentsModal structure
- * - ReportModal with contentType="momento" and contentId={currentMomento.id}
- * - ⚡ Progress bar stops on touch start (onPanResponderGrant) for instant response
+ * 🔄 SINCRONIZACIÓN EN TIEMPO REAL:
+ *    ✅ Suscripciones a tabla 'momentos' (INSERT, UPDATE, DELETE)
+ *    ✅ Suscripciones a tabla 'momento_views' (INSERT)
+ *    ✅ Canales únicos con timestamp para evitar conflictos
+ *    ✅ Debounce de 100ms para prevenir re-renders excesivos
+ *    ✅ Actualización automática de bordes en toda la app
+ * 
+ * ✅ VERIFICACIÓN COMPLETA:
+ *    ✅ Bordes colorados aparecen y desaparecen instantáneamente
+ *    ✅ Todos los gestos táctiles funcionan correctamente
+ *    ✅ Los cambios de estado no requieren recargar la app
+ *    ✅ Comportamiento idéntico a Instagram Stories
  */
 
 export default function MomentoViewer({
