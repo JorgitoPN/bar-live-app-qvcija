@@ -28,7 +28,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * NOTIFICACIONES SCREEN v7.3 - INSTAGRAM-INSPIRED SYSTEM WITH USER AVATARS
+ * NOTIFICACIONES SCREEN v7.4 - INSTAGRAM-INSPIRED SYSTEM WITH USER AVATARS
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * 🎯 INSTAGRAM-INSPIRED FEATURES:
@@ -45,49 +45,7 @@ import { Swipeable } from 'react-native-gesture-handler';
  * ✅ User profile avatars with fallback to initials
  * ✅ Stacked avatars for aggregated notifications
  * ✅ Settings panel for notification preferences
- * 
- * 🔔 NOTIFICATION CLICK BEHAVIOR (v7.1 - EXHAUSTIVO):
- * ✅ Like → Opens specific post
- * ✅ Comment/Comentario → Opens post and scrolls to comment (with highlight)
- * ✅ Follow/Seguidor → Opens follower's profile
- * ✅ Mention/Mencion → Opens content where mention occurred
- * ✅ Message/Mensaje/Mensaje_privado → Opens specific conversation
- * ✅ Event/Evento → Opens event details
- * ✅ Cheers → Opens virtual room
- * ✅ Plan Purchase/Renewal → Opens subscription management
- * ✅ Featured Local Reminder → Opens local management
- * ✅ Urgent/Sistema → Shows alert or navigates to action URL
- * ✅ Promo → Opens promo URL or local details
- * ✅ Unknown types → Attempts generic navigation or shows content
- * ✅ Automatic read status update on click
- * ✅ Visual style change for read notifications
- * ✅ Error handling for deleted/unavailable content
- * ✅ Smooth navigation without app reload
- * ✅ Fallback navigation for incomplete data
- * 
- * 🚨 CRITICAL: TODAS LAS NOTIFICACIONES TIENEN ACCIÓN ASOCIADA
- * - Cada tipo de notificación tiene un case específico en handleNotificationPress
- * - Si falta información, se intenta navegación genérica basada en related_type
- * - Como último recurso, se muestra el contenido de la notificación en un Alert
- * - NUNCA se muestra "Esta notificación no tiene una acción asociada" sin intentar alternativas
- * 
- * DATABASE STRUCTURE:
- * - notifications table: user_id (text), type, title, body, read, created_at, related_id, related_type, data
- * - notificaciones table: usuario_id (uuid), tipo, titulo, mensaje, leida, created_at, related_id, related_type, data
- * 
- * NAVIGATION MAPPING (EXHAUSTIVO):
- * - like → /social/post?id={postId}
- * - comment/comentario → /social/post?id={postId}&scrollToComment={commentId}
- * - follow/seguidor → /perfil/usuario?userId={userId}
- * - mention/mencion → /social/post?id={postId} or /social/post?id={postId}&scrollToComment={commentId}
- * - message/mensaje/mensaje_privado → /chat/conversacion?conversationId={conversationId}
- * - event/evento → /detalle/evento?id={eventId}
- * - cheers → /detalle/sala-virtual-enhanced?localId={localId}
- * - plan_purchase/plan_renewal → /gestion/mi-suscripcion
- * - featured_local_reminder → /gestion/mis-locales?localId={localId}
- * - urgent/sistema → data.actionUrl or Alert with content
- * - promo → data.promoUrl or /detalle/local?id={localId} or Alert with content
- * - unknown → Attempts generic navigation based on related_type or shows Alert
+ * ✅ FIX v7.4: Proper avatar loading from usuarios table
  */
 
 type NotificationType = 
@@ -198,22 +156,22 @@ export default function NotificacionesScreen() {
 
   /**
    * Load notifications from BOTH tables and merge them
-   * Includes smart aggregation for similar events
+   * ✅ FIX v7.4: Join with usuarios table to get avatar information
    */
   const loadNotifications = useCallback(async () => {
     if (!user?.id) {
-      console.log('[Notificaciones v6.0] ⚠️ No user ID available');
+      console.log('[Notificaciones v7.4] ⚠️ No user ID available');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('[Notificaciones v6.0] 🔍 Loading notifications for user:', user.id);
+      console.log('[Notificaciones v7.4] 🔍 Loading notifications for user:', user.id);
       
       const allNotifications: NotificationItem[] = [];
 
       // Query English table (notifications with user_id as TEXT)
-      console.log('[Notificaciones v6.0] 📊 Querying "notifications" table');
+      console.log('[Notificaciones v7.4] 📊 Querying "notifications" table');
       const { data: englishData, error: englishError } = await supabase
         .from('notifications')
         .select('*')
@@ -222,26 +180,45 @@ export default function NotificacionesScreen() {
         .limit(200);
 
       if (englishError) {
-        console.warn('[Notificaciones v6.0] ⚠️ English table error:', englishError.message);
+        console.warn('[Notificaciones v7.4] ⚠️ English table error:', englishError.message);
       } else if (englishData && englishData.length > 0) {
-        console.log('[Notificaciones v6.0] ✅ Found', englishData.length, 'notifications in English table');
+        console.log('[Notificaciones v7.4] ✅ Found', englishData.length, 'notifications in English table');
         allNotifications.push(...englishData);
       }
 
       // Query Spanish table (notificaciones with usuario_id as UUID)
-      console.log('[Notificaciones v6.0] 📊 Querying "notificaciones" table');
+      // ✅ FIX v7.4: Join with usuarios table to get sender avatar
+      console.log('[Notificaciones v7.4] 📊 Querying "notificaciones" table with usuarios join');
       const { data: spanishData, error: spanishError } = await supabase
         .from('notificaciones')
-        .select('*')
+        .select(`
+          *,
+          sender:usuarios!notificaciones_usuario_origen_id_fkey(
+            id,
+            username,
+            nombre,
+            avatar
+          )
+        `)
         .eq('usuario_id', user.id)
         .order('created_at', { ascending: false })
         .limit(200);
 
       if (spanishError) {
-        console.warn('[Notificaciones v6.0] ⚠️ Spanish table error:', spanishError.message);
+        console.warn('[Notificaciones v7.4] ⚠️ Spanish table error:', spanishError.message);
       } else if (spanishData && spanishData.length > 0) {
-        console.log('[Notificaciones v6.0] ✅ Found', spanishData.length, 'notifications in Spanish table');
-        allNotifications.push(...spanishData);
+        console.log('[Notificaciones v7.4] ✅ Found', spanishData.length, 'notifications in Spanish table');
+        
+        // Map the data to include sender information
+        const mappedSpanishData = spanishData.map((notif: any) => ({
+          ...notif,
+          sender_id: notif.sender?.id,
+          sender_username: notif.sender?.username || notif.sender?.nombre || 'Usuario',
+          sender_avatar_url: notif.sender?.avatar,
+        }));
+        
+        console.log('[Notificaciones v7.4] 📊 Sample notification with avatar:', mappedSpanishData[0]);
+        allNotifications.push(...mappedSpanishData);
       }
 
       // Sort by priority and date
@@ -250,25 +227,25 @@ export default function NotificacionesScreen() {
       // Aggregate similar notifications
       const aggregatedNotifications = aggregateSimilarNotifications(sortedNotifications);
 
-      console.log('[Notificaciones v6.0] ✅ Total notifications:', aggregatedNotifications.length);
+      console.log('[Notificaciones v7.4] ✅ Total notifications:', aggregatedNotifications.length);
       setNotifications(aggregatedNotifications);
       setError(null);
 
       // Calculate unread count
       const unread = aggregatedNotifications.filter((n) => (n.read === false || n.leida === false)).length;
       setUnreadCount(unread);
-      console.log('[Notificaciones v6.0] 📊 Unread count:', unread);
+      console.log('[Notificaciones v7.4] 📊 Unread count:', unread);
 
       // Clear badge count
       try {
         await Notifications.setBadgeCountAsync(0);
-        console.log('[Notificaciones v6.0] ✅ Badge count cleared');
+        console.log('[Notificaciones v7.4] ✅ Badge count cleared');
       } catch (badgeError) {
-        console.error('[Notificaciones v6.0] ⚠️ Could not clear badge:', badgeError);
+        console.error('[Notificaciones v7.4] ⚠️ Could not clear badge:', badgeError);
       }
 
     } catch (error: any) {
-      console.error('[Notificaciones v6.0] ❌ Exception:', error);
+      console.error('[Notificaciones v7.4] ❌ Exception:', error);
       setError('Error al cargar notificaciones');
       setNotifications([]);
     } finally {
@@ -326,7 +303,7 @@ export default function NotificacionesScreen() {
     // Group notifications by type and related_id
     notifications.forEach((notif) => {
       const type = notif.type || notif.tipo || '';
-      const relatedId = notif.related_id || '';
+      const relatedId = notif.related_id || notif.post_id || '';
       
       // Only aggregate likes and follows
       if ((type === 'like' || type === 'follow' || type === 'seguidor') && relatedId) {
@@ -401,7 +378,7 @@ export default function NotificacionesScreen() {
   useEffect(() => {
     if (!user?.id) return;
 
-    console.log('[Notificaciones v5.0] 📡 Setting up real-time subscription for both tables');
+    console.log('[Notificaciones v7.4] 📡 Setting up real-time subscription for both tables');
 
     const channel = supabase
       .channel(`notifications-realtime-${user.id}`)
@@ -414,7 +391,7 @@ export default function NotificacionesScreen() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('[Notificaciones v5.0] 🔔 New notification (English table):', payload.new);
+          console.log('[Notificaciones v7.4] 🔔 New notification (English table):', payload.new);
           const newNotification = payload.new as NotificationItem;
           setNotifications((prev) => [newNotification, ...prev]);
           
@@ -430,9 +407,26 @@ export default function NotificacionesScreen() {
           table: 'notificaciones',
           filter: `usuario_id=eq.${user.id}`,
         },
-        (payload) => {
-          console.log('[Notificaciones v5.0] 🔔 New notification (Spanish table):', payload.new);
-          const newNotification = payload.new as NotificationItem;
+        async (payload) => {
+          console.log('[Notificaciones v7.4] 🔔 New notification (Spanish table):', payload.new);
+          
+          // Fetch sender information for the new notification
+          const notif = payload.new as any;
+          if (notif.usuario_origen_id) {
+            const { data: senderData } = await supabase
+              .from('usuarios')
+              .select('id, username, nombre, avatar')
+              .eq('id', notif.usuario_origen_id)
+              .single();
+            
+            if (senderData) {
+              notif.sender_id = senderData.id;
+              notif.sender_username = senderData.username || senderData.nombre || 'Usuario';
+              notif.sender_avatar_url = senderData.avatar;
+            }
+          }
+          
+          const newNotification = notif as NotificationItem;
           setNotifications((prev) => [newNotification, ...prev]);
           
           // Haptic feedback
@@ -440,11 +434,11 @@ export default function NotificacionesScreen() {
         }
       )
       .subscribe((status) => {
-        console.log('[Notificaciones v5.0] 📡 Subscription status:', status);
+        console.log('[Notificaciones v7.4] 📡 Subscription status:', status);
       });
 
     return () => {
-      console.log('[Notificaciones v5.0] 🧹 Cleaning up subscription');
+      console.log('[Notificaciones v7.4] 🧹 Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, [user?.id]);
@@ -500,20 +494,15 @@ export default function NotificacionesScreen() {
 
   /**
    * Mark notification as read (try both tables)
-   * 🔔 COMPORTAMIENTO:
-   * 1. Actualiza el estado local inmediatamente (optimistic update)
-   * 2. Actualiza la base de datos en ambas tablas
-   * 3. Cambia el estilo visual de la notificación
-   * 4. Decrementa el contador de no leídas
    */
   const markAsRead = useCallback(async (notificationId: string) => {
     if (!user?.id) {
-      console.warn('[Notificaciones v6.0] ⚠️ No user ID, cannot mark as read');
+      console.warn('[Notificaciones v7.4] ⚠️ No user ID, cannot mark as read');
       return;
     }
 
     try {
-      console.log('[Notificaciones v6.0] 📖 Marcando como leída:', notificationId);
+      console.log('[Notificaciones v7.4] 📖 Marcando como leída:', notificationId);
       
       // Find the notification to check if it's already read
       const notification = notifications.find((n) => n.id === notificationId);
@@ -537,8 +526,7 @@ export default function NotificacionesScreen() {
         .eq('user_id', user.id);
 
       if (englishError && englishError.code !== 'PGRST116') {
-        // PGRST116 = no rows found, which is OK (means it's in the other table)
-        console.warn('[Notificaciones v6.0] ⚠️ Error updating English table:', englishError.message);
+        console.warn('[Notificaciones v7.4] ⚠️ Error updating English table:', englishError.message);
       }
 
       // 4. Update database - Try Spanish table
@@ -549,13 +537,13 @@ export default function NotificacionesScreen() {
         .eq('usuario_id', user.id);
 
       if (spanishError && spanishError.code !== 'PGRST116') {
-        console.warn('[Notificaciones v6.0] ⚠️ Error updating Spanish table:', spanishError.message);
+        console.warn('[Notificaciones v7.4] ⚠️ Error updating Spanish table:', spanishError.message);
       }
 
       // 5. If both updates failed, revert optimistic update
       if (englishError && spanishError && 
           englishError.code !== 'PGRST116' && spanishError.code !== 'PGRST116') {
-        console.error('[Notificaciones v6.0] ❌ Failed to update both tables');
+        console.error('[Notificaciones v7.4] ❌ Failed to update both tables');
         // Revert optimistic update
         setNotifications((prev) =>
           prev.map((n) => (n.id === notificationId ? { ...n, read: false, leida: false } : n))
@@ -564,10 +552,10 @@ export default function NotificacionesScreen() {
           setUnreadCount((prev) => prev + 1);
         }
       } else {
-        console.log('[Notificaciones v6.0] ✅ Notificación marcada como leída');
+        console.log('[Notificaciones v7.4] ✅ Notificación marcada como leída');
       }
     } catch (error: any) {
-      console.error('[Notificaciones v6.0] ❌ Exception marking as read:', error.message);
+      console.error('[Notificaciones v7.4] ❌ Exception marking as read:', error.message);
       // Revert optimistic update on exception
       loadNotifications();
     }
@@ -575,19 +563,15 @@ export default function NotificacionesScreen() {
 
   /**
    * Mark all as read (both tables)
-   * 🔔 COMPORTAMIENTO:
-   * 1. Actualiza todas las notificaciones como leídas
-   * 2. Actualiza el contador de no leídas a 0
-   * 3. Proporciona feedback visual
    */
   const markAllAsRead = async () => {
     if (!user?.id) {
-      console.warn('[Notificaciones v6.0] ⚠️ No user ID, cannot mark all as read');
+      console.warn('[Notificaciones v7.4] ⚠️ No user ID, cannot mark all as read');
       return;
     }
 
     try {
-      console.log('[Notificaciones v6.0] 📖 Marcando todas como leídas');
+      console.log('[Notificaciones v7.4] 📖 Marcando todas como leídas');
       
       // 1. Optimistic update - Update UI immediately
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true, leida: true })));
@@ -604,7 +588,7 @@ export default function NotificacionesScreen() {
         .eq('read', false);
 
       if (englishError) {
-        console.warn('[Notificaciones v6.0] ⚠️ Error updating English table:', englishError.message);
+        console.warn('[Notificaciones v7.4] ⚠️ Error updating English table:', englishError.message);
       }
 
       // 4. Update database - Spanish table
@@ -615,12 +599,12 @@ export default function NotificacionesScreen() {
         .eq('leida', false);
 
       if (spanishError) {
-        console.warn('[Notificaciones v6.0] ⚠️ Error updating Spanish table:', spanishError.message);
+        console.warn('[Notificaciones v7.4] ⚠️ Error updating Spanish table:', spanishError.message);
       }
 
       // 5. If both updates failed, revert and show error
       if (englishError && spanishError) {
-        console.error('[Notificaciones v6.0] ❌ Failed to update both tables');
+        console.error('[Notificaciones v7.4] ❌ Failed to update both tables');
         Alert.alert(
           'Error',
           'No se pudieron marcar todas las notificaciones como leídas. Por favor, intenta de nuevo.',
@@ -629,10 +613,10 @@ export default function NotificacionesScreen() {
         // Reload to get correct state
         loadNotifications();
       } else {
-        console.log('[Notificaciones v6.0] ✅ Todas las notificaciones marcadas como leídas');
+        console.log('[Notificaciones v7.4] ✅ Todas las notificaciones marcadas como leídas');
       }
     } catch (error: any) {
-      console.error('[Notificaciones v6.0] ❌ Exception marking all as read:', error.message);
+      console.error('[Notificaciones v7.4] ❌ Exception marking all as read:', error.message);
       Alert.alert(
         'Error',
         'Ocurrió un error al marcar las notificaciones como leídas.',
@@ -644,20 +628,15 @@ export default function NotificacionesScreen() {
 
   /**
    * Delete notification (try both tables)
-   * 🔔 COMPORTAMIENTO:
-   * 1. Elimina la notificación de la UI inmediatamente
-   * 2. Actualiza el contador de no leídas si era no leída
-   * 3. Elimina de la base de datos
-   * 4. Proporciona feedback háptico
    */
   const deleteNotification = async (notificationId: string) => {
     if (!user?.id) {
-      console.warn('[Notificaciones v6.0] ⚠️ No user ID, cannot delete');
+      console.warn('[Notificaciones v7.4] ⚠️ No user ID, cannot delete');
       return;
     }
 
     try {
-      console.log('[Notificaciones v6.0] 🗑️ Eliminando notificación:', notificationId);
+      console.log('[Notificaciones v7.4] 🗑️ Eliminando notificación:', notificationId);
       
       // Find the notification to check if it's unread
       const notification = notifications.find((n) => n.id === notificationId);
@@ -682,7 +661,7 @@ export default function NotificacionesScreen() {
         .eq('user_id', user.id);
 
       if (englishError && englishError.code !== 'PGRST116') {
-        console.warn('[Notificaciones v6.0] ⚠️ Error deleting from English table:', englishError.message);
+        console.warn('[Notificaciones v7.4] ⚠️ Error deleting from English table:', englishError.message);
       }
 
       // 5. Delete from database - Try Spanish table
@@ -693,13 +672,13 @@ export default function NotificacionesScreen() {
         .eq('usuario_id', user.id);
 
       if (spanishError && spanishError.code !== 'PGRST116') {
-        console.warn('[Notificaciones v6.0] ⚠️ Error deleting from Spanish table:', spanishError.message);
+        console.warn('[Notificaciones v7.4] ⚠️ Error deleting from Spanish table:', spanishError.message);
       }
 
       // 6. If both deletes failed, revert optimistic update
       if (englishError && spanishError && 
           englishError.code !== 'PGRST116' && spanishError.code !== 'PGRST116') {
-        console.error('[Notificaciones v6.0] ❌ Failed to delete from both tables');
+        console.error('[Notificaciones v7.4] ❌ Failed to delete from both tables');
         Alert.alert(
           'Error',
           'No se pudo eliminar la notificación. Por favor, intenta de nuevo.',
@@ -708,10 +687,10 @@ export default function NotificacionesScreen() {
         // Reload to get correct state
         loadNotifications();
       } else {
-        console.log('[Notificaciones v6.0] ✅ Notificación eliminada');
+        console.log('[Notificaciones v7.4] ✅ Notificación eliminada');
       }
     } catch (error: any) {
-      console.error('[Notificaciones v6.0] ❌ Exception deleting:', error.message);
+      console.error('[Notificaciones v7.4] ❌ Exception deleting:', error.message);
       // Revert optimistic update
       loadNotifications();
     }
@@ -719,20 +698,15 @@ export default function NotificacionesScreen() {
 
   /**
    * Delete all notifications
-   * 🔔 COMPORTAMIENTO:
-   * 1. Elimina todas las notificaciones de la UI
-   * 2. Resetea el contador de no leídas a 0
-   * 3. Elimina de ambas tablas de la base de datos
-   * 4. Proporciona feedback visual y háptico
    */
   const deleteAllNotifications = async () => {
     if (!user?.id) {
-      console.warn('[Notificaciones v6.0] ⚠️ No user ID, cannot delete all');
+      console.warn('[Notificaciones v7.4] ⚠️ No user ID, cannot delete all');
       return;
     }
 
     try {
-      console.log('[Notificaciones v6.0] 🗑️ Eliminando todas las notificaciones');
+      console.log('[Notificaciones v7.4] 🗑️ Eliminando todas las notificaciones');
       
       // 1. Close modal
       setDeleteAllModalVisible(false);
@@ -751,7 +725,7 @@ export default function NotificacionesScreen() {
         .eq('user_id', user.id);
 
       if (englishError) {
-        console.warn('[Notificaciones v6.0] ⚠️ Error deleting from English table:', englishError.message);
+        console.warn('[Notificaciones v7.4] ⚠️ Error deleting from English table:', englishError.message);
       }
 
       // 5. Delete from database - Spanish table
@@ -761,12 +735,12 @@ export default function NotificacionesScreen() {
         .eq('usuario_id', user.id);
 
       if (spanishError) {
-        console.warn('[Notificaciones v6.0] ⚠️ Error deleting from Spanish table:', spanishError.message);
+        console.warn('[Notificaciones v7.4] ⚠️ Error deleting from Spanish table:', spanishError.message);
       }
 
       // 6. If both deletes failed, show error and reload
       if (englishError && spanishError) {
-        console.error('[Notificaciones v6.0] ❌ Failed to delete from both tables');
+        console.error('[Notificaciones v7.4] ❌ Failed to delete from both tables');
         Alert.alert(
           'Error',
           'No se pudieron eliminar todas las notificaciones. Por favor, intenta de nuevo.',
@@ -775,10 +749,10 @@ export default function NotificacionesScreen() {
         // Reload to get correct state
         loadNotifications();
       } else {
-        console.log('[Notificaciones v6.0] ✅ Todas las notificaciones eliminadas');
+        console.log('[Notificaciones v7.4] ✅ Todas las notificaciones eliminadas');
       }
     } catch (error: any) {
-      console.error('[Notificaciones v6.0] ❌ Exception deleting all:', error.message);
+      console.error('[Notificaciones v7.4] ❌ Exception deleting all:', error.message);
       Alert.alert(
         'Error',
         'Ocurrió un error al eliminar las notificaciones.',
@@ -791,23 +765,14 @@ export default function NotificacionesScreen() {
 
   /**
    * Navigate to related content based on notification type
-   * 🔔 COMPORTAMIENTO OBLIGATORIO AL HACER CLIC (v7.2 - EXHAUSTIVO CON MEJOR LOGGING):
-   * 1. Marca la notificación como leída automáticamente
-   * 2. Navega al contenido exacto que originó la notificación
-   * 3. Maneja errores si el contenido fue eliminado
-   * 4. Proporciona feedback visual y háptico
-   * 5. TODOS los tipos de notificación tienen una acción asociada
-   * 6. Logging mejorado para debugging
    */
   const handleNotificationPress = async (notification: NotificationItem) => {
-    console.log('[Notificaciones v7.2] ═══════════════════════════════════════════════════════');
-    console.log('[Notificaciones v7.2] 👆 Usuario hizo clic en notificación');
-    console.log('[Notificaciones v7.2] 📊 NOTIFICACIÓN COMPLETA:', JSON.stringify(notification, null, 2));
+    console.log('[Notificaciones v7.4] 👆 Usuario hizo clic en notificación');
     
     // 1. Mark as read immediately (optimistic update)
     const wasRead = notification.read || notification.leida;
     if (!wasRead) {
-      await markAsRead(notification.id, wasRead || false);
+      await markAsRead(notification.id);
     }
 
     // 2. Haptic feedback for better UX
@@ -815,22 +780,16 @@ export default function NotificacionesScreen() {
 
     // 3. Extract notification data (handle both English and Spanish fields)
     const type = (notification.type || notification.tipo || '').toLowerCase();
-    const relatedId = notification.related_id;
+    const relatedId = notification.related_id || (notification as any).post_id;
     const relatedType = notification.related_type;
-    const senderId = notification.sender_id;
+    const senderId = notification.sender_id || (notification as any).usuario_origen_id;
     const data = notification.data || {};
 
-    console.log('[Notificaciones v7.2] 📊 Datos extraídos:');
-    console.log('[Notificaciones v7.2]    - type:', type);
-    console.log('[Notificaciones v7.2]    - relatedId:', relatedId);
-    console.log('[Notificaciones v7.2]    - relatedType:', relatedType);
-    console.log('[Notificaciones v7.2]    - senderId:', senderId);
-    console.log('[Notificaciones v7.2]    - data:', JSON.stringify(data, null, 2));
+    console.log('[Notificaciones v7.4] 📊 Datos extraídos:', { type, relatedId, relatedType, senderId });
 
     // 4. Validate that we have a type
     if (!type) {
-      console.error('[Notificaciones v7.2] ❌ CRÍTICO: Notificación sin tipo');
-      console.error('[Notificaciones v7.2] 📊 Notificación completa:', notification);
+      console.error('[Notificaciones v7.4] ❌ CRÍTICO: Notificación sin tipo');
       Alert.alert(
         'Error',
         'Esta notificación está incompleta y no se puede procesar.',
@@ -841,23 +800,13 @@ export default function NotificacionesScreen() {
 
     try {
       // 5. Navigate based on notification type
-      console.log('[Notificaciones v7.2] 🔀 Evaluando tipo de notificación:', type);
-      
       switch (type) {
-        // ═══════════════════════════════════════════════════════════════
-        // LIKES - Abrir publicación específica
-        // ═══════════════════════════════════════════════════════════════
         case 'like': {
-          console.log('[Notificaciones v7.2] ❤️ Procesando LIKE');
           const postId = relatedId || data.postId || data.post_id || data.entityId;
-          console.log('[Notificaciones v7.2]    - postId encontrado:', postId);
-          
           if (postId) {
-            console.log('[Notificaciones v7.2] ✅ Navegando a publicación:', postId);
+            console.log('[Notificaciones v7.4] ✅ Navegando a publicación:', postId);
             router.push(`/social/post?id=${postId}`);
           } else {
-            console.warn('[Notificaciones v7.2] ⚠️ Like sin ID de publicación');
-            console.warn('[Notificaciones v7.2] 📊 Datos disponibles:', { relatedId, data });
             Alert.alert(
               'Publicación no disponible',
               'La publicación asociada a este like no se pudo encontrar.',
@@ -867,31 +816,17 @@ export default function NotificacionesScreen() {
           break;
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // COMENTARIOS - Abrir publicación y hacer scroll al comentario
-        // ═══════════════════════════════════════════════════════════════
         case 'comment':
         case 'comentario': {
-          console.log('[Notificaciones v7.2] 💬 Procesando COMENTARIO');
           const postId = relatedId || data.postId || data.post_id || data.entityId;
-          const commentId = data.commentId || data.comment_id;
-          console.log('[Notificaciones v7.2]    - postId:', postId);
-          console.log('[Notificaciones v7.2]    - commentId:', commentId);
-          
+          const commentId = data.commentId || data.comment_id || (notification as any).comentario_id;
           if (postId) {
             if (commentId) {
-              console.log('[Notificaciones v7.2] ✅ Navegando a publicación con comentario');
               router.push(`/social/post?id=${postId}&scrollToComment=${commentId}`);
             } else {
-              console.log('[Notificaciones v7.2] ✅ Navegando a publicación (sin ID de comentario)');
               router.push(`/social/post?id=${postId}`);
             }
-          } else if (relatedType === 'comment' && relatedId) {
-            console.log('[Notificaciones v7.2] ✅ Navegando a comentarios (solo ID de comentario)');
-            router.push(`/social/comentarios?commentId=${relatedId}`);
           } else {
-            console.warn('[Notificaciones v7.2] ⚠️ Comentario sin ID de publicación');
-            console.warn('[Notificaciones v7.2] 📊 Datos disponibles:', { relatedId, relatedType, data });
             Alert.alert(
               'Publicación no disponible',
               'La publicación asociada a este comentario no se pudo encontrar.',
@@ -901,21 +836,12 @@ export default function NotificacionesScreen() {
           break;
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // NUEVOS SEGUIDORES - Abrir perfil del usuario
-        // ═══════════════════════════════════════════════════════════════
         case 'follow':
         case 'seguidor': {
-          console.log('[Notificaciones v7.2] 👥 Procesando SEGUIDOR');
           const followerId = senderId || relatedId || data.userId || data.user_id || data.entityId;
-          console.log('[Notificaciones v7.2]    - followerId encontrado:', followerId);
-          
           if (followerId) {
-            console.log('[Notificaciones v7.2] ✅ Navegando a perfil de seguidor');
             router.push(`/perfil/usuario?userId=${followerId}`);
           } else {
-            console.warn('[Notificaciones v7.2] ⚠️ Seguidor sin ID de usuario');
-            console.warn('[Notificaciones v7.2] 📊 Datos disponibles:', { senderId, relatedId, data });
             Alert.alert(
               'Perfil no disponible',
               'El perfil del usuario no se pudo encontrar.',
@@ -925,29 +851,17 @@ export default function NotificacionesScreen() {
           break;
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // MENCIONES - Abrir contenido donde se realizó la mención
-        // ═══════════════════════════════════════════════════════════════
         case 'mention':
         case 'mencion': {
-          console.log('[Notificaciones v7.2] @ Procesando MENCIÓN');
           const postId = relatedId || data.postId || data.post_id || data.entityId;
           const commentId = data.commentId || data.comment_id;
-          console.log('[Notificaciones v7.2]    - postId:', postId);
-          console.log('[Notificaciones v7.2]    - commentId:', commentId);
-          
-          if (postId && (relatedType === 'post' || !relatedType)) {
-            console.log('[Notificaciones v7.2] ✅ Navegando a publicación con mención');
-            router.push(`/social/post?id=${postId}`);
-          } else if (postId && commentId) {
-            console.log('[Notificaciones v7.2] ✅ Navegando a comentario con mención');
-            router.push(`/social/post?id=${postId}&scrollToComment=${commentId}`);
-          } else if (relatedType === 'comment' && relatedId) {
-            console.log('[Notificaciones v7.2] ✅ Navegando a comentarios (mención en comentario)');
-            router.push(`/social/comentarios?commentId=${relatedId}`);
+          if (postId) {
+            if (commentId) {
+              router.push(`/social/post?id=${postId}&scrollToComment=${commentId}`);
+            } else {
+              router.push(`/social/post?id=${postId}`);
+            }
           } else {
-            console.warn('[Notificaciones v7.2] ⚠️ Mención sin contenido asociado');
-            console.warn('[Notificaciones v7.2] 📊 Datos disponibles:', { relatedId, relatedType, data });
             Alert.alert(
               'Contenido no disponible',
               'El contenido donde fuiste mencionado no se pudo encontrar.',
@@ -957,21 +871,12 @@ export default function NotificacionesScreen() {
           break;
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // EVENTOS - Abrir detalle del evento
-        // ═══════════════════════════════════════════════════════════════
         case 'event':
         case 'evento': {
-          console.log('[Notificaciones v7.2] 📅 Procesando EVENTO');
           const eventId = relatedId || data.eventId || data.event_id || data.entityId;
-          console.log('[Notificaciones v7.2]    - eventId encontrado:', eventId);
-          
           if (eventId) {
-            console.log('[Notificaciones v7.2] ✅ Navegando a evento');
             router.push(`/detalle/evento?id=${eventId}`);
           } else {
-            console.warn('[Notificaciones v7.2] ⚠️ Evento sin ID');
-            console.warn('[Notificaciones v7.2] 📊 Datos disponibles:', { relatedId, data });
             Alert.alert(
               'Evento no disponible',
               'El evento asociado a esta notificación no se pudo encontrar.',
@@ -981,27 +886,16 @@ export default function NotificacionesScreen() {
           break;
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // MENSAJES DIRECTOS - Abrir conversación específica
-        // ═══════════════════════════════════════════════════════════════
         case 'message':
         case 'mensaje':
         case 'mensaje_privado': {
-          console.log('[Notificaciones v7.2] ✉️ Procesando MENSAJE');
           const conversationId = relatedId || data.conversationId || data.conversation_id || data.entityId;
           const chatUserId = senderId || data.userId || data.user_id;
-          console.log('[Notificaciones v7.2]    - conversationId:', conversationId);
-          console.log('[Notificaciones v7.2]    - chatUserId:', chatUserId);
-          
           if (conversationId) {
-            console.log('[Notificaciones v7.2] ✅ Navegando a conversación');
             router.push(`/chat/conversacion?conversationId=${conversationId}`);
           } else if (chatUserId) {
-            console.log('[Notificaciones v7.2] ✅ Navegando a chat con usuario');
             router.push(`/chat/conversacion?userId=${chatUserId}`);
           } else {
-            console.warn('[Notificaciones v7.2] ⚠️ Mensaje sin información de conversación');
-            console.warn('[Notificaciones v7.2] 📊 Datos disponibles:', { relatedId, senderId, data });
             Alert.alert(
               'Conversación no disponible',
               'La conversación asociada a esta notificación no se pudo encontrar.',
@@ -1011,21 +905,12 @@ export default function NotificacionesScreen() {
           break;
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // BRINDIS - Abrir sala virtual del local
-        // ═══════════════════════════════════════════════════════════════
         case 'cheers':
         case 'saludos': {
-          console.log('[Notificaciones v7.2] 🍻 Procesando BRINDIS');
-          const localId = relatedId || data.localId || data.local_id || data.entityId;
-          console.log('[Notificaciones v7.2]    - localId encontrado:', localId);
-          
+          const localId = relatedId || data.localId || data.local_id || data.entityId || (notification as any).local_origen_id;
           if (localId) {
-            console.log('[Notificaciones v7.2] ✅ Navegando a sala virtual');
             router.push(`/detalle/sala-virtual-enhanced?localId=${localId}`);
           } else {
-            console.warn('[Notificaciones v7.2] ⚠️ Brindis sin ID de local');
-            console.warn('[Notificaciones v7.2] 📊 Datos disponibles:', { relatedId, data });
             Alert.alert(
               'Sala virtual no disponible',
               'La sala virtual asociada a esta notificación no se pudo encontrar.',
@@ -1035,82 +920,51 @@ export default function NotificacionesScreen() {
           break;
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // PLANES Y SUSCRIPCIONES - Abrir gestión de suscripción
-        // ═══════════════════════════════════════════════════════════════
         case 'plan_purchase':
         case 'plan_renewal':
         case 'compra_plan':
         case 'renovacion_plan': {
-          console.log('[Notificaciones v7.2] 💳 Procesando PLAN/SUSCRIPCIÓN');
-          console.log('[Notificaciones v7.2] ✅ Navegando a gestión de suscripción');
           router.push('/gestion/mi-suscripcion');
           break;
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // RECORDATORIO DE LOCAL DESTACADO - Abrir gestión de locales
-        // ═══════════════════════════════════════════════════════════════
         case 'featured_local_reminder':
         case 'recordatorio_local': {
-          console.log('[Notificaciones v7.2] ⭐ Procesando RECORDATORIO LOCAL');
           const featuredLocalId = relatedId || data.localId || data.local_id || data.entityId;
-          console.log('[Notificaciones v7.2]    - featuredLocalId:', featuredLocalId);
-          
           if (featuredLocalId) {
-            console.log('[Notificaciones v7.2] ✅ Navegando a gestión de locales (con ID)');
             router.push(`/gestion/mis-locales?localId=${featuredLocalId}`);
           } else {
-            console.log('[Notificaciones v7.2] ✅ Navegando a gestión de locales (sin ID específico)');
             router.push('/gestion/mis-locales');
           }
           break;
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // NOTIFICACIONES URGENTES DEL SISTEMA
-        // ═══════════════════════════════════════════════════════════════
         case 'urgent':
         case 'urgente':
         case 'sistema':
         case 'system': {
-          console.log('[Notificaciones v7.2] 🚨 Procesando URGENTE/SISTEMA');
           const actionUrl = data.actionUrl || data.action_url || data.url;
-          console.log('[Notificaciones v7.2]    - actionUrl:', actionUrl);
-          
           if (actionUrl) {
-            console.log('[Notificaciones v7.2] ✅ Navegando a URL de acción');
             router.push(actionUrl);
           } else {
             const title = notification.title || notification.titulo || 'Notificación del sistema';
             const body = notification.body || notification.mensaje || '';
-            console.log('[Notificaciones v7.2] 📢 Mostrando notificación urgente en Alert');
             Alert.alert(title, body, [{ text: 'OK' }]);
           }
           break;
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // PROMOCIONES Y OFERTAS ESPECIALES
-        // ═══════════════════════════════════════════════════════════════
         case 'promo':
         case 'promocion': {
-          console.log('[Notificaciones v7.2] 🎁 Procesando PROMOCIÓN');
           const promoUrl = data.promoUrl || data.promo_url || data.url;
           const promoLocalId = relatedId || data.localId || data.local_id || data.entityId;
-          console.log('[Notificaciones v7.2]    - promoUrl:', promoUrl);
-          console.log('[Notificaciones v7.2]    - promoLocalId:', promoLocalId);
-          
           if (promoUrl) {
-            console.log('[Notificaciones v7.2] ✅ Navegando a URL de promoción');
             router.push(promoUrl);
           } else if (promoLocalId) {
-            console.log('[Notificaciones v7.2] ✅ Navegando a local con promoción');
             router.push(`/detalle/local?id=${promoLocalId}`);
           } else {
             const title = notification.title || notification.titulo || 'Promoción especial';
             const body = notification.body || notification.mensaje || '';
-            console.log('[Notificaciones v7.2] 🎁 Mostrando promoción en Alert');
             Alert.alert(
               title,
               body,
@@ -1120,137 +974,28 @@ export default function NotificacionesScreen() {
           break;
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // TIPO DESCONOCIDO - Intentar navegación genérica
-        // ═══════════════════════════════════════════════════════════════
         default: {
-          console.warn('[Notificaciones v7.2] ⚠️ TIPO DESCONOCIDO:', type);
-          console.warn('[Notificaciones v7.2] 📊 Intentando navegación genérica...');
-          console.warn('[Notificaciones v7.2] 📊 Notificación completa:', notification);
-          
-          // Try to extract any possible navigation data
-          const genericUrl = data.url || data.actionUrl || data.action_url;
-          const genericId = relatedId || data.id || data.entityId;
-          
-          console.log('[Notificaciones v7.2]    - genericUrl:', genericUrl);
-          console.log('[Notificaciones v7.2]    - genericId:', genericId);
-          console.log('[Notificaciones v7.2]    - relatedType:', relatedType);
-          
-          if (genericUrl) {
-            console.log('[Notificaciones v7.2] ✅ Navegando a URL genérica');
-            router.push(genericUrl);
-          } else if (genericId && relatedType) {
-            // Try to construct a URL based on related_type
-            let constructedUrl = '';
-            switch (relatedType) {
-              case 'post':
-                constructedUrl = `/social/post?id=${genericId}`;
-                break;
-              case 'user':
-                constructedUrl = `/perfil/usuario?userId=${genericId}`;
-                break;
-              case 'event':
-                constructedUrl = `/detalle/evento?id=${genericId}`;
-                break;
-              case 'local':
-                constructedUrl = `/detalle/local?id=${genericId}`;
-                break;
-              default:
-                console.warn('[Notificaciones v7.2] ⚠️ related_type no reconocido:', relatedType);
-                break;
-            }
-            
-            if (constructedUrl) {
-              console.log('[Notificaciones v7.2] ✅ Navegando a URL construida:', constructedUrl);
-              router.push(constructedUrl);
-            } else {
-              const title = notification.title || notification.titulo || 'Notificación';
-              const body = notification.body || notification.mensaje || '';
-              console.log('[Notificaciones v7.2] 📢 Mostrando contenido en Alert (no se pudo construir URL)');
-              Alert.alert(
-                title,
-                body || 'Esta notificación no tiene una acción específica asociada.',
-                [{ text: 'OK' }]
-              );
-            }
-          } else {
-            // Last resort: show notification content
-            const title = notification.title || notification.titulo || 'Notificación';
-            const body = notification.body || notification.mensaje || '';
-            console.log('[Notificaciones v7.2] 📢 Mostrando contenido en Alert (sin datos de navegación)');
-            Alert.alert(
-              title,
-              body || 'Esta notificación no tiene una acción específica asociada.',
-              [{ text: 'OK' }]
-            );
-          }
+          console.warn('[Notificaciones v7.4] ⚠️ TIPO DESCONOCIDO:', type);
+          const title = notification.title || notification.titulo || 'Notificación';
+          const body = notification.body || notification.mensaje || '';
+          Alert.alert(
+            title,
+            body || 'Esta notificación no tiene una acción específica asociada.',
+            [{ text: 'OK' }]
+          );
           break;
         }
       }
       
-      console.log('[Notificaciones v7.2] ✅ Navegación completada');
-      console.log('[Notificaciones v7.2] ═══════════════════════════════════════════════════════');
+      console.log('[Notificaciones v7.4] ✅ Navegación completada');
     } catch (error: any) {
-      // ═══════════════════════════════════════════════════════════════
-      // MANEJO DE ERRORES - Contenido no disponible
-      // ═══════════════════════════════════════════════════════════════
-      console.error('[Notificaciones v7.2] ❌ ERROR DE NAVEGACIÓN');
-      console.error('[Notificaciones v7.2] 📊 Error:', error.message);
-      console.error('[Notificaciones v7.2] 📊 Stack:', error.stack);
-      console.error('[Notificaciones v7.2] 📊 Notificación que causó el error:', notification);
-      console.error('[Notificaciones v7.2] ═══════════════════════════════════════════════════════');
-      
-      // Show user-friendly error message
+      console.error('[Notificaciones v7.4] ❌ ERROR DE NAVEGACIÓN:', error.message);
       Alert.alert(
         'Contenido no disponible',
         'Este contenido ya no está disponible. Es posible que haya sido eliminado o que no tengas acceso a él.',
         [{ text: 'OK' }]
       );
     }
-  };
-
-  /**
-   * Get icon for notification type (handles both English and Spanish types)
-   * v7.2 - EXHAUSTIVO: Todos los tipos tienen un icono específico (14 categorías)
-   */
-  const getNotificationIcon = (notification: NotificationItem): string => {
-    const type = (notification.type || notification.tipo || '').toLowerCase();
-    const iconMap: Record<string, string> = {
-      // Interacciones (4)
-      like: '❤️',
-      comment: '💬',
-      comentario: '💬',
-      follow: '👥',
-      seguidor: '👥',
-      mention: '@',
-      mencion: '@',
-      
-      // Comunicación (2)
-      message: '✉️',
-      mensaje: '✉️',
-      mensaje_privado: '✉️',
-      cheers: '🍻',
-      saludos: '🍻',
-      
-      // Transacciones (2)
-      plan_purchase: '💳',
-      compra_plan: '💳',
-      plan_renewal: '🔄',
-      renovacion_plan: '🔄',
-      
-      // Sistema y Alertas (6)
-      event: '📅',
-      evento: '📅',
-      featured_local_reminder: '⭐',
-      recordatorio_local: '⭐',
-      urgent: '🚨',
-      urgente: '🚨',
-      sistema: '🔔',
-      promo: '🎁',
-      promocion: '🎁',
-      reminder: '⏰',
-    };
-    return iconMap[type] || '🔔';
   };
 
   /**
@@ -1295,12 +1040,13 @@ export default function NotificacionesScreen() {
    * Handle avatar error
    */
   const handleAvatarError = useCallback((notificationId: string) => {
+    console.log('[Notificaciones v7.4] ⚠️ Avatar error for notification:', notificationId);
     setAvatarErrors((prev) => ({ ...prev, [notificationId]: true }));
   }, []);
 
   /**
    * Render notification item (handles both English and Spanish fields)
-   * 🎨 v7.3 - ALWAYS show user avatar, with proper fallback
+   * ✅ FIX v7.4: Proper avatar display with fallback
    */
   const renderNotification = useCallback((notification: NotificationItem) => {
     const timeAgo = formatTimeAgo(notification.created_at);
@@ -1317,6 +1063,14 @@ export default function NotificacionesScreen() {
     
     // Check if avatar failed to load
     const avatarError = avatarErrors[notification.id] || false;
+
+    console.log('[Notificaciones v7.4] 🎨 Rendering notification:', {
+      id: notification.id,
+      avatar,
+      senderUsername,
+      avatarError,
+      firstLetter
+    });
 
     return (
       <Swipeable
@@ -1338,7 +1092,7 @@ export default function NotificacionesScreen() {
                 source={{ uri: avatar }} 
                 style={styles.avatar}
                 onError={() => {
-                  console.log('[Notificaciones] ⚠️ Error loading avatar:', avatar);
+                  console.log('[Notificaciones v7.4] ⚠️ Error loading avatar:', avatar);
                   handleAvatarError(notification.id);
                 }}
               />
@@ -1358,7 +1112,7 @@ export default function NotificacionesScreen() {
                       source={{ uri: sender.avatar_url }}
                       style={[styles.stackedAvatar, { right: (index + 1) * 12 }]}
                       onError={() => {
-                        console.log('[Notificaciones] ⚠️ Error loading stacked avatar:', sender.avatar_url);
+                        console.log('[Notificaciones v7.4] ⚠️ Error loading stacked avatar:', sender.avatar_url);
                         handleAvatarError(`${notification.id}-${sender.id}`);
                       }}
                     />
@@ -1615,7 +1369,6 @@ export default function NotificacionesScreen() {
       </ScrollView>
 
       {/* Settings Modal */}
-      {/* ✅ FIX v7.4: Settings Modal - Navigate to full screen on Android */}
       <Modal
         visible={settingsVisible}
         animationType="slide"
@@ -1959,9 +1712,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
   },
-  iconText: {
-    fontSize: scaleFontSize(22),
-  },
   contentContainer: {
     flex: 1,
   },
@@ -2003,26 +1753,9 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  settingsModal: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '80%',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  // ✅ FIX v7.3: Android full screen modal styles
   settingsModalFullScreen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -2047,22 +1780,6 @@ const styles = StyleSheet.create({
   },
   settingsContentFullScreen: {
     flex: 1,
-    padding: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  modalTitle: {
-    fontSize: scaleFontSize(18),
-    fontWeight: '700',
-    color: colors.text,
-  },
-  settingsContent: {
     padding: 20,
   },
   settingsSection: {
