@@ -304,9 +304,16 @@ export default function ConversacionScreen() {
           .eq('leido', false);
       }
 
+      // ✅ CRITICAL FIX v320.0: Scroll to end with longer delay for reliable positioning
+      // Ensures messages are fully rendered before scrolling
       setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+        try {
+          flatListRef.current?.scrollToEnd({ animated: true });
+          console.log('[Conversacion v320.0] ✅ Scrolled to end after loading messages');
+        } catch (error) {
+          console.error('[Conversacion v320.0] ❌ Error scrolling to end:', error);
+        }
+      }, 300);
     } catch (error) {
       console.error('[Conversacion] Error:', error);
     }
@@ -628,9 +635,15 @@ export default function ConversacionScreen() {
               .then(() => console.log('[Conversacion] Message marked as read'));
           }
 
+          // ✅ CRITICAL FIX v320.0: Scroll to end with longer delay for new messages
           setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-          }, 50);
+            try {
+              flatListRef.current?.scrollToEnd({ animated: true });
+              console.log('[Conversacion v320.0] ✅ Scrolled to end after new message');
+            } catch (error) {
+              console.error('[Conversacion v320.0] ❌ Error scrolling to end:', error);
+            }
+          }, 150);
         }
       )
       .subscribe((status) => {
