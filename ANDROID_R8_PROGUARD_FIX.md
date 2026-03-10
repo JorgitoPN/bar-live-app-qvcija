@@ -19,15 +19,29 @@ Abre el archivo: `android/app/proguard-rules.pro`
 ```proguard
 # Expo Modules - CRITICAL: Prevent R8 from removing Expo module classes
 -keep class expo.modules.** { *; }
+-keepclassmembers class expo.modules.** { *; }
 -dontwarn expo.modules.**
 
 # Expo Kotlin Runtime - Fix for expo.modules.kotlin.runtime.Runtime missing class error
 -keep class expo.modules.kotlin.** { *; }
+-keepclassmembers class expo.modules.kotlin.** { *; }
 -dontwarn expo.modules.kotlin.**
 
 # Expo Media Library - Specific fix for the reported error
 -keep class expo.modules.medialibrary.** { *; }
+-keepclassmembers class expo.modules.medialibrary.** { *; }
 -dontwarn expo.modules.medialibrary.**
+
+# Kotlin runtime and reflection
+-keep class kotlin.** { *; }
+-keep class kotlin.Metadata { *; }
+-dontwarn kotlin.**
+-keepclassmembers class **$WhenMappings {
+    <fields>;
+}
+-keepclassmembers class kotlin.Metadata {
+    public <methods>;
+}
 ```
 
 ### Paso 3: El archivo completo debería verse así:
@@ -50,15 +64,29 @@ Abre el archivo: `android/app/proguard-rules.pro`
 
 # Expo Modules - CRITICAL: Prevent R8 from removing Expo module classes
 -keep class expo.modules.** { *; }
+-keepclassmembers class expo.modules.** { *; }
 -dontwarn expo.modules.**
 
 # Expo Kotlin Runtime - Fix for expo.modules.kotlin.runtime.Runtime missing class error
 -keep class expo.modules.kotlin.** { *; }
+-keepclassmembers class expo.modules.kotlin.** { *; }
 -dontwarn expo.modules.kotlin.**
 
 # Expo Media Library - Specific fix for the reported error
 -keep class expo.modules.medialibrary.** { *; }
+-keepclassmembers class expo.modules.medialibrary.** { *; }
 -dontwarn expo.modules.medialibrary.**
+
+# Kotlin runtime and reflection
+-keep class kotlin.** { *; }
+-keep class kotlin.Metadata { *; }
+-dontwarn kotlin.**
+-keepclassmembers class **$WhenMappings {
+    <fields>;
+}
+-keepclassmembers class kotlin.Metadata {
+    public <methods>;
+}
 ```
 
 ## 🧹 Paso 4: Limpiar el entorno
@@ -79,7 +107,11 @@ Ahora puedes volver a ejecutar el comando de compilación para Release. El build
 
 - **`-keep class expo.modules.** { *; }`**: Instruye a R8 para mantener todas las clases dentro del paquete `expo.modules` y sus subpaquetes, preservando todos sus métodos y campos.
 
+- **`-keepclassmembers class expo.modules.** { *; }`**: Preserva específicamente todos los miembros (métodos, campos) de las clases de Expo, incluso si R8 piensa que no se usan.
+
 - **`-dontwarn expo.modules.**`**: Suprime las advertencias de R8 sobre clases faltantes o no referenciadas en el paquete `expo.modules`, evitando que el build falle por advertencias.
+
+- **Reglas de Kotlin**: Las reglas adicionales de Kotlin aseguran que el runtime de Kotlin y sus metadatos de reflexión se preserven, lo cual es crítico para que los módulos de Expo funcionen correctamente.
 
 ## ✅ Verificación
 

@@ -6,15 +6,30 @@
 
 # Expo Modules - CRITICAL: Prevent R8 from removing Expo module classes
 -keep class expo.modules.** { *; }
+-keepclassmembers class expo.modules.** { *; }
 -dontwarn expo.modules.**
 
 # Expo Kotlin Runtime - Fix for expo.modules.kotlin.runtime.Runtime missing class error
 -keep class expo.modules.kotlin.** { *; }
+-keepclassmembers class expo.modules.kotlin.** { *; }
 -dontwarn expo.modules.kotlin.**
 
 # Expo Media Library - Specific fix for the reported error
 -keep class expo.modules.medialibrary.** { *; }
+-keepclassmembers class expo.modules.medialibrary.** { *; }
 -dontwarn expo.modules.medialibrary.**
+
+# Kotlin runtime and reflection
+-keep class kotlin.** { *; }
+-keep class kotlin.Metadata { *; }
+-dontwarn kotlin.**
+-keepclassmembers class **$WhenMappings {
+    <fields>;
+}
+-keepclassmembers class kotlin.Metadata {
+    public <methods>;
+}
+
 
 # ============================================================
 # AFTER ADDING THESE RULES:
