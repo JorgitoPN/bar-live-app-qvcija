@@ -80,6 +80,14 @@ interface Message {
  *    - ✅ Solid white background (#FFFFFF) prevents transparency
  *    - ✅ Professional behavior matching standard Android apps
  * 
+ * 4️⃣ EXPIRED MOMENTOS CLEANUP (CRITICAL FIX):
+ *    - ✅ Expired momentos are deleted BEFORE loading messages (prevents flash)
+ *    - ✅ Periodic cleanup every 30 seconds while conversation is open
+ *    - ✅ Backend scheduled job runs every hour to clean up expired momentos
+ *    - ✅ Database trigger automatically deletes messages when momento is deleted
+ *    - ✅ No temporary display of expired content
+ *    - ✅ Prevents database accumulation of expired data
+ * 
  * TECHNICAL IMPLEMENTATION:
  * - position: 'absolute' with dynamic bottom (keyboardHeight when open, 0 when closed)
  * - PREDICTIVE TEXT DETECTION: Uses Dimensions to detect screen height changes
@@ -93,6 +101,10 @@ interface Message {
  * - Input content respects safe area via paddingBottom
  * - PRECISE MEASUREMENT - uses screen height change to detect full keyboard height
  * - Enhanced console logging for debugging
+ * - MOMENTO EXPIRATION: Check and delete expired momentos before loading messages
+ * - PERIODIC CLEANUP: 30-second interval to remove expired momentos while viewing
+ * - BACKEND CLEANUP: Hourly scheduled job (pg_cron) to delete expired momentos
+ * - DATABASE TRIGGER: Automatically delete messages when momento is deleted
  */
 export default function ConversacionScreen() {
   const router = useRouter();
@@ -203,6 +215,72 @@ export default function ConversacionScreen() {
 
   const loadMessages = useCallback(async (chatIdToLoad: string) => {
     try {
+      console.log('[Conversacion] 🔍 Loading messages for chat:', chatIdToLoad);
+      
+      // ✅ CRITICAL FIX: Delete expired momentos BEFORE loading messages
+      // This prevents expired momentos from appearing even for a second
+      console.log('[Conversacion] 🧹 Checking for expired momentos...');
+      const now = new Date().toISOString();
+      
+      // Get all momento messages in this chat
+      const { data: momentoMessages, error: momentoError } = await supabase
+        .from('mensajes')
+        .select('id, momento_id')
+        .eq('chat_id', chatIdToLoad)
+        .eq('tipo_mensaje', 'momento')
+        .not('momento_id', 'is', null);
+
+      if (momentoError) {
+        console.error('[Conversacion] Error fetching momento messages:', momentoError);
+      } else if (momentoMessages && momentoMessages.length > 0) {
+        console.log('[Conversacion] 📊 Found', momentoMessages.length, 'momento messages to check');
+        
+        // Check each momento for expiration
+        const momentoIds = momentoMessages.map(m => m.momento_id).filter(Boolean);
+        
+        if (momentoIds.length > 0) {
+          const { data: expiredMomentos, error: expiredError } = await supabase
+            .from('momentos')
+            .select('id')
+            .in('id', momentoIds)
+            .lt('expires_at', now);
+
+          if (expiredError) {
+            console.error('[Conversacion] Error checking expired momentos:', expiredError);
+          } else if (expiredMomentos && expiredMomentos.length > 0) {
+            const expiredIds = expiredMomentos.map(m => m.id);
+            console.log('[Conversacion] 🗑️ Found', expiredIds.length, 'EXPIRED momentos, deleting permanently...');
+            
+            // Delete expired momentos from database
+            const { error: deleteMomentoError } = await supabase
+              .from('momentos')
+              .delete()
+              .in('id', expiredIds);
+
+            if (deleteMomentoError) {
+              console.error('[Conversacion] Error deleting expired momentos:', deleteMomentoError);
+            } else {
+              console.log('[Conversacion] ✅ Expired momentos deleted from database');
+              
+              // Delete messages referencing expired momentos
+              const { error: deleteMessageError } = await supabase
+                .from('mensajes')
+                .delete()
+                .in('momento_id', expiredIds);
+
+              if (deleteMessageError) {
+                console.error('[Conversacion] Error deleting expired momento messages:', deleteMessageError);
+              } else {
+                console.log('[Conversacion] ✅ Expired momento messages deleted from database');
+              }
+            }
+          } else {
+            console.log('[Conversacion] ✅ No expired momentos found');
+          }
+        }
+      }
+
+      // ✅ NOW load messages (expired momentos are already deleted)
       const { data, error } = await supabase
         .from('mensajes')
         .select('*')
@@ -214,6 +292,7 @@ export default function ConversacionScreen() {
         return;
       }
 
+      console.log('[Conversacion] ✅ Loaded', data?.length || 0, 'messages (expired momentos excluded)');
       setMensajes(data || []);
 
       if (user) {
@@ -440,6 +519,75 @@ export default function ConversacionScreen() {
   useEffect(() => {
     loadOrCreateChat();
   }, [loadOrCreateChat]);
+
+  // ✅ CRITICAL FIX: Periodic cleanup of expired momentos while conversation is open
+  useEffect(() => {
+    if (!chatId) return;
+
+    console.log('[Conversacion] 🔄 Setting up periodic momento expiration check');
+    
+    const cleanupExpiredMomentos = async () => {
+      try {
+        const now = new Date().toISOString();
+        
+        // Get all momento messages in this chat
+        const { data: momentoMessages } = await supabase
+          .from('mensajes')
+          .select('id, momento_id')
+          .eq('chat_id', chatId)
+          .eq('tipo_mensaje', 'momento')
+          .not('momento_id', 'is', null);
+
+        if (momentoMessages && momentoMessages.length > 0) {
+          const momentoIds = momentoMessages.map(m => m.momento_id).filter(Boolean);
+          
+          if (momentoIds.length > 0) {
+            // Check for expired momentos
+            const { data: expiredMomentos } = await supabase
+              .from('momentos')
+              .select('id')
+              .in('id', momentoIds)
+              .lt('expires_at', now);
+
+            if (expiredMomentos && expiredMomentos.length > 0) {
+              const expiredIds = expiredMomentos.map(m => m.id);
+              console.log('[Conversacion] 🗑️ Periodic cleanup: Found', expiredIds.length, 'expired momentos');
+              
+              // Delete expired momentos
+              await supabase
+                .from('momentos')
+                .delete()
+                .in('id', expiredIds);
+
+              // Delete messages referencing expired momentos
+              await supabase
+                .from('mensajes')
+                .delete()
+                .in('momento_id', expiredIds);
+
+              // Update UI to remove expired momento messages
+              setMensajes(prev => prev.filter(m => !expiredIds.includes(m.momento_id || '')));
+              
+              console.log('[Conversacion] ✅ Periodic cleanup: Expired momentos removed');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[Conversacion] Error in periodic cleanup:', error);
+      }
+    };
+
+    // Run cleanup immediately
+    cleanupExpiredMomentos();
+
+    // Run cleanup every 30 seconds while conversation is open
+    const intervalId = setInterval(cleanupExpiredMomentos, 30000);
+
+    return () => {
+      console.log('[Conversacion] 🧹 Cleaning up periodic momento check');
+      clearInterval(intervalId);
+    };
+  }, [chatId]);
 
   useEffect(() => {
     if (!chatId || !user) return;

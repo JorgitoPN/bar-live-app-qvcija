@@ -119,13 +119,24 @@ export default function ChatsScreen() {
               };
               console.log('[Chats] ✅ Loaded local info:', localData.nombre);
               
-              // Check for active momentos for local
+              // ✅ CRITICAL FIX: Check for active momentos and clean up expired ones
+              const now = new Date().toISOString();
+              
+              // First, delete any expired momentos for this local
+              await supabase
+                .from('momentos')
+                .delete()
+                .eq('local_id', chat.local_id)
+                .eq('tipo', 'local')
+                .lt('expires_at', now);
+              
+              // Then check for active momentos
               const { data: momentosData } = await supabase
                 .from('momentos')
                 .select('id')
                 .eq('local_id', chat.local_id)
                 .eq('tipo', 'local')
-                .gt('expires_at', new Date().toISOString())
+                .gt('expires_at', now)
                 .limit(1);
               
               hasActiveMomento = (momentosData && momentosData.length > 0);
@@ -145,13 +156,24 @@ export default function ChatsScreen() {
             if (userData) {
               console.log('[Chats] ✅ Loaded user info:', userData.nombre, 'username:', userData.username);
               
-              // Check for active momentos for user
+              // ✅ CRITICAL FIX: Check for active momentos and clean up expired ones
+              const now = new Date().toISOString();
+              
+              // First, delete any expired momentos for this user
+              await supabase
+                .from('momentos')
+                .delete()
+                .eq('autor_id', otroUsuarioId)
+                .eq('tipo', 'usuario')
+                .lt('expires_at', now);
+              
+              // Then check for active momentos
               const { data: momentosData } = await supabase
                 .from('momentos')
                 .select('id')
                 .eq('autor_id', otroUsuarioId)
                 .eq('tipo', 'usuario')
-                .gt('expires_at', new Date().toISOString())
+                .gt('expires_at', now)
                 .limit(1);
               
               hasActiveMomento = (momentosData && momentosData.length > 0);

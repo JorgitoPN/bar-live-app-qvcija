@@ -28,12 +28,15 @@ export default function MomentoMessageBubble({
   useEffect(() => {
     const checkMomentoStatus = async () => {
       if (!momentoId) {
+        console.log('[MomentoMessageBubble] No momento ID provided, marking as expired');
         setIsExpired(true);
         return;
       }
 
       try {
         setLoading(true);
+        console.log('[MomentoMessageBubble] 🔍 Checking momento status for:', momentoId);
+        
         const { data, error } = await supabase
           .from('momentos')
           .select('id, expires_at, autor_id, tipo, local_id')
@@ -41,7 +44,7 @@ export default function MomentoMessageBubble({
           .single();
 
         if (error || !data) {
-          console.log('[MomentoMessageBubble] Momento not found or error:', error);
+          console.log('[MomentoMessageBubble] ❌ Momento not found in database (already deleted):', error?.message);
           setIsExpired(true);
           return;
         }
@@ -49,10 +52,31 @@ export default function MomentoMessageBubble({
         const expiresAt = new Date(data.expires_at);
         const now = new Date();
         
+        console.log('[MomentoMessageBubble] 📅 Momento expires at:', expiresAt.toISOString());
+        console.log('[MomentoMessageBubble] 📅 Current time:', now.toISOString());
+        
         if (now > expiresAt) {
-          console.log('[MomentoMessageBubble] Momento has expired');
+          console.log('[MomentoMessageBubble] ⏰ Momento has EXPIRED (24 hours passed)');
           setIsExpired(true);
+          
+          // ✅ CRITICAL FIX: Delete expired momento from database immediately
+          console.log('[MomentoMessageBubble] 🗑️ Deleting expired momento from database...');
+          const { error: deleteError } = await supabase
+            .from('momentos')
+            .delete()
+            .eq('id', momentoId);
+
+          if (deleteError) {
+            console.error('[MomentoMessageBubble] Error deleting expired momento:', deleteError);
+          } else {
+            console.log('[MomentoMessageBubble] ✅ Expired momento deleted from database');
+          }
         } else {
+          const timeRemaining = expiresAt.getTime() - now.getTime();
+          const hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60));
+          const minutesRemaining = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+          
+          console.log('[MomentoMessageBubble] ✅ Momento is still valid (expires in', hoursRemaining, 'hours', minutesRemaining, 'minutes)');
           setIsExpired(false);
           setMomentoAuthorId(data.tipo === 'local' ? data.local_id : data.autor_id);
           setMomentoAuthorType(data.tipo);
