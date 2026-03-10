@@ -7,7 +7,13 @@ import { Session } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
 /**
- * ✅ AUTH STORE v2.1 - FASE 9: PERFIL INSTANTÁNEO + ABORT ERROR FIX
+ * ✅ AUTH STORE v2.2 - SESSION PERSISTENCE FIX
+ * 
+ * NEW CHANGES v2.2:
+ * - ✅ FIX: Session properly saved to storage after refresh
+ * - ✅ FIX: Session properly restored on app restart
+ * - ✅ FIX: Supabase client updated with cached session
+ * - ✅ IMPROVED: Better session validation and refresh logic
  * 
  * OPTIMIZACIONES FASE 9.1:
  * - ✅ STALE-WHILE-REVALIDATE: Perfil cacheado en MMKV, carga síncrona
@@ -15,12 +21,6 @@ import { Platform } from 'react-native';
  * - ✅ RACE CONDITION FIX: Prevenir múltiples fetches simultáneos
  * - ✅ ABORT ERRORS SILENCIADOS: No más logs de AbortError en consola
  * - ✅ CLEANUP MEJORADO: Cancelación limpia de requests en progreso
- * 
- * RESULTADO ESPERADO:
- * - Usuario visible en UI en <100ms tras abrir la app
- * - Perfil básico (nombre, avatar) cargado síncronamente desde MMKV
- * - Datos extendidos (estadísticas, historial) cargados en background
- * - Sin errores AbortError en consola
  */
 
 // ✅ FASE 9: T0 Profile (Critical - shown immediately)
@@ -119,6 +119,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ session: newSession, sessionReady: !!newSession });
     
     if (newSession) {
+      // ✅ v2.2 FIX: Save session to storage immediately
+      const { saveSessionSync, saveSessionAsync, storageInfo } = require('@/src/lib/supabaseStorage');
+      
+      try {
+        const sessionData = JSON.stringify(newSession);
+        if (storageInfo.isMMKVEnabled) {
+          saveSessionSync(sessionData);
+        } else {
+          saveSessionAsync(sessionData);
+        }
+        console.log('[AuthStore v2.2] ✅ Session saved to storage after manual set');
+      } catch (error) {
+        console.error('[AuthStore v2.2] ❌ Error saving session:', error);
+      }
+      
       getCurrentUser().then(({ user: userData, error: userError }) => {
         if (!userError && userData) {
           set({ user: userData });
@@ -132,16 +147,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // Ensure valid session (refresh if needed)
   ensureValidSession: async () => {
     try {
-      log('[AuthStore] 🔍 Checking session validity...');
+      log('[AuthStore v2.2] 🔍 Checking session validity...');
       const { data: { session: currentSession }, error: getError } = await supabase.auth.getSession();
       
       if (getError) {
-        console.error('[AuthStore] ❌ Error getting session:', getError);
+        console.error('[AuthStore v2.2] ❌ Error getting session:', getError);
         return null;
       }
       
       if (!currentSession) {
-        log('[AuthStore] ⚠️ No active session found');
+        log('[AuthStore v2.2] ⚠️ No active session found');
         return null;
       }
 
@@ -149,39 +164,55 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const now = Date.now();
       const timeUntilExpiry = expiresAt - now;
       
-      log('[AuthStore] ⏰ Session expires in:', Math.floor(timeUntilExpiry / 1000 / 60), 'minutes');
+      log('[AuthStore v2.2] ⏰ Session expires in:', Math.floor(timeUntilExpiry / 1000 / 60), 'minutes');
 
       // Refresh if session is expired or will expire in < 5 minutes
       if (timeUntilExpiry < 5 * 60 * 1000) {
-        log('[AuthStore] 🔄 Session expiring soon, refreshing...');
+        log('[AuthStore v2.2] 🔄 Session expiring soon, refreshing...');
         const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
         
         if (refreshError) {
-          console.error('[AuthStore] ❌ Error refreshing session:', refreshError);
+          console.error('[AuthStore v2.2] ❌ Error refreshing session:', refreshError);
           if (timeUntilExpiry <= 0) {
-            log('[AuthStore] ⚠️ Session expired, cannot refresh');
+            log('[AuthStore v2.2] ⚠️ Session expired, cannot refresh');
             return null;
           }
-          log('[AuthStore] ⚠️ Refresh failed but session still valid, using current session');
+          log('[AuthStore v2.2] ⚠️ Refresh failed but session still valid, using current session');
           set({ session: currentSession, sessionReady: true });
           return currentSession;
         }
 
         if (!refreshedSession) {
-          log('[AuthStore] ⚠️ No refreshed session returned');
+          log('[AuthStore v2.2] ⚠️ No refreshed session returned');
           return null;
         }
         
-        log('[AuthStore] ✅ Session refreshed successfully');
+        log('[AuthStore v2.2] ✅ Session refreshed successfully');
+        
+        // ✅ v2.2 FIX: Save refreshed session to storage
+        const { saveSessionSync, saveSessionAsync, storageInfo } = require('@/src/lib/supabaseStorage');
+        
+        try {
+          const sessionData = JSON.stringify(refreshedSession);
+          if (storageInfo.isMMKVEnabled) {
+            saveSessionSync(sessionData);
+          } else {
+            await saveSessionAsync(sessionData);
+          }
+          console.log('[AuthStore v2.2] ✅ Refreshed session saved to storage');
+        } catch (error) {
+          console.error('[AuthStore v2.2] ❌ Error saving refreshed session:', error);
+        }
+        
         set({ session: refreshedSession, sessionReady: true });
         return refreshedSession;
       }
 
-      log('[AuthStore] ✅ Session is valid');
+      log('[AuthStore v2.2] ✅ Session is valid');
       set({ session: currentSession, sessionReady: true });
       return currentSession;
     } catch (err) {
-      console.error('[AuthStore] ❌ Exception in ensureValidSession:', err);
+      console.error('[AuthStore v2.2] ❌ Exception in ensureValidSession:', err);
       return null;
     }
   },
@@ -242,10 +273,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   
-  // ✅ FASE 9.1: PERFIL INSTANTÁNEO - STALE-WHILE-REVALIDATE + ABORT ERROR FIX + LOADING SCREEN + SESSION PERSISTENCE FIX
+  // ✅ v2.2: SESSION PERSISTENCE FIX - Initialize with proper session restoration
   initialize: async () => {
     const startTime = performance.now();
-    console.log('[AuthStore FASE 9.1] 🚀 Initializing with INSTANT profile hydration...');
+    console.log('[AuthStore v2.2] 🚀 Initializing with SESSION PERSISTENCE FIX...');
     
     // ✅ NEW: Set initial loading state
     set({ isInitializing: true, initialLoadingProgress: 0 });
@@ -281,47 +312,51 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (cachedSessionData) {
         try {
           const parsedSession = JSON.parse(cachedSessionData);
-          console.log('[AuthStore FASE 9.1] ⚡ SYNC session found in MMKV (<1ms)');
+          console.log('[AuthStore v2.2] ⚡ SYNC session found in storage (<1ms)');
           
-          // ✅ FIX: Verificar que la sesión no esté expirada
+          // ✅ v2.2 FIX: Verificar que la sesión no esté expirada
           const expiresAt = parsedSession.expires_at * 1000;
           const now = Date.now();
           const isExpired = expiresAt <= now;
           
           if (isExpired) {
-            console.log('[AuthStore FASE 9.1] ⚠️ Cached session is expired, attempting refresh...');
+            console.log('[AuthStore v2.2] ⚠️ Cached session is expired, attempting refresh...');
             
-            // ✅ FIX v10.1: Try to refresh expired session before clearing
+            // ✅ v2.2 FIX: Try to refresh expired session before clearing
             try {
               const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession({
                 refresh_token: parsedSession.refresh_token,
               });
               
               if (!refreshError && refreshedSession) {
-                console.log('[AuthStore FASE 9.1] ✅ Expired session refreshed successfully');
+                console.log('[AuthStore v2.2] ✅ Expired session refreshed successfully');
                 
-                // Save refreshed session to storage
+                // ✅ v2.2 FIX: Save refreshed session to storage
                 if (storageInfo.isMMKVEnabled) {
                   saveSessionSync(JSON.stringify(refreshedSession));
                 } else {
                   await saveSessionAsync(JSON.stringify(refreshedSession));
                 }
                 
-                // Update Supabase client with refreshed session
+                // ✅ v2.2 FIX: Update Supabase client with refreshed session
                 await supabase.auth.setSession({
                   access_token: refreshedSession.access_token,
                   refresh_token: refreshedSession.refresh_token,
                 });
                 
+                // Load user data
+                const { user: userData } = await getCurrentUser();
+                
                 set({ 
                   session: refreshedSession,
+                  user: userData,
                   isAuthenticated: true,
                   sessionReady: true,
                   loading: false,
                   initialLoadingProgress: 0.25,
                 });
               } else {
-                console.log('[AuthStore FASE 9.1] ❌ Failed to refresh expired session, clearing...');
+                console.log('[AuthStore v2.2] ❌ Failed to refresh expired session, clearing...');
                 set({ 
                   session: null,
                   isAuthenticated: false,
@@ -331,7 +366,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 });
               }
             } catch (refreshError) {
-              console.error('[AuthStore FASE 9.1] ❌ Error refreshing expired session:', refreshError);
+              console.error('[AuthStore v2.2] ❌ Error refreshing expired session:', refreshError);
               set({ 
                 session: null,
                 isAuthenticated: false,
@@ -341,19 +376,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               });
             }
           } else {
-            console.log('[AuthStore FASE 9.1] ✅ Cached session is valid');
+            console.log('[AuthStore v2.2] ✅ Cached session is valid');
             
             // ✅ Progress: 25% - Session loaded
             set({ initialLoadingProgress: 0.25 });
             
-            // ✅ FIX: Actualizar Supabase client con la sesión cacheada
+            // ✅ v2.2 FIX: Actualizar Supabase client con la sesión cacheada
             // Esto es CRÍTICO para que las peticiones autenticadas funcionen
             await supabase.auth.setSession({
               access_token: parsedSession.access_token,
               refresh_token: parsedSession.refresh_token,
             });
             
-            // ✅ FIX v10.1: Also load user data from cached session
+            // ✅ v2.2 FIX: Load user data from cached session
             const { user: userData } = await getCurrentUser();
             
             // Actualizar estado INMEDIATAMENTE con la sesión cacheada
@@ -366,11 +401,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             });
           }
         } catch (parseError) {
-          console.error('[AuthStore FASE 9.1] ❌ Failed to parse cached session:', parseError);
+          console.error('[AuthStore v2.2] ❌ Failed to parse cached session:', parseError);
           set({ loading: false, sessionReady: true, initialLoadingProgress: 0.25 });
         }
       } else {
-        console.log('[AuthStore FASE 9.1] ℹ️ No cached session in MMKV');
+        console.log('[AuthStore v2.2] ℹ️ No cached session in storage');
         set({ loading: false, sessionReady: true, initialLoadingProgress: 0.25 });
       }
       
@@ -388,7 +423,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (cachedProfileT0) {
         try {
           const parsedProfileT0 = JSON.parse(cachedProfileT0);
-          console.log('[AuthStore FASE 9.1] ⚡ SYNC profile T0 found in MMKV (<1ms)');
+          console.log('[AuthStore v2.2] ⚡ SYNC profile T0 found in storage (<1ms)');
           
           // ✅ Progress: 40% - Profile loaded
           set({ initialLoadingProgress: 0.4 });
@@ -400,12 +435,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           });
           
           const syncTime = performance.now() - startTime;
-          console.log(`[AuthStore FASE 9.1] ✅ Profile visible in UI in ${syncTime.toFixed(0)}ms (SYNC)`);
+          console.log(`[AuthStore v2.2] ✅ Profile visible in UI in ${syncTime.toFixed(0)}ms (SYNC)`);
         } catch (parseError) {
-          console.error('[AuthStore FASE 9.1] ❌ Failed to parse cached profile T0:', parseError);
+          console.error('[AuthStore v2.2] ❌ Failed to parse cached profile T0:', parseError);
         }
       } else {
-        console.log('[AuthStore FASE 9.1] ℹ️ No cached profile T0 in MMKV');
+        console.log('[AuthStore v2.2] ℹ️ No cached profile T0 in storage');
         set({ initialLoadingProgress: 0.4 });
       }
       
@@ -419,7 +454,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise<{ data: { session: null }, error: Error }>((resolve) => {
         setTimeout(() => {
-          console.log('[AuthStore FASE 9.1] ⏱️ Network validation timeout (1500ms)');
+          console.log('[AuthStore v2.2] ⏱️ Network validation timeout (1500ms)');
           resolve({ data: { session: null }, error: new Error('Timeout') });
         }, 1500);
       });
@@ -430,14 +465,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       ]);
       
       const networkTime = performance.now() - networkStart;
-      console.log(`[AuthStore FASE 9.1] 🌐 Network validation completed in ${networkTime.toFixed(0)}ms`);
+      console.log(`[AuthStore v2.2] 🌐 Network validation completed in ${networkTime.toFixed(0)}ms`);
       
       // ✅ Progress: 70% - Network validation complete
       set({ initialLoadingProgress: 0.7 });
       
       // Si la validación de red falla o timeout, mantener la sesión cacheada
       if (sessionError && sessionError.message !== 'Timeout') {
-        console.error('[AuthStore FASE 9.1] ❌ Network validation error (non-blocking):', sessionError);
+        console.error('[AuthStore v2.2] ❌ Network validation error (non-blocking):', sessionError);
         // ✅ Mark as complete even on error
         set({ isInitializing: false, initialLoadingProgress: 1 });
         return;
@@ -445,21 +480,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       // Si la red devuelve una sesión diferente, actualizar
       if (networkSession) {
-        console.log('[AuthStore FASE 9.1] ✅ Network session validated');
+        console.log('[AuthStore v2.2] ✅ Network session validated');
         
-        // ✅ FIX v10.1: Load user data from network session
+        // ✅ v2.2 FIX: Load user data from network session
         const { user: networkUserData } = await getCurrentUser();
         
-        // ✅ FIX: Guardar la sesión validada en storage para próxima vez
+        // ✅ v2.2 FIX: Guardar la sesión validada en storage para próxima vez
         try {
           if (storageInfo.isMMKVEnabled) {
             saveSessionSync(JSON.stringify(networkSession));
           } else {
             await saveSessionAsync(JSON.stringify(networkSession));
           }
-          console.log('[AuthStore FASE 9.1] ✅ Session saved to storage for persistence');
+          console.log('[AuthStore v2.2] ✅ Session saved to storage for persistence');
         } catch (saveError) {
-          console.error('[AuthStore FASE 9.1] ❌ Error saving session to storage:', saveError);
+          console.error('[AuthStore v2.2] ❌ Error saving session to storage:', saveError);
         }
         
         set({ 
@@ -500,7 +535,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               const profileTime = performance.now() - profileStart;
               
               if (!profileError && profileData) {
-                console.log(`[AuthStore FASE 9.1] ✅ Profile T0 loaded in ${profileTime.toFixed(0)}ms`);
+                console.log(`[AuthStore v2.2] ✅ Profile T0 loaded in ${profileTime.toFixed(0)}ms`);
                 
                 const profileT0: UserProfileT0 = {
                   id: profileData.id,
@@ -536,7 +571,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                         .single();
                       
                       if (!extendedError && extendedData) {
-                        console.log('[AuthStore FASE 9.1] ✅ Profile T1 loaded (deferred)');
+                        console.log('[AuthStore v2.2] ✅ Profile T1 loaded (deferred)');
                         
                         const profileT1: UserProfileT1 = {
                           bio: extendedData.bio,
@@ -564,7 +599,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     } catch (t1Error: any) {
                       // ✅ FASE 9.1: Silenciar AbortError completamente
                       if (t1Error.name !== 'AbortError') {
-                        console.error('[AuthStore FASE 9.1] ❌ Profile T1 error (non-critical):', t1Error);
+                        console.error('[AuthStore v2.2] ❌ Profile T1 error (non-critical):', t1Error);
                       }
                     }
                   })();
@@ -585,13 +620,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               } else if (profileError) {
                 // ✅ FASE 9.1: Silenciar AbortError completamente
                 if (profileError.message !== 'AbortError' && profileError.code !== 'PGRST301') {
-                  console.error('[AuthStore FASE 9.1] ❌ Profile T0 error (non-blocking):', profileError);
+                  console.error('[AuthStore v2.2] ❌ Profile T0 error (non-blocking):', profileError);
                 }
               }
             } catch (error: any) {
               // ✅ FASE 9.1: Silenciar AbortError completamente
               if (error.name !== 'AbortError') {
-                console.error('[AuthStore FASE 9.1] ❌ Profile fetch error:', error);
+                console.error('[AuthStore v2.2] ❌ Profile fetch error:', error);
               }
             } finally {
               set({ isFetchingProfile: false, profileAbortController: null });
@@ -603,14 +638,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             }
           })();
         } else {
-          console.log('[AuthStore FASE 9.1] ⚠️ Profile fetch already in progress, skipping');
+          console.log('[AuthStore v2.2] ⚠️ Profile fetch already in progress, skipping');
           // ✅ Mark as complete
           setTimeout(() => {
             set({ isInitializing: false, initialLoadingProgress: 1 });
           }, 300);
         }
       } else {
-        console.log('[AuthStore FASE 9.1] ℹ️ No network session (user logged out or timeout)');
+        console.log('[AuthStore v2.2] ℹ️ No network session (user logged out or timeout)');
         // Si no hay sesión de red, limpiar la sesión cacheada
         if (cachedSessionData) {
           set({ 
@@ -627,14 +662,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       
       const totalTime = performance.now() - startTime;
-      console.log(`[AuthStore FASE 9.1] ✅ Total initialization: ${totalTime.toFixed(0)}ms`);
-      console.log('[AuthStore FASE 9.1] 📊 Breakdown:');
-      console.log('  - MMKV sync read (session + profile T0): <1ms');
+      console.log(`[AuthStore v2.2] ✅ Total initialization: ${totalTime.toFixed(0)}ms`);
+      console.log('[AuthStore v2.2] 📊 Breakdown:');
+      console.log('  - Storage sync read (session + profile T0): <1ms');
       console.log(`  - Network validation: ${networkTime.toFixed(0)}ms`);
       console.log('  - Profile T0 revalidation: background (non-blocking)');
       console.log('  - Profile T1 load: deferred (2s delay)');
     } catch (err) {
-      console.error('[AuthStore FASE 9.1] ❌ Initialization error (non-blocking):', err);
+      console.error('[AuthStore v2.2] ❌ Initialization error (non-blocking):', err);
       // ✅ CRITICAL: Always mark as ready, even on error
       set({ loading: false, sessionReady: true, isInitializing: false, initialLoadingProgress: 1 });
     }
