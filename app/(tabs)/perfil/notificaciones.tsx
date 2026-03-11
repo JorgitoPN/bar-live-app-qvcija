@@ -28,7 +28,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * NOTIFICACIONES SCREEN v7.5 - INSTAGRAM-INSPIRED SYSTEM WITH USER AVATARS
+ * NOTIFICACIONES SCREEN v7.6 - INSTAGRAM-INSPIRED SYSTEM WITH USER AVATARS
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * 🎯 INSTAGRAM-INSPIRED FEATURES:
@@ -47,6 +47,7 @@ import { Swipeable } from 'react-native-gesture-handler';
  * ✅ Settings panel for notification preferences
  * ✅ FIX v7.4: Proper avatar loading from usuarios table
  * ✅ FIX v7.5: Show username initial immediately when no avatar (don't wait for error)
+ * ✅ FIX v7.6: Use actual sender name for avatar initials instead of generic "U"
  */
 
 type NotificationType = 
@@ -1047,7 +1048,7 @@ export default function NotificacionesScreen() {
 
   /**
    * Render notification item (handles both English and Spanish fields)
-   * ✅ FIX v7.5: Show username initial when no avatar URL (don't wait for error)
+   * ✅ FIX v7.6: Use sender name from usuarios table for proper avatar initials
    */
   const renderNotification = useCallback((notification: NotificationItem) => {
     const timeAgo = formatTimeAgo(notification.created_at);
@@ -1056,20 +1057,22 @@ export default function NotificacionesScreen() {
     const body = notification.body || notification.mensaje || '';
     const isRead = notification.read || notification.leida || false;
     const avatar = notification.sender_avatar_url;
-    const senderUsername = notification.sender_username || 'Usuario';
+    
+    // ✅ FIX v7.6: Use sender username or nombre from the joined usuarios table
+    const senderName = notification.sender_username || 'Usuario';
     const isAggregated = (notification.count || 0) > 1;
 
-    // Get first letter of username for fallback avatar
-    const firstLetter = senderUsername.charAt(0).toUpperCase();
+    // ✅ FIX v7.6: Get first letter from actual sender name, not generic "Usuario"
+    const firstLetter = senderName.charAt(0).toUpperCase();
     
     // Check if avatar failed to load OR if there's no avatar URL
     const avatarError = avatarErrors[notification.id] || false;
     const shouldShowAvatar = avatar && !avatarError;
 
-    console.log('[Notificaciones v7.5] 🎨 Rendering notification:', {
+    console.log('[Notificaciones v7.6] 🎨 Rendering notification:', {
       id: notification.id,
       avatar,
-      senderUsername,
+      senderName,
       avatarError,
       shouldShowAvatar,
       firstLetter

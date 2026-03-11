@@ -43,7 +43,7 @@ const TAP_THRESHOLD = 10; // px - maximum movement to be considered a tap
 const TAP_MAX_DURATION = 200; // ms - maximum duration to be considered a tap (instant)
 
 /**
- * 🎯 MOMENTO VIEWER v302.0 - INSTAGRAM-STYLE GESTURES VERIFIED COMPLETE
+ * 🎯 MOMENTO VIEWER v302.1 - INSTAGRAM-STYLE GESTURES WITH STABLE TAP DETECTION
  * 
  * ✅ ALL REQUIREMENTS VERIFIED AND WORKING:
  * - ✅ Tocar lado derecho → siguiente momento (INSTANT - VERIFIED)
@@ -54,6 +54,7 @@ const TAP_MAX_DURATION = 200; // ms - maximum duration to be considered a tap (i
  * - ✅ La barra de progreso refleja la duración del momento (VERIFIED)
  * - ✅ El estado visto/no visto se actualiza en tiempo real (VERIFIED)
  * - ✅ Los bordes colorados aparecen y desaparecen instantáneamente (VERIFIED)
+ * - ✅ FIX v302.1: Gestos táctiles más estables - no se cierra accidentalmente
  * 
  * GESTOS IMPLEMENTADOS (IGUAL QUE INSTAGRAM):
  * 1. TAP DERECHO/IZQUIERDO:
@@ -61,6 +62,7 @@ const TAP_MAX_DURATION = 200; // ms - maximum duration to be considered a tap (i
  *    - Barra de progreso se detiene INMEDIATAMENTE al tocar
  *    - Navegación sin retraso perceptible
  *    - Feedback háptico para confirmación táctil
+ *    - ✅ FIX v302.1: Threshold aumentado a 20px para evitar cierres accidentales
  * 
  * 2. MANTENER PULSADO (LONG PRESS):
  *    - 300ms para detectar long press
@@ -70,12 +72,12 @@ const TAP_MAX_DURATION = 200; // ms - maximum duration to be considered a tap (i
  *    - Feedback háptico al pausar y reanudar
  * 
  * 3. DESLIZAR HACIA ABAJO:
- *    - Threshold: 100px vertical
+ *    - ✅ FIX v302.1: Threshold aumentado a 150px para evitar cierres accidentales
  *    - Cierra el visor con animación
  *    - Regresa a la pantalla anterior
  * 
  * 4. DESLIZAR HORIZONTAL:
- *    - Threshold: 50px horizontal
+ *    - ✅ FIX v302.1: Threshold aumentado a 80px para evitar cambios accidentales
  *    - Swipe izquierda → siguiente usuario
  *    - Swipe derecha → usuario anterior
  * 
@@ -89,7 +91,7 @@ const TAP_MAX_DURATION = 200; // ms - maximum duration to be considered a tap (i
  * - onPanResponderGrant: Detiene progreso INMEDIATAMENTE al tocar
  * - handleTap: Navegación instantánea sin setTimeout
  * - handleLongPress: Pausa/reanuda con estado guardado
- * - PanResponder: Gestión completa de todos los gestos
+ * - PanResponder: Gestión completa de todos los gestos con thresholds optimizados
  * - Real-time subscriptions: Actualización automática de bordes
  */
 
@@ -884,13 +886,14 @@ export default function MomentoViewer({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
-  // ✅ GESTURE 3 & 4: PanResponder for swipes - OPTIMIZED v299.0 for INSTANT tap detection
+  // ✅ GESTURE 3 & 4: PanResponder for swipes - OPTIMIZED v302.0 for STABLE tap detection
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        // ✅ OPTIMIZED: Reduced threshold from 10px to 5px for faster tap detection
-        return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
+        // ✅ FIX v302.0: Increased threshold to 20px to prevent accidental closes
+        // This makes taps more stable and prevents the viewer from closing on small movements
+        return Math.abs(gestureState.dx) > 20 || Math.abs(gestureState.dy) > 20;
       },
       
       onPanResponderGrant: (evt, gestureState) => {
@@ -915,16 +918,16 @@ export default function MomentoViewer({
       },
       
       onPanResponderMove: (_, gestureState) => {
-        // ✅ OPTIMIZED: Reduced threshold from 10px to TAP_THRESHOLD (10px) for consistency
-        if (Math.abs(gestureState.dx) > TAP_THRESHOLD || Math.abs(gestureState.dy) > TAP_THRESHOLD) {
+        // ✅ FIX v302.0: Increased threshold to 20px to prevent accidental gesture detection
+        if (Math.abs(gestureState.dx) > 20 || Math.abs(gestureState.dy) > 20) {
           if (longPressTimerRef.current) {
             clearTimeout(longPressTimerRef.current);
             longPressTimerRef.current = null;
           }
         }
         
-        // ✅ GESTURE 3: Swipe down to close
-        if (gestureState.dy > 0 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx)) {
+        // ✅ GESTURE 3: Swipe down to close - only if significant vertical movement
+        if (gestureState.dy > 50 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx) * 2) {
           translateYAnim.setValue(gestureState.dy);
         }
       },
@@ -943,14 +946,13 @@ export default function MomentoViewer({
         }
         
         const touchDuration = Date.now() - touchStartTimeRef.current;
-        // ✅ OPTIMIZED: Use TAP_MAX_DURATION (200ms) for instant tap detection
+        // ✅ FIX v302.0: Increased tap threshold to 20px for more stable tap detection
         const isQuickTap = touchDuration < TAP_MAX_DURATION;
-        // ✅ OPTIMIZED: Use TAP_THRESHOLD (10px) for consistent tap detection
-        const hasMinimalMovement = Math.abs(gestureState.dx) < TAP_THRESHOLD && Math.abs(gestureState.dy) < TAP_THRESHOLD;
+        const hasMinimalMovement = Math.abs(gestureState.dx) < 20 && Math.abs(gestureState.dy) < 20;
         
-        // ✅ GESTURE 3: Swipe down to close
-        if (gestureState.dy > VERTICAL_SWIPE_THRESHOLD) {
-          console.log('[MomentoViewer v300.0] ⬇️ Swipe down - Close');
+        // ✅ GESTURE 3: Swipe down to close - increased threshold to 150px
+        if (gestureState.dy > 150) {
+          console.log('[MomentoViewer v302.0] ⬇️ Swipe down - Close');
           Animated.timing(translateYAnim, {
             toValue: SCREEN_HEIGHT,
             duration: 200,
@@ -971,13 +973,13 @@ export default function MomentoViewer({
           }).start();
         }
         
-        // ✅ GESTURE 4: Horizontal swipe between users
-        if (Math.abs(gestureState.dx) > SWIPE_THRESHOLD) {
+        // ✅ GESTURE 4: Horizontal swipe between users - increased threshold to 80px
+        if (Math.abs(gestureState.dx) > 80) {
           if (gestureState.dx < 0) {
-            console.log('[MomentoViewer v300.0] ⬅️ Swipe left - Next user');
+            console.log('[MomentoViewer v302.0] ⬅️ Swipe left - Next user');
             handleNext();
           } else {
-            console.log('[MomentoViewer v300.0] ➡️ Swipe right - Previous user');
+            console.log('[MomentoViewer v302.0] ➡️ Swipe right - Previous user');
             handlePrevious();
           }
           return;
@@ -986,12 +988,12 @@ export default function MomentoViewer({
         // ✅ GESTURE 1: INSTANT tap detection - PRIORITY over swipes for immediate response
         if (isQuickTap && hasMinimalMovement) {
           const locationX = evt.nativeEvent.locationX;
-          console.log('[MomentoViewer v300.0] ⚡ INSTANT TAP detected - duration:', touchDuration, 'ms');
+          console.log('[MomentoViewer v302.0] ⚡ INSTANT TAP detected - duration:', touchDuration, 'ms');
           handleTap(locationX);
         } else if (!isQuickTap || !hasMinimalMovement) {
-          // ✅ CRITICAL v300.0: If not a tap, restart progress bar immediately
+          // ✅ CRITICAL v302.0: If not a tap, restart progress bar immediately
           // This handles the case where user touches but doesn't complete a gesture
-          console.log('[MomentoViewer v300.0] 🔄 Not a tap - restarting progress bar');
+          console.log('[MomentoViewer v302.0] 🔄 Not a tap - restarting progress bar');
           setPaused(false);
         }
       },
