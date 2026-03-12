@@ -3,6 +3,7 @@
 
 # dependencies
 node_modules/
+.natively/expo_server.log
 
 # Expo
 .expo/
