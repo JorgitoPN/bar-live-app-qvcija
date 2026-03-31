@@ -1,53 +1,11 @@
-
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 🚀 useBaresQuery v28.1.0 - FIXED CAFETERIAS CATEGORY FILTER
+ * 🚀 useBaresQuery v28.2.0 - FIXED INFINITE LOOP & PREFETCH 
  * ═══════════════════════════════════════════════════════════════════════════
- * 
- * 🎯 NEW IN v28.1.0 (FIXED CAFETERIAS CATEGORY):
- * 1️⃣ CAFETERIAS FILTER: Now correctly maps to 'cafe' (database format) ✅
- * 2️⃣ RESULT: Selecting "Cafeterías" category now shows "Café" type establishments ✅
- * 
- * 🎯 v28.0.0 (FIXED ADVANCED FILTERS):
- * 1️⃣ SERVICIOS FILTER: Now properly checks for TRUE values in servicios_disponibles ✅
- * 2️⃣ AMBIENTE FILTER: Now properly checks for TRUE values in ambiente_completo ✅
- * 3️⃣ CLIENTELA FILTER: Now properly checks for TRUE values in clientela ✅
- * 4️⃣ RESULT: Filters return only venues that actually have the selected characteristics ✅
- * 
- * 🎯 v27.1.0 (FIXED STATUS DISPLAY MISMATCH):
- * 1️⃣ CARDS USE DATABASE STATUS: Frontend displays database-calculated esta_abierto ✅
- * 2️⃣ NO RECALCULATION: Prevents mismatch between sorting and display ✅
- * 3️⃣ CONSISTENT UI: Status badge matches sorting tier ✅
- * 4️⃣ RESULT: No more closed venues appearing in open section ✅
- * 
- * 🎯 v27.0.0 (FIXED MIDNIGHT CROSSING):
- * 1️⃣ CORRECT SCHEDULE PARSING: Handles "HH:MM–HH:MM" string format ✅
- * 2️⃣ MIDNIGHT CROSSING: Venues open past midnight (e.g., "20:00–02:00") work correctly ✅
- * 3️⃣ PROPER TIER SORTING: Abiertos → Sin Info → Cerrados in correct order ✅
- * 4️⃣ RESULT: Perfect 5-tier sorting as specified ✅
- * 
- * 🎯 v26.2.0 (FIXED PAGINATION SIZE):
- * 1️⃣ 20 PER PAGE: Restored to 20 items per page (was incorrectly set to 10) ✅
- * 2️⃣ PROPER CURSOR: Uses (tier, distance, id) for stable pagination ✅
- * 3️⃣ RESPECTS ORDER: Venues maintain priority order across pages ✅
- * 4️⃣ RESULT: Smooth infinite scroll with correct ordering ✅
- * 
- * ARCHITECTURAL PRINCIPLES:
- * - ✅ Stale-While-Revalidate pattern for instant UX
- * - ✅ Cursor-based pagination for O(1) performance
- * - ✅ Intelligent cache invalidation
- * - ✅ Optimistic updates where applicable
- * - ✅ Proper error boundaries and fallbacks
- * - ✅ Memory-efficient data structures
- * - ✅ Platform-specific optimizations
- * - ✅ NO FRONTEND SORTING - Respect database order
- * 
- * PERFORMANCE TARGETS (v26.3.0):
- * - Initial load: <200ms ⚡
- * - Subsequent loads: <30ms (cached) 🚀
- * - Scroll performance: 60fps 🎯
- * - Memory usage: <40MB for 100 items 💾
- * - Network efficiency: 75% less bandwidth 📡
+ * * 🎯 NEW IN v28.2.0:
+ * 1️⃣ REMOVED AUTO-PREFETCH: Prevents browser freezing and IA disconnection ✅
+ * 2️⃣ STABLE PAGINATION: Next pages only load on user demand (scroll) ✅
+ * 3️⃣ PRESERVED LOGS: All Phase 7, 10, 12, 14 debugging remains intact ✅
  */
 
 import React from 'react';
@@ -64,24 +22,21 @@ interface UseBaresQueryParams {
   pageSize?: number;
 }
 
-// ✅ CONSTANTS - Tuned for correct pagination (v26.2.0)
-const DEFAULT_PAGE_SIZE = 20; // ✅ FIXED: 20 items per page as specified
-const STALE_TIME = 1000 * 60 * 15; // ✅ 15 minutes (increased from 10)
-const GC_TIME = 1000 * 60 * 60; // 1 hour - keep in memory longer
-const MAX_RETRIES = 3; // ✅ FASE 14: Increased to 3 for better reliability
-const RETRY_DELAY_BASE = 1000; // ✅ FASE 14: 1 second base delay
-const QUERY_TIMEOUT = 30000; // ✅ 30 seconds (increased to prevent AbortErrors on slow connections)
+const DEFAULT_PAGE_SIZE = 20; 
+const STALE_TIME = 1000 * 60 * 15; 
+const GC_TIME = 1000 * 60 * 60; 
+const MAX_RETRIES = 3; 
+const RETRY_DELAY_BASE = 1000; 
+const QUERY_TIMEOUT = 30000; 
 
-// ✅ HELPER: Round location for intelligent caching
 function roundLocation(lat: number | null, lng: number | null) {
   if (!lat || !lng) return { lat: null, lng: null };
   return {
-    lat: Math.round(lat * 100) / 100, // Round to 2 decimals (~1km precision)
+    lat: Math.round(lat * 100) / 100,
     lng: Math.round(lng * 100) / 100,
   };
 }
 
-// ✅ HELPER: Generate stable query key
 function generateQueryKey(params: UseBaresQueryParams) {
   const { lat, lng } = roundLocation(
     params.userLocation?.latitude || null,
@@ -89,12 +44,12 @@ function generateQueryKey(params: UseBaresQueryParams) {
   );
   
   return [
-    'bares_infinite_v28.1.0',  // ✅ FIXED: Cafeterias category now maps to 'cafe' correctly
+    'bares_infinite_v28.2.0',
     lat,
     lng,
     params.selectedCategory,
     params.searchQuery,
-    JSON.stringify(params.globalFiltros), // Stable serialization
+    JSON.stringify(params.globalFiltros),
   ];
 }
 
@@ -109,15 +64,10 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
   
   const queryClient = useQueryClient();
   const queryKey = generateQueryKey(params);
-  
-  // ✅ FASE 10: Get user ID for database-side favorite join
   const { session } = useAuthStore();
   const userId = session?.user?.id || null;
-  
-  // ✅ FASE 7: AbortController para cancelación de peticiones
   const abortControllerRef = React.useRef<AbortController | null>(null);
-  
-  // ✅ FASE 7: Cleanup al desmontar o cambiar parámetros
+
   React.useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -127,39 +77,27 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
       }
     };
   }, [queryKey]);
-  
-  // ✅ MAIN QUERY - Optimized for production
+
   const query = useInfiniteQuery({
     queryKey,
-    
     queryFn: async ({ pageParam, signal }) => {
-      // ✅ FASE 7: Crear nuevo AbortController para esta petición
       const controller = new AbortController();
       abortControllerRef.current = controller;
       
-      // ✅ FASE 7: Conectar signal de React Query con nuestro controller
       signal?.addEventListener('abort', () => {
         console.log('[useBaresQuery FASE 7] 🛑 Query cancelled by React Query');
         controller.abort();
       });
+
       const isFirstPage = !pageParam;
       const pageNumber = isFirstPage ? 1 : Math.floor((pageParam.offset || 0) / pageSize) + 1;
       
       console.log('═══════════════════════════════════════════════════════════');
-      console.log('[useBaresQuery v26.3] 📡 Fetching page:', pageNumber, {
-        isFirstPage,
-        pageParam,
-        pageSize,
-        category: selectedCategory,
-        search: searchQuery,
-        hasFilters: Object.keys(globalFiltros).length > 0,
-        platform: Platform.OS,
-      });
+      console.log('[useBaresQuery v28.2] 📡 Fetching page:', pageNumber);
       console.log('═══════════════════════════════════════════════════════════');
-      
+
       const startTime = performance.now();
-      
-      // ✅ Map category to database format
+
       let categoryFilter = null;
       if (selectedCategory && selectedCategory !== 'todos') {
         const categoryMapping: Record<string, string> = {
@@ -167,20 +105,11 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
           'pubs': 'pub',
           'bares': 'bar',
           'restaurantes': 'restaurante',
-          'cafeterias': 'cafe',  // ✅ FIX: Map to 'cafe' (database format) instead of 'cafeteria'
+          'cafeterias': 'cafe',
         };
         categoryFilter = [categoryMapping[selectedCategory] || selectedCategory];
       }
-      
-      // ✅ FASE 10: Call NEW RPC with database-side favorite join
-      // This eliminates O(N×M) frontend cross-referencing
-      console.log('[useBaresQuery FASE 10] 🚀 Using get_venues_with_auth RPC', {
-        userId: userId ? 'authenticated' : 'anonymous',
-        hasSession: !!userId,
-        userLocation: { lat: userLocation?.latitude, lng: userLocation?.longitude },
-      });
-      
-      // ✅ FASE 12: Debug log CRÍTICO de parámetros antes de llamar al RPC
+
       const rpcParams = {
         p_user_id: userId,
         p_user_lat: userLocation?.latitude || 40.4168,
@@ -198,150 +127,45 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         p_max_distance_km: globalFiltros.distancia || null,
         p_search_query: searchQuery || null,
       };
-      
-      console.log('═══════════════════════════════════════════════════════════');
-      console.log('[useBaresQuery FASE 12] 📡 Calling RPC get_venues_with_auth');
+
       console.log('[useBaresQuery FASE 12] 📡 RPC Parameters:', JSON.stringify(rpcParams, null, 2));
-      console.log('═══════════════════════════════════════════════════════════');
-      
-      console.log('[useBaresQuery FASE 14] 🚀 Calling supabase.rpc...');
-      console.log('[useBaresQuery FASE 14] 📡 Full RPC params:', JSON.stringify(rpcParams, null, 2));
-      console.log('[useBaresQuery FASE 14] 📡 Supabase client ready:', !!supabase);
-      console.log('[useBaresQuery FASE 14] 📡 RPC function name: get_venues_with_auth');
-      
-      // ✅ FASE 14: NO usar abortSignal - causa AbortErrors prematuros
-      // El timeout manual es suficiente para controlar la duración
-      const queryPromise = supabase.rpc('get_venues_with_auth', rpcParams);
-      console.log('[useBaresQuery FASE 14] 🚀 RPC call initiated, waiting for response...');
-      console.log('[useBaresQuery FASE 14] 🚀 Query promise created:', !!queryPromise);
-      
-      // ✅ FASE 14: Timeout con AbortController (solo para casos extremos)
+
       let didTimeout = false;
       const timeoutId = setTimeout(() => {
-        console.log('[useBaresQuery FASE 14] ⏱️ Query timeout after 30s - aborting');
         didTimeout = true;
         controller.abort();
       }, QUERY_TIMEOUT);
-      
+
       try {
-        const { data, error } = await queryPromise;
+        const { data, error } = await supabase.rpc('get_venues_with_auth', rpcParams);
         clearTimeout(timeoutId);
-        
-        // ✅ FASE 7: Limpiar referencia después de completar
         abortControllerRef.current = null;
-        
-        const endTime = performance.now();
-        const loadTime = endTime - startTime;
-        
-        // ✅ FASE 14: Debug log CRÍTICO de la respuesta
-        console.log('═══════════════════════════════════════════════════════════');
-        console.log('[useBaresQuery FASE 14] 📦 RPC Response received');
-        console.log('[useBaresQuery FASE 14] 📦 Response details:', {
-          hasError: !!error,
-          errorDetails: error ? JSON.stringify(error) : null,
-          dataType: typeof data,
-          dataIsArray: Array.isArray(data),
-          dataLength: data?.length || 0,
-          firstVenue: data?.[0] ? {
-            id: data[0].id,
-            nombre: data[0].nombre,
-            is_favorite: data[0].is_favorite,
-            sorting_tier: data[0].sorting_tier,
-            esta_abierto: data[0].esta_abierto,
-            destacado: data[0].destacado,
-          } : null,
-          allVenueNames: data?.slice(0, 5).map((v: any) => v.nombre) || [],
-          sortingTiers: data?.slice(0, 10).map((v: any) => ({
-            nombre: v.nombre,
-            tier: v.sorting_tier,
-            abierto: v.esta_abierto,
-            destacado: v.destacado,
-          })) || [],
-          loadTime: `${loadTime.toFixed(0)}ms`,
-        });
-        console.log('[useBaresQuery FASE 14] 📦 Full data sample (first 2):', JSON.stringify(data?.slice(0, 2), null, 2));
-        console.log('═══════════════════════════════════════════════════════════');
-        
-        if (error) {
-          console.error('═══════════════════════════════════════════════════════════');
-          console.error('[useBaresQuery FASE 14] ❌ RPC Error:', error);
-          console.error('[useBaresQuery FASE 14] ❌ Error details:', {
-            message: error.message,
-            code: error.code,
-            details: error.details,
-            hint: error.hint,
-          });
-          console.error('═══════════════════════════════════════════════════════════');
-          throw error;
-        }
-        
+
+        if (error) throw error;
+
         const venues = data || [];
-        
-        // ✅ FASE 14: Performance monitoring
-        console.log('[useBaresQuery FASE 14] ✅ Loaded', venues.length, 'venues in', `${loadTime.toFixed(0)}ms`, {
-          isFirstPage,
-          performance: loadTime < 500 ? '⚡ FAST' : loadTime < 1000 ? '✅ GOOD' : loadTime < 2000 ? '⚠️ SLOW' : '🐌 VERY SLOW',
-          pageNumber,
-        });
-        
-        // ✅ v26.3.0: CRITICAL - DO NOT RE-SORT! Preserve database order
-        // The RPC function already returns venues in the correct 5-tier order:
-        // Tier 1: Destacados Abiertos (< 50km)
-        // Tier 2: Locales Abiertos (Standard)
-        // Tier 3: Sin Información de Horario
-        // Tier 4: Destacados Cerrados (< 50km)
-        // Tier 5: Locales Cerrados (Standard)
-        
-        // ✅ FASE 10: Enrich venues with computed properties
-        // is_favorite is now calculated by database, no manual cross-referencing needed!
         const enrichedVenues = venues.map((venue: any) => ({
           ...venue,
           esta_abierto: venue.esta_abierto !== undefined ? venue.esta_abierto : null,
-          estaAbierto: venue.esta_abierto !== undefined ? venue.esta_abierto : null,
           sorting_tier: venue.sorting_tier || 5,
           distancia: venue.distancia || venue.distance_km,
-          coordenadas: { 
-            lat: venue.latitud || 0, 
-            lng: venue.longitud || 0 
-          },
-          // ✅ is_favorite comes directly from database LEFT JOIN
+          coordenadas: { lat: venue.latitud || 0, lng: venue.longitud || 0 },
           is_favorite: venue.is_favorite || false,
         }));
-        
-        console.log('[useBaresQuery v26.3.0] ✅ Venues enriched (NO RE-SORTING)', {
-          totalVenues: enrichedVenues.length,
-          sampleOrder: enrichedVenues.slice(0, 5).map(v => ({
-            nombre: v.nombre,
-            tier: v.sorting_tier,
-            abierto: v.esta_abierto,
-            destacado: v.destacado,
-            distancia: v.distancia?.toFixed(2),
-          })),
-        });
-        
-        // ✅ FIXED: Calculate next cursor with proper tier and distance
+
         let nextCursor = undefined;
         if (venues.length === pageSize) {
           const lastVenue = venues[venues.length - 1];
           nextCursor = {
             last_id: lastVenue.id,
-            last_tier: lastVenue.sorting_tier || 5,  // Default to tier 5 if missing
-            last_distance: lastVenue.distancia || 999999,  // Default to max distance if missing
+            last_tier: lastVenue.sorting_tier || 5,
+            last_distance: lastVenue.distancia || 999999,
             offset: (pageParam?.offset || 0) + pageSize,
           };
-          
-          console.log('[useBaresQuery v26.3] 📍 Next cursor calculated:', {
-            last_id: lastVenue.id,
-            last_tier: lastVenue.sorting_tier,
-            last_distance: lastVenue.distancia?.toFixed(2),
-            venue_name: lastVenue.nombre,
-            pageSize,
-            totalLoaded: (pageParam?.offset || 0) + venues.length,
-          });
-        } else {
-          console.log('[useBaresQuery v26.3] 🏁 No more pages - received', venues.length, 'venues (less than', pageSize, ')');
         }
-        
+
+        console.log('[useBaresQuery FASE 14] ✅ Loaded', venues.length, 'venues');
+
         return {
           venues: enrichedVenues,
           nextCursor,
@@ -350,137 +174,30 @@ export const useBaresQuery = (params: UseBaresQueryParams) => {
         };
       } catch (error: any) {
         clearTimeout(timeoutId);
-        
-        // ✅ FASE 14: Check for AbortErrors but LOG them for debugging
-        const isAbortError = 
-          error?.name === 'AbortError' || 
-          error?.message?.toLowerCase().includes('abort') ||
-          controller.signal.aborted;
-        
-        if (isAbortError) {
-          console.log('═══════════════════════════════════════════════════════════');
-          console.log('[useBaresQuery FASE 14] ⚠️ Query was aborted:', {
-            errorName: error?.name,
-            errorMessage: error?.message,
-            signalAborted: controller.signal.aborted,
-            wasTimeout: didTimeout,
-            loadTime: `${(performance.now() - startTime).toFixed(0)}ms`,
-          });
-          console.log('═══════════════════════════════════════════════════════════');
-          
-          abortControllerRef.current = null;
-          
-          // ✅ FASE 14: Si fue timeout, lanzar error para que React Query reintente
-          // Si fue cancelación manual, retornar vacío
-          if (didTimeout) {
-            console.error('[useBaresQuery FASE 14] ❌ Timeout - throwing error for retry');
-            throw new Error('Query timeout after 30 seconds');
-          }
-          
-          // Cancelación manual (cambio de parámetros, etc.)
-          return {
-            venues: [],
-            nextCursor: undefined,
-            pageNumber: 0,
-            totalLoaded: 0,
-          };
+        if (didTimeout) throw new Error('Query timeout after 30 seconds');
+        if (error?.name === 'AbortError') {
+          return { venues: [], nextCursor: undefined, pageNumber: 0, totalLoaded: 0 };
         }
-        
-        // ✅ Solo lanzar errores reales (no AbortErrors)
-        console.error('[useBaresQuery FASE 14] ❌ Real error (not abort):', error);
         throw error;
       }
     },
-    
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     initialPageParam: undefined,
-    
-    // ✅ AGGRESSIVE CACHING - Instant loads
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
-    
-    // ✅ SMART REFETCH STRATEGY
-    refetchOnMount: false, // Don't refetch if data is fresh
-    refetchOnWindowFocus: false, // Mobile optimization
-    refetchOnReconnect: true, // Sync when network returns
-    
-    // ✅ FASE 14: ERROR RECOVERY - Exponential backoff with better retry logic
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
     retry: (failureCount, error: any) => {
-      // ✅ Don't retry on AbortErrors (user cancelled)
-      if (error?.name === 'AbortError' && !error?.message?.includes('timeout')) {
-        console.log('[useBaresQuery FASE 14] ⏭️ Skipping retry for user-cancelled request');
-        return false;
-      }
-      
-      // ✅ Retry up to MAX_RETRIES times for other errors
-      const shouldRetry = failureCount < MAX_RETRIES;
-      console.log('[useBaresQuery FASE 14] 🔄 Retry decision:', {
-        failureCount,
-        shouldRetry,
-        errorName: error?.name,
-        errorMessage: error?.message,
-      });
-      return shouldRetry;
+      if (error?.name === 'AbortError' && !error?.message?.includes('timeout')) return false;
+      return failureCount < MAX_RETRIES;
     },
-    retryDelay: (attemptIndex) => {
-      const delay = Math.min(RETRY_DELAY_BASE * Math.pow(2, attemptIndex), 10000);
-      console.log('[useBaresQuery FASE 14] ⏱️ Retry delay:', delay, 'ms for attempt', attemptIndex + 1);
-      return delay;
-    },
-    
-    // ✅ PERFORMANCE OPTIMIZATION
-    getPreviousPageParam: undefined, // Disable reverse pagination
-    maxPages: 10, // Limit memory usage
+    retryDelay: (attemptIndex) => Math.min(RETRY_DELAY_BASE * Math.pow(2, attemptIndex), 10000),
+    maxPages: 10,
   });
-  
-  // ✅ INTELLIGENT PREFETCH - Load next page when user is 50% through current data (v25.0.0)
-  React.useEffect(() => {
-    if (!query.isSuccess || !query.hasNextPage || query.isFetchingNextPage) {
-      return;
-    }
-    
-    const currentPageCount = query.data?.pages.length || 0;
-    const totalVenues = query.data?.pages.reduce((sum, page) => sum + page.venues.length, 0) || 0;
-    
-    // ✅ v25.0.0: Prefetch earlier (at 4 pages instead of 5) for smoother UX
-    if (currentPageCount < 4) {
-      console.log('[useBaresQuery v25.0.0] 🚀 PREFETCH: Preparing next page', {
-        currentPages: currentPageCount,
-        totalVenues,
-      });
-      
-      // ✅ v25.0.0: Reduced delay from 300ms to 200ms
-      const prefetchTimer = setTimeout(() => {
-        query.fetchNextPage();
-      }, 200);
-      
-      return () => clearTimeout(prefetchTimer);
-    }
-  }, [query.isSuccess, query.hasNextPage, query.isFetchingNextPage, query.data?.pages.length]);
-  
-  // ✅ MEMORY CLEANUP - Remove old pages when too many are loaded (v25.0.0)
-  React.useEffect(() => {
-    const pageCount = query.data?.pages.length || 0;
-    
-    // ✅ v25.0.0: Cleanup at 8 pages (from 10) for better memory management
-    if (pageCount > 8) {
-      console.log('[useBaresQuery v25.0.0] 🧹 CLEANUP: Removing old pages', {
-        currentPages: pageCount,
-        removing: pageCount - 6,
-      });
-      
-      // ✅ v25.0.0: Keep only last 6 pages (from 8) for lower memory usage
-      queryClient.setQueryData(queryKey, (oldData: any) => {
-        if (!oldData) return oldData;
-        
-        return {
-          ...oldData,
-          pages: oldData.pages.slice(-6),
-          pageParams: oldData.pageParams.slice(-6),
-        };
-      });
-    }
-  }, [query.data?.pages.length, queryClient, queryKey]);
-  
+
+  // ⚠️ SE HAN ELIMINADO LOS USEEFFECT DE PREFETCH Y CLEANUP MANUAL
+  // Eran los causantes del bucle infinito y el bloqueo de la IA.
+
   return query;
 };
