@@ -9,7 +9,7 @@ import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { LocationProvider } from '@/contexts/LocationContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { colors } from '@/styles/commonStyles';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Platform, AppState, AppStateStatus, InteractionManager } from 'react-native';
 import * as SystemUI from 'expo-system-ui';
@@ -98,30 +98,98 @@ const persister = createAsyncStoragePersister({
 
 console.log('[TanStack Query v24.0 - PASO 1] ✅ Cache persister initialized');
 
-export default function RootLayout() {
-  // Production web bridge: keep barliveapp.es visible while serving the
-  // current BarLive web application from the new Render web service.
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    const currentPath =
-      `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    const src = `${CURRENT_BARLIVE_WEB_ORIGIN}${currentPath}`;
+function WebProductionBridge() {
+  const iframeRef = useRef<any>(null);
+  const currentPath =
+    `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const src = `${CURRENT_BARLIVE_WEB_ORIGIN}${currentPath}`;
 
-    return React.createElement('iframe', {
-      src,
-      title: 'BarLive',
-      allow:
-        'geolocation; camera; microphone; clipboard-read; clipboard-write; fullscreen',
-      style: {
-        position: 'fixed',
-        inset: 0,
-        width: '100vw',
-        height: '100vh',
-        border: 0,
-        margin: 0,
-        padding: 0,
-        backgroundColor: '#FFFFFF',
-      },
-    });
+  useEffect(() => {
+    const sendLocation = () => {
+      const target = iframeRef.current?.contentWindow;
+      if (!target) return;
+
+      if (!navigator.geolocation) {
+        target.postMessage(
+          {
+            type: 'BARLIVE_LOCATION_RESPONSE',
+            ok: false,
+            error: 'Geolocation not supported',
+          },
+          CURRENT_BARLIVE_WEB_ORIGIN
+        );
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          target.postMessage(
+            {
+              type: 'BARLIVE_LOCATION_RESPONSE',
+              ok: true,
+              coords: {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+              },
+              timestamp: Date.now(),
+            },
+            CURRENT_BARLIVE_WEB_ORIGIN
+          );
+        },
+        (error) => {
+          target.postMessage(
+            {
+              type: 'BARLIVE_LOCATION_RESPONSE',
+              ok: false,
+              error: error?.message || 'Location permission denied',
+              code: error?.code ?? null,
+            },
+            CURRENT_BARLIVE_WEB_ORIGIN
+          );
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 15000,
+          maximumAge: 300000,
+        }
+      );
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== CURRENT_BARLIVE_WEB_ORIGIN) return;
+      if (event.data?.type !== 'BARLIVE_LOCATION_REQUEST') return;
+      sendLocation();
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  return React.createElement('iframe', {
+    ref: iframeRef,
+    src,
+    title: 'BarLive',
+    allow:
+      'geolocation; camera; microphone; clipboard-read; clipboard-write; fullscreen',
+    style: {
+      position: 'fixed',
+      inset: 0,
+      width: '100vw',
+      height: '100vh',
+      border: 0,
+      margin: 0,
+      padding: 0,
+      backgroundColor: '#FFFFFF',
+    },
+  });
+}
+
+export default function RootLayout() {
+  // Production web bridge: barliveapp.es remains the top-level origin so it
+  // can request browser permissions and relay them to the current web app.
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return <WebProductionBridge />;
   }
 
   // ✅ NEW: Track initialization state for loading screen
