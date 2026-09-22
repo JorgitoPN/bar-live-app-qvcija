@@ -27,6 +27,20 @@ import { supabase } from '@/utils/supabase';
 import { PerformanceTracker } from '@/utils/performanceTracker';
 import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 
+const CURRENT_BARLIVE_WEB_ORIGIN = 'https://barlive-web-production.onrender.com';
+
+// Temporary bridge from the legacy Render site that owns barliveapp.es to the
+// current BarLive web service. The target has a server-side SPA fallback, so
+// direct loads and browser refreshes on nested routes no longer return 404.
+if (Platform.OS === 'web' && typeof window !== 'undefined') {
+  const currentPath =
+    `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const target = `${CURRENT_BARLIVE_WEB_ORIGIN}${currentPath}`;
+  if (!window.location.href.startsWith(CURRENT_BARLIVE_WEB_ORIGIN)) {
+    window.location.replace(target);
+  }
+}
+
 
 /**
  * ✅ ROOT LAYOUT v24.0 - PASO 1: INTERACTIONMANAGER DEFERRED LOADING
