@@ -27,20 +27,6 @@ import { supabase } from '@/utils/supabase';
 import { PerformanceTracker } from '@/utils/performanceTracker';
 import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 
-const CURRENT_BARLIVE_WEB_ORIGIN = 'https://barlive-web-current.onrender.com';
-
-// barliveapp.es was historically deployed from this legacy repository.
-// Keep the public domain functional while the canonical Render custom-domain
-// binding is moved to the current BarLive-2 web service. Redirect every web
-// route, preserving deep links, query strings and auth/recovery hashes.
-if (Platform.OS === 'web' && typeof window !== 'undefined') {
-  const currentPath =
-    `${window.location.pathname}${window.location.search}${window.location.hash}`;
-  const target = `${CURRENT_BARLIVE_WEB_ORIGIN}${currentPath}`;
-  if (!window.location.href.startsWith(CURRENT_BARLIVE_WEB_ORIGIN)) {
-    window.location.replace(target);
-  }
-}
 
 /**
  * ✅ ROOT LAYOUT v24.0 - PASO 1: INTERACTIONMANAGER DEFERRED LOADING
