@@ -99,6 +99,31 @@ const persister = createAsyncStoragePersister({
 console.log('[TanStack Query v24.0 - PASO 1] ✅ Cache persister initialized');
 
 export default function RootLayout() {
+  // Production web bridge: keep barliveapp.es visible while serving the
+  // current BarLive web application from the new Render web service.
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const currentPath =
+      `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const src = `${CURRENT_BARLIVE_WEB_ORIGIN}${currentPath}`;
+
+    return React.createElement('iframe', {
+      src,
+      title: 'BarLive',
+      allow:
+        'geolocation; camera; microphone; clipboard-read; clipboard-write; fullscreen',
+      style: {
+        position: 'fixed',
+        inset: 0,
+        width: '100vw',
+        height: '100vh',
+        border: 0,
+        margin: 0,
+        padding: 0,
+        backgroundColor: '#FFFFFF',
+      },
+    });
+  }
+
   // ✅ NEW: Track initialization state for loading screen
   const isInitializing = useAuthStore(state => state.isInitializing);
   const initialLoadingProgress = useAuthStore(state => state.initialLoadingProgress);
@@ -338,31 +363,6 @@ export default function RootLayout() {
 
     return () => clearTimeout(timer);
   }, []);
-
-  // Production web bridge: keep barliveapp.es visible while serving the
-  // current BarLive web application from the new Render web service.
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    const currentPath =
-      `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    const src = `${CURRENT_BARLIVE_WEB_ORIGIN}${currentPath}`;
-
-    return React.createElement('iframe', {
-      src,
-      title: 'BarLive',
-      allow:
-        'geolocation; camera; microphone; clipboard-read; clipboard-write; fullscreen',
-      style: {
-        position: 'fixed',
-        inset: 0,
-        width: '100vw',
-        height: '100vh',
-        border: 0,
-        margin: 0,
-        padding: 0,
-        backgroundColor: '#FFFFFF',
-      },
-    });
-  }
 
   // ✅ Show loading screen during initialization
   if (showLoadingScreen) {
