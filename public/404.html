@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#641B73" />
+  <title>BarLive</title>
+  <style>
+    html,body,#barlive-frame{margin:0;padding:0;width:100%;height:100%;border:0;background:#fff}
+    html,body{overflow:hidden}
+    #barlive-frame{position:fixed;inset:0}
+  </style>
+</head>
+<body>
+  <iframe
+    id="barlive-frame"
+    title="BarLive"
+    allow="geolocation; camera; microphone; clipboard-read; clipboard-write; fullscreen"
+  ></iframe>
+  <script>
+    (function () {
+      var origin = 'https://barlive-web-production.onrender.com';
+      var path = window.location.pathname + window.location.search + window.location.hash;
+      document.getElementById('barlive-frame').src = origin + path;
+    })();
+  </script>
+</body>
+</html>
