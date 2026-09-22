@@ -21,7 +21,51 @@
     (function () {
       var origin = 'https://barlive-web-production.onrender.com';
       var path = window.location.pathname + window.location.search + window.location.hash;
-      document.getElementById('barlive-frame').src = origin + path;
+      var frame = document.getElementById('barlive-frame');
+      frame.src = origin + path;
+
+      function sendLocation() {
+        if (!frame.contentWindow) return;
+
+        if (!navigator.geolocation) {
+          frame.contentWindow.postMessage({
+            type: 'BARLIVE_LOCATION_RESPONSE',
+            ok: false,
+            error: 'Geolocation not supported'
+          }, origin);
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(function (position) {
+          frame.contentWindow.postMessage({
+            type: 'BARLIVE_LOCATION_RESPONSE',
+            ok: true,
+            coords: {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy
+            },
+            timestamp: Date.now()
+          }, origin);
+        }, function (error) {
+          frame.contentWindow.postMessage({
+            type: 'BARLIVE_LOCATION_RESPONSE',
+            ok: false,
+            error: error && error.message ? error.message : 'Location permission denied',
+            code: error && typeof error.code !== 'undefined' ? error.code : null
+          }, origin);
+        }, {
+          enableHighAccuracy: false,
+          timeout: 15000,
+          maximumAge: 300000
+        });
+      }
+
+      window.addEventListener('message', function (event) {
+        if (event.origin !== origin) return;
+        if (!event.data || event.data.type !== 'BARLIVE_LOCATION_REQUEST') return;
+        sendLocation();
+      });
     })();
   </script>
 </body>
