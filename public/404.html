@@ -19,10 +19,10 @@
   ></iframe>
   <script>
     (function () {
-      var origin = 'https://barlive-web-production.onrender.com';
+      var origin = 'https://barlive-web-current.onrender.com';
       var path = window.location.pathname + window.location.search + window.location.hash;
       var frame = document.getElementById('barlive-frame');
-      frame.src = origin + path;
+      frame.src = origin + '/?__barlive_path=' + encodeURIComponent(path);
 
       function sendLocation() {
         if (!frame.contentWindow) return;
