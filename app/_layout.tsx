@@ -27,7 +27,7 @@ import { supabase } from '@/utils/supabase';
 import { PerformanceTracker } from '@/utils/performanceTracker';
 import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 
-const CURRENT_BARLIVE_WEB_ORIGIN = 'https://barlive-web-production.onrender.com';
+const CURRENT_BARLIVE_WEB_ORIGIN = 'https://barlive-web-current.onrender.com';
 
 /**
  * ✅ ROOT LAYOUT v24.0 - PASO 1: INTERACTIONMANAGER DEFERRED LOADING
@@ -102,7 +102,8 @@ function WebProductionBridge() {
   const iframeRef = useRef<any>(null);
   const currentPath =
     `${window.location.pathname}${window.location.search}${window.location.hash}`;
-  const src = `${CURRENT_BARLIVE_WEB_ORIGIN}${currentPath}`;
+  const src =
+    `${CURRENT_BARLIVE_WEB_ORIGIN}/?__barlive_path=${encodeURIComponent(currentPath)}`;
 
   useEffect(() => {
     const sendLocation = () => {
