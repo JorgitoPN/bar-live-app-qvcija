@@ -1,0 +1,77 @@
+name: Build zero-cost BarLive web
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: barlive-gh-pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Clean tracked node_modules
+        run: rm -rf node_modules
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Configure GitHub Pages base path
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+          app.expo.experiments = {
+            ...(app.expo.experiments || {}),
+            baseUrl: '/bar-live-app-qvcija'
+          };
+          app.expo.web = {
+            ...(app.expo.web || {}),
+            output: 'single',
+            bundler: 'metro'
+          };
+          fs.writeFileSync('app.json', JSON.stringify(app, null, 2) + '\n');
+          NODE
+
+      - name: Export Expo web
+        env:
+          EXPO_NO_TELEMETRY: "1"
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: pnpm build:web
+
+      - name: Add SPA fallback and disable Jekyll
+        run: |
+          cp dist/index.html dist/404.html
+          touch dist/.nojekyll
+
+      - name: Publish gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          force_orphan: true
+          enable_jekyll: false
