@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>BarLive</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.2/dist/maplibre-gl.css"/>
+<style>
+:root{--a:#20c7c7;--b:#2ed6c4;--ink:#102033;--muted:#6b7a90;--bg:#f6f9fb}
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+body{display:grid;grid-template-columns:235px 1fr;overflow:hidden}
+aside{background:#fff;border-right:1px solid #e7edf2;padding:18px 14px;display:flex;flex-direction:column;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;font-size:24px;font-weight:900;margin:2px 8px 12px}.mark{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,var(--a),var(--b));display:grid;place-items:center;color:#fff;font-size:23px}
+.nav{padding:11px 12px;border-radius:12px;font-weight:700;color:#334155}.nav.active{background:#e9fbf8;color:#0f766e}
+main{min-width:0;display:grid;grid-template-rows:auto 1fr}header{background:linear-gradient(110deg,var(--a),var(--b));padding:14px 18px 12px}
+.top{display:flex;gap:10px}.search{flex:1;height:44px;border:0;border-radius:12px;padding:0 16px;font-size:14px;outline:none}.btn{height:44px;border:0;border-radius:12px;background:#fff;padding:0 14px;font-weight:800;color:#0f766e;cursor:pointer}
+.cats{display:flex;gap:8px;margin-top:10px;overflow:auto}.cat{border:0;border-radius:999px;padding:9px 14px;background:rgba(255,255,255,.22);color:#fff;font-weight:800;white-space:nowrap;cursor:pointer}.cat.active{background:#fff;color:#0f766e}
+.content{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;padding:14px;min-height:0}.mapcard{background:#fff;border:1px solid #e5ecf0;border-radius:18px;overflow:hidden;position:relative}.map{position:absolute;inset:0}
+.panel{display:flex;flex-direction:column;gap:12px;min-height:0}.card{background:#fff;border:1px solid #e5ecf0;border-radius:16px;padding:14px}.title{font-size:17px;font-weight:900;margin-bottom:8px}.small{font-size:12px;color:var(--muted)}.legend{display:flex;gap:10px;flex-wrap:wrap}.legend span{display:flex;align-items:center;gap:5px;font-size:12px}.dot{width:9px;height:9px;border-radius:50%}
+.status{position:absolute;left:14px;bottom:14px;background:rgba(255,255,255,.96);padding:9px 12px;border-radius:12px;font-size:12px;font-weight:800;box-shadow:0 8px 30px rgba(15,23,42,.14);z-index:5}
+.note{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:14px;padding:12px;font-size:12px;line-height:1.4}.list{overflow:auto}.venue{padding:10px 0;border-top:1px solid #eef2f6}.venue:first-child{border-top:0}.venue b{display:block}.pill{display:inline-block;margin-top:5px;padding:4px 7px;border-radius:999px;background:#eefbf9;color:#0f766e;font-size:10px;font-weight:800}
+@media(max-width:900px){body{grid-template-columns:1fr}aside{display:none}.content{grid-template-columns:1fr}.panel{display:none}}
+</style>
+</head>
+<body>
+<aside>
+<div class="brand"><div class="mark">⌖</div><span>BarLive</span></div>
+<div class="nav active">Explorar</div><div class="nav">Mapa</div><div class="nav">Eventos</div><div class="nav">Momentos</div><div class="nav">Mensajes</div>
+<div style="margin-top:auto" class="small">Infraestructura temporal gratuita</div>
+</aside>
+<main>
+<header>
+<div class="top"><input id="search" class="search" placeholder="Buscar bares, pubs, restaurantes..."/><button id="locate" class="btn">Mi ubicación</button></div>
+<div id="cats" class="cats"></div>
+</header>
+<div class="content">
+<section class="mapcard"><div id="map" class="map"></div><div id="status" class="status">Cargando BarLive…</div></section>
+<section class="panel">
+<div class="card"><div class="title">Locales</div><div class="legend"><span><i class="dot" style="background:#22c55e"></i>Abierto</span><span><i class="dot" style="background:#ef4444"></i>Cerrado</span><span><i class="dot" style="background:#94a3b8"></i>Sin info</span></div></div>
+<div class="note">Versión temporal mientras se retira Render del alojamiento. El mapa y sus estados ya funcionan fuera de Render.</div>
+<div class="card list" style="flex:1"><div class="title">En esta zona</div><div id="venues" class="small">Mueve el mapa para explorar.</div></div>
+</section>
+</div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+<script>
+const EDGE='https://embntaqwlwmgazvrglaf.supabase.co/functions/v1';
+const TILE=EDGE+'/map-static-tile/{z}/{x}/{y}.pbf';
+const STATE=EDGE+'/map-state-overlay';
+const categories=[['todas','Todos'],['bar','Bares'],['restaurante','Restaurantes'],['cafeteria','Cafeterías'],['pub','Pubs'],['discoteca','Discotecas'],['cocteleria','Coctelerías']];
+let selected='todas',stateRows=[],map;
+const cats=document.getElementById('cats');
+categories.forEach(([id,label])=>{const b=document.createElement('button');b.className='cat'+(id==='todas'?' active':'');b.textContent=label;b.onclick=()=>{selected=id;[...cats.children].forEach(x=>x.classList.remove('active'));b.classList.add('active');applyFilter();};cats.appendChild(b);});
+const filter=()=>selected==='todas'?['all']:['==',['get','tipo'],selected];
+function applyFilter(){['venues-static','venues-state'].forEach(id=>{if(map&&map.getLayer(id))map.setFilter(id,filter());});}
+function refreshSide(){if(!map)return;const f=map.queryRenderedFeatures({layers:['venues-state','venues-static']});const seen=new Set(),rows=[];for(const x of f){const p=x.properties||{};const id=String(p.id||x.id||'');if(!id||seen.has(id))continue;seen.add(id);rows.push(p);if(rows.length>=18)break;}document.getElementById('venues').innerHTML=rows.length?rows.map(p=>'<div class="venue"><b>'+String(p.nombre||'Local BarLive')+'</b><span class="pill">'+String(p.tipo||'local')+'</span></div>').join(''):'No hay locales visibles en esta zona.';}
+async function loadStates(){try{const r=await fetch(STATE,{cache:'default'});const j=await r.json();const rows=Array.isArray(j.rows)?j.rows:[];stateRows=rows;const fs=rows.map(row=>({type:'Feature',id:String(row[0]),geometry:{type:'Point',coordinates:[Number(row[2]),Number(row[1])]},properties:{id:String(row[0]),tipo:String(row[3]||'bar'),destacado:Number(row[4]||0)===1,estado:Number(row[5]||0)===1?'abierto':'cerrado'}})).filter(x=>Number.isFinite(x.geometry.coordinates[0])&&Number.isFinite(x.geometry.coordinates[1]));const s=map.getSource('states');if(s)s.setData({type:'FeatureCollection',features:fs});document.getElementById('status').textContent='BarLive • '+fs.length+' locales con horario conocido';refreshSide();}catch(e){document.getElementById('status').textContent='Mapa disponible • horario temporalmente no disponible';}}
+map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/liberty',center:[-3.7,40.3],zoom:5.4,minZoom:4,maxZoom:20,renderWorldCopies:false,dragRotate:false,pitchWithRotate:false,cancelPendingTileRequestsWhileZooming:true,maxTileCacheZoomLevels:3});
+map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');
+map.once('style.load',()=>{map.addSource('static',{type:'vector',tiles:[TILE],minzoom:4,maxzoom:9,bounds:[-18.25,27.45,4.55,44.25],scheme:'xyz',promoteId:'id'});map.addLayer({id:'venues-static',type:'circle',source:'static','source-layer':'locales',minzoom:4,filter:filter(),paint:{'circle-radius':['interpolate',['linear'],['zoom'],4,1.5,7,2.2,9,3.2,11,5.2,20,5.2],'circle-color':'#94a3b8','circle-opacity':.93,'circle-stroke-width':['interpolate',['linear'],['zoom'],4,0,9,0,11,1.3,20,1.3],'circle-stroke-color':'#fff'}});map.addSource('states',{type:'geojson',data:{type:'FeatureCollection',features:[]},promoteId:'id'});map.addLayer({id:'venues-state',type:'circle',source:'states',minzoom:4,filter:filter(),paint:{'circle-radius':['interpolate',['linear'],['zoom'],4,1.7,7,2.4,9,3.4,11,5.6,20,5.6],'circle-color':['case',['==',['get','estado'],'abierto'],'#22c55e','#ef4444'],'circle-opacity':1,'circle-stroke-width':['interpolate',['linear'],['zoom'],4,0,9,0,11,1.5,20,1.5],'circle-stroke-color':'#fff'}});loadStates();setInterval(loadStates,120000);});
+map.on('idle',refreshSide);
+document.getElementById('locate').onclick=()=>navigator.geolocation&&navigator.geolocation.getCurrentPosition(p=>map.easeTo({center:[p.coords.longitude,p.coords.latitude],zoom:13,duration:700}),()=>{});
+document.getElementById('search').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('status').textContent='Búsqueda completa volverá con la web principal; usa mapa y categorías.';});
+</script>
+</body>
+</html>
