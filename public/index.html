@@ -72,24 +72,20 @@
         window.addEventListener('beforeinstallprompt', window.handleBeforeInstallPrompt);
 
         if ('serviceWorker' in navigator) {
-          // Unregister any existing service worker first
-          const existingRegistration = await navigator.serviceWorker.getRegistration();
-          if (existingRegistration) {
-            console.log('Unregistering existing service worker');
-            await existingRegistration.unregister();
-          }
-
+          // Keep the existing worker/cache between visits. Unregistering it on
+          // every load destroys the very cache that makes repeat map visits fast.
           const registration = await navigator.serviceWorker.register('./sw.js');
           console.log('Service Worker registered with scope:', registration.scope);
 
-          // Check for updates every 30 seconds
+          // Check for updates every 30 seconds (the old 200ms loop generated
+          // hundreds of unnecessary network requests per minute).
           setInterval(async () => {
             try {
               await registration.update();
             } catch (error) {
               console.error('Error checking for updates:', error);
             }
-          }, 200);
+          }, 30000);
 
           // Listen for updates
           registration.addEventListener('updatefound', () => {
