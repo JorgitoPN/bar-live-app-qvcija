@@ -46,7 +46,7 @@ jobs:
           const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
           app.expo.experiments = {
             ...(app.expo.experiments || {}),
-            baseUrl: '/bar-live-app-qvcija'
+            baseUrl: '/JorgitoPN/bar-live-app-qvcija/gh-pages'
           };
           app.expo.web = {
             ...(app.expo.web || {}),
@@ -62,8 +62,12 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=4096
         run: pnpm build:web
 
-      - name: Add SPA fallback and disable Jekyll
+      - name: Prepare zero-cost CDN fallback
         run: |
+          # raw.githack serves public GitHub files with browser-safe MIME types.
+          # Use the repository/branch path as the Expo base so the same build
+          # works immediately even before GitHub Pages or Cloudflare DNS is enabled.
+          sed -i 's|href="/manifest.json"|href="/JorgitoPN/bar-live-app-qvcija/gh-pages/manifest.json"|g' dist/index.html
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
 
