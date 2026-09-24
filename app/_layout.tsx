@@ -9,7 +9,7 @@ import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { LocationProvider } from '@/contexts/LocationContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { colors } from '@/styles/commonStyles';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Platform, AppState, AppStateStatus, InteractionManager } from 'react-native';
 import * as SystemUI from 'expo-system-ui';
@@ -27,7 +27,6 @@ import { supabase } from '@/utils/supabase';
 import { PerformanceTracker } from '@/utils/performanceTracker';
 import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 
-const CURRENT_BARLIVE_WEB_ORIGIN = 'https://barlive-web-current.onrender.com';
 
 /**
  * ✅ ROOT LAYOUT v24.0 - PASO 1: INTERACTIONMANAGER DEFERRED LOADING
@@ -98,101 +97,7 @@ const persister = createAsyncStoragePersister({
 
 console.log('[TanStack Query v24.0 - PASO 1] ✅ Cache persister initialized');
 
-function WebProductionBridge() {
-  const iframeRef = useRef<any>(null);
-  const currentPath =
-    `${window.location.pathname}${window.location.search}${window.location.hash}`;
-  const src =
-    `${CURRENT_BARLIVE_WEB_ORIGIN}/?__barlive_path=${encodeURIComponent(currentPath)}`;
-
-  useEffect(() => {
-    const sendLocation = () => {
-      const target = iframeRef.current?.contentWindow;
-      if (!target) return;
-
-      if (!navigator.geolocation) {
-        target.postMessage(
-          {
-            type: 'BARLIVE_LOCATION_RESPONSE',
-            ok: false,
-            error: 'Geolocation not supported',
-          },
-          CURRENT_BARLIVE_WEB_ORIGIN
-        );
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          target.postMessage(
-            {
-              type: 'BARLIVE_LOCATION_RESPONSE',
-              ok: true,
-              coords: {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-                accuracy: position.coords.accuracy,
-              },
-              timestamp: Date.now(),
-            },
-            CURRENT_BARLIVE_WEB_ORIGIN
-          );
-        },
-        (error) => {
-          target.postMessage(
-            {
-              type: 'BARLIVE_LOCATION_RESPONSE',
-              ok: false,
-              error: error?.message || 'Location permission denied',
-              code: error?.code ?? null,
-            },
-            CURRENT_BARLIVE_WEB_ORIGIN
-          );
-        },
-        {
-          enableHighAccuracy: false,
-          timeout: 15000,
-          maximumAge: 300000,
-        }
-      );
-    };
-
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== CURRENT_BARLIVE_WEB_ORIGIN) return;
-      if (event.data?.type !== 'BARLIVE_LOCATION_REQUEST') return;
-      sendLocation();
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  return React.createElement('iframe', {
-    ref: iframeRef,
-    src,
-    title: 'BarLive',
-    allow:
-      'geolocation; camera; microphone; clipboard-read; clipboard-write; fullscreen',
-    style: {
-      position: 'fixed',
-      inset: 0,
-      width: '100vw',
-      height: '100vh',
-      border: 0,
-      margin: 0,
-      padding: 0,
-      backgroundColor: '#FFFFFF',
-    },
-  });
-}
-
 export default function RootLayout() {
-  // Production web bridge: barliveapp.es remains the top-level origin so it
-  // can request browser permissions and relay them to the current web app.
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    return <WebProductionBridge />;
-  }
-
   // ✅ NEW: Track initialization state for loading screen
   const isInitializing = useAuthStore(state => state.isInitializing);
   const initialLoadingProgress = useAuthStore(state => state.initialLoadingProgress);
@@ -365,6 +270,7 @@ export default function RootLayout() {
 
   // ✅ v15.0: NOTIFICATION SYSTEM - Inicializar sistema de notificaciones
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     console.log('[RootLayout v24.0] 🔔 Inicializando sistema de notificaciones v3.0...');
     
     // Inicializar handler de notificaciones (ahora es async)
@@ -395,6 +301,7 @@ export default function RootLayout() {
 
   // ✅ v14.0: CRITICAL FIX - Graceful background system initialization (iOS crash fix)
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     const initializeBackgroundSystems = async () => {
       try {
         console.log('[RootLayout v23.0] 🚀 Initializing background systems (graceful mode)');

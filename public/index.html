@@ -74,7 +74,7 @@
         if ('serviceWorker' in navigator) {
           // Keep the existing worker/cache between visits. Unregistering it on
           // every load destroys the very cache that makes repeat map visits fast.
-          const registration = await navigator.serviceWorker.register('./sw.js');
+          const registration = await navigator.serviceWorker.register('/sw.js');
           console.log('Service Worker registered with scope:', registration.scope);
 
           // Check for updates every 30 seconds (the old 200ms loop generated
