@@ -1,79 +1,26 @@
-
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { scaleIconSize, scaleFontSize, getMapPopupWidth, getMapPopupImageHeight, getMapMarkerScale, getUserLocationMarkerSize } from '@/utils/androidScaling';
-import { colors, commonStyles } from '@/styles/commonStyles';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Dimensions, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { getEstadoLocal } from '@/utils/timeUtils';
-import { IconSymbol } from '@/components/IconSymbol';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
+
+import { colors, commonStyles } from '@/styles/commonStyles';
+import { IconSymbol } from '@/components/IconSymbol';
 import { useFilters } from '@/contexts/FilterContext';
 import FiltrosAvanzadosSheet from '@/components/home/FiltrosAvanzadosSheet';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Platform,
-  Dimensions,
-  ActivityIndicator,
-  Animated,
-} from 'react-native';
-import { calcularDistancia } from '@/utils/locationUtils';
-import { addPubCategoryIfNeeded, getPrimaryIconForVenue } from '@/utils/categorizeLocal';
-import { supabase } from '@/utils/supabase';
+import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
-const { width, height } = Dimensions.get('window');
+const SUPABASE_URL = 'https://embntaqwlwmgazvrglaf.supabase.co';
+const SUPABASE_PUBLIC_KEY = 'sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2';
+const WEB_TILE_TEMPLATE =
+  SUPABASE_URL + '/functions/v1/map-static-tile/{z}/{x}/{y}.pbf';
+const NATIVE_TILE_TEMPLATE =
+  'https://media.barliveapp.es/map/static/v404-geom6-z9-canonical/{z}/{x}/{y}.pbf';
+const STATE_URL =
+  SUPABASE_URL +
+  '/rest/v1/map_marker_state_cache?select=local_id,latitud,longitud,tipo,destacado,estado';
 
-const HEADER_MAX_HEIGHT = Platform.OS === 'android' ? 110 : 120;
-const HEADER_MIN_HEIGHT = 0;
-const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
-
-/**
- * 🗺️ MAPA SCREEN v455.0 - ICON CONSISTENCY FIX
- * 
- * CRITICAL FIXES v455.0:
- * - 🔥 ICON CONSISTENCY: All category icons now IDENTICAL across Explorar and Mapa
- * - 🔥 EXACT MAPPING: Icons use exact Material Icons names (local-cafe, local-bar, sports-bar)
- * - 🔥 DOCUMENTED: Icon reference added to prevent future changes
- * - ✅ No more icon mismatches between pages
- * 
- * Previous fixes v447.0:
- * - 🔥 MAP MARKER STATUS: Markers now use Spain timezone matching backend
- * - 🔥 CORRECT COLORS: Green=open, Red=closed (matching backend RPC)
- * - 🔥 OVERNIGHT SCHEDULES: Correctly handled for venues open past midnight
- * - ✅ Status calculation matches backend 100%
- * - ✅ No more false positives/negatives
- * 
- * Previous features v350.0:
- * - 🔥 CATEGORY SYNC: Category selection syncs with FilterContext
- * - 🔥 BIDIRECTIONAL: Changes in map update Explorar and vice versa
- * - 🔥 SINGLE SELECTION: Only one category at a time
- * - ✅ Advanced filters work correctly
- * - ✅ Map markers update with all filters
- * - ✅ Visual indicator (red dot) when filters are active
- * - ✅ Quick clear button for advanced filters
- */
-
-// ✅ v458.0 ICON CONSISTENCY FIX - MATERIAL ICONS USE HYPHENS
-// These icons are IDENTICAL across ALL pages:
-// - app/(tabs)/explorar/filtros-simples.tsx
-// - app/(tabs)/explorar/filtros-simples.android.tsx
-// - app/(tabs)/explorar/mapa.tsx (THIS FILE)
-// CRITICAL: Material icon names use HYPHENS (local-cafe, local-bar, sports-bar)
-// CRITICAL: These exact names are mapped in components/IconSymbol.tsx
-// 
-// ICON REFERENCE (DO NOT CHANGE):
-// - Todas: star (⭐)
-// - Cafés: local-cafe (☕)
-// - Restaurantes: restaurant (🍽️)
-// - Bares: local-bar (🍷)
-// - Pubs: sports-bar (🍺)
-// - Coctelería: liquor (🍹)
-// - Discotecas: nightlife (🎵)
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
   { id: 'cafe', nombre: 'Cafés', iosIcon: 'cup.and.saucer.fill', androidIcon: 'local-cafe' },
@@ -84,1264 +31,718 @@ const CATEGORIAS = [
   { id: 'discoteca', nombre: 'Discotecas', iosIcon: 'music.note', androidIcon: 'nightlife' },
 ];
 
-const CategoriaButton = React.memo(({ 
-  categoria, 
-  isSelected, 
-  onPress
-}: { 
-  categoria: typeof CATEGORIAS[0]; 
-  isSelected: boolean; 
-  onPress: () => void;
-}) => {
-  return (
+type Estado = 'todos' | 'no_cerrados';
+
+const normalizeCategory = (value?: string | null) => {
+  const v = String(value || 'todas').toLowerCase().trim();
+  if (v === 'cafe') return 'cafeteria';
+  if (v === 'restaurant') return 'restaurante';
+  if (v === 'nightclub' || v === 'club') return 'discoteca';
+  if (v === 'cocktail' || v === 'cocktail_bar') return 'cocteleria';
+  return v || 'todas';
+};
+
+const CategoriaButton = React.memo(
+  ({
+    categoria,
+    isSelected,
+    onPress,
+  }: {
+    categoria: (typeof CATEGORIAS)[0];
+    isSelected: boolean;
+    onPress: () => void;
+  }) => (
     <TouchableOpacity
-      style={styles.categoriaButtonCompact}
+      style={styles.categoriaButton}
       onPress={onPress}
-      delayPressIn={0}
-      activeOpacity={0.7}
+      activeOpacity={0.75}
     >
-      <View style={[
-        styles.categoriaIconContainerCompact,
-        isSelected && styles.categoriaIconContainerActive
-      ]}>
-        <IconSymbol 
+      <View
+        style={[
+          styles.categoriaIcon,
+          isSelected && styles.categoriaIconActive,
+        ]}
+      >
+        <IconSymbol
           ios_icon_name={categoria.iosIcon as any}
           android_material_icon_name={categoria.androidIcon}
           size={Platform.OS === 'android' ? 16 : 18}
           color={isSelected ? colors.primary : colors.white}
         />
       </View>
-      <Text style={[
-        styles.categoriaLabelCompact,
-        isSelected && styles.categoriaLabelActive
-      ]} numberOfLines={1}>
+      <Text
+        style={[
+          styles.categoriaLabel,
+          isSelected && styles.categoriaLabelActive,
+        ]}
+      >
         {categoria.nombre}
       </Text>
     </TouchableOpacity>
-  );
-});
+  )
+);
+CategoriaButton.displayName = 'CategoriaButton';
 
-const EstadoSelector = React.memo(({ 
-  filtroEstado, 
-  onChangeEstado 
-}: { 
-  filtroEstado: 'todos' | 'no_cerrados'; 
-  onChangeEstado: (estado: 'todos' | 'no_cerrados') => void;
-}) => {
-  const handleTodos = useCallback(() => onChangeEstado('todos'), [onChangeEstado]);
-  const handleAbiertos = useCallback(() => onChangeEstado('no_cerrados'), [onChangeEstado]);
-  
-  return (
-    <View style={styles.estadoSelectorContainer}>
-      <View style={styles.estadoSelector}>
-        <TouchableOpacity
-          style={[
-            styles.estadoOption,
-            filtroEstado === 'todos' && styles.estadoOptionActive
-          ]}
-          onPress={handleTodos}
-          delayPressIn={0}
-          activeOpacity={0.7}
-        >
-          <Text style={[
-            styles.estadoOptionText,
-            { fontSize: scaleFontSize(11) },
-            filtroEstado === 'todos' && styles.estadoOptionTextActive
-          ]}>
-            Todos
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.estadoOption,
-            filtroEstado === 'no_cerrados' && styles.estadoOptionActive
-          ]}
-          onPress={handleAbiertos}
-          delayPressIn={0}
-          activeOpacity={0.7}
-        >
-          <Text style={[
-            styles.estadoOptionText,
-            { fontSize: scaleFontSize(11) },
-            filtroEstado === 'no_cerrados' && styles.estadoOptionTextActive
-          ]}>
-            Abiertos
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-});
+function buildMapHtml(
+  lat: number,
+  lng: number,
+  zoom: number,
+  category: string,
+  state: Estado
+) {
+  const tileTemplate =
+    Platform.OS === 'web' ? WEB_TILE_TEMPLATE : NATIVE_TILE_TEMPLATE;
+  const categoryJson = JSON.stringify(normalizeCategory(category));
+  const stateJson = JSON.stringify(state);
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.2/dist/maplibre-gl.css"/>
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+<style>
+*{box-sizing:border-box}
+html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:#A8E0FF}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+.maplibregl-canvas{outline:none}
+.maplibregl-ctrl-attrib{font-size:9px!important;opacity:.65}
+.maplibregl-ctrl-logo{opacity:.7}
+.maplibregl-popup-content{padding:0;border-radius:12px;overflow:hidden;box-shadow:0 8px 30px rgba(15,23,42,.18)}
+.b-popup{padding:10px 12px;min-width:150px}
+.b-title{font-size:13px;font-weight:800;color:#0f172a;margin-bottom:7px}
+.b-button{border:0;border-radius:8px;background:#14b8a6;color:#fff;padding:8px 10px;font-size:11px;font-weight:800;cursor:pointer;width:100%}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+(function(){
+  var selectedCategory = ${categoryJson};
+  var selectedState = ${stateJson};
+  var userMarker = null;
+
+  function send(payload) {
+    try {
+      if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+        window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+      } else if (window.parent) {
+        window.parent.postMessage({ __barliveMap: true, payload: payload }, '*');
+      }
+    } catch (_) {}
+  }
+
+  function normalizedCategory(value) {
+    var v = String(value || 'todas').toLowerCase();
+    if (v === 'cafe') return 'cafeteria';
+    if (v === 'restaurant') return 'restaurante';
+    if (v === 'nightclub' || v === 'club') return 'discoteca';
+    if (v === 'cocktail' || v === 'cocktail_bar') return 'cocteleria';
+    return v || 'todas';
+  }
+
+  var map = new maplibregl.Map({
+    container: 'map',
+    style: 'https://tiles.openfreemap.org/styles/liberty',
+    center: [${lng}, ${lat}],
+    zoom: ${zoom},
+    minZoom: 4,
+    maxZoom: 20,
+    attributionControl: true,
+    renderWorldCopies: false,
+    dragRotate: false,
+    pitchWithRotate: false,
+    touchPitch: false,
+    keyboard: false,
+    doubleClickZoom: true,
+    scrollZoom: true,
+    boxZoom: true,
+    dragPan: true,
+    fadeDuration: 0,
+    crossSourceCollisions: false,
+    cancelPendingTileRequestsWhileZooming: true,
+    maxTileCacheZoomLevels: 3,
+    validateStyle: false
+  });
+
+  try { map.touchZoomRotate.disableRotation(); } catch (_) {}
+
+  function drawCenteredEmoji(ctx, emoji, cx, cy, fontSize, category) {
+    ctx.font = fontSize + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    var dx = category === 'restaurante' ? -2 : 0;
+    ctx.fillText(emoji, cx + dx, cy + 1);
+  }
+
+  function addMarkerImage(name, category, markerState) {
+    if (map.hasImage(name)) return;
+    var emoji = {
+      cafeteria: '☕',
+      restaurante: '🍽️',
+      bar: '🍺',
+      pub: '🍻',
+      cocteleria: '🍸',
+      discoteca: '🪩',
+      default: '📍'
+    }[category] || '📍';
+
+    var fill = {
+      abierto: '#22C55E',
+      cerrado: '#EF4444',
+      sin_info: '#94A3B8'
+    }[markerState] || '#94A3B8';
+
+    var canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,64,64);
+    ctx.beginPath();
+    ctx.arc(32,32,28,0,Math.PI*2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = '#fff';
+    ctx.stroke();
+    drawCenteredEmoji(ctx, emoji, 32, 32, 25, category);
+
+    map.addImage(name, {
+      width: 64,
+      height: 64,
+      data: ctx.getImageData(0,0,64,64).data
+    });
+  }
+
+  function loadImages() {
+    ['cafeteria','restaurante','bar','pub','cocteleria','discoteca','default'].forEach(function(cat){
+      ['abierto','cerrado','sin_info'].forEach(function(st){
+        addMarkerImage('venue-' + cat + '-' + st, cat, st);
+      });
+    });
+  }
+
+  function staticFilter() {
+    if (selectedState === 'no_cerrados') {
+      return ['==', ['get','id'], '__never__'];
+    }
+    if (!selectedCategory || selectedCategory === 'todas') return true;
+    return ['==', ['get','tipo'], selectedCategory];
+  }
+
+  function realtimeFilter() {
+    var filters = ['all'];
+    if (selectedCategory && selectedCategory !== 'todas') {
+      filters.push(['==', ['get','tipo'], selectedCategory]);
+    }
+    if (selectedState === 'no_cerrados') {
+      filters.push(['==', ['get','estado'], 'abierto']);
+    }
+    return filters;
+  }
+
+  function applyFilters() {
+    ['barlive-static-markers','barlive-static-icons','barlive-static-labels'].forEach(function(id){
+      if (map.getLayer(id)) map.setFilter(id, staticFilter());
+    });
+    ['barlive-state-markers','barlive-state-icons'].forEach(function(id){
+      if (map.getLayer(id)) map.setFilter(id, realtimeFilter());
+    });
+  }
+
+  function toFeatures(rows) {
+    return rows.map(function(row){
+      var rowLat = Number(row && row.latitud);
+      var rowLon = Number(row && row.longitud);
+      if (!isFinite(rowLat) || !isFinite(rowLon)) return null;
+      return {
+        type:'Feature',
+        id:String(row.local_id || ''),
+        geometry:{type:'Point',coordinates:[rowLon,rowLat]},
+        properties:{
+          id:String(row.local_id || ''),
+          tipo:String(row.tipo || 'bar'),
+          destacado:!!row.destacado,
+          estado:String(row.estado || 'sin_info')
+        }
+      };
+    }).filter(Boolean);
+  }
+
+  function loadState() {
+    fetch('https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/map_marker_state_cache?select=local_id,latitud,longitud,tipo,destacado,estado', {
+      headers: {
+        Accept: 'application/json',
+        apikey: 'sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2'
+      },
+      cache: 'default'
+    })
+      .then(function(r){
+        if (!r.ok) throw new Error('state HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function(rows){
+        if (!Array.isArray(rows)) return;
+        var source = map.getSource('barlive-state');
+        if (source) source.setData({type:'FeatureCollection',features:toFeatures(rows)});
+        applyFilters();
+        send({type:'state_ready',count:rows.length});
+      })
+      .catch(function(error){
+        console.warn('[BarLive map] state overlay error', error);
+      });
+  }
+
+  function showPopup(feature, coordinates) {
+    var p = feature && feature.properties || {};
+    var name = String(p.nombre || 'Local BarLive');
+    var id = String(p.id || feature.id || '');
+    if (!id) return;
+
+    var root = document.createElement('div');
+    root.className = 'b-popup';
+
+    var title = document.createElement('div');
+    title.className = 'b-title';
+    title.textContent = name;
+    root.appendChild(title);
+
+    var button = document.createElement('button');
+    button.className = 'b-button';
+    button.textContent = 'Ver local';
+    button.onclick = function(){ send({type:'navigate',id:id}); };
+    root.appendChild(button);
+
+    new maplibregl.Popup({closeButton:false,offset:16})
+      .setLngLat(coordinates)
+      .setDOMContent(root)
+      .addTo(map);
+  }
+
+  function handleClick(event) {
+    var feature = event && event.features && event.features[0];
+    if (!feature) return;
+    var coordinates = feature.geometry && feature.geometry.coordinates;
+    if (!coordinates) return;
+    showPopup(feature, coordinates.slice());
+  }
+
+  map.once('style.load', function(){
+    loadImages();
+
+    map.addSource('barlive-static', {
+      type:'vector',
+      tiles:['${tileTemplate}'],
+      minzoom:4,
+      maxzoom:9,
+      bounds:[-18.25,27.45,4.55,44.25],
+      scheme:'xyz',
+      promoteId:'id'
+    });
+
+    map.addLayer({
+      id:'barlive-static-markers',
+      type:'circle',
+      source:'barlive-static',
+      'source-layer':'locales',
+      minzoom:4,
+      filter:staticFilter(),
+      paint:{
+        'circle-radius':['interpolate',['linear'],['zoom'],4,1.4,7,2.1,9,3,10.5,5.5,13,5,20,5],
+        'circle-color':'#94A3B8',
+        'circle-opacity':.96,
+        'circle-stroke-width':['interpolate',['linear'],['zoom'],4,0,9,0,10.5,1.5,20,1.5],
+        'circle-stroke-color':['case',['==',['get','destacado'],true],'#F59E0B','#fff']
+      }
+    });
+
+    map.addLayer({
+      id:'barlive-static-icons',
+      type:'symbol',
+      source:'barlive-static',
+      'source-layer':'locales',
+      minzoom:10.65,
+      filter:staticFilter(),
+      layout:{
+        'icon-image':['concat','venue-',
+          ['case',
+            ['==',['get','tipo'],'cafeteria'],'cafeteria',
+            ['==',['get','tipo'],'restaurante'],'restaurante',
+            ['==',['get','tipo'],'pub'],'pub',
+            ['==',['get','tipo'],'cocteleria'],'cocteleria',
+            ['==',['get','tipo'],'discoteca'],'discoteca',
+            ['==',['get','tipo'],'bar'],'bar',
+            'default'
+          ],
+          '-sin_info'
+        ],
+        'icon-size':['interpolate',['linear'],['zoom'],10.45,.24,11,.29,12,.36,13,.45,16,.54,20,.58],
+        'icon-anchor':'center',
+        'icon-allow-overlap':true,
+        'icon-ignore-placement':true,
+        'icon-padding':0
+      }
+    });
+
+    map.addLayer({
+      id:'barlive-static-labels',
+      type:'symbol',
+      source:'barlive-static',
+      'source-layer':'locales',
+      minzoom:17,
+      filter:staticFilter(),
+      layout:{
+        'text-field':['coalesce',['get','nombre'],''],
+        'text-size':['interpolate',['linear'],['zoom'],17,10,20,13],
+        'text-offset':[0,1.15],
+        'text-anchor':'top',
+        'text-optional':true,
+        'text-allow-overlap':false
+      },
+      paint:{
+        'text-color':'#202124',
+        'text-halo-color':'#fff',
+        'text-halo-width':1.5
+      }
+    });
+
+    map.addSource('barlive-state', {
+      type:'geojson',
+      data:{type:'FeatureCollection',features:[]},
+      promoteId:'id'
+    });
+
+    map.addLayer({
+      id:'barlive-state-markers',
+      type:'circle',
+      source:'barlive-state',
+      minzoom:4,
+      filter:realtimeFilter(),
+      paint:{
+        'circle-radius':['interpolate',['linear'],['zoom'],4,1.4,7,2.1,9,3,10.5,5.5,13,5,20,5],
+        'circle-color':['case',['==',['get','estado'],'abierto'],'#22C55E',['==',['get','estado'],'cerrado'],'#EF4444','#94A3B8'],
+        'circle-opacity':1,
+        'circle-stroke-width':['interpolate',['linear'],['zoom'],4,0,9,0,10.5,1.5,20,1.5],
+        'circle-stroke-color':['case',['==',['get','destacado'],true],'#F59E0B','#fff']
+      }
+    });
+
+    map.addLayer({
+      id:'barlive-state-icons',
+      type:'symbol',
+      source:'barlive-state',
+      minzoom:10.65,
+      filter:realtimeFilter(),
+      layout:{
+        'icon-image':['concat','venue-',
+          ['case',
+            ['==',['get','tipo'],'cafeteria'],'cafeteria',
+            ['==',['get','tipo'],'restaurante'],'restaurante',
+            ['==',['get','tipo'],'pub'],'pub',
+            ['==',['get','tipo'],'cocteleria'],'cocteleria',
+            ['==',['get','tipo'],'discoteca'],'discoteca',
+            ['==',['get','tipo'],'bar'],'bar',
+            'default'
+          ],
+          '-',
+          ['case',
+            ['==',['get','estado'],'abierto'],'abierto',
+            ['==',['get','estado'],'cerrado'],'cerrado',
+            'sin_info'
+          ]
+        ],
+        'icon-size':['interpolate',['linear'],['zoom'],10.45,.24,11,.29,12,.36,13,.45,16,.54,20,.58],
+        'icon-anchor':'center',
+        'icon-allow-overlap':true,
+        'icon-ignore-placement':true,
+        'icon-padding':0
+      }
+    });
+
+    ['barlive-state-icons','barlive-state-markers','barlive-static-icons','barlive-static-markers'].forEach(function(id){
+      map.on('click',id,handleClick);
+      map.on('mouseenter',id,function(){ map.getCanvas().style.cursor='pointer'; });
+      map.on('mouseleave',id,function(){ map.getCanvas().style.cursor=''; });
+    });
+
+    loadState();
+    setInterval(loadState,120000);
+    applyFilters();
+    send({type:'map_ready'});
+  });
+
+  window.filtrarCategoria = function(cat) {
+    selectedCategory = normalizedCategory(cat);
+    applyFilters();
+  };
+
+  window.setStateFilter = function(nextState) {
+    selectedState = nextState === 'no_cerrados' ? 'no_cerrados' : 'todos';
+    applyFilters();
+  };
+
+  window.applyAdvancedFilters = function(criteria) {
+    if (criteria && Array.isArray(criteria.tipo) && criteria.tipo.length) {
+      selectedCategory = normalizedCategory(criteria.tipo[0]);
+    }
+    applyFilters();
+  };
+
+  window.updateUserLocation = function(nextLat, nextLon) {
+    nextLat = Number(nextLat);
+    nextLon = Number(nextLon);
+    if (!isFinite(nextLat) || !isFinite(nextLon)) return;
+    if (!userMarker) {
+      var el = document.createElement('div');
+      el.style.width='18px';
+      el.style.height='18px';
+      el.style.borderRadius='50%';
+      el.style.background='#2563EB';
+      el.style.border='4px solid #fff';
+      el.style.boxShadow='0 2px 8px rgba(37,99,235,.35)';
+      userMarker = new maplibregl.Marker({element:el,anchor:'center'})
+        .setLngLat([nextLon,nextLat])
+        .addTo(map);
+    } else {
+      userMarker.setLngLat([nextLon,nextLat]);
+    }
+  };
+
+  window.flyToLocation = function(nextLat, nextLon, nextZoom) {
+    map.easeTo({
+      center:[Number(nextLon),Number(nextLat)],
+      zoom:Number(nextZoom || 15),
+      duration:500
+    });
+  };
+
+  function handleCommand(cmd) {
+    if (!cmd || typeof cmd !== 'object') return;
+    if (cmd.type === 'category') window.filtrarCategoria(cmd.value);
+    if (cmd.type === 'state') window.setStateFilter(cmd.value);
+    if (cmd.type === 'filters') window.applyAdvancedFilters(cmd.value || {});
+    if (cmd.type === 'location') window.updateUserLocation(cmd.lat,cmd.lng);
+    if (cmd.type === 'fly') window.flyToLocation(cmd.lat,cmd.lng,cmd.zoom);
+  }
+
+  window.addEventListener('message', function(event){
+    var data = event && event.data;
+    if (data && data.__barliveCommand) handleCommand(data.command);
+  });
+})();
+</script>
+</body>
+</html>`;
+}
 
 export default function MapaScreen() {
   const router = useRouter();
-  
-  // ✅ CRITICAL FIX v350.0: Use FilterContext for category sync
-  const { 
-    filtros: globalFiltros, 
+  const {
+    filtros: globalFiltros,
     setFiltros,
     limpiarFiltros,
     hasActiveFilters,
   } = useFilters();
-  
+
   const webViewRef = useRef<WebView>(null);
-  
-  // ✅ CRITICAL FIX v350.0: Derive category from FilterContext
+  const iframeRef = useRef<any>(null);
+
   const categoriaSeleccionada = useMemo(() => {
     if (globalFiltros.tipo && globalFiltros.tipo.length > 0) {
       return globalFiltros.tipo[0];
     }
     return 'todas';
   }, [globalFiltros.tipo]);
-  
-  const [filtroEstado, setFiltroEstado] = useState<'todos' | 'no_cerrados'>('no_cerrados');
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  const [filtroEstado, setFiltroEstado] = useState<Estado>('todos');
+  const [userLocation, setUserLocation] = useState({ lat: 40.4168, lng: -3.7038 });
   const [isMapReady, setIsMapReady] = useState(false);
-
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
-  
-  // ✅ CRITICAL FIX v350.0: Update FilterContext when category changes
-  const handleCategoriaChange = useCallback((categoriaId: string) => {
-    console.log('🗺️ [MAPA v350.0] Cambiando categoría a:', categoriaId);
-    
-    if (categoriaId === 'todas') {
-      // Clear tipo filter
-      setFiltros({
-        ...globalFiltros,
-        tipo: undefined,
-      });
-    } else {
-      // Set single tipo filter
-      setFiltros({
-        ...globalFiltros,
-        tipo: [categoriaId],
-      });
-    }
-  }, [globalFiltros, setFiltros]);
-  
-  const handleEstadoChange = useCallback((estado: 'todos' | 'no_cerrados') => {
-    console.log('🗺️ [MAPA v350.0] Cambiando estado a:', estado);
-    setFiltroEstado(estado);
-  }, []);
-  
-  const handleToggleFiltros = useCallback(() => {
-    console.log('🗺️ [MAPA v350.0] 🔍 Opening advanced filters');
-    setMostrarFiltros(prev => !prev);
-  }, []);
-  
-  const handleCloseFiltros = useCallback(() => {
-    console.log('🗺️ [MAPA v350.0] ✅ Closing advanced filters');
-    setMostrarFiltros(false);
-  }, []);
-
-  const handleClearAdvancedFilters = useCallback(() => {
-    console.log('🗺️ [MAPA v350.0] 🧹 Clearing advanced filters');
-    limpiarFiltros();
-  }, [limpiarFiltros]);
-
-  const popupWidth = getMapPopupWidth();
-  const popupImageHeight = getMapPopupImageHeight();
-  const markerScale = getMapMarkerScale();
-  const userMarkerSize = getUserLocationMarkerSize();
-
-  const mapHTML = useMemo(() => {
-    const initialLat = userLocation?.lat || 40.4168;
-    const initialLng = userLocation?.lng || -3.7038;
-    const initialZoom = userLocation ? 13 : 6;
-    
-    return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css"/>
-<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;-webkit-user-select:none;user-select:none;touch-action:none!important}
-#map{width:100%;height:100%;position:absolute;top:0;left:0;background:#A8E0FF;-webkit-tap-highlight-color:rgba(0,0,0,0);-webkit-user-select:none;user-select:none;touch-action:none!important}
-.maplibregl-canvas{pointer-events:auto!important;touch-action:none!important;-webkit-tap-highlight-color:rgba(0,0,0,0);-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
-.maplibregl-canvas-container{pointer-events:auto!important;touch-action:none!important;-webkit-tap-highlight-color:rgba(0,0,0,0);-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
-.maplibregl-popup-anchor-top,.maplibregl-popup-anchor-bottom{pointer-events:none!important}
-.maplibregl-popup-content{pointer-events:auto!important;border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);width:${popupWidth}px!important;min-width:${popupWidth}px!important;max-width:${popupWidth}px!important;z-index:9999!important}
-.custom-popup{z-index:9999!important}
-.maplibregl-popup{z-index:9999!important}
-.maplibregl-popup-close-button{display:none!important}
-.popup-img{width:100%;height:${popupImageHeight}px;object-fit:cover;display:block;min-height:${popupImageHeight}px;max-height:${popupImageHeight}px}
-.popup-info{padding:${Platform.OS === 'android' ? '10px' : '12px'}}
-.popup-title{font-size:${Platform.OS === 'android' ? scaleFontSize(16) : 16}px;font-weight:700;margin-bottom:8px;color:#202124}
-.popup-rating{display:flex;align-items:center;gap:4px;margin-bottom:10px;font-size:${Platform.OS === 'android' ? scaleFontSize(13) : 13}px;color:#70757A}
-.popup-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#14B8A6;color:#FFF!important;padding:${Platform.OS === 'android' ? '8px' : '10px'};border-radius:8px;text-decoration:none;font-weight:700;font-size:${Platform.OS === 'android' ? scaleFontSize(13) : 13}px;transition:background .2s;cursor:pointer}
-.popup-category{font-size:${Platform.OS === 'android' ? scaleFontSize(12) : 11}px;color:#70757A;margin-bottom:8px}
-.popup-btn:hover{background:#0D9488}
-.maplibregl-ctrl-attrib{display:none!important}
-.maplibregl-ctrl-zoom-in,.maplibregl-ctrl-zoom-out{display:none!important}
-.maplibregl-ctrl-group{display:none!important}
-</style>
-</head>
-<body>
-<div id="map"></div>
-<script>
-console.log('🗺️ [MAPA v447.0] Inicializando MapLibre GL JS - Map Marker Status Fix');
-
-var map = new maplibregl.Map({
-  container: 'map',
-  style: {
-    version: 8,
-    sources: {
-      'carto-light': {
-        type: 'raster',
-        tiles: [
-          'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-          'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-          'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-        ],
-        tileSize: 256,
-        attribution: '© OpenStreetMap contributors'
-      }
-    },
-    layers: [
-      {
-        id: 'carto-light-layer',
-        type: 'raster',
-        source: 'carto-light',
-        minzoom: 0,
-        maxzoom: 22
-      }
-    ]
-  },
-  center: [${initialLng}, ${initialLat}],
-  zoom: ${initialZoom},
-  minZoom: 6,
-  maxZoom: 20,
-  attributionControl: false,
-  dragRotate: false,
-  pitchWithRotate: false,
-  touchZoomRotate: { around: 'center' },
-  touchPitch: false,
-  keyboard: false,
-  doubleClickZoom: true,
-  scrollZoom: true,
-  boxZoom: true,
-  dragPan: true
-});
-
-map.touchZoomRotate.disableRotation();
-
-function loadCategoryIcons() {
-  const icons = {
-    'cafe-icon': '☕',
-    'restaurant-icon': '🍽️',
-    'bar-icon': '🍷',
-    'pub-icon': '🍺',
-    'cocktail-icon': '🍹',
-    'nightclub-icon': '🎵',
-    'default-icon': '📍'
-  };
-  
-  Object.entries(icons).forEach(([name, emoji]) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 64;
-    canvas.height = 64;
-    const ctx = canvas.getContext('2d');
-    ctx.font = '48px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(emoji, 32, 32);
-    
-    map.addImage(name, {
-      width: 64,
-      height: 64,
-      data: ctx.getImageData(0, 0, 64, 64).data
-    });
-  });
-  
-  console.log('🗺️ [MAPA v350.0] Iconos de categorías cargados');
-}
-
-window.getEstadoLocalRealTime = function(local) {
-  // ✅ v447.0: CRITICAL FIX - Match backend RPC logic EXACTLY
-  // Use Spain timezone for consistency
-  
-  if (local.google_business_status === 'CLOSED_PERMANENTLY') return 'cerrado';
-  if (local.google_business_status === 'CLOSED_TEMPORARILY') return 'cerrado';
-  if (!local.horarios_completos || Object.keys(local.horarios_completos).length === 0) return 'sin_info';
-  
-  const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-  
-  // Check if 24h (all 7 days must have 24h schedule)
-  let diasCon24h = 0;
-  for (const dia of diasSemana) {
-    const horarioDia = local.horarios_completos[dia];
-    if (!horarioDia || horarioDia.length === 0 || horarioDia[0] === 'Cerrado') break;
-    
-    const es24h = horarioDia.some(function(h) {
-      const horarioLower = h.toLowerCase().trim();
-      return horarioLower === '24 horas' || horarioLower === '24h' || horarioLower === 'abierto 24 horas' || horarioLower.includes('abierto 24');
-    });
-    
-    if (es24h) diasCon24h++;
-  }
-  
-  if (diasCon24h === 7) return 'abierto';
-  
-  // Get Spain time (Europe/Madrid timezone)
-  const now = new Date();
-  const spainTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
-  const diaActualIndex = spainTime.getDay();
-  const diaActual = diasSemana[diaActualIndex];
-  const horaActual = spainTime.getHours() * 60 + spainTime.getMinutes();
-  
-  // ✅ STEP 1: Check current day's schedule
-  const horarioActual = local.horarios_completos[diaActual];
-  
-  if (!horarioActual || horarioActual.length === 0 || horarioActual[0] === 'Cerrado') {
-    return 'cerrado';
-  }
-  
-  // ✅ STEP 2: Check if open in current day's schedule
-  for (const rango of horarioActual) {
-    if (rango === 'Cerrado' || rango.toLowerCase().includes('24')) continue;
-    
-    const partes = rango.split(/[–-]/);
-    if (partes.length !== 2) continue;
-    
-    const [inicio, fin] = partes;
-    const inicioTrim = inicio.trim();
-    const finTrim = fin.trim();
-    
-    // Normalize 24:00 to 23:59
-    const inicioNorm = inicioTrim === '24:00' ? '23:59' : inicioTrim;
-    const finNorm = finTrim === '24:00' ? '23:59' : finTrim;
-    
-    const [horaInicio, minInicio] = inicioNorm.split(':').map(Number);
-    const [horaFin, minFin] = finNorm.split(':').map(Number);
-    
-    if (isNaN(horaInicio) || isNaN(minInicio) || isNaN(horaFin) || isNaN(minFin)) continue;
-    
-    const apertura = horaInicio * 60 + minInicio;
-    const cierre = horaFin * 60 + minFin;
-    
-    // Normal schedule (start < end)
-    if (apertura < cierre) {
-      if (horaActual >= apertura && horaActual < cierre) {
-        return 'abierto';
-      }
-    }
-    // Overnight schedule (start > end): evening part
-    else if (apertura > cierre) {
-      if (horaActual >= apertura) {
-        return 'abierto';
-      }
-    }
-  }
-  
-  // ✅ STEP 3: Check if in morning continuation of previous day's overnight schedule
-  const diaAnteriorIndex = (diaActualIndex - 1 + 7) % 7;
-  const diaAnterior = diasSemana[diaAnteriorIndex];
-  const horarioAnterior = local.horarios_completos[diaAnterior];
-  
-  if (horarioAnterior && horarioAnterior.length > 0 && horarioAnterior[0] !== 'Cerrado') {
-    for (const rango of horarioAnterior) {
-      if (rango === 'Cerrado' || rango.toLowerCase().includes('24')) continue;
-      
-      const partes = rango.split(/[–-]/);
-      if (partes.length !== 2) continue;
-      
-      const [inicio, fin] = partes;
-      const inicioTrim = inicio.trim();
-      const finTrim = fin.trim();
-      
-      // Normalize 24:00 to 23:59
-      const inicioNorm = inicioTrim === '24:00' ? '23:59' : inicioTrim;
-      const finNorm = finTrim === '24:00' ? '23:59' : finTrim;
-      
-      const [horaInicio, minInicio] = inicioNorm.split(':').map(Number);
-      const [horaFin, minFin] = finNorm.split(':').map(Number);
-      
-      if (isNaN(horaInicio) || isNaN(minInicio) || isNaN(horaFin) || isNaN(minFin)) continue;
-      
-      const apertura = horaInicio * 60 + minInicio;
-      const cierre = horaFin * 60 + minFin;
-      
-      // Only overnight schedules (start > end) morning continuation
-      if (apertura > cierre) {
-        if (horaActual < cierre) {
-          return 'abierto';
-        }
-      }
-    }
-  }
-  
-  return 'cerrado';
-};
-
-map.on('load', function() {
-  console.log('🗺️ [MAPA v350.0] Mapa cargado, añadiendo source GeoJSON');
-  
-  setTimeout(function() {
-    map.resize();
-    console.log('🗺️ [MAPA v350.0] ✅ map.resize() ejecutado');
-  }, 100);
-  
-  loadCategoryIcons();
-  
-  map.addSource('locales-source', {
-    type: 'geojson',
-    data: { type: 'FeatureCollection', features: [] },
-    cluster: true,
-    clusterMaxZoom: 14,
-    clusterRadius: 60,
-    clusterProperties: { 'sum': ['+', ['get', 'count']] }
-  });
-  
-  const markerScale = ${markerScale};
-  
-  map.addLayer({
-    id: 'clusters',
-    type: 'circle',
-    source: 'locales-source',
-    filter: ['has', 'point_count'],
-    paint: {
-      'circle-color': [
-        'step',
-        ['get', 'point_count'],
-        'rgba(20, 184, 166, 0.7)',
-        10, 'rgba(13, 148, 136, 0.75)',
-        100, 'rgba(15, 118, 110, 0.8)'
-      ],
-      'circle-radius': [
-        'step',
-        ['get', 'point_count'],
-        Math.round(28 * markerScale),
-        10, Math.round(35 * markerScale),
-        100, Math.round(42 * markerScale)
-      ],
-      'circle-stroke-width': 3,
-      'circle-stroke-color': 'rgba(255, 255, 255, 0.9)',
-      'circle-opacity': 1
-    }
-  });
-  
-  console.log('🗺️ [MAPA v350.0] ✅ Adding cluster-count layer with MAXIMUM visibility');
-  map.addLayer({
-    id: 'cluster-count',
-    type: 'symbol',
-    source: 'locales-source',
-    filter: ['has', 'point_count'],
-    layout: {
-      'text-field': ['to-string', ['get', 'point_count']],
-      'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-      'text-size': [
-        'step',
-        ['get', 'point_count'],
-        16,
-        10, 18,
-        100, 20
-      ],
-      'text-allow-overlap': true,
-      'text-ignore-placement': true,
-      'text-anchor': 'center',
-      'text-offset': [0, 0],
-      'text-optional': false
-    },
-    paint: {
-      'text-color': '#FFFFFF',
-      'text-halo-color': '#000000',
-      'text-halo-width': 2,
-      'text-opacity': 1
-    }
-  });
-  console.log('🗺️ [MAPA v350.0] ✅ Cluster count layer added');
-  
-  map.addLayer({
-    id: 'locales-layer',
-    type: 'circle',
-    source: 'locales-source',
-    filter: ['!', ['has', 'point_count']],
-    paint: {
-      'circle-radius': [
-        'interpolate',
-        ['linear'],
-        ['zoom'],
-        10, Math.round(18 * markerScale),
-        13, Math.round(22 * markerScale),
-        16, Math.round(24 * markerScale),
-        20, Math.round(26 * markerScale)
-      ],
-      'circle-color': [
-        'case',
-        ['==', ['get', 'estado'], 'abierto'], '#22C55E',
-        ['==', ['get', 'estado'], 'cerrado'], '#EF4444',
-        '#9CA3AF'
-      ],
-      'circle-stroke-width': 3,
-      'circle-stroke-color': '#FFFFFF',
-      'circle-opacity': 1
-    },
-    layout: { 'visibility': 'visible' }
-  });
-  
-  map.addLayer({
-    id: 'locales-icons',
-    type: 'symbol',
-    source: 'locales-source',
-    filter: ['!', ['has', 'point_count']],
-    layout: {
-      'icon-image': [
-        'case',
-        ['in', 'cafe', ['get', 'barlive_types']], 'cafe-icon',
-        ['in', 'cafeteria', ['get', 'barlive_types']], 'cafe-icon',
-        ['in', 'restaurante', ['get', 'barlive_types']], 'restaurant-icon',
-        ['in', 'bar', ['get', 'barlive_types']], 'bar-icon',
-        ['in', 'pub', ['get', 'barlive_types']], 'pub-icon',
-        ['in', 'cocteleria', ['get', 'barlive_types']], 'cocktail-icon',
-        ['in', 'cocktail', ['get', 'barlive_types']], 'cocktail-icon',
-        ['in', 'discoteca', ['get', 'barlive_types']], 'nightclub-icon',
-        ['in', 'nightclub', ['get', 'barlive_types']], 'nightclub-icon',
-        'default-icon'
-      ],
-      'icon-size': [
-        'interpolate',
-        ['linear'],
-        ['zoom'],
-        10, 0.5,
-        13, 0.55,
-        16, 0.6,
-        20, 0.65
-      ],
-      'icon-allow-overlap': true,
-      'icon-ignore-placement': true,
-      'visibility': 'visible'
-    }
-  });
-  
-  map.addLayer({
-    id: 'locales-labels',
-    type: 'symbol',
-    source: 'locales-source',
-    filter: ['!', ['has', 'point_count']],
-    layout: {
-      'text-field': ['get', 'name'],
-      'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
-      'text-radial-offset': 0.8,
-      'text-size': [
-        'interpolate',
-        ['linear'],
-        ['zoom'],
-        10, 10,
-        13, 12,
-        16, 14
-      ],
-      'text-font': ['Open Sans Regular'],
-      'text-optional': true
-    },
-    paint: {
-      'text-color': '#202124',
-      'text-halo-color': '#FFFFFF',
-      'text-halo-width': 1.5
-    }
-  });
-  
-  console.log('🗺️ [MAPA v350.0] ✅ All layers added');
-  
-  window.loadLocales();
-  
-  if (window.pendingAdvancedFilters) {
-    console.log('🗺️ [MAPA v350.0] Applying pending advanced filters');
-    window.applyAdvancedFilters(window.pendingAdvancedFilters);
-    window.pendingAdvancedFilters = null;
-  }
-  
-  window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_ready' }));
-});
-
-window.allLocales = [];
-window.currentPopup = null;
-window.filtros = { cat: 'todas', estado: 'no_cerrados' };
-window.advancedFilters = {
-  tipo: [],
-  servicios: [],
-  ambiente: [],
-  clientela: [],
-  comunidad: null,
-  provincia: null,
-  distancia: null
-};
-window.pendingAdvancedFilters = null;
-
-window.loadLocales = async function() {
-  try {
-    console.log('🗺️ [MAPA v350.0] Cargando locales desde Supabase...');
-    
-    const response = await fetch('https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/locales?select=id,nombre,direccion,latitud,longitud,imagen_url,rating,google_rating,barlive_types,horarios_completos,estado_actual,google_business_status,google_user_ratings_total,servicios_disponibles,ambiente_completo,clientela,comunidad,provincia&activo=eq.true&latitud=not.is.null&longitud=not.is.null', {
-      headers: {
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtYm50YXF3bHdtZ2F6dnJnbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5Mjk1NzMsImV4cCI6MjA3NzUwNTU3M30.mgqmCBX7FVpuejaN6pGuFHhMxKA033U-ALJwC-DCUEI',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtYm50YXF3bHdtZ2F6dnJnbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5Mjk1NzMsImV4cCI6MjA3NzUwNTU3M30.mgqmCBX7FVpuejaN6pGuFHhMxKA033U-ALJwC-DCUEI'
-      }
-    });
-    
-    if (!response.ok) throw new Error('Error cargando locales: ' + response.status);
-    
-    const locales = await response.json();
-    console.log('🗺️ [MAPA v350.0] Locales cargados:', locales.length);
-    
-    window.allLocales = locales;
-    window.applyFilters();
-  } catch (error) {
-    console.error('🗺️ [MAPA v350.0] Error cargando locales:', error);
-  }
-};
-
-window.applyAdvancedFilters = function(filterCriteria) {
-  console.log('🗺️ [MAPA v350.0] 🔍 Setting advanced filters:', filterCriteria);
-  window.advancedFilters = filterCriteria;
-  window.applyFilters();
-};
-
-window.applyFilters = function() {
-  if (!window.allLocales || window.allLocales.length === 0) return;
-  
-  console.log('🗺️ [MAPA v350.0] Aplicando filtros:', window.filtros);
-  console.log('🗺️ [MAPA v350.0] Advanced filters:', window.advancedFilters);
-  
-  var filteredLocales = window.allLocales.filter(function(local) {
-    // ✅ STEP 1: Estado filter (abierto/cerrado)
-    var estado = window.getEstadoLocalRealTime(local);
-    
-    if (window.filtros.estado === 'no_cerrados') {
-      if (estado === 'cerrado') return false;
-    }
-    
-    // ✅ STEP 2: Category filter (cafe, bar, etc.)
-    if (window.filtros.cat !== 'todas') {
-      var types = local.barlive_types || [];
-      var hasCategory = false;
-      
-      if (window.filtros.cat === 'cafe') {
-        hasCategory = types.includes('cafe') || types.includes('cafeteria');
-      } else if (window.filtros.cat === 'cocteleria') {
-        hasCategory = types.includes('cocteleria') || types.includes('cocktail');
-      } else if (window.filtros.cat === 'discoteca') {
-        hasCategory = types.includes('discoteca') || types.includes('nightclub');
-      } else {
-        hasCategory = types.includes(window.filtros.cat);
-      }
-      
-      if (!hasCategory) return false;
-    }
-    
-    // ✅ STEP 3: Advanced tipo filter (from FilterContext)
-    if (window.advancedFilters.tipo && window.advancedFilters.tipo.length > 0) {
-      var localTypes = local.barlive_types || [];
-      var hasAdvancedType = false;
-      
-      for (var i = 0; i < window.advancedFilters.tipo.length; i++) {
-        var filterTipo = window.advancedFilters.tipo[i].toLowerCase();
-        
-        for (var j = 0; j < localTypes.length; j++) {
-          var localType = localTypes[j].toLowerCase();
-          
-          if (localType === filterTipo || localType.includes(filterTipo) || filterTipo.includes(localType)) {
-            hasAdvancedType = true;
-            break;
-          }
-        }
-        
-        if (hasAdvancedType) break;
-      }
-      
-      if (!hasAdvancedType) return false;
-    }
-    
-    // ✅ STEP 4: Servicios filter
-    if (window.advancedFilters.servicios && window.advancedFilters.servicios.length > 0) {
-      if (!local.servicios_disponibles) return false;
-      
-      for (var i = 0; i < window.advancedFilters.servicios.length; i++) {
-        var servicio = window.advancedFilters.servicios[i];
-        if (local.servicios_disponibles[servicio] !== true) {
-          return false;
-        }
-      }
-    }
-    
-    // ✅ STEP 5: Ambiente filter
-    if (window.advancedFilters.ambiente && window.advancedFilters.ambiente.length > 0) {
-      if (!local.ambiente_completo) return false;
-      
-      var hasAmbiente = false;
-      for (var i = 0; i < window.advancedFilters.ambiente.length; i++) {
-        var ambiente = window.advancedFilters.ambiente[i];
-        if (local.ambiente_completo[ambiente] === true) {
-          hasAmbiente = true;
-          break;
-        }
-      }
-      
-      if (!hasAmbiente) return false;
-    }
-    
-    // ✅ STEP 6: Clientela filter
-    if (window.advancedFilters.clientela && window.advancedFilters.clientela.length > 0) {
-      if (!local.clientela) return false;
-      
-      var hasClientela = false;
-      for (var i = 0; i < window.advancedFilters.clientela.length; i++) {
-        var clientelaTipo = window.advancedFilters.clientela[i];
-        if (local.clientela[clientelaTipo] === true) {
-          hasClientela = true;
-          break;
-        }
-      }
-      
-      if (!hasClientela) return false;
-    }
-    
-    // ✅ STEP 7: Comunidad filter
-    if (window.advancedFilters.comunidad && window.advancedFilters.comunidad !== 'Todas las Comunidades') {
-      if (local.comunidad !== window.advancedFilters.comunidad) return false;
-    }
-    
-    // ✅ STEP 8: Provincia filter
-    if (window.advancedFilters.provincia) {
-      if (local.provincia !== window.advancedFilters.provincia) return false;
-    }
-    
-    // ✅ STEP 9: Distance filter (if user location is available)
-    if (window.advancedFilters.distancia && window.advancedFilters.distancia > 0) {
-      if (local.distancia !== null && local.distancia !== undefined) {
-        if (local.distancia > window.advancedFilters.distancia) return false;
-      }
-    }
-    
-    return true;
-  });
-  
-  console.log('🗺️ [MAPA v350.0] Locales filtrados:', filteredLocales.length);
-  
-  var geojson = {
-    type: 'FeatureCollection',
-    features: filteredLocales.map(function(local) {
-      var lng = parseFloat(local.longitud);
-      var lat = parseFloat(local.latitud);
-      if (isNaN(lng) || isNaN(lat)) return null;
-      
-      var estadoCalculado = window.getEstadoLocalRealTime(local);
-      
-      return {
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [lng, lat] },
-        properties: {
-          id: local.id,
-          name: local.nombre,
-          direccion: local.direccion || 'Dirección no disponible',
-          imagen_url: local.imagen_url,
-          rating: local.rating || 0,
-          estado: estadoCalculado,
-          barlive_types: local.barlive_types || [],
-          count: 1
-        }
-      };
-    }).filter(function(feature) { return feature !== null; })
-  };
-  
-  var source = map.getSource('locales-source');
-  if (source) {
-    source.setData(geojson);
-    console.log('🗺️ [MAPA v350.0] ✅ GeoJSON actualizado con', geojson.features.length, 'marcadores');
-  }
-};
-
-window.setStateFilter = function(filterType) {
-  window.filtros.estado = filterType;
-  window.applyFilters();
-};
-
-window.filtrarCategoria = function(idCategoria) {
-  window.filtros.cat = idCategoria;
-  window.applyFilters();
-};
-
-window.setCategoryFilter = window.filtrarCategoria;
-
-window.updateUserLocation = function(lat, lng) {
-  console.log('🗺️ [MAPA v350.0] 📍 Actualizando ubicación del usuario:', lat, lng);
-  
-  if (!map) return;
-  
-  const userMarkerSize = ${userMarkerSize};
-  const pulseSize = userMarkerSize * 2;
-  
-  if (!window.userMarker) {
-    var el = document.createElement('div');
-    el.className = 'user-marker';
-    el.style.cssText = 'position:relative;width:' + userMarkerSize + 'px;height:' + userMarkerSize + 'px;z-index:9999;';
-    
-    var innerCircle = document.createElement('div');
-    innerCircle.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#1E88E5;width:' + userMarkerSize + 'px;height:' + userMarkerSize + 'px;border-radius:50%;border:4px solid #FFF;box-shadow:0 3px 12px rgba(30,136,229,0.7),0 0 0 2px rgba(30,136,229,0.3);z-index:2;';
-    el.appendChild(innerCircle);
-    
-    var outerCircle = document.createElement('div');
-    outerCircle.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(30,136,229,0.4);width:' + pulseSize + 'px;height:' + pulseSize + 'px;border-radius:50%;animation:pulse 2s infinite;z-index:1;';
-    el.appendChild(outerCircle);
-    
-    var style = document.createElement('style');
-    style.textContent = '@keyframes pulse{0%{transform:translate(-50%,-50%) scale(1);opacity:1}50%{transform:translate(-50%,-50%) scale(1.3);opacity:0.5}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}';
-    document.head.appendChild(style);
-    
-    window.userMarker = new maplibregl.Marker({ element: el, anchor: 'center' })
-      .setLngLat([lng, lat])
-      .addTo(map);
-    
-    console.log('🗺️ [MAPA v350.0] ✅ Marcador de usuario creado');
-  } else {
-    window.userMarker.setLngLat([lng, lat]);
-    console.log('🗺️ [MAPA v350.0] ✅ Marcador de usuario actualizado');
-  }
-};
-
-window.flyToLocation = function(lat, lng, zoom) {
-  map.flyTo({ center: [lng, lat], zoom: zoom, essential: true });
-};
-
-function showPopupForFeature(feature, coordinates) {
-  if (!feature || !feature.properties) return;
-  
-  var properties = feature.properties;
-  if (!properties.id) return;
-  
-  console.log('🗺️ [MAPA v350.0] ✅ Mostrando popup para local:', properties.name);
-  
-  var localCompleto = window.allLocales.find(function(l) { return l.id === properties.id; });
-  
-  var ratingValue = 0;
-  if (localCompleto) {
-    if (localCompleto.rating && localCompleto.rating > 0) {
-      ratingValue = localCompleto.rating;
-    } else if (localCompleto.google_rating && localCompleto.google_rating > 0) {
-      ratingValue = localCompleto.google_rating;
-    }
-  }
-  
-  var rating = ratingValue > 0 ? ratingValue.toFixed(1) : '0.0';
-  var categorias = properties.barlive_types || [];
-  var categoriasTexto = categorias.length > 0 ? categorias.slice(0, 2).join(', ') : 'Local';
-  
-  var estadoTexto = '';
-  var estadoColor = '';
-  if (properties.estado === 'abierto') {
-    estadoTexto = '🟢 Abierto ahora';
-    estadoColor = '#22C55E';
-  } else if (properties.estado === 'cerrado') {
-    estadoTexto = '🔴 Cerrado ahora';
-    estadoColor = '#EF4444';
-  } else {
-    estadoTexto = '⚪ Sin información de horario';
-    estadoColor = '#9CA3AF';
-  }
-  
-  var popupHTML = '<div>' +
-    '<img src="' + (properties.imagen_url || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400') + '" class="popup-img" onerror="this.src=\\'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400\\'"/>' +
-    '<div class="popup-info">' +
-    '<div class="popup-title">' + properties.name + '</div>' +
-    '<div style="font-size:12px;color:#70757A;margin-bottom:10px;display:flex;align-items:flex-start;gap:4px">' +
-    '<span style="flex-shrink:0">📍</span>' +
-    '<span style="flex:1">' + (properties.direccion || 'Dirección no disponible') + '</span>' +
-    '</div>' +
-    (ratingValue > 0 ? '<div class="popup-rating">⭐ ' + rating + '</div>' : '') +
-    '<div class="popup-category">' + categoriasTexto + '</div>' +
-    '<div style="font-size:12px;font-weight:600;color:' + estadoColor + ';margin-bottom:10px">' + estadoTexto + '</div>' +
-    '<a href="#" class="popup-btn" onclick="event.preventDefault();window.ReactNativeWebView.postMessage(JSON.stringify({type:\\'navigate\\',id:\\''+properties.id+'\\'}));return false">' +
-    '<span style="color:#FFF">📍 Ver detalles</span>' +
-    '</a>' +
-    '</div>' +
-    '</div>';
-  
-  if (window.currentPopup) {
-    window.currentPopup.remove();
-    window.currentPopup = null;
-  }
-  
-  window.currentPopup = new maplibregl.Popup({
-    closeButton: false,
-    closeOnClick: true,
-    maxWidth: '${popupWidth}px',
-    className: 'custom-popup'
-  })
-    .setLngLat(coordinates)
-    .setHTML(popupHTML)
-    .addTo(map);
-}
-
-map.on('click', function(e) {
-  console.log('🗺️ [MAPA v350.0] 🎯 Click detectado');
-  
-  var clusterFeatures = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-  if (clusterFeatures.length > 0) {
-    console.log('🗺️ [MAPA v350.0] 🔵 CLUSTER detectado - ejecutando zoom-in');
-    
-    var clusterId = clusterFeatures[0].properties.cluster_id;
-    var source = map.getSource('locales-source');
-    
-    source.getClusterExpansionZoom(clusterId, function(err, zoom) {
-      if (err) return;
-      map.flyTo({
-        center: clusterFeatures[0].geometry.coordinates,
-        zoom: zoom,
-        speed: 1.2,
-        curve: 1,
-        essential: true
-      });
-    });
-    
-    return;
-  }
-  
-  var filtroCategoria = window.filtros.cat || 'todas';
-  var soloAbiertos = window.filtros.estado === 'no_cerrados';
-  var touchPoint = e.point;
-  var toleranciaPixeles = 20;
-  var detectado = null;
-  var minimaDistanciaPixeles = Infinity;
-  
-  window.allLocales.forEach(function(local) {
-    var estadoLocal = window.getEstadoLocalRealTime(local);
-    
-    var cumpleCategoria = false;
-    if (filtroCategoria === 'todas') {
-      cumpleCategoria = true;
-    } else {
-      var types = local.barlive_types || [];
-      if (filtroCategoria === 'cafe') {
-        cumpleCategoria = types.includes('cafe') || types.includes('cafeteria');
-      } else if (filtroCategoria === 'cocteleria') {
-        cumpleCategoria = types.includes('cocteleria') || types.includes('cocktail');
-      } else if (filtroCategoria === 'discoteca') {
-        cumpleCategoria = types.includes('discoteca') || types.includes('nightclub');
-      } else {
-        cumpleCategoria = types.includes(filtroCategoria);
-      }
-    }
-    
-    var cumpleEstado = !soloAbiertos || (estadoLocal === 'abierto' || estadoLocal === 'sin_info');
-    
-    if (cumpleCategoria && cumpleEstado) {
-      var localPixel = map.project([parseFloat(local.longitud), parseFloat(local.latitud)]);
-      var dx = localPixel.x - touchPoint.x;
-      var dy = localPixel.y - touchPoint.y;
-      var distanciaPixeles = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distanciaPixeles < toleranciaPixeles && distanciaPixeles < minimaDistanciaPixeles) {
-        minimaDistanciaPixeles = distanciaPixeles;
-        detectado = local;
-      }
-    }
-  });
-  
-  if (detectado) {
-    console.log('🗺️ [MAPA v350.0] 🎉 Local encontrado:', detectado.nombre);
-    
-    var coords = [parseFloat(detectado.longitud), parseFloat(detectado.latitud)];
-    var estadoCalculado = window.getEstadoLocalRealTime(detectado);
-    
-    var fakeFeature = { 
-      properties: { 
-        id: detectado.id,
-        name: detectado.nombre,
-        direccion: detectado.direccion || 'Dirección no disponible',
-        imagen_url: detectado.imagen_url,
-        rating: detectado.rating || 0,
-        estado: estadoCalculado,
-        barlive_types: detectado.barlive_types || [],
-        google_user_ratings_total: detectado.google_user_ratings_total || 0
-      } 
-    };
-    
-    map.flyTo({
-      center: coords,
-      zoom: 17,
-      speed: 1.2,
-      curve: 1,
-      duration: 500,
-      essential: true
-    });
-    
-    var onMoveEnd = function() {
-      showPopupForFeature(fakeFeature, coords);
-      
-      setTimeout(function() {
-        var popupElement = document.querySelector('.maplibregl-popup-content');
-        var popupHeight = popupElement ? popupElement.offsetHeight : ${popupImageHeight + 120};
-        
-        var markerPoint = map.project(coords);
-        var screenCenterY = window.innerHeight / 2;
-        var popupTopY = markerPoint.y - popupHeight - 10;
-        var popupCenterY = popupTopY + (popupHeight / 2);
-        var offsetY = screenCenterY - popupCenterY;
-        
-        var targetPoint = { x: markerPoint.x, y: markerPoint.y + offsetY };
-        var targetCoords = map.unproject(targetPoint);
-        
-        map.flyTo({
-          center: targetCoords,
-          zoom: 17,
-          speed: 1.5,
-          curve: 1,
-          duration: 400,
-          essential: true
-        });
-      }, 100);
-      
-      map.off('moveend', onMoveEnd);
-    };
-    
-    map.on('moveend', onMoveEnd);
-  }
-});
-
-map.on('click', 'clusters', function(e) {
-  var features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-  if (!features.length) return;
-  
-  var clusterId = features[0].properties.cluster_id;
-  var source = map.getSource('locales-source');
-  
-  source.getClusterExpansionZoom(clusterId, function(err, zoom) {
-    if (err) return;
-    map.easeTo({ center: features[0].geometry.coordinates, zoom: zoom });
-  });
-});
-
-map.on('mouseenter', 'locales-layer', function() { map.getCanvas().style.cursor = 'pointer'; });
-map.on('mouseleave', 'locales-layer', function() { map.getCanvas().style.cursor = ''; });
-map.on('mouseenter', 'locales-icons', function() { map.getCanvas().style.cursor = 'pointer'; });
-map.on('mouseleave', 'locales-icons', function() { map.getCanvas().style.cursor = ''; });
-map.on('mouseenter', 'clusters', function() { map.getCanvas().style.cursor = 'pointer'; });
-map.on('mouseleave', 'clusters', function() { map.getCanvas().style.cursor = ''; });
-
-window.addEventListener('resize', function() {
-  map.resize();
-});
-
-console.log('🗺️ [MAPA v350.0] ✅ Map initialization complete with category sync + advanced filters');
-</script>
-</body>
-</html>`;
-  }, [userLocation, popupWidth, popupImageHeight, markerScale, userMarkerSize]);
 
   useEffect(() => {
+    let alive = true;
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          console.log('🗺️ [MAPA v350.0] Permisos de ubicación denegados');
-          setUserLocation({ lat: 40.4168, lng: -3.7038 });
-          return;
-        }
-
-        console.log('🗺️ [MAPA v350.0] Obteniendo ubicación del usuario...');
-        const location = await Location.getCurrentPositionAsync({
+        if (status !== 'granted') return;
+        const loc = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
-        
-        console.log('🗺️ [MAPA v350.0] Ubicación obtenida:', location.coords.latitude, location.coords.longitude);
+        if (!alive) return;
         setUserLocation({
-          lat: location.coords.latitude,
-          lng: location.coords.longitude,
+          lat: loc.coords.latitude,
+          lng: loc.coords.longitude,
         });
-      } catch (error) {
-        console.error('🗺️ [MAPA v350.0] Error obteniendo ubicación:', error);
-        setUserLocation({ lat: 40.4168, lng: -3.7038 });
-      }
+      } catch {}
     })();
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  // ✅ CRITICAL FIX v350.0: Apply advanced filters to map
+  const mapHTML = useMemo(
+    () =>
+      buildMapHtml(
+        userLocation.lat,
+        userLocation.lng,
+        13,
+        categoriaSeleccionada,
+        filtroEstado
+      ),
+    []
+  );
+
+  const handlePayload = useCallback(
+    (data: any) => {
+      if (!data) return;
+      if (data.type === 'map_ready') {
+        setIsMapReady(true);
+      } else if (data.type === 'navigate' && data.id) {
+        router.push(`/detalle/local?id=${data.id}` as any);
+      }
+    },
+    [router]
+  );
+
   useEffect(() => {
-    if (!webViewRef.current || !isMapReady) {
-      return;
-    }
-    
-    console.log('🗺️ [MAPA v350.0] 🔍 Applying advanced filters to map:', globalFiltros);
-    
-    const filterCriteria = {
-      tipo: globalFiltros.tipo || [],
-      servicios: globalFiltros.servicios || [],
-      ambiente: globalFiltros.ambiente || [],
-      clientela: globalFiltros.clientela || [],
-      comunidad: globalFiltros.comunidad || null,
-      provincia: globalFiltros.provincia || null,
-      distancia: globalFiltros.distancia || null,
+    if (Platform.OS !== 'web') return;
+    const listener = (event: any) => {
+      const data = event?.data;
+      if (data?.__barliveMap) handlePayload(data.payload);
     };
-    
-    requestAnimationFrame(() => {
-      webViewRef.current?.injectJavaScript(`
-        (function() {
-          console.log('🗺️ [MAPA v350.0] Applying advanced filters in WebView:', ${JSON.stringify(filterCriteria)});
-          
-          if (typeof window.applyAdvancedFilters !== 'undefined') {
-            window.applyAdvancedFilters(${JSON.stringify(filterCriteria)});
-          } else {
-            window.pendingAdvancedFilters = ${JSON.stringify(filterCriteria)};
-          }
-        })();
-        true;
-      `);
-    });
-  }, [categoriaSeleccionada, globalFiltros, isMapReady]);
+    window.addEventListener('message', listener);
+    return () => window.removeEventListener('message', listener);
+  }, [handlePayload]);
 
-  useEffect(() => {
-    if (!webViewRef.current || !isMapReady) {
+  const sendCommand = useCallback((command: any) => {
+    if (Platform.OS === 'web') {
+      try {
+        iframeRef.current?.contentWindow?.postMessage(
+          { __barliveCommand: true, command },
+          '*'
+        );
+      } catch {}
       return;
     }
-    
-    requestAnimationFrame(() => {
-      webViewRef.current?.injectJavaScript(`
-        (function() {
-          if (typeof window.setStateFilter !== 'undefined') {
-            window.setStateFilter('${filtroEstado}');
-          }
-        })();
-        true;
-      `);
-    });
-  }, [filtroEstado, isMapReady]);
+
+    const json = JSON.stringify(command).replace(/</g, '\\u003c');
+    webViewRef.current?.injectJavaScript(`
+      (function(){
+        var cmd=${json};
+        if(cmd.type==='category' && window.filtrarCategoria) window.filtrarCategoria(cmd.value);
+        if(cmd.type==='state' && window.setStateFilter) window.setStateFilter(cmd.value);
+        if(cmd.type==='filters' && window.applyAdvancedFilters) window.applyAdvancedFilters(cmd.value||{});
+        if(cmd.type==='location' && window.updateUserLocation) window.updateUserLocation(cmd.lat,cmd.lng);
+        if(cmd.type==='fly' && window.flyToLocation) window.flyToLocation(cmd.lat,cmd.lng,cmd.zoom);
+      })();
+      true;
+    `);
+  }, []);
 
   useEffect(() => {
-    if (!webViewRef.current || !isMapReady) {
-      return;
-    }
-    
-    requestAnimationFrame(() => {
-      webViewRef.current?.injectJavaScript(`
-        (function() {
-          if (typeof window.filtrarCategoria !== 'undefined') {
-            window.filtrarCategoria('${categoriaSeleccionada}');
-          }
-        })();
-        true;
-      `);
-    });
-  }, [categoriaSeleccionada, isMapReady]);
+    if (!isMapReady) return;
+    sendCommand({ type: 'category', value: categoriaSeleccionada });
+  }, [categoriaSeleccionada, isMapReady, sendCommand]);
 
   useEffect(() => {
-    if (!webViewRef.current || !userLocation || !isMapReady) {
-      return;
-    }
-    
-    console.log('🗺️ [MAPA v350.0] 📍 Inyectando ubicación del usuario');
-    
-    const injectUserLocation = () => {
-      webViewRef.current?.injectJavaScript(`
-        (function() {
-          try {
-            if (typeof window.updateUserLocation !== 'undefined') {
-              window.updateUserLocation(${userLocation.lat}, ${userLocation.lng});
-            } else {
-              setTimeout(function() {
-                if (typeof window.updateUserLocation !== 'undefined') {
-                  window.updateUserLocation(${userLocation.lat}, ${userLocation.lng});
-                }
-              }, 100);
-            }
-          } catch (error) {
-            console.error('🗺️ [MAPA v350.0] ❌ Error actualizando ubicación:', error);
-          }
-        })();
-        true;
-      `);
-    };
-    
-    if (Platform.OS === 'ios') {
-      injectUserLocation();
-    } else {
-      setTimeout(injectUserLocation, 50);
-    }
-  }, [userLocation, isMapReady]);
+    if (!isMapReady) return;
+    sendCommand({ type: 'state', value: filtroEstado });
+  }, [filtroEstado, isMapReady, sendCommand]);
+
+  useEffect(() => {
+    if (!isMapReady) return;
+    sendCommand({
+      type: 'filters',
+      value: {
+        tipo: globalFiltros.tipo || [],
+        servicios: globalFiltros.servicios || [],
+        ambiente: globalFiltros.ambiente || [],
+        clientela: globalFiltros.clientela || [],
+        comunidad: globalFiltros.comunidad || null,
+        provincia: globalFiltros.provincia || null,
+        distancia: globalFiltros.distancia || null,
+      },
+    });
+  }, [globalFiltros, isMapReady, sendCommand]);
+
+  useEffect(() => {
+    if (!isMapReady) return;
+    sendCommand({
+      type: 'location',
+      lat: userLocation.lat,
+      lng: userLocation.lng,
+    });
+  }, [userLocation, isMapReady, sendCommand]);
+
+  const handleCategoriaChange = useCallback(
+    (id: string) => {
+      setFiltros({
+        ...globalFiltros,
+        tipo: id === 'todas' ? undefined : [id],
+      });
+    },
+    [globalFiltros, setFiltros]
+  );
 
   const centerOnUser = useCallback(() => {
-    if (userLocation && webViewRef.current && isMapReady) {
-      console.log('🗺️ [MAPA v350.0] Centrando en ubicación del usuario');
-      webViewRef.current.injectJavaScript(`
-        if (typeof window.flyToLocation !== 'undefined') {
-          window.flyToLocation(${userLocation.lat}, ${userLocation.lng}, 16);
-        }
-        true;
-      `);
-    }
-  }, [userLocation, isMapReady]);
-
-  const handleWebViewMessage = useCallback((event: any) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      
-      if (data.type === 'navigate' && data.id) {
-        console.log('🗺️ [MAPA v350.0] Navegando a local:', data.id);
-        router.push(`/detalle/local?id=${data.id}`);
-      } else if (data.type === 'map_ready') {
-        console.log('🗺️ [MAPA v350.0] Mapa listo');
-        setIsMapReady(true);
-      }
-    } catch (error) {
-      console.error('🗺️ [MAPA v350.0] Error procesando mensaje:', error);
-    }
-  }, [router]);
-
-  const controlButtonSize = useMemo(() => 40, []);
-  const controlIconSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(20) : 20, []);
-  const centerButtonSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(56) : 56, []);
-  const centerIconSize = useMemo(() => Platform.OS === 'android' ? scaleIconSize(24) : 24, []);
+    sendCommand({
+      type: 'fly',
+      lat: userLocation.lat,
+      lng: userLocation.lng,
+      zoom: 16,
+    });
+  }, [sendCommand, userLocation]);
 
   return (
     <View style={commonStyles.container}>
       <View style={styles.mapContainer}>
-        {Platform.OS === 'web' ? (
-          <View style={styles.webNotSupported}>
-            <IconSymbol 
-              ios_icon_name="map" 
-              android_material_icon_name="map" 
-              size={Math.min(width * 0.2, 80)} 
-              color={colors.textSecondary} 
+        {Platform.OS === 'web'
+          ? React.createElement('iframe' as any, {
+              ref: iframeRef,
+              srcDoc: mapHTML,
+              title: 'Mapa BarLive',
+              style: {
+                width: '100%',
+                height: '100%',
+                border: 0,
+                display: 'block',
+                background: '#A8E0FF',
+              },
+              allow: 'geolocation',
+            })
+          : (
+            <WebView
+              ref={webViewRef}
+              source={{ html: mapHTML }}
+              style={styles.webview}
+              onMessage={(event: any) => {
+                try {
+                  handlePayload(JSON.parse(event.nativeEvent.data));
+                } catch {}
+              }}
+              javaScriptEnabled
+              domStorageEnabled
+              startInLoadingState={false}
+              cacheEnabled
+              incognito={false}
+              androidLayerType="hardware"
+              androidHardwareAccelerationDisabled={false}
             />
-            <Text style={[styles.webNotSupportedText, { fontSize: scaleFontSize(16) }]}>
-              Los mapas no están disponibles en la versión web de Natively.
-            </Text>
-            <Text style={[styles.webNotSupportedSubtext, { fontSize: scaleFontSize(14) }]}>
-              Por favor, usa la aplicación móvil para ver el mapa.
-            </Text>
-          </View>
-        ) : (
-          <WebView
-            ref={webViewRef}
-            source={{ html: mapHTML }}
-            style={styles.webview}
-            onMessage={handleWebViewMessage}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            startInLoadingState={false}
-            cacheEnabled={false}
-            incognito={true}
-            androidLayerType="hardware"
-            androidHardwareAccelerationDisabled={false}
-          />
-        )}
+          )}
       </View>
 
-      <View 
-        style={styles.headerContainer}
-      >
+      <View style={styles.headerContainer}>
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.header}
         >
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoriasScroll}
-            style={styles.categoriasContainer}
           >
             {CATEGORIAS.map((categoria) => (
               <CategoriaButton
@@ -1356,141 +757,115 @@ console.log('🗺️ [MAPA v350.0] ✅ Map initialization complete with category
       </View>
 
       <View style={styles.controlsLeft}>
-        <TouchableOpacity 
-          style={[styles.controlButton, {
-            width: controlButtonSize,
-            height: controlButtonSize,
-            borderRadius: controlButtonSize / 2,
-          }]}
-          onPress={() => router.back()}
-        >
-          <IconSymbol 
-            ios_icon_name="chevron.left" 
-            android_material_icon_name="arrow_back" 
-            size={controlIconSize} 
-            color={colors.text} 
+        <TouchableOpacity style={styles.controlButton} onPress={() => router.back()}>
+          <IconSymbol
+            ios_icon_name="chevron.left"
+            android_material_icon_name="arrow_back"
+            size={20}
+            color={colors.text}
           />
         </TouchableOpacity>
 
-        <View style={styles.filterButtonWrapper}>
-          <TouchableOpacity 
-            style={[styles.controlButton, {
-              width: controlButtonSize,
-              height: controlButtonSize,
-              borderRadius: controlButtonSize / 2,
-            }]}
-            onPress={handleToggleFiltros}
-          >
-            <IconSymbol 
-              ios_icon_name="slider.horizontal.3" 
-              android_material_icon_name="tune" 
-              size={controlIconSize} 
-              color={colors.primary} 
-            />
-            {hasActiveFilters && (
-              <View style={styles.filterActiveDotMap} />
-            )}
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.controlButton}
+          onPress={() => setMostrarFiltros(true)}
+        >
+          <IconSymbol
+            ios_icon_name="slider.horizontal.3"
+            android_material_icon_name="tune"
+            size={20}
+            color={colors.primary}
+          />
+          {hasActiveFilters ? <View style={styles.activeDot} /> : null}
+        </TouchableOpacity>
 
-        {hasActiveFilters && (
-          <TouchableOpacity 
-            style={[styles.controlButton, styles.clearAdvancedFiltersButtonMap, {
-              width: controlButtonSize,
-              height: controlButtonSize,
-              borderRadius: controlButtonSize / 2,
-            }]}
-            onPress={handleClearAdvancedFilters}
+        {hasActiveFilters ? (
+          <TouchableOpacity
+            style={[styles.controlButton, styles.clearButton]}
+            onPress={limpiarFiltros}
           >
-            <IconSymbol 
-              ios_icon_name="xmark.circle.fill" 
-              android_material_icon_name="cancel" 
-              size={controlIconSize} 
-              color={colors.white} 
+            <IconSymbol
+              ios_icon_name="xmark"
+              android_material_icon_name="close"
+              size={18}
+              color="#fff"
             />
           </TouchableOpacity>
-        )}
+        ) : null}
       </View>
 
       <View style={styles.controlsRight}>
-        <EstadoSelector 
-          filtroEstado={filtroEstado}
-          onChangeEstado={handleEstadoChange}
-        />
+        <View style={styles.estadoSelector}>
+          <TouchableOpacity
+            style={[
+              styles.estadoOption,
+              filtroEstado === 'todos' && styles.estadoOptionActive,
+            ]}
+            onPress={() => setFiltroEstado('todos')}
+          >
+            <Text
+              style={[
+                styles.estadoText,
+                filtroEstado === 'todos' && styles.estadoTextActive,
+              ]}
+            >
+              Todos
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.estadoOption,
+              filtroEstado === 'no_cerrados' && styles.estadoOptionActive,
+            ]}
+            onPress={() => setFiltroEstado('no_cerrados')}
+          >
+            <Text
+              style={[
+                styles.estadoText,
+                filtroEstado === 'no_cerrados' && styles.estadoTextActive,
+              ]}
+            >
+              Abiertos
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-        <View style={styles.leyenda}>
-          <View style={styles.leyendaItem}>
-            <View style={[styles.leyendaDot, { backgroundColor: '#22C55E' }]} />
-            <Text style={[styles.leyendaText, { fontSize: scaleFontSize(10) }]}>Abierto</Text>
+        <View style={styles.legend}>
+          <View style={styles.legendItem}>
+            <View style={[styles.dot, { backgroundColor: '#22C55E' }]} />
+            <Text style={styles.legendText}>Abierto</Text>
           </View>
-          <View style={styles.leyendaItem}>
-            <View style={[styles.leyendaDot, { backgroundColor: '#EF4444' }]} />
-            <Text style={[styles.leyendaText, { fontSize: scaleFontSize(10) }]}>Cerrado</Text>
+          <View style={styles.legendItem}>
+            <View style={[styles.dot, { backgroundColor: '#EF4444' }]} />
+            <Text style={styles.legendText}>Cerrado</Text>
           </View>
-          <View style={styles.leyendaItem}>
-            <View style={[styles.leyendaDot, { backgroundColor: '#9CA3AF' }]} />
-            <Text style={[styles.leyendaText, { fontSize: scaleFontSize(10) }]}>S/Info</Text>
+          <View style={styles.legendItem}>
+            <View style={[styles.dot, { backgroundColor: '#94A3B8' }]} />
+            <Text style={styles.legendText}>S/Info</Text>
           </View>
         </View>
       </View>
 
-      <TouchableOpacity 
-        style={[styles.centerButton, {
-          width: centerButtonSize,
-          height: centerButtonSize,
-          borderRadius: centerButtonSize / 2,
-          bottom: Platform.OS === 'android' ? 110 : 100,
-          right: 16,
-        }]}
-        onPress={centerOnUser}
-      >
-        <IconSymbol 
-          ios_icon_name="location.fill" 
-          android_material_icon_name="my_location" 
-          size={centerIconSize} 
-          color={colors.primary} 
+      <TouchableOpacity style={styles.centerButton} onPress={centerOnUser}>
+        <IconSymbol
+          ios_icon_name="location.fill"
+          android_material_icon_name="my_location"
+          size={Platform.OS === 'android' ? scaleIconSize(22) : 22}
+          color={colors.primary}
         />
       </TouchableOpacity>
 
       <FiltrosAvanzadosSheet
         visible={mostrarFiltros}
-        onClose={handleCloseFiltros}
+        onClose={() => setMostrarFiltros(false)}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  mapContainer: {
-    flex: 1,
-  },
-  webview: {
-    flex: 1,
-    backgroundColor: '#A8E0FF',
-  },
-  webNotSupported: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Math.max(width * 0.08, 24),
-    paddingVertical: Math.max(height * 0.05, 32),
-    backgroundColor: colors.background,
-  },
-  webNotSupportedText: {
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'center',
-    marginTop: Math.max(height * 0.02, 16),
-    lineHeight: scaleFontSize(16) * 1.5,
-    maxWidth: Math.min(width * 0.8, 400),
-  },
-  webNotSupportedSubtext: {
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: Math.max(height * 0.01, 8),
-    lineHeight: scaleFontSize(14) * 1.5,
-    maxWidth: Math.min(width * 0.8, 400),
-  },
+  mapContainer: { flex: 1 },
+  webview: { flex: 1, backgroundColor: '#A8E0FF' },
   headerContainer: {
     position: 'absolute',
     top: 0,
@@ -1499,230 +874,129 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingTop: Platform.OS === 'ios' ? 50 : Platform.OS === 'web' ? 8 : 14,
     paddingBottom: 8,
   },
-  categoriasContainer: {
-    flexGrow: 0,
-  },
   categoriasScroll: {
-    flexDirection: 'row',
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  categoriaButtonCompact: {
+  categoriaButton: {
     alignItems: 'center',
     gap: 4,
     minWidth: 60,
   },
-  categoriaIconContainerCompact: {
-    width: Platform.OS === 'android' ? 36 : 40,
-    height: Platform.OS === 'android' ? 36 : 40,
-    borderRadius: Platform.OS === 'android' ? 9 : 10,
+  categoriaIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primary,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 0,
-      },
-    }),
+    borderColor: 'rgba(255,255,255,.3)',
   },
-  categoriaIconContainerActive: {
-    borderColor: colors.white,
-    backgroundColor: colors.white,
-    shadowOpacity: 0.25,
+  categoriaIconActive: {
+    borderColor: '#fff',
+    backgroundColor: '#fff',
   },
-  categoriaLabelCompact: {
+  categoriaLabel: {
     fontSize: Platform.OS === 'android' ? scaleFontSize(11) : 12,
     fontWeight: '600',
-    color: colors.white,
-    textAlign: 'center',
+    color: '#fff',
   },
   categoriaLabelActive: {
-    color: colors.white,
-    fontWeight: '700',
+    fontWeight: '800',
+    color: '#fff',
   },
   controlsLeft: {
     position: 'absolute',
     left: 16,
-    top: Platform.OS === 'ios' ? 148 : 138,
-    gap: 12,
-    zIndex: 5,
-  },
-  filterButtonWrapper: {
-    position: 'relative',
-  },
-  filterActiveDotMap: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#EF4444',
-    borderWidth: 2,
-    borderColor: colors.white,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#EF4444',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.6,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  clearAdvancedFiltersButtonMap: {
-    backgroundColor: 'rgba(239, 68, 68, 0.9)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#EF4444',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    top: Platform.OS === 'ios' ? 145 : Platform.OS === 'web' ? 102 : 108,
+    gap: 10,
+    zIndex: 12,
   },
   controlsRight: {
     position: 'absolute',
     right: 16,
-    top: Platform.OS === 'ios' ? 148 : 138,
-    gap: 12,
-    zIndex: 5,
+    top: Platform.OS === 'ios' ? 145 : Platform.OS === 'web' ? 102 : 108,
+    gap: 10,
+    zIndex: 12,
     alignItems: 'center',
   },
   controlButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,.92)',
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 0,
-      },
-    }),
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
   },
-  estadoSelectorContainer: {
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 0,
-      },
-    }),
+  clearButton: { backgroundColor: '#EF4444' },
+  activeDot: {
+    position: 'absolute',
+    right: 3,
+    top: 3,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: '#EF4444',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   estadoSelector: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    backgroundColor: 'rgba(255,255,255,.92)',
     borderRadius: 16,
     padding: 2,
-    borderWidth: 1.5,
-    borderColor: colors.primary + '30',
+    borderWidth: 1,
+    borderColor: 'rgba(20,184,166,.2)',
   },
   estadoOption: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 14,
-    minWidth: 65,
+    minWidth: 62,
     alignItems: 'center',
   },
-  estadoOptionActive: {
-    backgroundColor: colors.primary,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.3,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 0,
-      },
-    }),
-    transform: [{ scale: 1.05 }],
-  },
-  estadoOptionText: {
-    fontWeight: '600',
+  estadoOptionActive: { backgroundColor: colors.primary },
+  estadoText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: colors.textSecondary,
   },
-  estadoOptionTextActive: {
-    color: colors.headerText,
-    fontWeight: '700',
-  },
-  leyenda: {
+  estadoTextActive: { color: '#fff' },
+  legend: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
-    borderRadius: 8,
-    padding: 8,
     gap: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 0,
-      },
-    }),
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,.92)',
   },
-  leyendaItem: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 4,
-  },
-  leyendaDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  leyendaText: {
-    fontWeight: '600',
-    color: colors.text,
-  },
+  legendItem: { alignItems: 'center', gap: 2 },
+  dot: { width: 9, height: 9, borderRadius: 5 },
+  legendText: { fontSize: 9, fontWeight: '700', color: colors.text },
   centerButton: {
     position: 'absolute',
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    right: 16,
+    bottom: 100,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,.95)',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 5,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 0,
-      },
-    }),
+    zIndex: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 7,
   },
 });
