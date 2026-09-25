@@ -143,6 +143,37 @@ async function geometryStats(frame) {
   });
 }
 
+async function findSourceStateCandidate(frame, wantedState) {
+  return frame.evaluate((state) => {
+    const map = window.__barliveMap;
+    const rows = map.querySourceFeatures('barlive-venues') || [];
+    const seen = new Set();
+    for (const f of rows) {
+      const id = String(f?.properties?.venueId || f?.properties?.id || f?.id || '');
+      const markerState = String(f?.properties?.markerState || 'unknown');
+      const coords = f?.geometry?.coordinates;
+      if (!id || seen.has(id) || markerState !== state || !Array.isArray(coords)) continue;
+      seen.add(id);
+      return { id, markerState, lng:Number(coords[0]), lat:Number(coords[1]) };
+    }
+    return null;
+  }, wantedState);
+}
+
+async function renderedIdentity(frame, id) {
+  return frame.evaluate((venueId) => {
+    const map = window.__barliveMap;
+    const rows = map.queryRenderedFeatures(undefined,{layers:['barlive-venues-circle']}) || [];
+    const matches = rows.filter(f =>
+      String(f?.properties?.venueId || f?.properties?.id || f?.id || '') === venueId
+    );
+    return {
+      count: matches.length,
+      states: [...new Set(matches.map(f => String(f?.properties?.markerState || 'unknown')))]
+    };
+  }, id);
+}
+
 async function closestRendered(frame, limit = 3) {
   return frame.evaluate((n) => {
     const map = window.__barliveMap;
@@ -290,6 +321,65 @@ async function runDesktop(browser) {
 
   const colorBefore = contract.colorText;
   const allBefore = snap;
+
+  const openCandidate = await findSourceStateCandidate(frame, 'open');
+  const closedCandidate = await findSourceStateCandidate(frame, 'closed');
+  record(
+    'real schedule-state candidates exist in canonical source',
+    !!closedCandidate,
+    { openCandidate, closedCandidate }
+  );
+
+  if (openCandidate) {
+    await waitIdle(frame, {
+      kind:'jump',
+      options:{center:[openCandidate.lng,openCandidate.lat],zoom:16}
+    });
+    await waitForSettledMapData(frame);
+    await frame.evaluate(() => window.setStateFilter('todos'));
+    await frame.waitForTimeout(150);
+    const openAll = await renderedIdentity(frame, openCandidate.id);
+    await frame.evaluate(() => window.setStateFilter('no_cerrados'));
+    await frame.waitForTimeout(150);
+    const openFiltered = await renderedIdentity(frame, openCandidate.id);
+    const openColor = (await sourceContract(frame)).colorText;
+    record(
+      'real open venue survives Abiertos without recoloring',
+      openAll.count > 0 &&
+        openFiltered.count > 0 &&
+        openFiltered.states.length === 1 &&
+        openFiltered.states[0] === 'open' &&
+        openColor === colorBefore,
+      {candidate:openCandidate,all:openAll,filtered:openFiltered,colorUnchanged:openColor===colorBefore}
+    );
+  }
+
+  if (closedCandidate) {
+    await waitIdle(frame, {
+      kind:'jump',
+      options:{center:[closedCandidate.lng,closedCandidate.lat],zoom:16}
+    });
+    await waitForSettledMapData(frame);
+    await frame.evaluate(() => window.setStateFilter('todos'));
+    await frame.waitForTimeout(150);
+    const closedAll = await renderedIdentity(frame, closedCandidate.id);
+    await frame.evaluate(() => window.setStateFilter('no_cerrados'));
+    await frame.waitForTimeout(150);
+    const closedFiltered = await renderedIdentity(frame, closedCandidate.id);
+    const closedColor = (await sourceContract(frame)).colorText;
+    record(
+      'real closed venue is hidden by Abiertos without recoloring',
+      closedAll.count > 0 &&
+        closedAll.states.includes('closed') &&
+        closedFiltered.count === 0 &&
+        closedColor === colorBefore,
+      {candidate:closedCandidate,all:closedAll,filtered:closedFiltered,colorUnchanged:closedColor===colorBefore}
+    );
+  }
+
+  await waitIdle(frame, {kind:'jump',options:{center:[-3.7038,40.4168],zoom:13}});
+  await waitForSettledMapData(frame);
+
   await frame.evaluate(() => window.setStateFilter('no_cerrados'));
   await frame.waitForTimeout(250);
   const openSnap = (await readSnapshot(frame)).snap || {};
