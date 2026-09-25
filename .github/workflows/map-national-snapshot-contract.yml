@@ -22,12 +22,19 @@ jobs:
           set -euo pipefail
           API='https://barlive-api.onrender.com/api/map'
           echo '--- /tiles/status ---'
-          curl --silent --show-error --compressed --connect-timeout 15 --max-time 60 "$API/tiles/status" | jq . || true
+          status_code="$(curl --silent --show-error --compressed --connect-timeout 15 --max-time 60 -o /tmp/status.txt -w '%{http_code}' "$API/tiles/status")"
+          echo "TILES_STATUS_HTTP=$status_code"
+          cat /tmp/status.txt
+          echo
           echo '--- /national-snapshot-manifest.json ---'
-          manifest_seconds="$(curl --fail --silent --show-error --compressed             --connect-timeout 15 --max-time 120             --write-out '%{time_total}'             --output /tmp/manifest.json             "$API/national-snapshot-manifest.json")"
+          manifest_result="$(curl --silent --show-error --compressed --connect-timeout 15 --max-time 120 -o /tmp/manifest.json -w '%{http_code} %{time_total}' "$API/national-snapshot-manifest.json")"
+          echo "NATIONAL_MANIFEST_RESULT=$manifest_result"
           cat /tmp/manifest.json
           echo
-          echo "NATIONAL_MANIFEST_SECONDS=$manifest_seconds"
+          manifest_code="$(printf '%s' "$manifest_result" | awk '{print $1}')"
+          if [ "$manifest_code" != "200" ]; then
+            exit 1
+          fi
           jq -e '.count > 100000' /tmp/manifest.json >/dev/null
 
           snapshot_seconds="$(curl --fail --silent --show-error --compressed             --connect-timeout 15 --max-time 180             --write-out '%{time_total}'             --output /tmp/snapshot.json             "$API/national-markers.json?v=2")"
