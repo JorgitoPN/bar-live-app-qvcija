@@ -1,0 +1,46 @@
+name: Map national snapshot contract
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/map-national-snapshot-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Measure national snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          API='https://barlive-api.onrender.com/api/map'
+          manifest_seconds="$(curl --fail --silent --show-error --compressed             --connect-timeout 15 --max-time 120             --write-out '%{time_total}'             --output /tmp/manifest.json             "$API/national-snapshot-manifest.json")"
+          cat /tmp/manifest.json
+          echo
+          echo "NATIONAL_MANIFEST_SECONDS=$manifest_seconds"
+          jq -e '.count > 100000' /tmp/manifest.json >/dev/null
+
+          snapshot_seconds="$(curl --fail --silent --show-error --compressed             --connect-timeout 15 --max-time 180             --write-out '%{time_total}'             --output /tmp/snapshot.json             "$API/national-markers.json?v=2")"
+          python - <<'PY'
+          import json, os
+          with open('/tmp/snapshot.json', encoding='utf-8') as f:
+              payload=json.load(f)
+          rows=payload.get('rows') or []
+          print('NATIONAL_SNAPSHOT_VERSION=', payload.get('v'))
+          print('NATIONAL_SNAPSHOT_COUNT=', len(rows))
+          print('NATIONAL_SNAPSHOT_JSON_BYTES=', os.path.getsize('/tmp/snapshot.json'))
+          assert len(rows) > 100000, len(rows)
+          assert all(isinstance(r,list) and len(r)==6 for r in rows[:1000])
+          states={0:0,1:0,2:0}
+          for r in rows:
+              states[int(r[5])]=states.get(int(r[5]),0)+1
+          print('NATIONAL_STATE_COUNTS=', states)
+          PY
+          echo "NATIONAL_SNAPSHOT_SECONDS=$snapshot_seconds"
