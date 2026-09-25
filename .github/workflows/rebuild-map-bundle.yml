@@ -39,4 +39,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
           git commit -m "build(map): publish single-source runtime [map-bundle-built]"
+          # gh-pages also receives Pages/QA maintenance commits. Rebase the
+          # generated bundle commit onto the current remote head so a harmless
+          # concurrent workflow commit cannot leave production on an old map.
+          git pull --rebase origin gh-pages
           git push origin HEAD:gh-pages
