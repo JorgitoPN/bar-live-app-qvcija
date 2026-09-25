@@ -165,7 +165,7 @@ async function runDesktop(browser) {
 
   page.on('response', response => {
     const url = response.url();
-    if (url.includes('/functions/v1/map-marker-state')) {
+    if (url.includes('/rest/v1/map_marker_state_cache')) {
       network.state.push({ status: response.status(), url });
     }
     if (url.includes('/functions/v1/map-static-tile/')) {
@@ -174,7 +174,7 @@ async function runDesktop(browser) {
   });
   page.on('requestfailed', request => {
     const url = request.url();
-    if (url.includes('supabase.co/functions/v1/map-') || url.includes('openfreemap')) {
+    if (url.includes('supabase.co/functions/v1/map-') || url.includes('/rest/v1/map_marker_state_cache') || url.includes('openfreemap')) {
       network.failed.push({ url, error: request.failure()?.errorText || '' });
     }
   });
@@ -289,7 +289,7 @@ async function runDesktop(browser) {
   record('rapid movement settles without duplicate venue_id', geo.duplicateIds.length === 0 && geo.sourceUnique > 0, geo);
 
   record(
-    'state endpoint returned HTTP 200',
+    'state data requests returned HTTP 200',
     network.state.some(item => item.status === 200),
     { responses: network.state, failed: network.failed }
   );
