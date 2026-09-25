@@ -1392,8 +1392,11 @@ var LIVE_LAYER = "barlive-venues-live";
 var UPCOMING_LAYER = "barlive-venues-upcoming";
 var PROMO_LAYER = "barlive-venues-promo";
 var STATIC_TILE_URL = "https://embntaqwlwmgazvrglaf.supabase.co/functions/v1/map-static-tile/{z}/{x}/{y}.pbf";
-var STATE_URL = "https://embntaqwlwmgazvrglaf.supabase.co/functions/v1/map-marker-state";
-var STATE_CACHE_KEY = "barlive-marker-state-data-v1";
+var STATE_URL = "https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/map_marker_state_cache";
+var STATE_APIKEY = "sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2";
+var STATE_ANON_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtYm50YXF3bHdtZ2F6dnJnbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5Mjk1NzMsImV4cCI6MjA3NzUwNTU3M30.mgqmCBX7FVpuejaN6pGuFHhMxKA033U-ALJwC-DCUEI";
+var STATE_PAGE_SIZE = 1000;
+var STATE_CACHE_KEY = "barlive-marker-state-data-v2";
 var STATE_CACHE_MAX_AGE = 10 * 60 * 1000;
 
 var map = null;
@@ -1584,7 +1587,30 @@ function restoreStateCache() {
   }
 }
 
-function loadStateFeed() {
+function fetchStatePage(offset, controller) {
+  var url =
+    STATE_URL +
+    "?select=local_id,estado" +
+    "&order=local_id.asc" +
+    "&limit=" + STATE_PAGE_SIZE +
+    "&offset=" + offset;
+
+  return fetch(url, {
+    method:"GET",
+    cache:"no-store",
+    signal:controller.signal,
+    headers:{
+      Accept:"application/json",
+      apikey:STATE_APIKEY,
+      Authorization:"Bearer " + STATE_ANON_JWT
+    }
+  }).then(function(response) {
+    if (!response.ok) throw new Error("state REST HTTP " + response.status + " offset=" + offset);
+    return response.json();
+  });
+}
+
+async function loadStateFeed() {
   var generation = ++stateRequestGeneration;
   if (stateAbortController) {
     try { stateAbortController.abort(); } catch (_) {}
@@ -1592,33 +1618,37 @@ function loadStateFeed() {
   var controller = new AbortController();
   stateAbortController = controller;
 
-  fetch(STATE_URL+"?slot="+Math.floor(Date.now()/30000), {
-    method:"GET",
-    cache:"no-store",
-    signal:controller.signal
-  })
-    .then(function(response) {
-      if (!response.ok) throw new Error("state feed HTTP "+response.status);
-      return response.json();
-    })
-    .then(function(payload) {
+  try {
+    var states = Object.create(null);
+    var offset = 0;
+    var rowCount = 0;
+
+    while (true) {
+      var rows = await fetchStatePage(offset, controller);
       if (controller.signal.aborted || generation !== stateRequestGeneration) return;
-      var states = Object.create(null);
-      var rows = payload && Array.isArray(payload.states) ? payload.states : [];
+      if (!Array.isArray(rows)) throw new Error("state REST payload is not an array");
+
       rows.forEach(function(row) {
-        if (!Array.isArray(row) || row.length < 2 || !row[0]) return;
-        var code = Number(row[1]);
-        if (code === 1) states[String(row[0])] = "open";
-        else if (code === 2) states[String(row[0])] = "closed";
+        if (!row || !row.local_id) return;
+        if (row.estado === "abierto") states[String(row.local_id)] = "open";
+        else if (row.estado === "cerrado") states[String(row.local_id)] = "closed";
       });
-      setStateMap(states, "network", payload && payload.generatedAt);
-      scheduleDiagnostics("state-feed");
-    })
-    .catch(function(error) {
-      if (error && error.name === "AbortError") return;
-      console.warn("[MAP_RENDER][STATE_ERROR]", String(error && error.message || error));
-      post("map_state_feed_error", {message:String(error && error.message || error)});
-    });
+
+      rowCount += rows.length;
+      if (rows.length < STATE_PAGE_SIZE) break;
+      offset += STATE_PAGE_SIZE;
+    }
+
+    if (controller.signal.aborted || generation !== stateRequestGeneration) return;
+    setStateMap(states, "rest-cache", Date.now());
+    console.log("[MAP_RENDER][STATE_REST] generation="+generation+" rows="+rowCount+" pages="+(Math.floor(rowCount/STATE_PAGE_SIZE)+1));
+    scheduleDiagnostics("state-feed");
+  } catch (error) {
+    if (error && error.name === "AbortError") return;
+    if (generation !== stateRequestGeneration) return;
+    console.warn("[MAP_RENDER][STATE_ERROR]", String(error && error.message || error));
+    post("map_state_feed_error", {message:String(error && error.message || error)});
+  }
 }
 
 function countRenderedVenueIds() {
