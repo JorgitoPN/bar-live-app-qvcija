@@ -1,3 +1,4 @@
+// BarLive production map source 2026-09-25
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
