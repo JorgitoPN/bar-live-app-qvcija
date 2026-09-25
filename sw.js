@@ -1,9 +1,9 @@
-// BarLive compiled production service worker v11 - 2026-09-25.
+// BarLive compiled production service worker v12 - 2026-09-25.
 // Serves the real Barlive-2 bundle and applies only transport-level production fixes.
 const APP_BUNDLE_PATH='/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js';
-const BUNDLE_CACHE='barlive-compiled-bundle-v11';
-const STATE_RESPONSE_CACHE='barlive-marker-state-v11';
-const STATE_RESPONSE_KEY='/__barlive/state-overlay-v11';
+const BUNDLE_CACHE='barlive-compiled-bundle-v12';
+const STATE_RESPONSE_CACHE='barlive-marker-state-v12';
+const STATE_RESPONSE_KEY='/__barlive/state-overlay-v12';
 const STATE_FALLBACK_MAX_AGE_MS=10*60*1000;
 const SUPABASE_ORIGIN='https://embntaqwlwmgazvrglaf.supabase.co';
 const STATE_OVERLAY_PATH='/functions/v1/map-state-overlay';
@@ -65,6 +65,29 @@ function patchCurrentSourceDelta(code){
         "};",
         "window.applyRealtimeAuthority = function(active) {",
         "  window.realtimeOverlayAuthoritative = !!active;",
+        "  if (active) {",
+        "    window.emergencyCanvasMarkersActive = false;",
+        "    var rescueCanvas = document.getElementById('barlive-emergency-marker-canvas');",
+        "    if (rescueCanvas) {",
+        "      rescueCanvas.style.display = 'none';",
+        "      var rescueCtx = rescueCanvas.getContext && rescueCanvas.getContext('2d');",
+        "      if (rescueCtx) rescueCtx.clearRect(0,0,rescueCanvas.width,rescueCanvas.height);",
+        "    }",
+        "    if (!window.__barliveOriginalSetEmergencyCanvas && typeof window.setEmergencyCanvasMarkers === 'function') {",
+        "      window.__barliveOriginalSetEmergencyCanvas = window.setEmergencyCanvasMarkers;",
+        "      window.setEmergencyCanvasMarkers = function(canvasActive, reason) {",
+        "        if (canvasActive && window.realtimeOverlayAuthoritative) canvasActive = false;",
+        "        return window.__barliveOriginalSetEmergencyCanvas(canvasActive, reason);",
+        "      };",
+        "    }",
+        "    if (!window.__barliveOriginalScheduleEmergencyCanvas && typeof window.scheduleEmergencyCanvasDraw === 'function') {",
+        "      window.__barliveOriginalScheduleEmergencyCanvas = window.scheduleEmergencyCanvasDraw;",
+        "      window.scheduleEmergencyCanvasDraw = function(force) {",
+        "        if (window.realtimeOverlayAuthoritative) return;",
+        "        return window.__barliveOriginalScheduleEmergencyCanvas(force);",
+        "      };",
+        "    }",
+        "  }",
         "  var realtimeIds = ['barlive-realtime-markers','barlive-realtime-icons'];",
         "  var competingIds = [",
         "    'barlive-static-markers','barlive-static-icons','barlive-static-labels',",
