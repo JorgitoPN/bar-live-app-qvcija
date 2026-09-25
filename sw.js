@@ -1,9 +1,9 @@
-// BarLive compiled production service worker v7 - 2026-09-25.
+// BarLive compiled production service worker v8 - 2026-09-25.
 // Serves the real Barlive-2 bundle and applies only transport-level production fixes.
 const APP_BUNDLE_PATH='/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js';
-const BUNDLE_CACHE='barlive-compiled-bundle-v7';
-const STATE_RESPONSE_CACHE='barlive-marker-state-v7';
-const STATE_RESPONSE_KEY='/__barlive/state-overlay-v7';
+const BUNDLE_CACHE='barlive-compiled-bundle-v8';
+const STATE_RESPONSE_CACHE='barlive-marker-state-v8';
+const STATE_RESPONSE_KEY='/__barlive/state-overlay-v8';
 const STATE_FALLBACK_MAX_AGE_MS=10*60*1000;
 const SUPABASE_ORIGIN='https://embntaqwlwmgazvrglaf.supabase.co';
 const STATE_OVERLAY_PATH='/functions/v1/map-state-overlay';
@@ -35,6 +35,27 @@ function patchCurrentSourceDelta(code){
     if(basePos>=0&&!code.includes('Compact attribution unavailable')){
       const compact="try {\\n  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');\\n} catch (attributionError) {\\n  console.warn('MAPA Compact attribution unavailable:', attributionError);\\n}\\n\\n";
       code=code.slice(0,basePos)+compact+code.slice(basePos);
+    }
+  }
+
+  // The map runs inside an iframe srcdoc on web. Do not rely on this Service
+  // Worker to intercept that frame's cross-origin request: inject Supabase auth
+  // into the compiled map code itself so a hard reload still gets state.
+  const overlayAnchor='window.loadRealtimeMarkerOverlay = function()';
+  const overlayPos=code.indexOf(overlayAnchor);
+  if(overlayPos>=0){
+    const headerNeedle="headers: { Accept: 'application/json' },";
+    const headerPos=code.indexOf(headerNeedle,overlayPos);
+    if(headerPos>=0&&headerPos<overlayPos+6000){
+      const directHeaders="headers: { Accept: 'application/json', apikey: '"+SUPABASE_PUBLIC_KEY+"', Authorization: 'Bearer "+SUPABASE_ANON_JWT+"' },";
+      code=code.slice(0,headerPos)+directHeaders+code.slice(headerPos+headerNeedle.length);
+    }
+
+    const timer120="window.realtimeOverlayTimer = setInterval(\\n      window.loadRealtimeMarkerOverlay,\\n      120000\\n    );";
+    const timer60="window.realtimeOverlayTimer = setInterval(\\n      window.loadRealtimeMarkerOverlay,\\n      60000\\n    );";
+    const timerPos=code.indexOf(timer120,overlayPos);
+    if(timerPos>=0&&timerPos<overlayPos+12000){
+      code=code.slice(0,timerPos)+timer60+code.slice(timerPos+timer120.length);
     }
   }
 
@@ -147,7 +168,7 @@ async function rememberedStateResponse(){
 function stateAuthHeaders(){
   return {
     Accept:'application/json',
-    apikey:SUPABASE_ANON_JWT,
+    apikey:SUPABASE_PUBLIC_KEY,
     Authorization:'Bearer '+SUPABASE_ANON_JWT
   };
 }
