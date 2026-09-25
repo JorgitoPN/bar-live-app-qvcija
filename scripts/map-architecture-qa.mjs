@@ -209,7 +209,11 @@ async function runDesktop(browser) {
     });
   }
 
-  record('cold load has venue geometry', Number(snap.total || 0) > 0, snap);
+  record(
+    'cold load has venue geometry',
+    Number(snap.total || 0) > 0 && Number(snap.rendered || 0) > 0,
+    snap
+  );
   record('state feed loaded known states', Number(snap.knownStates || 0) > 0, { knownStates: snap.knownStates || 0, stateResponses: network.state });
   record('unknown venues are retained', Number(snap.unknown || 0) > 0, { unknown: snap.unknown || 0, total: snap.total || 0 });
   record(
@@ -365,7 +369,11 @@ async function runMobileWeb(browser) {
   const geo = await geometryStats(frame);
   record(
     'mobile web single-source render',
-    Number(snap.total||0) > 0 && Number(snap.unknown||0) > 0 && geo.duplicateIds.length === 0,
+    Number(snap.total||0) > 0 &&
+      Number(snap.unknown||0) > 0 &&
+      Number(geo.renderedUnique||0) > 0 &&
+      geo.duplicateIds.length === 0 &&
+      mobileResult.ready,
     { snapshot:snap, geometry:geo, ready:mobileResult.ready }
   );
   await context.close();
