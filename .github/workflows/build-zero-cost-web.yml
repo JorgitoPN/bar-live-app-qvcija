@@ -65,6 +65,10 @@ jobs:
       - name: Prepare custom-domain static site
         run: |
           cp dist/index.html dist/404.html
+          for route in explorar explorar/mapa detalle/local; do
+            mkdir -p "dist/$route"
+            cp dist/index.html "dist/$route/index.html"
+          done
           touch dist/.nojekyll
           printf 'barliveapp.es\n' > dist/CNAME
 
