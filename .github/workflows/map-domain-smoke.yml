@@ -26,9 +26,13 @@ jobs:
           ROUTE='https://barliveapp.es/explorar/mapa?map-smoke=20260926'
 
           curl --fail --silent --show-error --location --compressed             -H 'Cache-Control: no-cache' "$HTML" -o /tmp/index.html
-          grep -Fq 'canonical-map-v2-a0ffd7e-20260926' /tmp/index.html
-          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v2-a0ffd7e-20260926' /tmp/index.html
-          grep -Fq "/sw.js?v=14" /tmp/index.html
+          index_marker=0
+          bundle_marker=0
+          sw_marker=0
+          grep -Fq 'canonical-map-v2-a0ffd7e-20260926' /tmp/index.html && index_marker=1 || true
+          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v2-a0ffd7e-20260926' /tmp/index.html && bundle_marker=1 || true
+          grep -Fq "/sw.js?v=14" /tmp/index.html && sw_marker=1 || true
+          echo "INDEX_MARKER=$index_marker BUNDLE_MARKER=$bundle_marker SW_MARKER=$sw_marker"
 
           curl --fail --silent --show-error --location --compressed             -H 'Cache-Control: no-cache' "$ASSET" -o /tmp/bundle.js
           engine_marker=0
