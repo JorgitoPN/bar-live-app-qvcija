@@ -1,0 +1,44 @@
+name: BarLive map browser runtime smoke
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/map-runtime-browser-smoke.yml'
+      - '.github/scripts/map-runtime-smoke.cjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout test script
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          sparse-checkout: |
+            .github/scripts/map-runtime-smoke.cjs
+          sparse-checkout-cone-mode: false
+
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/barlive-runtime-smoke
+          cd /tmp/barlive-runtime-smoke
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.57.0 --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          cp "$GITHUB_WORKSPACE/.github/scripts/map-runtime-smoke.cjs" .
+
+      - name: Test production map in Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/barlive-runtime-smoke
+          node map-runtime-smoke.cjs
