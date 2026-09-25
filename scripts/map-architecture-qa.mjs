@@ -221,15 +221,49 @@ async function runDesktop(browser) {
   let geo = await geometryStats(frame);
   record('no duplicate rendered venue_id on cold load', geo.duplicateIds.length === 0, geo);
 
-  const colorBefore = await frame.evaluate(() =>
-    JSON.stringify(window.__barliveMap.getPaintProperty('barlive-venues-circle','circle-color'))
+  const styleDebug = await frame.evaluate(() => {
+    const map = window.__barliveMap;
+    const style = map.getStyle ? map.getStyle() : null;
+    const ids = (style?.layers || []).map(layer => layer.id);
+    const wanted = [
+      'barlive-venues-live',
+      'barlive-venues-upcoming',
+      'barlive-venues-promo',
+      'barlive-venues-circle',
+      'barlive-venues-icon',
+    ];
+    const layerState = {};
+    for (const id of wanted) {
+      layerState[id] = {
+        exists: !!map.getLayer(id),
+        type: map.getLayer(id)?.type || null,
+      };
+    }
+    return {
+      barliveLayerIds: ids.filter(id => id.includes('barlive')),
+      layerState,
+      sourceExists: !!map.getSource('barlive-venues'),
+    };
+  });
+  record(
+    'all single-source venue layers were created',
+    Object.values(styleDebug.layerState).every(item => item.exists),
+    styleDebug
   );
+
+  const colorBefore = await frame.evaluate(() => {
+    const map = window.__barliveMap;
+    if (!map.getLayer('barlive-venues-circle')) return null;
+    return JSON.stringify(map.getPaintProperty('barlive-venues-circle','circle-color'));
+  });
   await frame.evaluate(() => window.setStateFilter('no_cerrados'));
   await frame.waitForTimeout(150);
   const openSnap = await frame.evaluate(() => window.__barliveTestSnapshot());
-  const colorOpen = await frame.evaluate(() =>
-    JSON.stringify(window.__barliveMap.getPaintProperty('barlive-venues-circle','circle-color'))
-  );
+  const colorOpen = await frame.evaluate(() => {
+    const map = window.__barliveMap;
+    if (!map.getLayer('barlive-venues-circle')) return null;
+    return JSON.stringify(map.getPaintProperty('barlive-venues-circle','circle-color'));
+  });
   record(
     'Abiertos is visibility-only',
     openSnap.expected === openSnap.open && colorOpen === colorBefore,
@@ -238,9 +272,11 @@ async function runDesktop(browser) {
   await frame.evaluate(() => window.setStateFilter('todos'));
   await frame.waitForTimeout(150);
   const allAgain = await frame.evaluate(() => window.__barliveTestSnapshot());
-  const colorAfter = await frame.evaluate(() =>
-    JSON.stringify(window.__barliveMap.getPaintProperty('barlive-venues-circle','circle-color'))
-  );
+  const colorAfter = await frame.evaluate(() => {
+    const map = window.__barliveMap;
+    if (!map.getLayer('barlive-venues-circle')) return null;
+    return JSON.stringify(map.getPaintProperty('barlive-venues-circle','circle-color'));
+  });
   record(
     'Todos restores visibility without recoloring',
     colorAfter === colorBefore && allAgain.expected >= openSnap.expected,
