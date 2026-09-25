@@ -1,0 +1,44 @@
+name: BarLive map architecture QA
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/map-architecture-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run production map QA
+        run: node scripts/map-architecture-qa.mjs
+
+      - name: Append QA report
+        if: always()
+        run: |
+          if [ -f map-qa-report.json ]; then
+            echo '## BarLive map architecture QA' >> "$GITHUB_STEP_SUMMARY"
+            echo '~~~json' >> "$GITHUB_STEP_SUMMARY"
+            cat map-qa-report.json >> "$GITHUB_STEP_SUMMARY"
+            echo '~~~' >> "$GITHUB_STEP_SUMMARY"
+          fi
