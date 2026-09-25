@@ -1,0 +1,43 @@
+name: BarLive production domain map smoke
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/map-domain-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify custom domain serves canonical map v2
+        shell: bash
+        run: |
+          set -euo pipefail
+          HTML='https://barliveapp.es/?map-smoke=20260926'
+          ASSET='https://barliveapp.es/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v2-a0ffd7e-20260926'
+          ROUTE='https://barliveapp.es/explorar/mapa?map-smoke=20260926'
+
+          curl --fail --silent --show-error --location --compressed             -H 'Cache-Control: no-cache' "$HTML" -o /tmp/index.html
+          grep -Fq 'canonical-map-v2-a0ffd7e-20260926' /tmp/index.html
+          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v2-a0ffd7e-20260926' /tmp/index.html
+          grep -Fq "/sw.js?v=14" /tmp/index.html
+
+          curl --fail --silent --show-error --location --compressed             -H 'Cache-Control: no-cache' "$ASSET" -o /tmp/bundle.js
+          grep -Fq 'barlive-single-geojson-catalogue-v2' /tmp/bundle.js
+          grep -Fq 'mergeCatalogueWithStates' /tmp/bundle.js
+          if grep -Fq 'DATA_ANON_JWT' /tmp/bundle.js; then
+            echo 'stale JWT runtime found'
+            exit 1
+          fi
+
+          route_code="$(curl --silent --show-error --location --compressed             -H 'Cache-Control: no-cache' -o /tmp/route.html -w '%{http_code}' "$ROUTE")"
+          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v2-a0ffd7e-20260926' /tmp/route.html
+          echo "DOMAIN_ROUTE_HTTP=$route_code"
+          echo "DOMAIN_MAP_V2_OK"
