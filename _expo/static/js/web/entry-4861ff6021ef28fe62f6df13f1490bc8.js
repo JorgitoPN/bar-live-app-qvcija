@@ -1429,11 +1429,11 @@ function markerStateForId(id) {
 }
 
 function stateExpression() {
-  return ["coalesce", ["feature-state","markerState"], "unknown"];
+  return ["string", ["feature-state","markerState"], "unknown"];
 }
 
 function advancedVisibleExpression() {
-  return ["coalesce", ["feature-state","advancedVisible"], true];
+  return ["boolean", ["feature-state","advancedVisible"], true];
 }
 
 function venueVisibleExpression() {
@@ -1457,7 +1457,7 @@ function applyPaintVisibility() {
   if (map.getLayer(LIVE_LAYER)) {
     map.setPaintProperty(LIVE_LAYER, "circle-opacity", [
       "case",
-      ["all", visible, ["==", ["feature-state","eventState"], "live"]],
+      ["all", visible, ["==", ["string", ["feature-state","eventState"], "none"], "live"]],
       0.32,
       0
     ]);
@@ -1465,7 +1465,7 @@ function applyPaintVisibility() {
   if (map.getLayer(UPCOMING_LAYER)) {
     map.setPaintProperty(UPCOMING_LAYER, "circle-opacity", [
       "case",
-      ["all", visible, ["==", ["feature-state","eventState"], "upcoming"]],
+      ["all", visible, ["==", ["string", ["feature-state","eventState"], "none"], "upcoming"]],
       0.20,
       0
     ]);
@@ -1473,7 +1473,7 @@ function applyPaintVisibility() {
   if (map.getLayer(PROMO_LAYER)) {
     map.setPaintProperty(PROMO_LAYER, "circle-opacity", [
       "case",
-      ["all", visible, ["==", ["feature-state","hasPromo"], true]],
+      ["all", visible, ["==", ["boolean", ["feature-state","hasPromo"], false], true]],
       0.25,
       0
     ]);
