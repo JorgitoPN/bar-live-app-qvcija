@@ -1661,6 +1661,7 @@ function diagnostics(reason) {
     open:open,
     closed:closed,
     unknown:unknown,
+    knownStates:Object.keys(stateById).length,
     expected:expected,
     rendered:rendered,
     stateFilter:stateFilterMode,
