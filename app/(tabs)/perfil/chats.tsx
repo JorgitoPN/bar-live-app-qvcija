@@ -540,7 +540,7 @@ export default function ChatsScreen() {
         </LinearGradient>
         <View style={styles.emptyState}>
           <IconSymbol ios_icon_name="bubble.left.and.bubble.right" android_material_icon_name="chat" size={chatIconSize} color={colors.textSecondary} />
-          <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>Inicia sesión para ver tus mensajes</Text>
+          <Text style={[styles.emptyText, { fontSize: scaleFontSize(18) }]}>Para ver tus mensajes debes iniciar sesión</Text>
           <TouchableOpacity
             style={styles.loginButton}
             onPress={() => router.push('/auth/login-popup')}
