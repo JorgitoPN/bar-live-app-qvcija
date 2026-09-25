@@ -1,4 +1,4 @@
-// QA target: current deployed single-source map
+// QA target: deployed runtime with init-layer diagnostics
 import fs from 'node:fs';
 import { chromium } from 'playwright';
 
