@@ -1,0 +1,27 @@
+name: Probe private BarLive checkout
+
+on:
+  push:
+    branches:
+      - chatgpt/private-checkout-probe
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout private source
+        uses: actions/checkout@v4
+        with:
+          repository: JorgitoPN/Barlive-2
+          ref: chatgpt/expo-sdk-57
+          token: ${{ github.token }}
+          path: private-source
+
+      - name: Verify source
+        run: |
+          test -f private-source/frontend/package.json
+          node -p "require('./private-source/frontend/package.json').scripts['build:web']"
