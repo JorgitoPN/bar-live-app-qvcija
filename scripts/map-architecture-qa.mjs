@@ -1,3 +1,4 @@
+// QA target: current deployed single-source map
 import fs from 'node:fs';
 import { chromium } from 'playwright';
 
