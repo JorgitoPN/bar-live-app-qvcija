@@ -1,0 +1,33 @@
+name: Map REST data contract
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/map-data-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify canonical marker REST projection
+        shell: bash
+        env:
+          APIKEY: sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2
+        run: |
+          set -euo pipefail
+          URL='https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/map_marker_state_cache?select=local_id,latitud,longitud,tipo,destacado,estado&limit=1'
+          code="$(curl --connect-timeout 15 --max-time 45 -sS -o /tmp/body.json -w '%{http_code}'             -H "Accept: application/json"             -H "apikey: $APIKEY"             "$URL")"
+          echo "HTTP $code"
+          cat /tmp/body.json
+          echo
+          test "$code" = "200"
+          jq -e 'type == "array"' /tmp/body.json >/dev/null
+          jq -e 'length == 0 or (.[0] | has("local_id") and has("latitud") and has("longitud") and has("tipo") and has("destacado") and has("estado"))' /tmp/body.json >/dev/null
+          echo "MAP_REST_CONTRACT_OK"
