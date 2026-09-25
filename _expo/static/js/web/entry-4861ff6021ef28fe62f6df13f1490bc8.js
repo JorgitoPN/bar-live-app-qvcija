@@ -1409,6 +1409,7 @@ var activeCoverage = null;
 var activeDatasetGeneration = 0;
 var requestGeneration = 0;
 var requestAbortController = null;
+var viewportRequestInFlight = false;
 var requestTimer = null;
 var refreshTimer = null;
 var lastRequestReason = "none";
@@ -2115,6 +2116,16 @@ async function refreshCanonicalStates() {
     !activeRows.length
   ) return;
 
+  // Never let the periodic state refresh cancel a viewport request. A viewport
+  // change has higher priority because it changes which venues must exist.
+  if (viewportRequestInFlight) {
+    console.log(
+      "[MAP_RENDER][STATE_REFRESH_SKIPPED] reason=viewport-in-flight"+
+      " generation="+requestGeneration
+    );
+    return;
+  }
+
   var coverage=activeCoverage;
   var generation=++requestGeneration;
   lastRequestReason="state-refresh";
@@ -2158,6 +2169,10 @@ async function refreshCanonicalStates() {
       "[MAP_RENDER][STATE_REFRESH_ERROR] generation="+generation,
       String(error && error.message || error)
     );
+  } finally {
+    if (requestAbortController === controller) {
+      requestAbortController=null;
+    }
   }
 }
 
@@ -2187,6 +2202,7 @@ async function requestCanonicalViewport(force,reason) {
 
   var controller=new AbortController();
   requestAbortController=controller;
+  viewportRequestInFlight=true;
 
   console.log(
     "[MAP_RENDER][VIEWPORT_REQUEST] generation="+generation+
@@ -2233,6 +2249,11 @@ async function requestCanonicalViewport(force,reason) {
 
     // Keep the previous committed FeatureCollection untouched. No fallback
     // renderer is activated and no grey replacement dataset is created.
+  } finally {
+    if (requestAbortController === controller) {
+      requestAbortController=null;
+      viewportRequestInFlight=false;
+    }
   }
 }
 
