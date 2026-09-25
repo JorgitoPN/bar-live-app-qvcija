@@ -7,6 +7,9 @@ on:
     paths:
       - '.github/workflows/map-architecture-qa.yml'
       - 'scripts/map-architecture-qa.mjs'
+      - 'scripts/barlive-single-source-map-template.html'
+      - 'scripts/patch-map-bundle.mjs'
+      - '_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js'
 
 permissions:
   contents: read
