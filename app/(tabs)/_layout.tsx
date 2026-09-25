@@ -1,4 +1,5 @@
 
+// BarLive web production source build 2026-09-25
 import React, { useEffect, useRef } from 'react';
 import { Dimensions, Alert, Platform } from 'react-native';
 import { Tabs, useRouter, usePathname } from 'expo-router';
