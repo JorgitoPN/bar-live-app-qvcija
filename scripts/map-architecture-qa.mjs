@@ -1,4 +1,4 @@
-// QA target: canonical complete-catalogue GeoJSON runtime.
+// QA deployed bundle: a0ffd7e7678e6b984ef4b7a76380d4246c95f20f
 // QA target: deployed canonical GeoJSON venue runtime.
 import fs from 'node:fs';
 import { chromium } from 'playwright';
