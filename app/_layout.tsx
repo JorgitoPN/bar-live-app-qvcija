@@ -102,6 +102,38 @@ export default function RootLayout() {
   const isInitializing = useAuthStore(state => state.isInitializing);
   const initialLoadingProgress = useAuthStore(state => state.initialLoadingProgress);
   const [showLoadingScreen, setShowLoadingScreen] = useState(true);
+
+  // BarLive web: keep the desktop brand visible even when the legacy image asset fails.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const doc = (globalThis as any).document;
+    const MutationObserverCtor = (globalThis as any).MutationObserver;
+    if (!doc || !MutationObserverCtor) return;
+
+    const brandSvg =
+      'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22168%22 height=%2248%22 viewBox=%220 0 168 48%22%3E%3Crect x=%220%22 y=%224%22 width=%2240%22 height=%2240%22 rx=%2212%22 fill=%22%23641B73%22/%3E%3Ctext x=%2220%22 y=%2231%22 text-anchor=%22middle%22 font-family=%22Arial,sans-serif%22 font-size=%2223%22 font-weight=%22900%22 fill=%22white%22%3EB%3C/text%3E%3Ctext x=%2252%22 y=%2231%22 font-family=%22Arial,sans-serif%22 font-size=%2224%22 font-weight=%22800%22 fill=%22%23641B73%22%3EBarLive%3C/text%3E%3C/svg%3E';
+
+    const patchBrand = () => {
+      doc.querySelectorAll('img[alt="BarLive"]').forEach((image: any) => {
+        if (image.getAttribute('src') === brandSvg) return;
+        image.setAttribute('src', brandSvg);
+        image.style.objectFit = 'contain';
+        image.style.objectPosition = 'left center';
+      });
+    };
+
+    patchBrand();
+    const observer = new MutationObserverCtor(patchBrand);
+    observer.observe(doc.documentElement, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['src'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
   
   // ✅ Hide loading screen once initialization is complete
   useEffect(() => {
