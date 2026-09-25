@@ -1392,11 +1392,13 @@ var LIVE_LAYER = "barlive-venues-live";
 var UPCOMING_LAYER = "barlive-venues-upcoming";
 var PROMO_LAYER = "barlive-venues-promo";
 
-var DATA_URL = "https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/map_marker_state_cache";
+var VENUE_DATA_URL = "https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/locales";
+var STATE_DATA_URL = "https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/map_marker_state_cache";
 var DATA_APIKEY = "sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2";
-var DATA_ANON_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6ImVtYm50YXF3bHdtZ2F6dnJnbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5Mjk1NzMsImV4cCI6MjA3NzUwNTU3M30.mgqmCBX7FVpuejaN6pGuFHhMxKA033U-ALJwC-DCUEI";
-var DATA_PAGE_SIZE = 3000;
-var DATA_CACHE_KEY = "barlive-visible-venues-v1";
+var DATA_PAGE_SIZE = 1000;
+var DATA_PAGE_BATCH = 6;
+var DATA_MAX_ROWS = 150000;
+var DATA_CACHE_KEY = "barlive-visible-venues-v2";
 var DATA_CACHE_MAX_AGE = 10 * 60 * 1000;
 var VIEWPORT_PADDING_RATIO = 0.45;
 
@@ -1446,7 +1448,22 @@ function canonicalCategory(value) {
     raw === "discoteca" ||
     raw === "cocteleria"
   ) return raw;
-  return "bar";
+  return "";
+}
+
+function categoryFromRow(row) {
+  var primary = canonicalCategory(row && (row.tipo || row.barlive_type));
+  if (primary) return primary;
+
+  var values = row && row.barlive_types;
+  if (Array.isArray(values)) {
+    for (var i = 0; i < values.length; i += 1) {
+      var candidate = canonicalCategory(values[i]);
+      if (candidate) return candidate;
+    }
+  }
+
+  return "";
 }
 
 function normalizeMarkerState(value) {
@@ -1470,12 +1487,15 @@ function normalizeVenueRow(row) {
   if (!id || !isFinite(lat) || !isFinite(lng)) return null;
   if (lat < -85 || lat > 85 || lng < -180 || lng > 180) return null;
 
+  var category = categoryFromRow(row);
+  if (!category) return null;
+
   return {
     id:id,
     latitude:lat,
     longitude:lng,
-    category:canonicalCategory(row.tipo || row.barlive_type),
-    markerState:normalizeMarkerState(row.estado != null ? row.estado : row.estado_actual),
+    category:category,
+    markerState:normalizeMarkerState(row.estado),
     featured:row.destacado === true || Number(row.destacado || 0) === 1
   };
 }
@@ -1820,6 +1840,7 @@ function scheduleDiagnostics(reason) {
 }
 
 function persistViewportCache(rows,coverage) {
+  if (!Array.isArray(rows) || rows.length > 12000) return;
   try {
     localStorage.setItem(
       DATA_CACHE_KEY,
@@ -1854,7 +1875,7 @@ function commitVenueRows(rows,coverage,generation,sourceLabel) {
   source.setData(normalized.collection);
   reapplyAuxiliaryFeatureState();
   applyFilters();
-  if (sourceLabel === "network") {
+  if (sourceLabel !== "local-cache") {
     persistViewportCache(activeRows,activeCoverage);
   }
 
@@ -1916,10 +1937,25 @@ function restoreViewportCache() {
   }
 }
 
-function buildDataUrl(bounds,offset) {
+function buildVenueDataUrl(bounds,offset) {
   return (
-    DATA_URL +
-    "?select=local_id,latitud,longitud,tipo,destacado,estado" +
+    VENUE_DATA_URL +
+    "?select=id,latitud,longitud,barlive_type,barlive_types,destacado" +
+    "&activo=eq.true" +
+    "&latitud=gte." + encodeURIComponent(bounds.south.toFixed(6)) +
+    "&latitud=lte." + encodeURIComponent(bounds.north.toFixed(6)) +
+    "&longitud=gte." + encodeURIComponent(bounds.west.toFixed(6)) +
+    "&longitud=lte." + encodeURIComponent(bounds.east.toFixed(6)) +
+    "&order=id.asc" +
+    "&limit=" + DATA_PAGE_SIZE +
+    "&offset=" + offset
+  );
+}
+
+function buildStateDataUrl(bounds,offset) {
+  return (
+    STATE_DATA_URL +
+    "?select=local_id,estado" +
     "&latitud=gte." + encodeURIComponent(bounds.south.toFixed(6)) +
     "&latitud=lte." + encodeURIComponent(bounds.north.toFixed(6)) +
     "&longitud=gte." + encodeURIComponent(bounds.west.toFixed(6)) +
@@ -1930,20 +1966,19 @@ function buildDataUrl(bounds,offset) {
   );
 }
 
-function fetchVenuePage(bounds,offset,controller) {
-  return fetch(buildDataUrl(bounds,offset),{
+function fetchDataPage(url,label,offset,controller) {
+  return fetch(url,{
     method:"GET",
     cache:"no-store",
     signal:controller.signal,
     headers:{
       Accept:"application/json",
-      apikey:DATA_APIKEY,
-      Authorization:"Bearer " + DATA_ANON_JWT
+      apikey:DATA_APIKEY
     }
   }).then(function(response) {
     if (!response.ok) {
       throw new Error(
-        "viewport REST HTTP "+response.status+
+        label+" REST HTTP "+response.status+
         " offset="+offset
       );
     }
@@ -1951,29 +1986,179 @@ function fetchVenuePage(bounds,offset,controller) {
   });
 }
 
-async function fetchVenueRows(bounds,generation,controller) {
+async function fetchPagedRows(
+  bounds,
+  generation,
+  controller,
+  buildUrl,
+  label,
+  batchSize
+) {
   var all=[];
   var offset=0;
+  var size=Math.max(1,Number(batchSize)||1);
 
   while (true) {
-    var page=await fetchVenuePage(bounds,offset,controller);
+    var requests=[];
+    for (var i=0;i<size;i+=1) {
+      var pageOffset=offset+(i*DATA_PAGE_SIZE);
+      requests.push(
+        fetchDataPage(
+          buildUrl(bounds,pageOffset),
+          label,
+          pageOffset,
+          controller
+        )
+      );
+    }
+
+    var pages=await Promise.all(requests);
 
     if (
       controller.signal.aborted ||
       generation !== requestGeneration
     ) return null;
 
-    if (!Array.isArray(page)) {
-      throw new Error("viewport REST payload is not an array");
+    var reachedEnd=false;
+    for (var pageIndex=0;pageIndex<pages.length;pageIndex+=1) {
+      var page=pages[pageIndex];
+      if (!Array.isArray(page)) {
+        throw new Error(label+" REST payload is not an array");
+      }
+      all=all.concat(page);
+      if (page.length < DATA_PAGE_SIZE) {
+        reachedEnd=true;
+        break;
+      }
     }
 
-    all=all.concat(page);
+    if (all.length > DATA_MAX_ROWS) {
+      throw new Error(
+        label+" viewport exceeds safety limit "+DATA_MAX_ROWS
+      );
+    }
 
-    if (page.length < DATA_PAGE_SIZE) break;
-    offset += DATA_PAGE_SIZE;
+    if (reachedEnd) break;
+    offset += DATA_PAGE_SIZE*size;
   }
 
   return all;
+}
+
+function mergeCatalogueWithStates(venueRows,stateRows) {
+  var stateById=new Map();
+
+  (Array.isArray(stateRows)?stateRows:[]).forEach(function(row) {
+    var id=String(row && row.local_id || "").trim();
+    if (!id) return;
+    stateById.set(id,normalizeMarkerState(row.estado));
+  });
+
+  var merged=[];
+  (Array.isArray(venueRows)?venueRows:[]).forEach(function(row) {
+    if (!row || typeof row!=="object") return;
+    var id=String(row.id || "").trim();
+    if (!id) return;
+
+    merged.push(Object.assign({},row,{
+      estado:stateById.get(id) || "unknown"
+    }));
+  });
+
+  return {
+    rows:merged,
+    knownStates:stateById.size
+  };
+}
+
+async function fetchCanonicalRows(bounds,generation,controller) {
+  var pair=await Promise.all([
+    fetchPagedRows(
+      bounds,
+      generation,
+      controller,
+      buildVenueDataUrl,
+      "catalogue",
+      DATA_PAGE_BATCH
+    ),
+    fetchPagedRows(
+      bounds,
+      generation,
+      controller,
+      buildStateDataUrl,
+      "state",
+      2
+    )
+  ]);
+
+  if (!pair[0] || !pair[1]) return null;
+
+  var joined=mergeCatalogueWithStates(pair[0],pair[1]);
+
+  console.log(
+    "[MAP_RENDER][JOIN] generation="+generation+
+    " catalogue="+pair[0].length+
+    " states="+pair[1].length+
+    " knownStates="+joined.knownStates+
+    " merged="+joined.rows.length
+  );
+
+  return joined.rows;
+}
+
+async function refreshCanonicalStates() {
+  if (
+    !map ||
+    !map.getSource(VENUE_SOURCE) ||
+    !activeCoverage ||
+    !Array.isArray(activeRows) ||
+    !activeRows.length
+  ) return;
+
+  var coverage=activeCoverage;
+  var generation=++requestGeneration;
+  lastRequestReason="state-refresh";
+
+  if (requestAbortController) {
+    try { requestAbortController.abort(); } catch (_) {}
+  }
+
+  var controller=new AbortController();
+  requestAbortController=controller;
+
+  try {
+    var stateRows=await fetchPagedRows(
+      coverage,
+      generation,
+      controller,
+      buildStateDataUrl,
+      "state",
+      2
+    );
+    if (!stateRows) return;
+
+    if (
+      controller.signal.aborted ||
+      generation !== requestGeneration ||
+      coverage !== activeCoverage
+    ) return;
+
+    var joined=mergeCatalogueWithStates(activeRows,stateRows);
+    commitVenueRows(
+      joined.rows,
+      coverage,
+      generation,
+      "state-refresh"
+    );
+  } catch (error) {
+    if (error && error.name === "AbortError") return;
+    if (generation !== requestGeneration) return;
+
+    console.warn(
+      "[MAP_RENDER][STATE_REFRESH_ERROR] generation="+generation,
+      String(error && error.message || error)
+    );
+  }
 }
 
 async function requestCanonicalViewport(force,reason) {
@@ -2016,7 +2201,7 @@ async function requestCanonicalViewport(force,reason) {
   );
 
   try {
-    var rows=await fetchVenueRows(coverage,generation,controller);
+    var rows=await fetchCanonicalRows(coverage,generation,controller);
     if (!rows) return;
 
     if (
@@ -2670,17 +2855,15 @@ function init(){
 
     // Cache is only a warm-start input to the SAME canonical source.
     // Network reconciliation writes to that exact source as one atomic commit.
-    var restored=restoreViewportCache();
-    if (map.getZoom() >= 8 || restored) {
-      requestCanonicalViewport(true,"load");
-    }
+    restoreViewportCache();
+    requestCanonicalViewport(true,"load");
 
     refreshTimer=setInterval(function(){
-      requestCanonicalViewport(true,"state-refresh");
+      refreshCanonicalStates();
     },60000);
 
     post("map_ready",{
-      engine:"barlive-single-geojson-viewport-v1"
+      engine:"barlive-single-geojson-catalogue-v2"
     });
 
     scheduleDiagnostics("load");
