@@ -14,6 +14,7 @@ import { scaleFontSize, scaleIconSize } from '@/utils/androidScaling';
 
 const SUPABASE_URL = 'https://embntaqwlwmgazvrglaf.supabase.co';
 const SUPABASE_PUBLIC_KEY = 'sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2';
+const SUPABASE_ANON_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtYm50YXF3bHdtZ2F6dnJnbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5Mjk1NzMsImV4cCI6MjA3NzUwNTU3M30.mgqmCBX7FVpuejaN6pGuFHhMxKA033U-ALJwC-DCUEI';
 const WEB_TILE_TEMPLATE =
   SUPABASE_URL + '/functions/v1/map-static-tile/{z}/{x}/{y}.pbf';
 const NATIVE_TILE_TEMPLATE =
@@ -367,7 +368,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
     return fetch('${STATE_OVERLAY_URL}?slot=' + stateSlot, {
       headers: {
         Accept: 'application/json',
-        apikey: '${SUPABASE_PUBLIC_KEY}'
+        apikey: '${SUPABASE_PUBLIC_KEY}',
+        Authorization: 'Bearer ${SUPABASE_ANON_JWT}'
       },
       cache: 'no-store'
     })
@@ -387,7 +389,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
     return fetch('${STATE_CACHE_URL}', {
       headers: {
         Accept: 'application/json',
-        apikey: '${SUPABASE_PUBLIC_KEY}'
+        apikey: '${SUPABASE_PUBLIC_KEY}',
+        Authorization: 'Bearer ${SUPABASE_ANON_JWT}'
       },
       cache: 'no-store'
     })
