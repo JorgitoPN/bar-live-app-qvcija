@@ -1391,28 +1391,34 @@ var ICON_LAYER = "barlive-venues-icon";
 var LIVE_LAYER = "barlive-venues-live";
 var UPCOMING_LAYER = "barlive-venues-upcoming";
 var PROMO_LAYER = "barlive-venues-promo";
-var STATIC_TILE_URL = "https://embntaqwlwmgazvrglaf.supabase.co/functions/v1/map-static-tile/{z}/{x}/{y}.pbf";
-var STATE_URL = "https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/map_marker_state_cache";
-var STATE_APIKEY = "sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2";
-var STATE_ANON_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtYm50YXF3bHdtZ2F6dnJnbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5Mjk1NzMsImV4cCI6MjA3NzUwNTU3M30.mgqmCBX7FVpuejaN6pGuFHhMxKA033U-ALJwC-DCUEI";
-var STATE_PAGE_SIZE = 1000;
-var STATE_CACHE_KEY = "barlive-marker-state-data-v2";
-var STATE_CACHE_MAX_AGE = 10 * 60 * 1000;
+
+var DATA_URL = "https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/map_marker_state_cache";
+var DATA_APIKEY = "sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2";
+var DATA_ANON_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6ImVtYm50YXF3bHdtZ2F6dnJnbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5Mjk1NzMsImV4cCI6MjA3NzUwNTU3M30.mgqmCBX7FVpuejaN6pGuFHhMxKA033U-ALJwC-DCUEI";
+var DATA_PAGE_SIZE = 3000;
+var DATA_CACHE_KEY = "barlive-visible-venues-v1";
+var DATA_CACHE_MAX_AGE = 10 * 60 * 1000;
+var VIEWPORT_PADDING_RATIO = 0.45;
 
 var map = null;
-var stateById = Object.create(null);
-var stateRequestGeneration = 0;
-var stateAbortController = null;
-var stateRefreshTimer = null;
-var sourceReadyNotified = false;
+var activeVenueById = new Map();
+var activeRows = [];
+var activeCoverage = null;
+var activeDatasetGeneration = 0;
+var requestGeneration = 0;
+var requestAbortController = null;
+var requestTimer = null;
+var refreshTimer = null;
+var lastRequestReason = "none";
+
 var stateFilterMode = "todos";
 var categoryFilter = "todas";
+
 var advancedCriteria = {};
 var advancedFilterActive = false;
 var advancedAllowedIds = null;
 var advancedGeneration = 0;
-var viewportGeneration = 0;
-var viewportTimer = null;
+
 var userMarker = null;
 var liveIds = new Set();
 var upcomingIds = new Set();
@@ -1420,298 +1426,637 @@ var promoIds = new Set();
 
 function post(type, payload) {
   try {
-    window.ReactNativeWebView.postMessage(JSON.stringify(Object.assign({type:type}, payload || {})));
-  } catch (_) {}
-}
-
-function markerStateForId(id) {
-  return stateById[String(id)] || "unknown";
-}
-
-function stateExpression() {
-  return ["string", ["feature-state","markerState"], "unknown"];
-}
-
-function advancedVisibleExpression() {
-  return ["boolean", ["feature-state","advancedVisible"], true];
-}
-
-function venueVisibleExpression() {
-  var checks = [advancedVisibleExpression()];
-  if (stateFilterMode === "no_cerrados") {
-    checks.push(["==", stateExpression(), "open"]);
-  }
-  return checks.length === 1 ? checks[0] : ["all"].concat(checks);
-}
-
-function applyPaintVisibility() {
-  if (!map) return;
-  var visible = venueVisibleExpression();
-
-  if (map.getLayer(VENUE_LAYER)) {
-    map.setPaintProperty(VENUE_LAYER, "circle-opacity", ["case", visible, 1, 0]);
-  }
-  if (map.getLayer(ICON_LAYER)) {
-    map.setPaintProperty(ICON_LAYER, "icon-opacity", ["case", visible, 1, 0]);
-  }
-  if (map.getLayer(LIVE_LAYER)) {
-    map.setPaintProperty(LIVE_LAYER, "circle-opacity", [
-      "case",
-      ["all", visible, ["==", ["string", ["feature-state","eventState"], "none"], "live"]],
-      0.32,
-      0
-    ]);
-  }
-  if (map.getLayer(UPCOMING_LAYER)) {
-    map.setPaintProperty(UPCOMING_LAYER, "circle-opacity", [
-      "case",
-      ["all", visible, ["==", ["string", ["feature-state","eventState"], "none"], "upcoming"]],
-      0.20,
-      0
-    ]);
-  }
-  if (map.getLayer(PROMO_LAYER)) {
-    map.setPaintProperty(PROMO_LAYER, "circle-opacity", [
-      "case",
-      ["all", visible, ["==", ["boolean", ["feature-state","hasPromo"], false], true]],
-      0.25,
-      0
-    ]);
-  }
-}
-
-function canonicalCategory(value) {
-  var raw = String(value || "").toLowerCase();
-  if (raw === "cafe") return "cafeteria";
-  if (raw === "nightclub") return "discoteca";
-  if (raw === "cocktail" || raw === "cocktail_bar") return "cocteleria";
-  return raw;
-}
-
-function applyCategoryFilter() {
-  if (!map) return;
-  var filter = categoryFilter === "todas"
-    ? ["all"]
-    : ["==", ["get","tipo"], canonicalCategory(categoryFilter)];
-
-  [VENUE_LAYER,ICON_LAYER,LIVE_LAYER,UPCOMING_LAYER,PROMO_LAYER].forEach(function(id) {
-    if (map.getLayer(id)) map.setFilter(id, filter);
-  });
-}
-
-function uniqueSourceFeatures() {
-  if (!map || !map.getSource(VENUE_SOURCE)) return [];
-  var raw = [];
-  try {
-    raw = map.querySourceFeatures(VENUE_SOURCE, {sourceLayer:"locales"}) || [];
-  } catch (_) {}
-  var seen = new Set();
-  var result = [];
-  raw.forEach(function(feature) {
-    var id = String(feature && feature.properties && feature.properties.id || feature && feature.id || "");
-    if (!id || seen.has(id)) return;
-    seen.add(id);
-    result.push(feature);
-  });
-  return result;
-}
-
-function setVenueState(id, patch) {
-  if (!map || !map.getSource(VENUE_SOURCE) || !id) return;
-  try {
-    map.setFeatureState(
-      {source:VENUE_SOURCE, sourceLayer:"locales", id:String(id)},
-      patch
+    window.ReactNativeWebView.postMessage(
+      JSON.stringify(Object.assign({type:type}, payload || {}))
     );
   } catch (_) {}
 }
 
-function applyStateToLoadedFeatures() {
-  uniqueSourceFeatures().forEach(function(feature) {
-    var id = String(feature.properties && feature.properties.id || feature.id || "");
-    if (!id) return;
-    setVenueState(id, {markerState:markerStateForId(id)});
-  });
+function canonicalCategory(value) {
+  var raw = String(value || "").trim().toLowerCase();
+  if (raw === "cafe" || raw === "cafes") return "cafeteria";
+  if (raw === "restaurant" || raw === "restaurants") return "restaurante";
+  if (raw === "nightclub" || raw === "night_club") return "discoteca";
+  if (raw === "cocktail" || raw === "cocktail_bar" || raw === "cocktailbar") return "cocteleria";
+  if (
+    raw === "bar" ||
+    raw === "restaurante" ||
+    raw === "cafeteria" ||
+    raw === "pub" ||
+    raw === "discoteca" ||
+    raw === "cocteleria"
+  ) return raw;
+  return "bar";
 }
 
-function applyAdvancedToLoadedFeatures() {
-  var features = uniqueSourceFeatures();
-  features.forEach(function(feature) {
-    var id = String(feature.properties && feature.properties.id || feature.id || "");
-    if (!id) return;
-    var visible = !advancedFilterActive || (advancedAllowedIds && advancedAllowedIds.has(id));
-    setVenueState(id, {advancedVisible:visible});
-  });
+function normalizeMarkerState(value) {
+  var raw = String(value == null ? "" : value).trim().toLowerCase();
+  var numeric = Number(value);
+  if (raw === "abierto" || raw === "open" || numeric === 1) return "open";
+  if (raw === "cerrado" || raw === "closed" || numeric === 2) return "closed";
+  return "unknown";
 }
 
-function setStateMap(nextMap, sourceLabel, generatedAt) {
-  var old = stateById;
-  stateById = nextMap || Object.create(null);
+function normalizeVenueRow(row) {
+  if (!row || typeof row !== "object") return null;
+  var id = String(row.local_id || row.id || "").trim();
+  var lat = Number(row.latitud != null ? row.latitud : row.lat);
+  var lng = Number(
+    row.longitud != null ? row.longitud :
+    row.lng != null ? row.lng :
+    row.lon
+  );
 
-  Object.keys(old).forEach(function(id) {
-    if (!stateById[id]) setVenueState(id, {markerState:"unknown"});
-  });
-  Object.keys(stateById).forEach(function(id) {
-    setVenueState(id, {markerState:stateById[id]});
-  });
-  applyStateToLoadedFeatures();
-  applyPaintVisibility();
+  if (!id || !isFinite(lat) || !isFinite(lng)) return null;
+  if (lat < -85 || lat > 85 || lng < -180 || lng > 180) return null;
 
+  return {
+    id:id,
+    latitude:lat,
+    longitude:lng,
+    category:canonicalCategory(row.tipo || row.barlive_type),
+    markerState:normalizeMarkerState(row.estado != null ? row.estado : row.estado_actual),
+    featured:row.destacado === true || Number(row.destacado || 0) === 1
+  };
+}
+
+function rowsToFeatureCollection(rows) {
+  var byId = new Map();
+  var duplicateVenueIds = 0;
+  var coordinateOwner = new Map();
+  var nearCoordinatePairs = 0;
+
+  (Array.isArray(rows) ? rows : []).forEach(function(row) {
+    var venue = normalizeVenueRow(row);
+    if (!venue) return;
+
+    if (byId.has(venue.id)) {
+      duplicateVenueIds += 1;
+      return;
+    }
+    byId.set(venue.id, venue);
+
+    // Diagnostic only: never hide different real ids just because coordinates
+    // are extremely close. That would conceal a database duplication problem.
+    var coordinateKey =
+      venue.latitude.toFixed(5) + ":" + venue.longitude.toFixed(5);
+    var existingId = coordinateOwner.get(coordinateKey);
+    if (existingId && existingId !== venue.id) nearCoordinatePairs += 1;
+    else coordinateOwner.set(coordinateKey, venue.id);
+  });
+
+  var features = [];
+  byId.forEach(function(venue) {
+    features.push({
+      type:"Feature",
+      id:venue.id,
+      geometry:{
+        type:"Point",
+        coordinates:[venue.longitude, venue.latitude]
+      },
+      properties:{
+        venueId:venue.id,
+        id:venue.id,
+        category:venue.category,
+        tipo:venue.category,
+        markerState:venue.markerState,
+        destacado:venue.featured
+      }
+    });
+  });
+
+  return {
+    collection:{type:"FeatureCollection",features:features},
+    byId:byId,
+    duplicateVenueIds:duplicateVenueIds,
+    nearCoordinatePairs:nearCoordinatePairs
+  };
+}
+
+function getCurrentBounds() {
+  if (!map) return null;
+  var bounds = map.getBounds();
+  return {
+    south:Number(bounds.getSouth()),
+    west:Number(bounds.getWest()),
+    north:Number(bounds.getNorth()),
+    east:Number(bounds.getEast())
+  };
+}
+
+function boundsContain(outer, inner) {
+  if (!outer || !inner) return false;
+  var epsilon = 0.000001;
+  return (
+    inner.south >= outer.south - epsilon &&
+    inner.west >= outer.west - epsilon &&
+    inner.north <= outer.north + epsilon &&
+    inner.east <= outer.east + epsilon
+  );
+}
+
+function paddedBounds(bounds) {
+  var latSpan = Math.max(0.001, bounds.north - bounds.south);
+  var lngSpan = Math.max(0.001, bounds.east - bounds.west);
+  var latPad = Math.max(0.015, latSpan * VIEWPORT_PADDING_RATIO);
+  var lngPad = Math.max(0.015, lngSpan * VIEWPORT_PADDING_RATIO);
+
+  return {
+    south:Math.max(27.45, bounds.south - latPad),
+    west:Math.max(-18.25, bounds.west - lngPad),
+    north:Math.min(44.25, bounds.north + latPad),
+    east:Math.min(4.60, bounds.east + lngPad)
+  };
+}
+
+function datasetFilterExpression() {
+  var expression = ["all"];
+
+  if (categoryFilter !== "todas") {
+    expression.push([
+      "==",
+      ["get","category"],
+      canonicalCategory(categoryFilter)
+    ]);
+  }
+
+  if (stateFilterMode === "no_cerrados") {
+    expression.push(["==",["get","markerState"],"open"]);
+  }
+
+  return expression;
+}
+
+function advancedVisibleExpression() {
+  return ["boolean",["feature-state","advancedVisible"],true];
+}
+
+function applyFilters() {
+  if (!map) return;
+  var filter = datasetFilterExpression();
+
+  [VENUE_LAYER,ICON_LAYER,LIVE_LAYER,UPCOMING_LAYER,PROMO_LAYER].forEach(function(id) {
+    if (map.getLayer(id)) map.setFilter(id, filter);
+  });
+
+  var advancedVisible = advancedVisibleExpression();
+
+  if (map.getLayer(VENUE_LAYER)) {
+    map.setPaintProperty(
+      VENUE_LAYER,
+      "circle-opacity",
+      ["case",advancedVisible,1,0]
+    );
+  }
+
+  if (map.getLayer(ICON_LAYER)) {
+    map.setPaintProperty(
+      ICON_LAYER,
+      "icon-opacity",
+      ["case",advancedVisible,1,0]
+    );
+  }
+
+  if (map.getLayer(LIVE_LAYER)) {
+    map.setPaintProperty(LIVE_LAYER,"circle-opacity",[
+      "case",
+      ["all",
+        advancedVisible,
+        ["==",["string",["feature-state","eventState"],"none"],"live"]
+      ],
+      0.32,
+      0
+    ]);
+  }
+
+  if (map.getLayer(UPCOMING_LAYER)) {
+    map.setPaintProperty(UPCOMING_LAYER,"circle-opacity",[
+      "case",
+      ["all",
+        advancedVisible,
+        ["==",["string",["feature-state","eventState"],"none"],"upcoming"]
+      ],
+      0.20,
+      0
+    ]);
+  }
+
+  if (map.getLayer(PROMO_LAYER)) {
+    map.setPaintProperty(PROMO_LAYER,"circle-opacity",[
+      "case",
+      ["all",
+        advancedVisible,
+        ["==",["boolean",["feature-state","hasPromo"],false],true]
+      ],
+      0.25,
+      0
+    ]);
+  }
+
+  scheduleDiagnostics("filter");
+}
+
+function setVenueFeatureState(id, patch) {
+  if (!map || !map.getSource(VENUE_SOURCE) || !id) return;
   try {
-    localStorage.setItem(STATE_CACHE_KEY, JSON.stringify({
-      savedAt:Date.now(),
-      generatedAt:generatedAt || null,
-      states:stateById
-    }));
+    map.setFeatureState({source:VENUE_SOURCE,id:String(id)},patch);
   } catch (_) {}
-
-  var open=0, closed=0;
-  Object.keys(stateById).forEach(function(id) {
-    if (stateById[id] === "open") open += 1;
-    else if (stateById[id] === "closed") closed += 1;
-  });
-  console.log("[MAP_RENDER][STATE_FEED] source="+sourceLabel+" known="+Object.keys(stateById).length+" open="+open+" closed="+closed);
-  post("map_state_feed_ready", {known:Object.keys(stateById).length,open:open,closed:closed,source:sourceLabel});
 }
 
-function restoreStateCache() {
-  try {
-    var raw = localStorage.getItem(STATE_CACHE_KEY);
-    if (!raw) return false;
-    var parsed = JSON.parse(raw);
-    if (!parsed || !parsed.states || Date.now()-Number(parsed.savedAt||0) > STATE_CACHE_MAX_AGE) return false;
-    setStateMap(parsed.states, "local-cache", parsed.generatedAt || null);
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-
-function fetchStatePage(offset, controller) {
-  var url =
-    STATE_URL +
-    "?select=local_id,estado" +
-    "&order=local_id.asc" +
-    "&limit=" + STATE_PAGE_SIZE +
-    "&offset=" + offset;
-
-  return fetch(url, {
-    method:"GET",
-    cache:"no-store",
-    signal:controller.signal,
-    headers:{
-      Accept:"application/json",
-      apikey:STATE_APIKEY,
-      Authorization:"Bearer " + STATE_ANON_JWT
-    }
-  }).then(function(response) {
-    if (!response.ok) throw new Error("state REST HTTP " + response.status + " offset=" + offset);
-    return response.json();
+function applyAdvancedFeatureState() {
+  activeVenueById.forEach(function(_venue,id) {
+    var visible =
+      !advancedFilterActive ||
+      !!(advancedAllowedIds && advancedAllowedIds.has(id));
+    setVenueFeatureState(id,{advancedVisible:visible});
   });
 }
 
-async function loadStateFeed() {
-  var generation = ++stateRequestGeneration;
-  if (stateAbortController) {
-    try { stateAbortController.abort(); } catch (_) {}
-  }
-  var controller = new AbortController();
-  stateAbortController = controller;
+function applyEventFeatureState() {
+  activeVenueById.forEach(function(_venue,id) {
+    var eventState =
+      liveIds.has(id) ? "live" :
+      upcomingIds.has(id) ? "upcoming" :
+      "none";
+    setVenueFeatureState(id,{eventState:eventState});
+  });
+}
 
-  try {
-    var states = Object.create(null);
-    var offset = 0;
-    var rowCount = 0;
+function applyPromoFeatureState() {
+  activeVenueById.forEach(function(_venue,id) {
+    setVenueFeatureState(id,{hasPromo:promoIds.has(id)});
+  });
+}
 
-    while (true) {
-      var rows = await fetchStatePage(offset, controller);
-      if (controller.signal.aborted || generation !== stateRequestGeneration) return;
-      if (!Array.isArray(rows)) throw new Error("state REST payload is not an array");
+function reapplyAuxiliaryFeatureState() {
+  applyAdvancedFeatureState();
+  applyEventFeatureState();
+  applyPromoFeatureState();
+}
 
-      rows.forEach(function(row) {
-        if (!row || !row.local_id) return;
-        if (row.estado === "abierto") states[String(row.local_id)] = "open";
-        else if (row.estado === "cerrado") states[String(row.local_id)] = "closed";
-      });
+function venueInsideBounds(venue,bounds) {
+  if (!venue || !bounds) return false;
+  return (
+    venue.latitude >= bounds.south &&
+    venue.latitude <= bounds.north &&
+    venue.longitude >= bounds.west &&
+    venue.longitude <= bounds.east
+  );
+}
 
-      rowCount += rows.length;
-      if (rows.length < STATE_PAGE_SIZE) break;
-      offset += STATE_PAGE_SIZE;
-    }
+function countStateTotals(bounds) {
+  var totals={total:0,open:0,closed:0,unknown:0};
+  activeVenueById.forEach(function(venue) {
+    if (bounds && !venueInsideBounds(venue,bounds)) return;
+    totals.total += 1;
+    if (venue.markerState === "open") totals.open += 1;
+    else if (venue.markerState === "closed") totals.closed += 1;
+    else totals.unknown += 1;
+  });
+  return totals;
+}
 
-    if (controller.signal.aborted || generation !== stateRequestGeneration) return;
-    setStateMap(states, "rest-cache", Date.now());
-    console.log("[MAP_RENDER][STATE_REST] generation="+generation+" rows="+rowCount+" pages="+(Math.floor(rowCount/STATE_PAGE_SIZE)+1));
-    scheduleDiagnostics("state-feed");
-  } catch (error) {
-    if (error && error.name === "AbortError") return;
-    if (generation !== stateRequestGeneration) return;
-    console.warn("[MAP_RENDER][STATE_ERROR]", String(error && error.message || error));
-    post("map_state_feed_error", {message:String(error && error.message || error)});
-  }
+function countExpectedVisible(bounds) {
+  var total=0;
+  activeVenueById.forEach(function(venue,id) {
+    if (bounds && !venueInsideBounds(venue,bounds)) return;
+    if (
+      categoryFilter !== "todas" &&
+      venue.category !== canonicalCategory(categoryFilter)
+    ) return;
+
+    if (
+      stateFilterMode === "no_cerrados" &&
+      venue.markerState !== "open"
+    ) return;
+
+    if (
+      advancedFilterActive &&
+      !(advancedAllowedIds && advancedAllowedIds.has(id))
+    ) return;
+
+    total += 1;
+  });
+  return total;
 }
 
 function countRenderedVenueIds() {
   if (!map || !map.getLayer(VENUE_LAYER)) return 0;
-  var features=[];
-  try { features=map.queryRenderedFeatures(undefined,{layers:[VENUE_LAYER]})||[]; } catch (_) {}
+  var rendered=[];
+  try {
+    rendered=map.queryRenderedFeatures(undefined,{layers:[VENUE_LAYER]})||[];
+  } catch (_) {}
+
   var ids=new Set();
-  features.forEach(function(f){
-    var id=String(f && f.properties && f.properties.id || f && f.id || "");
-    if(id) ids.add(id);
+  rendered.forEach(function(feature) {
+    var id=String(
+      feature && feature.properties && (
+        feature.properties.venueId || feature.properties.id
+      ) || feature && feature.id || ""
+    );
+    if (id) ids.add(id);
   });
   return ids.size;
 }
 
 function diagnostics(reason) {
   if (!map || !map.getSource(VENUE_SOURCE)) return;
-  var features=uniqueSourceFeatures();
-  var total=features.length, open=0, closed=0, unknown=0, expected=0;
-  features.forEach(function(feature){
-    var id=String(feature.properties && feature.properties.id || feature.id || "");
-    var state=markerStateForId(id);
-    if(state==="open") open+=1;
-    else if(state==="closed") closed+=1;
-    else unknown+=1;
 
-    var cat=canonicalCategory(feature.properties && feature.properties.tipo);
-    var categoryOK=categoryFilter==="todas" || cat===canonicalCategory(categoryFilter);
-    var advancedOK=true;
-    try {
-      advancedOK=map.getFeatureState({source:VENUE_SOURCE,sourceLayer:"locales",id:id}).advancedVisible !== false;
-    } catch (_) {}
-    var stateOK=stateFilterMode!=="no_cerrados" || state==="open";
-    if(categoryOK && advancedOK && stateOK) expected+=1;
-  });
+  var viewport=getCurrentBounds();
+  var sourceTotals=countStateTotals(null);
+  var viewportTotals=countStateTotals(viewport);
+  var expected=countExpectedVisible(viewport);
   var rendered=countRenderedVenueIds();
+
   var snapshot={
     reason:reason,
     zoom:Number(map.getZoom().toFixed(2)),
-    total:total,
-    open:open,
-    closed:closed,
-    unknown:unknown,
-    knownStates:Object.keys(stateById).length,
+    total:viewportTotals.total,
+    open:viewportTotals.open,
+    closed:viewportTotals.closed,
+    unknown:viewportTotals.unknown,
+    sourceFeatures:sourceTotals.total,
     expected:expected,
     rendered:rendered,
     stateFilter:stateFilterMode,
     category:categoryFilter,
-    stateGeneration:stateRequestGeneration,
-    viewportGeneration:viewportGeneration
+    requestGeneration:requestGeneration,
+    datasetGeneration:activeDatasetGeneration,
+    requestReason:lastRequestReason
   };
+
   window.__barliveLastDiagnostics=snapshot;
 
-  console.log("[MAP_RENDER][DATA] reason="+reason+" total="+total+" open="+open+" closed="+closed+" unknown="+unknown);
-  console.log("[MAP_RENDER][SOURCE] features="+total);
-  console.log("[MAP_RENDER][FILTER] mode="+stateFilterMode+" expected="+expected);
-  console.log("[MAP_RENDER][RENDERED] features="+rendered);
+  console.log(
+    "[MAP_RENDER][DATA] generation="+activeDatasetGeneration+
+    " viewportTotal="+viewportTotals.total+
+    " open="+viewportTotals.open+
+    " closed="+viewportTotals.closed+
+    " unknown="+viewportTotals.unknown
+  );
+  console.log(
+    "[MAP_RENDER][SOURCE] generation="+activeDatasetGeneration+
+    " features="+sourceTotals.total
+  );
+  console.log(
+    "[MAP_RENDER][FILTER] mode="+stateFilterMode+
+    " expected="+expected
+  );
+  console.log(
+    "[MAP_RENDER][RENDERED] features="+rendered+
+    " reason="+reason
+  );
+
   post("map_diagnostics",snapshot);
 }
 
 var diagnosticTimer=null;
 function scheduleDiagnostics(reason) {
   if (diagnosticTimer) clearTimeout(diagnosticTimer);
-  diagnosticTimer=setTimeout(function(){diagnosticTimer=null;diagnostics(reason);},120);
+  diagnosticTimer=setTimeout(function() {
+    diagnosticTimer=null;
+    diagnostics(reason);
+  },100);
+}
+
+function persistViewportCache(rows,coverage) {
+  try {
+    localStorage.setItem(
+      DATA_CACHE_KEY,
+      JSON.stringify({
+        savedAt:Date.now(),
+        coverage:coverage,
+        rows:rows
+      })
+    );
+  } catch (_) {}
+}
+
+function commitVenueRows(rows,coverage,generation,sourceLabel) {
+  if (generation !== requestGeneration) {
+    console.log(
+      "[MAP_RENDER][STALE_RESPONSE] generation="+generation+
+      " current="+requestGeneration+
+      " stage=commit"
+    );
+    return false;
+  }
+
+  var normalized=rowsToFeatureCollection(rows);
+  var source=map && map.getSource(VENUE_SOURCE);
+  if (!source) return false;
+
+  activeRows=Array.isArray(rows) ? rows : [];
+  activeVenueById=normalized.byId;
+  activeCoverage=coverage;
+  activeDatasetGeneration=generation;
+
+  source.setData(normalized.collection);
+  reapplyAuxiliaryFeatureState();
+  applyFilters();
+  if (sourceLabel === "network") {
+    persistViewportCache(activeRows,activeCoverage);
+  }
+
+  var totals=countStateTotals();
+
+  console.log(
+    "[MAP_RENDER][COMMIT] generation="+generation+
+    " source="+sourceLabel+
+    " total="+totals.total+
+    " open="+totals.open+
+    " closed="+totals.closed+
+    " unknown="+totals.unknown+
+    " duplicateIds="+normalized.duplicateVenueIds+
+    " nearCoordinatePairs="+normalized.nearCoordinatePairs
+  );
+
+  post("map_marker_count",{count:totals.total});
+  post("map_dataset_ready",{
+    generation:generation,
+    source:sourceLabel,
+    total:totals.total,
+    open:totals.open,
+    closed:totals.closed,
+    unknown:totals.unknown,
+    duplicateVenueIds:normalized.duplicateVenueIds,
+    nearCoordinatePairs:normalized.nearCoordinatePairs
+  });
+
+  scheduleDiagnostics("commit-"+sourceLabel);
+  return true;
+}
+
+function restoreViewportCache() {
+  try {
+    var raw=localStorage.getItem(DATA_CACHE_KEY);
+    if (!raw) return false;
+
+    var payload=JSON.parse(raw);
+    if (
+      !payload ||
+      !Array.isArray(payload.rows) ||
+      !payload.rows.length ||
+      !payload.coverage ||
+      Date.now()-Number(payload.savedAt||0) > DATA_CACHE_MAX_AGE
+    ) return false;
+
+    var current=getCurrentBounds();
+    if (!boundsContain(payload.coverage,current)) return false;
+
+    var generation=requestGeneration;
+    return commitVenueRows(
+      payload.rows,
+      payload.coverage,
+      generation,
+      "local-cache"
+    );
+  } catch (_) {
+    return false;
+  }
+}
+
+function buildDataUrl(bounds,offset) {
+  return (
+    DATA_URL +
+    "?select=local_id,latitud,longitud,tipo,destacado,estado" +
+    "&latitud=gte." + encodeURIComponent(bounds.south.toFixed(6)) +
+    "&latitud=lte." + encodeURIComponent(bounds.north.toFixed(6)) +
+    "&longitud=gte." + encodeURIComponent(bounds.west.toFixed(6)) +
+    "&longitud=lte." + encodeURIComponent(bounds.east.toFixed(6)) +
+    "&order=local_id.asc" +
+    "&limit=" + DATA_PAGE_SIZE +
+    "&offset=" + offset
+  );
+}
+
+function fetchVenuePage(bounds,offset,controller) {
+  return fetch(buildDataUrl(bounds,offset),{
+    method:"GET",
+    cache:"no-store",
+    signal:controller.signal,
+    headers:{
+      Accept:"application/json",
+      apikey:DATA_APIKEY,
+      Authorization:"Bearer " + DATA_ANON_JWT
+    }
+  }).then(function(response) {
+    if (!response.ok) {
+      throw new Error(
+        "viewport REST HTTP "+response.status+
+        " offset="+offset
+      );
+    }
+    return response.json();
+  });
+}
+
+async function fetchVenueRows(bounds,generation,controller) {
+  var all=[];
+  var offset=0;
+
+  while (true) {
+    var page=await fetchVenuePage(bounds,offset,controller);
+
+    if (
+      controller.signal.aborted ||
+      generation !== requestGeneration
+    ) return null;
+
+    if (!Array.isArray(page)) {
+      throw new Error("viewport REST payload is not an array");
+    }
+
+    all=all.concat(page);
+
+    if (page.length < DATA_PAGE_SIZE) break;
+    offset += DATA_PAGE_SIZE;
+  }
+
+  return all;
+}
+
+async function requestCanonicalViewport(force,reason) {
+  if (!map || !map.getSource(VENUE_SOURCE)) return;
+
+  var current=getCurrentBounds();
+  if (!current) return;
+
+  if (
+    !force &&
+    activeCoverage &&
+    activeVenueById.size &&
+    boundsContain(activeCoverage,current)
+  ) {
+    scheduleDiagnostics("coverage-hit");
+    return;
+  }
+
+  var coverage=paddedBounds(current);
+  var generation=++requestGeneration;
+  lastRequestReason=String(reason || "viewport");
+
+  if (requestAbortController) {
+    try { requestAbortController.abort(); } catch (_) {}
+  }
+
+  var controller=new AbortController();
+  requestAbortController=controller;
+
+  console.log(
+    "[MAP_RENDER][VIEWPORT_REQUEST] generation="+generation+
+    " zoom="+map.getZoom().toFixed(2)+
+    " bbox="+[
+      coverage.west,
+      coverage.south,
+      coverage.east,
+      coverage.north
+    ].map(function(value){return value.toFixed(5);}).join(",")+
+    " reason="+lastRequestReason
+  );
+
+  try {
+    var rows=await fetchVenueRows(coverage,generation,controller);
+    if (!rows) return;
+
+    if (
+      controller.signal.aborted ||
+      generation !== requestGeneration
+    ) {
+      console.log(
+        "[MAP_RENDER][STALE_RESPONSE] generation="+generation+
+        " current="+requestGeneration+
+        " stage=network"
+      );
+      return;
+    }
+
+    commitVenueRows(rows,coverage,generation,"network");
+  } catch (error) {
+    if (error && error.name === "AbortError") return;
+    if (generation !== requestGeneration) return;
+
+    console.warn(
+      "[MAP_RENDER][VIEWPORT_ERROR] generation="+generation,
+      String(error && error.message || error)
+    );
+    post("map_error",{
+      recoverable:true,
+      generation:generation,
+      message:String(error && error.message || error)
+    });
+
+    // Keep the previous committed FeatureCollection untouched. No fallback
+    // renderer is activated and no grey replacement dataset is created.
+  }
+}
+
+function scheduleCanonicalViewport(reason) {
+  if (requestTimer) clearTimeout(requestTimer);
+  requestTimer=setTimeout(function() {
+    requestTimer=null;
+    requestCanonicalViewport(false,reason || "moveend");
+  },80);
 }
 
 function hasAdvancedCriteria(criteria) {
@@ -1743,6 +2088,7 @@ function distanceKm(aLat,aLng,bLat,bLng) {
 
 function localMatchesAdvanced(local) {
   var c=advancedCriteria||{};
+
   if (window.__advancedTagSet) {
     if (!window.__advancedTagSet.has(String(local.id||""))) return false;
   }
@@ -1781,22 +2127,53 @@ function localMatchesAdvanced(local) {
     if(!isFinite(lat)||!isFinite(lng)) return false;
     if(distanceKm(window.__userLocation.lat,window.__userLocation.lng,lat,lng)>maxDistance) return false;
   }
+
   return true;
+}
+
+function requestAdvancedViewport() {
+  if (!map || !advancedFilterActive) return;
+  var bounds=getCurrentBounds();
+  if (!bounds) return;
+
+  var generation=++advancedGeneration;
+  console.log(
+    "[MAP_RENDER][ADVANCED_VIEWPORT_REQUEST] generation="+generation+
+    " zoom="+map.getZoom().toFixed(2)
+  );
+
+  post("map_viewport",{
+    generation:generation,
+    zoom:map.getZoom(),
+    bounds:bounds
+  });
 }
 
 function applyAdvancedRows(rows,generation) {
   if (!advancedFilterActive) return;
-  if (Number(generation)!==viewportGeneration) {
-    console.log("[MAP_RENDER][STALE_VIEWPORT] generation="+generation+" current="+viewportGeneration);
+
+  if (Number(generation)!==advancedGeneration) {
+    console.log(
+      "[MAP_RENDER][STALE_ADVANCED] generation="+generation+
+      " current="+advancedGeneration
+    );
     return;
   }
+
   var allowed=new Set();
   (Array.isArray(rows)?rows:[]).forEach(function(local){
-    if(local && local.id && localMatchesAdvanced(local)) allowed.add(String(local.id));
+    if (
+      local &&
+      local.id &&
+      localMatchesAdvanced(local)
+    ) {
+      allowed.add(String(local.id));
+    }
   });
+
   advancedAllowedIds=allowed;
-  applyAdvancedToLoadedFeatures();
-  applyPaintVisibility();
+  applyAdvancedFeatureState();
+  applyFilters();
   scheduleDiagnostics("advanced-data");
 }
 
@@ -1805,129 +2182,157 @@ window.applyAdvancedFilters=function(criteria){
   window.__advancedTagSet=Array.isArray(advancedCriteria.tagLocalIds)
     ? new Set(advancedCriteria.tagLocalIds.map(String))
     : null;
+
   advancedFilterActive=hasAdvancedCriteria(advancedCriteria);
   advancedAllowedIds=advancedFilterActive ? new Set() : null;
 
-  if(!advancedFilterActive){
-    applyAdvancedToLoadedFeatures();
-    applyPaintVisibility();
-    scheduleDiagnostics("advanced-off");
-    return;
-  }
-  window.requestViewportData();
+  applyAdvancedFeatureState();
+  applyFilters();
+
+  if (advancedFilterActive) requestAdvancedViewport();
 };
 
 window.setLocalesFromNative=function(locales,mediaRows,meta){
-  if(!advancedFilterActive) return;
+  if (!advancedFilterActive) return;
   var generation=meta && Number(meta.generation);
-  if(!Number.isFinite(generation)) generation=meta && Number(meta.requestId);
+  if (!Number.isFinite(generation)) return;
   applyAdvancedRows(locales,generation);
 };
 
-window.requestViewportData=function(){
-  if(!map || !advancedFilterActive) return;
-  var b=map.getBounds();
-  var generation=++viewportGeneration;
-  console.log("[MAP_RENDER][VIEWPORT_REQUEST] generation="+generation+" zoom="+map.getZoom().toFixed(2)+" bbox="+
-    [b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].map(function(v){return v.toFixed(5);}).join(","));
-  post("map_viewport",{
-    generation:generation,
-    zoom:map.getZoom(),
-    bounds:{south:b.getSouth(),west:b.getWest(),north:b.getNorth(),east:b.getEast()}
-  });
-};
+window.requestViewportData=requestAdvancedViewport;
 
 window.setStateFilter=function(mode){
   stateFilterMode=mode==="no_cerrados" ? "no_cerrados" : "todos";
-  applyPaintVisibility();
+  applyFilters();
   scheduleDiagnostics("state-filter");
 };
 
 window.filtrarCategoria=function(category){
   categoryFilter=category||"todas";
-  applyCategoryFilter();
+  applyFilters();
   scheduleDiagnostics("category-filter");
 };
 window.setCategoryFilter=window.filtrarCategoria;
 
-function updateEventFeatureStates() {
-  var all=new Set();
-  liveIds.forEach(function(id){all.add(id);});
-  upcomingIds.forEach(function(id){all.add(id);});
-  window.__previousEventIds && window.__previousEventIds.forEach(function(id){all.add(id);});
-  all.forEach(function(id){
-    var state=liveIds.has(id)?"live":upcomingIds.has(id)?"upcoming":"none";
-    setVenueState(id,{eventState:state});
-  });
-  window.__previousEventIds=new Set(Array.from(all).filter(function(id){return liveIds.has(id)||upcomingIds.has(id);}));
-}
-
 window.setLiveEvents=function(live,upcoming){
   liveIds=new Set((live||[]).map(String));
   upcomingIds=new Set((upcoming||[]).map(String));
-  updateEventFeatureStates();
+  applyEventFeatureState();
 };
 
 window.setActivePromos=function(promos){
-  var next=new Set(Object.keys(promos||{}).map(String));
-  var all=new Set();
-  promoIds.forEach(function(id){all.add(id);});
-  next.forEach(function(id){all.add(id);});
-  all.forEach(function(id){setVenueState(id,{hasPromo:next.has(id)});});
-  promoIds=next;
+  promoIds=new Set(Object.keys(promos||{}).map(String));
+  applyPromoFeatureState();
 };
 
 window.updateUserLocation=function(lat,lng){
   if(!map) return;
-  window.__userLocation={lat:Number(lat),lng:Number(lng)};
+
+  window.__userLocation={
+    lat:Number(lat),
+    lng:Number(lng)
+  };
+
   if(!userMarker){
     var el=document.createElement("div");
-    el.style.cssText="width:18px;height:18px;border-radius:50%;background:#1E88E5;border:4px solid #fff;box-shadow:0 1px 8px rgba(30,136,229,.55)";
-    userMarker=new maplibregl.Marker({element:el,anchor:"center"}).setLngLat([lng,lat]).addTo(map);
-  }else{
+    el.style.cssText=
+      "width:18px;height:18px;border-radius:50%;"+
+      "background:#1E88E5;border:4px solid #fff;"+
+      "box-shadow:0 1px 8px rgba(30,136,229,.55)";
+
+    userMarker=new maplibregl.Marker({
+      element:el,
+      anchor:"center"
+    })
+      .setLngLat([lng,lat])
+      .addTo(map);
+  } else {
     userMarker.setLngLat([lng,lat]);
   }
 };
 
 window.flyToLocation=function(lat,lng,zoom){
-  if(map) map.flyTo({center:[lng,lat],zoom:Number(zoom||13),duration:450,essential:true});
+  if(map) {
+    map.flyTo({
+      center:[lng,lat],
+      zoom:Number(zoom||13),
+      duration:450,
+      essential:true
+    });
+    setTimeout(function(){
+      scheduleCanonicalViewport("location");
+    },500);
+  }
 };
 
 function escapeHtml(value){
   return String(value==null?"":value)
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
 }
 
 window.showPopupFromNative=function(local,coords){
   if(!map || !local) return;
-  var lng=Number(coords&&coords.lng!=null?coords.lng:local.longitud);
-  var lat=Number(coords&&coords.lat!=null?coords.lat:local.latitud);
+
+  var lng=Number(
+    coords&&coords.lng!=null ?
+    coords.lng :
+    local.longitud
+  );
+  var lat=Number(
+    coords&&coords.lat!=null ?
+    coords.lat :
+    local.latitud
+  );
+
   if(!isFinite(lng)||!isFinite(lat)) return;
-  var state=local.__markerState||markerStateForId(local.id);
-  var label=state==="open"?"Abierto ahora":state==="closed"?"Cerrado ahora":"Sin información de horario";
-  var color=state==="open"?"#22C55E":state==="closed"?"#EF4444":"#94A3B8";
+
+  var state=String(local.__markerState||"unknown");
+  var label=
+    state==="open" ? "Abierto ahora" :
+    state==="closed" ? "Cerrado ahora" :
+    "Sin información de horario";
+
+  var color=
+    state==="open" ? "#22C55E" :
+    state==="closed" ? "#EF4444" :
+    "#94A3B8";
+
   var image=String(local.portada_url||local.imagen_url||"");
-  var imageHtml=image ? '<img class="popup-image" src="'+escapeHtml(image)+'" onerror="this.style.display=\\'none\\'"/>' : "";
-  var html=imageHtml+
+  var imageHtml=image
+    ? '<img class="popup-image" src="'+escapeHtml(image)+'" onerror="this.style.display=\\'none\\'"/>'
+    : "";
+
+  var html=
+    imageHtml+
     '<div class="popup-body">'+
       '<div class="popup-title">'+escapeHtml(local.nombre||"Local")+'</div>'+
       '<div class="popup-meta">'+escapeHtml(local.direccion||"")+'</div>'+
       '<div class="popup-state" style="color:'+color+'">'+escapeHtml(label)+'</div>'+
       '<a class="popup-button" id="barlive-popup-open">Ver local</a>'+
     '</div>';
-  var popup=new maplibregl.Popup({closeButton:false,closeOnClick:true,offset:16})
-    .setLngLat([lng,lat]).setHTML(html).addTo(map);
+
+  new maplibregl.Popup({
+    closeButton:false,
+    closeOnClick:true,
+    offset:16
+  })
+    .setLngLat([lng,lat])
+    .setHTML(html)
+    .addTo(map);
+
   setTimeout(function(){
     var button=document.getElementById("barlive-popup-open");
-    if(button) button.onclick=function(){post("navigate",{id:String(local.id)});};
+    if(button) {
+      button.onclick=function(){
+        post("navigate",{id:String(local.id)});
+      };
+    }
   },0);
 };
-
-function categoryIcon(feature) {
-  var type=canonicalCategory(feature && feature.properties && feature.properties.tipo);
-  return type||"bar";
-}
 
 function registerCategoryIcons() {
   var icons={
@@ -1938,78 +2343,112 @@ function registerCategoryIcons() {
     cocteleria:"🍸",
     discoteca:"🪩"
   };
+
   Object.keys(icons).forEach(function(category){
     var canvas=document.createElement("canvas");
-    canvas.width=64;canvas.height=64;
+    canvas.width=64;
+    canvas.height=64;
+
     var ctx=canvas.getContext("2d");
     if(!ctx) return;
+
     ctx.clearRect(0,0,64,64);
     ctx.font='30px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
-    ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
     ctx.fillText(icons[category],32,33);
+
     try {
-      map.addImage("cat-"+category,{width:64,height:64,data:ctx.getImageData(0,0,64,64).data});
+      map.addImage(
+        "cat-"+category,
+        {
+          width:64,
+          height:64,
+          data:ctx.getImageData(0,0,64,64).data
+        }
+      );
     } catch (_) {}
   });
 }
 
-function addLayerChecked(stage, definition) {
-  console.log("[MAP_RENDER][INIT_LAYER] stage="+stage+" id="+String(definition && definition.id || ""));
-  map.addLayer(definition);
-  if (!map.getLayer(definition.id)) {
-    console.error("[MAP_RENDER][INIT_LAYER_MISSING] stage="+stage+" id="+definition.id);
-    post("map_init_layer_missing",{stage:stage,id:definition.id});
-  }
-}
-
 function addVenueSourceAndLayers() {
   map.addSource(VENUE_SOURCE,{
-    type:"vector",
-    tiles:[STATIC_TILE_URL],
-    minzoom:4,
-    maxzoom:9,
-    bounds:[-18.25,27.45,4.60,44.25],
-    scheme:"xyz",
-    promoteId:"id"
+    type:"geojson",
+    data:{
+      type:"FeatureCollection",
+      features:[]
+    }
   });
 
-  addLayerChecked("live",{
-    id:LIVE_LAYER,type:"circle",source:VENUE_SOURCE,"source-layer":"locales",minzoom:10.5,
+  map.addLayer({
+    id:LIVE_LAYER,
+    type:"circle",
+    source:VENUE_SOURCE,
+    minzoom:10.5,
     paint:{
-      "circle-radius":["interpolate",["linear"],["zoom"],10.5,11,16,18],
+      "circle-radius":[
+        "interpolate",["linear"],["zoom"],
+        10.5,11,
+        16,18
+      ],
       "circle-color":"#F59E0B",
       "circle-opacity":0
     }
   });
-  addLayerChecked("upcoming",{
-    id:UPCOMING_LAYER,type:"circle",source:VENUE_SOURCE,"source-layer":"locales",minzoom:10.5,
+
+  map.addLayer({
+    id:UPCOMING_LAYER,
+    type:"circle",
+    source:VENUE_SOURCE,
+    minzoom:10.5,
     paint:{
-      "circle-radius":["interpolate",["linear"],["zoom"],10.5,10,16,17],
+      "circle-radius":[
+        "interpolate",["linear"],["zoom"],
+        10.5,10,
+        16,17
+      ],
       "circle-color":"#8B5CF6",
       "circle-opacity":0
     }
   });
-  addLayerChecked("promo",{
-    id:PROMO_LAYER,type:"circle",source:VENUE_SOURCE,"source-layer":"locales",minzoom:10.5,
+
+  map.addLayer({
+    id:PROMO_LAYER,
+    type:"circle",
+    source:VENUE_SOURCE,
+    minzoom:10.5,
     paint:{
-      "circle-radius":["interpolate",["linear"],["zoom"],10.5,9,16,16],
+      "circle-radius":[
+        "interpolate",["linear"],["zoom"],
+        10.5,9,
+        16,16
+      ],
       "circle-color":"#EF4444",
       "circle-opacity":0
     }
   });
 
-  addLayerChecked("venues",{
+  map.addLayer({
     id:VENUE_LAYER,
     type:"circle",
     source:VENUE_SOURCE,
-    "source-layer":"locales",
     minzoom:4,
     paint:{
-      "circle-radius":["interpolate",["linear"],["zoom"],4,1.6,7,2.3,9,3.2,10.5,7.4,13,10.5,16,13,20,14],
+      "circle-radius":[
+        "interpolate",["linear"],["zoom"],
+        4,1.6,
+        7,2.3,
+        9,3.2,
+        10.5,7.4,
+        13,10.5,
+        16,13,
+        20,14
+      ],
       "circle-color":[
-        "case",
-        ["==",stateExpression(),"open"],"#22C55E",
-        ["==",stateExpression(),"closed"],"#EF4444",
+        "match",
+        ["get","markerState"],
+        "open","#22C55E",
+        "closed","#EF4444",
         "#94A3B8"
       ],
       "circle-opacity":1,
@@ -2020,56 +2459,93 @@ function addVenueSourceAndLayers() {
         20,["case",["==",["get","destacado"],true],3,2]
       ],
       "circle-stroke-color":[
-        "case",["==",["get","destacado"],true],"#F59E0B","#FFFFFF"
+        "case",
+        ["==",["get","destacado"],true],
+        "#F59E0B",
+        "#FFFFFF"
       ]
     }
   });
 
-  addLayerChecked("icons",{
+  map.addLayer({
     id:ICON_LAYER,
     type:"symbol",
     source:VENUE_SOURCE,
-    "source-layer":"locales",
     minzoom:10.5,
     layout:{
       "icon-image":[
         "case",
-        ["==",["get","tipo"],"cafeteria"],"cat-cafeteria",
-        ["==",["get","tipo"],"restaurante"],"cat-restaurante",
-        ["==",["get","tipo"],"pub"],"cat-pub",
-        ["==",["get","tipo"],"cocteleria"],"cat-cocteleria",
-        ["==",["get","tipo"],"discoteca"],"cat-discoteca",
+        ["==",["get","category"],"cafeteria"],"cat-cafeteria",
+        ["==",["get","category"],"restaurante"],"cat-restaurante",
+        ["==",["get","category"],"pub"],"cat-pub",
+        ["==",["get","category"],"cocteleria"],"cat-cocteleria",
+        ["==",["get","category"],"discoteca"],"cat-discoteca",
         "cat-bar"
       ],
-      "icon-size":["interpolate",["linear"],["zoom"],10.5,0.42,13,0.50,16,0.58,20,0.62],
+      "icon-size":[
+        "interpolate",["linear"],["zoom"],
+        10.5,0.42,
+        13,0.50,
+        16,0.58,
+        20,0.62
+      ],
       "icon-anchor":"center",
       "icon-allow-overlap":true,
       "icon-ignore-placement":true,
       "icon-padding":0
     },
-    paint:{"icon-opacity":1}
+    paint:{
+      "icon-opacity":1
+    }
   });
 
-  applyCategoryFilter();
-  applyPaintVisibility();
+  applyFilters();
+}
+
+function venueIsVisible(venue) {
+  if (!venue) return false;
+
+  if (
+    categoryFilter !== "todas" &&
+    venue.category !== canonicalCategory(categoryFilter)
+  ) return false;
+
+  if (
+    stateFilterMode === "no_cerrados" &&
+    venue.markerState !== "open"
+  ) return false;
+
+  if (
+    advancedFilterActive &&
+    !(advancedAllowedIds && advancedAllowedIds.has(venue.id))
+  ) return false;
+
+  return true;
 }
 
 function requestPopupFromFeature(feature){
   if(!feature) return;
-  var id=String(feature.properties && feature.properties.id || feature.id || "");
-  if(!id) return;
-  var state=markerStateForId(id);
-  if(stateFilterMode==="no_cerrados" && state!=="open") return;
-  var advanced=true;
-  try {
-    advanced=map.getFeatureState({source:VENUE_SOURCE,sourceLayer:"locales",id:id}).advancedVisible!==false;
-  } catch (_) {}
-  if(!advanced) return;
+
+  var id=String(
+    feature.properties && (
+      feature.properties.venueId ||
+      feature.properties.id
+    ) ||
+    feature.id ||
+    ""
+  );
+
+  var venue=activeVenueById.get(id);
+  if (!venue || !venueIsVisible(venue)) return;
+
   var coords=feature.geometry && feature.geometry.coordinates;
+
   post("map_popup_request",{
     id:id,
-    markerState:state,
-    coordinates:Array.isArray(coords)?{lng:Number(coords[0]),lat:Number(coords[1])}:null
+    markerState:venue.markerState,
+    coordinates:Array.isArray(coords)
+      ? {lng:Number(coords[0]),lat:Number(coords[1])}
+      : null
   });
 }
 
@@ -2079,69 +2555,75 @@ window.__barliveTestSnapshot=function(){
 };
 
 window.__barliveIdentity=function(ids){
-  var features=uniqueSourceFeatures();
-  var present=new Set();
-  features.forEach(function(feature){
-    var id=String(feature.properties && feature.properties.id || feature.id || "");
-    if(id) present.add(id);
-  });
   return (ids||[]).map(function(rawId){
     var id=String(rawId||"");
-    var featureState={};
-    try {
-      featureState=map.getFeatureState({source:VENUE_SOURCE,sourceLayer:"locales",id:id})||{};
-    } catch (_) {}
+    var venue=activeVenueById.get(id) || null;
+
     return {
       venueId:id,
-      markerState:featureState.markerState || markerStateForId(id),
-      visible:present.has(id),
-      advancedVisible:featureState.advancedVisible !== false
+      markerState:venue ? venue.markerState : null,
+      present:!!venue,
+      visible:venue ? venueIsVisible(venue) : false
     };
   });
 };
 
 function handleMapError(event) {
-  var message=String(event && event.error && event.error.message || "MapLibre error");
+  var message=String(
+    event && event.error && event.error.message ||
+    "MapLibre error"
+  );
+
   console.warn("[MAP_RENDER][MAP_ERROR]",message);
-  post("map_error",{message:message,recoverable:true,sourceId:event && event.sourceId || ""});
+
+  post("map_error",{
+    message:message,
+    recoverable:true,
+    sourceId:event && event.sourceId || ""
+  });
 }
 
 function setupMapEvents(){
   map.on("sourcedata",function(event){
     if(event.sourceId!==VENUE_SOURCE) return;
-    applyStateToLoadedFeatures();
-    applyAdvancedToLoadedFeatures();
-
-    var count=uniqueSourceFeatures().length;
-    if(count>0 && !sourceReadyNotified){
-      sourceReadyNotified=true;
-      post("map_marker_count",{count:count});
-    }
+    reapplyAuxiliaryFeatureState();
+    scheduleDiagnostics("sourcedata");
   });
 
   map.on("moveend",function(){
-    if(advancedFilterActive){
-      if(viewportTimer) clearTimeout(viewportTimer);
-      viewportTimer=setTimeout(function(){viewportTimer=null;window.requestViewportData();},100);
+    scheduleCanonicalViewport("moveend");
+
+    if (advancedFilterActive) {
+      requestAdvancedViewport();
     }
+
     scheduleDiagnostics("moveend");
   });
 
   map.on("idle",function(){
+    // Diagnostic only. Never changes source data, renderer authority or state.
     scheduleDiagnostics("idle");
   });
 
   map.on("click",VENUE_LAYER,function(event){
-    var feature=event.features && event.features[0];
-    requestPopupFromFeature(feature);
+    requestPopupFromFeature(
+      event.features && event.features[0]
+    );
   });
-  map.on("click",ICON_LAYER,function(event){
-    var feature=event.features && event.features[0];
-    requestPopupFromFeature(feature);
-  });
-  map.on("mouseenter",VENUE_LAYER,function(){map.getCanvas().style.cursor="pointer";});
-  map.on("mouseleave",VENUE_LAYER,function(){map.getCanvas().style.cursor="";});
 
+  map.on("click",ICON_LAYER,function(event){
+    requestPopupFromFeature(
+      event.features && event.features[0]
+    );
+  });
+
+  map.on("mouseenter",VENUE_LAYER,function(){
+    map.getCanvas().style.cursor="pointer";
+  });
+
+  map.on("mouseleave",VENUE_LAYER,function(){
+    map.getCanvas().style.cursor="";
+  });
 }
 
 function init(){
@@ -2163,29 +2645,54 @@ function init(){
     pitchWithRotate:false,
     touchPitch:false,
     fadeDuration:0,
-    crossSourceCollisions:false,
-    maxTileCacheZoomLevels:6
+    crossSourceCollisions:false
   });
 
   window.__barliveMap=map;
   map.on("error",handleMapError);
-  try { map.addControl(new maplibregl.AttributionControl({compact:true}),"bottom-right"); } catch (_) {}
+
+  try {
+    map.addControl(
+      new maplibregl.AttributionControl({compact:true}),
+      "bottom-right"
+    );
+  } catch (_) {}
 
   map.on("load",function(){
-    try { registerCategoryIcons(); } catch (error) { console.warn("[MAP_RENDER][ICON_WARNING]",error); }
+    try {
+      registerCategoryIcons();
+    } catch (error) {
+      console.warn("[MAP_RENDER][ICON_WARNING]",error);
+    }
+
     addVenueSourceAndLayers();
     setupMapEvents();
-    restoreStateCache();
-    loadStateFeed();
-    stateRefreshTimer=setInterval(loadStateFeed,60000);
-    post("map_ready",{engine:"barlive-single-source-feature-state-v1"});
+
+    // Cache is only a warm-start input to the SAME canonical source.
+    // Network reconciliation writes to that exact source as one atomic commit.
+    var restored=restoreViewportCache();
+    if (map.getZoom() >= 8 || restored) {
+      requestCanonicalViewport(true,"load");
+    }
+
+    refreshTimer=setInterval(function(){
+      requestCanonicalViewport(true,"state-refresh");
+    },60000);
+
+    post("map_ready",{
+      engine:"barlive-single-geojson-viewport-v1"
+    });
+
     scheduleDiagnostics("load");
   });
 }
 
 window.addEventListener("beforeunload",function(){
-  if(stateRefreshTimer) clearInterval(stateRefreshTimer);
-  if(stateAbortController){try{stateAbortController.abort();}catch(_){}}
+  if(refreshTimer) clearInterval(refreshTimer);
+  if(requestTimer) clearTimeout(requestTimer);
+  if(requestAbortController){
+    try { requestAbortController.abort(); } catch (_) {}
+  }
 });
 
 init();
