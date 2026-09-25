@@ -20,6 +20,9 @@ const NATIVE_TILE_TEMPLATE =
   'https://media.barliveapp.es/map/static/v404-geom6-z9-canonical/{z}/{x}/{y}.pbf';
 const STATE_OVERLAY_URL =
   SUPABASE_URL + '/functions/v1/map-state-overlay';
+const STATE_CACHE_URL =
+  SUPABASE_URL +
+  '/rest/v1/map_marker_state_cache?select=local_id,latitud,longitud,tipo,destacado,estado';
 
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
@@ -271,56 +274,150 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
     }).filter(Boolean);
   }
 
-  function loadState() {
+  function normalizeStateRows(rows) {
+    if (!Array.isArray(rows)) return [];
+
+    return rows.map(function(row){
+      var localId;
+      var lat;
+      var lon;
+      var tipo;
+      var destacado;
+      var rawState;
+
+      if (Array.isArray(row)) {
+        if (row.length < 6) return null;
+        localId = row[0];
+        lat = row[1];
+        lon = row[2];
+        tipo = row[3];
+        destacado = Number(row[4] || 0) === 1;
+        rawState = row[5];
+      } else if (row && typeof row === 'object') {
+        localId = row.local_id || row.id;
+        lat = row.latitud != null ? row.latitud : row.lat;
+        lon =
+          row.longitud != null
+            ? row.longitud
+            : (row.lng != null ? row.lng : row.lon);
+        tipo = row.tipo || row.barlive_type || 'bar';
+        destacado =
+          row.destacado === true || Number(row.destacado || 0) === 1;
+        rawState =
+          row.estado != null ? row.estado : row.estado_actual;
+      } else {
+        return null;
+      }
+
+      var rowLat = Number(lat);
+      var rowLon = Number(lon);
+      if (!localId || !isFinite(rowLat) || !isFinite(rowLon)) return null;
+
+      var normalizedState = String(
+        rawState == null ? '' : rawState
+      ).trim().toLowerCase();
+      var numericState = Number(rawState);
+      var estado =
+        normalizedState === 'abierto' || numericState === 1
+          ? 'abierto'
+          : normalizedState === 'cerrado' || numericState === 2
+            ? 'cerrado'
+            : 'sin_info';
+
+      // Unknown hours remain represented by the neutral static layer.
+      if (estado === 'sin_info') return null;
+
+      return {
+        local_id: localId,
+        latitud: rowLat,
+        longitud: rowLon,
+        tipo: String(tipo || 'bar'),
+        destacado: destacado,
+        estado: estado
+      };
+    }).filter(Boolean);
+  }
+
+  function applyStateRows(rows, sourceName) {
+    var normalizedRows = normalizeStateRows(rows);
+    if (!normalizedRows.length) {
+      throw new Error(sourceName + ' returned no known marker states');
+    }
+
+    var source = map.getSource('barlive-state');
+    if (!source) {
+      throw new Error('barlive-state source is not ready');
+    }
+
+    source.setData({
+      type:'FeatureCollection',
+      features:toFeatures(normalizedRows)
+    });
+    applyFilters();
+    send({
+      type:'state_ready',
+      count:normalizedRows.length,
+      source:sourceName
+    });
+    return normalizedRows.length;
+  }
+
+  function fetchEdgeState() {
     var stateSlot = Math.floor(Date.now() / 60000);
-    fetch('${STATE_OVERLAY_URL}?slot=' + stateSlot, {
-      headers: { Accept: 'application/json' },
+    return fetch('${STATE_OVERLAY_URL}?slot=' + stateSlot, {
+      headers: {
+        Accept: 'application/json',
+        apikey: '${SUPABASE_PUBLIC_KEY}'
+      },
       cache: 'no-store'
     })
       .then(function(r){
-        if (!r.ok) throw new Error('state HTTP ' + r.status);
+        if (!r.ok) throw new Error('edge state HTTP ' + r.status);
         return r.json();
       })
       .then(function(payload){
         var rows = Array.isArray(payload)
           ? payload
           : (payload && Array.isArray(payload.rows) ? payload.rows : []);
-        if (!rows.length) return;
+        return applyStateRows(rows, 'edge-overlay');
+      });
+  }
 
-        var normalizedRows = rows.map(function(row){
-          if (!Array.isArray(row) || row.length < 6) return null;
+  function fetchCachedState() {
+    return fetch('${STATE_CACHE_URL}', {
+      headers: {
+        Accept: 'application/json',
+        apikey: '${SUPABASE_PUBLIC_KEY}'
+      },
+      cache: 'no-store'
+    })
+      .then(function(r){
+        if (!r.ok) throw new Error('state cache HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function(rows){
+        return applyStateRows(rows, 'rest-cache');
+      });
+  }
 
-          var rawState = row[5];
-          var normalizedState = String(rawState == null ? '' : rawState).trim().toLowerCase();
-          var numericState = Number(rawState);
-          var estado =
-            normalizedState === 'abierto' || numericState === 1
-              ? 'abierto'
-              : normalizedState === 'cerrado' || numericState === 2
-                ? 'cerrado'
-                : 'sin_info';
-
-          if (estado === 'sin_info') return null;
-
-          return {
-            local_id: row[0],
-            latitud: row[1],
-            longitud: row[2],
-            tipo: row[3],
-            destacado: Number(row[4] || 0) === 1,
-            estado: estado
-          };
-        }).filter(Boolean);
-
-        var source = map.getSource('barlive-state');
-        if (source) {
-          source.setData({type:'FeatureCollection',features:toFeatures(normalizedRows)});
-        }
-        applyFilters();
-        send({type:'state_ready',count:normalizedRows.length});
+  function loadState() {
+    // Prefer the full realtime overlay. If it is unavailable/empty, fall back
+    // immediately to the proven public state cache instead of leaving every
+    // venue grey.
+    fetchEdgeState()
+      .catch(function(edgeError){
+        console.warn(
+          '[BarLive map] realtime overlay unavailable; using state cache',
+          edgeError
+        );
+        return fetchCachedState();
       })
       .catch(function(error){
-        console.warn('[BarLive map] state overlay error', error);
+        console.warn('[BarLive map] marker state unavailable', error);
+        send({
+          type:'state_error',
+          message:String(error && error.message || error)
+        });
       });
   }
 
