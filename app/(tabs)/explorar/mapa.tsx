@@ -106,8 +106,7 @@ function buildMapHtml(
 html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:#A8E0FF}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
 .maplibregl-canvas{outline:none}
-.maplibregl-ctrl-attrib{font-size:8px!important;opacity:.5!important}.maplibregl-ctrl-attrib.maplibregl-compact{min-height:20px!important}
-.maplibregl-ctrl-logo{opacity:.7}
+.maplibregl-ctrl-attrib,.maplibregl-ctrl-logo{display:none!important}
 .maplibregl-popup-content{padding:0;border-radius:12px;overflow:hidden;box-shadow:0 8px 30px rgba(15,23,42,.18)}
 .b-popup{padding:10px 12px;min-width:150px}
 .b-title{font-size:13px;font-weight:800;color:#0f172a;margin-bottom:7px}
@@ -167,11 +166,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
 
   try { map.touchZoomRotate.disableRotation(); } catch (_) {}
 
-  try {
-    map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
-  } catch (attributionError) {
-    console.warn('[BarLive map] compact attribution unavailable', attributionError);
-  }
+  // BarLive controls the map chrome; do not re-add MapLibre's compact attribution control.
 
   function drawCenteredEmoji(ctx, emoji, cx, cy, fontSize, category) {
     ctx.font = fontSize + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
@@ -276,9 +271,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
   }
 
   function loadState() {
-    fetch('${STATE_OVERLAY_URL}', {
+    var stateSlot = Math.floor(Date.now() / 60000);
+    fetch('${STATE_OVERLAY_URL}?slot=' + stateSlot, {
       headers: { Accept: 'application/json' },
-      cache: 'default'
+      cache: 'no-store'
     })
       .then(function(r){
         if (!r.ok) throw new Error('state HTTP ' + r.status);
