@@ -1,4 +1,4 @@
-// QA rerun: canonical bundle deployed as bcfa3c131f2e1077614a15ea7c2d41e06381b1a6
+// QA target: canonical complete-catalogue GeoJSON runtime.
 // QA target: deployed canonical GeoJSON venue runtime.
 import fs from 'node:fs';
 import { chromium } from 'playwright';
@@ -201,15 +201,18 @@ async function runDesktop(browser) {
     permissions: ['geolocation'],
   });
   const page = await context.newPage();
-  const network = { data: [], legacyTiles: [], failed: [] };
+  const network = { catalogue: [], state: [], legacyTiles: [], failed: [] };
   const mapErrors = [];
   const pageErrors = [];
   const consoleTail = [];
 
   page.on('response', response => {
     const url = response.url();
+    if (url.includes('/rest/v1/locales')) {
+      network.catalogue.push({ status: response.status(), url });
+    }
     if (url.includes('/rest/v1/map_marker_state_cache')) {
-      network.data.push({ status: response.status(), url });
+      network.state.push({ status: response.status(), url });
     }
     if (url.includes('/functions/v1/map-static-tile/')) {
       network.legacyTiles.push({ status: response.status(), url });
@@ -218,6 +221,7 @@ async function runDesktop(browser) {
   page.on('requestfailed', request => {
     const url = request.url();
     if (
+      url.includes('/rest/v1/locales') ||
       url.includes('/rest/v1/map_marker_state_cache') ||
       url.includes('/functions/v1/map-static-tile/') ||
       url.includes('openfreemap')
@@ -266,8 +270,15 @@ async function runDesktop(browser) {
   record(
     'open closed unknown partition equals viewport total',
     Number(snap.open||0) + Number(snap.closed||0) + Number(snap.unknown||0) === Number(snap.total||0) &&
-      Number(snap.total||0) > 0,
+      Number(snap.total||0) > 100,
     { open:snap.open, closed:snap.closed, unknown:snap.unknown, total:snap.total }
+  );
+
+  record(
+    'Madrid viewport is backed by complete catalogue, not sparse state cache',
+    Number(snap.total||0) > 100 &&
+      Number(snap.sourceFeatures||0) >= Number(snap.total||0),
+    { total:snap.total, sourceFeatures:snap.sourceFeatures, network }
   );
 
   let geo = await geometryStats(frame);
@@ -373,9 +384,16 @@ async function runDesktop(browser) {
   );
 
   record(
-    'viewport REST data requests returned HTTP 200',
-    network.data.some(item => item.status === 200),
-    { responses:network.data.slice(-20), failed:network.failed }
+    'catalogue and realtime state REST requests returned HTTP 200',
+    network.catalogue.some(item => item.status === 200) &&
+      network.state.some(item => item.status === 200) &&
+      network.catalogue.every(item => item.status === 200) &&
+      network.state.every(item => item.status === 200),
+    {
+      catalogue:network.catalogue.slice(-20),
+      state:network.state.slice(-20),
+      failed:network.failed
+    }
   );
   record(
     'legacy static venue tile endpoint is not used',
