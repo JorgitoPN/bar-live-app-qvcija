@@ -1,9 +1,9 @@
-// BarLive compiled production service worker v8 - 2026-09-25.
+// BarLive compiled production service worker v9 - 2026-09-25.
 // Serves the real Barlive-2 bundle and applies only transport-level production fixes.
 const APP_BUNDLE_PATH='/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js';
-const BUNDLE_CACHE='barlive-compiled-bundle-v8';
-const STATE_RESPONSE_CACHE='barlive-marker-state-v8';
-const STATE_RESPONSE_KEY='/__barlive/state-overlay-v8';
+const BUNDLE_CACHE='barlive-compiled-bundle-v9';
+const STATE_RESPONSE_CACHE='barlive-marker-state-v9';
+const STATE_RESPONSE_KEY='/__barlive/state-overlay-v9';
 const STATE_FALLBACK_MAX_AGE_MS=10*60*1000;
 const SUPABASE_ORIGIN='https://embntaqwlwmgazvrglaf.supabase.co';
 const STATE_OVERLAY_PATH='/functions/v1/map-state-overlay';
@@ -38,24 +38,103 @@ function patchCurrentSourceDelta(code){
     }
   }
 
-  // The map runs inside an iframe srcdoc on web. Do not rely on this Service
-  // Worker to intercept that frame's cross-origin request: inject Supabase auth
-  // into the compiled map code itself so a hard reload still gets state.
+  // Production must never download/process the Spain-wide state overlay on
+  // first paint. Replace the compiled loader with a viewport-only REST query.
+  // Static geometry remains instant; once geolocation moves the map to z>=9,
+  // only the visible/padded area is fetched and coloured.
   const overlayAnchor='window.loadRealtimeMarkerOverlay = function()';
   const overlayPos=code.indexOf(overlayAnchor);
   if(overlayPos>=0){
-    const headerNeedle="headers: { Accept: 'application/json' },";
-    const headerPos=code.indexOf(headerNeedle,overlayPos);
-    if(headerPos>=0&&headerPos<overlayPos+6000){
-      const directHeaders="headers: { Accept: 'application/json', apikey: '"+SUPABASE_PUBLIC_KEY+"', Authorization: 'Bearer "+SUPABASE_ANON_JWT+"' },";
-      code=code.slice(0,headerPos)+directHeaders+code.slice(headerPos+headerNeedle.length);
-    }
-
-    const timer120="window.realtimeOverlayTimer = setInterval(\\n      window.loadRealtimeMarkerOverlay,\\n      120000\\n    );";
-    const timer60="window.realtimeOverlayTimer = setInterval(\\n      window.loadRealtimeMarkerOverlay,\\n      60000\\n    );";
-    const timerPos=code.indexOf(timer120,overlayPos);
-    if(timerPos>=0&&timerPos<overlayPos+12000){
-      code=code.slice(0,timerPos)+timer60+code.slice(timerPos+timer120.length);
+    const firstCall='window.loadRealtimeMarkerOverlay();';
+    const firstCallPos=code.indexOf(firstCall,overlayPos);
+    if(firstCallPos>overlayPos){
+      const viewportLoader=[
+        "window.realtimeOverlayAbortController = null;",
+        "window.realtimeOverlayMoveTimer = null;",
+        "window.loadRealtimeMarkerOverlay = function() {",
+        "  var zoom = Number(map.getZoom() || 0);",
+        "  if (zoom < 9) return;",
+        "  var bounds = map.getBounds();",
+        "  var south = Number(bounds.getSouth());",
+        "  var west = Number(bounds.getWest());",
+        "  var north = Number(bounds.getNorth());",
+        "  var east = Number(bounds.getEast());",
+        "  var latPad = Math.max(0.02, (north - south) * 0.35);",
+        "  var lonPad = Math.max(0.02, (east - west) * 0.35);",
+        "  south = Math.max(27.45, south - latPad);",
+        "  north = Math.min(44.25, north + latPad);",
+        "  west = Math.max(-18.25, west - lonPad);",
+        "  east = Math.min(4.55, east + lonPad);",
+        "  var query = '"+SUPABASE_ORIGIN+"/rest/v1/map_marker_state_cache' +",
+        "    '?select=local_id,latitud,longitud,tipo,destacado,estado' +",
+        "    '&latitud=gte.' + encodeURIComponent(south.toFixed(6)) +",
+        "    '&latitud=lte.' + encodeURIComponent(north.toFixed(6)) +",
+        "    '&longitud=gte.' + encodeURIComponent(west.toFixed(6)) +",
+        "    '&longitud=lte.' + encodeURIComponent(east.toFixed(6)) +",
+        "    '&limit=10000';",
+        "  if (window.realtimeOverlayAbortController) {",
+        "    try { window.realtimeOverlayAbortController.abort(); } catch (_) {}",
+        "  }",
+        "  var controller = new AbortController();",
+        "  window.realtimeOverlayAbortController = controller;",
+        "  var startedAt = Date.now();",
+        "  fetch(query, {",
+        "    headers: { Accept: 'application/json', apikey: '"+SUPABASE_PUBLIC_KEY+"', Authorization: 'Bearer "+SUPABASE_ANON_JWT+"' },",
+        "    cache: 'no-store',",
+        "    signal: controller.signal",
+        "  })",
+        "    .then(function(response) {",
+        "      if (!response.ok) throw new Error('HTTP ' + response.status);",
+        "      return response.json();",
+        "    })",
+        "    .then(function(rows) {",
+        "      if (controller.signal.aborted) return;",
+        "      if (!Array.isArray(rows)) throw new Error('Viewport state payload is not an array');",
+        "      var features = rows.map(function(row) {",
+        "        if (!row || typeof row !== 'object') return null;",
+        "        var lat = Number(row.latitud);",
+        "        var lon = Number(row.longitud);",
+        "        if (!row.local_id || !isFinite(lat) || !isFinite(lon)) return null;",
+        "        var rawState = row.estado;",
+        "        var normalizedState = String(rawState == null ? '' : rawState).trim().toLowerCase();",
+        "        var numericState = Number(rawState);",
+        "        var estado = normalizedState === 'abierto' || numericState === 1 ? 'abierto' : normalizedState === 'cerrado' || numericState === 2 ? 'cerrado' : 'sin_info';",
+        "        if (estado === 'sin_info') return null;",
+        "        return {",
+        "          type: 'Feature',",
+        "          id: String(row.local_id),",
+        "          geometry: { type: 'Point', coordinates: [lon, lat] },",
+        "          properties: {",
+        "            id: String(row.local_id),",
+        "            tipo: String(row.tipo || 'bar'),",
+        "            destacado: row.destacado === true || Number(row.destacado || 0) === 1,",
+        "            estado: estado",
+        "          }",
+        "        };",
+        "      }).filter(Boolean);",
+        "      var source = map.getSource('barlive-realtime-overlay');",
+        "      if (source) source.setData({ type: 'FeatureCollection', features: features });",
+        "      try {",
+        "        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_realtime_overlay_ready', count: features.length, milliseconds: Date.now() - startedAt, mode: 'viewport-rest' }));",
+        "      } catch (_) {}",
+        "    })",
+        "    .catch(function(error) {",
+        "      if (error && error.name === 'AbortError') return;",
+        "      console.warn('MAPA Viewport state failed:', error);",
+        "    });",
+        "};",
+        "window.scheduleRealtimeMarkerOverlay = function() {",
+        "  if (window.realtimeOverlayMoveTimer) clearTimeout(window.realtimeOverlayMoveTimer);",
+        "  window.realtimeOverlayMoveTimer = setTimeout(function() {",
+        "    window.realtimeOverlayMoveTimer = null;",
+        "    window.loadRealtimeMarkerOverlay();",
+        "  }, 90);",
+        "};",
+        "map.on('moveend', window.scheduleRealtimeMarkerOverlay);",
+        "map.on('zoomend', window.scheduleRealtimeMarkerOverlay);",
+        ""
+      ].join('\\n');
+      code=code.slice(0,overlayPos)+viewportLoader+code.slice(firstCallPos);
     }
   }
 
