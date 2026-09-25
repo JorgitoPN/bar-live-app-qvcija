@@ -1,2 +1,10 @@
-if(!self.define){let e,i={};const n=(n,s)=>(n=new URL(n+".js",s).href,i[n]||new Promise(i=>{if("document"in self){const e=document.createElement("script");e.src=n,e.onload=i,document.head.appendChild(e)}else e=n,importScripts(n),i()}).then(()=>{let e=i[n];if(!e)throw new Error(`Module ${n} didn’t register its module`);return e}));self.define=(s,t)=>{const d=e||("document"in self?document.currentScript.src:"")||location.href;if(i[d])return;let o={};const c=e=>n(e,d),r={module:{uri:d},exports:o,require:c};i[d]=Promise.all(s.map(e=>r[e]||c(e))).then(e=>(t(...e),o))}}define(["./workbox-d8d0471a"],function(e){"use strict";self.skipWaiting(),e.clientsClaim(),e.precacheAndRoute([{url:"metadata.json",revision:"37cb2e8fcdd3b2523b9bd2f4b09087db"},{url:"manifest.json",revision:"e526e93c0e910cda339b6474c027c324"},{url:"index.html",revision:"a54eb6dd945590dcdbee28a52aac9e5c"},{url:"favicon.ico",revision:"c591dae8fd0976d5d950fd2ebc0bb400"},{url:"_expo/static/js/web/index-db3bb057e8dc93d9a7b06d6635c27382.js",revision:"b6efc7b2f70aedd703b5d8f8f1721f16"}],{}),e.cleanupOutdatedCaches(),e.registerRoute(new e.NavigationRoute(e.createHandlerBoundToURL("/index.html"),{denylist:[/^\/api\//,/^\/\.well-known\//]})),e.registerRoute(({request:e,sameOrigin:i})=>i&&["image","font"].includes(e.destination),new e.CacheFirst({cacheName:"barlive-static-assets-v1",plugins:[new e.CacheableResponsePlugin({statuses:[200]}),new e.ExpirationPlugin({maxEntries:128,maxAgeSeconds:2592e3})]}),"GET")});
-//# sourceMappingURL=sw.js.map
+// BarLive 2026-09-25: retire the previous application's offline shell.
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', event => event.waitUntil((async () => {
+  const keys = await caches.keys();
+  await Promise.all(keys.filter(k => k.startsWith('workbox-precache') || k === 'barlive-static-assets-v1').map(k => caches.delete(k)));
+  await self.clients.claim();
+  const windows = await self.clients.matchAll({type:'window'});
+  await Promise.all(windows.map(client => client.navigate(client.url)));
+})()));
+// No fetch handler: all requests use the network and normal HTTP caching.
