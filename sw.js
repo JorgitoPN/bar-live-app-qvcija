@@ -1,7 +1,10 @@
-// BarLive compiled production service worker v6 - 2026-09-25.
+// BarLive compiled production service worker v7 - 2026-09-25.
 // Serves the real Barlive-2 bundle and applies only transport-level production fixes.
 const APP_BUNDLE_PATH='/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js';
-const BUNDLE_CACHE='barlive-compiled-bundle-v6';
+const BUNDLE_CACHE='barlive-compiled-bundle-v7';
+const STATE_RESPONSE_CACHE='barlive-marker-state-v7';
+const STATE_RESPONSE_KEY='/__barlive/state-overlay-v7';
+const STATE_FALLBACK_MAX_AGE_MS=10*60*1000;
 const SUPABASE_ORIGIN='https://embntaqwlwmgazvrglaf.supabase.co';
 const STATE_OVERLAY_PATH='/functions/v1/map-state-overlay';
 const BRAND_SVG='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22168%22 height=%2248%22 viewBox=%220 0 168 48%22%3E%3Crect x=%220%22 y=%224%22 width=%2240%22 height=%2240%22 rx=%2212%22 fill=%22%23641B73%22/%3E%3Ctext x=%2220%22 y=%2231%22 text-anchor=%22middle%22 font-family=%22Arial,sans-serif%22 font-size=%2223%22 font-weight=%22900%22 fill=%22white%22%3EB%3C/text%3E%3Ctext x=%2252%22 y=%2231%22 font-family=%22Arial,sans-serif%22 font-size=%2224%22 font-weight=%22800%22 fill=%22%23641B73%22%3EBarLive%3C/text%3E%3C/svg%3E';
@@ -10,7 +13,7 @@ self.addEventListener('install',()=>self.skipWaiting());
 
 self.addEventListener('activate',event=>event.waitUntil((async()=>{
   const keys=await caches.keys();
-  await Promise.all(keys.filter(k=>k!==BUNDLE_CACHE&&(k.startsWith('workbox-precache')||k.startsWith('barlive-'))).map(k=>caches.delete(k)));
+  await Promise.all(keys.filter(k=>!([BUNDLE_CACHE,STATE_RESPONSE_CACHE].includes(k))&&(k.startsWith('workbox-precache')||k.startsWith('barlive-'))).map(k=>caches.delete(k)));
   await self.clients.claim();
   const windows=await self.clients.matchAll({type:'window'});
   await Promise.all(windows.map(client=>client.navigate(client.url)));
@@ -75,6 +78,7 @@ async function servePatchedBundle(request){
 }
 
 const SUPABASE_PUBLIC_KEY='sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2';
+const SUPABASE_ANON_JWT='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtYm50YXF3bHdtZ2F6dnJnbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5Mjk1NzMsImV4cCI6MjA3NzUwNTU3M30.mgqmCBX7FVpuejaN6pGuFHhMxKA033U-ALJwC-DCUEI';
 const STATE_CACHE_URL=SUPABASE_ORIGIN+'/rest/v1/map_marker_state_cache?select=local_id,latitud,longitud,tipo,destacado,estado';
 
 function compactKnownStateRows(rows){
@@ -102,14 +106,50 @@ function compactKnownStateRows(rows){
   }).filter(Boolean);
 }
 
-function stateJsonResponse(rows,source){
-  return new Response(JSON.stringify({rows,source}),{
+async function stateJsonResponse(rows,source){
+  const response=new Response(JSON.stringify({rows,source}),{
     status:200,
     headers:{
       'Content-Type':'application/json; charset=utf-8',
-      'Cache-Control':'no-store'
+      'Cache-Control':'no-store',
+      'X-BarLive-State-Saved-At':String(Date.now())
     }
   });
+  try{
+    const cache=await caches.open(STATE_RESPONSE_CACHE);
+    await cache.put(new Request(self.location.origin+STATE_RESPONSE_KEY),response.clone());
+  }catch(_){}
+  return response;
+}
+
+async function rememberedStateResponse(){
+  try{
+    const cache=await caches.open(STATE_RESPONSE_CACHE);
+    const response=await cache.match(new Request(self.location.origin+STATE_RESPONSE_KEY));
+    if(!response)return null;
+    const savedAt=Number(response.headers.get('X-BarLive-State-Saved-At')||0);
+    if(!savedAt||Date.now()-savedAt>STATE_FALLBACK_MAX_AGE_MS)return null;
+    const payload=await response.clone().json();
+    const rows=compactKnownStateRows(payload&&payload.rows);
+    if(!rows.length)return null;
+    return new Response(JSON.stringify({rows,source:'recent-good-cache'}),{
+      status:200,
+      headers:{
+        'Content-Type':'application/json; charset=utf-8',
+        'Cache-Control':'no-store'
+      }
+    });
+  }catch(_){
+    return null;
+  }
+}
+
+function stateAuthHeaders(){
+  return {
+    Accept:'application/json',
+    apikey:SUPABASE_ANON_JWT,
+    Authorization:'Bearer '+SUPABASE_ANON_JWT
+  };
 }
 
 async function freshStateOverlay(originalRequest){
@@ -119,10 +159,7 @@ async function freshStateOverlay(originalRequest){
     const originalUrl=new URL(originalRequest.url);
     originalUrl.searchParams.set('slot',String(Math.floor(Date.now()/60000)));
     const edgeResponse=await fetch(originalUrl.toString(),{
-      headers:{
-        Accept:'application/json',
-        apikey:SUPABASE_PUBLIC_KEY
-      },
+      headers:stateAuthHeaders(),
       cache:'no-store'
     });
 
@@ -147,10 +184,7 @@ async function freshStateOverlay(originalRequest){
 
   try{
     const cacheResponse=await fetch(STATE_CACHE_URL,{
-      headers:{
-        Accept:'application/json',
-        apikey:SUPABASE_PUBLIC_KEY
-      },
+      headers:stateAuthHeaders(),
       cache:'no-store'
     });
     if(!cacheResponse.ok)throw new Error('state cache HTTP '+cacheResponse.status);
@@ -159,6 +193,8 @@ async function freshStateOverlay(originalRequest){
     return stateJsonResponse(cacheRows,'rest-cache');
   }catch(cacheError){
     console.warn('[BarLive SW] marker state unavailable',edgeError,cacheError);
+    const remembered=await rememberedStateResponse();
+    if(remembered)return remembered;
     return fetch(originalRequest);
   }
 }
