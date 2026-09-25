@@ -1,3 +1,4 @@
+// QA rerun: canonical bundle deployed as bcfa3c131f2e1077614a15ea7c2d41e06381b1a6
 // QA target: deployed canonical GeoJSON venue runtime.
 import fs from 'node:fs';
 import { chromium } from 'playwright';
