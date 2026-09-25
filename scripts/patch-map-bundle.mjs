@@ -6,11 +6,6 @@ const templatePath = 'scripts/barlive-single-source-map-template.html';
 let bundle = fs.readFileSync(bundlePath, 'utf8');
 const template = fs.readFileSync(templatePath, 'utf8');
 
-if (bundle.includes('barlive-single-source-feature-state-v1')) {
-  console.log('[map-build] bundle already contains the single-source map runtime');
-  process.exit(0);
-}
-
 let cursor = -1;
 let mainStart = -1;
 let mainClose = -1;
@@ -19,7 +14,10 @@ while ((cursor = bundle.indexOf('<!DOCTYPE html>', cursor + 1)) >= 0) {
   const next = bundle.indexOf('<!DOCTYPE html>', cursor + 1);
   const segmentEnd = next >= 0 ? next : bundle.length;
   const segment = bundle.slice(cursor, segmentEnd);
-  if (segment.includes('window.applyFilters = function')) {
+  if (
+    segment.includes('window.applyFilters = function') ||
+    segment.includes('barlive-single-source-feature-state-v1')
+  ) {
     mainStart = cursor;
     mainClose = bundle.indexOf('</html>', cursor) + '</html>'.length;
     break;
@@ -58,4 +56,4 @@ bundle =
   bundle.slice(mainClose);
 
 fs.writeFileSync(bundlePath, bundle, 'utf8');
-console.log('[map-build] replaced legacy multi-renderer map runtime with single-source runtime');
+console.log('[map-build] synchronized compiled map runtime with staged single-source template');
