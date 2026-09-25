@@ -1,4 +1,4 @@
-// QA target: deployed runtime with init-layer diagnostics
+// QA target: deployed runtime after valid top-level zoom expression
 import fs from 'node:fs';
 import { chromium } from 'playwright';
 
