@@ -17,9 +17,8 @@ const WEB_TILE_TEMPLATE =
   SUPABASE_URL + '/functions/v1/map-static-tile/{z}/{x}/{y}.pbf';
 const NATIVE_TILE_TEMPLATE =
   'https://media.barliveapp.es/map/static/v404-geom6-z9-canonical/{z}/{x}/{y}.pbf';
-const STATE_URL =
-  SUPABASE_URL +
-  '/rest/v1/map_marker_state_cache?select=local_id,latitud,longitud,tipo,destacado,estado';
+const STATE_OVERLAY_URL =
+  SUPABASE_URL + '/functions/v1/map-state-overlay';
 
 const CATEGORIAS = [
   { id: 'todas', nombre: 'Todas', iosIcon: 'sparkles', androidIcon: 'star' },
@@ -107,7 +106,7 @@ function buildMapHtml(
 html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:#A8E0FF}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
 .maplibregl-canvas{outline:none}
-.maplibregl-ctrl-attrib{font-size:9px!important;opacity:.65}
+.maplibregl-ctrl-attrib{font-size:8px!important;opacity:.5!important}.maplibregl-ctrl-attrib.maplibregl-compact{min-height:20px!important}
 .maplibregl-ctrl-logo{opacity:.7}
 .maplibregl-popup-content{padding:0;border-radius:12px;overflow:hidden;box-shadow:0 8px 30px rgba(15,23,42,.18)}
 .b-popup{padding:10px 12px;min-width:150px}
@@ -149,7 +148,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
     zoom: ${zoom},
     minZoom: 4,
     maxZoom: 20,
-    attributionControl: true,
+    attributionControl: false,
     renderWorldCopies: false,
     dragRotate: false,
     pitchWithRotate: false,
@@ -167,6 +166,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
   });
 
   try { map.touchZoomRotate.disableRotation(); } catch (_) {}
+
+  try {
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+  } catch (attributionError) {
+    console.warn('[BarLive map] compact attribution unavailable', attributionError);
+  }
 
   function drawCenteredEmoji(ctx, emoji, cx, cy, fontSize, category) {
     ctx.font = fontSize + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
@@ -271,23 +276,51 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
   }
 
   function loadState() {
-    fetch('https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/map_marker_state_cache?select=local_id,latitud,longitud,tipo,destacado,estado', {
-      headers: {
-        Accept: 'application/json',
-        apikey: 'sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2'
-      },
+    fetch('${STATE_OVERLAY_URL}', {
+      headers: { Accept: 'application/json' },
       cache: 'default'
     })
       .then(function(r){
         if (!r.ok) throw new Error('state HTTP ' + r.status);
         return r.json();
       })
-      .then(function(rows){
-        if (!Array.isArray(rows)) return;
+      .then(function(payload){
+        var rows = Array.isArray(payload)
+          ? payload
+          : (payload && Array.isArray(payload.rows) ? payload.rows : []);
+        if (!rows.length) return;
+
+        var normalizedRows = rows.map(function(row){
+          if (!Array.isArray(row) || row.length < 6) return null;
+
+          var rawState = row[5];
+          var normalizedState = String(rawState == null ? '' : rawState).trim().toLowerCase();
+          var numericState = Number(rawState);
+          var estado =
+            normalizedState === 'abierto' || numericState === 1
+              ? 'abierto'
+              : normalizedState === 'cerrado' || numericState === 2
+                ? 'cerrado'
+                : 'sin_info';
+
+          if (estado === 'sin_info') return null;
+
+          return {
+            local_id: row[0],
+            latitud: row[1],
+            longitud: row[2],
+            tipo: row[3],
+            destacado: Number(row[4] || 0) === 1,
+            estado: estado
+          };
+        }).filter(Boolean);
+
         var source = map.getSource('barlive-state');
-        if (source) source.setData({type:'FeatureCollection',features:toFeatures(rows)});
+        if (source) {
+          source.setData({type:'FeatureCollection',features:toFeatures(normalizedRows)});
+        }
         applyFilters();
-        send({type:'state_ready',count:rows.length});
+        send({type:'state_ready',count:normalizedRows.length});
       })
       .catch(function(error){
         console.warn('[BarLive map] state overlay error', error);
@@ -467,7 +500,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
     });
 
     loadState();
-    setInterval(loadState,120000);
+    setInterval(loadState,60000);
     applyFilters();
     send({type:'map_ready'});
   });
