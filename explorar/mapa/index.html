@@ -34,7 +34,7 @@
     <div id="root"></div>
   <script src="/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js" defer></script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').then(r=>r.update()).catch(()=>{});}</script><script id="barlive-inline-hotfix">
-/* BarLive production hotfix v2 - 2026-09-25 */
+/* BarLive production hotfix v3 - 2026-09-25 */
 (function () {
   'use strict';
   var BRAND_SVG = "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22168%22 height=%2248%22 viewBox=%220 0 168 48%22%3E%3Crect x=%220%22 y=%224%22 width=%2240%22 height=%2240%22 rx=%2212%22 fill=%22%23641B73%22/%3E%3Ctext x=%2220%22 y=%2231%22 text-anchor=%22middle%22 font-family=%22Arial,sans-serif%22 font-size=%2223%22 font-weight=%22900%22 fill=%22white%22%3EB%3C/text%3E%3Ctext x=%2252%22 y=%2231%22 font-family=%22Arial,sans-serif%22 font-size=%2224%22 font-weight=%22800%22 fill=%22%23641B73%22%3EBarLive%3C/text%3E%3C/svg%3E";
@@ -68,7 +68,63 @@
     function apply() {
       try {
         var doc = frame.contentDocument;
+        var win = frame.contentWindow;
         if (!doc || !doc.head) return;
+
+        if (win && !win.__barliveFullStateFetch && typeof win.fetch === 'function') {
+          win.__barliveFullStateFetch = true;
+          var originalFetch = win.fetch.bind(win);
+          win.fetch = function (input, init) {
+            var requestUrl = typeof input === 'string'
+              ? input
+              : (input && input.url ? String(input.url) : '');
+
+            if (requestUrl.indexOf('/rest/v1/map_marker_state_cache') === -1) {
+              return originalFetch(input, init);
+            }
+
+            return originalFetch(
+              'https://embntaqwlwmgazvrglaf.supabase.co/functions/v1/map-state-overlay',
+              { headers: { Accept: 'application/json' }, cache: 'default' }
+            ).then(function (response) {
+              if (!response.ok) return originalFetch(input, init);
+              return response.json().then(function (payload) {
+                var rows = payload && Array.isArray(payload.rows) ? payload.rows : [];
+                if (!rows.length) return originalFetch(input, init);
+
+                var normalized = rows.map(function (row) {
+                  if (!Array.isArray(row) || row.length < 6) return null;
+                  var rawState = row[5];
+                  var textState = String(rawState == null ? '' : rawState).trim().toLowerCase();
+                  var numericState = Number(rawState);
+                  var estado =
+                    textState === 'abierto' || numericState === 1
+                      ? 'abierto'
+                      : textState === 'cerrado' || numericState === 2
+                        ? 'cerrado'
+                        : 'sin_info';
+
+                  return {
+                    local_id: row[0],
+                    latitud: row[1],
+                    longitud: row[2],
+                    tipo: row[3] || 'bar',
+                    destacado: Number(row[4] || 0) === 1,
+                    estado: estado
+                  };
+                }).filter(Boolean);
+
+                return new win.Response(JSON.stringify(normalized), {
+                  status: 200,
+                  headers: { 'Content-Type': 'application/json; charset=utf-8' }
+                });
+              });
+            }).catch(function () {
+              return originalFetch(input, init);
+            });
+          };
+        }
+
         if (!doc.getElementById('barlive-attribution-hotfix')) {
           var style = doc.createElement('style');
           style.id = 'barlive-attribution-hotfix';
