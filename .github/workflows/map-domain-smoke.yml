@@ -30,14 +30,24 @@ jobs:
           grep -Fq "/sw.js?v=14" /tmp/index.html
 
           curl --fail --silent --show-error --location --compressed             -H 'Cache-Control: no-cache' "$ASSET" -o /tmp/bundle.js
-          grep -Fq 'barlive-single-geojson-catalogue-v2' /tmp/bundle.js
-          grep -Fq 'mergeCatalogueWithStates' /tmp/bundle.js
+          engine_marker=0
+          join_marker=0
+          grep -Fq 'barlive-single-geojson-catalogue-v2' /tmp/bundle.js && engine_marker=1 || true
+          grep -Fq 'mergeCatalogueWithStates' /tmp/bundle.js && join_marker=1 || true
+          echo "ENGINE_MARKER=$engine_marker JOIN_MARKER=$join_marker"
           if grep -Fq 'DATA_ANON_JWT' /tmp/bundle.js; then
             echo 'stale JWT runtime found'
             exit 1
           fi
 
           route_code="$(curl --silent --show-error --location --compressed             -H 'Cache-Control: no-cache' -o /tmp/route.html -w '%{http_code}' "$ROUTE")"
-          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v2-a0ffd7e-20260926' /tmp/route.html
-          echo "DOMAIN_ROUTE_HTTP=$route_code"
+          route_marker=0
+          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v2-a0ffd7e-20260926' /tmp/route.html && route_marker=1 || true
+          echo "DOMAIN_ROUTE_HTTP=$route_code ROUTE_MARKER=$route_marker"
+          test "$index_marker" = "1"
+          test "$bundle_marker" = "1"
+          test "$sw_marker" = "1"
+          test "$engine_marker" = "1"
+          test "$join_marker" = "1"
+          test "$route_marker" = "1"
           echo "DOMAIN_MAP_V2_OK"
