@@ -656,8 +656,10 @@ function addVenueSourceAndLayers() {
       ],
       "circle-opacity":1,
       "circle-stroke-width":[
-        "case",["==",["get","destacado"],true],3,
-        ["interpolate",["linear"],["zoom"],4,0,10.5,2,20,2]
+        "interpolate",["linear"],["zoom"],
+        4,["case",["==",["get","destacado"],true],3,0],
+        10.5,["case",["==",["get","destacado"],true],3,2],
+        20,["case",["==",["get","destacado"],true],3,2]
       ],
       "circle-stroke-color":[
         "case",["==",["get","destacado"],true],"#F59E0B","#FFFFFF"
