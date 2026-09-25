@@ -1,9 +1,9 @@
-// BarLive compiled production service worker v12 - 2026-09-25.
+// BarLive compiled production service worker v13 - 2026-09-25.
 // Serves the real Barlive-2 bundle and applies only transport-level production fixes.
 const APP_BUNDLE_PATH='/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js';
-const BUNDLE_CACHE='barlive-compiled-bundle-v12';
-const STATE_RESPONSE_CACHE='barlive-marker-state-v12';
-const STATE_RESPONSE_KEY='/__barlive/state-overlay-v12';
+const BUNDLE_CACHE='barlive-compiled-bundle-v13';
+const STATE_RESPONSE_CACHE='barlive-marker-state-v13';
+const STATE_RESPONSE_KEY='/__barlive/state-overlay-v13';
 const STATE_FALLBACK_MAX_AGE_MS=10*60*1000;
 const SUPABASE_ORIGIN='https://embntaqwlwmgazvrglaf.supabase.co';
 const STATE_OVERLAY_PATH='/functions/v1/map-state-overlay';
@@ -87,6 +87,30 @@ function patchCurrentSourceDelta(code){
         "        return window.__barliveOriginalScheduleEmergencyCanvas(force);",
         "      };",
         "    }",
+        "    setTimeout(function() {",
+        "      if (!window.realtimeOverlayAuthoritative) return;",
+        "      var lateCanvas = document.getElementById('barlive-emergency-marker-canvas');",
+        "      if (lateCanvas) {",
+        "        lateCanvas.style.display = 'none';",
+        "        var lateCtx = lateCanvas.getContext && lateCanvas.getContext('2d');",
+        "        if (lateCtx) lateCtx.clearRect(0,0,lateCanvas.width,lateCanvas.height);",
+        "      }",
+        "      window.emergencyCanvasMarkersActive = false;",
+        "      if (!window.__barliveOriginalSetEmergencyCanvas && typeof window.setEmergencyCanvasMarkers === 'function') {",
+        "        window.__barliveOriginalSetEmergencyCanvas = window.setEmergencyCanvasMarkers;",
+        "        window.setEmergencyCanvasMarkers = function(canvasActive, reason) {",
+        "          if (canvasActive && window.realtimeOverlayAuthoritative) canvasActive = false;",
+        "          return window.__barliveOriginalSetEmergencyCanvas(canvasActive, reason);",
+        "        };",
+        "      }",
+        "      if (!window.__barliveOriginalScheduleEmergencyCanvas && typeof window.scheduleEmergencyCanvasDraw === 'function') {",
+        "        window.__barliveOriginalScheduleEmergencyCanvas = window.scheduleEmergencyCanvasDraw;",
+        "        window.scheduleEmergencyCanvasDraw = function(force) {",
+        "          if (window.realtimeOverlayAuthoritative) return;",
+        "          return window.__barliveOriginalScheduleEmergencyCanvas(force);",
+        "        };",
+        "      }",
+        "    },0);",
         "  }",
         "  var realtimeIds = ['barlive-realtime-markers','barlive-realtime-icons'];",
         "  var competingIds = [",
@@ -225,6 +249,7 @@ function patchCurrentSourceDelta(code){
         "};",
         "map.on('moveend',window.scheduleRealtimeMarkerOverlay);",
         "map.on('zoomend',window.scheduleRealtimeMarkerOverlay);",
+        "map.on('idle',function(){if(window.realtimeOverlayAuthoritative)window.applyRealtimeAuthority(true);});",
         ""
       ].join('\\n');
       code=code.slice(0,overlayPos)+viewportLoader+code.slice(firstCallPos);
