@@ -1,9 +1,9 @@
-// BarLive compiled production service worker v9 - 2026-09-25.
+// BarLive compiled production service worker v10 - 2026-09-25.
 // Serves the real Barlive-2 bundle and applies only transport-level production fixes.
 const APP_BUNDLE_PATH='/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js';
-const BUNDLE_CACHE='barlive-compiled-bundle-v9';
-const STATE_RESPONSE_CACHE='barlive-marker-state-v9';
-const STATE_RESPONSE_KEY='/__barlive/state-overlay-v9';
+const BUNDLE_CACHE='barlive-compiled-bundle-v10';
+const STATE_RESPONSE_CACHE='barlive-marker-state-v10';
+const STATE_RESPONSE_KEY='/__barlive/state-overlay-v10';
 const STATE_FALLBACK_MAX_AGE_MS=10*60*1000;
 const SUPABASE_ORIGIN='https://embntaqwlwmgazvrglaf.supabase.co';
 const STATE_OVERLAY_PATH='/functions/v1/map-state-overlay';
@@ -51,6 +51,34 @@ function patchCurrentSourceDelta(code){
       const viewportLoader=[
         "window.realtimeOverlayAbortController = null;",
         "window.realtimeOverlayMoveTimer = null;",
+        "window.realtimeOverlayIds = [];",
+        "window.applyRealtimeOverlayDedupe = function() {",
+        "  var category = (window.filtros && window.filtros.cat) || 'todas';",
+        "  if (category === 'cafe') category = 'cafeteria';",
+        "  var ids = Array.isArray(window.realtimeOverlayIds) ? window.realtimeOverlayIds : [];",
+        "  var exclude = ids.length ? ['!', ['in', ['get', 'id'], ['literal', ids]]] : null;",
+        "  var realtimeExpression = ['all'];",
+        "  if (category !== 'todas') realtimeExpression.push(['==', ['get', 'tipo'], category]);",
+        "  if (window.filtros && window.filtros.estado === 'no_cerrados') realtimeExpression.push(['==', ['get', 'estado'], 'abierto']);",
+        "  ['barlive-realtime-markers','barlive-realtime-icons'].forEach(function(id) { if (map.getLayer(id)) map.setFilter(id, realtimeExpression); });",
+        "  var vectorExpression = ['all'];",
+        "  if (category !== 'todas') vectorExpression.push(['==', ['get', 'tipo'], category]);",
+        "  if (window.filtros && window.filtros.estado === 'no_cerrados') vectorExpression.push(['==', ['get', 'estado'], 'abierto']);",
+        "  if (exclude) vectorExpression.push(exclude);",
+        "  ['barlive-tile-markers','barlive-tile-icons','barlive-tile-labels'].forEach(function(id) { if (map.getLayer(id)) map.setFilter(id, vectorExpression); });",
+        "  var staticExpression = ['all'];",
+        "  if (category !== 'todas') staticExpression.push(['==', ['get', 'tipo'], category]);",
+        "  if (exclude) staticExpression.push(exclude);",
+        "  ['barlive-static-markers','barlive-emergency-markers'].forEach(function(id) { if (map.getLayer(id)) map.setFilter(id, staticExpression); });",
+        "};",
+        "if (!window.__barliveRealtimeDedupeWrapped && typeof window.applyVectorTileFilters === 'function') {",
+        "  window.__barliveRealtimeDedupeWrapped = true;",
+        "  var originalApplyVectorTileFilters = window.applyVectorTileFilters;",
+        "  window.applyVectorTileFilters = function() {",
+        "    originalApplyVectorTileFilters.apply(this, arguments);",
+        "    window.applyRealtimeOverlayDedupe();",
+        "  };",
+        "}",
         "window.loadRealtimeMarkerOverlay = function() {",
         "  var zoom = Number(map.getZoom() || 0);",
         "  if (zoom < 9) return;",
@@ -99,7 +127,6 @@ function patchCurrentSourceDelta(code){
         "        var normalizedState = String(rawState == null ? '' : rawState).trim().toLowerCase();",
         "        var numericState = Number(rawState);",
         "        var estado = normalizedState === 'abierto' || numericState === 1 ? 'abierto' : normalizedState === 'cerrado' || numericState === 2 ? 'cerrado' : 'sin_info';",
-        "        if (estado === 'sin_info') return null;",
         "        return {",
         "          type: 'Feature',",
         "          id: String(row.local_id),",
@@ -112,10 +139,12 @@ function patchCurrentSourceDelta(code){
         "          }",
         "        };",
         "      }).filter(Boolean);",
+        "      window.realtimeOverlayIds = features.map(function(feature) { return String(feature && feature.properties && feature.properties.id || ''); }).filter(Boolean);",
         "      var source = map.getSource('barlive-realtime-overlay');",
         "      if (source) source.setData({ type: 'FeatureCollection', features: features });",
+        "      window.applyRealtimeOverlayDedupe();",
         "      try {",
-        "        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_realtime_overlay_ready', count: features.length, milliseconds: Date.now() - startedAt, mode: 'viewport-rest' }));",
+        "        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_realtime_overlay_ready', count: features.length, milliseconds: Date.now() - startedAt, mode: 'viewport-rest-dedup' }));",
         "      } catch (_) {}",
         "    })",
         "    .catch(function(error) {",
