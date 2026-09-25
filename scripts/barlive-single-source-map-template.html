@@ -296,12 +296,27 @@ function diagnostics(reason) {
     if(categoryOK && advancedOK && stateOK) expected+=1;
   });
   var rendered=countRenderedVenueIds();
+  var snapshot={
+    reason:reason,
+    zoom:Number(map.getZoom().toFixed(2)),
+    total:total,
+    open:open,
+    closed:closed,
+    unknown:unknown,
+    expected:expected,
+    rendered:rendered,
+    stateFilter:stateFilterMode,
+    category:categoryFilter,
+    stateGeneration:stateRequestGeneration,
+    viewportGeneration:viewportGeneration
+  };
+  window.__barliveLastDiagnostics=snapshot;
 
   console.log("[MAP_RENDER][DATA] reason="+reason+" total="+total+" open="+open+" closed="+closed+" unknown="+unknown);
   console.log("[MAP_RENDER][SOURCE] features="+total);
   console.log("[MAP_RENDER][FILTER] mode="+stateFilterMode+" expected="+expected);
   console.log("[MAP_RENDER][RENDERED] features="+rendered);
-  post("map_diagnostics",{reason:reason,total:total,open:open,closed:closed,unknown:unknown,expected:expected,rendered:rendered});
+  post("map_diagnostics",snapshot);
 }
 
 var diagnosticTimer=null;
@@ -658,6 +673,33 @@ function requestPopupFromFeature(feature){
   });
 }
 
+window.__barliveTestSnapshot=function(){
+  diagnostics("test");
+  return window.__barliveLastDiagnostics || null;
+};
+
+window.__barliveIdentity=function(ids){
+  var features=uniqueSourceFeatures();
+  var present=new Set();
+  features.forEach(function(feature){
+    var id=String(feature.properties && feature.properties.id || feature.id || "");
+    if(id) present.add(id);
+  });
+  return (ids||[]).map(function(rawId){
+    var id=String(rawId||"");
+    var featureState={};
+    try {
+      featureState=map.getFeatureState({source:VENUE_SOURCE,sourceLayer:"locales",id:id})||{};
+    } catch (_) {}
+    return {
+      venueId:id,
+      markerState:featureState.markerState || markerStateForId(id),
+      visible:present.has(id),
+      advancedVisible:featureState.advancedVisible !== false
+    };
+  });
+};
+
 function setupMapEvents(){
   map.on("sourcedata",function(event){
     if(event.sourceId!==VENUE_SOURCE) return;
@@ -724,6 +766,7 @@ function init(){
     maxTileCacheZoomLevels:6
   });
 
+  window.__barliveMap=map;
   try { map.addControl(new maplibregl.AttributionControl({compact:true}),"bottom-right"); } catch (_) {}
 
   map.on("load",function(){
