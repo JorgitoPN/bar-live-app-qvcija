@@ -31,12 +31,31 @@ async function findMapFrame(page, timeout = 60000) {
   throw new Error('BarLive map iframe did not expose the single-source diagnostics');
 }
 
-async function waitForMapData(frame, timeout = 60000) {
-  await frame.waitForFunction(() => {
-    const snap = window.__barliveTestSnapshot && window.__barliveTestSnapshot();
-    return snap && snap.total > 0 && snap.knownStates > 0;
-  }, null, { timeout });
-  return frame.evaluate(() => window.__barliveTestSnapshot());
+async function waitForMapData(frame, timeout = 30000) {
+  const deadline = Date.now() + timeout;
+  let last = null;
+  while (Date.now() < deadline) {
+    try {
+      last = await frame.evaluate(() => {
+        const snap = window.__barliveTestSnapshot && window.__barliveTestSnapshot();
+        let sourceCount = 0;
+        let loaded = false;
+        try {
+          loaded = !!window.__barliveMap?.loaded();
+          sourceCount = (window.__barliveMap?.querySourceFeatures(
+            'barlive-venues',
+            { sourceLayer: 'locales' }
+          ) || []).length;
+        } catch {}
+        return { snap, sourceCount, loaded };
+      });
+      if (last?.snap?.total > 0 && last?.snap?.knownStates > 0) {
+        return { ready: true, ...last };
+      }
+    } catch {}
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
+  return { ready: false, ...last };
 }
 
 async function waitIdle(frame, action) {
@@ -139,29 +158,63 @@ async function runDesktop(browser) {
     permissions: ['geolocation'],
   });
   const page = await context.newPage();
-  const network = { state: [], tiles: [] };
+  const network = { state: [], tiles: [], failed: [] };
   const mapErrors = [];
+  const consoleTail = [];
+  const pageErrors = [];
 
   page.on('response', response => {
     const url = response.url();
-    if (url.includes('/functions/v1/map-marker-state')) network.state.push(response.status());
-    if (url.includes('/functions/v1/map-static-tile/')) network.tiles.push(response.status());
+    if (url.includes('/functions/v1/map-marker-state')) {
+      network.state.push({ status: response.status(), url });
+    }
+    if (url.includes('/functions/v1/map-static-tile/')) {
+      network.tiles.push({ status: response.status(), url });
+    }
+  });
+  page.on('requestfailed', request => {
+    const url = request.url();
+    if (url.includes('supabase.co/functions/v1/map-') || url.includes('openfreemap')) {
+      network.failed.push({ url, error: request.failure()?.errorText || '' });
+    }
   });
   page.on('console', msg => {
     const text = msg.text();
-    if (text.includes('[MAP_RENDER][MAP_ERROR]')) mapErrors.push(text);
+    consoleTail.push({ type: msg.type(), text });
+    if (consoleTail.length > 80) consoleTail.shift();
+    if (text.includes('[MAP_RENDER][MAP_ERROR]') || text.includes('[MAP_RENDER][STATE_ERROR]')) {
+      mapErrors.push(text);
+    }
   });
+  page.on('pageerror', error => pageErrors.push(String(error)));
 
   await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
   let frame = await findMapFrame(page);
-  let snap = await waitForMapData(frame);
+  let cold = await waitForMapData(frame);
+  let snap = cold?.snap || {};
 
-  record('cold load has venue geometry', snap.total > 0, snap);
-  record('state feed loaded known states', snap.knownStates > 0, { knownStates: snap.knownStates });
-  record('unknown venues are retained', snap.unknown > 0, { unknown: snap.unknown, total: snap.total });
+  if (!cold.ready) {
+    record('cold load reaches complete data state', false, {
+      snapshot: snap,
+      sourceCount: cold?.sourceCount || 0,
+      mapLoaded: cold?.loaded || false,
+      network,
+      pageErrors,
+      consoleTail,
+    });
+  } else {
+    record('cold load reaches complete data state', true, {
+      total: snap.total,
+      knownStates: snap.knownStates,
+    });
+  }
+
+  record('cold load has venue geometry', Number(snap.total || 0) > 0, snap);
+  record('state feed loaded known states', Number(snap.knownStates || 0) > 0, { knownStates: snap.knownStates || 0, stateResponses: network.state });
+  record('unknown venues are retained', Number(snap.unknown || 0) > 0, { unknown: snap.unknown || 0, total: snap.total || 0 });
   record(
     'state partition equals source total',
-    snap.open + snap.closed + snap.unknown === snap.total,
+    Number(snap.open||0) + Number(snap.closed||0) + Number(snap.unknown||0) === Number(snap.total||0) && Number(snap.total||0) > 0,
     { open: snap.open, closed: snap.closed, unknown: snap.unknown, total: snap.total }
   );
 
@@ -237,24 +290,25 @@ async function runDesktop(browser) {
 
   record(
     'state endpoint returned HTTP 200',
-    network.state.includes(200),
-    { statuses: network.state }
+    network.state.some(item => item.status === 200),
+    { responses: network.state, failed: network.failed }
   );
   record(
     'static tile requests have no HTTP errors',
-    network.tiles.length > 0 && network.tiles.every(s => s === 200),
-    { sample: network.tiles.slice(0,20), count: network.tiles.length }
+    network.tiles.length > 0 && network.tiles.every(item => item.status === 200),
+    { sample: network.tiles.slice(0,20), count: network.tiles.length, failed: network.failed }
   );
   record('no MapLibre marker pipeline errors', mapErrors.length === 0, { mapErrors });
 
   // Direct route refresh.
   await page.reload({ waitUntil:'domcontentloaded', timeout:60000 });
   frame = await findMapFrame(page);
-  snap = await waitForMapData(frame);
+  const refreshResult = await waitForMapData(frame);
+  snap = refreshResult?.snap || {};
   record(
     'direct refresh keeps states and geometry',
-    snap.total > 0 && snap.knownStates > 0 && snap.unknown > 0,
-    snap
+    Number(snap.total||0) > 0 && Number(snap.knownStates||0) > 0 && Number(snap.unknown||0) > 0,
+    { ...snap, ready: refreshResult.ready }
   );
 
   await context.close();
@@ -270,12 +324,13 @@ async function runMobileWeb(browser) {
   const page = await context.newPage();
   await page.goto(URL, { waitUntil:'domcontentloaded', timeout:60000 });
   const frame = await findMapFrame(page);
-  const snap = await waitForMapData(frame);
+  const mobileResult = await waitForMapData(frame);
+  const snap = mobileResult?.snap || {};
   const geo = await geometryStats(frame);
   record(
     'mobile web single-source render',
-    snap.total > 0 && snap.unknown > 0 && geo.duplicateIds.length === 0,
-    { snapshot:snap, geometry:geo }
+    Number(snap.total||0) > 0 && Number(snap.unknown||0) > 0 && geo.duplicateIds.length === 0,
+    { snapshot:snap, geometry:geo, ready:mobileResult.ready }
   );
   await context.close();
 }
