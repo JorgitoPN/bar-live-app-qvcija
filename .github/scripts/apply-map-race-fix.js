@@ -154,19 +154,4 @@ if (fs.existsSync('sw.js')) {
   fs.writeFileSync('sw.js', sw);
 }
 
-const smokePath = '.github/workflows/map-domain-smoke.yml';
-if (fs.existsSync(smokePath)) {
-  let smoke = fs.readFileSync(smokePath, 'utf8');
-  smoke = smoke.replaceAll('canonical-map-v2-a0ffd7e-20260926', newMarker);
-  smoke = smoke.replaceAll(oldVersion, newVersion);
-  smoke = smoke.replaceAll('/sw.js?v=14', '/sw.js?v=15');
-  if (!smoke.includes("grep -Fq 'viewportRequestInFlight' /tmp/bundle.js")) {
-    smoke = smoke.replace(
-      "grep -Fq 'mergeCatalogueWithStates' /tmp/bundle.js && join_marker=1 || true",
-      "grep -Fq 'mergeCatalogueWithStates' /tmp/bundle.js && join_marker=1 || true\n          grep -Fq 'viewportRequestInFlight' /tmp/bundle.js\n          grep -Fq '[MAP_RENDER][STATE_REFRESH_SKIPPED]' /tmp/bundle.js"
-    );
-  }
-  fs.writeFileSync(smokePath, smoke);
-}
-
 console.log('Production bundle race guard prepared.');
