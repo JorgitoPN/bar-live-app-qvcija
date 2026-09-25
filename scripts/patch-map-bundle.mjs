@@ -16,7 +16,8 @@ while ((cursor = bundle.indexOf('<!DOCTYPE html>', cursor + 1)) >= 0) {
   const segment = bundle.slice(cursor, segmentEnd);
   if (
     segment.includes('window.applyFilters = function') ||
-    segment.includes('barlive-single-source-feature-state-v1')
+    segment.includes('barlive-single-source-feature-state-v1') ||
+    segment.includes('barlive-single-geojson-viewport-v1')
   ) {
     mainStart = cursor;
     mainClose = bundle.indexOf('</html>', cursor) + '</html>'.length;

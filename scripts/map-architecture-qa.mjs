@@ -1,4 +1,4 @@
-// QA target: deployed runtime after valid top-level zoom expression
+// QA target: deployed canonical GeoJSON venue runtime.
 import fs from 'node:fs';
 import { chromium } from 'playwright';
 
@@ -29,28 +29,36 @@ async function findMapFrame(page, timeout = 60000) {
     }
     await page.waitForTimeout(250);
   }
-  throw new Error('BarLive map iframe did not expose the single-source diagnostics');
+  throw new Error('BarLive map iframe did not expose canonical diagnostics');
 }
 
-async function waitForMapData(frame, timeout = 30000) {
+async function readSnapshot(frame) {
+  return frame.evaluate(() => {
+    const snap = window.__barliveTestSnapshot ? window.__barliveTestSnapshot() : null;
+    let loaded = false;
+    let sourceType = null;
+    try {
+      loaded = !!window.__barliveMap?.loaded();
+      sourceType = window.__barliveMap?.getStyle()?.sources?.['barlive-venues']?.type || null;
+    } catch {}
+    return { snap, loaded, sourceType };
+  });
+}
+
+async function waitForSettledMapData(frame, timeout = 45000) {
   const deadline = Date.now() + timeout;
   let last = null;
   while (Date.now() < deadline) {
     try {
-      last = await frame.evaluate(() => {
-        const snap = window.__barliveTestSnapshot && window.__barliveTestSnapshot();
-        let sourceCount = 0;
-        let loaded = false;
-        try {
-          loaded = !!window.__barliveMap?.loaded();
-          sourceCount = (window.__barliveMap?.querySourceFeatures(
-            'barlive-venues',
-            { sourceLayer: 'locales' }
-          ) || []).length;
-        } catch {}
-        return { snap, sourceCount, loaded };
-      });
-      if (last?.snap?.total > 0 && last?.snap?.knownStates > 0) {
+      last = await readSnapshot(frame);
+      const snap = last?.snap || {};
+      if (
+        last.loaded &&
+        last.sourceType === 'geojson' &&
+        Number(snap.sourceFeatures || 0) > 0 &&
+        Number(snap.total || 0) > 0 &&
+        Number(snap.requestGeneration) === Number(snap.datasetGeneration)
+      ) {
         return { ready: true, ...last };
       }
     } catch {}
@@ -70,60 +78,66 @@ async function waitIdle(frame, action) {
         resolve();
       };
       map.once('idle', finish);
-      if (payload.kind === 'jump') {
-        map.jumpTo(payload.options);
-      } else if (payload.kind === 'pan') {
-        map.panBy(payload.offset, { duration: payload.duration || 0 });
-      }
+      if (payload.kind === 'jump') map.jumpTo(payload.options);
+      else if (payload.kind === 'pan') map.panBy(payload.offset, { duration: payload.duration || 0 });
       setTimeout(finish, 8000);
     });
   }, action);
-  await frame.waitForTimeout(120);
+  await frame.waitForTimeout(150);
 }
 
 async function geometryStats(frame) {
   return frame.evaluate(() => {
     const map = window.__barliveMap;
-    const source = map.querySourceFeatures('barlive-venues', { sourceLayer: 'locales' }) || [];
-    const sourceIds = [];
-    const sourceSeen = new Set();
-    for (const f of source) {
-      const id = String(f?.properties?.id || f?.id || '');
-      if (id && !sourceSeen.has(id)) {
-        sourceSeen.add(id);
-        sourceIds.push(id);
-      }
-    }
-    sourceIds.sort();
+    let source = [];
+    try { source = map.querySourceFeatures('barlive-venues') || []; } catch {}
 
+    const byId = new Map();
+    for (const f of source) {
+      const id = String(f?.properties?.venueId || f?.properties?.id || f?.id || '');
+      const c = f?.geometry?.coordinates;
+      if (!id || !Array.isArray(c) || byId.has(id)) continue;
+      byId.set(id, {
+        markerState: String(f?.properties?.markerState || 'unknown'),
+        lng: Number(c[0]),
+        lat: Number(c[1])
+      });
+    }
+
+    const rows = [...byId.entries()].sort((a,b) => a[0].localeCompare(b[0]));
     let hash = 2166136261;
-    for (const id of sourceIds) {
-      for (let i = 0; i < id.length; i++) {
-        hash ^= id.charCodeAt(i);
+    for (const [id, data] of rows) {
+      const token = id + ':' + data.lng.toFixed(6) + ':' + data.lat.toFixed(6) + ':' + data.markerState;
+      for (let i = 0; i < token.length; i++) {
+        hash ^= token.charCodeAt(i);
         hash = Math.imul(hash, 16777619);
       }
     }
 
-    const rendered = map.queryRenderedFeatures(undefined, {
-      layers: ['barlive-venues-circle']
-    }) || [];
-    const renderedIds = rendered
-      .map(f => String(f?.properties?.id || f?.id || ''))
-      .filter(Boolean);
-    const uniqueRendered = new Set(renderedIds);
+    let rendered = [];
+    try {
+      rendered = map.queryRenderedFeatures(undefined, { layers: ['barlive-venues-circle'] }) || [];
+    } catch {}
 
-    const duplicateCounts = {};
-    for (const id of renderedIds) duplicateCounts[id] = (duplicateCounts[id] || 0) + 1;
-    const duplicateIds = Object.entries(duplicateCounts)
+    const renderedIds = rendered
+      .map(f => String(f?.properties?.venueId || f?.properties?.id || f?.id || ''))
+      .filter(Boolean);
+    const counts = {};
+    for (const id of renderedIds) counts[id] = (counts[id] || 0) + 1;
+    const duplicateIds = Object.entries(counts)
       .filter(([, count]) => count > 1)
       .map(([id, count]) => ({ id, count }));
 
     return {
-      sourceUnique: sourceIds.length,
+      sourceUnique: rows.length,
       sourceHash: String(hash >>> 0),
       renderedRaw: renderedIds.length,
-      renderedUnique: uniqueRendered.size,
-      duplicateIds
+      renderedUnique: new Set(renderedIds).size,
+      duplicateIds,
+      stateCounts: rows.reduce((acc,[,v]) => {
+        acc[v.markerState] = (acc[v.markerState] || 0) + 1;
+        return acc;
+      }, {})
     };
   });
 }
@@ -138,18 +152,45 @@ async function closestRendered(frame, limit = 3) {
     const seen = new Set();
     return features
       .map(f => {
-        const id = String(f?.properties?.id || f?.id || '');
+        const id = String(f?.properties?.venueId || f?.properties?.id || f?.id || '');
         const c = f?.geometry?.coordinates;
         if (!id || !Array.isArray(c) || seen.has(id)) return null;
         seen.add(id);
         const dx = Number(c[0]) - center.lng;
         const dy = Number(c[1]) - center.lat;
-        return { id, lng: Number(c[0]), lat: Number(c[1]), d2: dx*dx + dy*dy };
+        return {
+          id,
+          lng: Number(c[0]),
+          lat: Number(c[1]),
+          markerState: String(f?.properties?.markerState || 'unknown'),
+          d2: dx*dx + dy*dy
+        };
       })
       .filter(Boolean)
       .sort((a,b) => a.d2 - b.d2)
       .slice(0,n);
   }, limit);
+}
+
+async function sourceContract(frame) {
+  return frame.evaluate(() => {
+    const map = window.__barliveMap;
+    const style = map.getStyle();
+    const sourceSpec = style?.sources?.['barlive-venues'] || null;
+    const layers = (style?.layers || []).filter(l => l.source === 'barlive-venues');
+    const circle = map.getLayer('barlive-venues-circle');
+    const color = circle ? map.getPaintProperty('barlive-venues-circle','circle-color') : null;
+    const colorText = JSON.stringify(color);
+    return {
+      sourceType: sourceSpec?.type || null,
+      barliveSourceCount: Object.entries(style?.sources || {}).filter(([id]) => id === 'barlive-venues').length,
+      venueLayerCount: layers.length,
+      hasSourceLayer: layers.some(l => Object.prototype.hasOwnProperty.call(l, 'source-layer')),
+      colorText,
+      markerStateFromProperty: colorText.includes('markerState') && !colorText.includes('feature-state'),
+      layerIds: layers.map(l => l.id)
+    };
+  });
 }
 
 async function runDesktop(browser) {
@@ -159,31 +200,35 @@ async function runDesktop(browser) {
     permissions: ['geolocation'],
   });
   const page = await context.newPage();
-  const network = { state: [], tiles: [], failed: [] };
+  const network = { data: [], legacyTiles: [], failed: [] };
   const mapErrors = [];
-  const consoleTail = [];
   const pageErrors = [];
+  const consoleTail = [];
 
   page.on('response', response => {
     const url = response.url();
     if (url.includes('/rest/v1/map_marker_state_cache')) {
-      network.state.push({ status: response.status(), url });
+      network.data.push({ status: response.status(), url });
     }
     if (url.includes('/functions/v1/map-static-tile/')) {
-      network.tiles.push({ status: response.status(), url });
+      network.legacyTiles.push({ status: response.status(), url });
     }
   });
   page.on('requestfailed', request => {
     const url = request.url();
-    if (url.includes('supabase.co/functions/v1/map-') || url.includes('/rest/v1/map_marker_state_cache') || url.includes('openfreemap')) {
+    if (
+      url.includes('/rest/v1/map_marker_state_cache') ||
+      url.includes('/functions/v1/map-static-tile/') ||
+      url.includes('openfreemap')
+    ) {
       network.failed.push({ url, error: request.failure()?.errorText || '' });
     }
   });
   page.on('console', msg => {
     const text = msg.text();
     consoleTail.push({ type: msg.type(), text });
-    if (consoleTail.length > 80) consoleTail.shift();
-    if (text.includes('[MAP_RENDER][MAP_ERROR]') || text.includes('[MAP_RENDER][STATE_ERROR]')) {
+    if (consoleTail.length > 100) consoleTail.shift();
+    if (text.includes('[MAP_RENDER][MAP_ERROR]') || text.includes('[MAP_RENDER][DATA_ERROR]')) {
       mapErrors.push(text);
     }
   });
@@ -191,133 +236,123 @@ async function runDesktop(browser) {
 
   await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
   let frame = await findMapFrame(page);
-  let cold = await waitForMapData(frame);
+  let cold = await waitForSettledMapData(frame);
   let snap = cold?.snap || {};
 
-  if (!cold.ready) {
-    record('cold load reaches complete data state', false, {
-      snapshot: snap,
-      sourceCount: cold?.sourceCount || 0,
-      mapLoaded: cold?.loaded || false,
-      network,
-      pageErrors,
-      consoleTail,
-    });
-  } else {
-    record('cold load reaches complete data state', true, {
-      total: snap.total,
-      knownStates: snap.knownStates,
-    });
-  }
+  record('cold load reaches canonical settled data', cold.ready, {
+    snapshot: snap,
+    sourceType: cold?.sourceType,
+    network,
+    pageErrors,
+    consoleTail: cold.ready ? undefined : consoleTail
+  });
+
+  const contract = await sourceContract(frame);
+  record(
+    'one canonical GeoJSON source owns venue markers',
+    contract.sourceType === 'geojson' &&
+      contract.barliveSourceCount === 1 &&
+      contract.venueLayerCount >= 2 &&
+      !contract.hasSourceLayer,
+    contract
+  );
+  record(
+    'marker color comes from feature markerState property',
+    contract.markerStateFromProperty,
+    { color: contract.colorText }
+  );
 
   record(
-    'cold load has venue geometry',
-    Number(snap.total || 0) > 0 && Number(snap.rendered || 0) > 0,
-    snap
-  );
-  record('state feed loaded known states', Number(snap.knownStates || 0) > 0, { knownStates: snap.knownStates || 0, stateResponses: network.state });
-  record('unknown venues are retained', Number(snap.unknown || 0) > 0, { unknown: snap.unknown || 0, total: snap.total || 0 });
-  record(
-    'state partition equals source total',
-    Number(snap.open||0) + Number(snap.closed||0) + Number(snap.unknown||0) === Number(snap.total||0) && Number(snap.total||0) > 0,
-    { open: snap.open, closed: snap.closed, unknown: snap.unknown, total: snap.total }
+    'open closed unknown partition equals viewport total',
+    Number(snap.open||0) + Number(snap.closed||0) + Number(snap.unknown||0) === Number(snap.total||0) &&
+      Number(snap.total||0) > 0,
+    { open:snap.open, closed:snap.closed, unknown:snap.unknown, total:snap.total }
   );
 
   let geo = await geometryStats(frame);
-  record('no duplicate rendered venue_id on cold load', geo.duplicateIds.length === 0, geo);
-
-  const styleDebug = await frame.evaluate(() => {
-    const map = window.__barliveMap;
-    const style = map.getStyle ? map.getStyle() : null;
-    const ids = (style?.layers || []).map(layer => layer.id);
-    const wanted = [
-      'barlive-venues-live',
-      'barlive-venues-upcoming',
-      'barlive-venues-promo',
-      'barlive-venues-circle',
-      'barlive-venues-icon',
-    ];
-    const layerState = {};
-    for (const id of wanted) {
-      layerState[id] = {
-        exists: !!map.getLayer(id),
-        type: map.getLayer(id)?.type || null,
-      };
-    }
-    return {
-      barliveLayerIds: ids.filter(id => id.includes('barlive')),
-      layerState,
-      sourceExists: !!map.getSource('barlive-venues'),
-    };
-  });
   record(
-    'all single-source venue layers were created',
-    Object.values(styleDebug.layerState).every(item => item.exists),
-    styleDebug
+    'no duplicate rendered venue_id on cold load',
+    geo.duplicateIds.length === 0 && geo.sourceUnique > 0,
+    geo
   );
 
-  const colorBefore = await frame.evaluate(() => {
-    const map = window.__barliveMap;
-    if (!map.getLayer('barlive-venues-circle')) return null;
-    return JSON.stringify(map.getPaintProperty('barlive-venues-circle','circle-color'));
-  });
+  const colorBefore = contract.colorText;
+  const allBefore = snap;
   await frame.evaluate(() => window.setStateFilter('no_cerrados'));
-  await frame.waitForTimeout(150);
-  const openSnap = await frame.evaluate(() => window.__barliveTestSnapshot());
-  const colorOpen = await frame.evaluate(() => {
+  await frame.waitForTimeout(250);
+  const openSnap = (await readSnapshot(frame)).snap || {};
+  const openRenderedStates = await frame.evaluate(() => {
     const map = window.__barliveMap;
-    if (!map.getLayer('barlive-venues-circle')) return null;
-    return JSON.stringify(map.getPaintProperty('barlive-venues-circle','circle-color'));
+    const rows = map.queryRenderedFeatures(undefined,{layers:['barlive-venues-circle']}) || [];
+    return [...new Set(rows.map(f => String(f?.properties?.markerState || 'unknown')))];
   });
+  const colorOpen = (await sourceContract(frame)).colorText;
   record(
-    'Abiertos is visibility-only',
-    openSnap.expected === openSnap.open && colorOpen === colorBefore,
-    { expected: openSnap.expected, open: openSnap.open, colorUnchanged: colorOpen === colorBefore }
+    'Abiertos is visibility-only and renders only open',
+    openSnap.expected === openSnap.open &&
+      colorOpen === colorBefore &&
+      openRenderedStates.every(s => s === 'open'),
+    {
+      expected:openSnap.expected,
+      open:openSnap.open,
+      renderedStates:openRenderedStates,
+      colorUnchanged:colorOpen === colorBefore
+    }
   );
+
   await frame.evaluate(() => window.setStateFilter('todos'));
-  await frame.waitForTimeout(150);
-  const allAgain = await frame.evaluate(() => window.__barliveTestSnapshot());
-  const colorAfter = await frame.evaluate(() => {
-    const map = window.__barliveMap;
-    if (!map.getLayer('barlive-venues-circle')) return null;
-    return JSON.stringify(map.getPaintProperty('barlive-venues-circle','circle-color'));
-  });
+  await frame.waitForTimeout(250);
+  const allAgain = (await readSnapshot(frame)).snap || {};
+  const colorAfter = (await sourceContract(frame)).colorText;
   record(
-    'Todos restores visibility without recoloring',
-    colorAfter === colorBefore && allAgain.expected >= openSnap.expected,
-    { expectedAll: allAgain.expected, expectedOpen: openSnap.expected, colorUnchanged: colorAfter === colorBefore }
+    'Todos restores same dataset without recoloring',
+    colorAfter === colorBefore &&
+      Number(allAgain.sourceFeatures||0) === Number(allBefore.sourceFeatures||0) &&
+      Number(allAgain.expected||0) >= Number(openSnap.expected||0),
+    {
+      sourceBefore:allBefore.sourceFeatures,
+      sourceAfter:allAgain.sourceFeatures,
+      expectedAll:allAgain.expected,
+      expectedOpen:openSnap.expected,
+      colorUnchanged:colorAfter === colorBefore
+    }
   );
 
   await waitIdle(frame, { kind:'jump', options:{ center:[-3.7038,40.4168], zoom:13 } });
+  await waitForSettledMapData(frame);
   const before30 = await geometryStats(frame);
   await page.waitForTimeout(30000);
   const after30 = await geometryStats(frame);
   record(
     'geometry stable after 30 seconds idle',
-    before30.sourceUnique === after30.sourceUnique && before30.sourceHash === after30.sourceHash,
-    { before: before30, after: after30 }
+    before30.sourceUnique === after30.sourceUnique &&
+      before30.sourceHash === after30.sourceHash &&
+      after30.duplicateIds.length === 0,
+    { before:before30, after:after30 }
   );
 
   const candidates = await closestRendered(frame, 3);
   record('identity candidates available', candidates.length > 0, { candidates });
   for (const candidate of candidates) {
-    let initialState = null;
-    let stable = true;
     const trace = [];
+    let stable = true;
     for (const zoom of [10,12,14,16]) {
       await waitIdle(frame, {
         kind:'jump',
         options:{ center:[candidate.lng,candidate.lat], zoom }
       });
+      const settled = await waitForSettledMapData(frame);
       const identity = await frame.evaluate(id => window.__barliveIdentity([id])[0], candidate.id);
-      if (initialState === null) initialState = identity.markerState;
-      if (!identity.visible || identity.markerState !== initialState) stable = false;
-      trace.push({ zoom, ...identity });
+      if (
+        !settled.ready ||
+        !identity?.present ||
+        identity.markerState !== candidate.markerState
+      ) stable = false;
+      trace.push({ zoom, settled:settled.ready, ...identity });
     }
     record('venue identity stable across zooms: '+candidate.id, stable, { trace });
   }
 
-  // Rapid movement: final viewport must settle with one renderer and no duplicate IDs.
   await waitIdle(frame, { kind:'jump', options:{ center:[-3.7038,40.4168], zoom:12 } });
   await frame.evaluate(() => {
     const map = window.__barliveMap;
@@ -325,31 +360,40 @@ async function runDesktop(browser) {
     map.jumpTo({ center:[2.1734,41.3851], zoom:12 });
     map.jumpTo({ center:[-3.7038,40.4168], zoom:12 });
   });
-  await frame.waitForTimeout(1500);
+  await frame.waitForTimeout(1200);
+  const rapid = await waitForSettledMapData(frame);
   geo = await geometryStats(frame);
-  record('rapid movement settles without duplicate venue_id', geo.duplicateIds.length === 0 && geo.sourceUnique > 0, geo);
+  record(
+    'rapid movement settles on latest generation without duplicates',
+    rapid.ready &&
+      geo.duplicateIds.length === 0 &&
+      Number(rapid.snap?.requestGeneration) === Number(rapid.snap?.datasetGeneration),
+    { snapshot:rapid.snap, geometry:geo }
+  );
 
   record(
-    'state data requests returned HTTP 200',
-    network.state.some(item => item.status === 200),
-    { responses: network.state, failed: network.failed }
+    'viewport REST data requests returned HTTP 200',
+    network.data.some(item => item.status === 200),
+    { responses:network.data.slice(-20), failed:network.failed }
   );
   record(
-    'static tile requests have no HTTP errors',
-    network.tiles.length > 0 && network.tiles.every(item => item.status === 200),
-    { sample: network.tiles.slice(0,20), count: network.tiles.length, failed: network.failed }
+    'legacy static venue tile endpoint is not used',
+    network.legacyTiles.length === 0,
+    { legacyTiles:network.legacyTiles }
   );
-  record('no MapLibre marker pipeline errors', mapErrors.length === 0, { mapErrors });
+  record('no MapLibre venue pipeline errors', mapErrors.length === 0, { mapErrors, pageErrors });
 
-  // Direct route refresh.
   await page.reload({ waitUntil:'domcontentloaded', timeout:60000 });
   frame = await findMapFrame(page);
-  const refreshResult = await waitForMapData(frame);
-  snap = refreshResult?.snap || {};
+  const refresh = await waitForSettledMapData(frame);
+  snap = refresh?.snap || {};
   record(
-    'direct refresh keeps states and geometry',
-    Number(snap.total||0) > 0 && Number(snap.knownStates||0) > 0 && Number(snap.unknown||0) > 0,
-    { ...snap, ready: refreshResult.ready }
+    'direct route refresh keeps canonical data and states',
+    refresh.ready &&
+      Number(snap.total||0) > 0 &&
+      Number(snap.sourceFeatures||0) > 0 &&
+      Number(snap.open||0)+Number(snap.closed||0)+Number(snap.unknown||0) === Number(snap.total||0),
+    { ...snap, ready:refresh.ready }
   );
 
   await context.close();
@@ -365,17 +409,18 @@ async function runMobileWeb(browser) {
   const page = await context.newPage();
   await page.goto(URL, { waitUntil:'domcontentloaded', timeout:60000 });
   const frame = await findMapFrame(page);
-  const mobileResult = await waitForMapData(frame);
-  const snap = mobileResult?.snap || {};
+  const mobile = await waitForSettledMapData(frame);
+  const snap = mobile?.snap || {};
   const geo = await geometryStats(frame);
+  const contract = await sourceContract(frame);
   record(
-    'mobile web single-source render',
-    Number(snap.total||0) > 0 &&
-      Number(snap.unknown||0) > 0 &&
-      Number(geo.renderedUnique||0) > 0 &&
-      geo.duplicateIds.length === 0 &&
-      mobileResult.ready,
-    { snapshot:snap, geometry:geo, ready:mobileResult.ready }
+    'mobile web canonical GeoJSON render',
+    mobile.ready &&
+      contract.sourceType === 'geojson' &&
+      Number(snap.total||0) > 0 &&
+      geo.renderedUnique > 0 &&
+      geo.duplicateIds.length === 0,
+    { snapshot:snap, geometry:geo, contract, ready:mobile.ready }
   );
   await context.close();
 }
