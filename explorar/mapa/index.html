@@ -34,7 +34,7 @@
     <div id="root"></div>
   <script src="/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js" defer></script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').then(r=>r.update()).catch(()=>{});}</script><script id="barlive-inline-hotfix">
-/* BarLive production hotfix 9dabea - 2026-09-25 */
+/* BarLive production hotfix v2 - 2026-09-25 */
 (function () {
   'use strict';
   var BRAND_SVG = "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22168%22 height=%2248%22 viewBox=%220 0 168 48%22%3E%3Crect x=%220%22 y=%224%22 width=%2240%22 height=%2240%22 rx=%2212%22 fill=%22%23641B73%22/%3E%3Ctext x=%2220%22 y=%2231%22 text-anchor=%22middle%22 font-family=%22Arial,sans-serif%22 font-size=%2223%22 font-weight=%22900%22 fill=%22white%22%3EB%3C/text%3E%3Ctext x=%2252%22 y=%2231%22 font-family=%22Arial,sans-serif%22 font-size=%2224%22 font-weight=%22800%22 fill=%22%23641B73%22%3EBarLive%3C/text%3E%3C/svg%3E";
@@ -73,8 +73,8 @@
           var style = doc.createElement('style');
           style.id = 'barlive-attribution-hotfix';
           style.textContent =
-            '.maplibregl-ctrl-attrib{opacity:.5!important;font-size:8px!important}' +
-            '.maplibregl-ctrl-attrib:hover,.maplibregl-ctrl-attrib:focus-within{opacity:1!important}';
+            '.maplibregl-ctrl-attrib{opacity:.45!important;font-size:8px!important;max-width:24px!important;max-height:24px!important;overflow:hidden!important;white-space:nowrap!important;transition:max-width .18s ease,opacity .18s ease!important}' +
+            '.maplibregl-ctrl-attrib:hover,.maplibregl-ctrl-attrib:focus-within{opacity:1!important;max-width:360px!important;max-height:120px!important}';
           doc.head.appendChild(style);
         }
       } catch (_) {}
@@ -100,7 +100,7 @@
         el.setAttribute('aria-label', 'Social');
       });
 
-      replaceExactText(document, 'Momentos', 'Social', true);
+      replaceExactText(document, 'Momentos', 'Social', false);
       replaceExactText(
         document,
         'Inicia sesión para ver tus mensajes',
@@ -111,6 +111,100 @@
       document.querySelectorAll('iframe').forEach(patchMapFrame);
     } catch (_) {}
   }
+
+  function hasAuthSession() {
+    try {
+      for (var i = 0; i < localStorage.length; i += 1) {
+        var key = localStorage.key(i) || '';
+        if (!/(auth-token|supabase|^sb-)/i.test(key)) continue;
+        var value = localStorage.getItem(key) || '';
+        if (
+          value.indexOf('"access_token"') !== -1 &&
+          value.indexOf('"access_token":null') === -1 &&
+          value.indexOf('"access_token":""') === -1
+        ) {
+          return true;
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  function isMessagesTarget(target) {
+    if (!target) return false;
+    var clickable = target.closest
+      ? target.closest('a, button, [role="button"], [role="link"], [role="tab"], [tabindex]')
+      : null;
+    var el = clickable || target;
+    var label = (el.getAttribute && el.getAttribute('aria-label') || '').trim();
+    var text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    var href = (el.getAttribute && el.getAttribute('href') || '').trim();
+    return (
+      label === 'Mensajes' ||
+      text === 'Mensajes' ||
+      /\/perfil\/chats(?:[/?#]|$)/.test(href) ||
+      /\/chats(?:[/?#]|$)/.test(href)
+    );
+  }
+
+  function showLoginRequired() {
+    var existing = document.getElementById('barlive-login-required');
+    if (existing) return;
+
+    var overlay = document.createElement('div');
+    overlay.id = 'barlive-login-required';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.style.cssText =
+      'position:fixed;inset:0;z-index:2147483647;background:rgba(15,23,42,.36);display:flex;align-items:center;justify-content:center;padding:20px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif';
+
+    var card = document.createElement('div');
+    card.style.cssText =
+      'width:min(420px,100%);background:#fff;border-radius:18px;padding:28px 24px;box-shadow:0 24px 80px rgba(15,23,42,.22);text-align:center';
+
+    var title = document.createElement('div');
+    title.textContent = 'Mensajes';
+    title.style.cssText = 'font-size:22px;font-weight:800;color:#111827;margin-bottom:10px';
+
+    var message = document.createElement('div');
+    message.textContent = 'Para ver tus mensajes debes iniciar sesión';
+    message.style.cssText = 'font-size:15px;line-height:1.45;color:#6B7280;margin-bottom:22px';
+
+    var login = document.createElement('button');
+    login.textContent = 'Iniciar sesión';
+    login.style.cssText =
+      'border:0;border-radius:12px;background:#641B73;color:#fff;font-weight:800;font-size:15px;padding:12px 20px;cursor:pointer;width:100%';
+    login.onclick = function () {
+      window.location.assign('/auth/login-popup');
+    };
+
+    var close = document.createElement('button');
+    close.textContent = 'Cancelar';
+    close.style.cssText =
+      'border:0;background:transparent;color:#6B7280;font-weight:700;font-size:14px;padding:12px 16px 0;cursor:pointer';
+    close.onclick = function () {
+      overlay.remove();
+    };
+
+    card.appendChild(title);
+    card.appendChild(message);
+    card.appendChild(login);
+    card.appendChild(close);
+    overlay.appendChild(card);
+    overlay.addEventListener('click', function (event) {
+      if (event.target === overlay) overlay.remove();
+    });
+    document.body.appendChild(overlay);
+  }
+
+  document.addEventListener('click', function (event) {
+    if (hasAuthSession()) return;
+    if (!isMessagesTarget(event.target)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+    showLoginRequired();
+  }, true);
 
   function schedulePatch() {
     if (scheduled) return;
