@@ -44,3 +44,13 @@ jobs:
           exact_count locales_active_total 'locales?select=id&activo=eq.true'
           exact_count locales_active_madrid 'locales?select=id&activo=eq.true&latitud=gte.40.30&latitud=lte.40.55&longitud=gte.-3.85&longitud=lte.-3.55'
           exact_count locales_active_ordes 'locales?select=id&activo=eq.true&latitud=gte.43.00&latitud=lte.43.16&longitud=gte.-8.56&longitud=lte.-8.24'
+
+          exact_count locales_schedule_total 'locales?select=id&activo=eq.true&horarios_completos=not.is.null'
+          exact_count locales_estado_abierto_total 'locales?select=id&activo=eq.true&estado_actual=eq.abierto'
+          exact_count locales_estado_cerrado_total 'locales?select=id&activo=eq.true&estado_actual=eq.cerrado'
+          exact_count locales_estado_sin_info_total 'locales?select=id&activo=eq.true&estado_actual=eq.sin_info'
+
+          exact_count locales_schedule_madrid 'locales?select=id&activo=eq.true&horarios_completos=not.is.null&latitud=gte.40.30&latitud=lte.40.55&longitud=gte.-3.85&longitud=lte.-3.55'
+          exact_count locales_estado_abierto_madrid 'locales?select=id&activo=eq.true&estado_actual=eq.abierto&latitud=gte.40.30&latitud=lte.40.55&longitud=gte.-3.85&longitud=lte.-3.55'
+          exact_count locales_estado_cerrado_madrid 'locales?select=id&activo=eq.true&estado_actual=eq.cerrado&latitud=gte.40.30&latitud=lte.40.55&longitud=gte.-3.85&longitud=lte.-3.55'
+          exact_count locales_estado_sin_info_madrid 'locales?select=id&activo=eq.true&estado_actual=eq.sin_info&latitud=gte.40.30&latitud=lte.40.55&longitud=gte.-3.85&longitud=lte.-3.55'
