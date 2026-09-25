@@ -1,0 +1,49 @@
+name: Map REST viewport performance
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/map-rest-performance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Benchmark canonical viewport queries
+        shell: bash
+        env:
+          APIKEY: sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2
+        run: |
+          set -euo pipefail
+          BASE='https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/map_marker_state_cache'
+          PAGE=3000
+
+          benchmark() {
+            local name="$1" south="$2" north="$3" west="$4" east="$5"
+            local offset=0 total=0 pages=0 started elapsed count code url
+            started="$(date +%s%3N)"
+            while :; do
+              url="$BASE?select=local_id,latitud,longitud,tipo,destacado,estado&latitud=gte.$south&latitud=lte.$north&longitud=gte.$west&longitud=lte.$east&order=local_id.asc&limit=$PAGE&offset=$offset"
+              code="$(curl --connect-timeout 15 --max-time 45 -sS -o /tmp/page.json -w '%{http_code}'                 -H "Accept: application/json"                 -H "apikey: $APIKEY"                 "$url")"
+              test "$code" = "200"
+              count="$(jq 'length' /tmp/page.json)"
+              total=$((total + count))
+              pages=$((pages + 1))
+              echo "$name page=$pages offset=$offset rows=$count"
+              if [ "$count" -lt "$PAGE" ]; then break; fi
+              offset=$((offset + PAGE))
+              test "$pages" -lt 20
+            done
+            elapsed=$(( $(date +%s%3N) - started ))
+            echo "MAP_VIEWPORT_PERF name=$name rows=$total pages=$pages elapsed_ms=$elapsed"
+          }
+
+          benchmark madrid 40.30 40.55 -3.85 -3.55
+          benchmark ordes 43.00 43.16 -8.56 -8.24
