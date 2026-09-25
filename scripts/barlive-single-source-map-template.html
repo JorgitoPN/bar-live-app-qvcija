@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.2/dist/maplibre-gl.css"/>
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body,#map{width:100%;height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+#map{position:absolute;inset:0;background:#A8E0FF}
+.maplibregl-popup-content{border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.25);width:${ke}px!important;max-width:${ke}px!important}
+.maplibregl-popup-close-button{display:none}
+.popup-image{width:100%;height:${Fe}px;object-fit:cover;display:block;background:#f3f4f6}
+.popup-body{padding:12px}
+.popup-title{font-size:16px;font-weight:750;color:#202124;margin-bottom:5px}
+.popup-meta{font-size:12px;color:#6b7280;margin-bottom:9px}
+.popup-state{font-size:12px;font-weight:700;margin-bottom:10px}
+.popup-button{display:block;text-align:center;text-decoration:none;background:#641B73;color:#fff;padding:9px 12px;border-radius:8px;font-weight:750;font-size:13px;cursor:pointer}
+.maplibregl-ctrl-zoom-in,.maplibregl-ctrl-zoom-out{display:none!important}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+(function(){
+"use strict";
+
+var VENUE_SOURCE = "barlive-venues";
+var VENUE_LAYER = "barlive-venues-circle";
+var ICON_LAYER = "barlive-venues-icon";
+var LIVE_LAYER = "barlive-venues-live";
+var UPCOMING_LAYER = "barlive-venues-upcoming";
+var PROMO_LAYER = "barlive-venues-promo";
+var STATIC_TILE_URL = "https://embntaqwlwmgazvrglaf.supabase.co/functions/v1/map-static-tile/{z}/{x}/{y}.pbf";
+var STATE_URL = "https://embntaqwlwmgazvrglaf.supabase.co/functions/v1/map-marker-state";
+var STATE_CACHE_KEY = "barlive-marker-state-data-v1";
+var STATE_CACHE_MAX_AGE = 10 * 60 * 1000;
+
+var map = null;
+var stateById = Object.create(null);
+var stateRequestGeneration = 0;
+var stateAbortController = null;
+var stateRefreshTimer = null;
+var sourceReadyNotified = false;
+var stateFilterMode = "todos";
+var categoryFilter = "todas";
+var advancedCriteria = {};
+var advancedFilterActive = false;
+var advancedAllowedIds = null;
+var advancedGeneration = 0;
+var viewportGeneration = 0;
+var viewportTimer = null;
+var userMarker = null;
+var liveIds = new Set();
+var upcomingIds = new Set();
+var promoIds = new Set();
+
+function post(type, payload) {
+  try {
+    window.ReactNativeWebView.postMessage(JSON.stringify(Object.assign({type:type}, payload || {})));
+  } catch (_) {}
+}
+
+function markerStateForId(id) {
+  return stateById[String(id)] || "unknown";
+}
+
+function stateExpression() {
+  return ["coalesce", ["feature-state","markerState"], "unknown"];
+}
+
+function advancedVisibleExpression() {
+  return ["coalesce", ["feature-state","advancedVisible"], true];
+}
+
+function venueVisibleExpression() {
+  var checks = [advancedVisibleExpression()];
+  if (stateFilterMode === "no_cerrados") {
+    checks.push(["==", stateExpression(), "open"]);
+  }
+  return checks.length === 1 ? checks[0] : ["all"].concat(checks);
+}
+
+function applyPaintVisibility() {
+  if (!map) return;
+  var visible = venueVisibleExpression();
+
+  if (map.getLayer(VENUE_LAYER)) {
+    map.setPaintProperty(VENUE_LAYER, "circle-opacity", ["case", visible, 1, 0]);
+  }
+  if (map.getLayer(ICON_LAYER)) {
+    map.setPaintProperty(ICON_LAYER, "icon-opacity", ["case", visible, 1, 0]);
+  }
+  if (map.getLayer(LIVE_LAYER)) {
+    map.setPaintProperty(LIVE_LAYER, "circle-opacity", [
+      "case",
+      ["all", visible, ["==", ["feature-state","eventState"], "live"]],
+      0.32,
+      0
+    ]);
+  }
+  if (map.getLayer(UPCOMING_LAYER)) {
+    map.setPaintProperty(UPCOMING_LAYER, "circle-opacity", [
+      "case",
+      ["all", visible, ["==", ["feature-state","eventState"], "upcoming"]],
+      0.20,
+      0
+    ]);
+  }
+  if (map.getLayer(PROMO_LAYER)) {
+    map.setPaintProperty(PROMO_LAYER, "circle-opacity", [
+      "case",
+      ["all", visible, ["==", ["feature-state","hasPromo"], true]],
+      0.25,
+      0
+    ]);
+  }
+}
+
+function canonicalCategory(value) {
+  var raw = String(value || "").toLowerCase();
+  if (raw === "cafe") return "cafeteria";
+  if (raw === "nightclub") return "discoteca";
+  if (raw === "cocktail" || raw === "cocktail_bar") return "cocteleria";
+  return raw;
+}
+
+function applyCategoryFilter() {
+  if (!map) return;
+  var filter = categoryFilter === "todas"
+    ? ["all"]
+    : ["==", ["get","tipo"], canonicalCategory(categoryFilter)];
+
+  [VENUE_LAYER,ICON_LAYER,LIVE_LAYER,UPCOMING_LAYER,PROMO_LAYER].forEach(function(id) {
+    if (map.getLayer(id)) map.setFilter(id, filter);
+  });
+}
+
+function uniqueSourceFeatures() {
+  if (!map || !map.getSource(VENUE_SOURCE)) return [];
+  var raw = [];
+  try {
+    raw = map.querySourceFeatures(VENUE_SOURCE, {sourceLayer:"locales"}) || [];
+  } catch (_) {}
+  var seen = new Set();
+  var result = [];
+  raw.forEach(function(feature) {
+    var id = String(feature && feature.properties && feature.properties.id || feature && feature.id || "");
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    result.push(feature);
+  });
+  return result;
+}
+
+function setVenueState(id, patch) {
+  if (!map || !map.getSource(VENUE_SOURCE) || !id) return;
+  try {
+    map.setFeatureState(
+      {source:VENUE_SOURCE, sourceLayer:"locales", id:String(id)},
+      patch
+    );
+  } catch (_) {}
+}
+
+function applyStateToLoadedFeatures() {
+  uniqueSourceFeatures().forEach(function(feature) {
+    var id = String(feature.properties && feature.properties.id || feature.id || "");
+    if (!id) return;
+    setVenueState(id, {markerState:markerStateForId(id)});
+  });
+}
+
+function applyAdvancedToLoadedFeatures() {
+  var features = uniqueSourceFeatures();
+  features.forEach(function(feature) {
+    var id = String(feature.properties && feature.properties.id || feature.id || "");
+    if (!id) return;
+    var visible = !advancedFilterActive || (advancedAllowedIds && advancedAllowedIds.has(id));
+    setVenueState(id, {advancedVisible:visible});
+  });
+}
+
+function setStateMap(nextMap, sourceLabel, generatedAt) {
+  var old = stateById;
+  stateById = nextMap || Object.create(null);
+
+  Object.keys(old).forEach(function(id) {
+    if (!stateById[id]) setVenueState(id, {markerState:"unknown"});
+  });
+  Object.keys(stateById).forEach(function(id) {
+    setVenueState(id, {markerState:stateById[id]});
+  });
+  applyStateToLoadedFeatures();
+  applyPaintVisibility();
+
+  try {
+    localStorage.setItem(STATE_CACHE_KEY, JSON.stringify({
+      savedAt:Date.now(),
+      generatedAt:generatedAt || null,
+      states:stateById
+    }));
+  } catch (_) {}
+
+  var open=0, closed=0;
+  Object.keys(stateById).forEach(function(id) {
+    if (stateById[id] === "open") open += 1;
+    else if (stateById[id] === "closed") closed += 1;
+  });
+  console.log("[MAP_RENDER][STATE_FEED] source="+sourceLabel+" known="+Object.keys(stateById).length+" open="+open+" closed="+closed);
+  post("map_state_feed_ready", {known:Object.keys(stateById).length,open:open,closed:closed,source:sourceLabel});
+}
+
+function restoreStateCache() {
+  try {
+    var raw = localStorage.getItem(STATE_CACHE_KEY);
+    if (!raw) return false;
+    var parsed = JSON.parse(raw);
+    if (!parsed || !parsed.states || Date.now()-Number(parsed.savedAt||0) > STATE_CACHE_MAX_AGE) return false;
+    setStateMap(parsed.states, "local-cache", parsed.generatedAt || null);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function loadStateFeed() {
+  var generation = ++stateRequestGeneration;
+  if (stateAbortController) {
+    try { stateAbortController.abort(); } catch (_) {}
+  }
+  var controller = new AbortController();
+  stateAbortController = controller;
+
+  fetch(STATE_URL+"?slot="+Math.floor(Date.now()/30000), {
+    method:"GET",
+    cache:"no-store",
+    signal:controller.signal
+  })
+    .then(function(response) {
+      if (!response.ok) throw new Error("state feed HTTP "+response.status);
+      return response.json();
+    })
+    .then(function(payload) {
+      if (controller.signal.aborted || generation !== stateRequestGeneration) return;
+      var states = Object.create(null);
+      var rows = payload && Array.isArray(payload.states) ? payload.states : [];
+      rows.forEach(function(row) {
+        if (!Array.isArray(row) || row.length < 2 || !row[0]) return;
+        var code = Number(row[1]);
+        if (code === 1) states[String(row[0])] = "open";
+        else if (code === 2) states[String(row[0])] = "closed";
+      });
+      setStateMap(states, "network", payload && payload.generatedAt);
+      scheduleDiagnostics("state-feed");
+    })
+    .catch(function(error) {
+      if (error && error.name === "AbortError") return;
+      console.warn("[MAP_RENDER][STATE_ERROR]", String(error && error.message || error));
+      post("map_state_feed_error", {message:String(error && error.message || error)});
+    });
+}
+
+function countRenderedVenueIds() {
+  if (!map || !map.getLayer(VENUE_LAYER)) return 0;
+  var features=[];
+  try { features=map.queryRenderedFeatures(undefined,{layers:[VENUE_LAYER]})||[]; } catch (_) {}
+  var ids=new Set();
+  features.forEach(function(f){
+    var id=String(f && f.properties && f.properties.id || f && f.id || "");
+    if(id) ids.add(id);
+  });
+  return ids.size;
+}
+
+function diagnostics(reason) {
+  if (!map || !map.getSource(VENUE_SOURCE)) return;
+  var features=uniqueSourceFeatures();
+  var total=features.length, open=0, closed=0, unknown=0, expected=0;
+  features.forEach(function(feature){
+    var id=String(feature.properties && feature.properties.id || feature.id || "");
+    var state=markerStateForId(id);
+    if(state==="open") open+=1;
+    else if(state==="closed") closed+=1;
+    else unknown+=1;
+
+    var cat=canonicalCategory(feature.properties && feature.properties.tipo);
+    var categoryOK=categoryFilter==="todas" || cat===canonicalCategory(categoryFilter);
+    var advancedOK=true;
+    try {
+      advancedOK=map.getFeatureState({source:VENUE_SOURCE,sourceLayer:"locales",id:id}).advancedVisible !== false;
+    } catch (_) {}
+    var stateOK=stateFilterMode!=="no_cerrados" || state==="open";
+    if(categoryOK && advancedOK && stateOK) expected+=1;
+  });
+  var rendered=countRenderedVenueIds();
+
+  console.log("[MAP_RENDER][DATA] reason="+reason+" total="+total+" open="+open+" closed="+closed+" unknown="+unknown);
+  console.log("[MAP_RENDER][SOURCE] features="+total);
+  console.log("[MAP_RENDER][FILTER] mode="+stateFilterMode+" expected="+expected);
+  console.log("[MAP_RENDER][RENDERED] features="+rendered);
+  post("map_diagnostics",{reason:reason,total:total,open:open,closed:closed,unknown:unknown,expected:expected,rendered:rendered});
+}
+
+var diagnosticTimer=null;
+function scheduleDiagnostics(reason) {
+  if (diagnosticTimer) clearTimeout(diagnosticTimer);
+  diagnosticTimer=setTimeout(function(){diagnosticTimer=null;diagnostics(reason);},120);
+}
+
+function hasAdvancedCriteria(criteria) {
+  criteria=criteria||{};
+  return !!(
+    (Array.isArray(criteria.servicios)&&criteria.servicios.length) ||
+    (Array.isArray(criteria.ambiente)&&criteria.ambiente.length) ||
+    (Array.isArray(criteria.clientela)&&criteria.clientela.length) ||
+    (criteria.comunidad && criteria.comunidad!=="Todas las Comunidades") ||
+    criteria.provincia ||
+    (Number(criteria.distancia)>0) ||
+    Array.isArray(criteria.tagLocalIds)
+  );
+}
+
+function normalizeBoolMap(value) {
+  return value && typeof value==="object" ? value : {};
+}
+
+function distanceKm(aLat,aLng,bLat,bLng) {
+  var R=6371;
+  var dLat=(bLat-aLat)*Math.PI/180;
+  var dLng=(bLng-aLng)*Math.PI/180;
+  var x=Math.sin(dLat/2)*Math.sin(dLat/2)+
+    Math.cos(aLat*Math.PI/180)*Math.cos(bLat*Math.PI/180)*
+    Math.sin(dLng/2)*Math.sin(dLng/2);
+  return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+
+function localMatchesAdvanced(local) {
+  var c=advancedCriteria||{};
+  if (window.__advancedTagSet) {
+    if (!window.__advancedTagSet.has(String(local.id||""))) return false;
+  }
+
+  if (Array.isArray(c.servicios) && c.servicios.length) {
+    var services=normalizeBoolMap(local.servicios_disponibles);
+    for(var i=0;i<c.servicios.length;i++){
+      if(services[c.servicios[i]]!==true) return false;
+    }
+  }
+
+  if (Array.isArray(c.ambiente) && c.ambiente.length) {
+    var ambience=normalizeBoolMap(local.ambiente_completo);
+    var ambienceOK=false;
+    for(var j=0;j<c.ambiente.length;j++){
+      if(ambience[c.ambiente[j]]===true){ambienceOK=true;break;}
+    }
+    if(!ambienceOK) return false;
+  }
+
+  if (Array.isArray(c.clientela) && c.clientela.length) {
+    var clientele=normalizeBoolMap(local.clientela);
+    var clienteleOK=false;
+    for(var k=0;k<c.clientela.length;k++){
+      if(clientele[c.clientela[k]]===true){clienteleOK=true;break;}
+    }
+    if(!clienteleOK) return false;
+  }
+
+  if (c.comunidad && c.comunidad!=="Todas las Comunidades" && local.comunidad!==c.comunidad) return false;
+  if (c.provincia && local.provincia!==c.provincia) return false;
+
+  var maxDistance=Number(c.distancia||0);
+  if(maxDistance>0 && window.__userLocation){
+    var lat=Number(local.latitud), lng=Number(local.longitud);
+    if(!isFinite(lat)||!isFinite(lng)) return false;
+    if(distanceKm(window.__userLocation.lat,window.__userLocation.lng,lat,lng)>maxDistance) return false;
+  }
+  return true;
+}
+
+function applyAdvancedRows(rows,generation) {
+  if (!advancedFilterActive) return;
+  if (Number(generation)!==viewportGeneration) {
+    console.log("[MAP_RENDER][STALE_VIEWPORT] generation="+generation+" current="+viewportGeneration);
+    return;
+  }
+  var allowed=new Set();
+  (Array.isArray(rows)?rows:[]).forEach(function(local){
+    if(local && local.id && localMatchesAdvanced(local)) allowed.add(String(local.id));
+  });
+  advancedAllowedIds=allowed;
+  applyAdvancedToLoadedFeatures();
+  applyPaintVisibility();
+  scheduleDiagnostics("advanced-data");
+}
+
+window.applyAdvancedFilters=function(criteria){
+  advancedCriteria=criteria||{};
+  window.__advancedTagSet=Array.isArray(advancedCriteria.tagLocalIds)
+    ? new Set(advancedCriteria.tagLocalIds.map(String))
+    : null;
+  advancedFilterActive=hasAdvancedCriteria(advancedCriteria);
+  advancedAllowedIds=advancedFilterActive ? new Set() : null;
+
+  if(!advancedFilterActive){
+    applyAdvancedToLoadedFeatures();
+    applyPaintVisibility();
+    scheduleDiagnostics("advanced-off");
+    return;
+  }
+  window.requestViewportData();
+};
+
+window.setLocalesFromNative=function(locales,mediaRows,meta){
+  if(!advancedFilterActive) return;
+  var generation=meta && Number(meta.generation);
+  if(!Number.isFinite(generation)) generation=meta && Number(meta.requestId);
+  applyAdvancedRows(locales,generation);
+};
+
+window.requestViewportData=function(){
+  if(!map || !advancedFilterActive) return;
+  var b=map.getBounds();
+  var generation=++viewportGeneration;
+  console.log("[MAP_RENDER][VIEWPORT_REQUEST] generation="+generation+" zoom="+map.getZoom().toFixed(2)+" bbox="+
+    [b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].map(function(v){return v.toFixed(5);}).join(","));
+  post("map_viewport",{
+    generation:generation,
+    zoom:map.getZoom(),
+    bounds:{south:b.getSouth(),west:b.getWest(),north:b.getNorth(),east:b.getEast()}
+  });
+};
+
+window.setStateFilter=function(mode){
+  stateFilterMode=mode==="no_cerrados" ? "no_cerrados" : "todos";
+  applyPaintVisibility();
+  scheduleDiagnostics("state-filter");
+};
+
+window.filtrarCategoria=function(category){
+  categoryFilter=category||"todas";
+  applyCategoryFilter();
+  scheduleDiagnostics("category-filter");
+};
+window.setCategoryFilter=window.filtrarCategoria;
+
+function updateEventFeatureStates() {
+  var all=new Set();
+  liveIds.forEach(function(id){all.add(id);});
+  upcomingIds.forEach(function(id){all.add(id);});
+  window.__previousEventIds && window.__previousEventIds.forEach(function(id){all.add(id);});
+  all.forEach(function(id){
+    var state=liveIds.has(id)?"live":upcomingIds.has(id)?"upcoming":"none";
+    setVenueState(id,{eventState:state});
+  });
+  window.__previousEventIds=new Set(Array.from(all).filter(function(id){return liveIds.has(id)||upcomingIds.has(id);}));
+}
+
+window.setLiveEvents=function(live,upcoming){
+  liveIds=new Set((live||[]).map(String));
+  upcomingIds=new Set((upcoming||[]).map(String));
+  updateEventFeatureStates();
+};
+
+window.setActivePromos=function(promos){
+  var next=new Set(Object.keys(promos||{}).map(String));
+  var all=new Set();
+  promoIds.forEach(function(id){all.add(id);});
+  next.forEach(function(id){all.add(id);});
+  all.forEach(function(id){setVenueState(id,{hasPromo:next.has(id)});});
+  promoIds=next;
+};
+
+window.updateUserLocation=function(lat,lng){
+  if(!map) return;
+  window.__userLocation={lat:Number(lat),lng:Number(lng)};
+  if(!userMarker){
+    var el=document.createElement("div");
+    el.style.cssText="width:18px;height:18px;border-radius:50%;background:#1E88E5;border:4px solid #fff;box-shadow:0 1px 8px rgba(30,136,229,.55)";
+    userMarker=new maplibregl.Marker({element:el,anchor:"center"}).setLngLat([lng,lat]).addTo(map);
+  }else{
+    userMarker.setLngLat([lng,lat]);
+  }
+};
+
+window.flyToLocation=function(lat,lng,zoom){
+  if(map) map.flyTo({center:[lng,lat],zoom:Number(zoom||13),duration:450,essential:true});
+};
+
+function escapeHtml(value){
+  return String(value==null?"":value)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+
+window.showPopupFromNative=function(local,coords){
+  if(!map || !local) return;
+  var lng=Number(coords&&coords.lng!=null?coords.lng:local.longitud);
+  var lat=Number(coords&&coords.lat!=null?coords.lat:local.latitud);
+  if(!isFinite(lng)||!isFinite(lat)) return;
+  var state=local.__markerState||markerStateForId(local.id);
+  var label=state==="open"?"Abierto ahora":state==="closed"?"Cerrado ahora":"Sin información de horario";
+  var color=state==="open"?"#22C55E":state==="closed"?"#EF4444":"#94A3B8";
+  var image=String(local.portada_url||local.imagen_url||"");
+  var imageHtml=image ? '<img class="popup-image" src="'+escapeHtml(image)+'" onerror="this.style.display=\\'none\\'"/>' : "";
+  var html=imageHtml+
+    '<div class="popup-body">'+
+      '<div class="popup-title">'+escapeHtml(local.nombre||"Local")+'</div>'+
+      '<div class="popup-meta">'+escapeHtml(local.direccion||"")+'</div>'+
+      '<div class="popup-state" style="color:'+color+'">'+escapeHtml(label)+'</div>'+
+      '<a class="popup-button" id="barlive-popup-open">Ver local</a>'+
+    '</div>';
+  var popup=new maplibregl.Popup({closeButton:false,closeOnClick:true,offset:16})
+    .setLngLat([lng,lat]).setHTML(html).addTo(map);
+  setTimeout(function(){
+    var button=document.getElementById("barlive-popup-open");
+    if(button) button.onclick=function(){post("navigate",{id:String(local.id)});};
+  },0);
+};
+
+function categoryIcon(feature) {
+  var type=canonicalCategory(feature && feature.properties && feature.properties.tipo);
+  return type||"bar";
+}
+
+function registerCategoryIcons() {
+  var icons={
+    cafeteria:"☕",
+    restaurante:"🍽️",
+    bar:"🍺",
+    pub:"🍻",
+    cocteleria:"🍸",
+    discoteca:"🪩"
+  };
+  Object.keys(icons).forEach(function(category){
+    var canvas=document.createElement("canvas");
+    canvas.width=64;canvas.height=64;
+    var ctx=canvas.getContext("2d");
+    if(!ctx) return;
+    ctx.clearRect(0,0,64,64);
+    ctx.font='30px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+    ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(icons[category],32,33);
+    try {
+      map.addImage("cat-"+category,{width:64,height:64,data:ctx.getImageData(0,0,64,64).data});
+    } catch (_) {}
+  });
+}
+
+function addVenueSourceAndLayers() {
+  map.addSource(VENUE_SOURCE,{
+    type:"vector",
+    tiles:[STATIC_TILE_URL],
+    minzoom:4,
+    maxzoom:9,
+    bounds:[-18.25,27.45,4.60,44.25],
+    scheme:"xyz",
+    promoteId:"id"
+  });
+
+  map.addLayer({
+    id:LIVE_LAYER,type:"circle",source:VENUE_SOURCE,"source-layer":"locales",minzoom:10.5,
+    paint:{
+      "circle-radius":["interpolate",["linear"],["zoom"],10.5,11,16,18],
+      "circle-color":"#F59E0B",
+      "circle-opacity":0
+    }
+  });
+  map.addLayer({
+    id:UPCOMING_LAYER,type:"circle",source:VENUE_SOURCE,"source-layer":"locales",minzoom:10.5,
+    paint:{
+      "circle-radius":["interpolate",["linear"],["zoom"],10.5,10,16,17],
+      "circle-color":"#8B5CF6",
+      "circle-opacity":0
+    }
+  });
+  map.addLayer({
+    id:PROMO_LAYER,type:"circle",source:VENUE_SOURCE,"source-layer":"locales",minzoom:10.5,
+    paint:{
+      "circle-radius":["interpolate",["linear"],["zoom"],10.5,9,16,16],
+      "circle-color":"#EF4444",
+      "circle-opacity":0
+    }
+  });
+
+  map.addLayer({
+    id:VENUE_LAYER,
+    type:"circle",
+    source:VENUE_SOURCE,
+    "source-layer":"locales",
+    minzoom:4,
+    paint:{
+      "circle-radius":["interpolate",["linear"],["zoom"],4,1.6,7,2.3,9,3.2,10.5,7.4,13,10.5,16,13,20,14],
+      "circle-color":[
+        "case",
+        ["==",stateExpression(),"open"],"#22C55E",
+        ["==",stateExpression(),"closed"],"#EF4444",
+        "#94A3B8"
+      ],
+      "circle-opacity":1,
+      "circle-stroke-width":[
+        "case",["==",["get","destacado"],true],3,
+        ["interpolate",["linear"],["zoom"],4,0,10.5,2,20,2]
+      ],
+      "circle-stroke-color":[
+        "case",["==",["get","destacado"],true],"#F59E0B","#FFFFFF"
+      ]
+    }
+  });
+
+  map.addLayer({
+    id:ICON_LAYER,
+    type:"symbol",
+    source:VENUE_SOURCE,
+    "source-layer":"locales",
+    minzoom:10.5,
+    layout:{
+      "icon-image":[
+        "case",
+        ["==",["get","tipo"],"cafeteria"],"cat-cafeteria",
+        ["==",["get","tipo"],"restaurante"],"cat-restaurante",
+        ["==",["get","tipo"],"pub"],"cat-pub",
+        ["==",["get","tipo"],"cocteleria"],"cat-cocteleria",
+        ["==",["get","tipo"],"discoteca"],"cat-discoteca",
+        "cat-bar"
+      ],
+      "icon-size":["interpolate",["linear"],["zoom"],10.5,0.42,13,0.50,16,0.58,20,0.62],
+      "icon-anchor":"center",
+      "icon-allow-overlap":true,
+      "icon-ignore-placement":true,
+      "icon-padding":0
+    },
+    paint:{"icon-opacity":1}
+  });
+
+  applyCategoryFilter();
+  applyPaintVisibility();
+}
+
+function requestPopupFromFeature(feature){
+  if(!feature) return;
+  var id=String(feature.properties && feature.properties.id || feature.id || "");
+  if(!id) return;
+  var state=markerStateForId(id);
+  if(stateFilterMode==="no_cerrados" && state!=="open") return;
+  var advanced=true;
+  try {
+    advanced=map.getFeatureState({source:VENUE_SOURCE,sourceLayer:"locales",id:id}).advancedVisible!==false;
+  } catch (_) {}
+  if(!advanced) return;
+  var coords=feature.geometry && feature.geometry.coordinates;
+  post("map_popup_request",{
+    id:id,
+    markerState:state,
+    coordinates:Array.isArray(coords)?{lng:Number(coords[0]),lat:Number(coords[1])}:null
+  });
+}
+
+function setupMapEvents(){
+  map.on("sourcedata",function(event){
+    if(event.sourceId!==VENUE_SOURCE) return;
+    applyStateToLoadedFeatures();
+    applyAdvancedToLoadedFeatures();
+
+    var count=uniqueSourceFeatures().length;
+    if(count>0 && !sourceReadyNotified){
+      sourceReadyNotified=true;
+      post("map_marker_count",{count:count});
+    }
+  });
+
+  map.on("moveend",function(){
+    if(advancedFilterActive){
+      if(viewportTimer) clearTimeout(viewportTimer);
+      viewportTimer=setTimeout(function(){viewportTimer=null;window.requestViewportData();},100);
+    }
+    scheduleDiagnostics("moveend");
+  });
+
+  map.on("idle",function(){
+    scheduleDiagnostics("idle");
+  });
+
+  map.on("click",VENUE_LAYER,function(event){
+    var feature=event.features && event.features[0];
+    requestPopupFromFeature(feature);
+  });
+  map.on("click",ICON_LAYER,function(event){
+    var feature=event.features && event.features[0];
+    requestPopupFromFeature(feature);
+  });
+  map.on("mouseenter",VENUE_LAYER,function(){map.getCanvas().style.cursor="pointer";});
+  map.on("mouseleave",VENUE_LAYER,function(){map.getCanvas().style.cursor="";});
+
+  map.on("error",function(event){
+    var message=String(event && event.error && event.error.message || "MapLibre error");
+    console.warn("[MAP_RENDER][MAP_ERROR]",message);
+    post("map_error",{message:message,recoverable:true,sourceId:event && event.sourceId || ""});
+  });
+}
+
+function init(){
+  if(!window.maplibregl){
+    post("map_js_error",{message:"MapLibre unavailable"});
+    return;
+  }
+
+  map=new maplibregl.Map({
+    container:"map",
+    style:"https://tiles.openfreemap.org/styles/liberty",
+    center:[${n},${e}],
+    zoom:${a},
+    minZoom:4,
+    maxZoom:20,
+    attributionControl:false,
+    renderWorldCopies:false,
+    dragRotate:false,
+    pitchWithRotate:false,
+    touchPitch:false,
+    fadeDuration:0,
+    crossSourceCollisions:false,
+    maxTileCacheZoomLevels:6
+  });
+
+  try { map.addControl(new maplibregl.AttributionControl({compact:true}),"bottom-right"); } catch (_) {}
+
+  map.on("load",function(){
+    try { registerCategoryIcons(); } catch (error) { console.warn("[MAP_RENDER][ICON_WARNING]",error); }
+    addVenueSourceAndLayers();
+    setupMapEvents();
+    restoreStateCache();
+    loadStateFeed();
+    stateRefreshTimer=setInterval(loadStateFeed,60000);
+    post("map_ready",{engine:"barlive-single-source-feature-state-v1"});
+    scheduleDiagnostics("load");
+  });
+}
+
+window.addEventListener("beforeunload",function(){
+  if(stateRefreshTimer) clearInterval(stateRefreshTimer);
+  if(stateAbortController){try{stateAbortController.abort();}catch(_){}}
+});
+
+init();
+})();
+</script>
+</body>
+</html>
