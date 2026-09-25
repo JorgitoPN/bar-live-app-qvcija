@@ -1,0 +1,167 @@
+name: Map static diagnostics
+
+on:
+  push:
+    branches: [gh-pages]
+    paths:
+      - '.github/workflows/map-static-diagnostics.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MVT decoder
+        run: python -m pip install --quiet mapbox-vector-tile==2.1.0
+
+      - name: Verify static MVT parent-child identity
+        shell: bash
+        run: |
+          python - <<'PY'
+          import math, gzip, json, urllib.request
+          import mapbox_vector_tile
+
+          BASE = "https://embntaqwlwmgazvrglaf.supabase.co/functions/v1/map-static-tile/{z}/{x}/{y}.pbf"
+          POINTS = {
+              "ordes": (43.0767, -8.4078),
+              "madrid": (40.4168, -3.7038),
+          }
+
+          def tile_xy(lat, lon, z):
+              n = 2 ** z
+              x = int((lon + 180.0) / 360.0 * n)
+              lat_rad = math.radians(lat)
+              y = int((1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * n)
+              return x, y
+
+          def fetch(z, x, y):
+              url = BASE.format(z=z, x=x, y=y)
+              req = urllib.request.Request(url, headers={"Accept":"application/vnd.mapbox-vector-tile"})
+              with urllib.request.urlopen(req, timeout=60) as resp:
+                  body = resp.read()
+                  enc = (resp.headers.get("content-encoding") or "").lower()
+              if enc == "gzip" or body[:2] == b"\x1f\x8b":
+                  try:
+                      body = gzip.decompress(body)
+                  except OSError:
+                      pass
+              decoded = mapbox_vector_tile.decode(body)
+              feats = decoded.get("locales", {}).get("features", [])
+              ids = []
+              missing_id = 0
+              missing_tipo = 0
+              for f in feats:
+                  p = f.get("properties") or {}
+                  vid = str(p.get("id") or f.get("id") or "")
+                  if not vid:
+                      missing_id += 1
+                  else:
+                      ids.append(vid)
+                  if not p.get("tipo"):
+                      missing_tipo += 1
+              return {
+                  "count": len(feats),
+                  "unique": set(ids),
+                  "duplicates": len(ids) - len(set(ids)),
+                  "missing_id": missing_id,
+                  "missing_tipo": missing_tipo,
+              }
+
+          failed = False
+          report = {}
+          for name, (lat, lon) in POINTS.items():
+              levels = {}
+              for z in range(4, 10):
+                  x,y = tile_xy(lat, lon, z)
+                  info = fetch(z,x,y)
+                  levels[z] = info
+                  print(name, "z", z, "tile", x, y, "count", info["count"],
+                        "unique", len(info["unique"]), "dups", info["duplicates"],
+                        "missing_id", info["missing_id"], "missing_tipo", info["missing_tipo"])
+                  if info["duplicates"] or info["missing_id"] or info["missing_tipo"]:
+                      failed = True
+
+              z9 = levels[9]["unique"]
+              for z in range(4, 9):
+                  missing = sorted(z9 - levels[z]["unique"])
+                  print(name, "z9_subset_of_z"+str(z), "missing", len(missing), "sample", missing[:12])
+                  if missing:
+                      failed = True
+
+              report[name] = {
+                  str(z): {
+                      "count": levels[z]["count"],
+                      "unique": len(levels[z]["unique"]),
+                      "duplicates": levels[z]["duplicates"],
+                  } for z in levels
+              }
+
+          print("REPORT", json.dumps(report, sort_keys=True))
+          if failed:
+              raise SystemExit("STATIC_TILE_INVARIANT_FAILED")
+          print("STATIC_TILE_INVARIANT_OK")
+          PY
+
+      - name: Verify state cache uniqueness and values
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, urllib.parse, urllib.request
+
+          BASE="https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/map_marker_state_cache"
+          KEY="sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2"
+          PAGE=1000
+          offset=0
+          seen=set()
+          duplicates=[]
+          values={}
+          total=0
+
+          while True:
+              query=urllib.parse.urlencode({
+                  "select":"local_id,estado",
+                  "order":"local_id.asc",
+                  "limit":str(PAGE),
+                  "offset":str(offset),
+              })
+              req=urllib.request.Request(
+                  BASE+"?"+query,
+                  headers={"Accept":"application/json","apikey":KEY},
+              )
+              with urllib.request.urlopen(req, timeout=60) as resp:
+                  rows=json.loads(resp.read().decode("utf-8"))
+              if not isinstance(rows,list):
+                  raise SystemExit("STATE_CACHE_NOT_ARRAY")
+              for row in rows:
+                  vid=str(row.get("local_id") or "")
+                  state=str(row.get("estado") or "")
+                  if not vid:
+                      raise SystemExit("STATE_CACHE_MISSING_ID")
+                  if vid in seen:
+                      duplicates.append(vid)
+                  seen.add(vid)
+                  values[state]=values.get(state,0)+1
+              total += len(rows)
+              if len(rows) < PAGE:
+                  break
+              offset += PAGE
+              if offset > 500000:
+                  raise SystemExit("STATE_CACHE_PAGINATION_GUARD")
+
+          print("state_total", total)
+          print("state_unique", len(seen))
+          print("state_duplicates", len(duplicates), duplicates[:10])
+          print("state_values", values)
+          if duplicates:
+              raise SystemExit("STATE_CACHE_DUPLICATE_IDS")
+          invalid=set(values)-{"abierto","cerrado","sin_info"}
+          if invalid:
+              raise SystemExit("STATE_CACHE_INVALID_VALUES "+repr(invalid))
+          print("STATE_CACHE_INVARIANT_OK")
+          PY
