@@ -1953,6 +1953,15 @@ function registerCategoryIcons() {
   });
 }
 
+function addLayerChecked(stage, definition) {
+  console.log("[MAP_RENDER][INIT_LAYER] stage="+stage+" id="+String(definition && definition.id || ""));
+  map.addLayer(definition);
+  if (!map.getLayer(definition.id)) {
+    console.error("[MAP_RENDER][INIT_LAYER_MISSING] stage="+stage+" id="+definition.id);
+    post("map_init_layer_missing",{stage:stage,id:definition.id});
+  }
+}
+
 function addVenueSourceAndLayers() {
   map.addSource(VENUE_SOURCE,{
     type:"vector",
@@ -1964,7 +1973,7 @@ function addVenueSourceAndLayers() {
     promoteId:"id"
   });
 
-  map.addLayer({
+  addLayerChecked("live",{
     id:LIVE_LAYER,type:"circle",source:VENUE_SOURCE,"source-layer":"locales",minzoom:10.5,
     paint:{
       "circle-radius":["interpolate",["linear"],["zoom"],10.5,11,16,18],
@@ -1972,7 +1981,7 @@ function addVenueSourceAndLayers() {
       "circle-opacity":0
     }
   });
-  map.addLayer({
+  addLayerChecked("upcoming",{
     id:UPCOMING_LAYER,type:"circle",source:VENUE_SOURCE,"source-layer":"locales",minzoom:10.5,
     paint:{
       "circle-radius":["interpolate",["linear"],["zoom"],10.5,10,16,17],
@@ -1980,7 +1989,7 @@ function addVenueSourceAndLayers() {
       "circle-opacity":0
     }
   });
-  map.addLayer({
+  addLayerChecked("promo",{
     id:PROMO_LAYER,type:"circle",source:VENUE_SOURCE,"source-layer":"locales",minzoom:10.5,
     paint:{
       "circle-radius":["interpolate",["linear"],["zoom"],10.5,9,16,16],
@@ -1989,7 +1998,7 @@ function addVenueSourceAndLayers() {
     }
   });
 
-  map.addLayer({
+  addLayerChecked("venues",{
     id:VENUE_LAYER,
     type:"circle",
     source:VENUE_SOURCE,
@@ -2014,7 +2023,7 @@ function addVenueSourceAndLayers() {
     }
   });
 
-  map.addLayer({
+  addLayerChecked("icons",{
     id:ICON_LAYER,
     type:"symbol",
     source:VENUE_SOURCE,
@@ -2089,6 +2098,12 @@ window.__barliveIdentity=function(ids){
   });
 };
 
+function handleMapError(event) {
+  var message=String(event && event.error && event.error.message || "MapLibre error");
+  console.warn("[MAP_RENDER][MAP_ERROR]",message);
+  post("map_error",{message:message,recoverable:true,sourceId:event && event.sourceId || ""});
+}
+
 function setupMapEvents(){
   map.on("sourcedata",function(event){
     if(event.sourceId!==VENUE_SOURCE) return;
@@ -2125,11 +2140,6 @@ function setupMapEvents(){
   map.on("mouseenter",VENUE_LAYER,function(){map.getCanvas().style.cursor="pointer";});
   map.on("mouseleave",VENUE_LAYER,function(){map.getCanvas().style.cursor="";});
 
-  map.on("error",function(event){
-    var message=String(event && event.error && event.error.message || "MapLibre error");
-    console.warn("[MAP_RENDER][MAP_ERROR]",message);
-    post("map_error",{message:message,recoverable:true,sourceId:event && event.sourceId || ""});
-  });
 }
 
 function init(){
@@ -2156,6 +2166,7 @@ function init(){
   });
 
   window.__barliveMap=map;
+  map.on("error",handleMapError);
   try { map.addControl(new maplibregl.AttributionControl({compact:true}),"bottom-right"); } catch (_) {}
 
   map.on("load",function(){
