@@ -1,0 +1,46 @@
+name: Map marker data coverage
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/map-data-coverage.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Compare cache coverage with active venues
+        shell: bash
+        env:
+          APIKEY: sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2
+        run: |
+          set -euo pipefail
+          BASE='https://embntaqwlwmgazvrglaf.supabase.co/rest/v1'
+
+          exact_count() {
+            local label="$1" path="$2"
+            local code count
+            code="$(curl --connect-timeout 15 --max-time 60 -sS -D /tmp/headers.txt -o /tmp/body.json -w '%{http_code}'               -H "Accept: application/json"               -H "Prefer: count=exact"               -H "Range: 0-0"               -H "apikey: $APIKEY"               "$BASE/$path")"
+            echo "$label HTTP=$code"
+            if [ "$code" != "200" ] && [ "$code" != "206" ]; then
+              cat /tmp/body.json
+              return 1
+            fi
+            count="$(tr -d '\r' < /tmp/headers.txt | awk -F/ 'tolower($1) ~ /^content-range:/ {print $2}' | tail -1)"
+            echo "MAP_COVERAGE $label=$count"
+          }
+
+          exact_count cache_total 'map_marker_state_cache?select=local_id'
+          exact_count cache_madrid 'map_marker_state_cache?select=local_id&latitud=gte.40.30&latitud=lte.40.55&longitud=gte.-3.85&longitud=lte.-3.55'
+          exact_count cache_ordes 'map_marker_state_cache?select=local_id&latitud=gte.43.00&latitud=lte.43.16&longitud=gte.-8.56&longitud=lte.-8.24'
+
+          exact_count locales_active_total 'locales?select=id&activo=eq.true'
+          exact_count locales_active_madrid 'locales?select=id&activo=eq.true&latitud=gte.40.30&latitud=lte.40.55&longitud=gte.-3.85&longitud=lte.-3.55'
+          exact_count locales_active_ordes 'locales?select=id&activo=eq.true&latitud=gte.43.00&latitud=lte.43.16&longitud=gte.-8.56&longitud=lte.-8.24'
