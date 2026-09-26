@@ -22,13 +22,13 @@ jobs:
         run: |
           set -euo pipefail
           HTML='https://barliveapp.es/?map-smoke=v17-20260926'
-          ASSET='https://barliveapp.es/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v17-lazy-tabs-cd9df5d-20260926'
+          ASSET='https://barliveapp.es/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v17-light-map-module-71fdbad-20260926'
           ROUTE='https://barliveapp.es/explorar/mapa?map-smoke=v17-20260926'
           MANIFEST='https://barliveapp.es/map-data/viewport-z9-v1/manifest.json?map-smoke=v17-20260926'
 
           curl --fail --silent --show-error --location --compressed -H 'Cache-Control: no-cache' "$HTML" -o /tmp/index.html
-          grep -Fq 'canonical-map-v17-lazy-tabs-cd9df5d-20260926' /tmp/index.html
-          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v17-lazy-tabs-cd9df5d-20260926' /tmp/index.html
+          grep -Fq 'canonical-map-v17-light-map-module-71fdbad-20260926' /tmp/index.html
+          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v17-light-map-module-71fdbad-20260926' /tmp/index.html
           grep -Fq '/sw.js?v=30' /tmp/index.html
 
           curl --fail --silent --show-error --location --compressed -H 'Cache-Control: no-cache' "$ASSET" -o /tmp/bundle.js
@@ -48,7 +48,7 @@ jobs:
 
           route_code="$(curl --silent --show-error --location --compressed -H 'Cache-Control: no-cache' -o /tmp/route.html -w '%{http_code}' "$ROUTE")"
           test "$route_code" = "200"
-          grep -Fq 'map-v17-lazy-tabs-cd9df5d-20260926' /tmp/route.html
+          grep -Fq 'map-v17-light-map-module-71fdbad-20260926' /tmp/route.html
 
           curl --fail --silent --show-error --location --compressed "$MANIFEST" -o /tmp/manifest.json
           node -e "const m=require('/tmp/manifest.json'); if(m.z!==9||m.tileCount!==202||m.totalRows!==120841) process.exit(1); console.log('VIEWPORT_TILE_COUNT='+m.tileCount)"
