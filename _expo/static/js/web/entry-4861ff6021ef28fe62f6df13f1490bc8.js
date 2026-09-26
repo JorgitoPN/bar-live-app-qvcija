@@ -1393,6 +1393,22 @@ var UPCOMING_LAYER = "barlive-venues-upcoming";
 var PROMO_LAYER = "barlive-venues-promo";
 
 var VENUE_DATA_URL = "https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/locales";
+var NATIONAL_SNAPSHOT_URL = "https://barliveapp.es/map-data/national-venues-v1.json";
+var NATIONAL_SNAPSHOT_MAX_ZOOM = 7;
+var NATIONAL_COVERAGE = {
+  south:27.45,
+  west:-18.25,
+  north:44.25,
+  east:4.60
+};
+var NATIONAL_CATEGORY_BY_CODE = [
+  "bar",
+  "restaurante",
+  "cafeteria",
+  "pub",
+  "discoteca",
+  "cocteleria"
+];
 var DATA_APIKEY = "sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2";
 var DATA_PAGE_SIZE = 1000;
 var DATA_PAGE_BATCH = 6;
@@ -1406,6 +1422,9 @@ var activeVenueById = new Map();
 var activeRows = [];
 var activeCoverage = null;
 var activeDatasetGeneration = 0;
+var activeDatasetMode = "none";
+var nationalSnapshotCompact = null;
+var lastNationalStateRefreshAt = 0;
 var requestGeneration = 0;
 var requestAbortController = null;
 var viewportRequestInFlight = false;
@@ -2160,6 +2179,9 @@ function countExpectedVisible(bounds) {
 
 function countRenderedVenueIds() {
   if (!map || !map.getLayer(VENUE_LAYER)) return 0;
+
+  if (activeVenueById.size > 20000 || map.getZoom() < 9) return -1;
+
   var rendered=[];
   try {
     rendered=map.queryRenderedFeatures(undefined,{layers:[VENUE_LAYER]})||[];
@@ -2275,6 +2297,13 @@ function commitVenueRows(rows,coverage,generation,sourceLabel) {
   activeVenueById=normalized.byId;
   activeCoverage=coverage;
   activeDatasetGeneration=generation;
+
+  if (sourceLabel === "national-static") {
+    activeDatasetMode="national-static";
+    lastNationalStateRefreshAt=Date.now();
+  } else if (sourceLabel === "network" || sourceLabel === "local-cache") {
+    activeDatasetMode="viewport";
+  }
 
   source.setData(normalized.collection);
   reapplyAuxiliaryFeatureState();
@@ -2461,15 +2490,107 @@ async function fetchPagedRows(
   return all;
 }
 
-async function fetchCanonicalRows(bounds,generation,controller) {
-  var venueRows=await fetchPagedRows(
-    bounds,
-    generation,
-    controller,
-    buildVenueDataUrl,
-    "catalogue",
-    DATA_PAGE_BATCH
-  );
+function decodeNationalSnapshotRows(compactRows) {
+  var decoded=[];
+  (Array.isArray(compactRows)?compactRows:[]).forEach(function(item) {
+    if (!Array.isArray(item) || item.length < 8) return;
+
+    var category=NATIONAL_CATEGORY_BY_CODE[Number(item[3])];
+    if (!category) return;
+
+    decoded.push({
+      id:String(item[0]||""),
+      latitud:Number(item[1]),
+      longitud:Number(item[2]),
+      barlive_type:category,
+      destacado:Number(item[4]||0)===1,
+      horarios_completos:item[5] == null ? null : item[5],
+      google_business_status:item[6] == null ? null : item[6],
+      osm_opening_hours:item[7] == null ? null : item[7]
+    });
+  });
+  return decoded;
+}
+
+async function fetchNationalVenueRows(bounds,generation,controller) {
+  try {
+    if (!nationalSnapshotCompact) {
+      var started=Date.now();
+      var response=await fetch(NATIONAL_SNAPSHOT_URL,{
+        method:"GET",
+        cache:"default",
+        signal:controller.signal,
+        headers:{Accept:"application/json"}
+      });
+
+      if (!response.ok) {
+        throw new Error("national snapshot HTTP "+response.status);
+      }
+
+      var payload=await response.json();
+      if (
+        !payload ||
+        Number(payload.v)!==1 ||
+        !Array.isArray(payload.rows) ||
+        payload.rows.length < 100000
+      ) {
+        throw new Error("invalid national snapshot payload");
+      }
+
+      if (
+        controller.signal.aborted ||
+        generation !== requestGeneration
+      ) return null;
+
+      nationalSnapshotCompact=payload.rows;
+
+      console.log(
+        "[MAP_RENDER][NATIONAL_STATIC_FETCH] generation="+generation+
+        " rows="+nationalSnapshotCompact.length+
+        " elapsedMs="+(Date.now()-started)
+      );
+    } else {
+      console.log(
+        "[MAP_RENDER][NATIONAL_STATIC_MEMORY] generation="+generation+
+        " rows="+nationalSnapshotCompact.length
+      );
+    }
+
+    return decodeNationalSnapshotRows(nationalSnapshotCompact);
+  } catch (error) {
+    if (error && error.name === "AbortError") throw error;
+
+    console.warn(
+      "[MAP_RENDER][NATIONAL_STATIC_FALLBACK] generation="+generation,
+      String(error && error.message || error)
+    );
+
+    return fetchPagedRows(
+      bounds,
+      generation,
+      controller,
+      buildVenueDataUrl,
+      "catalogue-national-fallback",
+      DATA_PAGE_BATCH
+    );
+  }
+}
+
+async function fetchCanonicalRows(bounds,generation,controller,useNationalSnapshot) {
+  var venueRows=useNationalSnapshot
+    ? await fetchNationalVenueRows(
+        bounds,
+        generation,
+        controller
+      )
+    : await fetchPagedRows(
+        bounds,
+        generation,
+        controller,
+        buildVenueDataUrl,
+        "catalogue",
+        DATA_PAGE_BATCH
+      );
 
   if (!venueRows) return null;
 
@@ -2477,6 +2598,7 @@ async function fetchCanonicalRows(bounds,generation,controller) {
 
   console.log(
     "[MAP_RENDER][SCHEDULE_STATE] generation="+generation+
+    " mode="+(useNationalSnapshot ? "national" : "viewport")+
     " catalogue="+venueRows.length+
     " knownStates="+realtime.knownStates+
     " barlive="+realtime.barliveStates+
@@ -2503,6 +2625,17 @@ async function refreshCanonicalStates() {
       " generation="+requestGeneration
     );
     return;
+  }
+
+  if (activeDatasetMode === "national-static") {
+    var nationalAge=Date.now()-lastNationalStateRefreshAt;
+    if (nationalAge < 5*60*1000) {
+      console.log(
+        "[MAP_RENDER][STATE_REFRESH_SKIPPED] reason=national-static-fresh"+
+        " ageMs="+nationalAge
+      );
+      return;
+    }
   }
 
   var coverage=activeCoverage;
@@ -2533,8 +2666,14 @@ async function requestCanonicalViewport(force,reason) {
   var current=getCurrentBounds();
   if (!current) return;
 
+  var wantsNational=map.getZoom()<=NATIONAL_SNAPSHOT_MAX_ZOOM;
+  var modeMatches=wantsNational
+    ? activeDatasetMode==="national-static"
+    : activeDatasetMode!=="national-static";
+
   if (
     !force &&
+    modeMatches &&
     activeCoverage &&
     activeVenueById.size &&
     boundsContain(activeCoverage,current)
@@ -2543,7 +2682,9 @@ async function requestCanonicalViewport(force,reason) {
     return;
   }
 
-  var coverage=paddedBounds(current);
+  var coverage=wantsNational
+    ? NATIONAL_COVERAGE
+    : paddedBounds(current);
   var generation=++requestGeneration;
   lastRequestReason=String(reason || "viewport");
 
@@ -2568,7 +2709,12 @@ async function requestCanonicalViewport(force,reason) {
   );
 
   try {
-    var rows=await fetchCanonicalRows(coverage,generation,controller);
+    var rows=await fetchCanonicalRows(
+      coverage,
+      generation,
+      controller,
+      wantsNational
+    );
     if (!rows) return;
 
     if (
@@ -2583,7 +2729,12 @@ async function requestCanonicalViewport(force,reason) {
       return;
     }
 
-    commitVenueRows(rows,coverage,generation,"network");
+    commitVenueRows(
+      rows,
+      coverage,
+      generation,
+      wantsNational ? "national-static" : "network"
+    );
   } catch (error) {
     if (error && error.name === "AbortError") return;
     if (generation !== requestGeneration) return;
