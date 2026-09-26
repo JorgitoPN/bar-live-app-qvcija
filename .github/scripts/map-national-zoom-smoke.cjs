@@ -281,3 +281,4 @@ const { chromium } = require('playwright');
   console.error(err && err.stack || err);
   process.exit(1);
 });
+// validation-trigger: 2026-09-26-v20-current-production
