@@ -1,4 +1,4 @@
-// BarLive neutral service worker v35.
+// BarLive neutral service worker v36.
 // Marker/data/rendering logic lives exclusively in the application bundle.
 // This worker only retires obsolete runtime-patch caches during migration.
 
