@@ -398,6 +398,12 @@ const { chromium } = require('playwright');
       openFilter.stateAudit.unscheduledMarkedOpen
     );
   }
+  if (openFilter.stateAudit.openFromOsmOnly !== 0) {
+    throw new Error(
+      'Open-only still trusts OSM-only hours while BarLive has no visible schedule: ' +
+      openFilter.stateAudit.openFromOsmOnly
+    );
+  }
 
   await frame.evaluate(() => window.setStateFilter('todos'));
   await frame.waitForTimeout(100);
