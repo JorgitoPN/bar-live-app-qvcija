@@ -119,6 +119,11 @@
 }
 #barlive-mini-center-v48 svg{width:25px;height:25px;display:block}
 #barlive-mini-center-v48:hover{background:#fff}
+#barlive-fixed-logo-v51{
+  position:fixed;left:22px;top:18px;width:180px;height:60px;object-fit:contain;
+  object-position:left center;z-index:2147482500;pointer-events:none;display:block;
+}
+@media (max-width:1023px){#barlive-fixed-logo-v51{display:none!important}}
 </style>
 <script id="barlive-explore-runtime-v48">
 (function(){"use strict";
@@ -142,6 +147,21 @@ try{
 }catch(_){}
 
 function txt(el){return String(el&&el.textContent||"").replace(/\s+/g," ").trim()}
+
+function ensureBrandLogo(){
+  if(window.innerWidth<1024)return;
+  var img=document.getElementById("barlive-fixed-logo-v51");
+  if(!img){
+    img=document.createElement("img");
+    img.id="barlive-fixed-logo-v51";
+    img.alt="BarLive";
+    img.src=LOGO;
+    img.decoding="async";
+    document.body.appendChild(img);
+  }else if(img.getAttribute("src")!==LOGO){
+    img.setAttribute("src",LOGO);
+  }
+}
 
 function fixLogo(){
   var imgs=document.querySelectorAll("img");
@@ -353,48 +373,85 @@ function installMiniPopupBridge(){
 }
 
 var lastAutoPopupName="";
-function syncSelectedVenuePopup(){
-  if(!/^\/explorar\/?$/.test(location.pathname.replace(/^\/\(tabs\)/,"")))return;
-  var buttons=document.querySelectorAll("button,[role=button]");
-  var overlay=null,name="";
-  for(var i=0;i<buttons.length;i++){
-    if(txt(buttons[i])!=="Ver local")continue;
-    var p=buttons[i];
-    for(var d=0;d<6&&p;d++,p=p.parentElement){
+var lastAutoPopupAt=0;
+function getMiniMapFrame(){
+  var fs=frames(),best=null,bestArea=0;
+  for(var i=0;i<fs.length;i++){
+    var r=null;try{r=fs[i].getBoundingClientRect()}catch(_){}
+    if(!r||r.width<300||r.height<220)continue;
+    var area=r.width*r.height;
+    if(area>bestArea){best=fs[i];bestArea=area}
+  }
+  return best;
+}
+
+function findLegacySelectionOverlay(frame){
+  if(!frame)return null;
+  var fr=null;try{fr=frame.getBoundingClientRect()}catch(_){return null}
+  var nodes=document.querySelectorAll("button,[role=button]");
+  for(var i=0;i<nodes.length;i++){
+    if(txt(nodes[i])!=="Ver local")continue;
+    var br=null;try{br=nodes[i].getBoundingClientRect()}catch(_){}
+    if(!br)continue;
+    var cx=br.left+br.width/2,cy=br.top+br.height/2;
+    if(cx<fr.left||cx>fr.right||cy<fr.top||cy>fr.bottom)continue;
+    var p=nodes[i];
+    for(var d=0;d<7&&p;d++,p=p.parentElement){
       var r=null;try{r=p.getBoundingClientRect()}catch(_){}
-      if(!r||r.width<250||r.width>700||r.height<55||r.height>180)continue;
-      if(r.top<80||r.left<300)continue;
-      var kids=p.querySelectorAll("div,span");
-      for(var k=0;k<kids.length;k++){
-        var t=txt(kids[k]);
-        if(t&&t!=="Ver local"&&!PROVINCES.has(t)&&t.length<100){
+      if(!r)continue;
+      if(r.width>=260&&r.width<=700&&r.height>=55&&r.height<=190){
+        var name="";
+        var kids=p.querySelectorAll("div,span,p");
+        for(var k=0;k<kids.length;k++){
+          var t=txt(kids[k]);
+          if(!t||t==="Ver local"||PROVINCES.has(t)||t.length>100)continue;
           try{
             var cs=getComputedStyle(kids[k]),fs=parseFloat(cs.fontSize||"0"),fw=parseInt(cs.fontWeight||"0",10);
-            if(fs>=13&&fw>=700){name=t;break}
+            if(fs>=13&&fw>=700&&!/^(Abierto|Cerrado|\d)/i.test(t)){name=t;break}
           }catch(_){}
         }
+        if(name)return {node:p,name:name};
       }
-      if(name){overlay=p;break}
     }
-    if(overlay)break;
   }
-  if(!overlay||!name)return;
-  overlay.style.display="none";
-  if(lastAutoPopupName===name)return;
-  lastAutoPopupName=name;
+  return null;
+}
+
+function openCanonicalMiniPopup(frame,local){
+  if(!frame||!local)return false;
+  var lat=Number(local.latitud),lng=Number(local.longitud);
+  if(!isFinite(lat)||!isFinite(lng))return false;
+  try{
+    var w=frame.contentWindow;
+    if(!w||typeof w.showPopupFromNative!=="function")return false;
+    if(typeof w.flyToLocation==="function")w.flyToLocation(lat,lng,16);
+    w.showPopupFromNative(local,{lng:lng,lat:lat});
+    return true;
+  }catch(_){return false}
+}
+
+function syncSelectedVenuePopup(){
+  if(!/^\/explorar\/?$/.test(location.pathname.replace(/^\/\(tabs\)/,"")))return;
+  var frame=getMiniMapFrame();
+  var overlay=findLegacySelectionOverlay(frame);
+  if(!overlay)return;
+  overlay.node.style.display="none";
+  var name=overlay.name;
+  var now=Date.now();
+  if(lastAutoPopupName===name&&now-lastAutoPopupAt<1200)return;
   loadVenueByName(name).then(function(local){
     if(!local)return;
-    var fs=frames();
-    if(!fs.length)return;
-    var lat=Number(local.latitud),lng=Number(local.longitud);
-    if(!isFinite(lat)||!isFinite(lng))return;
-    try{
-      var w=fs[0].contentWindow;
-      if(w&&typeof w.flyToLocation==="function")w.flyToLocation(lat,lng,16);
-      if(w&&typeof w.showPopupFromNative==="function"){
-        w.showPopupFromNative(local,{lng:lng,lat:lat});
+    var tries=0;
+    function attempt(){
+      tries++;
+      if(openCanonicalMiniPopup(frame,local)){
+        lastAutoPopupName=name;
+        lastAutoPopupAt=Date.now();
+        return;
       }
-    }catch(_){}
+      if(tries<12)setTimeout(attempt,150);
+    }
+    attempt();
   });
 }
 
@@ -457,6 +514,7 @@ function hydrateCardAddresses(){
 }
 
 function afterUi(){
+  ensureBrandLogo();
   fixLogo();
   installMiniCenter();
   installMiniPopupBridge();
@@ -466,6 +524,7 @@ function afterUi(){
   hydrateCardAddresses();
 }
 function start(){
+  ensureBrandLogo();
   fixLogo();
   installMiniCenter();
   if(lastCoords)applyCoords(lastCoords,13);
@@ -474,10 +533,10 @@ function start(){
   setTimeout(afterUi,1200);
   setTimeout(function(){if(lastCoords)applyCoords(lastCoords,13)},2200);
   document.addEventListener("click",function(){
-    setTimeout(function(){raiseProvince();fixLogo();installMiniCenter();hydrateCardAddresses();syncSelectedVenuePopup()},30);
+    setTimeout(function(){raiseProvince();ensureBrandLogo();fixLogo();installMiniCenter();hydrateCardAddresses();syncSelectedVenuePopup()},30);
   },true);
   new MutationObserver(function(){
-    setTimeout(function(){fixLogo();installMiniCenter();hydrateCardAddresses();syncSelectedVenuePopup()},0);
+    setTimeout(function(){ensureBrandLogo();fixLogo();installMiniCenter();hydrateCardAddresses();syncSelectedVenuePopup()},0);
   }).observe(document.documentElement,{subtree:true,childList:true});
   addEventListener("resize",function(){setTimeout(afterUi,80)},{passive:true});
   addEventListener("popstate",function(){setTimeout(afterUi,100)});
@@ -485,7 +544,7 @@ function start(){
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start();
 })();
 </script>
-<script src="/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8-explore-fixed-20260926-9.js?v=stable-web-v44-20260926" defer></script>
+<script src="/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8-explore-fixed-20260926-9.js?v=stable-web-v51-20260927" defer></script>
 
 
 
