@@ -1430,6 +1430,7 @@ var activeDatasetMode = "none";
 var nationalSnapshotCompact = null;
 var viewportTileManifest = null;
 var viewportTileCache = new Map();
+var startupPrewarmPromise = null;
 var lastNationalStateRefreshAt = 0;
 var requestGeneration = 0;
 var requestAbortController = null;
@@ -3696,11 +3697,13 @@ function init(){
     try {
       var startupBounds=getCurrentBounds();
       if (startupBounds) {
-        void prewarmStaticViewportTiles(
+        startupPrewarmPromise=prewarmStaticViewportTiles(
           paddedBounds(startupBounds)
         );
       }
-    } catch (_) {}
+    } catch (_) {
+      startupPrewarmPromise=null;
+    }
   }
 
   try {
@@ -3714,7 +3717,8 @@ function init(){
 
   function bootstrapCanonicalMap(trigger) {
     if (didBootstrapCanonicalMap) return;
-    if (!map || !map.isStyleLoaded()) return;
+
+    if (!map || !(map.style && map.style._loaded)) return;
 
     didBootstrapCanonicalMap=true;
 
@@ -3732,12 +3736,23 @@ function init(){
     // viewport first so markers and schedule colours paint immediately.
     var warmRestored=restoreViewportCache(true);
 
-    // Start BarLive data as soon as the style object is ready. We do not wait
-    // for all OpenFreeMap base tiles/glyphs to finish before painting markers.
-    requestCanonicalViewport(
-      true,
-      warmRestored ? "style-cache-reconcile" : "style-ready"
-    );
+    var startCanonicalRequest=function() {
+      requestCanonicalViewport(
+        true,
+        warmRestored ? "early-cache-reconcile" : "early-style-ready"
+      );
+    };
+
+    if (startupPrewarmPromise) {
+      var pendingPrewarm=startupPrewarmPromise;
+      startupPrewarmPromise=null;
+      Promise.resolve(pendingPrewarm).then(
+        startCanonicalRequest,
+        startCanonicalRequest
+      );
+    } else {
+      startCanonicalRequest();
+    }
 
     refreshTimer=setInterval(function(){
       refreshCanonicalStates();
@@ -3755,6 +3770,12 @@ function init(){
     scheduleDiagnostics("bootstrap-"+String(trigger||"unknown"));
   }
 
+  bootstrapCanonicalMap("internal-ready");
+
+  map.on("styledata",function(){
+    bootstrapCanonicalMap("styledata");
+  });
+
   map.on("style.load",function(){
     bootstrapCanonicalMap("style.load");
   });
@@ -3762,10 +3783,6 @@ function init(){
   map.on("load",function(){
     bootstrapCanonicalMap("load");
   });
-
-  if (map.isStyleLoaded()) {
-    bootstrapCanonicalMap("sync");
-  }
 }
 
 window.addEventListener("beforeunload",function(){
