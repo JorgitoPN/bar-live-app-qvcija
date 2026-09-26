@@ -1,0 +1,50 @@
+name: Apply BarLive map style bootstrap
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/apply-map-style-bootstrap.yml'
+      - '.github/scripts/apply-map-style-bootstrap.js'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-production-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+      - name: Patch map style bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/scripts/apply-map-style-bootstrap.js
+          grep -Fq 'canonical-map-v11-style-bootstrap-1cb6aa7-20260926' index.html
+          grep -Fq '[MAP_RENDER][BOOTSTRAP]' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq 'map.on("style.load"' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq 'style-cache-reconcile' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq '/sw.js?v=24' index.html
+          grep -Fq 'canonical-map-v11-style-bootstrap' version.json
+      - name: Commit v11 production bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet; then
+            echo 'No production changes needed.'
+            exit 0
+          fi
+          git add _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js \
+            index.html 404.html explorar/mapa/index.html sw.js version.json
+          git add explorar/index.html detalle/local/index.html 2>/dev/null || true
+          git commit -m 'perf(web-map): bootstrap venue data on style load'
+          git push origin gh-pages
