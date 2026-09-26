@@ -1,0 +1,37 @@
+name: Inspect compiled tabs lazy flags
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/inspect-tabs-lazy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout bundle
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          sparse-checkout: |
+            _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          sparse-checkout-cone-mode: false
+      - name: Print tabs contexts
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js').read_text(encoding='utf-8')
+          for needle in ["tabBarStyle:{display:'none'},lazy:!1", 'name:"explorar"', 'name:"eventos"', 'name:"favoritos"', 'name:"social"', 'name:"perfil"']:
+              i=s.find(needle)
+              print('\nNEEDLE',needle,'INDEX',i)
+              if i>=0:
+                  print(s[max(0,i-2200):min(len(s),i+5000)])
+          PY
