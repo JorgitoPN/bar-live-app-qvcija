@@ -221,6 +221,17 @@ for (const html of walk(siteRoot)) {
   fs.writeFileSync(html, next, 'utf8');
   htmlUpdates++;
 }
-if (!htmlUpdates) throw new Error('No HTML entry references were updated');
+if (!htmlUpdates) {
+  const alreadyReferenced = walk(siteRoot).some((html) => {
+    try {
+      return fs.readFileSync(html, 'utf8').includes(newEntry);
+    } catch (_) {
+      return false;
+    }
+  });
+  if (!alreadyReferenced) {
+    throw new Error('No HTML entry references were updated');
+  }
+}
 
 console.log(JSON.stringify({sourceEntry,newEntry,htmlUpdates},null,2));
