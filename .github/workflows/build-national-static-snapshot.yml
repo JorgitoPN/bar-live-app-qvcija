@@ -1,0 +1,47 @@
+name: Build static national map snapshot
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/build-national-static-snapshot.yml'
+      - '.github/scripts/build-national-static-snapshot.cjs'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+
+      - name: Build compact national snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/scripts/build-national-static-snapshot.cjs
+          test -s map-data/national-venues-v1.json
+          test -s map-data/national-venues-v1.meta.json
+          node -e "const m=require('./map-data/national-venues-v1.meta.json'); if(m.count<100000) process.exit(1); console.log(m)"
+
+      - name: Commit snapshot when changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet -- map-data/national-venues-v1.json; then
+            echo 'National snapshot unchanged.'
+            exit 0
+          fi
+          git add map-data/national-venues-v1.json map-data/national-venues-v1.meta.json
+          git commit -m 'data(web-map): refresh compact national snapshot'
+          git push origin gh-pages
