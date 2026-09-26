@@ -19,7 +19,7 @@ const { chromium } = require('playwright');
   });
 
   const response = await page.goto(
-    'https://barliveapp.es/explorar/mapa?national-zoom-smoke=20260926-v8',
+    'https://barliveapp.es/explorar/mapa?national-zoom-smoke=20260926-v9',
     { waitUntil: 'domcontentloaded', timeout: 60000 }
   );
   if (!response || response.status() !== 200) {
