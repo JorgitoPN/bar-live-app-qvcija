@@ -1,0 +1,37 @@
+name: Inspect production map bootstrap
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/inspect-map-bootstrap.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout bundle
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          sparse-checkout: |
+            _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          sparse-checkout-cone-mode: false
+      - name: Print bootstrap context
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js').read_text(encoding='utf-8')
+          for needle in ['map.on("style.load"', '[MAP_RENDER][BOOTSTRAP]', 'warmRestored ? "style-cache-reconcile"']:
+              i=s.find(needle)
+              print('\nNEEDLE',needle,'INDEX',i)
+              if i>=0:
+                  print(s[max(0,i-1800):min(len(s),i+2600)])
+          PY
