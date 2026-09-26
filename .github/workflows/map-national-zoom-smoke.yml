@@ -1,0 +1,44 @@
+name: BarLive national zoom smoke
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/map-national-zoom-smoke.yml'
+      - '.github/scripts/map-national-zoom-smoke.cjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  national-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout test script
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          sparse-checkout: |
+            .github/scripts/map-national-zoom-smoke.cjs
+          sparse-checkout-cone-mode: false
+
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/barlive-national-smoke
+          cd /tmp/barlive-national-smoke
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.57.0 --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          cp "$GITHUB_WORKSPACE/.github/scripts/map-national-zoom-smoke.cjs" .
+
+      - name: Test production national zoom
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/barlive-national-smoke
+          node map-national-zoom-smoke.cjs
