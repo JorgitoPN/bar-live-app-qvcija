@@ -141,6 +141,35 @@ const { chromium } = require('playwright');
       sourceFeatures: features.length,
       uuidFeatures: ids.length,
       uniqueUuids: new Set(ids).size,
+      scheduleAudit: features.reduce((acc, feature) => {
+        const props = feature?.properties || {};
+        const sid = Number(props.s ?? feature?.id);
+        let state = 'unknown';
+        if (Number.isFinite(sid)) {
+          try {
+            state = String(map.getFeatureState({
+              source:'barlive-hybrid-venues',
+              sourceLayer:'locales',
+              id:sid
+            })?.markerState || 'unknown');
+          } catch (_) {}
+        }
+        const h = props.h != null && String(props.h).trim() !== '' &&
+          String(props.h).trim() !== '{}' && String(props.h).trim() !== '[]';
+        const o = props.o != null && String(props.o).trim() !== '';
+        if (state === 'open') {
+          acc.open += 1;
+          if (!h && !o) acc.openWithoutAnySchedule += 1;
+          else if (!h && o) acc.openFromOsmOnly += 1;
+          else if (h) acc.openWithBarLiveSchedule += 1;
+        }
+        return acc;
+      }, {
+        open:0,
+        openWithoutAnySchedule:0,
+        openFromOsmOnly:0,
+        openWithBarLiveSchedule:0
+      }),
     };
   });
 
