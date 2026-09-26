@@ -1,0 +1,49 @@
+name: Apply BarLive map tile prefetch
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/apply-map-tile-prefetch.yml'
+      - '.github/scripts/apply-map-tile-prefetch.js'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+      - name: Patch tile prefetch
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/scripts/apply-map-tile-prefetch.js
+          grep -Fq 'canonical-map-v13-prefetch-5d7a65b-20260926' index.html
+          grep -Fq 'Promise.allSettled(jobs)' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq 'bootstrapCanonicalMap("styledata")' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq '/sw.js?v=26' index.html
+          grep -Fq 'canonical-map-v13-prefetch' version.json
+      - name: Commit v13 production bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet; then
+            echo 'No production changes needed.'
+            exit 0
+          fi
+          git add _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js \
+            index.html 404.html explorar/mapa/index.html sw.js version.json
+          git add explorar/index.html detalle/local/index.html 2>/dev/null || true
+          git commit -m 'perf(web-map): prefetch local CDN tiles before renderer bootstrap'
+          git push origin gh-pages
