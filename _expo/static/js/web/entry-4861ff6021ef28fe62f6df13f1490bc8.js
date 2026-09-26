@@ -1392,6 +1392,16 @@ var LIVE_LAYER = "barlive-venues-live";
 var UPCOMING_LAYER = "barlive-venues-upcoming";
 var PROMO_LAYER = "barlive-venues-promo";
 
+// v21 hybrid renderer.
+// The broad map is drawn from shared Mapbox Vector Tiles, almost like a
+// pre-rendered image: MapLibre/GPU only receives the few tiles visible on
+// screen. Close zoom keeps the existing exact GeoJSON viewport renderer.
+var HYBRID_SOURCE = "barlive-hybrid-venues";
+var HYBRID_LAYER = "barlive-hybrid-venues-circle";
+var HYBRID_TILE_URL = "https://barlive-api.onrender.com/api/map/tiles/{z}/{x}/{y}.pbf";
+var HYBRID_SWITCH_ZOOM = 10;
+var HYBRID_SOURCE_MAX_ZOOM = 9;
+
 var VENUE_DATA_URL = "https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/locales";
 var NATIONAL_SNAPSHOT_URL = "https://barliveapp.es/map-data/national-venues-v1.json";
 var NATIONAL_SNAPSHOT_MAX_ZOOM = 7;
@@ -1438,6 +1448,8 @@ var viewportRequestInFlight = false;
 var requestTimer = null;
 var refreshTimer = null;
 var lastRequestReason = "none";
+var rendererMode = "hybrid";
+var hybridTileFailed = false;
 
 var stateFilterMode = "todos";
 var categoryFilter = "todas";
@@ -1527,6 +1539,7 @@ function madridClockParts() {
     }
   } catch (_) {}
 
+  // Fallback only for runtimes without Intl timezone support.
   var fallbackDay=(fallback.getDay()+6)%7;
   return {
     dayIndex:fallbackDay,
@@ -1562,6 +1575,7 @@ function normalizeScheduleRanges(value) {
       .map(function(item){return String(item==null?"":item).trim();})
       .filter(Boolean);
   }
+
   if (typeof value==="string") {
     var text=value.trim();
     if (!text) return [];
@@ -1573,6 +1587,7 @@ function normalizeScheduleRanges(value) {
     }
     return [text];
   }
+
   return [];
 }
 
@@ -1642,10 +1657,12 @@ function weeklyScheduleFromBarLive(value) {
     try { hours=JSON.parse(hours); }
     catch (_) { return null; }
   }
+
   if (!hours || typeof hours!=="object" || Array.isArray(hours)) return null;
 
   var days=emptyWeeklySchedule();
   var recognized=false;
+
   Object.keys(hours).forEach(function(key) {
     var dayIndex=normalizeScheduleDayKey(key);
     if (dayIndex===null) return;
@@ -1660,6 +1677,7 @@ function weeklyScheduleFromBarLive(value) {
       if (parsed) days[dayIndex].ranges.push(parsed);
     });
   });
+
   return recognized ? days : null;
 }
 
@@ -1980,6 +1998,81 @@ function paddedBounds(bounds) {
   };
 }
 
+function shouldUseHybridRenderer() {
+  return !!(
+    map &&
+    Number(map.getZoom()) < HYBRID_SWITCH_ZOOM &&
+    !advancedFilterActive &&
+    !hybridTileFailed
+  );
+}
+
+function hybridFilterExpression() {
+  var expression = ["all"];
+
+  if (categoryFilter !== "todas") {
+    expression.push([
+      "==",
+      ["get","tipo"],
+      canonicalCategory(categoryFilter)
+    ]);
+  }
+
+  if (stateFilterMode === "no_cerrados") {
+    expression.push(["==",["get","estado"],"abierto"]);
+  }
+
+  return expression;
+}
+
+function setLayerVisibility(id,visible) {
+  if (!map || !map.getLayer(id)) return;
+  try {
+    map.setLayoutProperty(id,"visibility",visible ? "visible" : "none");
+  } catch (_) {}
+}
+
+function setHybridVisibility(visible) {
+  setLayerVisibility(HYBRID_LAYER,visible);
+}
+
+function setCanonicalVisibility(visible) {
+  [VENUE_LAYER,ICON_LAYER,LIVE_LAYER,UPCOMING_LAYER,PROMO_LAYER].forEach(function(id) {
+    setLayerVisibility(id,visible);
+  });
+}
+
+function enterHybridTileMode(reason) {
+  if (!map || hybridTileFailed || advancedFilterActive) return false;
+
+  rendererMode="hybrid";
+  setCanonicalVisibility(false);
+  setHybridVisibility(true);
+
+  if (requestAbortController) {
+    try { requestAbortController.abort(); } catch (_) {}
+    requestAbortController=null;
+  }
+  viewportRequestInFlight=false;
+
+  console.log(
+    "[MAP_RENDER][RENDERER] mode=hybrid reason="+String(reason||"unknown")+
+    " zoom="+map.getZoom().toFixed(2)
+  );
+  return true;
+}
+
+function activateCanonicalRenderer(reason) {
+  if (!map) return;
+  rendererMode="canonical";
+  setHybridVisibility(false);
+  setCanonicalVisibility(true);
+  console.log(
+    "[MAP_RENDER][RENDERER] mode=canonical reason="+String(reason||"unknown")+
+    " zoom="+map.getZoom().toFixed(2)
+  );
+}
+
 function datasetFilterExpression() {
   var expression = ["all"];
 
@@ -2020,7 +2113,15 @@ function decoratedFilterExpression(baseFilter,ids) {
 function applyFilters() {
   if (!map) return;
   var filter = datasetFilterExpression();
+  var hybridFilter = hybridFilterExpression();
 
+  if (map.getLayer(HYBRID_LAYER)) {
+    map.setFilter(HYBRID_LAYER,hybridFilter);
+  }
+
+  // The canonical venue and category-glyph layers see the full filtered
+  // dataset. Decorative layers must only inspect venues that are actually
+  // decorated; otherwise MapLibre re-evaluates the whole source 3 extra times.
   if (map.getLayer(VENUE_LAYER)) map.setFilter(VENUE_LAYER,filter);
   if (map.getLayer(ICON_LAYER)) map.setFilter(ICON_LAYER,filter);
   if (map.getLayer(LIVE_LAYER)) {
@@ -2187,6 +2288,8 @@ function countExpectedVisible(bounds) {
 function countRenderedVenueIds() {
   if (!map || !map.getLayer(VENUE_LAYER)) return 0;
 
+  // queryRenderedFeatures is diagnostic only. On the national 120k-point
+  // dataset it can monopolize the main thread for no product benefit.
   if (activeVenueById.size > 20000 || map.getZoom() < 9) return -1;
 
   var rendered=[];
@@ -2229,7 +2332,9 @@ function diagnostics(reason) {
     category:categoryFilter,
     requestGeneration:requestGeneration,
     datasetGeneration:activeDatasetGeneration,
-    requestReason:lastRequestReason
+    requestReason:lastRequestReason,
+    rendererMode:rendererMode,
+    hybridTileFailed:hybridTileFailed
   };
 
   window.__barliveLastDiagnostics=snapshot;
@@ -2314,6 +2419,9 @@ function commitVenueRows(rows,coverage,generation,sourceLabel) {
     sourceLabel === "state-refresh-local" &&
     activeDatasetMode === "national-static"
   ) {
+    // A national schedule refresh is intentionally infrequent. Advance the
+    // timestamp after the atomic commit so the 60s timer cannot immediately
+    // recalculate all 120k venues again on every subsequent tick.
     lastNationalStateRefreshAt=Date.now();
   } else if (sourceLabel === "network" || sourceLabel === "local-cache") {
     activeDatasetMode="viewport";
@@ -2322,6 +2430,11 @@ function commitVenueRows(rows,coverage,generation,sourceLabel) {
   source.setData(normalized.collection);
   reapplyAuxiliaryFeatureState();
   applyFilters();
+
+  if (!shouldUseHybridRenderer()) {
+    activateCanonicalRenderer("commit-"+String(sourceLabel||"unknown"));
+  }
+
   if (sourceLabel !== "local-cache") {
     persistViewportCache(activeRows,activeCoverage);
   }
@@ -2369,6 +2482,9 @@ function restoreViewportCache(recenter) {
       Date.now()-Number(payload.savedAt||0) > DATA_CACHE_MAX_AGE
     ) return false;
 
+    // Direct refreshes start from the national fallback viewport. Reuse the
+    // last real viewport before evaluating coverage so a warm cache can paint
+    // immediately instead of being rejected just because the shell starts at z6.
     if (
       recenter === true &&
       payload.view &&
@@ -2385,6 +2501,8 @@ function restoreViewportCache(recenter) {
     var current=getCurrentBounds();
     if (!boundsContain(payload.coverage,current)) return false;
 
+    // Cached rows include schedules. Recompute the marker state with the
+    // current Madrid clock so a refresh never revives stale colours.
     var realtime=applyRealtimeScheduleStates(payload.rows);
     var generation=requestGeneration;
 
@@ -2627,6 +2745,7 @@ async function prewarmStaticViewportTiles(bounds) {
       typeof manifest.tiles!=="object"
     ) return;
 
+    // Share the parsed manifest with the real viewport request.
     viewportTileManifest=manifest;
 
     var keys=viewportTileKeys(bounds,manifest);
@@ -2661,7 +2780,9 @@ async function prewarmStaticViewportTiles(bounds) {
       " cached="+viewportTileCache.size+
       " elapsedMs="+(Date.now()-started)
     );
-  } catch (_) {}
+  } catch (_) {
+    // Pure optimization. The canonical request keeps its CDN + REST fallback.
+  }
 }
 
 async function fetchStaticViewportRows(bounds,generation,controller) {
@@ -2821,6 +2942,8 @@ async function fetchNationalVenueRows(bounds,generation,controller) {
       String(error && error.message || error)
     );
 
+    // Native WebViews with restrictive cross-origin policies keep the proven
+    // REST path as a safety net. Web production normally uses the static CDN.
     return fetchPagedRows(
       bounds,
       generation,
@@ -2908,6 +3031,8 @@ async function fetchCanonicalRows(
 }
 
 async function refreshCanonicalStates() {
+  if (shouldUseHybridRenderer() || rendererMode === "hybrid") return;
+
   if (
     !map ||
     !map.getSource(VENUE_SOURCE) ||
@@ -2916,6 +3041,7 @@ async function refreshCanonicalStates() {
     !activeRows.length
   ) return;
 
+  // A viewport replacement owns the canonical dataset while it is in flight.
   if (viewportRequestInFlight) {
     console.log(
       "[MAP_RENDER][STATE_REFRESH_SKIPPED] reason=viewport-in-flight"+
@@ -2960,6 +3086,13 @@ async function refreshCanonicalStates() {
 async function requestCanonicalViewport(force,reason) {
   if (!map || !map.getSource(VENUE_SOURCE)) return;
 
+  if (shouldUseHybridRenderer()) {
+    lastRequestReason=String(reason || "hybrid");
+    enterHybridTileMode(lastRequestReason);
+    scheduleDiagnostics("hybrid-tile-only");
+    return;
+  }
+
   var current=getCurrentBounds();
   if (!current) return;
 
@@ -2982,6 +3115,7 @@ async function requestCanonicalViewport(force,reason) {
     activeVenueById.size &&
     boundsContain(activeCoverage,current)
   ) {
+    activateCanonicalRenderer("coverage-hit");
     scheduleDiagnostics("coverage-hit");
     return;
   }
@@ -3208,7 +3342,12 @@ window.applyAdvancedFilters=function(criteria){
   applyAdvancedFeatureState();
   applyFilters();
 
-  if (advancedFilterActive) requestAdvancedViewport();
+  if (advancedFilterActive) {
+    requestCanonicalViewport(true,"advanced-filter");
+    requestAdvancedViewport();
+  } else if (shouldUseHybridRenderer()) {
+    enterHybridTileMode("advanced-filter-cleared");
+  }
 };
 
 window.setLocalesFromNative=function(locales,mediaRows,meta){
@@ -3241,6 +3380,7 @@ window.setLiveEvents=function(live,upcoming){
   liveIds=new Set((live||[]).map(String));
   upcomingIds=new Set((upcoming||[]).map(String));
 
+  // Clear only venues that used to be decorated and no longer are.
   previousIds.forEach(function(id) {
     if (!liveIds.has(id) && !upcomingIds.has(id)) {
       setVenueFeatureState(id,{eventState:"none"});
@@ -3255,6 +3395,7 @@ window.setActivePromos=function(promos){
   var previousIds=new Set(promoIds);
   promoIds=new Set(Object.keys(promos||{}).map(String));
 
+  // Clear only promotions that disappeared; do not rewrite every venue.
   previousIds.forEach(function(id) {
     if (!promoIds.has(id)) {
       setVenueFeatureState(id,{hasPromo:false});
@@ -3411,6 +3552,57 @@ function registerCategoryIcons() {
   });
 }
 
+function addHybridSourceAndLayer() {
+  map.addSource(HYBRID_SOURCE,{
+    type:"vector",
+    tiles:[HYBRID_TILE_URL],
+    minzoom:4,
+    maxzoom:HYBRID_SOURCE_MAX_ZOOM,
+    promoteId:"id"
+  });
+
+  map.addLayer({
+    id:HYBRID_LAYER,
+    type:"circle",
+    source:HYBRID_SOURCE,
+    "source-layer":"locales",
+    minzoom:4,
+    layout:{visibility:"visible"},
+    paint:{
+      "circle-radius":[
+        "interpolate",["linear"],["zoom"],
+        4,1.6,
+        7,2.3,
+        9,3.2,
+        10.5,7.4,
+        13,10.5,
+        16,13,
+        20,14
+      ],
+      "circle-color":[
+        "match",
+        ["get","estado"],
+        "abierto","#22C55E",
+        "cerrado","#EF4444",
+        "#94A3B8"
+      ],
+      "circle-opacity":1,
+      "circle-stroke-width":[
+        "interpolate",["linear"],["zoom"],
+        4,["case",["==",["get","destacado"],true],3,0],
+        10.5,["case",["==",["get","destacado"],true],3,2],
+        20,["case",["==",["get","destacado"],true],3,2]
+      ],
+      "circle-stroke-color":[
+        "case",
+        ["==",["get","destacado"],true],
+        "#F59E0B",
+        "#FFFFFF"
+      ]
+    }
+  });
+}
+
 function addVenueSourceAndLayers() {
   map.addSource(VENUE_SOURCE,{
     type:"geojson",
@@ -3425,6 +3617,7 @@ function addVenueSourceAndLayers() {
     type:"circle",
     source:VENUE_SOURCE,
     minzoom:10.5,
+    layout:{visibility:"none"},
     paint:{
       "circle-radius":[
         "interpolate",["linear"],["zoom"],
@@ -3441,6 +3634,7 @@ function addVenueSourceAndLayers() {
     type:"circle",
     source:VENUE_SOURCE,
     minzoom:10.5,
+    layout:{visibility:"none"},
     paint:{
       "circle-radius":[
         "interpolate",["linear"],["zoom"],
@@ -3457,6 +3651,7 @@ function addVenueSourceAndLayers() {
     type:"circle",
     source:VENUE_SOURCE,
     minzoom:10.5,
+    layout:{visibility:"none"},
     paint:{
       "circle-radius":[
         "interpolate",["linear"],["zoom"],
@@ -3473,6 +3668,7 @@ function addVenueSourceAndLayers() {
     type:"circle",
     source:VENUE_SOURCE,
     minzoom:4,
+    layout:{visibility:"none"},
     paint:{
       "circle-radius":[
         "interpolate",["linear"],["zoom"],
@@ -3516,6 +3712,7 @@ function addVenueSourceAndLayers() {
     // large symbol-layout cost, so the inner glyph starts at z13.
     minzoom:13,
     layout:{
+      visibility:"none",
       "icon-image":[
         "case",
         ["==",["get","category"],"cafeteria"],"cat-cafeteria",
@@ -3576,15 +3773,33 @@ function requestPopupFromFeature(feature){
     feature.id ||
     ""
   );
+  if (!id) return;
 
   var venue=activeVenueById.get(id);
-  if (!venue || !venueIsVisible(venue)) return;
+  var props=feature.properties||{};
+  var featureCategory=canonicalCategory(props.category||props.tipo);
+  var featureState=normalizeMarkerState(
+    props.markerState!=null ? props.markerState : props.estado
+  );
+
+  if (venue) {
+    if (!venueIsVisible(venue)) return;
+  } else {
+    if (
+      categoryFilter !== "todas" &&
+      featureCategory !== canonicalCategory(categoryFilter)
+    ) return;
+    if (
+      stateFilterMode === "no_cerrados" &&
+      featureState !== "open"
+    ) return;
+  }
 
   var coords=feature.geometry && feature.geometry.coordinates;
 
   post("map_popup_request",{
     id:id,
-    markerState:venue.markerState,
+    markerState:venue ? venue.markerState : featureState,
     coordinates:Array.isArray(coords)
       ? {lng:Number(coords[0]),lat:Number(coords[1])}
       : null
@@ -3618,6 +3833,19 @@ function handleMapError(event) {
 
   console.warn("[MAP_RENDER][MAP_ERROR]",message);
 
+  if (
+    event &&
+    event.sourceId===HYBRID_SOURCE &&
+    !hybridTileFailed
+  ) {
+    hybridTileFailed=true;
+    setHybridVisibility(false);
+    console.warn("[MAP_RENDER][HYBRID_FALLBACK]",message);
+    setTimeout(function(){
+      requestCanonicalViewport(true,"hybrid-tile-error");
+    },0);
+  }
+
   post("map_error",{
     message:message,
     recoverable:true,
@@ -3627,9 +3855,20 @@ function handleMapError(event) {
 
 function setupMapEvents(){
   map.on("sourcedata",function(event){
-    if(event.sourceId!==VENUE_SOURCE) return;
-    reapplyAuxiliaryFeatureState();
-    scheduleDiagnostics("sourcedata");
+    if(event.sourceId===VENUE_SOURCE) {
+      reapplyAuxiliaryFeatureState();
+      scheduleDiagnostics("sourcedata");
+      return;
+    }
+    if(event.sourceId===HYBRID_SOURCE) {
+      scheduleDiagnostics("hybrid-sourcedata");
+    }
+  });
+
+  map.on("zoom",function(){
+    if (shouldUseHybridRenderer()) {
+      enterHybridTileMode("zoom");
+    }
   });
 
   map.on("moveend",function(){
@@ -3647,6 +3886,12 @@ function setupMapEvents(){
     scheduleDiagnostics("idle");
   });
 
+  map.on("click",HYBRID_LAYER,function(event){
+    requestPopupFromFeature(
+      event.features && event.features[0]
+    );
+  });
+
   map.on("click",VENUE_LAYER,function(event){
     requestPopupFromFeature(
       event.features && event.features[0]
@@ -3657,6 +3902,14 @@ function setupMapEvents(){
     requestPopupFromFeature(
       event.features && event.features[0]
     );
+  });
+
+  map.on("mouseenter",HYBRID_LAYER,function(){
+    map.getCanvas().style.cursor="pointer";
+  });
+
+  map.on("mouseleave",HYBRID_LAYER,function(){
+    map.getCanvas().style.cursor="";
   });
 
   map.on("mouseenter",VENUE_LAYER,function(){
@@ -3718,6 +3971,10 @@ function init(){
   function bootstrapCanonicalMap(trigger) {
     if (didBootstrapCanonicalMap) return;
 
+    // MapLibre's public isStyleLoaded() waits for base-style sources/tiles.
+    // BarLive only needs the style object itself to accept our GeoJSON source
+    // and layers. The internal _loaded flag becomes true much earlier and was
+    // verified in-browser to accept addSource/addLayer safely.
     if (!map || !(map.style && map.style._loaded)) return;
 
     didBootstrapCanonicalMap=true;
@@ -3728,14 +3985,27 @@ function init(){
       console.warn("[MAP_RENDER][ICON_WARNING]",error);
     }
 
+    addHybridSourceAndLayer();
     addVenueSourceAndLayers();
     setupMapEvents();
+
+    if (shouldUseHybridRenderer()) {
+      enterHybridTileMode("bootstrap");
+    } else {
+      rendererMode="hybrid";
+      setHybridVisibility(true);
+      setCanonicalVisibility(false);
+    }
 
     // Cache is only a warm-start input to the SAME canonical source.
     // On direct refresh (national fallback shell), restore the last real
     // viewport first so markers and schedule colours paint immediately.
-    var warmRestored=restoreViewportCache(true);
+    var warmRestored=restoreViewportCache(${a<=6?'true':'false'});
 
+    // The exact startup viewport tiles begin downloading as soon as MapLibre
+    // exists. If that prewarm is still in flight, let it finish before the
+    // canonical request so both paths share the same in-memory tile cache and
+    // never duplicate CDN requests.
     var startCanonicalRequest=function() {
       requestCanonicalViewport(
         true,
@@ -3764,18 +4034,23 @@ function init(){
     );
 
     post("map_ready",{
-      engine:"barlive-single-geojson-catalogue-v2"
+      engine:"barlive-hybrid-mvt-geojson-v1"
     });
 
     scheduleDiagnostics("bootstrap-"+String(trigger||"unknown"));
   }
 
+  // First attempt immediately: in MapLibre 3.6 the style object is already
+  // internally ready by the time the constructor returns in modern browsers.
   bootstrapCanonicalMap("internal-ready");
 
+  // If a runtime is slightly slower, styledata is the earliest safe retry.
   map.on("styledata",function(){
     bootstrapCanonicalMap("styledata");
   });
 
+  // Public events remain defensive fallbacks for native WebViews and future
+  // MapLibre versions. didBootstrapCanonicalMap keeps this strictly once-only.
   map.on("style.load",function(){
     bootstrapCanonicalMap("style.load");
   });
