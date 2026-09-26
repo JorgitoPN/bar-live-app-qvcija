@@ -191,6 +191,7 @@ const { chromium } = require('playwright');
   console.log('LOCAL_AFTER_NATIONAL_MS=' + (Date.now()-localStarted));
   console.log('LOCAL_AFTER_NATIONAL=' + JSON.stringify(localAfterNational));
 
+  await frame.waitForTimeout(500);
   const localRenderedDiag = await frame.evaluate(() => {
     const rendered = window.__barliveMap.queryRenderedFeatures();
     const venueFeatures = rendered.filter(f =>
