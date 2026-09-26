@@ -40,7 +40,11 @@ var PROMO_LAYER = "barlive-venues-promo";
 // screen. Close zoom keeps the existing exact GeoJSON viewport renderer.
 var HYBRID_SOURCE = "barlive-hybrid-venues";
 var HYBRID_LAYER = "barlive-hybrid-venues-circle";
-var HYBRID_TILE_URL = "https://barlive-api.onrender.com/api/map/tiles/{z}/{x}/{y}.pbf";
+var HYBRID_TILE_ROOT = "https://barliveapp.es/map-data/hybrid-mvt-v1";
+var HYBRID_MANIFEST_URL = HYBRID_TILE_ROOT + "/manifest.json";
+var HYBRID_TILE_URL =
+  HYBRID_TILE_ROOT +
+  "/{z}/{x}/{y}.pbf?v=6a75a4bbf07da418";
 var HYBRID_SWITCH_ZOOM = 10;
 var HYBRID_SOURCE_MAX_ZOOM = 9;
 
@@ -92,6 +96,9 @@ var refreshTimer = null;
 var lastRequestReason = "none";
 var rendererMode = "hybrid";
 var hybridTileFailed = false;
+var hybridStateBySid = new Map();
+var hybridStateRefreshTimer = null;
+var hybridManifestPromise = null;
 
 var stateFilterMode = "todos";
 var categoryFilter = "todas";
@@ -649,22 +656,197 @@ function shouldUseHybridRenderer() {
   );
 }
 
+function hybridCategoryCode(value) {
+  return NATIONAL_CATEGORY_BY_CODE.indexOf(canonicalCategory(value));
+}
+
 function hybridFilterExpression() {
   var expression = ["all"];
 
   if (categoryFilter !== "todas") {
-    expression.push([
-      "==",
-      ["get","tipo"],
-      canonicalCategory(categoryFilter)
-    ]);
-  }
-
-  if (stateFilterMode === "no_cerrados") {
-    expression.push(["==",["get","estado"],"abierto"]);
+    var code=hybridCategoryCode(categoryFilter);
+    if (code>=0) {
+      expression.push(["==",["get","t"],code]);
+    }
   }
 
   return expression;
+}
+
+function hybridOpacityExpression() {
+  if (stateFilterMode !== "no_cerrados") return 1;
+  return [
+    "case",
+    [
+      "==",
+      ["string",["feature-state","markerState"],"unknown"],
+      "open"
+    ],
+    1,
+    0
+  ];
+}
+
+function parseHybridScheduleValue(value) {
+  if (value==null) return null;
+  if (typeof value!=="string") return value;
+  var text=value.trim();
+  if (!text) return null;
+  if (
+    (text.charAt(0)==="{" && text.charAt(text.length-1)==="}") ||
+    (text.charAt(0)==="[" && text.charAt(text.length-1)==="]")
+  ) {
+    try { return JSON.parse(text); } catch (_) {}
+  }
+  return text;
+}
+
+function hybridScheduleRow(feature) {
+  var props=feature && feature.properties || {};
+  return {
+    horarios_completos:parseHybridScheduleValue(props.h),
+    google_business_status:props.b==null ? null : String(props.b),
+    osm_opening_hours:props.o==null ? null : String(props.o)
+  };
+}
+
+function refreshHybridVisibleStates(reason) {
+  if (!map || !map.getSource(HYBRID_SOURCE)) return;
+
+  var features=[];
+  try {
+    features=map.querySourceFeatures(
+      HYBRID_SOURCE,
+      {sourceLayer:"locales"}
+    ) || [];
+  } catch (_) {
+    return;
+  }
+
+  if (!features.length) return;
+
+  var clock=madridClockParts();
+  var bySid=new Map();
+
+  features.forEach(function(feature) {
+    var props=feature && feature.properties || {};
+    var sid=Number(props.s != null ? props.s : feature && feature.id);
+    if (!Number.isFinite(sid) || sid<=0) return;
+
+    if (props.h==null && props.b==null && props.o==null) return;
+    if (!bySid.has(sid)) bySid.set(sid,feature);
+  });
+
+  var entries=Array.from(bySid.entries());
+  if (!entries.length) return;
+
+  var index=0;
+  var changed=0;
+  var batchSize=500;
+
+  function pump() {
+    var end=Math.min(entries.length,index+batchSize);
+
+    for (;index<end;index+=1) {
+      var pair=entries[index];
+      var sid=pair[0];
+      var feature=pair[1];
+      var result=deriveRealtimeMarkerState(
+        hybridScheduleRow(feature),
+        clock
+      );
+      var nextState=normalizeMarkerState(result && result.state);
+      var previous=hybridStateBySid.get(sid);
+
+      if (previous===nextState) continue;
+
+      hybridStateBySid.set(sid,nextState);
+      try {
+        map.setFeatureState(
+          {
+            source:HYBRID_SOURCE,
+            sourceLayer:"locales",
+            id:sid
+          },
+          {markerState:nextState}
+        );
+        changed+=1;
+      } catch (_) {}
+    }
+
+    if (index<entries.length) {
+      requestAnimationFrame(pump);
+      return;
+    }
+
+    if (changed>0) {
+      console.log(
+        "[MAP_RENDER][HYBRID_STATE] reason="+String(reason||"unknown")+
+        " loaded="+entries.length+
+        " changed="+changed
+      );
+      scheduleDiagnostics("hybrid-state");
+    }
+  }
+
+  pump();
+}
+
+function scheduleHybridStateRefresh(reason) {
+  if (hybridStateRefreshTimer) clearTimeout(hybridStateRefreshTimer);
+  hybridStateRefreshTimer=setTimeout(function(){
+    hybridStateRefreshTimer=null;
+    refreshHybridVisibleStates(reason);
+  },45);
+}
+
+function prepareHybridStaticManifest() {
+  if (hybridManifestPromise) return hybridManifestPromise;
+
+  hybridManifestPromise=fetch(HYBRID_MANIFEST_URL,{
+    method:"GET",
+    cache:"no-cache",
+    headers:{Accept:"application/json"}
+  })
+    .then(function(response) {
+      if (!response.ok) {
+        throw new Error("hybrid manifest HTTP "+response.status);
+      }
+      return response.json();
+    })
+    .then(function(manifest) {
+      if (
+        !manifest ||
+        Number(manifest.v)!==1 ||
+        String(manifest.format||"")!=="mvt" ||
+        Number(manifest.rows||0)<100000 ||
+        !manifest.tileTemplate
+      ) {
+        throw new Error("invalid hybrid MVT manifest");
+      }
+
+      var template=String(manifest.tileTemplate);
+      HYBRID_TILE_URL=template.indexOf("http")===0
+        ? template
+        : "https://barliveapp.es"+template;
+
+      console.log(
+        "[MAP_RENDER][HYBRID_MANIFEST] rows="+Number(manifest.rows||0)+
+        " tiles="+Number(manifest.tileCount||0)+
+        " bytes="+Number(manifest.totalBytes||0)
+      );
+
+      return manifest;
+    })
+    .catch(function(error) {
+      console.warn(
+        "[MAP_RENDER][HYBRID_MANIFEST_FALLBACK]",
+        String(error && error.message || error)
+      );
+      return null;
+    });
+
+  return hybridManifestPromise;
 }
 
 function setLayerVisibility(id,visible) {
@@ -701,6 +883,7 @@ function enterHybridTileMode(reason) {
     "[MAP_RENDER][RENDERER] mode=hybrid reason="+String(reason||"unknown")+
     " zoom="+map.getZoom().toFixed(2)
   );
+  scheduleHybridStateRefresh("renderer-"+String(reason||"unknown"));
   return true;
 }
 
@@ -759,6 +942,11 @@ function applyFilters() {
 
   if (map.getLayer(HYBRID_LAYER)) {
     map.setFilter(HYBRID_LAYER,hybridFilter);
+    map.setPaintProperty(
+      HYBRID_LAYER,
+      "circle-opacity",
+      hybridOpacityExpression()
+    );
   }
 
   // The canonical venue and category-glyph layers see the full filtered
@@ -2200,7 +2388,13 @@ function addHybridSourceAndLayer() {
     tiles:[HYBRID_TILE_URL],
     minzoom:4,
     maxzoom:HYBRID_SOURCE_MAX_ZOOM,
-    promoteId:"id"
+    bounds:[
+      NATIONAL_COVERAGE.west,
+      NATIONAL_COVERAGE.south,
+      NATIONAL_COVERAGE.east,
+      NATIONAL_COVERAGE.north
+    ],
+    promoteId:"s"
   });
 
   map.addLayer({
@@ -2223,21 +2417,21 @@ function addHybridSourceAndLayer() {
       ],
       "circle-color":[
         "match",
-        ["get","estado"],
-        "abierto","#22C55E",
-        "cerrado","#EF4444",
+        ["string",["feature-state","markerState"],"unknown"],
+        "open","#22C55E",
+        "closed","#EF4444",
         "#94A3B8"
       ],
       "circle-opacity":1,
       "circle-stroke-width":[
         "interpolate",["linear"],["zoom"],
-        4,["case",["==",["get","destacado"],true],3,0],
-        10.5,["case",["==",["get","destacado"],true],3,2],
-        20,["case",["==",["get","destacado"],true],3,2]
+        4,["case",["==",["get","d"],1],3,0],
+        10.5,["case",["==",["get","d"],1],3,2],
+        20,["case",["==",["get","d"],1],3,2]
       ],
       "circle-stroke-color":[
         "case",
-        ["==",["get","destacado"],true],
+        ["==",["get","d"],1],
         "#F59E0B",
         "#FFFFFF"
       ]
@@ -2407,22 +2601,54 @@ function venueIsVisible(venue) {
 function requestPopupFromFeature(feature){
   if(!feature) return;
 
+  var props=feature.properties||{};
   var id=String(
-    feature.properties && (
-      feature.properties.venueId ||
-      feature.properties.id
-    ) ||
-    feature.id ||
+    props.venueId ||
+    props.id ||
+    props.i ||
     ""
   );
-  if (!id) return;
+
+  var coords=feature.geometry && feature.geometry.coordinates;
+
+  // Low zoom tiles intentionally omit 36-byte UUIDs. A click there zooms
+  // toward the venue first; UUIDs are present from z8 upward.
+  if (!id) {
+    if (Array.isArray(coords) && map) {
+      map.easeTo({
+        center:[Number(coords[0]),Number(coords[1])],
+        zoom:Math.max(8.25,Math.min(9.25,map.getZoom()+2.5)),
+        duration:280
+      });
+    }
+    return;
+  }
 
   var venue=activeVenueById.get(id);
-  var props=feature.properties||{};
-  var featureCategory=canonicalCategory(props.category||props.tipo);
+  var hybridCode=Number(props.t);
+  var featureCategory=canonicalCategory(
+    props.category ||
+    props.tipo ||
+    NATIONAL_CATEGORY_BY_CODE[hybridCode] ||
+    ""
+  );
+
   var featureState=normalizeMarkerState(
     props.markerState!=null ? props.markerState : props.estado
   );
+
+  if (!venue && props.s!=null && map) {
+    try {
+      var hybridFeatureState=map.getFeatureState({
+        source:HYBRID_SOURCE,
+        sourceLayer:"locales",
+        id:Number(props.s)
+      });
+      featureState=normalizeMarkerState(
+        hybridFeatureState && hybridFeatureState.markerState
+      );
+    } catch (_) {}
+  }
 
   if (venue) {
     if (!venueIsVisible(venue)) return;
@@ -2436,8 +2662,6 @@ function requestPopupFromFeature(feature){
       featureState !== "open"
     ) return;
   }
-
-  var coords=feature.geometry && feature.geometry.coordinates;
 
   post("map_popup_request",{
     id:id,
@@ -2503,6 +2727,7 @@ function setupMapEvents(){
       return;
     }
     if(event.sourceId===HYBRID_SOURCE) {
+      scheduleHybridStateRefresh("sourcedata");
       scheduleDiagnostics("hybrid-sourcedata");
     }
   });
@@ -2515,6 +2740,9 @@ function setupMapEvents(){
 
   map.on("moveend",function(){
     scheduleCanonicalViewport("moveend");
+    if (shouldUseHybridRenderer()) {
+      scheduleHybridStateRefresh("moveend");
+    }
 
     if (advancedFilterActive) {
       requestAdvancedViewport();
@@ -2564,6 +2792,10 @@ function setupMapEvents(){
 }
 
 function init(){
+  // Tiny same-origin manifest request only. It selects immutable static MVT
+  // files; marker navigation never calls Render or Supabase.
+  prepareHybridStaticManifest();
+
   if(!window.maplibregl){
     post("map_js_error",{message:"MapLibre unavailable"});
     return;
@@ -2668,6 +2900,9 @@ function init(){
 
     refreshTimer=setInterval(function(){
       refreshCanonicalStates();
+      if (shouldUseHybridRenderer()) {
+        refreshHybridVisibleStates("clock");
+      }
     },60000);
 
     console.log(
@@ -2676,7 +2911,7 @@ function init(){
     );
 
     post("map_ready",{
-      engine:"barlive-hybrid-mvt-geojson-v1"
+      engine:"barlive-static-mvt-local-schedule-v22"
     });
 
     scheduleDiagnostics("bootstrap-"+String(trigger||"unknown"));
@@ -2705,6 +2940,7 @@ function init(){
 window.addEventListener("beforeunload",function(){
   if(refreshTimer) clearInterval(refreshTimer);
   if(requestTimer) clearTimeout(requestTimer);
+  if(hybridStateRefreshTimer) clearTimeout(hybridStateRefreshTimer);
   if(requestAbortController){
     try { requestAbortController.abort(); } catch (_) {}
   }
