@@ -1,0 +1,48 @@
+name: Apply BarLive deferred map hydration
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/apply-map-deferred-hydration.yml'
+      - '.github/scripts/apply-map-deferred-hydration.js'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-production-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+      - name: Patch hydration scheduling
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/scripts/apply-map-deferred-hydration.js
+          grep -Fq 'canonical-map-v20-deferred-hydration-4ffb54f-20260926' index.html
+          grep -Fq 'mapFastPath?t=setTimeout(o,2500):o()' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq '/sw.js?v=33' index.html
+          grep -Fq 'canonical-map-v20-deferred-hydration' version.json
+      - name: Commit v20 production bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet; then
+            echo 'No production changes needed.'
+            exit 0
+          fi
+          git add _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js \
+            index.html 404.html explorar/mapa/index.html sw.js version.json
+          git add explorar/index.html detalle/local/index.html 2>/dev/null || true
+          git commit -m 'perf(web-map): defer global hydration after first paint'
+          git push origin gh-pages
