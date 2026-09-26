@@ -1,0 +1,70 @@
+name: Build hybrid marker MVT pyramid
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/build-hybrid-marker-mvt.yml'
+      - '.github/scripts/build-hybrid-marker-mvt.cjs'
+      - 'map-data/national-venues-v1.json'
+      - 'map-data/national-venues-v1.meta.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+
+      - name: Install isolated MVT builder
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/barlive-hybrid-mvt
+          cd /tmp/barlive-hybrid-mvt
+          npm init -y >/dev/null 2>&1
+          npm install geojson-vt@3.2.1 vt-pbf@3.1.3 --no-audit --no-fund
+
+      - name: Build static hybrid MVT pyramid
+        shell: bash
+        env:
+          NODE_PATH: /tmp/barlive-hybrid-mvt/node_modules
+        run: |
+          set -euo pipefail
+          node .github/scripts/build-hybrid-marker-mvt.cjs
+          test -s map-data/hybrid-mvt-v1/manifest.json
+          node - <<'NODE'
+          const m=require('./map-data/hybrid-mvt-v1/manifest.json');
+          if(m.rows<100000 || m.tileCount<500 || m.maxZoom!==9) process.exit(1);
+          console.log('HYBRID_MVT_VERIFY='+JSON.stringify({
+            rows:m.rows,
+            tiles:m.tileCount,
+            totalBytes:m.totalBytes,
+            maxTile:m.maxTile,
+            knownScheduleRows:m.knownScheduleRows
+          }));
+          NODE
+
+      - name: Commit pyramid when changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A map-data/hybrid-mvt-v1
+          if git diff --cached --quiet; then
+            echo 'Hybrid MVT pyramid unchanged.'
+            exit 0
+          fi
+          git commit -m 'data(web-map): publish static hybrid MVT pyramid'
+          git pull --rebase origin gh-pages
+          git push origin gh-pages
