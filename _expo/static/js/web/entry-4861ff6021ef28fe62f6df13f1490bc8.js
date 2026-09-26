@@ -1979,13 +1979,33 @@ function advancedVisibleExpression() {
   return ["boolean",["feature-state","advancedVisible"],true];
 }
 
+function decoratedFilterExpression(baseFilter,ids) {
+  var values=Array.from(ids||[]);
+  if (!values.length) {
+    return ["all",baseFilter,["==",["get","venueId"],"__barlive_no_match__"]];
+  }
+  return [
+    "all",
+    baseFilter,
+    ["in",["get","venueId"],["literal",values]]
+  ];
+}
+
 function applyFilters() {
   if (!map) return;
   var filter = datasetFilterExpression();
 
-  [VENUE_LAYER,ICON_LAYER,LIVE_LAYER,UPCOMING_LAYER,PROMO_LAYER].forEach(function(id) {
-    if (map.getLayer(id)) map.setFilter(id, filter);
-  });
+  if (map.getLayer(VENUE_LAYER)) map.setFilter(VENUE_LAYER,filter);
+  if (map.getLayer(ICON_LAYER)) map.setFilter(ICON_LAYER,filter);
+  if (map.getLayer(LIVE_LAYER)) {
+    map.setFilter(LIVE_LAYER,decoratedFilterExpression(filter,liveIds));
+  }
+  if (map.getLayer(UPCOMING_LAYER)) {
+    map.setFilter(UPCOMING_LAYER,decoratedFilterExpression(filter,upcomingIds));
+  }
+  if (map.getLayer(PROMO_LAYER)) {
+    map.setFilter(PROMO_LAYER,decoratedFilterExpression(filter,promoIds));
+  }
 
   var advancedVisible = advancedVisibleExpression();
 
@@ -2735,6 +2755,7 @@ window.setLiveEvents=function(live,upcoming){
   });
 
   applyEventFeatureState();
+  applyFilters();
 };
 
 window.setActivePromos=function(promos){
@@ -2748,6 +2769,7 @@ window.setActivePromos=function(promos){
   });
 
   applyPromoFeatureState();
+  applyFilters();
 };
 
 window.updateUserLocation=function(lat,lng){
