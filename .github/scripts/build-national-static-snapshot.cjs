@@ -80,6 +80,7 @@ async function fetchPage(offset) {
 
   const compact=[];
   let invalid=0;
+  let outsideSpain=0;
   for(const row of all){
     const id=String(row?.id||'').trim();
     const lat=Number(row?.latitud);
@@ -87,6 +88,10 @@ async function fetchPage(offset) {
     const category=categoryFromRow(row);
     if(!id||!Number.isFinite(lat)||!Number.isFinite(lng)||!category){
       invalid+=1;
+      continue;
+    }
+    if(lat<27.45||lat>44.25||lng<-18.25||lng>4.60){
+      outsideSpain+=1;
       continue;
     }
     compact.push([
@@ -112,6 +117,7 @@ async function fetchPage(offset) {
     count:compact.length,
     sourceRows:all.length,
     invalidRows:invalid,
+    outsideSpainRows:outsideSpain,
     bytes:Buffer.byteLength(payload),
     gzipBytes:gzip.length,
     sha256:hash
