@@ -1,0 +1,49 @@
+name: Apply BarLive map root fast path
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/apply-map-root-fastpath.yml'
+      - '.github/scripts/apply-map-root-fastpath.js'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-production-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+      - name: Patch root loading gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/scripts/apply-map-root-fastpath.js
+          grep -Fq 'canonical-map-v10-root-fastpath-576998f-20260926' index.html
+          grep -Fq "mapFastPath=!!mapPath&&('/explorar/mapa'===mapPath||mapPath.endsWith('/explorar/mapa'))" _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq 'return O&&!mapFastPath?' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq '/sw.js?v=23' index.html
+          grep -Fq 'canonical-map-v10-root-fastpath' version.json
+      - name: Commit v10 production bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet; then
+            echo 'No production changes needed.'
+            exit 0
+          fi
+          git add _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js \
+            index.html 404.html explorar/mapa/index.html sw.js version.json
+          git add explorar/index.html detalle/local/index.html 2>/dev/null || true
+          git commit -m 'perf(web-map): bypass auth splash on map fast path'
+          git push origin gh-pages
