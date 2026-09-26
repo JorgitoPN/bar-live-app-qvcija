@@ -16,6 +16,16 @@ const sourceEntry = entryFiles
 const sourcePath = path.join(jsDir, sourceEntry);
 let code = fs.readFileSync(sourcePath, 'utf8');
 
+// TanStack Query: maxPages=0 means unlimited. Remove the old 50-page / 1,000-venue cap
+// so the nearby feed can continue for as long as the backend has rows.
+const maxPagesMatches = code.match(/maxPages:50/g) || [];
+if (maxPagesMatches.length > 1) {
+  throw new Error('Unexpected multiple maxPages:50 occurrences: ' + maxPagesMatches.length);
+}
+if (maxPagesMatches.length === 1) {
+  code = code.replace('maxPages:50', 'maxPages:0');
+}
+
 function moduleRange(id) {
   const marker = '},' + id + ',';
   const markerPos = code.indexOf(marker);
@@ -177,7 +187,7 @@ for (const needle of ['ExploreMiniMap','embeddedRoot','selectedVenue:a0']) {
   if (!mapCheck.includes(needle)) throw new Error('Missing map signature: ' + needle);
 }
 
-const stamp = 'explore-fixed-20260926-1';
+const stamp = 'explore-fixed-20260926-2';
 const newEntry = sourceEntry.replace(/\.js$/, '-' + stamp + '.js');
 const newPath = path.join(jsDir, newEntry);
 fs.writeFileSync(newPath, code, 'utf8');
