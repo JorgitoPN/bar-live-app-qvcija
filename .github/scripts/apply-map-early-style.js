@@ -103,8 +103,6 @@ replaceOnce(
     bootstrapCanonicalMap("style.load");
   });
 
-  // Defensive fallback for MapLibre/browser variants where style.load may
-  // already have fired before the listener is attached.
   map.on("load",function(){
     bootstrapCanonicalMap("load");
   });
