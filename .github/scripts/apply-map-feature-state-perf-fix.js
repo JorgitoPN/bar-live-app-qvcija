@@ -3,10 +3,10 @@ const fs = require('fs');
 const bundlePath = '_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js';
 let bundle = fs.readFileSync(bundlePath, 'utf8');
 
-const oldVersion = 'map-v4-state-perf-3ab82e0-20260926';
-const newVersion = 'map-v5-zoom-perf-5a49816-20260926';
-const oldMarker = 'canonical-map-v4-state-perf-3ab82e0-20260926';
-const newMarker = 'canonical-map-v5-zoom-perf-5a49816-20260926';
+const oldVersion = 'map-v5-zoom-perf-5a49816-20260926';
+const newVersion = 'map-v6-decoration-perf-a9ee082-20260926';
+const oldMarker = 'canonical-map-v5-zoom-perf-5a49816-20260926';
+const newMarker = 'canonical-map-v6-decoration-perf-a9ee082-20260926';
 
 function replaceOnce(source, oldText, newText, label) {
   if (source.includes(newText)) return source;
@@ -148,6 +148,69 @@ bundle = replaceOnce(
 
 bundle = replaceOnce(
   bundle,
+  `function applyFilters() {
+  if (!map) return;
+  var filter = datasetFilterExpression();
+
+  [VENUE_LAYER,ICON_LAYER,LIVE_LAYER,UPCOMING_LAYER,PROMO_LAYER].forEach(function(id) {
+    if (map.getLayer(id)) map.setFilter(id, filter);
+  });
+
+  var advancedVisible = advancedVisibleExpression();`,
+  `function decoratedFilterExpression(baseFilter,ids) {
+  var values=Array.from(ids||[]);
+  if (!values.length) {
+    return ["all",baseFilter,["==",["get","venueId"],"__barlive_no_match__"]];
+  }
+  return [
+    "all",
+    baseFilter,
+    ["in",["get","venueId"],["literal",values]]
+  ];
+}
+
+function applyFilters() {
+  if (!map) return;
+  var filter = datasetFilterExpression();
+
+  if (map.getLayer(VENUE_LAYER)) map.setFilter(VENUE_LAYER,filter);
+  if (map.getLayer(ICON_LAYER)) map.setFilter(ICON_LAYER,filter);
+  if (map.getLayer(LIVE_LAYER)) {
+    map.setFilter(LIVE_LAYER,decoratedFilterExpression(filter,liveIds));
+  }
+  if (map.getLayer(UPCOMING_LAYER)) {
+    map.setFilter(UPCOMING_LAYER,decoratedFilterExpression(filter,upcomingIds));
+  }
+  if (map.getLayer(PROMO_LAYER)) {
+    map.setFilter(PROMO_LAYER,decoratedFilterExpression(filter,promoIds));
+  }
+
+  var advancedVisible = advancedVisibleExpression();`,
+  'decorated layer filters'
+);
+
+bundle = replaceOnce(
+  bundle,
+  `  applyEventFeatureState();
+};`,
+  `  applyEventFeatureState();
+  applyFilters();
+};`,
+  'setLiveEvents applyFilters'
+);
+
+bundle = replaceOnce(
+  bundle,
+  `  applyPromoFeatureState();
+};`,
+  `  applyPromoFeatureState();
+  applyFilters();
+};`,
+  'setActivePromos applyFilters'
+);
+
+bundle = replaceOnce(
+  bundle,
   `  map.addLayer({
     id:ICON_LAYER,
     type:"symbol",
@@ -196,6 +259,9 @@ if (!bundle.includes('promoIds.forEach(function(id)')) {
 if (!bundle.includes('minzoom:13')) {
   throw new Error('category glyph zoom guard missing');
 }
+if (!bundle.includes('decoratedFilterExpression')) {
+  throw new Error('decorative layer filter guard missing');
+}
 
 fs.writeFileSync(bundlePath, bundle);
 
@@ -210,15 +276,15 @@ for (const pagePath of [
   let html = fs.readFileSync(pagePath, 'utf8');
   html = html.replaceAll(oldMarker, newMarker);
   html = html.replaceAll(oldVersion, newVersion);
-  html = html.replaceAll('/sw.js?v=17', '/sw.js?v=18');
+  html = html.replaceAll('/sw.js?v=18', '/sw.js?v=19');
   fs.writeFileSync(pagePath, html);
 }
 
 if (fs.existsSync('sw.js')) {
   let sw = fs.readFileSync('sw.js', 'utf8');
   sw = sw.replace(
-    'BarLive neutral service worker v17.',
-    'BarLive neutral service worker v18.'
+    'BarLive neutral service worker v18.',
+    'BarLive neutral service worker v19.'
   );
   fs.writeFileSync('sw.js', sw);
 }
