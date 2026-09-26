@@ -36,15 +36,17 @@ bundle=
   '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.2/dist/maplibre-gl.css"/>'+
   bundle.slice(end+headEnd.length);
 
-replaceOnce(
-`  map.on("styledata",function(){
+const styleDataBlock=`  map.on("styledata",function(){
     bootstrapCanonicalMap("styledata");
   });
 
-  map.on("load",function(){`,
-`  map.on("load",function(){`,
-'remove styledata'
-);
+`;
+const styleDataCount=bundle.split(styleDataBlock).length-1;
+if(styleDataCount===1){
+  bundle=bundle.replace(styleDataBlock,'');
+}else if(styleDataCount>1){
+  throw new Error('styledata listener count='+styleDataCount);
+}
 
 const helperAnchor=`async function fetchStaticViewportRows(bounds,generation,controller) {`;
 const helper=`async function prewarmStaticViewportTiles(bounds) {
