@@ -34,18 +34,23 @@ var LIVE_LAYER = "barlive-venues-live";
 var UPCOMING_LAYER = "barlive-venues-upcoming";
 var PROMO_LAYER = "barlive-venues-promo";
 
-// v21 hybrid renderer.
-// The broad map is drawn from shared Mapbox Vector Tiles, almost like a
-// pre-rendered image: MapLibre/GPU only receives the few tiles visible on
-// screen. Close zoom keeps the existing exact GeoJSON viewport renderer.
+// v23 hybrid renderer.
+// Normal map browsing is served entirely from shared static Mapbox Vector
+// Tiles. MapLibre overzooms the z9 source at street level, so even close zoom
+// behaves like an interactive "image" while preserving clicks, filters,
+// category glyphs and locally-computed schedule colours. The canonical GeoJSON
+// renderer remains only as a defensive/advanced-filter fallback.
 var HYBRID_SOURCE = "barlive-hybrid-venues";
 var HYBRID_LAYER = "barlive-hybrid-venues-circle";
+var HYBRID_ICON_LAYER = "barlive-hybrid-venues-icon";
 var HYBRID_TILE_ROOT = "https://barliveapp.es/map-data/hybrid-mvt-v1";
 var HYBRID_MANIFEST_URL = HYBRID_TILE_ROOT + "/manifest.json";
 var HYBRID_TILE_URL =
   HYBRID_TILE_ROOT +
   "/{z}/{x}/{y}.pbf?v=6a75a4bbf07da418";
-var HYBRID_SWITCH_ZOOM = 10;
+// Map maxZoom is 20. A switch above that keeps the static MVT renderer active
+// for every normal zoom and lets MapLibre overzoom immutable z9 tiles.
+var HYBRID_SWITCH_ZOOM = 21;
 var HYBRID_SOURCE_MAX_ZOOM = 9;
 
 var VENUE_DATA_URL = "https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/locales";
@@ -858,6 +863,7 @@ function setLayerVisibility(id,visible) {
 
 function setHybridVisibility(visible) {
   setLayerVisibility(HYBRID_LAYER,visible);
+  setLayerVisibility(HYBRID_ICON_LAYER,visible);
 }
 
 function setCanonicalVisibility(visible) {
@@ -945,6 +951,14 @@ function applyFilters() {
     map.setPaintProperty(
       HYBRID_LAYER,
       "circle-opacity",
+      hybridOpacityExpression()
+    );
+  }
+  if (map.getLayer(HYBRID_ICON_LAYER)) {
+    map.setFilter(HYBRID_ICON_LAYER,hybridFilter);
+    map.setPaintProperty(
+      HYBRID_ICON_LAYER,
+      "icon-opacity",
       hybridOpacityExpression()
     );
   }
@@ -2437,6 +2451,41 @@ function addHybridSourceAndLayer() {
       ]
     }
   });
+
+  // Same close-zoom visual language as the previous GeoJSON renderer, but the
+  // glyph is attached directly to the static vector-tile feature.
+  map.addLayer({
+    id:HYBRID_ICON_LAYER,
+    type:"symbol",
+    source:HYBRID_SOURCE,
+    "source-layer":"locales",
+    minzoom:13,
+    layout:{
+      visibility:"visible",
+      "icon-image":[
+        "case",
+        ["==",["get","t"],2],"cat-cafeteria",
+        ["==",["get","t"],1],"cat-restaurante",
+        ["==",["get","t"],3],"cat-pub",
+        ["==",["get","t"],5],"cat-cocteleria",
+        ["==",["get","t"],4],"cat-discoteca",
+        "cat-bar"
+      ],
+      "icon-size":[
+        "interpolate",["linear"],["zoom"],
+        13,0.50,
+        16,0.58,
+        20,0.62
+      ],
+      "icon-anchor":"center",
+      "icon-allow-overlap":true,
+      "icon-ignore-placement":true,
+      "icon-padding":0
+    },
+    paint:{
+      "icon-opacity":1
+    }
+  });
 }
 
 function addVenueSourceAndLayers() {
@@ -2762,6 +2811,12 @@ function setupMapEvents(){
     );
   });
 
+  map.on("click",HYBRID_ICON_LAYER,function(event){
+    requestPopupFromFeature(
+      event.features && event.features[0]
+    );
+  });
+
   map.on("click",VENUE_LAYER,function(event){
     requestPopupFromFeature(
       event.features && event.features[0]
@@ -2820,7 +2875,7 @@ function init(){
   window.__barliveMap=map;
   map.on("error",handleMapError);
 
-  if (${a}>=VIEWPORT_TILE_MIN_MAP_ZOOM) {
+  if (!shouldUseHybridRenderer() && ${a}>=VIEWPORT_TILE_MIN_MAP_ZOOM) {
     try {
       var startupBounds=getCurrentBounds();
       if (startupBounds) {
@@ -2874,7 +2929,9 @@ function init(){
     // Cache is only a warm-start input to the SAME canonical source.
     // On direct refresh (national fallback shell), restore the last real
     // viewport first so markers and schedule colours paint immediately.
-    var warmRestored=restoreViewportCache(${a<=6?'true':'false'});
+    var warmRestored=shouldUseHybridRenderer()
+      ? false
+      : restoreViewportCache(${a<=6?'true':'false'});
 
     // The exact startup viewport tiles begin downloading as soon as MapLibre
     // exists. If that prewarm is still in flight, let it finish before the
@@ -2911,7 +2968,7 @@ function init(){
     );
 
     post("map_ready",{
-      engine:"barlive-static-mvt-local-schedule-v22"
+      engine:"barlive-static-mvt-overzoom-v23"
     });
 
     scheduleDiagnostics("bootstrap-"+String(trigger||"unknown"));
