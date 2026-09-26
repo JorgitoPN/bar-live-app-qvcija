@@ -10,14 +10,22 @@
 html,body,#map{width:100%;height:100%;overflow:hidden}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
 #map{position:absolute;inset:0;background:#A8E0FF}
-.maplibregl-popup-content{border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.25);width:${ke}px!important;max-width:${ke}px!important}
-.maplibregl-popup-close-button{display:none}
-.popup-image{width:100%;height:${Fe}px;object-fit:cover;display:block;background:#f3f4f6}
-.popup-body{padding:12px}
-.popup-title{font-size:16px;font-weight:750;color:#202124;margin-bottom:5px}
-.popup-meta{font-size:12px;color:#6b7280;margin-bottom:9px}
-.popup-state{font-size:12px;font-weight:700;margin-bottom:10px}
-.popup-button{display:block;text-align:center;text-decoration:none;background:#641B73;color:#fff;padding:9px 12px;border-radius:8px;font-weight:750;font-size:13px;cursor:pointer}
+.maplibregl-popup-anchor-top,.maplibregl-popup-anchor-bottom{pointer-events:none!important}
+.maplibregl-popup-content{pointer-events:auto!important;border-radius:12px;padding:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);width:${ke}px!important;min-width:${ke}px!important;max-width:${ke}px!important;z-index:9999!important}
+.custom-popup{z-index:9999!important}
+.maplibregl-popup{z-index:9999!important}
+.maplibregl-popup-close-button{display:none!important}
+.popup-img{width:100%;height:${Fe}px;object-fit:cover;display:block;min-height:${Fe}px;max-height:${Fe}px;background:#f3f4f6}
+.popup-info{padding:12px}
+.popup-title{font-size:16px;font-weight:700;margin-bottom:8px;color:#202124}
+.popup-rating{display:flex;align-items:center;gap:4px;margin-bottom:10px;font-size:13px;color:#70757A}
+.popup-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#14B8A6;color:#FFF!important;padding:10px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;transition:background .2s;cursor:pointer}
+.popup-category{font-size:11px;color:#70757A;margin-bottom:8px}
+.popup-btn:hover{background:#0D9488}
+.popup-banner{color:#fff;padding:8px 12px;font-size:12px;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;gap:6px}
+.popup-banner-live{background:linear-gradient(135deg,#EF4444,#DC2626)}
+.popup-banner-upcoming{background:linear-gradient(135deg,#06B6D4,#0891B2)}
+.popup-banner-promo{background:linear-gradient(135deg,#FF6B6B,#EE4444)}
 .maplibregl-ctrl-zoom-in,.maplibregl-ctrl-zoom-out{display:none!important}
 </style>
 </head>
@@ -117,6 +125,7 @@ var userMarker = null;
 var liveIds = new Set();
 var upcomingIds = new Set();
 var promoIds = new Set();
+var promoById = {};
 
 function post(type, payload) {
   try {
@@ -2272,7 +2281,8 @@ window.setLiveEvents=function(live,upcoming){
 
 window.setActivePromos=function(promos){
   var previousIds=new Set(promoIds);
-  promoIds=new Set(Object.keys(promos||{}).map(String));
+  promoById=promos && typeof promos==="object" ? promos : {};
+  promoIds=new Set(Object.keys(promoById).map(String));
 
   // Clear only promotions that disappeared; do not rewrite every venue.
   previousIds.forEach(function(id) {
@@ -2334,50 +2344,228 @@ function escapeHtml(value){
     .replace(/'/g,"&#039;");
 }
 
+window.currentPopupImageCandidates=[];
+window.currentPopupImageIndex=0;
+
+window.tryNextPopupImage=function(img){
+  var candidates=window.currentPopupImageCandidates||[];
+  var next=(window.currentPopupImageIndex||0)+1;
+  if(next<candidates.length){
+    window.currentPopupImageIndex=next;
+    img.src=candidates[next];
+    return;
+  }
+  try{img.remove();}catch(_){}
+};
+
+function collectPopupImages(value,output,depth){
+  output=output||[];
+  depth=Number(depth||0);
+  if(depth>4||value==null) return output;
+
+  if(Array.isArray(value)){
+    value.forEach(function(item){collectPopupImages(item,output,depth+1);});
+    return output;
+  }
+
+  if(typeof value==="string"){
+    var text=value.trim();
+    if(!text) return output;
+    if(
+      (text.charAt(0)==="["&&text.charAt(text.length-1)==="]") ||
+      (text.charAt(0)==="{"&&text.charAt(text.length-1)==="}")
+    ){
+      try{
+        collectPopupImages(JSON.parse(text),output,depth+1);
+        return output;
+      }catch(_){}
+    }
+    if(text.indexOf("//")===0) text="https:"+text;
+    if(/^http:\/\//i.test(text)) text=text.replace(/^http:\/\//i,"https://");
+    if(output.indexOf(text)<0) output.push(text);
+    return output;
+  }
+
+  if(typeof value==="object"){
+    [
+      "url","uri","public_url","publicUrl","image_url","imagen_url",
+      "foto_url","src","urls","images","imagenes","photos","fotos"
+    ].forEach(function(key){
+      collectPopupImages(value[key],output,depth+1);
+    });
+  }
+  return output;
+}
+
+function popupImagesForLocal(local){
+  if(Array.isArray(local&&local.__popupImages)&&local.__popupImages.length){
+    return local.__popupImages.slice();
+  }
+  var out=[];
+  [
+    local&&local.r2_media_urls,
+    local&&local.imagen_url,
+    local&&local.portada_url,
+    local&&local.galeria_urls,
+    local&&local.galeria_fotos,
+    local&&local.legacy_media_urls,
+    local&&local.foto_principal,
+    local&&local.imagenes,
+    local&&local.fotos,
+    local&&local.photos,
+    local&&local.cover_url,
+    local&&local.logo_url
+  ].forEach(function(value){
+    collectPopupImages(value,out,0);
+  });
+  return out;
+}
+
+function popupCategoryValues(local){
+  var raw=[];
+  if(local&&Array.isArray(local.barlive_types)) raw=raw.concat(local.barlive_types);
+  if(local&&local.barlive_type) raw.push(local.barlive_type);
+  if(local&&local.tipo) raw.push(local.tipo);
+
+  var seen={};
+  return raw.map(function(value){
+    return canonicalCategory(value);
+  }).filter(function(value){
+    if(!value||seen[value]) return false;
+    seen[value]=true;
+    return true;
+  });
+}
+
+function popupScheduleForLocal(local){
+  if(local&&local.__popupSchedule){
+    return local.__popupSchedule;
+  }
+
+  var result=deriveRealtimeMarkerState(local,madridClockParts());
+  var state=normalizeMarkerState(result&&result.state);
+  return {
+    badge:
+      state==="open" ? "Abierto ahora" :
+      state==="closed" ? "Cerrado ahora" :
+      "Sin información de horario",
+    text:
+      state==="open" ? "Abierto ahora" :
+      state==="closed" ? "Cerrado ahora" :
+      "Sin información de horario",
+    estaAbierto:
+      state==="open" ? true :
+      state==="closed" ? false :
+      null,
+    tiempoRestante:null,
+    color:
+      state==="open" ? "#22C55E" :
+      state==="closed" ? "#EF4444" :
+      "#9CA3AF"
+  };
+}
+
 window.showPopupFromNative=function(local,coords){
-  if(!map || !local) return;
+  if(!map || !local || !local.id) return;
 
-  var lng=Number(
-    coords&&coords.lng!=null ?
-    coords.lng :
-    local.longitud
-  );
-  var lat=Number(
-    coords&&coords.lat!=null ?
-    coords.lat :
-    local.latitud
-  );
-
+  var lng=Number(coords&&coords.lng!=null ? coords.lng : local.longitud);
+  var lat=Number(coords&&coords.lat!=null ? coords.lat : local.latitud);
   if(!isFinite(lng)||!isFinite(lat)) return;
 
-  var state=String(local.__markerState||"unknown");
-  var label=
-    state==="open" ? "Abierto ahora" :
-    state==="closed" ? "Cerrado ahora" :
-    "Sin información de horario";
+  var schedule=popupScheduleForLocal(local);
+  var isOpen=schedule.estaAbierto===true;
+  var isClosed=schedule.estaAbierto===false;
+  var stateColor=String(schedule.color||(
+    isOpen ? "#22C55E" :
+    isClosed ? "#EF4444" :
+    "#9CA3AF"
+  ));
+  var stateIcon=isOpen ? "🟢" : isClosed ? "🔴" : "⚪";
+  var stateText=String(schedule.text||schedule.badge||"Sin información de horario");
+  if(schedule.tiempoRestante){
+    stateText+=" · "+String(schedule.tiempoRestante);
+  }
 
-  var color=
-    state==="open" ? "#22C55E" :
-    state==="closed" ? "#EF4444" :
-    "#94A3B8";
+  var categoryLabels={
+    bar:"Bar",
+    restaurante:"Restaurante",
+    cafeteria:"Café",
+    pub:"Pub",
+    discoteca:"Discoteca",
+    cocteleria:"Coctelería"
+  };
+  var categories=popupCategoryValues(local);
+  var categoryText=categories.length
+    ? categories.map(function(category){
+        return categoryLabels[category]||category;
+      }).join(" · ")
+    : "Categoría sin especificar";
 
-  var image=String(local.portada_url||local.imagen_url||"");
-  var imageHtml=image
-    ? '<img class="popup-image" src="'+escapeHtml(image)+'" onerror="this.style.display=\\'none\\'"/>'
+  var ratingValue=Number(
+    Number(local.rating)>0 ? local.rating :
+    Number(local.google_rating)>0 ? local.google_rating :
+    0
+  );
+  var ratingHtml=ratingValue>0
+    ? '<div class="popup-rating">⭐ '+escapeHtml(ratingValue.toFixed(1))+'</div>'
     : "";
 
+  var images=popupImagesForLocal(local);
+  window.currentPopupImageCandidates=images;
+  window.currentPopupImageIndex=0;
+  var imageHtml=images.length
+    ? '<img src="'+escapeHtml(images[0])+'" class="popup-img" onerror="window.tryNextPopupImage(this)"/>'
+    : "";
+
+  var id=String(local.id);
+  var eventBanner="";
+  if(liveIds.has(id)){
+    eventBanner='<div class="popup-banner popup-banner-live"><span>●</span> EN VIVO AHORA</div>';
+  }else if(upcomingIds.has(id)){
+    eventBanner='<div class="popup-banner popup-banner-upcoming">📅 PRÓXIMO EVENTO</div>';
+  }
+
+  var promoInfo=promoById&&promoById[id];
+  var promoBanner="";
+  if(promoInfo||promoIds.has(id)){
+    var promoTitle=promoInfo&&promoInfo.titulo
+      ? " · "+escapeHtml(promoInfo.titulo)
+      : "";
+    promoBanner='<div class="popup-banner popup-banner-promo">🏷️ PROMOCIÓN ACTIVA'+promoTitle+'</div>';
+  }
+
   var html=
-    imageHtml+
-    '<div class="popup-body">'+
-      '<div class="popup-title">'+escapeHtml(local.nombre||"Local")+'</div>'+
-      '<div class="popup-meta">'+escapeHtml(local.direccion||"")+'</div>'+
-      '<div class="popup-state" style="color:'+color+'">'+escapeHtml(label)+'</div>'+
-      '<a class="popup-button" id="barlive-popup-open">Ver local</a>'+
+    '<div>'+
+      promoBanner+
+      eventBanner+
+      imageHtml+
+      '<div class="popup-info">'+
+        '<div class="popup-title">'+escapeHtml(local.nombre||"Nombre no disponible")+'</div>'+
+        '<div style="font-size:12px;color:#70757A;margin-bottom:10px;display:flex;align-items:flex-start;gap:4px">'+
+          '<span style="flex-shrink:0">📍</span>'+
+          '<span style="flex:1">'+escapeHtml(local.direccion||"Dirección no disponible")+'</span>'+
+        '</div>'+
+        ratingHtml+
+        '<div class="popup-category">'+escapeHtml(categoryText)+'</div>'+
+        '<div style="font-size:12px;font-weight:600;color:'+escapeHtml(stateColor)+';margin-bottom:10px">'+
+          stateIcon+" "+escapeHtml(stateText)+
+        '</div>'+
+        '<a href="#" class="popup-btn" id="barlive-popup-open">'+
+          '<span style="color:#FFF">📍 Ver detalles</span>'+
+        '</a>'+
+      '</div>'+
     '</div>';
 
-  new maplibregl.Popup({
+  if(window.currentPopup){
+    try{window.currentPopup.remove();}catch(_){}
+    window.currentPopup=null;
+  }
+
+  window.currentPopup=new maplibregl.Popup({
     closeButton:false,
     closeOnClick:true,
+    maxWidth:"${ke}px",
+    className:"custom-popup",
     offset:16
   })
     .setLngLat([lng,lat])
@@ -2386,9 +2574,11 @@ window.showPopupFromNative=function(local,coords){
 
   setTimeout(function(){
     var button=document.getElementById("barlive-popup-open");
-    if(button) {
-      button.onclick=function(){
-        post("navigate",{id:String(local.id)});
+    if(button){
+      button.onclick=function(event){
+        if(event&&event.preventDefault) event.preventDefault();
+        post("navigate",{id:id});
+        return false;
       };
     }
   },0);
