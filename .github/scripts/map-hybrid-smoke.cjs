@@ -306,6 +306,78 @@ const { chromium } = require('playwright');
     throw new Error('Popup image does not use restored rich popup class');
   }
 
+  const openPopupTarget = await frame.evaluate(() => {
+    const map = window.__barliveMap;
+    const features = map.querySourceFeatures(
+      'barlive-hybrid-venues',
+      { sourceLayer: 'locales' }
+    ) || [];
+
+    for (const feature of features) {
+      const props = feature?.properties || {};
+      const id = String(props.i || '');
+      const sid = Number(props.s ?? feature?.id);
+      const coords = feature?.geometry?.coordinates;
+      if (!id || !Number.isFinite(sid) || !Array.isArray(coords)) continue;
+
+      let state = 'unknown';
+      try {
+        state = String(map.getFeatureState({
+          source:'barlive-hybrid-venues',
+          sourceLayer:'locales',
+          id:sid
+        })?.markerState || 'unknown');
+      } catch (_) {}
+
+      if (state !== 'open') continue;
+      return {
+        id,
+        state,
+        coordinates:{lng:Number(coords[0]),lat:Number(coords[1])}
+      };
+    }
+    return null;
+  });
+
+  if (!openPopupTarget) {
+    throw new Error('No real open venue available for popup regression');
+  }
+
+  await frame.evaluate((target) => {
+    window.ReactNativeWebView.postMessage(JSON.stringify({
+      type:'map_popup_request',
+      id:target.id,
+      markerState:target.state,
+      coordinates:target.coordinates
+    }));
+  }, openPopupTarget);
+
+  await frame.waitForFunction(
+    (targetId) => {
+      const popup = document.querySelector('.custom-popup');
+      const text = popup?.textContent || '';
+      return /Abierto/i.test(text) && !/Sin información de horario/i.test(text);
+    },
+    openPopupTarget.id,
+    { timeout: 12000 }
+  );
+
+  const openPopupAudit = await frame.evaluate(() => {
+    const popup=document.querySelector('.custom-popup');
+    return {
+      text:popup?.textContent?.replace(/\s+/g,' ').trim()||'',
+      title:popup?.querySelector('.popup-title')?.textContent?.trim()||'',
+      button:popup?.querySelector('.popup-btn')?.textContent?.trim()||''
+    };
+  });
+
+  console.log('V24_OPEN_POPUP_TARGET=' + JSON.stringify(openPopupTarget));
+  console.log('V24_OPEN_POPUP_AUDIT=' + JSON.stringify(openPopupAudit));
+
+  if (!/Abierto/i.test(openPopupAudit.text)) {
+    throw new Error('Open marker popup does not report open schedule');
+  }
+
   const beforeNational = {
     tiles: requests.hybridTiles.length,
     viewport: requests.viewportStatic.length,
