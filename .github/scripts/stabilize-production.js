@@ -72,7 +72,7 @@ const desktopStyle = [
   '</style>'
 ].join('');
 
-const resetScript = [const resetScript = [
+const resetScript = [
   '<script id="barlive-cache-reset-v43">',
   '(function(){if(!(\'serviceWorker\' in navigator))return;navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.map(function(r){return r.unregister()}))}).catch(function(){});if(\'caches\' in window){caches.keys().then(function(keys){return Promise.all(keys.filter(function(k){return k.indexOf(\'barlive-\')===0||k.indexOf(\'workbox\')===0}).map(function(k){return caches.delete(k)}))}).catch(function(){})}})();',
   '</script>'
@@ -90,7 +90,7 @@ const headerScript = [
   '</script>'
 ].join('');
 
-function cleanHtml(content) {function cleanHtml(content) {
+function cleanHtml(content) {
   const ids = [
     'barlive-web-rbac-guest-guard','barlive-web-rbac-guest-guard-v2',
     'barlive-web-desktop-ui-v1','barlive-web-desktop-ui-v2','barlive-web-desktop-ui-v3','barlive-web-desktop-ui-v4','barlive-web-desktop-ui-v5',
