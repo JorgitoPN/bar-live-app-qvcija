@@ -1,6 +1,6 @@
 const { chromium } = require('playwright');
 
-const URL = 'https://barliveapp.es/explorar/mapa?runtime-smoke=20260926-zoom-perf-v5';
+const URL = 'https://barliveapp.es/explorar/mapa?runtime-smoke=20260926-decoration-perf-v6';
 
 const fail = (message, details) => {
   console.error('RUNTIME_SMOKE_FAIL:', message, details || '');
