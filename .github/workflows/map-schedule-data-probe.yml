@@ -1,0 +1,28 @@
+name: BarLive public schedule data probe
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/map-schedule-data-probe.yml'
+      - '.github/scripts/probe-map-schedule-data.cjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout probe
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          sparse-checkout: |
+            .github/scripts/probe-map-schedule-data.cjs
+          sparse-checkout-cone-mode: false
+      - name: Query public schedule projection
+        run: node .github/scripts/probe-map-schedule-data.cjs
