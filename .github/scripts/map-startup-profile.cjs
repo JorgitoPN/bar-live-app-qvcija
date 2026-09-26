@@ -35,7 +35,7 @@ const { chromium } = require('playwright');
   });
 
   const response=await page.goto(
-    'https://barliveapp.es/explorar/mapa?startup-profile=20260926-v9',
+    'https://barliveapp.es/explorar/mapa?startup-profile=20260926-v10',
     {waitUntil:'domcontentloaded',timeout:60000}
   );
   console.log('OUTER_DOMCONTENTLOADED_MS='+(Date.now()-navStart));
@@ -50,39 +50,6 @@ const { chromium } = require('playwright');
   await frame.waitForFunction(()=>window.__barliveMap,{timeout:30000});
   const mapCreatedMs=Date.now()-navStart;
   console.log('MAP_OBJECT_MS='+mapCreatedMs);
-
-  const eventTimes=await frame.evaluate(async()=>{
-    const map=window.__barliveMap;
-    const marks={evaluateAt:performance.now()};
-
-    function waitEvent(name, timeout=20000){
-      return new Promise(resolve=>{
-        if(name==='load' && map.loaded()) return resolve({name,at:performance.now(),already:true});
-        let done=false;
-        const finish=(already=false)=>{
-          if(done) return;
-          done=true;
-          resolve({name,at:performance.now(),already});
-        };
-        map.once(name,()=>finish(false));
-        setTimeout(()=>finish(true),timeout);
-      });
-    }
-
-    const style=await waitEvent('style.load');
-    const load=await waitEvent('load');
-
-    return {
-      timeOrigin:performance.timeOrigin,
-      now:performance.now(),
-      style,
-      load,
-      resources:performance.getEntriesByType('resource')
-        .map(e=>({name:e.name,startTime:e.startTime,duration:e.duration,transferSize:e.transferSize,encodedBodySize:e.encodedBodySize,decodedBodySize:e.decodedBodySize,initiatorType:e.initiatorType}))
-        .filter(e=>/jsdelivr|openfreemap|barliveapp\.es\/map-data/i.test(e.name))
-    };
-  });
-  console.log('FRAME_EVENTS='+JSON.stringify(eventTimes));
 
   await frame.waitForFunction(()=>{
     const d=window.__barliveLastDiagnostics;
