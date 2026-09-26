@@ -2,6 +2,55 @@
 <!-- barlive-production: canonical-map-v24-popup-restored-df05423-20260926 route=/explorar/mapa -->
 <html lang="es">
   <head>
+<script id="barlive-google-cost-guard">
+(function(){
+  function blocked(raw){
+    try{
+      var u=new URL(String(raw||""),location.href);
+      var h=String(u.hostname||"").toLowerCase();
+      var p=String(u.pathname||"").toLowerCase();
+      if(h==="places.googleapis.com") return true;
+      return h==="maps.googleapis.com" &&
+        (p.indexOf("/maps/api/place/")===0 || p.indexOf("/maps/api/streetview")===0);
+    }catch(_){return false;}
+  }
+  var nativeFetch=window.fetch;
+  if(nativeFetch){
+    window.fetch=function(input,init){
+      var raw=typeof input==="string" ? input : input&&input.url;
+      if(blocked(raw)) return Promise.reject(new TypeError("BarLive blocked paid Google API request"));
+      return nativeFetch.call(this,input,init);
+    };
+  }
+  var nativeOpen=XMLHttpRequest&&XMLHttpRequest.prototype&&XMLHttpRequest.prototype.open;
+  if(nativeOpen){
+    XMLHttpRequest.prototype.open=function(method,url){
+      if(blocked(url)) throw new Error("BarLive blocked paid Google API request");
+      return nativeOpen.apply(this,arguments);
+    };
+  }
+  var nativeSetAttribute=Element.prototype.setAttribute;
+  Element.prototype.setAttribute=function(name,value){
+    if(String(name||"").toLowerCase()==="src" && blocked(value)) return;
+    return nativeSetAttribute.apply(this,arguments);
+  };
+  try{
+    var d=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,"src");
+    if(d&&d.set&&d.get){
+      Object.defineProperty(HTMLImageElement.prototype,"src",{
+        configurable:d.configurable,
+        enumerable:d.enumerable,
+        get:d.get,
+        set:function(value){
+          if(blocked(value)) return;
+          return d.set.call(this,value);
+        }
+      });
+    }
+  }catch(_){}
+  window.__barliveGooglePaidApiBlocked=blocked;
+})();
+</script>
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
