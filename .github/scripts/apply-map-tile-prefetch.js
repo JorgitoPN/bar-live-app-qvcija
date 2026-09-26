@@ -22,14 +22,14 @@ replaceOnce(
 <script>
 (function(){
   try {
-    var initialZoom=\${initialZoom};
+    var initialZoom=\${a};
     if (initialZoom<10) return;
 
     var root="https://barliveapp.es/map-data/viewport-z9-v1";
     var z=9;
     var n=Math.pow(2,z);
-    var lon=\${initialLng};
-    var lat=\${initialLat};
+    var lon=\${n};
+    var lat=\${e};
     var x=Math.floor((lon+180)/360*n);
     var clipped=Math.max(-85.05112878,Math.min(85.05112878,lat));
     var rad=clipped*Math.PI/180;
@@ -77,7 +77,7 @@ replaceOnce(
     bootstrapCanonicalMap("style.load");
   });
 
-  // Defensive fallback for MapLibre/browser variants where style.load may`,
+  map.on("load",function(){`,
 `  map.on("style.load",function(){
     bootstrapCanonicalMap("style.load");
   });
@@ -86,7 +86,7 @@ replaceOnce(
     bootstrapCanonicalMap("styledata");
   });
 
-  // Defensive fallback for MapLibre/browser variants where style.load may`,
+  map.on("load",function(){`,
 'styledata listener'
 );
 
