@@ -144,6 +144,60 @@ const { chromium } = require('playwright');
     throw new Error('national source incomplete: '+JSON.stringify(national.snap));
   }
 
+  const nationalGeneration = Number(national.snap?.requestGeneration || 0);
+  const localStarted = Date.now();
+
+  await frame.evaluate(() => {
+    window.__barliveMap.jumpTo({
+      center: [-3.7038, 40.4168],
+      zoom: 13
+    });
+  });
+
+  await frame.waitForFunction(
+    previous => {
+      const d = window.__barliveLastDiagnostics;
+      return d &&
+        Number(d.requestGeneration || 0) > previous &&
+        Number(d.datasetGeneration || 0) === Number(d.requestGeneration || 0) &&
+        Number(d.sourceFeatures || 0) > 0 &&
+        Number(d.sourceFeatures || 0) < 20000 &&
+        Number(window.__barliveMap?.getZoom?.() || 0) >= 12.5;
+    },
+    nationalGeneration,
+    { timeout: 45000 }
+  );
+
+  const localAfterNational = await frame.evaluate(() => {
+    const snap = window.__barliveTestSnapshot();
+    const source = window.__barliveMap.getSource('barlive-venues');
+    let raw = source && source._data;
+    if ((!raw || typeof raw !== 'object') && source && typeof source.serialize === 'function') {
+      try { raw = source.serialize()?.data; } catch (_) {}
+    }
+    const features = raw?.type === 'FeatureCollection' && Array.isArray(raw.features)
+      ? raw.features
+      : [];
+    const ids = features
+      .map(f => String((f.properties && (f.properties.venueId || f.properties.id)) || f.id || ''))
+      .filter(Boolean);
+    return {
+      snap,
+      rawFeatureCount: ids.length,
+      uniqueIds: new Set(ids).size
+    };
+  });
+
+  console.log('LOCAL_AFTER_NATIONAL_MS=' + (Date.now()-localStarted));
+  console.log('LOCAL_AFTER_NATIONAL=' + JSON.stringify(localAfterNational));
+
+  if (Number(localAfterNational.snap?.sourceFeatures || 0) >= 20000) {
+    throw new Error('national dataset remained active after local zoom');
+  }
+  if (localAfterNational.rawFeatureCount !== localAfterNational.uniqueIds) {
+    throw new Error('duplicate ids after national-to-local transition');
+  }
+
   console.log('NATIONAL_ZOOM_SMOKE_OK');
   await browser.close();
 })().catch(err => {
