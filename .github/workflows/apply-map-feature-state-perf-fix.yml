@@ -31,9 +31,12 @@ jobs:
           grep -Fq 'if (!advancedFilterActive) return;' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
           grep -Fq 'liveIds.forEach(function(id)' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
           grep -Fq 'promoIds.forEach(function(id)' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
-          grep -Fq 'canonical-map-v6-decoration-perf-a9ee082-20260926' index.html
+          grep -Fq 'canonical-map-v7-warm-cache-6a3c353-20260926' index.html
           grep -Fq 'minzoom:13' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
           grep -Fq 'decoratedFilterExpression' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq '[MAP_RENDER][CACHE_RESTORE]' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq 'view:center && map ?' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq 'canonical-map-v7-warm-cache' version.json
 
       - name: Commit production performance fix
         shell: bash
@@ -46,7 +49,7 @@ jobs:
             exit 0
           fi
           git add _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js \
-            index.html 404.html explorar/mapa/index.html sw.js
+            index.html 404.html explorar/mapa/index.html sw.js version.json
           git add explorar/index.html detalle/local/index.html 2>/dev/null || true
-          git commit -m 'perf(web-map): avoid full-source feature-state rewrites'
+          git commit -m 'perf(web-map): warm-start refresh from canonical cache'
           git push origin gh-pages
