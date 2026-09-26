@@ -73,12 +73,13 @@
       }
     </style>
   <link rel="manifest" href="/manifest.json"><link rel="icon" href="/favicon.ico"><meta name="theme-color" content="#14B8A6">
-<style id="barlive-web-desktop-ui-v1">
+
+<style id="barlive-web-desktop-ui-v2">
 @media (min-width: 1100px) and (min-height: 650px) and (orientation: landscape) {
   html,
   body,
   #root {
-    background: #f4f7f8 !important;
+    background: #F4F7F6 !important;
   }
 
   body {
@@ -86,45 +87,28 @@
     text-rendering: optimizeLegibility;
   }
 
-  .barlive-web-fullbleed-header {
-    position: relative !important;
-    overflow: visible !important;
+  .barlive-web-desktop-header-v2 {
+    box-sizing: border-box !important;
+    max-width: none !important;
     border-radius: 0 !important;
-    isolation: isolate;
-    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
   }
 
-  .barlive-web-fullbleed-header::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: calc(-1 * var(--barlive-header-bleed-left, 0px));
-    right: calc(-1 * var(--barlive-header-bleed-right, 0px));
-    background: inherit;
-    pointer-events: none;
-    z-index: -1;
+  .barlive-web-overflow-bridge-v2 {
+    overflow: visible !important;
   }
 
-  .barlive-web-fullbleed-header::after {
-    content: "";
-    position: absolute;
-    left: calc(-1 * var(--barlive-header-bleed-left, 0px));
-    right: calc(-1 * var(--barlive-header-bleed-right, 0px));
-    bottom: -1px;
-    height: 1px;
-    background: rgba(15, 23, 42, 0.05);
-    pointer-events: none;
+  .barlive-web-right-rail-v2 {
+    box-sizing: border-box !important;
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+    scrollbar-color: rgba(100, 116, 139, .32) transparent;
   }
 
   *::-webkit-scrollbar {
-    width: 9px;
-    height: 9px;
+    width: 8px;
+    height: 8px;
   }
 
   *::-webkit-scrollbar-track {
@@ -132,15 +116,12 @@
   }
 
   *::-webkit-scrollbar-thumb {
-    background: rgba(100, 116, 139, 0.28);
+    background: rgba(100, 116, 139, .26);
     border-radius: 999px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
   }
 
   *::-webkit-scrollbar-thumb:hover {
-    background: rgba(100, 116, 139, 0.42);
-    background-clip: padding-box;
+    background: rgba(100, 116, 139, .4);
   }
 }
 </style>
@@ -154,7 +135,7 @@
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
   <script src="/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v24-popup-restored-df05423-20260926" defer></script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=38',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});}</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=39',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});}</script>
 <script id="barlive-web-rbac-guest-guard">
 (function(){
   "use strict";
@@ -412,104 +393,274 @@
 })();
 </script>
 
-<script id="barlive-web-desktop-ui-v1">
+
+<script id="barlive-web-desktop-ui-v2">
 (function(){
   "use strict";
-  var VERSION="desktop-ui-v1-20260926";
+
+  var VERSION="desktop-ui-v2-20260926";
   window.__barliveDesktopUiVersion=VERSION;
 
-  function isDesktop(){
-    return window.innerWidth >= 1100 &&
-      window.innerHeight >= 650 &&
-      window.innerWidth > window.innerHeight;
+  var touchedHeaders=[];
+  var touchedOverflow=[];
+  var touchedRails=[];
+
+  function desktop(){
+    return window.innerWidth>=1100 &&
+      window.innerHeight>=650 &&
+      window.innerWidth>window.innerHeight;
   }
 
-  function parseRgb(value){
+  function save(el,prop,key){
+    if(el.getAttribute(key)!==null) return;
+    el.setAttribute(key,el.style.getPropertyValue(prop)||"");
+  }
+
+  function restore(el,prop,key){
+    var value=el.getAttribute(key);
+    if(value===null) return;
+    if(value) el.style.setProperty(prop,value);
+    else el.style.removeProperty(prop);
+    el.removeAttribute(key);
+  }
+
+  function restoreAll(){
+    for(var i=0;i<touchedHeaders.length;i++){
+      var h=touchedHeaders[i];
+      if(!h || !h.style) continue;
+      restore(h,"width","data-bl-orig-width");
+      restore(h,"max-width","data-bl-orig-maxw");
+      restore(h,"margin-left","data-bl-orig-ml");
+      restore(h,"padding-left","data-bl-orig-pl");
+      restore(h,"padding-right","data-bl-orig-pr");
+      restore(h,"box-sizing","data-bl-orig-box");
+      restore(h,"border-radius","data-bl-orig-radius");
+      h.classList.remove("barlive-web-desktop-header-v2");
+    }
+
+    for(var j=0;j<touchedOverflow.length;j++){
+      var o=touchedOverflow[j];
+      if(!o || !o.style) continue;
+      restore(o,"overflow","data-bl-orig-overflow");
+      o.classList.remove("barlive-web-overflow-bridge-v2");
+    }
+
+    for(var k=0;k<touchedRails.length;k++){
+      var r=touchedRails[k];
+      if(!r || !r.style) continue;
+      restore(r,"padding-top","data-bl-orig-pt");
+      r.classList.remove("barlive-web-right-rail-v2");
+    }
+
+    touchedHeaders=[];
+    touchedOverflow=[];
+    touchedRails=[];
+  }
+
+  function rgb(value){
     var m=String(value||"").match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
-    return m ? [Number(m[1]),Number(m[2]),Number(m[3])] : null;
+    return m?[+m[1],+m[2],+m[3]]:null;
   }
 
-  function looksLikeBrandHeader(el,style,rect){
-    if(!el || !style || !rect) return false;
-    if(rect.width < 320 || rect.height < 42 || rect.height > 280) return false;
-    if(rect.top < -120 || rect.top > 190) return false;
+  function brandHeader(el,style,rect){
+    if(!rect || rect.width<320 || rect.height<38 || rect.height>285) return false;
+    if(rect.top<-180 || rect.top>210) return false;
 
-    var bgImage=String(style.backgroundImage || "").toLowerCase();
-    if(bgImage.indexOf("linear-gradient") !== -1) {
-      var text=(el.textContent || "").trim();
-      var controls=el.querySelectorAll ? el.querySelectorAll("button,a,[role=button],input").length : 0;
-      if(text || controls) return true;
+    var bg=String(style.backgroundImage||"").toLowerCase();
+    if(bg.indexOf("linear-gradient")!==-1){
+      return true;
     }
 
-    var rgb=parseRgb(style.backgroundColor);
-    if(rgb){
-      var r=rgb[0], g=rgb[1], b=rgb[2];
-      var tealish=(g > 120 && g > r * 1.25 && g > b * 0.85 && r < 80);
-      var cyanish=(b > 120 && g > 120 && r < 80);
-      if((tealish || cyanish) && rect.height <= 180) return true;
+    var c=rgb(style.backgroundColor);
+    if(c){
+      var r=c[0],g=c[1],b=c[2];
+      var turquoise=(g>115 && b>100 && r<100 && g>r*1.2);
+      if(turquoise) return true;
     }
-
     return false;
   }
 
-  function clear(){
-    var marked=document.querySelectorAll(".barlive-web-fullbleed-header");
-    for(var i=0;i<marked.length;i++){
-      marked[i].classList.remove("barlive-web-fullbleed-header");
-      marked[i].style.removeProperty("--barlive-header-bleed-left");
-      marked[i].style.removeProperty("--barlive-header-bleed-right");
-    }
-  }
-
-  function apply(){
-    if(!isDesktop()){
-      clear();
-      return;
-    }
-
-    var nodes=document.querySelectorAll("header, div");
+  function findHeaders(){
+    var nodes=document.querySelectorAll("header,div");
     var found=[];
+
     for(var i=0;i<nodes.length;i++){
       var el=nodes[i];
       var rect;
-      try { rect=el.getBoundingClientRect(); } catch(_) { continue; }
-      if(rect.right <= 0 || rect.left >= window.innerWidth) continue;
-
       var style;
-      try { style=getComputedStyle(el); } catch(_) { continue; }
-      if(!looksLikeBrandHeader(el,style,rect)) continue;
+      try{
+        rect=el.getBoundingClientRect();
+        style=getComputedStyle(el);
+      }catch(_){ continue; }
 
-      // Prefer the outermost eligible header so the content/padding stays exactly
-      // where BarLive already positions it while only the background becomes full bleed.
+      if(rect.right<=0 || rect.left>=innerWidth) continue;
+      if(!brandHeader(el,style,rect)) continue;
+
       var parent=el.parentElement;
       var parentEligible=false;
       if(parent){
         try{
-          var pr=parent.getBoundingClientRect();
-          var ps=getComputedStyle(parent);
-          parentEligible=looksLikeBrandHeader(parent,ps,pr);
+          parentEligible=brandHeader(parent,getComputedStyle(parent),parent.getBoundingClientRect());
         }catch(_){}
       }
-      if(parentEligible) continue;
-      found.push(el);
+      if(!parentEligible) found.push(el);
     }
 
-    var existing=document.querySelectorAll(".barlive-web-fullbleed-header");
-    for(var e=0;e<existing.length;e++){
-      if(found.indexOf(existing[e])===-1){
-        existing[e].classList.remove("barlive-web-fullbleed-header");
-        existing[e].style.removeProperty("--barlive-header-bleed-left");
-        existing[e].style.removeProperty("--barlive-header-bleed-right");
+    // Keep only the widest/topmost real page header. Nested gradient controls
+    // can otherwise look like tiny headers.
+    found.sort(function(a,b){
+      var ar=a.getBoundingClientRect(), br=b.getBoundingClientRect();
+      if(Math.abs(ar.top-br.top)>4) return ar.top-br.top;
+      return br.width-ar.width;
+    });
+
+    var selected=[];
+    for(var j=0;j<found.length;j++){
+      var fr=found[j].getBoundingClientRect();
+      var overlaps=false;
+      for(var x=0;x<selected.length;x++){
+        var sr=selected[x].getBoundingClientRect();
+        if(Math.abs(fr.top-sr.top)<8 && Math.abs(fr.bottom-sr.bottom)<18){
+          overlaps=true; break;
+        }
+      }
+      if(!overlaps) selected.push(found[j]);
+    }
+
+    return selected.slice(0,2);
+  }
+
+  function shellFor(header){
+    var el=header;
+    var best=null;
+    while(el && el!==document.body){
+      var p=el.parentElement;
+      if(!p) break;
+      try{
+        var r=p.getBoundingClientRect();
+        if(r.width>innerWidth*.78 && r.height>innerHeight*.75){
+          best=p;
+        }
+      }catch(_){}
+      el=p;
+    }
+    return best;
+  }
+
+  function sidebarRight(shell,headerRect){
+    if(!shell) return 0;
+    var kids=shell.children||[];
+    var edge=0;
+    for(var i=0;i<kids.length;i++){
+      var r;
+      try{ r=kids[i].getBoundingClientRect(); }catch(_){ continue; }
+      if(r.height<innerHeight*.7) continue;
+      if(r.left<=2 && r.right<=headerRect.left+8 && r.width>=60 && r.width<=330){
+        edge=Math.max(edge,r.right);
       }
     }
+    return edge;
+  }
 
-    for(var f=0;f<found.length;f++){
-      var header=found[f];
-      var hr=header.getBoundingClientRect();
-      header.classList.add("barlive-web-fullbleed-header");
-      header.style.setProperty("--barlive-header-bleed-left", Math.max(0,hr.left)+"px");
-      header.style.setProperty("--barlive-header-bleed-right", Math.max(0,window.innerWidth-hr.right)+"px");
+  function rightRail(shell,headerRect){
+    if(!shell) return null;
+    var kids=shell.children||[];
+    var candidate=null;
+    for(var i=0;i<kids.length;i++){
+      var r;
+      try{ r=kids[i].getBoundingClientRect(); }catch(_){ continue; }
+      if(r.height<innerHeight*.65) continue;
+      if(r.width<180 || r.width>420) continue;
+      if(r.left>headerRect.right+30 && r.right>=innerWidth-10){
+        candidate=kids[i];
+      }
     }
+    return candidate;
+  }
+
+  function bridgeOverflow(header,shell){
+    var el=header.parentElement;
+    var depth=0;
+    while(el && el!==shell && el!==document.body && depth<7){
+      var cs;
+      try{ cs=getComputedStyle(el); }catch(_){ break; }
+      if(
+        cs.overflow==="hidden" ||
+        cs.overflowX==="hidden" ||
+        cs.overflowY==="hidden" ||
+        cs.overflow==="clip"
+      ){
+        save(el,"overflow","data-bl-orig-overflow");
+        el.classList.add("barlive-web-overflow-bridge-v2");
+        touchedOverflow.push(el);
+      }
+      el=el.parentElement;
+      depth++;
+    }
+  }
+
+  function expand(header){
+    var rect=header.getBoundingClientRect();
+    var shell=shellFor(header);
+    var leftEdge=sidebarRight(shell,rect);
+    var targetLeft=Math.max(0,leftEdge);
+    var targetRight=innerWidth;
+
+    // If this shell does not expose a sidebar child, do not paint underneath a
+    // separate fixed sidebar: use the visible page workspace as the left edge.
+    if(!leftEdge && rect.left>0 && rect.left<330){
+      targetLeft=rect.left;
+    }
+
+    var dl=Math.max(0,rect.left-targetLeft);
+    var dr=Math.max(0,targetRight-rect.right);
+    if(dl<4 && dr<4) return;
+
+    var cs=getComputedStyle(header);
+    var pl=parseFloat(cs.paddingLeft)||0;
+    var pr=parseFloat(cs.paddingRight)||0;
+
+    save(header,"width","data-bl-orig-width");
+    save(header,"max-width","data-bl-orig-maxw");
+    save(header,"margin-left","data-bl-orig-ml");
+    save(header,"padding-left","data-bl-orig-pl");
+    save(header,"padding-right","data-bl-orig-pr");
+    save(header,"box-sizing","data-bl-orig-box");
+    save(header,"border-radius","data-bl-orig-radius");
+
+    header.classList.add("barlive-web-desktop-header-v2");
+    header.style.setProperty("box-sizing","border-box","important");
+    header.style.setProperty("max-width","none","important");
+    header.style.setProperty("width",(rect.width+dl+dr)+"px","important");
+    header.style.setProperty("margin-left",(-dl)+"px","important");
+    header.style.setProperty("padding-left",(pl+dl)+"px","important");
+    header.style.setProperty("padding-right",(pr+dr)+"px","important");
+    header.style.setProperty("border-radius","0","important");
+    touchedHeaders.push(header);
+
+    bridgeOverflow(header,shell);
+
+    var rail=rightRail(shell,rect);
+    if(rail){
+      var rcs=getComputedStyle(rail);
+      var currentPt=parseFloat(rcs.paddingTop)||0;
+      save(rail,"padding-top","data-bl-orig-pt");
+      rail.classList.add("barlive-web-right-rail-v2");
+      rail.style.setProperty(
+        "padding-top",
+        (currentPt + Math.max(0,rect.bottom))+"px",
+        "important"
+      );
+      touchedRails.push(rail);
+    }
+  }
+
+  function apply(){
+    restoreAll();
+    if(!desktop()) return;
+
+    var headers=findHeaders();
+    for(var i=0;i<headers.length;i++) expand(headers[i]);
   }
 
   var queued=false;
@@ -533,15 +684,16 @@
       attributeFilter:["style","class"]
     });
 
-    window.addEventListener("resize",schedule,{passive:true});
-    window.addEventListener("popstate",schedule);
+    addEventListener("resize",schedule,{passive:true});
+    addEventListener("scroll",schedule,{passive:true,capture:true});
+    addEventListener("popstate",function(){ setTimeout(schedule,0); });
 
     document.addEventListener("click",function(){
-      setTimeout(schedule,60);
-      setTimeout(schedule,300);
+      setTimeout(schedule,40);
+      setTimeout(schedule,260);
     },true);
 
-    setInterval(schedule,1800);
+    setInterval(schedule,1500);
   }
 
   if(document.readyState==="loading"){
