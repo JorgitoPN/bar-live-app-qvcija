@@ -1,0 +1,46 @@
+name: Build static viewport marker tiles
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/build-viewport-marker-tiles.yml'
+      - '.github/scripts/build-viewport-marker-tiles.cjs'
+      - 'map-data/national-venues-v1.json'
+      - 'map-data/national-venues-v1.meta.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+      - name: Build z9 marker tiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/scripts/build-viewport-marker-tiles.cjs
+          test -s map-data/viewport-z9-v1/manifest.json
+          node -e "const m=require('./map-data/viewport-z9-v1/manifest.json'); if(m.tileCount<100||m.totalRows<100000) process.exit(1); console.log(m.maxTile)"
+      - name: Commit tiles when changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A map-data/viewport-z9-v1
+          if git diff --cached --quiet; then
+            echo 'Viewport tiles unchanged.'
+            exit 0
+          fi
+          git commit -m 'data(web-map): refresh static viewport marker tiles'
+          git push origin gh-pages
