@@ -1,0 +1,50 @@
+name: Apply BarLive exact viewport prewarm
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/apply-map-exact-prewarm.yml'
+      - '.github/scripts/apply-map-exact-prewarm.js'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+      - name: Patch exact viewport prewarm
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/scripts/apply-map-exact-prewarm.js
+          grep -Fq 'canonical-map-v14-exact-prewarm-d2a11bc-20260926' index.html
+          grep -Fq '[MAP_RENDER][VIEWPORT_STATIC_PREWARM]' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq 'void prewarmStaticViewportTiles' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          if grep -Fq 'bootstrapCanonicalMap("styledata")' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js; then exit 1; fi
+          grep -Fq '/sw.js?v=27' index.html
+          grep -Fq 'canonical-map-v14-exact-prewarm' version.json
+      - name: Commit v14 production bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet; then
+            echo 'No production changes needed.'
+            exit 0
+          fi
+          git add _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js \
+            index.html 404.html explorar/mapa/index.html sw.js version.json
+          git add explorar/index.html detalle/local/index.html 2>/dev/null || true
+          git commit -m 'perf(web-map): prewarm only exact startup viewport tiles'
+          git push origin gh-pages
