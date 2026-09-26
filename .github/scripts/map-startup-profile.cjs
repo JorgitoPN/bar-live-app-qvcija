@@ -65,16 +65,30 @@ const { chromium } = require('playwright');
   console.log('IFRAME_RESOURCES='+JSON.stringify(iframeResources));
   console.log('NETWORK_RELEVANT='+JSON.stringify(relevant));
 
-  const nav=await page.evaluate(()=>performance.getEntriesByType('navigation').map(n=>({
-    domContentLoadedEventEnd:n.domContentLoadedEventEnd,
-    loadEventEnd:n.loadEventEnd,
-    responseStart:n.responseStart,
-    responseEnd:n.responseEnd,
-    transferSize:n.transferSize,
-    encodedBodySize:n.encodedBodySize,
-    decodedBodySize:n.decodedBodySize
-  })));
-  console.log('OUTER_NAV='+JSON.stringify(nav));
+  const outerPerf=await page.evaluate(()=>({
+    navigation:performance.getEntriesByType('navigation').map(n=>({
+      domContentLoadedEventEnd:n.domContentLoadedEventEnd,
+      loadEventEnd:n.loadEventEnd,
+      responseStart:n.responseStart,
+      responseEnd:n.responseEnd,
+      transferSize:n.transferSize,
+      encodedBodySize:n.encodedBodySize,
+      decodedBodySize:n.decodedBodySize
+    })),
+    resources:performance.getEntriesByType('resource')
+      .map(e=>({
+        name:e.name,
+        startTime:e.startTime,
+        duration:e.duration,
+        transferSize:e.transferSize,
+        encodedBodySize:e.encodedBodySize,
+        decodedBodySize:e.decodedBodySize,
+        initiatorType:e.initiatorType
+      }))
+      .filter(e=>/_expo\/static\/js\/web\/entry-|Ionicons|MaterialIcons/.test(e.name))
+  }));
+  console.log('OUTER_NAV='+JSON.stringify(outerPerf.navigation));
+  console.log('OUTER_RESOURCES='+JSON.stringify(outerPerf.resources));
 
   console.log('STARTUP_PROFILE_OK');
   await browser.close();
