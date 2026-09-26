@@ -22,14 +22,14 @@ replaceOnce(
 <script>
 (function(){
   try {
-    var initialZoom=${initialZoom};
+    var initialZoom=\${initialZoom};
     if (initialZoom<10) return;
 
     var root="https://barliveapp.es/map-data/viewport-z9-v1";
     var z=9;
     var n=Math.pow(2,z);
-    var lon=${initialLng};
-    var lat=${initialLat};
+    var lon=\${initialLng};
+    var lat=\${initialLat};
     var x=Math.floor((lon+180)/360*n);
     var clipped=Math.max(-85.05112878,Math.min(85.05112878,lat));
     var rad=clipped*Math.PI/180;
