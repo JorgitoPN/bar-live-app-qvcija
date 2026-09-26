@@ -246,6 +246,59 @@ const fail = (message, details) => {
   });
   console.log('FINAL=' + JSON.stringify(finalState));
 
+  const measureZoomSettled = async (label, zoom) => {
+    const started = Date.now();
+    await frame.evaluate(async targetZoom => {
+      const map = window.__barliveMap;
+      await new Promise(resolve => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          resolve();
+        };
+        map.once('idle', finish);
+        map.jumpTo({ zoom: targetZoom });
+        setTimeout(finish, 30000);
+      });
+    }, zoom);
+    const elapsed = Date.now() - started;
+    console.log(label + '=' + elapsed);
+    return elapsed;
+  };
+
+  const iconLayerExists = await frame.evaluate(() =>
+    !!window.__barliveMap.getLayer('barlive-venues-icon')
+  );
+  if (iconLayerExists) {
+    await frame.evaluate(() => {
+      window.__barliveMap.setLayoutProperty(
+        'barlive-venues-icon',
+        'visibility',
+        'none'
+      );
+    });
+    const noIcons12 = await measureZoomSettled('PERF_NO_ICONS_Z12_MS', 12);
+    const noIcons14 = await measureZoomSettled('PERF_NO_ICONS_Z14_MS', 14);
+
+    await frame.evaluate(() => {
+      window.__barliveMap.setLayoutProperty(
+        'barlive-venues-icon',
+        'visibility',
+        'visible'
+      );
+    });
+    const icons12 = await measureZoomSettled('PERF_ICONS_Z12_MS', 12);
+    const icons14 = await measureZoomSettled('PERF_ICONS_Z14_MS', 14);
+
+    console.log('PERF_ICON_AB=' + JSON.stringify({
+      noIcons12,
+      noIcons14,
+      icons12,
+      icons14
+    }));
+  }
+
   if (!finalState.hasSource) {
     fail('canonical source missing after movement/zoom', finalState);
   }
