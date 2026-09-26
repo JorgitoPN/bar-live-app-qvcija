@@ -19,16 +19,16 @@ if (!bundle.includes('applyRealtimeScheduleStates')) {
     'var DATA_CACHE_KEY = "barlive-visible-venues-v3-schedules";'
   );
 
-  const markerAnchor = \`function normalizeMarkerState(value) {
+  const markerAnchor = `function normalizeMarkerState(value) {
   var raw = String(value == null ? "" : value).trim().toLowerCase();
   var numeric = Number(value);
   if (raw === "abierto" || raw === "open" || numeric === 1) return "open";
   if (raw === "cerrado" || raw === "closed" || numeric === 2) return "closed";
   return "unknown";
 }
-\`;
+`;
 
-  const helpers = String.raw\`
+  const helpers = String.raw`
 function madridClockParts() {
   var fallback=new Date();
   try {
@@ -393,7 +393,7 @@ function applyRealtimeScheduleStates(rows) {
     businessStates:businessStates
   };
 }
-\`;
+`;
 
   if (!bundle.includes(markerAnchor)) {
     throw new Error('normalizeMarkerState anchor missing');
@@ -427,7 +427,7 @@ function applyRealtimeScheduleStates(rows) {
     throw new Error('canonical state join block missing');
   }
 
-  const replacement = String.raw\`async function fetchCanonicalRows(bounds,generation,controller) {
+  const replacement = String.raw`async function fetchCanonicalRows(bounds,generation,controller) {
   var venueRows=await fetchPagedRows(
     bounds,
     generation,
@@ -493,7 +493,7 @@ async function refreshCanonicalStates() {
   );
 }
 
-\`;
+`;
 
   bundle =
     bundle.slice(0, mergeStart) +
