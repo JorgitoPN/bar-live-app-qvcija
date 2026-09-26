@@ -64,12 +64,14 @@ replaceModule(1252, (desktop) => {
     'desktop outer fixed body'
   );
 
-  desktop = replaceOnce(
-    desktop,
-    "(0,C.jsx)(h.default,{onPress:()=>$(e=>!e),activeOpacity:.75,children:(0,C.jsx)(u.default,{style:R.sectionLink,children:Z?'Ver menos  ↑':'Ver todos los locales  →'})})",
-    "(0,C.jsx)(u.default,{style:R.sectionLink,children:'Desplázate para ver más'})",
-    'nearby header'
-  );
+  const headerToggleStart = desktop.indexOf("(0,C.jsx)(h.default,{onPress:()=>$(e=>!e),activeOpacity:.75,children:(0,C.jsx)(u.default,{style:R.sectionLink,children:Z?");
+  if (headerToggleStart < 0) throw new Error('nearby header toggle start not found');
+  const headerToggleEnd = desktop.indexOf("})})", headerToggleStart);
+  if (headerToggleEnd < 0) throw new Error('nearby header toggle end not found');
+  desktop =
+    desktop.slice(0, headerToggleStart) +
+    "(0,C.jsx)(u.default,{style:R.sectionLink,children:'Desplázate para ver más'})" +
+    desktop.slice(headerToggleEnd + 4);
 
   const listStart = desktop.indexOf("V&&0===e.length?");
   const listEnd = desktop.indexOf("]}),(0,C.jsxs)(y.default,{style:R.rightColumn", listStart);
