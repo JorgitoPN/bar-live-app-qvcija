@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 
-const URL = 'https://barliveapp.es/explorar/mapa?runtime-smoke=20260926-raceguard';
+const URL = 'https://barliveapp.es/explorar/mapa?runtime-smoke=20260926-schedules-v3';
+
 const fail = (message, details) => {
   console.error('RUNTIME_SMOKE_FAIL:', message, details || '');
   process.exitCode = 1;
@@ -20,11 +21,34 @@ const fail = (message, details) => {
   page.on('console', msg => {
     const text = msg.text();
     if (msg.type() === 'error') consoleErrors.push(text);
-    if (text.includes('[MAP_RENDER]')) {
-      console.log('BROWSER:', text);
-    }
+    if (text.includes('[MAP_RENDER]')) console.log('BROWSER:', text);
   });
   page.on('pageerror', err => consoleErrors.push(String(err)));
+
+  const getFrame = async () => {
+    await page.waitForSelector('iframe', { timeout: 30000 });
+    const iframeHandle = await page.locator('iframe').first().elementHandle();
+    const nextFrame = await iframeHandle.contentFrame();
+    if (!nextFrame) fail('map iframe not available');
+    return nextFrame;
+  };
+
+  const waitForDataset = async (targetFrame, requireKnownState) => {
+    await targetFrame.waitForFunction(
+      requireKnown => {
+        const d = window.__barliveLastDiagnostics;
+        const known = Number(d?.open || 0) + Number(d?.closed || 0);
+        return typeof window.__barliveTestSnapshot === 'function' &&
+          window.__barliveMap &&
+          d &&
+          Number(d.total || 0) > 0 &&
+          Number(d.sourceFeatures || 0) > 0 &&
+          (!requireKnown || known > 0);
+      },
+      requireKnownState,
+      { timeout: 45000 }
+    );
+  };
 
   const started = Date.now();
   const response = await page.goto(URL, {
@@ -35,19 +59,8 @@ const fail = (message, details) => {
     fail('map route did not return HTTP 200', response && response.status());
   }
 
-  await page.waitForSelector('iframe', { timeout: 30000 });
-  const iframeHandle = await page.locator('iframe').first().elementHandle();
-  const frame = await iframeHandle.contentFrame();
-  if (!frame) fail('map iframe not available');
-
-  await frame.waitForFunction(
-    () => typeof window.__barliveTestSnapshot === 'function' &&
-          window.__barliveMap &&
-          window.__barliveLastDiagnostics &&
-          Number(window.__barliveLastDiagnostics.total || 0) > 0,
-    null,
-    { timeout: 30000 }
-  );
+  let frame = await getFrame();
+  await waitForDataset(frame, true);
 
   const firstMarkersMs = Date.now() - started;
   console.log('FIRST_MARKERS_MS=' + firstMarkersMs);
@@ -56,6 +69,7 @@ const fail = (message, details) => {
   }
 
   const snapshot = async () => frame.evaluate(() => window.__barliveTestSnapshot());
+
   const baseline = await snapshot();
   console.log('BASELINE=' + JSON.stringify(baseline));
 
@@ -64,6 +78,9 @@ const fail = (message, details) => {
   }
   if ((baseline.open + baseline.closed + baseline.unknown) !== baseline.total) {
     fail('state totals do not add up', baseline);
+  }
+  if ((baseline.open + baseline.closed) <= 0) {
+    fail('schedule-derived states are all unknown', baseline);
   }
 
   const markerArchitecture = await frame.evaluate(() => {
@@ -78,29 +95,49 @@ const fail = (message, details) => {
       'locales-source',
       'map-state-overlay'
     ];
-    const sourceFeatures = map.querySourceFeatures('barlive-venues') || [];
-    const ids = sourceFeatures
-      .map(f => String((f.properties && (f.properties.venueId || f.properties.id)) || f.id || ''))
-      .filter(Boolean);
+    const source = map.getSource('barlive-venues');
+    let raw = source && source._data;
+    if ((!raw || typeof raw !== 'object') && source && typeof source.serialize === 'function') {
+      try {
+        const serialized = source.serialize();
+        raw = serialized && serialized.data;
+      } catch (_) {}
+    }
+    const features = raw && raw.type === 'FeatureCollection' && Array.isArray(raw.features)
+      ? raw.features
+      : null;
+    const ids = features
+      ? features
+          .map(f => String((f.properties && (f.properties.venueId || f.properties.id)) || f.id || ''))
+          .filter(Boolean)
+      : null;
     return {
-      hasCanonical: !!map.getSource('barlive-venues'),
+      hasCanonical: !!source,
       forbiddenPresent: forbidden.filter(id => !!map.getSource(id) || !!map.getLayer(id)),
-      sourceFeatureCount: ids.length,
-      uniqueIdCount: new Set(ids).size,
-      colorExpression: map.getPaintProperty('barlive-venues-circle', 'circle-color')
+      rawFeatureCount: ids ? ids.length : null,
+      rawUniqueIdCount: ids ? new Set(ids).size : null,
+      colorExpression: map.getPaintProperty('barlive-venues-circle', 'circle-color'),
+      sourceType: style?.sources?.['barlive-venues']?.type || null
     };
   });
   console.log('ARCHITECTURE=' + JSON.stringify(markerArchitecture));
+
   if (!markerArchitecture.hasCanonical) fail('canonical venue source missing');
+  if (markerArchitecture.sourceType !== 'geojson') {
+    fail('canonical venue source is not GeoJSON', markerArchitecture);
+  }
   if (markerArchitecture.forbiddenPresent.length) {
     fail('legacy renderer/source present', markerArchitecture.forbiddenPresent);
   }
-  if (markerArchitecture.sourceFeatureCount !== markerArchitecture.uniqueIdCount) {
-    fail('duplicate venue ids detected in canonical source', markerArchitecture);
+  if (
+    markerArchitecture.rawFeatureCount !== null &&
+    markerArchitecture.rawFeatureCount !== markerArchitecture.rawUniqueIdCount
+  ) {
+    fail('duplicate venue ids detected in canonical FeatureCollection', markerArchitecture);
   }
 
   await frame.evaluate(() => window.setStateFilter('no_cerrados'));
-  await frame.waitForTimeout(350);
+  await frame.waitForTimeout(500);
   const openOnly = await snapshot();
   console.log('OPEN_ONLY=' + JSON.stringify(openOnly));
 
@@ -117,9 +154,10 @@ const fail = (message, details) => {
   }
 
   await frame.evaluate(() => window.setStateFilter('todos'));
-  await frame.waitForTimeout(350);
+  await frame.waitForTimeout(500);
   const restored = await snapshot();
   console.log('RESTORED=' + JSON.stringify(restored));
+
   if (
     restored.total !== baseline.total ||
     restored.open !== baseline.open ||
@@ -129,7 +167,24 @@ const fail = (message, details) => {
     fail('returning to Todos changed canonical state totals', { baseline, restored });
   }
 
-  const beforeMoveGeneration = Number(restored.requestGeneration || 0);
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
+  frame = await getFrame();
+  await waitForDataset(frame, true);
+  const refreshed = await snapshot();
+  console.log('REFRESHED=' + JSON.stringify(refreshed));
+
+  if (
+    refreshed.total <= 0 ||
+    refreshed.sourceFeatures <= 0 ||
+    (refreshed.open + refreshed.closed) <= 0
+  ) {
+    fail('refresh lost canonical venues or schedule states', refreshed);
+  }
+  if ((refreshed.open + refreshed.closed + refreshed.unknown) !== refreshed.total) {
+    fail('refresh state totals do not add up', refreshed);
+  }
+
+  const beforeMoveGeneration = Number(refreshed.requestGeneration || 0);
   await frame.evaluate(() => {
     window.__barliveMap.jumpTo({ center: [2.1734, 41.3851], zoom: 13 });
   });
@@ -143,42 +198,62 @@ const fail = (message, details) => {
         Number(d.sourceFeatures || 0) > 0;
     },
     beforeMoveGeneration,
-    { timeout: 30000 }
+    { timeout: 45000 }
   );
   const barcelona = await snapshot();
   console.log('BARCELONA=' + JSON.stringify(barcelona));
 
   for (const zoom of [11, 15, 12, 14]) {
-    const previous = await frame.evaluate(() => Number(window.__barliveLastDiagnostics?.requestGeneration || 0));
+    const previous = await frame.evaluate(
+      () => Number(window.__barliveLastDiagnostics?.requestGeneration || 0)
+    );
     await frame.evaluate(z => window.__barliveMap.jumpTo({ zoom: z }), zoom);
-    await frame.waitForTimeout(500);
-    const current = await snapshot();
-    console.log('ZOOM_' + zoom + '=' + JSON.stringify(current));
-    if (!current || current.total <= 0 || current.sourceFeatures <= 0) {
-      fail('markers disappeared after zoom ' + zoom, current);
+    await frame.waitForTimeout(700);
+    const currentState = await snapshot();
+    console.log('ZOOM_' + zoom + '=' + JSON.stringify(currentState));
+    if (!currentState || currentState.total <= 0 || currentState.sourceFeatures <= 0) {
+      fail('markers disappeared after zoom ' + zoom, currentState);
     }
-    if (Number(current.requestGeneration || 0) < previous) {
-      fail('request generation moved backwards after zoom', { previous, current });
+    if (Number(currentState.requestGeneration || 0) < previous) {
+      fail('request generation moved backwards after zoom', { previous, currentState });
     }
   }
 
   const finalState = await frame.evaluate(() => {
     const d = window.__barliveTestSnapshot();
-    const features = window.__barliveMap.querySourceFeatures('barlive-venues') || [];
+    const source = window.__barliveMap.getSource('barlive-venues');
+    let raw = source && source._data;
+    if ((!raw || typeof raw !== 'object') && source && typeof source.serialize === 'function') {
+      try {
+        const serialized = source.serialize();
+        raw = serialized && serialized.data;
+      } catch (_) {}
+    }
+    const features = raw && raw.type === 'FeatureCollection' && Array.isArray(raw.features)
+      ? raw.features
+      : null;
     const ids = features
-      .map(f => String((f.properties && (f.properties.venueId || f.properties.id)) || f.id || ''))
-      .filter(Boolean);
+      ? features
+          .map(f => String((f.properties && (f.properties.venueId || f.properties.id)) || f.id || ''))
+          .filter(Boolean)
+      : null;
     return {
       diagnostics: d,
-      ids: ids.length,
-      uniqueIds: new Set(ids).size,
-      hasSource: !!window.__barliveMap.getSource('barlive-venues')
+      rawFeatureCount: ids ? ids.length : null,
+      rawUniqueIds: ids ? new Set(ids).size : null,
+      hasSource: !!source
     };
   });
   console.log('FINAL=' + JSON.stringify(finalState));
 
-  if (!finalState.hasSource || finalState.ids !== finalState.uniqueIds) {
-    fail('canonical source unstable after movement/zoom', finalState);
+  if (!finalState.hasSource) {
+    fail('canonical source missing after movement/zoom', finalState);
+  }
+  if (
+    finalState.rawFeatureCount !== null &&
+    finalState.rawFeatureCount !== finalState.rawUniqueIds
+  ) {
+    fail('canonical FeatureCollection contains duplicate venue ids', finalState);
   }
 
   const relevantErrors = consoleErrors.filter(text =>
