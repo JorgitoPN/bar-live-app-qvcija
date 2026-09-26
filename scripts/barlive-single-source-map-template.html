@@ -2381,7 +2381,7 @@ function collectPopupImages(value,output,depth){
       }catch(_){}
     }
     if(text.indexOf("//")===0) text="https:"+text;
-    if(/^http:\/\//i.test(text)) text=text.replace(/^http:\/\//i,"https://");
+    if(/^http:\\/\\//i.test(text)) text=text.replace(/^http:\\/\\//i,"https://");
     if(output.indexOf(text)<0) output.push(text);
     return output;
   }
