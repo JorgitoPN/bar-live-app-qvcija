@@ -23,22 +23,28 @@ jobs:
           sparse-checkout: |
             _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
           sparse-checkout-cone-mode: false
-      - name: Print filter contexts
+      - name: Print exact map module filter context
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           s=Path('_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js').read_text(encoding='utf-8')
-          needles=[
-            'Opening advanced filters',
-            '/explorar/filtros-avanzados',
-            'FiltrosAvanzados',
-            'setMostrarFiltros',
-            'visible:'
-          ]
-          for n in needles:
-              i=s.find(n)
-              print('\nNEEDLE',n,'INDEX',i)
-              if i>=0:
-                  print(s[max(0,i-3500):min(len(s),i+6500)])
+          needle='Opening advanced filters'
+          i=s.find(needle)
+          print('NEEDLE_INDEX', i)
+          if i < 0:
+              raise SystemExit(1)
+          start=s.rfind('__d(function',0,i)
+          end=s.find('\n__d(function',i)
+          if end < 0:
+              end=min(len(s),i+20000)
+          module=s[start:end]
+          print('MODULE_START',start,'MODULE_END',end,'MODULE_LEN',len(module))
+          print('--- MODULE HEAD ---')
+          print(module[:7000])
+          print('--- HANDLER CONTEXT ---')
+          rel=i-start
+          print(module[max(0,rel-2500):min(len(module),rel+5000)])
+          print('--- MODULE TAIL ---')
+          print(module[-3500:])
           PY
