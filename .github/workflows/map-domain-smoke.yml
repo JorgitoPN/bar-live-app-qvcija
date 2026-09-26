@@ -1,4 +1,4 @@
-# canonical-map-v3 domain verification 20260926
+# canonical-map-v7 warm-cache domain verification 20260926
 name: BarLive production domain map smoke
 
 on:
@@ -17,20 +17,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify custom domain serves canonical map v6 performance runtime
+      - name: Verify custom domain serves canonical map v7 warm-cache runtime
         shell: bash
         run: |
           set -euo pipefail
-          HTML='https://barliveapp.es/?map-smoke=v3-20260926'
-          ASSET='https://barliveapp.es/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v6-decoration-perf-a9ee082-20260926'
-          ROUTE='https://barliveapp.es/explorar/mapa?map-smoke=v3-20260926'
+          HTML='https://barliveapp.es/?map-smoke=v7-20260926'
+          ASSET='https://barliveapp.es/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v7-warm-cache-6a3c353-20260926'
+          ROUTE='https://barliveapp.es/explorar/mapa?map-smoke=v7-20260926'
 
           curl --fail --silent --show-error --location --compressed \
             -H 'Cache-Control: no-cache' "$HTML" -o /tmp/index.html
 
-          grep -Fq 'canonical-map-v6-decoration-perf-a9ee082-20260926' /tmp/index.html
-          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v6-decoration-perf-a9ee082-20260926' /tmp/index.html
-          grep -Fq '/sw.js?v=19' /tmp/index.html
+          grep -Fq 'canonical-map-v7-warm-cache-6a3c353-20260926' /tmp/index.html
+          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v7-warm-cache-6a3c353-20260926' /tmp/index.html
+          grep -Fq '/sw.js?v=20' /tmp/index.html
 
           curl --fail --silent --show-error --location --compressed \
             -H 'Cache-Control: no-cache' "$ASSET" -o /tmp/bundle.js
@@ -43,6 +43,8 @@ jobs:
           grep -Fq 'minzoom:13' /tmp/bundle.js
           grep -Fq 'viewportRequestInFlight' /tmp/bundle.js
           grep -Fq '[MAP_RENDER][STATE_REFRESH_SKIPPED]' /tmp/bundle.js
+          grep -Fq '[MAP_RENDER][CACHE_RESTORE]' /tmp/bundle.js
+          grep -Fq 'view:center && map ?' /tmp/bundle.js
 
           if grep -Fq 'map_marker_state_cache' /tmp/bundle.js; then
             echo 'sparse marker state cache reference still present'
@@ -55,8 +57,8 @@ jobs:
 
           route_code="$(curl --silent --show-error --location --compressed \
             -H 'Cache-Control: no-cache' -o /tmp/route.html -w '%{http_code}' "$ROUTE")"
-          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v6-decoration-perf-a9ee082-20260926' /tmp/route.html
+          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v7-warm-cache-6a3c353-20260926' /tmp/route.html
           test "$route_code" = "200"
 
           echo "DOMAIN_ROUTE_HTTP=$route_code"
-          echo "DOMAIN_MAP_V6_OK"
+          echo "DOMAIN_MAP_V7_OK"
