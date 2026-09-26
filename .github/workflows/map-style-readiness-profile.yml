@@ -1,0 +1,42 @@
+name: BarLive map style readiness profile
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/map-style-readiness-profile.yml'
+      - '.github/scripts/map-style-readiness-profile.cjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout profiler
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          sparse-checkout: |
+            .github/scripts/map-style-readiness-profile.cjs
+          sparse-checkout-cone-mode: false
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/barlive-style-profile
+          cd /tmp/barlive-style-profile
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.57.0 --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          cp "$GITHUB_WORKSPACE/.github/scripts/map-style-readiness-profile.cjs" .
+      - name: Profile style readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/barlive-style-profile
+          node map-style-readiness-profile.cjs
