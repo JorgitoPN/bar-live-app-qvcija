@@ -23,28 +23,21 @@ jobs:
           sparse-checkout: |
             _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
           sparse-checkout-cone-mode: false
-      - name: Print exact map module filter context
+      - name: Print exact filter render expressions
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           s=Path('_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js').read_text(encoding='utf-8')
-          needle='Opening advanced filters'
-          i=s.find(needle)
-          print('NEEDLE_INDEX', i)
-          if i < 0:
-              raise SystemExit(1)
-          start=s.rfind('__d(function',0,i)
-          end=s.find('\n__d(function',i)
-          if end < 0:
-              end=min(len(s),i+20000)
-          module=s[start:end]
-          print('MODULE_START',start,'MODULE_END',end,'MODULE_LEN',len(module))
-          print('--- MODULE HEAD ---')
-          print(module[:7000])
-          print('--- HANDLER CONTEXT ---')
-          rel=i-start
-          print(module[max(0,rel-2500):min(len(module),rel+5000)])
-          print('--- MODULE TAIL ---')
-          print(module[-3500:])
+          for needle in [
+              'g=s(n(o[9]))',
+              '[me,fe]=(0,l.useState)(!1)',
+              'xe=(0,l.useCallback)',
+              'onClose:Se',
+              'visible:me'
+          ]:
+              i=s.find(needle, 2800000)
+              print('\nNEEDLE',needle,'INDEX',i)
+              if i>=0:
+                  print(s[max(0,i-1400):min(len(s),i+2600)])
           PY
