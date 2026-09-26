@@ -1,0 +1,49 @@
+name: Apply BarLive light map module
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/apply-map-light-module.yml'
+      - '.github/scripts/apply-map-light-module.js'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-production-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+      - name: Patch dead filter module from map startup
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/scripts/apply-map-light-module.js
+          grep -Fq 'canonical-map-v17-light-map-module-71fdbad-20260926' index.html
+          grep -Fq "e.push('/explorar/filtros-avanzados')" _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          if grep -Fq '(0,_.jsx)(g.default,{visible:me,onClose:Se})' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js; then exit 1; fi
+          grep -Fq '/sw.js?v=30' index.html
+          grep -Fq 'canonical-map-v17-light-map-module' version.json
+      - name: Commit v17 production bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet; then
+            echo 'No production changes needed.'
+            exit 0
+          fi
+          git add _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js \
+            index.html 404.html explorar/mapa/index.html sw.js version.json
+          git add explorar/index.html detalle/local/index.html 2>/dev/null || true
+          git commit -m 'perf(web-map): remove dead advanced-filter module from startup'
+          git push origin gh-pages
