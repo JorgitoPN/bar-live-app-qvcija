@@ -204,19 +204,9 @@ function walk(dir) {
   return out;
 }
 
-const escapedBase = sourceEntry
-  .replace(/\.js$/, '')
-  .replace(/[.*+?^\${}()|[\]\\]/g, '\\let htmlUpdates = 0;
-for (const html of walk(siteRoot)) {
-  const original = fs.readFileSync(html, 'utf8');
-  if (!original.includes(sourceEntry)) continue;
-  fs.writeFileSync(html, original.split(sourceEntry).join(newEntry), 'utf8');
-  htmlUpdates++;
-}
-if (!htmlUpdates) throw new Error('No HTML entry references were updated');
-');
+const sourceBase = sourceEntry.replace(/\.js$/, '');
 const entryPattern = new RegExp(
-  escapedBase + '(?:-explore-fixed-20260926-\\d+)?\\.js',
+  sourceBase + '(?:-explore-fixed-20260926-\\d+)?\\.js',
   'g'
 );
 let htmlUpdates = 0;
