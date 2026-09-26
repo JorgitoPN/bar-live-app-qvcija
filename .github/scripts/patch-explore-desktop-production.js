@@ -205,7 +205,7 @@ for (const needle of ['ExploreMiniMap','embeddedRoot','selectedVenue:a0','curren
   if (!mapCheck.includes(needle)) throw new Error('Missing map signature: ' + needle);
 }
 
-const stamp = 'explore-fixed-20260926-7';
+const stamp = 'explore-fixed-20260926-8';
 const newEntry = sourceEntry.replace(/\.js$/, '-' + stamp + '.js');
 const newPath = path.join(jsDir, newEntry);
 fs.writeFileSync(newPath, code, 'utf8');
