@@ -31,8 +31,9 @@ jobs:
           grep -Fq 'if (!advancedFilterActive) return;' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
           grep -Fq 'liveIds.forEach(function(id)' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
           grep -Fq 'promoIds.forEach(function(id)' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
-          grep -Fq 'canonical-map-v5-zoom-perf-5a49816-20260926' index.html
+          grep -Fq 'canonical-map-v6-decoration-perf-a9ee082-20260926' index.html
           grep -Fq 'minzoom:13' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq 'decoratedFilterExpression' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
 
       - name: Commit production performance fix
         shell: bash
