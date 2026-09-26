@@ -18,7 +18,7 @@ function replaceOnce(oldText,newText,label){
 const headStart=`<script>
 (function(){
   try {
-    var initialZoom=${a};
+    var initialZoom=\${a};
     if (initialZoom<10) return;
 
     var root="https://barliveapp.es/map-data/viewport-z9-v1";`;
@@ -122,7 +122,7 @@ replaceOnce(
 `  window.__barliveMap=map;
   map.on("error",handleMapError);
 
-  if (${a}>=VIEWPORT_TILE_MIN_MAP_ZOOM) {
+  if (\${a}>=VIEWPORT_TILE_MIN_MAP_ZOOM) {
     try {
       var startupBounds=getCurrentBounds();
       if (startupBounds) {
