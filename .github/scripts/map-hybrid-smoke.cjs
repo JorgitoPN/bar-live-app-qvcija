@@ -114,6 +114,38 @@ const { chromium } = require('playwright');
     { timeout: 30000 }
   );
 
+  // Wait until the local schedule pass has actually populated at least some
+  // feature-state values. This prevents a false pass while the 500-feature
+  // batches are still running.
+  await frame.waitForFunction(
+    () => {
+      const map = window.__barliveMap;
+      const features = map.querySourceFeatures(
+        'barlive-hybrid-venues',
+        { sourceLayer: 'locales' }
+      ) || [];
+      let known = 0;
+      for (const feature of features.slice(0, 6000)) {
+        const sid = Number(feature?.properties?.s ?? feature?.id);
+        if (!Number.isFinite(sid)) continue;
+        try {
+          const state = String(map.getFeatureState({
+            source:'barlive-hybrid-venues',
+            sourceLayer:'locales',
+            id:sid
+          })?.markerState || 'unknown');
+          if (state === 'open' || state === 'closed') {
+            known += 1;
+            if (known >= 5) return true;
+          }
+        } catch (_) {}
+      }
+      return false;
+    },
+    null,
+    { timeout: 12000 }
+  );
+
   await frame.waitForTimeout(250);
 
   const local = await frame.evaluate(() => {
@@ -286,15 +318,86 @@ const { chromium } = require('playwright');
   const tileCountBeforeFilter = requests.hybridTiles.length;
   await frame.evaluate(() => window.setStateFilter('no_cerrados'));
   await frame.waitForTimeout(150);
-  const openFilter = await frame.evaluate(() => ({
-    circleOpacity: window.__barliveMap.getPaintProperty(
-      'barlive-hybrid-venues-circle','circle-opacity'
-    ),
-    iconOpacity: window.__barliveMap.getPaintProperty(
-      'barlive-hybrid-venues-icon','icon-opacity'
-    ),
-  }));
+  await frame.waitForTimeout(500);
+  const openFilter = await frame.evaluate(() => {
+    const map = window.__barliveMap;
+    const features = map.querySourceFeatures(
+      'barlive-hybrid-venues',
+      { sourceLayer: 'locales' }
+    ) || [];
+
+    let open = 0;
+    let openWithoutAnySchedule = 0;
+    let openFromOsmOnly = 0;
+    let openWithBarLiveSchedule = 0;
+    let unscheduledMarkedOpen = 0;
+
+    for (const feature of features) {
+      const props = feature?.properties || {};
+      const sid = Number(props.s ?? feature?.id);
+      let state = 'unknown';
+      if (Number.isFinite(sid)) {
+        try {
+          state = String(map.getFeatureState({
+            source:'barlive-hybrid-venues',
+            sourceLayer:'locales',
+            id:sid
+          })?.markerState || 'unknown');
+        } catch (_) {}
+      }
+
+      const hText = props.h == null ? '' : String(props.h).trim();
+      const oText = props.o == null ? '' : String(props.o).trim();
+      const hasBarLiveSchedule =
+        hText !== '' && hText !== '{}' && hText !== '[]';
+      const hasOsmSchedule = oText !== '';
+
+      if (state === 'open') {
+        open += 1;
+        if (!hasBarLiveSchedule && !hasOsmSchedule) {
+          openWithoutAnySchedule += 1;
+          unscheduledMarkedOpen += 1;
+        } else if (!hasBarLiveSchedule && hasOsmSchedule) {
+          openFromOsmOnly += 1;
+        } else {
+          openWithBarLiveSchedule += 1;
+        }
+      }
+    }
+
+    return {
+      circleOpacity: map.getPaintProperty(
+        'barlive-hybrid-venues-circle','circle-opacity'
+      ),
+      circleStrokeOpacity: map.getPaintProperty(
+        'barlive-hybrid-venues-circle','circle-stroke-opacity'
+      ),
+      iconOpacity: map.getPaintProperty(
+        'barlive-hybrid-venues-icon','icon-opacity'
+      ),
+      stateAudit: {
+        open,
+        openWithoutAnySchedule,
+        openFromOsmOnly,
+        openWithBarLiveSchedule,
+        unscheduledMarkedOpen,
+      }
+    };
+  });
   console.log('V23_OPEN_FILTER=' + JSON.stringify(openFilter));
+
+  if (
+    JSON.stringify(openFilter.circleOpacity) !==
+    JSON.stringify(openFilter.circleStrokeOpacity)
+  ) {
+    throw new Error('Open-only stroke visibility differs from marker fill visibility');
+  }
+  if (openFilter.stateAudit.unscheduledMarkedOpen !== 0) {
+    throw new Error(
+      'Open-only contains venues without schedule data: ' +
+      openFilter.stateAudit.unscheduledMarkedOpen
+    );
+  }
 
   await frame.evaluate(() => window.setStateFilter('todos'));
   await frame.waitForTimeout(100);
