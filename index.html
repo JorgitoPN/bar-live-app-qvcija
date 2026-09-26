@@ -75,55 +75,31 @@
     </style>
   <link rel="manifest" href="/manifest.json"><link rel="icon" href="/favicon.ico"><meta name="theme-color" content="#14B8A6">
 
-<style id="barlive-web-desktop-ui-v2">
+
+<style id="barlive-web-desktop-ui-v3">
 @media (min-width: 1100px) and (min-height: 650px) and (orientation: landscape) {
-  html,
-  body,
-  #root {
-    background: #F4F7F6 !important;
-  }
+  html, body, #root { background: #F4F7F6 !important; }
+  body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 
-  body {
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-  }
-
-  .barlive-web-desktop-header-v2 {
+  .barlive-web-desktop-header-v3 {
     box-sizing: border-box !important;
     max-width: none !important;
     border-radius: 0 !important;
   }
 
-  .barlive-web-overflow-bridge-v2 {
-    overflow: visible !important;
+  .barlive-web-overflow-bridge-v3 { overflow: visible !important; }
+  .barlive-web-right-rail-v3 { box-sizing: border-box !important; }
+
+  img[data-barlive-logo-fixed="1"] {
+    object-fit: contain !important;
+    object-position: left center !important;
   }
 
-  .barlive-web-right-rail-v2 {
-    box-sizing: border-box !important;
-  }
-
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(100, 116, 139, .32) transparent;
-  }
-
-  *::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  *::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  *::-webkit-scrollbar-thumb {
-    background: rgba(100, 116, 139, .26);
-    border-radius: 999px;
-  }
-
-  *::-webkit-scrollbar-thumb:hover {
-    background: rgba(100, 116, 139, .4);
-  }
+  * { scrollbar-width: thin; scrollbar-color: rgba(100,116,139,.32) transparent; }
+  *::-webkit-scrollbar { width: 8px; height: 8px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb { background: rgba(100,116,139,.26); border-radius: 999px; }
+  *::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,.40); }
 }
 </style>
 </head>
@@ -136,7 +112,7 @@
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
   <script src="/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v24-popup-restored-df05423-20260926" defer></script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=39',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});}</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=40',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});}</script>
 <script id="barlive-web-rbac-guest-guard">
 (function(){
   "use strict";
@@ -395,21 +371,27 @@
 </script>
 
 
-<script id="barlive-web-desktop-ui-v2">
+
+<script id="barlive-web-desktop-ui-v3">
 (function(){
   "use strict";
 
-  var VERSION="desktop-ui-v2-20260926";
+  var VERSION="desktop-ui-v3-20260926";
   window.__barliveDesktopUiVersion=VERSION;
 
   var touchedHeaders=[];
   var touchedOverflow=[];
   var touchedRails=[];
+  var observer=null;
+  var queued=false;
 
-  function desktop(){
-    return window.innerWidth>=1100 &&
-      window.innerHeight>=650 &&
-      window.innerWidth>window.innerHeight;
+  var brandSvg=
+    'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22168%22 height=%2248%22 viewBox=%220 0 168 48%22%3E%3Crect x=%220%22 y=%224%22 width=%2240%22 height=%2240%22 rx=%2212%22 fill=%22%23641B73%22/%3E%3Ctext x=%2220%22 y=%2231%22 text-anchor=%22middle%22 font-family=%22Arial,sans-serif%22 font-size=%2223%22 font-weight=%22900%22 fill=%22white%22%3EB%3C/text%3E%3Ctext x=%2252%22 y=%2231%22 font-family=%22Arial,sans-serif%22 font-size=%2224%22 font-weight=%22800%22 fill=%22%23641B73%22%3EBarLive%3C/text%3E%3C/svg%3E';
+
+  function isDesktop(){
+    return innerWidth>=1100 &&
+      innerHeight>=650 &&
+      innerWidth>innerHeight;
   }
 
   function save(el,prop,key){
@@ -426,36 +408,44 @@
   }
 
   function restoreAll(){
-    for(var i=0;i<touchedHeaders.length;i++){
-      var h=touchedHeaders[i];
-      if(!h || !h.style) continue;
-      restore(h,"width","data-bl-orig-width");
-      restore(h,"max-width","data-bl-orig-maxw");
-      restore(h,"margin-left","data-bl-orig-ml");
-      restore(h,"padding-left","data-bl-orig-pl");
-      restore(h,"padding-right","data-bl-orig-pr");
-      restore(h,"box-sizing","data-bl-orig-box");
-      restore(h,"border-radius","data-bl-orig-radius");
-      h.classList.remove("barlive-web-desktop-header-v2");
-    }
+    touchedHeaders.forEach(function(h){
+      if(!h || !h.style) return;
+      restore(h,"width","data-bl3-width");
+      restore(h,"max-width","data-bl3-maxw");
+      restore(h,"margin-left","data-bl3-ml");
+      restore(h,"padding-left","data-bl3-pl");
+      restore(h,"padding-right","data-bl3-pr");
+      restore(h,"box-sizing","data-bl3-box");
+      restore(h,"border-radius","data-bl3-radius");
+      h.classList.remove("barlive-web-desktop-header-v3");
+    });
 
-    for(var j=0;j<touchedOverflow.length;j++){
-      var o=touchedOverflow[j];
-      if(!o || !o.style) continue;
-      restore(o,"overflow","data-bl-orig-overflow");
-      o.classList.remove("barlive-web-overflow-bridge-v2");
-    }
+    touchedOverflow.forEach(function(o){
+      if(!o || !o.style) return;
+      restore(o,"overflow","data-bl3-overflow");
+      o.classList.remove("barlive-web-overflow-bridge-v3");
+    });
 
-    for(var k=0;k<touchedRails.length;k++){
-      var r=touchedRails[k];
-      if(!r || !r.style) continue;
-      restore(r,"padding-top","data-bl-orig-pt");
-      r.classList.remove("barlive-web-right-rail-v2");
-    }
+    touchedRails.forEach(function(r){
+      if(!r || !r.style) return;
+      restore(r,"padding-top","data-bl3-pt");
+      r.classList.remove("barlive-web-right-rail-v3");
+    });
 
     touchedHeaders=[];
     touchedOverflow=[];
     touchedRails=[];
+  }
+
+  function fixLogo(){
+    if(!isDesktop()) return;
+    var logos=document.querySelectorAll('img[alt="BarLive"], img[alt="Barlive"], img[alt="barlive"]');
+    logos.forEach(function(img){
+      var src=String(img.getAttribute("src")||"");
+      if(src===brandSvg) return;
+      img.setAttribute("src",brandSvg);
+      img.setAttribute("data-barlive-logo-fixed","1");
+    });
   }
 
   function rgb(value){
@@ -463,21 +453,19 @@
     return m?[+m[1],+m[2],+m[3]]:null;
   }
 
-  function brandHeader(el,style,rect){
-    if(!rect || rect.width<320 || rect.height<38 || rect.height>285) return false;
-    if(rect.top<-180 || rect.top>210) return false;
+  function isBrandHeader(el,style,rect){
+    if(!rect || rect.width<300 || rect.height<36 || rect.height>290) return false;
+    if(rect.top<-190 || rect.top>220) return false;
 
     var bg=String(style.backgroundImage||"").toLowerCase();
-    if(bg.indexOf("linear-gradient")!==-1){
-      return true;
-    }
+    if(bg.indexOf("linear-gradient")!==-1) return true;
 
     var c=rgb(style.backgroundColor);
     if(c){
       var r=c[0],g=c[1],b=c[2];
-      var turquoise=(g>115 && b>100 && r<100 && g>r*1.2);
-      if(turquoise) return true;
+      if(g>115 && b>95 && r<105 && g>r*1.18) return true;
     }
+
     return false;
   }
 
@@ -486,31 +474,29 @@
     var found=[];
 
     for(var i=0;i<nodes.length;i++){
-      var el=nodes[i];
-      var rect;
-      var style;
+      var el=nodes[i], rect, cs;
       try{
         rect=el.getBoundingClientRect();
-        style=getComputedStyle(el);
+        cs=getComputedStyle(el);
       }catch(_){ continue; }
 
       if(rect.right<=0 || rect.left>=innerWidth) continue;
-      if(!brandHeader(el,style,rect)) continue;
+      if(!isBrandHeader(el,cs,rect)) continue;
 
       var parent=el.parentElement;
       var parentEligible=false;
       if(parent){
         try{
-          parentEligible=brandHeader(parent,getComputedStyle(parent),parent.getBoundingClientRect());
+          parentEligible=isBrandHeader(parent,getComputedStyle(parent),parent.getBoundingClientRect());
         }catch(_){}
       }
+
       if(!parentEligible) found.push(el);
     }
 
-    // Keep only the widest/topmost real page header. Nested gradient controls
-    // can otherwise look like tiny headers.
     found.sort(function(a,b){
-      var ar=a.getBoundingClientRect(), br=b.getBoundingClientRect();
+      var ar=a.getBoundingClientRect();
+      var br=b.getBoundingClientRect();
       if(Math.abs(ar.top-br.top)>4) return ar.top-br.top;
       return br.width-ar.width;
     });
@@ -518,156 +504,181 @@
     var selected=[];
     for(var j=0;j<found.length;j++){
       var fr=found[j].getBoundingClientRect();
-      var overlaps=false;
+      var duplicate=false;
+
       for(var x=0;x<selected.length;x++){
         var sr=selected[x].getBoundingClientRect();
-        if(Math.abs(fr.top-sr.top)<8 && Math.abs(fr.bottom-sr.bottom)<18){
-          overlaps=true; break;
+        if(Math.abs(fr.top-sr.top)<8 && Math.abs(fr.bottom-sr.bottom)<20){
+          duplicate=true;
+          break;
         }
       }
-      if(!overlaps) selected.push(found[j]);
+
+      if(!duplicate) selected.push(found[j]);
     }
 
     return selected.slice(0,2);
   }
 
-  function shellFor(header){
+  function findShell(header){
     var el=header;
     var best=null;
+
     while(el && el!==document.body){
       var p=el.parentElement;
       if(!p) break;
+
       try{
         var r=p.getBoundingClientRect();
-        if(r.width>innerWidth*.78 && r.height>innerHeight*.75){
-          best=p;
-        }
+        if(r.width>innerWidth*.78 && r.height>innerHeight*.72) best=p;
       }catch(_){}
+
       el=p;
     }
+
     return best;
   }
 
-  function sidebarRight(shell,headerRect){
+  function sidebarEdge(shell,headerRect){
     if(!shell) return 0;
     var kids=shell.children||[];
     var edge=0;
+
     for(var i=0;i<kids.length;i++){
       var r;
       try{ r=kids[i].getBoundingClientRect(); }catch(_){ continue; }
-      if(r.height<innerHeight*.7) continue;
-      if(r.left<=2 && r.right<=headerRect.left+8 && r.width>=60 && r.width<=330){
+
+      if(r.height<innerHeight*.68) continue;
+      if(r.left<=3 && r.right<=headerRect.left+12 && r.width>=60 && r.width<=340){
         edge=Math.max(edge,r.right);
       }
     }
+
     return edge;
   }
 
-  function rightRail(shell,headerRect){
+  function findRightRail(shell,headerRect){
     if(!shell) return null;
     var kids=shell.children||[];
-    var candidate=null;
+
     for(var i=0;i<kids.length;i++){
       var r;
       try{ r=kids[i].getBoundingClientRect(); }catch(_){ continue; }
-      if(r.height<innerHeight*.65) continue;
-      if(r.width<180 || r.width>420) continue;
-      if(r.left>headerRect.right+30 && r.right>=innerWidth-10){
-        candidate=kids[i];
-      }
+
+      if(r.height<innerHeight*.62) continue;
+      if(r.width<180 || r.width>430) continue;
+      if(r.left>headerRect.right+24 && r.right>=innerWidth-12) return kids[i];
     }
-    return candidate;
+
+    return null;
   }
 
-  function bridgeOverflow(header,shell){
+  function allowHorizontalBleed(header,shell){
     var el=header.parentElement;
     var depth=0;
-    while(el && el!==shell && el!==document.body && depth<7){
+
+    while(el && el!==shell && el!==document.body && depth<8){
       var cs;
       try{ cs=getComputedStyle(el); }catch(_){ break; }
+
       if(
         cs.overflow==="hidden" ||
+        cs.overflow==="clip" ||
         cs.overflowX==="hidden" ||
-        cs.overflowY==="hidden" ||
-        cs.overflow==="clip"
+        cs.overflowX==="clip"
       ){
-        save(el,"overflow","data-bl-orig-overflow");
-        el.classList.add("barlive-web-overflow-bridge-v2");
+        save(el,"overflow","data-bl3-overflow");
+        el.classList.add("barlive-web-overflow-bridge-v3");
         touchedOverflow.push(el);
       }
+
       el=el.parentElement;
       depth++;
     }
   }
 
-  function expand(header){
+  function expandHeader(header){
     var rect=header.getBoundingClientRect();
-    var shell=shellFor(header);
-    var leftEdge=sidebarRight(shell,rect);
-    var targetLeft=Math.max(0,leftEdge);
+    var shell=findShell(header);
+    var sidebar=sidebarEdge(shell,rect);
+
+    var targetLeft=sidebar || rect.left;
     var targetRight=innerWidth;
 
-    // If this shell does not expose a sidebar child, do not paint underneath a
-    // separate fixed sidebar: use the visible page workspace as the left edge.
-    if(!leftEdge && rect.left>0 && rect.left<330){
-      targetLeft=rect.left;
-    }
+    var deltaLeft=Math.max(0,rect.left-targetLeft);
+    var deltaRight=Math.max(0,targetRight-rect.right);
 
-    var dl=Math.max(0,rect.left-targetLeft);
-    var dr=Math.max(0,targetRight-rect.right);
-    if(dl<4 && dr<4) return;
+    if(deltaLeft<4 && deltaRight<4) return;
 
     var cs=getComputedStyle(header);
     var pl=parseFloat(cs.paddingLeft)||0;
     var pr=parseFloat(cs.paddingRight)||0;
 
-    save(header,"width","data-bl-orig-width");
-    save(header,"max-width","data-bl-orig-maxw");
-    save(header,"margin-left","data-bl-orig-ml");
-    save(header,"padding-left","data-bl-orig-pl");
-    save(header,"padding-right","data-bl-orig-pr");
-    save(header,"box-sizing","data-bl-orig-box");
-    save(header,"border-radius","data-bl-orig-radius");
+    save(header,"width","data-bl3-width");
+    save(header,"max-width","data-bl3-maxw");
+    save(header,"margin-left","data-bl3-ml");
+    save(header,"padding-left","data-bl3-pl");
+    save(header,"padding-right","data-bl3-pr");
+    save(header,"box-sizing","data-bl3-box");
+    save(header,"border-radius","data-bl3-radius");
 
-    header.classList.add("barlive-web-desktop-header-v2");
+    header.classList.add("barlive-web-desktop-header-v3");
     header.style.setProperty("box-sizing","border-box","important");
     header.style.setProperty("max-width","none","important");
-    header.style.setProperty("width",(rect.width+dl+dr)+"px","important");
-    header.style.setProperty("margin-left",(-dl)+"px","important");
-    header.style.setProperty("padding-left",(pl+dl)+"px","important");
-    header.style.setProperty("padding-right",(pr+dr)+"px","important");
+    header.style.setProperty("width",(rect.width+deltaLeft+deltaRight)+"px","important");
+    header.style.setProperty("margin-left",(-deltaLeft)+"px","important");
+    header.style.setProperty("padding-left",(pl+deltaLeft)+"px","important");
+    header.style.setProperty("padding-right",(pr+deltaRight)+"px","important");
     header.style.setProperty("border-radius","0","important");
     touchedHeaders.push(header);
 
-    bridgeOverflow(header,shell);
+    allowHorizontalBleed(header,shell);
 
-    var rail=rightRail(shell,rect);
+    var rail=findRightRail(shell,rect);
     if(rail){
-      var rcs=getComputedStyle(rail);
-      var currentPt=parseFloat(rcs.paddingTop)||0;
-      save(rail,"padding-top","data-bl-orig-pt");
-      rail.classList.add("barlive-web-right-rail-v2");
+      var railStyle=getComputedStyle(rail);
+      var pt=parseFloat(railStyle.paddingTop)||0;
+
+      save(rail,"padding-top","data-bl3-pt");
+      rail.classList.add("barlive-web-right-rail-v3");
       rail.style.setProperty(
         "padding-top",
-        (currentPt + Math.max(0,rect.bottom))+"px",
+        (pt+Math.max(0,rect.height+Math.max(0,rect.top)))+"px",
         "important"
       );
       touchedRails.push(rail);
     }
   }
 
-  function apply(){
-    restoreAll();
-    if(!desktop()) return;
+  function observe(){
+    if(!observer){
+      observer=new MutationObserver(function(){ schedule(); });
+    }
 
-    var headers=findHeaders();
-    for(var i=0;i<headers.length;i++) expand(headers[i]);
+    observer.observe(document.documentElement,{
+      subtree:true,
+      childList:true
+    });
   }
 
-  var queued=false;
+  function apply(){
+    if(observer) observer.disconnect();
+
+    restoreAll();
+    fixLogo();
+
+    if(isDesktop()){
+      var headers=findHeaders();
+      headers.forEach(expandHeader);
+    }
+
+    observe();
+  }
+
   function schedule(){
     if(queued) return;
     queued=true;
+
     requestAnimationFrame(function(){
       queued=false;
       apply();
@@ -677,24 +688,15 @@
   function start(){
     apply();
 
-    var observer=new MutationObserver(schedule);
-    observer.observe(document.documentElement,{
-      subtree:true,
-      childList:true,
-      attributes:true,
-      attributeFilter:["style","class"]
-    });
-
     addEventListener("resize",schedule,{passive:true});
-    addEventListener("scroll",schedule,{passive:true,capture:true});
     addEventListener("popstate",function(){ setTimeout(schedule,0); });
 
     document.addEventListener("click",function(){
       setTimeout(schedule,40);
-      setTimeout(schedule,260);
+      setTimeout(schedule,280);
     },true);
 
-    setInterval(schedule,1500);
+    setInterval(schedule,2500);
   }
 
   if(document.readyState==="loading"){
