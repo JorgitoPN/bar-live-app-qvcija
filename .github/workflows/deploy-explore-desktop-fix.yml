@@ -1,0 +1,63 @@
+name: Deploy Explore desktop fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/scripts/patch-explore-desktop-production.js"
+      - ".github/workflows/deploy-explore-desktop-fix.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: barlive-production-gh-pages
+  cancel-in-progress: false
+
+jobs:
+  patch-production:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout patcher
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: patcher
+          fetch-depth: 1
+
+      - name: Checkout current production
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: site
+          fetch-depth: 1
+
+      - name: Patch current production bundle
+        run: node patcher/.github/scripts/patch-explore-desktop-production.js site
+
+      - name: Verify production signatures
+        run: |
+          set -euo pipefail
+          ENTRY="$(find site/_expo/static/js/web -maxdepth 1 -type f -name '*explore-fixed-20260926-1.js' | head -n 1)"
+          test -n "$ENTRY"
+          grep -Fq "Ver local" "$ENTRY"
+          grep -Fq "Desplázate para ver más" "$ENTRY"
+          grep -Fq "ExploreMiniMap" "$ENTRY"
+          grep -Fq "HYBRID_TILE_ROOT" "$ENTRY"
+          grep -Fq "map_popup_request" "$ENTRY"
+          grep -RFl "$(basename "$ENTRY")" site --include='*.html' | head -n 1
+
+      - name: Publish patched production
+        working-directory: site
+        run: |
+          set -euo pipefail
+          git config user.name "BarLive Production Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No production changes to publish"
+            exit 0
+          fi
+          git commit -m "fix(web): interactive canonical minimap and infinite nearby feed"
+          git push origin HEAD:gh-pages
