@@ -56,7 +56,7 @@ mod=replaceOnce(
 );
 
 if(mod.includes('g=s(n(o[9]))')) throw new Error('advanced filter import still executed');
-if(mod.includes('[me,fe]=(0,l.useState)(!1)')) throw new Error('advanced filter state still present');
+if(mod.includes(',[me,fe]=(0,l.useState)(!1),ye=(0,F.useFilterStore)')) throw new Error('advanced filter visibility state anchor still present');
 if(mod.includes('visible:me,onClose:Se')) throw new Error('advanced filter component render still present');
 if(!mod.includes("e.push('/explorar/filtros-avanzados')")) throw new Error('direct advanced filter navigation missing');
 
