@@ -16,41 +16,35 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Measure national snapshot
+      - name: Measure static national snapshot
         shell: bash
         run: |
           set -euo pipefail
-          API='https://barlive-api.onrender.com/api/map'
-          echo '--- /tiles/status ---'
-          status_code="$(curl --silent --show-error --compressed --connect-timeout 15 --max-time 60 -o /tmp/status.txt -w '%{http_code}' "$API/tiles/status")"
-          echo "TILES_STATUS_HTTP=$status_code"
-          cat /tmp/status.txt
-          echo
-          echo '--- /national-snapshot-manifest.json ---'
-          manifest_result="$(curl --silent --show-error --compressed --connect-timeout 15 --max-time 120 -o /tmp/manifest.json -w '%{http_code} %{time_total}' "$API/national-snapshot-manifest.json")"
-          echo "NATIONAL_MANIFEST_RESULT=$manifest_result"
-          cat /tmp/manifest.json
-          echo
-          manifest_code="$(printf '%s' "$manifest_result" | awk '{print $1}')"
-          if [ "$manifest_code" != "200" ]; then
-            exit 1
-          fi
-          jq -e '.count > 100000' /tmp/manifest.json >/dev/null
+          SNAPSHOT='https://barliveapp.es/map-data/national-venues-v1.json?contract=20260926-v1'
+          META='https://barliveapp.es/map-data/national-venues-v1.meta.json?contract=20260926-v1'
 
-          snapshot_seconds="$(curl --fail --silent --show-error --compressed             --connect-timeout 15 --max-time 180             --write-out '%{time_total}'             --output /tmp/snapshot.json             "$API/national-markers.json?v=2")"
+          meta_result="$(curl --fail --silent --show-error --location --compressed             --connect-timeout 15 --max-time 60             --write-out '%{http_code} %{time_total} %{size_download}'             --output /tmp/meta.json "$META")"
+          echo "NATIONAL_STATIC_META_RESULT=$meta_result"
+          cat /tmp/meta.json
+          echo
+
+          jq -e '.count > 100000' /tmp/meta.json >/dev/null
+          jq -e '.gzipBytes > 0 and .bytes > .gzipBytes' /tmp/meta.json >/dev/null
+
+          snapshot_result="$(curl --fail --silent --show-error --location --compressed             --connect-timeout 15 --max-time 90             --write-out '%{http_code} %{time_total} %{size_download}'             --output /tmp/snapshot.json "$SNAPSHOT")"
+          echo "NATIONAL_STATIC_SNAPSHOT_RESULT=$snapshot_result"
+
           python - <<'PY'
           import json, os
           with open('/tmp/snapshot.json', encoding='utf-8') as f:
               payload=json.load(f)
           rows=payload.get('rows') or []
-          print('NATIONAL_SNAPSHOT_VERSION=', payload.get('v'))
-          print('NATIONAL_SNAPSHOT_COUNT=', len(rows))
-          print('NATIONAL_SNAPSHOT_JSON_BYTES=', os.path.getsize('/tmp/snapshot.json'))
-          assert len(rows) > 100000, len(rows)
-          assert all(isinstance(r,list) and len(r)==6 for r in rows[:1000])
-          states={0:0,1:0,2:0}
-          for r in rows:
-              states[int(r[5])]=states.get(int(r[5]),0)+1
-          print('NATIONAL_STATE_COUNTS=', states)
+          print('NATIONAL_STATIC_VERSION=', payload.get('v'))
+          print('NATIONAL_STATIC_COUNT=', len(rows))
+          print('NATIONAL_STATIC_DECODED_BYTES=', os.path.getsize('/tmp/snapshot.json'))
+          assert payload.get('v') == 1
+          assert len(rows) > 100000
+          assert all(isinstance(r,list) and len(r)==8 for r in rows[:1000])
           PY
-          echo "NATIONAL_SNAPSHOT_SECONDS=$snapshot_seconds"
+
+          echo 'NATIONAL_STATIC_SNAPSHOT_OK'
