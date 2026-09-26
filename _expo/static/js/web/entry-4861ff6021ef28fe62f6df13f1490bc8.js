@@ -2996,7 +2996,10 @@ function addVenueSourceAndLayers() {
     id:ICON_LAYER,
     type:"symbol",
     source:VENUE_SOURCE,
-    minzoom:10.5,
+    // At medium/far zoom every venue remains visible as its coloured circle.
+    // Rendering thousands of category glyphs before they are legible adds a
+    // large symbol-layout cost, so the inner glyph starts at z13.
+    minzoom:13,
     layout:{
       "icon-image":[
         "case",
@@ -3009,7 +3012,6 @@ function addVenueSourceAndLayers() {
       ],
       "icon-size":[
         "interpolate",["linear"],["zoom"],
-        10.5,0.42,
         13,0.50,
         16,0.58,
         20,0.62
