@@ -9,6 +9,17 @@ const { chromium } = require('playwright');
   });
   const page = await context.newPage();
 
+  try {
+    const manifestResponse = await context.request.get(
+      'https://barlive-api.onrender.com/api/map/national-snapshot-manifest.json',
+      { timeout: 30000 }
+    );
+    console.log('MAP_CDN_MANIFEST_HTTP=' + manifestResponse.status());
+    console.log('MAP_CDN_MANIFEST=' + await manifestResponse.text());
+  } catch (error) {
+    console.log('MAP_CDN_MANIFEST_ERROR=' + String(error && error.message || error));
+  }
+
   const requests = {
     hybridTiles: [],
     nationalSnapshot: [],
@@ -72,7 +83,7 @@ const { chromium } = require('playwright');
       window.__barliveLastDiagnostics.hybridTileFailed === false &&
       Number(window.__barliveMap.getZoom()) < 6,
     null,
-    { timeout: 30000 }
+    { timeout: 12000 }
   );
 
   await frame.waitForFunction(
