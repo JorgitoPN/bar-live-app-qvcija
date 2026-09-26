@@ -3,10 +3,10 @@ const fs = require('fs');
 const bundlePath = '_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js';
 let bundle = fs.readFileSync(bundlePath, 'utf8');
 
-const oldVersion = 'map-v3-schedules-557748d-20260926';
-const newVersion = 'map-v4-state-perf-3ab82e0-20260926';
-const oldMarker = 'canonical-map-v3-schedules-557748d-20260926';
-const newMarker = 'canonical-map-v4-state-perf-3ab82e0-20260926';
+const oldVersion = 'map-v4-state-perf-3ab82e0-20260926';
+const newVersion = 'map-v5-zoom-perf-5a49816-20260926';
+const oldMarker = 'canonical-map-v4-state-perf-3ab82e0-20260926';
+const newMarker = 'canonical-map-v5-zoom-perf-5a49816-20260926';
 
 function replaceOnce(source, oldText, newText, label) {
   if (source.includes(newText)) return source;
@@ -146,6 +146,44 @@ bundle = replaceOnce(
   'setActivePromos'
 );
 
+bundle = replaceOnce(
+  bundle,
+  `  map.addLayer({
+    id:ICON_LAYER,
+    type:"symbol",
+    source:VENUE_SOURCE,
+    minzoom:10.5,
+    layout:{`,
+  `  map.addLayer({
+    id:ICON_LAYER,
+    type:"symbol",
+    source:VENUE_SOURCE,
+    // At medium/far zoom every venue remains visible as its coloured circle.
+    // Rendering thousands of category glyphs before they are legible adds a
+    // large symbol-layout cost, so the inner glyph starts at z13.
+    minzoom:13,
+    layout:{`,
+  'ICON_LAYER minzoom'
+);
+
+bundle = replaceOnce(
+  bundle,
+  `      "icon-size":[
+        "interpolate",["linear"],["zoom"],
+        10.5,0.42,
+        13,0.50,
+        16,0.58,
+        20,0.62
+      ],`,
+  `      "icon-size":[
+        "interpolate",["linear"],["zoom"],
+        13,0.50,
+        16,0.58,
+        20,0.62
+      ],`,
+  'ICON_LAYER icon-size'
+);
+
 if (!bundle.includes('if (!advancedFilterActive) return;')) {
   throw new Error('advanced feature-state guard missing after patch');
 }
@@ -154,6 +192,9 @@ if (!bundle.includes('liveIds.forEach(function(id)')) {
 }
 if (!bundle.includes('promoIds.forEach(function(id)')) {
   throw new Error('sparse promo state patch missing');
+}
+if (!bundle.includes('minzoom:13')) {
+  throw new Error('category glyph zoom guard missing');
 }
 
 fs.writeFileSync(bundlePath, bundle);
@@ -169,15 +210,15 @@ for (const pagePath of [
   let html = fs.readFileSync(pagePath, 'utf8');
   html = html.replaceAll(oldMarker, newMarker);
   html = html.replaceAll(oldVersion, newVersion);
-  html = html.replaceAll('/sw.js?v=16', '/sw.js?v=17');
+  html = html.replaceAll('/sw.js?v=17', '/sw.js?v=18');
   fs.writeFileSync(pagePath, html);
 }
 
 if (fs.existsSync('sw.js')) {
   let sw = fs.readFileSync('sw.js', 'utf8');
   sw = sw.replace(
-    'BarLive neutral service worker v16.',
-    'BarLive neutral service worker v17.'
+    'BarLive neutral service worker v17.',
+    'BarLive neutral service worker v18.'
   );
   fs.writeFileSync('sw.js', sw);
 }
