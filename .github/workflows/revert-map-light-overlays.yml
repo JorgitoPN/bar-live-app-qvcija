@@ -1,0 +1,48 @@
+name: Revert BarLive map overlay fast path
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/revert-map-light-overlays.yml'
+      - '.github/scripts/revert-map-light-overlays.js'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  revert-production-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+      - name: Revert root overlays
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/scripts/revert-map-light-overlays.js
+          grep -Fq 'canonical-map-v19-overlay-revert-70d112c-20260926' index.html
+          grep -Fq 'children:[(0,U.jsx)(q.default,{}),(0,U.jsx)(X,{})' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq '/sw.js?v=32' index.html
+          grep -Fq 'canonical-map-v19-overlay-revert' version.json
+      - name: Commit v19 production bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet; then
+            echo 'No production changes needed.'
+            exit 0
+          fi
+          git add _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js \
+            index.html 404.html explorar/mapa/index.html sw.js version.json
+          git add explorar/index.html detalle/local/index.html 2>/dev/null || true
+          git commit -m 'revert(web-map): restore global overlays on map'
+          git push origin gh-pages
