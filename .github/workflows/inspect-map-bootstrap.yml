@@ -29,7 +29,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           s=Path('_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js').read_text(encoding='utf-8')
-          for needle in ['map.on("style.load"', '[MAP_RENDER][BOOTSTRAP]', 'warmRestored ? "style-cache-reconcile"']:
+          for needle in ['map.on("style.load"', 'bootstrapCanonicalMap("load")', 'bootstrapCanonicalMap("sync")', '[MAP_RENDER][BOOTSTRAP]', 'warmRestored ? "style-cache-reconcile"']:
               i=s.find(needle)
               print('\nNEEDLE',needle,'INDEX',i)
               if i>=0:
