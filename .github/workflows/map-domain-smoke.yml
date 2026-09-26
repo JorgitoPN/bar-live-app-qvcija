@@ -1,4 +1,4 @@
-# canonical-map-v7 warm-cache domain verification 20260926
+# canonical-map-v9 national stability domain verification 20260926
 name: BarLive production domain map smoke
 
 on:
@@ -17,20 +17,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify custom domain serves canonical map v7 warm-cache runtime
+      - name: Verify custom domain serves canonical map v9 runtime
         shell: bash
         run: |
           set -euo pipefail
-          HTML='https://barliveapp.es/?map-smoke=v7-20260926'
-          ASSET='https://barliveapp.es/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v7-warm-cache-6a3c353-20260926'
-          ROUTE='https://barliveapp.es/explorar/mapa?map-smoke=v7-20260926'
+          HTML='https://barliveapp.es/?map-smoke=v9-20260926'
+          ASSET='https://barliveapp.es/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v9-national-stable-995dd7f-20260926'
+          ROUTE='https://barliveapp.es/explorar/mapa?map-smoke=v9-20260926'
+          SNAPSHOT='https://barliveapp.es/map-data/national-venues-v1.json?map-smoke=v9-20260926'
 
           curl --fail --silent --show-error --location --compressed \
             -H 'Cache-Control: no-cache' "$HTML" -o /tmp/index.html
 
-          grep -Fq 'canonical-map-v7-warm-cache-6a3c353-20260926' /tmp/index.html
-          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v7-warm-cache-6a3c353-20260926' /tmp/index.html
-          grep -Fq '/sw.js?v=20' /tmp/index.html
+          grep -Fq 'canonical-map-v9-national-stable-995dd7f-20260926' /tmp/index.html
+          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v9-national-stable-995dd7f-20260926' /tmp/index.html
+          grep -Fq '/sw.js?v=22' /tmp/index.html
 
           curl --fail --silent --show-error --location --compressed \
             -H 'Cache-Control: no-cache' "$ASSET" -o /tmp/bundle.js
@@ -39,12 +40,15 @@ jobs:
           grep -Fq 'applyRealtimeScheduleStates' /tmp/bundle.js
           grep -Fq 'osm_opening_hours:osm_tags->>opening_hours' /tmp/bundle.js
           grep -Fq '[MAP_RENDER][STATE_REFRESH_LOCAL]' /tmp/bundle.js
-          grep -Fq 'decoratedFilterExpression' /tmp/bundle.js
-          grep -Fq 'minzoom:13' /tmp/bundle.js
-          grep -Fq 'viewportRequestInFlight' /tmp/bundle.js
           grep -Fq '[MAP_RENDER][STATE_REFRESH_SKIPPED]' /tmp/bundle.js
           grep -Fq '[MAP_RENDER][CACHE_RESTORE]' /tmp/bundle.js
-          grep -Fq 'view:center && map ?' /tmp/bundle.js
+          grep -Fq '[MAP_RENDER][NATIONAL_STATIC_FETCH]' /tmp/bundle.js
+          grep -Fq 'NATIONAL_SNAPSHOT_URL' /tmp/bundle.js
+          grep -Fq 'activeDatasetMode' /tmp/bundle.js
+          grep -Fq 'decoratedFilterExpression' /tmp/bundle.js
+          grep -Fq 'minzoom:13' /tmp/bundle.js
+          grep -Fq 'sourceLabel === "state-refresh-local"' /tmp/bundle.js
+          grep -Fq 'activeDatasetMode === "national-static"' /tmp/bundle.js
 
           if grep -Fq 'map_marker_state_cache' /tmp/bundle.js; then
             echo 'sparse marker state cache reference still present'
@@ -57,8 +61,22 @@ jobs:
 
           route_code="$(curl --silent --show-error --location --compressed \
             -H 'Cache-Control: no-cache' -o /tmp/route.html -w '%{http_code}' "$ROUTE")"
-          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v7-warm-cache-6a3c353-20260926' /tmp/route.html
+          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v9-national-stable-995dd7f-20260926' /tmp/route.html
           test "$route_code" = "200"
 
+          curl --fail --silent --show-error --location --compressed \
+            -H 'Cache-Control: no-cache' "$SNAPSHOT" -o /tmp/national.json
+          python - <<'PY'
+          import json
+          with open('/tmp/national.json', encoding='utf-8') as f:
+              p=json.load(f)
+          rows=p.get('rows') or []
+          assert len(rows) == 120841, len(rows)
+          for r in rows:
+              assert 27.45 <= float(r[1]) <= 44.25
+              assert -18.25 <= float(r[2]) <= 4.60
+          print('NATIONAL_COUNT=120841')
+          PY
+
           echo "DOMAIN_ROUTE_HTTP=$route_code"
-          echo "DOMAIN_MAP_V7_OK"
+          echo "DOMAIN_MAP_V9_OK"
