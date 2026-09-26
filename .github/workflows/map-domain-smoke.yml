@@ -1,4 +1,4 @@
-# route-shell-rerun 20260926
+# canonical-map-v3 domain verification 20260926
 name: BarLive production domain map smoke
 
 on:
@@ -17,44 +17,44 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify custom domain serves canonical map v2
+      - name: Verify custom domain serves canonical map v3 schedules
         shell: bash
         run: |
           set -euo pipefail
-          HTML='https://barliveapp.es/?map-smoke=20260926'
-          ASSET='https://barliveapp.es/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v2-raceguard-6cae568-20260926'
-          ROUTE='https://barliveapp.es/explorar/mapa?map-smoke=20260926'
+          HTML='https://barliveapp.es/?map-smoke=v3-20260926'
+          ASSET='https://barliveapp.es/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v3-schedules-557748d-20260926'
+          ROUTE='https://barliveapp.es/explorar/mapa?map-smoke=v3-20260926'
 
-          curl --fail --silent --show-error --location --compressed             -H 'Cache-Control: no-cache' "$HTML" -o /tmp/index.html
-          index_marker=0
-          bundle_marker=0
-          sw_marker=0
-          grep -Fq 'canonical-map-v2-raceguard-6cae568-20260926' /tmp/index.html && index_marker=1 || true
-          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v2-raceguard-6cae568-20260926' /tmp/index.html && bundle_marker=1 || true
-          grep -Fq "/sw.js?v=15" /tmp/index.html && sw_marker=1 || true
-          echo "INDEX_MARKER=$index_marker BUNDLE_MARKER=$bundle_marker SW_MARKER=$sw_marker"
+          curl --fail --silent --show-error --location --compressed \
+            -H 'Cache-Control: no-cache' "$HTML" -o /tmp/index.html
 
-          curl --fail --silent --show-error --location --compressed             -H 'Cache-Control: no-cache' "$ASSET" -o /tmp/bundle.js
-          engine_marker=0
-          join_marker=0
-          grep -Fq 'barlive-single-geojson-catalogue-v2' /tmp/bundle.js && engine_marker=1 || true
-          grep -Fq 'mergeCatalogueWithStates' /tmp/bundle.js && join_marker=1 || true
+          grep -Fq 'canonical-map-v3-schedules-557748d-20260926' /tmp/index.html
+          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v3-schedules-557748d-20260926' /tmp/index.html
+          grep -Fq '/sw.js?v=16' /tmp/index.html
+
+          curl --fail --silent --show-error --location --compressed \
+            -H 'Cache-Control: no-cache' "$ASSET" -o /tmp/bundle.js
+
+          grep -Fq 'barlive-single-geojson-catalogue-v2' /tmp/bundle.js
+          grep -Fq 'applyRealtimeScheduleStates' /tmp/bundle.js
+          grep -Fq 'osm_opening_hours:osm_tags->>opening_hours' /tmp/bundle.js
+          grep -Fq '[MAP_RENDER][STATE_REFRESH_LOCAL]' /tmp/bundle.js
           grep -Fq 'viewportRequestInFlight' /tmp/bundle.js
           grep -Fq '[MAP_RENDER][STATE_REFRESH_SKIPPED]' /tmp/bundle.js
-          echo "ENGINE_MARKER=$engine_marker JOIN_MARKER=$join_marker"
+
+          if grep -Fq 'map_marker_state_cache' /tmp/bundle.js; then
+            echo 'sparse marker state cache reference still present'
+            exit 1
+          fi
           if grep -Fq 'DATA_ANON_JWT' /tmp/bundle.js; then
             echo 'stale JWT runtime found'
             exit 1
           fi
 
-          route_code="$(curl --silent --show-error --location --compressed             -H 'Cache-Control: no-cache' -o /tmp/route.html -w '%{http_code}' "$ROUTE")"
-          route_marker=0
-          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v2-raceguard-6cae568-20260926' /tmp/route.html && route_marker=1 || true
-          echo "DOMAIN_ROUTE_HTTP=$route_code ROUTE_MARKER=$route_marker"
-          test "$index_marker" = "1"
-          test "$bundle_marker" = "1"
-          test "$sw_marker" = "1"
-          test "$engine_marker" = "1"
-          test "$join_marker" = "1"
-          test "$route_marker" = "1"
-          echo "DOMAIN_MAP_V2_OK"
+          route_code="$(curl --silent --show-error --location --compressed \
+            -H 'Cache-Control: no-cache' -o /tmp/route.html -w '%{http_code}' "$ROUTE")"
+          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v3-schedules-557748d-20260926' /tmp/route.html
+          test "$route_code" = "200"
+
+          echo "DOMAIN_ROUTE_HTTP=$route_code"
+          echo "DOMAIN_MAP_V3_SCHEDULES_OK"
