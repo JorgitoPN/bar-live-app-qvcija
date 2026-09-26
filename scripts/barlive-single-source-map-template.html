@@ -34,13 +34,42 @@ var LIVE_LAYER = "barlive-venues-live";
 var UPCOMING_LAYER = "barlive-venues-upcoming";
 var PROMO_LAYER = "barlive-venues-promo";
 
+// v21 hybrid renderer.
+// The broad map is drawn from shared Mapbox Vector Tiles, almost like a
+// pre-rendered image: MapLibre/GPU only receives the few tiles visible on
+// screen. Close zoom keeps the existing exact GeoJSON viewport renderer.
+var HYBRID_SOURCE = "barlive-hybrid-venues";
+var HYBRID_LAYER = "barlive-hybrid-venues-circle";
+var HYBRID_TILE_URL = "https://barlive-api.onrender.com/api/map/tiles/{z}/{x}/{y}.pbf";
+var HYBRID_SWITCH_ZOOM = 10;
+var HYBRID_SOURCE_MAX_ZOOM = 9;
+
 var VENUE_DATA_URL = "https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/locales";
-var STATE_DATA_URL = "https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/map_marker_state_cache";
+var NATIONAL_SNAPSHOT_URL = "https://barliveapp.es/map-data/national-venues-v1.json";
+var NATIONAL_SNAPSHOT_MAX_ZOOM = 7;
+var VIEWPORT_TILE_ROOT = "https://barliveapp.es/map-data/viewport-z9-v1";
+var VIEWPORT_TILE_Z = 9;
+var VIEWPORT_TILE_MIN_MAP_ZOOM = 10;
+var VIEWPORT_TILE_MAX_REQUESTS = 36;
+var NATIONAL_COVERAGE = {
+  south:27.45,
+  west:-18.25,
+  north:44.25,
+  east:4.60
+};
+var NATIONAL_CATEGORY_BY_CODE = [
+  "bar",
+  "restaurante",
+  "cafeteria",
+  "pub",
+  "discoteca",
+  "cocteleria"
+];
 var DATA_APIKEY = "sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2";
 var DATA_PAGE_SIZE = 1000;
 var DATA_PAGE_BATCH = 6;
 var DATA_MAX_ROWS = 150000;
-var DATA_CACHE_KEY = "barlive-visible-venues-v2";
+var DATA_CACHE_KEY = "barlive-visible-venues-v3-schedules";
 var DATA_CACHE_MAX_AGE = 10 * 60 * 1000;
 var VIEWPORT_PADDING_RATIO = 0.45;
 
@@ -49,11 +78,20 @@ var activeVenueById = new Map();
 var activeRows = [];
 var activeCoverage = null;
 var activeDatasetGeneration = 0;
+var activeDatasetMode = "none";
+var nationalSnapshotCompact = null;
+var viewportTileManifest = null;
+var viewportTileCache = new Map();
+var startupPrewarmPromise = null;
+var lastNationalStateRefreshAt = 0;
 var requestGeneration = 0;
 var requestAbortController = null;
+var viewportRequestInFlight = false;
 var requestTimer = null;
 var refreshTimer = null;
 var lastRequestReason = "none";
+var rendererMode = "hybrid";
+var hybridTileFailed = false;
 
 var stateFilterMode = "todos";
 var categoryFilter = "todas";
@@ -114,6 +152,377 @@ function normalizeMarkerState(value) {
   if (raw === "abierto" || raw === "open" || numeric === 1) return "open";
   if (raw === "cerrado" || raw === "closed" || numeric === 2) return "closed";
   return "unknown";
+}
+
+function madridClockParts() {
+  var fallback=new Date();
+  try {
+    var parts=new Intl.DateTimeFormat("en-US",{
+      timeZone:"Europe/Madrid",
+      weekday:"short",
+      hour:"2-digit",
+      minute:"2-digit",
+      hourCycle:"h23"
+    }).formatToParts(fallback);
+    var values={};
+    parts.forEach(function(part) {
+      if (part.type!=="literal") values[part.type]=part.value;
+    });
+    var dayMap={Mon:0,Tue:1,Wed:2,Thu:3,Fri:4,Sat:5,Sun:6};
+    var dayIndex=dayMap[String(values.weekday||"").slice(0,3)];
+    var hour=Number(values.hour);
+    var minute=Number(values.minute);
+    if (
+      Number.isFinite(dayIndex) &&
+      Number.isFinite(hour) &&
+      Number.isFinite(minute)
+    ) {
+      return {dayIndex:dayIndex,minutes:hour*60+minute};
+    }
+  } catch (_) {}
+
+  // Fallback only for runtimes without Intl timezone support.
+  var fallbackDay=(fallback.getDay()+6)%7;
+  return {
+    dayIndex:fallbackDay,
+    minutes:fallback.getHours()*60+fallback.getMinutes()
+  };
+}
+
+function normalizeScheduleDayKey(value) {
+  var raw=String(value||"")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"")
+    .replace(/\./g,"")
+    .trim()
+    .toLowerCase();
+
+  var aliases={
+    lunes:0,monday:0,mon:0,mo:0,
+    martes:1,tuesday:1,tue:1,tu:1,
+    miercoles:2,wednesday:2,wed:2,we:2,
+    jueves:3,thursday:3,thu:3,th:3,
+    viernes:4,friday:4,fri:4,fr:4,
+    sabado:5,saturday:5,sat:5,sa:5,
+    domingo:6,sunday:6,sun:6,su:6
+  };
+  return Object.prototype.hasOwnProperty.call(aliases,raw)
+    ? aliases[raw]
+    : null;
+}
+
+function normalizeScheduleRanges(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map(function(item){return String(item==null?"":item).trim();})
+      .filter(Boolean);
+  }
+
+  if (typeof value==="string") {
+    var text=value.trim();
+    if (!text) return [];
+    if (text.indexOf(";")>=0) {
+      return text.split(";").map(function(item){return item.trim();}).filter(Boolean);
+    }
+    if (text.indexOf(",")>=0) {
+      return text.split(",").map(function(item){return item.trim();}).filter(Boolean);
+    }
+    return [text];
+  }
+
+  return [];
+}
+
+function parseScheduleRange(value) {
+  var normalized=String(value||"")
+    .trim()
+    .toLowerCase()
+    .replace(/–/g,"-")
+    .replace(/—/g,"-");
+
+  if (!normalized || normalized==="cerrado" || normalized==="closed" || normalized==="off") {
+    return null;
+  }
+
+  if (
+    normalized==="24 horas" ||
+    normalized==="24h" ||
+    normalized==="abierto 24 horas" ||
+    normalized==="open 24 hours" ||
+    normalized==="24/7" ||
+    normalized==="00:00-24:00" ||
+    normalized==="00:00-23:59" ||
+    normalized==="00:00-00:00" ||
+    normalized.indexOf("abierto 24")>=0 ||
+    normalized.indexOf("open 24")>=0
+  ) {
+    return [0,1440];
+  }
+
+  var match=normalized.match(
+    /^([0-9]{1,2}):([0-9]{2})\s*-\s*([0-9]{1,2}):([0-9]{2})$/
+  );
+  if (!match) return null;
+
+  var openHour=Number(match[1]);
+  var openMinute=Number(match[2]);
+  var closeHour=Number(match[3]);
+  var closeMinute=Number(match[4]);
+
+  if (
+    openHour>23 || openMinute>59 ||
+    closeHour>24 || closeMinute>59 ||
+    (closeHour===24 && closeMinute!==0)
+  ) return null;
+
+  var openMinutes=openHour*60+openMinute;
+  var closeMinutes=closeHour===24 ? 1440 : closeHour*60+closeMinute;
+  if (openMinutes===0 && closeMinutes===0) closeMinutes=1440;
+  return [openMinutes,closeMinutes];
+}
+
+function emptyWeeklySchedule() {
+  return [
+    {known:false,ranges:[]},
+    {known:false,ranges:[]},
+    {known:false,ranges:[]},
+    {known:false,ranges:[]},
+    {known:false,ranges:[]},
+    {known:false,ranges:[]},
+    {known:false,ranges:[]}
+  ];
+}
+
+function weeklyScheduleFromBarLive(value) {
+  var hours=value;
+  if (typeof hours==="string") {
+    try { hours=JSON.parse(hours); }
+    catch (_) { return null; }
+  }
+
+  if (!hours || typeof hours!=="object" || Array.isArray(hours)) return null;
+
+  var days=emptyWeeklySchedule();
+  var recognized=false;
+
+  Object.keys(hours).forEach(function(key) {
+    var dayIndex=normalizeScheduleDayKey(key);
+    if (dayIndex===null) return;
+
+    var ranges=normalizeScheduleRanges(hours[key]);
+    if (!ranges.length) return;
+
+    recognized=true;
+    days[dayIndex].known=true;
+    ranges.forEach(function(rawRange) {
+      var parsed=parseScheduleRange(rawRange);
+      if (parsed) days[dayIndex].ranges.push(parsed);
+    });
+  });
+
+  return recognized ? days : null;
+}
+
+function expandOsmDaySpec(spec) {
+  var codeToDay={Mo:0,Tu:1,We:2,Th:3,Fr:4,Sa:5,Su:6};
+  var result=new Set();
+
+  String(spec||"").split(",").forEach(function(token) {
+    token=token.trim();
+    if (!token) return;
+
+    if (token.indexOf("-")>=0) {
+      var parts=token.split("-").map(function(item){return item.trim();});
+      var start=codeToDay[parts[0]];
+      var end=codeToDay[parts[1]];
+      if (start==null || end==null) return;
+
+      var day=start;
+      for (var guard=0;guard<7;guard+=1) {
+        result.add(day);
+        if (day===end) break;
+        day=(day+1)%7;
+      }
+      return;
+    }
+
+    if (codeToDay[token]!=null) result.add(codeToDay[token]);
+  });
+
+  return Array.from(result);
+}
+
+function weeklyScheduleFromOsm(value) {
+  var text=String(value||"").trim();
+  if (!text) return null;
+
+  if (/^24\s*\/\s*7$/i.test(text)) {
+    var always=emptyWeeklySchedule();
+    always.forEach(function(day) {
+      day.known=true;
+      day.ranges=[[0,1440]];
+    });
+    return always;
+  }
+
+  var days=emptyWeeklySchedule();
+  var recognized=false;
+
+  text
+    .replace(/–/g,"-")
+    .replace(/—/g,"-")
+    .split(";")
+    .forEach(function(clause) {
+      clause=clause.replace(/"[^"]*"/g,"").trim();
+      if (!clause) return;
+
+      var match=clause.match(
+        /^((?:Mo|Tu|We|Th|Fr|Sa|Su)(?:\s*[-,]\s*(?:Mo|Tu|We|Th|Fr|Sa|Su))*)\s+(.+)$/i
+      );
+      if (!match) return;
+
+      var normalizedSpec=match[1].replace(/\s+/g,"");
+      normalizedSpec=normalizedSpec.replace(/mo/ig,"Mo")
+        .replace(/tu/ig,"Tu")
+        .replace(/we/ig,"We")
+        .replace(/th/ig,"Th")
+        .replace(/fr/ig,"Fr")
+        .replace(/sa/ig,"Sa")
+        .replace(/su/ig,"Su");
+
+      var dayIndexes=expandOsmDaySpec(normalizedSpec);
+      if (!dayIndexes.length) return;
+
+      var rule=String(match[2]||"").trim();
+      if (/^(off|closed)$/i.test(rule)) {
+        recognized=true;
+        dayIndexes.forEach(function(dayIndex) {
+          days[dayIndex].known=true;
+        });
+        return;
+      }
+
+      if (/^(open|24\s*\/\s*7)$/i.test(rule)) {
+        recognized=true;
+        dayIndexes.forEach(function(dayIndex) {
+          days[dayIndex].known=true;
+          days[dayIndex].ranges.push([0,1440]);
+        });
+        return;
+      }
+
+      var parsedRanges=[];
+      var rangeRegex=/([0-9]{1,2}):([0-9]{2})\s*-\s*([0-9]{1,2}):([0-9]{2})/g;
+      var rangeMatch;
+      while ((rangeMatch=rangeRegex.exec(rule))!==null) {
+        var parsed=parseScheduleRange(
+          rangeMatch[1]+":"+rangeMatch[2]+"-"+rangeMatch[3]+":"+rangeMatch[4]
+        );
+        if (parsed) parsedRanges.push(parsed);
+      }
+
+      if (!parsedRanges.length) return;
+
+      recognized=true;
+      dayIndexes.forEach(function(dayIndex) {
+        days[dayIndex].known=true;
+        Array.prototype.push.apply(days[dayIndex].ranges,parsedRanges);
+      });
+    });
+
+  return recognized ? days : null;
+}
+
+function markerStateFromWeeklySchedule(days,clock) {
+  if (!days || !clock) return "unknown";
+
+  var today=days[clock.dayIndex] || {known:false,ranges:[]};
+  var previous=days[(clock.dayIndex+6)%7] || {known:false,ranges:[]};
+  var nowMinutes=clock.minutes;
+
+  for (var i=0;i<today.ranges.length;i+=1) {
+    var current=today.ranges[i];
+    var openMinutes=current[0];
+    var closeMinutes=current[1];
+
+    if (openMinutes===0 && closeMinutes===1440) return "open";
+    if (
+      openMinutes<closeMinutes &&
+      nowMinutes>=openMinutes &&
+      nowMinutes<closeMinutes
+    ) return "open";
+    if (
+      openMinutes>closeMinutes &&
+      nowMinutes>=openMinutes
+    ) return "open";
+  }
+
+  for (var j=0;j<previous.ranges.length;j+=1) {
+    var prior=previous.ranges[j];
+    if (
+      prior[0]>prior[1] &&
+      nowMinutes<prior[1]
+    ) return "open";
+  }
+
+  return today.known ? "closed" : "unknown";
+}
+
+function deriveRealtimeMarkerState(row,clock) {
+  var businessStatus=String(
+    row && (row.google_business_status || row.estado_negocio) || ""
+  ).trim().toUpperCase();
+
+  if (
+    businessStatus==="CLOSED_PERMANENTLY" ||
+    businessStatus==="CLOSED_TEMPORARILY"
+  ) return {state:"closed",source:"business-status"};
+
+  var barliveSchedule=weeklyScheduleFromBarLive(
+    row && row.horarios_completos
+  );
+  var state=markerStateFromWeeklySchedule(barliveSchedule,clock);
+  if (state!=="unknown") {
+    return {state:state,source:"barlive-schedule"};
+  }
+
+  var osmSchedule=weeklyScheduleFromOsm(
+    row && row.osm_opening_hours
+  );
+  state=markerStateFromWeeklySchedule(osmSchedule,clock);
+  if (state!=="unknown") {
+    return {state:state,source:"osm-opening-hours"};
+  }
+
+  return {state:"unknown",source:"none"};
+}
+
+function applyRealtimeScheduleStates(rows) {
+  var clock=madridClockParts();
+  var knownStates=0;
+  var barliveStates=0;
+  var osmStates=0;
+  var businessStates=0;
+
+  var merged=(Array.isArray(rows)?rows:[]).map(function(row) {
+    if (!row || typeof row!=="object") return row;
+    var result=deriveRealtimeMarkerState(row,clock);
+
+    if (result.state!=="unknown") knownStates+=1;
+    if (result.source==="barlive-schedule") barliveStates+=1;
+    else if (result.source==="osm-opening-hours") osmStates+=1;
+    else if (result.source==="business-status") businessStates+=1;
+
+    return Object.assign({},row,{estado:result.state});
+  });
+
+  return {
+    rows:merged,
+    knownStates:knownStates,
+    barliveStates:barliveStates,
+    osmStates:osmStates,
+    businessStates:businessStates
+  };
 }
 
 function normalizeVenueRow(row) {
@@ -231,6 +640,81 @@ function paddedBounds(bounds) {
   };
 }
 
+function shouldUseHybridRenderer() {
+  return !!(
+    map &&
+    Number(map.getZoom()) < HYBRID_SWITCH_ZOOM &&
+    !advancedFilterActive &&
+    !hybridTileFailed
+  );
+}
+
+function hybridFilterExpression() {
+  var expression = ["all"];
+
+  if (categoryFilter !== "todas") {
+    expression.push([
+      "==",
+      ["get","tipo"],
+      canonicalCategory(categoryFilter)
+    ]);
+  }
+
+  if (stateFilterMode === "no_cerrados") {
+    expression.push(["==",["get","estado"],"abierto"]);
+  }
+
+  return expression;
+}
+
+function setLayerVisibility(id,visible) {
+  if (!map || !map.getLayer(id)) return;
+  try {
+    map.setLayoutProperty(id,"visibility",visible ? "visible" : "none");
+  } catch (_) {}
+}
+
+function setHybridVisibility(visible) {
+  setLayerVisibility(HYBRID_LAYER,visible);
+}
+
+function setCanonicalVisibility(visible) {
+  [VENUE_LAYER,ICON_LAYER,LIVE_LAYER,UPCOMING_LAYER,PROMO_LAYER].forEach(function(id) {
+    setLayerVisibility(id,visible);
+  });
+}
+
+function enterHybridTileMode(reason) {
+  if (!map || hybridTileFailed || advancedFilterActive) return false;
+
+  rendererMode="hybrid";
+  setCanonicalVisibility(false);
+  setHybridVisibility(true);
+
+  if (requestAbortController) {
+    try { requestAbortController.abort(); } catch (_) {}
+    requestAbortController=null;
+  }
+  viewportRequestInFlight=false;
+
+  console.log(
+    "[MAP_RENDER][RENDERER] mode=hybrid reason="+String(reason||"unknown")+
+    " zoom="+map.getZoom().toFixed(2)
+  );
+  return true;
+}
+
+function activateCanonicalRenderer(reason) {
+  if (!map) return;
+  rendererMode="canonical";
+  setHybridVisibility(false);
+  setCanonicalVisibility(true);
+  console.log(
+    "[MAP_RENDER][RENDERER] mode=canonical reason="+String(reason||"unknown")+
+    " zoom="+map.getZoom().toFixed(2)
+  );
+}
+
 function datasetFilterExpression() {
   var expression = ["all"];
 
@@ -250,16 +734,47 @@ function datasetFilterExpression() {
 }
 
 function advancedVisibleExpression() {
+  // When advanced filters are inactive, ignore any stale feature-state from a
+  // previous filter session instead of rewriting every venue back to true.
+  if (!advancedFilterActive) return true;
   return ["boolean",["feature-state","advancedVisible"],true];
+}
+
+function decoratedFilterExpression(baseFilter,ids) {
+  var values=Array.from(ids||[]);
+  if (!values.length) {
+    return ["all",baseFilter,["==",["get","venueId"],"__barlive_no_match__"]];
+  }
+  return [
+    "all",
+    baseFilter,
+    ["in",["get","venueId"],["literal",values]]
+  ];
 }
 
 function applyFilters() {
   if (!map) return;
   var filter = datasetFilterExpression();
+  var hybridFilter = hybridFilterExpression();
 
-  [VENUE_LAYER,ICON_LAYER,LIVE_LAYER,UPCOMING_LAYER,PROMO_LAYER].forEach(function(id) {
-    if (map.getLayer(id)) map.setFilter(id, filter);
-  });
+  if (map.getLayer(HYBRID_LAYER)) {
+    map.setFilter(HYBRID_LAYER,hybridFilter);
+  }
+
+  // The canonical venue and category-glyph layers see the full filtered
+  // dataset. Decorative layers must only inspect venues that are actually
+  // decorated; otherwise MapLibre re-evaluates the whole source 3 extra times.
+  if (map.getLayer(VENUE_LAYER)) map.setFilter(VENUE_LAYER,filter);
+  if (map.getLayer(ICON_LAYER)) map.setFilter(ICON_LAYER,filter);
+  if (map.getLayer(LIVE_LAYER)) {
+    map.setFilter(LIVE_LAYER,decoratedFilterExpression(filter,liveIds));
+  }
+  if (map.getLayer(UPCOMING_LAYER)) {
+    map.setFilter(UPCOMING_LAYER,decoratedFilterExpression(filter,upcomingIds));
+  }
+  if (map.getLayer(PROMO_LAYER)) {
+    map.setFilter(PROMO_LAYER,decoratedFilterExpression(filter,promoIds));
+  }
 
   var advancedVisible = advancedVisibleExpression();
 
@@ -326,27 +841,37 @@ function setVenueFeatureState(id, patch) {
 }
 
 function applyAdvancedFeatureState() {
+  // Default map browsing must never enqueue one feature-state mutation per
+  // venue. Missing advancedVisible already means visible.
+  if (!advancedFilterActive) return;
+
   activeVenueById.forEach(function(_venue,id) {
-    var visible =
-      !advancedFilterActive ||
-      !!(advancedAllowedIds && advancedAllowedIds.has(id));
+    var visible=!!(advancedAllowedIds && advancedAllowedIds.has(id));
     setVenueFeatureState(id,{advancedVisible:visible});
   });
 }
 
 function applyEventFeatureState() {
-  activeVenueById.forEach(function(_venue,id) {
-    var eventState =
-      liveIds.has(id) ? "live" :
-      upcomingIds.has(id) ? "upcoming" :
-      "none";
-    setVenueFeatureState(id,{eventState:eventState});
+  // Only decorated venues need feature-state. Writing "none" to every venue
+  // creates thousands of unnecessary MapLibre mutations after each setData().
+  liveIds.forEach(function(id) {
+    if (activeVenueById.has(id)) {
+      setVenueFeatureState(id,{eventState:"live"});
+    }
+  });
+  upcomingIds.forEach(function(id) {
+    if (!liveIds.has(id) && activeVenueById.has(id)) {
+      setVenueFeatureState(id,{eventState:"upcoming"});
+    }
   });
 }
 
 function applyPromoFeatureState() {
-  activeVenueById.forEach(function(_venue,id) {
-    setVenueFeatureState(id,{hasPromo:promoIds.has(id)});
+  // Same rule as events: touch only venues that actually have a promotion.
+  promoIds.forEach(function(id) {
+    if (activeVenueById.has(id)) {
+      setVenueFeatureState(id,{hasPromo:true});
+    }
   });
 }
 
@@ -404,6 +929,11 @@ function countExpectedVisible(bounds) {
 
 function countRenderedVenueIds() {
   if (!map || !map.getLayer(VENUE_LAYER)) return 0;
+
+  // queryRenderedFeatures is diagnostic only. On the national 120k-point
+  // dataset it can monopolize the main thread for no product benefit.
+  if (activeVenueById.size > 20000 || map.getZoom() < 9) return -1;
+
   var rendered=[];
   try {
     rendered=map.queryRenderedFeatures(undefined,{layers:[VENUE_LAYER]})||[];
@@ -444,7 +974,9 @@ function diagnostics(reason) {
     category:categoryFilter,
     requestGeneration:requestGeneration,
     datasetGeneration:activeDatasetGeneration,
-    requestReason:lastRequestReason
+    requestReason:lastRequestReason,
+    rendererMode:rendererMode,
+    hybridTileFailed:hybridTileFailed
   };
 
   window.__barliveLastDiagnostics=snapshot;
@@ -484,11 +1016,17 @@ function scheduleDiagnostics(reason) {
 function persistViewportCache(rows,coverage) {
   if (!Array.isArray(rows) || rows.length > 12000) return;
   try {
+    var center=map ? map.getCenter() : null;
     localStorage.setItem(
       DATA_CACHE_KEY,
       JSON.stringify({
         savedAt:Date.now(),
         coverage:coverage,
+        view:center && map ? {
+          lng:Number(center.lng),
+          lat:Number(center.lat),
+          zoom:Number(map.getZoom())
+        } : null,
         rows:rows
       })
     );
@@ -514,9 +1052,31 @@ function commitVenueRows(rows,coverage,generation,sourceLabel) {
   activeCoverage=coverage;
   activeDatasetGeneration=generation;
 
+  if (sourceLabel === "national-static") {
+    activeDatasetMode="national-static";
+    lastNationalStateRefreshAt=Date.now();
+  } else if (sourceLabel === "viewport-static") {
+    activeDatasetMode="viewport-static";
+  } else if (
+    sourceLabel === "state-refresh-local" &&
+    activeDatasetMode === "national-static"
+  ) {
+    // A national schedule refresh is intentionally infrequent. Advance the
+    // timestamp after the atomic commit so the 60s timer cannot immediately
+    // recalculate all 120k venues again on every subsequent tick.
+    lastNationalStateRefreshAt=Date.now();
+  } else if (sourceLabel === "network" || sourceLabel === "local-cache") {
+    activeDatasetMode="viewport";
+  }
+
   source.setData(normalized.collection);
   reapplyAuxiliaryFeatureState();
   applyFilters();
+
+  if (!shouldUseHybridRenderer()) {
+    activateCanonicalRenderer("commit-"+String(sourceLabel||"unknown"));
+  }
+
   if (sourceLabel !== "local-cache") {
     persistViewportCache(activeRows,activeCoverage);
   }
@@ -550,7 +1110,7 @@ function commitVenueRows(rows,coverage,generation,sourceLabel) {
   return true;
 }
 
-function restoreViewportCache() {
+function restoreViewportCache(recenter) {
   try {
     var raw=localStorage.getItem(DATA_CACHE_KEY);
     if (!raw) return false;
@@ -564,16 +1124,46 @@ function restoreViewportCache() {
       Date.now()-Number(payload.savedAt||0) > DATA_CACHE_MAX_AGE
     ) return false;
 
+    // Direct refreshes start from the national fallback viewport. Reuse the
+    // last real viewport before evaluating coverage so a warm cache can paint
+    // immediately instead of being rejected just because the shell starts at z6.
+    if (
+      recenter === true &&
+      payload.view &&
+      Number.isFinite(Number(payload.view.lng)) &&
+      Number.isFinite(Number(payload.view.lat)) &&
+      Number.isFinite(Number(payload.view.zoom))
+    ) {
+      map.jumpTo({
+        center:[Number(payload.view.lng),Number(payload.view.lat)],
+        zoom:Math.max(4,Math.min(20,Number(payload.view.zoom)))
+      });
+    }
+
     var current=getCurrentBounds();
     if (!boundsContain(payload.coverage,current)) return false;
 
+    // Cached rows include schedules. Recompute the marker state with the
+    // current Madrid clock so a refresh never revives stale colours.
+    var realtime=applyRealtimeScheduleStates(payload.rows);
     var generation=requestGeneration;
-    return commitVenueRows(
-      payload.rows,
+
+    var restored=commitVenueRows(
+      realtime.rows,
       payload.coverage,
       generation,
       "local-cache"
     );
+
+    if (restored) {
+      console.log(
+        "[MAP_RENDER][CACHE_RESTORE] generation="+generation+
+        " total="+realtime.rows.length+
+        " knownStates="+realtime.knownStates
+      );
+    }
+
+    return restored;
   } catch (_) {
     return false;
   }
@@ -582,7 +1172,7 @@ function restoreViewportCache() {
 function buildVenueDataUrl(bounds,offset) {
   return (
     VENUE_DATA_URL +
-    "?select=id,latitud,longitud,barlive_type,barlive_types,destacado" +
+    "?select=id,latitud,longitud,barlive_type,barlive_types,destacado,horarios_completos,google_business_status,osm_opening_hours:osm_tags->>opening_hours" +
     "&activo=eq.true" +
     "&latitud=gte." + encodeURIComponent(bounds.south.toFixed(6)) +
     "&latitud=lte." + encodeURIComponent(bounds.north.toFixed(6)) +
@@ -594,19 +1184,6 @@ function buildVenueDataUrl(bounds,offset) {
   );
 }
 
-function buildStateDataUrl(bounds,offset) {
-  return (
-    STATE_DATA_URL +
-    "?select=local_id,estado" +
-    "&latitud=gte." + encodeURIComponent(bounds.south.toFixed(6)) +
-    "&latitud=lte." + encodeURIComponent(bounds.north.toFixed(6)) +
-    "&longitud=gte." + encodeURIComponent(bounds.west.toFixed(6)) +
-    "&longitud=lte." + encodeURIComponent(bounds.east.toFixed(6)) +
-    "&order=local_id.asc" +
-    "&limit=" + DATA_PAGE_SIZE +
-    "&offset=" + offset
-  );
-}
 
 function fetchDataPage(url,label,offset,controller) {
   return fetch(url,{
@@ -687,68 +1264,417 @@ async function fetchPagedRows(
   return all;
 }
 
-function mergeCatalogueWithStates(venueRows,stateRows) {
-  var stateById=new Map();
+function decodeNationalSnapshotRows(compactRows) {
+  var decoded=[];
+  (Array.isArray(compactRows)?compactRows:[]).forEach(function(item) {
+    if (!Array.isArray(item) || item.length < 8) return;
 
-  (Array.isArray(stateRows)?stateRows:[]).forEach(function(row) {
-    var id=String(row && row.local_id || "").trim();
-    if (!id) return;
-    stateById.set(id,normalizeMarkerState(row.estado));
+    var category=NATIONAL_CATEGORY_BY_CODE[Number(item[3])];
+    if (!category) return;
+
+    decoded.push({
+      id:String(item[0]||""),
+      latitud:Number(item[1]),
+      longitud:Number(item[2]),
+      barlive_type:category,
+      destacado:Number(item[4]||0)===1,
+      horarios_completos:item[5] == null ? null : item[5],
+      google_business_status:item[6] == null ? null : item[6],
+      osm_opening_hours:item[7] == null ? null : item[7]
+    });
   });
-
-  var merged=[];
-  (Array.isArray(venueRows)?venueRows:[]).forEach(function(row) {
-    if (!row || typeof row!=="object") return;
-    var id=String(row.id || "").trim();
-    if (!id) return;
-
-    merged.push(Object.assign({},row,{
-      estado:stateById.get(id) || "unknown"
-    }));
-  });
-
-  return {
-    rows:merged,
-    knownStates:stateById.size
-  };
+  return decoded;
 }
 
-async function fetchCanonicalRows(bounds,generation,controller) {
-  var pair=await Promise.all([
-    fetchPagedRows(
+function lonToTileX(lon,z) {
+  var n=Math.pow(2,z);
+  return Math.floor((Number(lon)+180)/360*n);
+}
+
+function latToTileY(lat,z) {
+  var n=Math.pow(2,z);
+  var clipped=Math.max(-85.05112878,Math.min(85.05112878,Number(lat)));
+  var rad=clipped*Math.PI/180;
+  return Math.floor((1-Math.asinh(Math.tan(rad))/Math.PI)/2*n);
+}
+
+function rememberViewportTile(key,rows) {
+  if (viewportTileCache.has(key)) viewportTileCache.delete(key);
+  viewportTileCache.set(key,rows);
+
+  while (viewportTileCache.size>24) {
+    var oldest=viewportTileCache.keys().next().value;
+    viewportTileCache.delete(oldest);
+  }
+}
+
+async function getViewportTileManifest(controller) {
+  if (viewportTileManifest) return viewportTileManifest;
+
+  var response=await fetch(VIEWPORT_TILE_ROOT+"/manifest.json",{
+    method:"GET",
+    cache:"no-cache",
+    signal:controller.signal,
+    headers:{Accept:"application/json"}
+  });
+
+  if (!response.ok) {
+    throw new Error("viewport tile manifest HTTP "+response.status);
+  }
+
+  var manifest=await response.json();
+  if (
+    !manifest ||
+    Number(manifest.v)!==1 ||
+    Number(manifest.z)!==VIEWPORT_TILE_Z ||
+    !manifest.tiles ||
+    typeof manifest.tiles!=="object"
+  ) {
+    throw new Error("invalid viewport tile manifest");
+  }
+
+  viewportTileManifest=manifest;
+  return manifest;
+}
+
+function viewportTileKeys(bounds,manifest) {
+  var minX=Math.min(
+    lonToTileX(bounds.west,VIEWPORT_TILE_Z),
+    lonToTileX(bounds.east,VIEWPORT_TILE_Z)
+  );
+  var maxX=Math.max(
+    lonToTileX(bounds.west,VIEWPORT_TILE_Z),
+    lonToTileX(bounds.east,VIEWPORT_TILE_Z)
+  );
+  var minY=Math.min(
+    latToTileY(bounds.north,VIEWPORT_TILE_Z),
+    latToTileY(bounds.south,VIEWPORT_TILE_Z)
+  );
+  var maxY=Math.max(
+    latToTileY(bounds.north,VIEWPORT_TILE_Z),
+    latToTileY(bounds.south,VIEWPORT_TILE_Z)
+  );
+
+  var keys=[];
+  for (var x=minX;x<=maxX;x+=1) {
+    for (var y=minY;y<=maxY;y+=1) {
+      var key=x+"/"+y;
+      if (manifest.tiles[key]) keys.push(key);
+    }
+  }
+  return keys;
+}
+
+async function prewarmStaticViewportTiles(bounds) {
+  if (!bounds) return;
+
+  var started=Date.now();
+
+  try {
+    var response=await fetch(VIEWPORT_TILE_ROOT+"/manifest.json",{
+      method:"GET",
+      cache:"no-cache",
+      headers:{Accept:"application/json"}
+    });
+    if (!response.ok) return;
+
+    var manifest=await response.json();
+    if (
+      !manifest ||
+      Number(manifest.v)!==1 ||
+      Number(manifest.z)!==VIEWPORT_TILE_Z ||
+      !manifest.tiles ||
+      typeof manifest.tiles!=="object"
+    ) return;
+
+    // Share the parsed manifest with the real viewport request.
+    viewportTileManifest=manifest;
+
+    var keys=viewportTileKeys(bounds,manifest);
+    if (!keys.length || keys.length>VIEWPORT_TILE_MAX_REQUESTS) return;
+
+    var version=String(manifest.sourceSnapshotSha256||"").slice(0,12);
+
+    await Promise.allSettled(keys.map(async function(key) {
+      if (viewportTileCache.has(key)) return;
+
+      var parts=key.split("/");
+      var tileResponse=await fetch(
+        VIEWPORT_TILE_ROOT+"/"+parts[0]+"/"+parts[1]+".json?v="+encodeURIComponent(version),
+        {
+          method:"GET",
+          cache:"force-cache",
+          headers:{Accept:"application/json"}
+        }
+      );
+
+      if (!tileResponse.ok) return;
+
+      var payload=await tileResponse.json();
+      if (!payload || !Array.isArray(payload.rows)) return;
+
+      rememberViewportTile(key,payload.rows);
+    }));
+
+    console.log(
+      "[MAP_RENDER][VIEWPORT_STATIC_PREWARM]"+
+      " tiles="+keys.length+
+      " cached="+viewportTileCache.size+
+      " elapsedMs="+(Date.now()-started)
+    );
+  } catch (_) {
+    // Pure optimization. The canonical request keeps its CDN + REST fallback.
+  }
+}
+
+async function fetchStaticViewportRows(bounds,generation,controller) {
+  var started=Date.now();
+  var manifest=await getViewportTileManifest(controller);
+
+  if (
+    controller.signal.aborted ||
+    generation!==requestGeneration
+  ) return null;
+
+  var keys=viewportTileKeys(bounds,manifest);
+  if (keys.length>VIEWPORT_TILE_MAX_REQUESTS) {
+    throw new Error(
+      "viewport tile request count exceeds "+VIEWPORT_TILE_MAX_REQUESTS+
+      ": "+keys.length
+    );
+  }
+
+  var cacheHits=0;
+  var version=String(manifest.sourceSnapshotSha256||"").slice(0,12);
+
+  var pages=await Promise.all(keys.map(async function(key) {
+    if (viewportTileCache.has(key)) {
+      cacheHits+=1;
+      return viewportTileCache.get(key);
+    }
+
+    var parts=key.split("/");
+    var response=await fetch(
+      VIEWPORT_TILE_ROOT+"/"+parts[0]+"/"+parts[1]+".json?v="+encodeURIComponent(version),
+      {
+        method:"GET",
+        cache:"force-cache",
+        signal:controller.signal,
+        headers:{Accept:"application/json"}
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        "viewport tile HTTP "+response.status+" key="+key
+      );
+    }
+
+    var payload=await response.json();
+    if (!payload || !Array.isArray(payload.rows)) {
+      throw new Error("invalid viewport tile payload key="+key);
+    }
+
+    rememberViewportTile(key,payload.rows);
+    return payload.rows;
+  }));
+
+  if (
+    controller.signal.aborted ||
+    generation!==requestGeneration
+  ) return null;
+
+  var byId=new Map();
+  pages.forEach(function(rows) {
+    (Array.isArray(rows)?rows:[]).forEach(function(item) {
+      if (!Array.isArray(item) || item.length<8) return;
+
+      var id=String(item[0]||"");
+      var lat=Number(item[1]);
+      var lng=Number(item[2]);
+      if (
+        !id ||
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng) ||
+        lat<bounds.south ||
+        lat>bounds.north ||
+        lng<bounds.west ||
+        lng>bounds.east
+      ) return;
+
+      var category=NATIONAL_CATEGORY_BY_CODE[Number(item[3])];
+      if (!category) return;
+
+      byId.set(id,{
+        id:id,
+        latitud:lat,
+        longitud:lng,
+        barlive_type:category,
+        destacado:Number(item[4]||0)===1,
+        horarios_completos:item[5] == null ? null : item[5],
+        google_business_status:item[6] == null ? null : item[6],
+        osm_opening_hours:item[7] == null ? null : item[7]
+      });
+    });
+  });
+
+  var rows=Array.from(byId.values());
+
+  console.log(
+    "[MAP_RENDER][VIEWPORT_STATIC_FETCH] generation="+generation+
+    " tiles="+keys.length+
+    " cacheHits="+cacheHits+
+    " rows="+rows.length+
+    " elapsedMs="+(Date.now()-started)
+  );
+
+  return rows;
+}
+
+async function fetchNationalVenueRows(bounds,generation,controller) {
+  try {
+    if (!nationalSnapshotCompact) {
+      var started=Date.now();
+      var response=await fetch(NATIONAL_SNAPSHOT_URL,{
+        method:"GET",
+        cache:"default",
+        signal:controller.signal,
+        headers:{Accept:"application/json"}
+      });
+
+      if (!response.ok) {
+        throw new Error("national snapshot HTTP "+response.status);
+      }
+
+      var payload=await response.json();
+      if (
+        !payload ||
+        Number(payload.v)!==1 ||
+        !Array.isArray(payload.rows) ||
+        payload.rows.length < 100000
+      ) {
+        throw new Error("invalid national snapshot payload");
+      }
+
+      if (
+        controller.signal.aborted ||
+        generation !== requestGeneration
+      ) return null;
+
+      nationalSnapshotCompact=payload.rows;
+
+      console.log(
+        "[MAP_RENDER][NATIONAL_STATIC_FETCH] generation="+generation+
+        " rows="+nationalSnapshotCompact.length+
+        " elapsedMs="+(Date.now()-started)
+      );
+    } else {
+      console.log(
+        "[MAP_RENDER][NATIONAL_STATIC_MEMORY] generation="+generation+
+        " rows="+nationalSnapshotCompact.length
+      );
+    }
+
+    return decodeNationalSnapshotRows(nationalSnapshotCompact);
+  } catch (error) {
+    if (error && error.name === "AbortError") throw error;
+
+    console.warn(
+      "[MAP_RENDER][NATIONAL_STATIC_FALLBACK] generation="+generation,
+      String(error && error.message || error)
+    );
+
+    // Native WebViews with restrictive cross-origin policies keep the proven
+    // REST path as a safety net. Web production normally uses the static CDN.
+    return fetchPagedRows(
+      bounds,
+      generation,
+      controller,
+      buildVenueDataUrl,
+      "catalogue-national-fallback",
+      DATA_PAGE_BATCH
+    );
+  }
+}
+
+async function fetchCanonicalRows(
+  bounds,
+  generation,
+  controller,
+  useNationalSnapshot,
+  useStaticViewport
+) {
+  var venueRows=null;
+  var mode="viewport-rest";
+
+  if (useNationalSnapshot) {
+    venueRows=await fetchNationalVenueRows(
+      bounds,
+      generation,
+      controller
+    );
+    mode="national";
+  } else if (useStaticViewport) {
+    try {
+      venueRows=await fetchStaticViewportRows(
+        bounds,
+        generation,
+        controller
+      );
+      mode="viewport-static";
+    } catch (error) {
+      if (error && error.name==="AbortError") throw error;
+
+      console.warn(
+        "[MAP_RENDER][VIEWPORT_STATIC_FALLBACK] generation="+generation,
+        String(error && error.message || error)
+      );
+
+      venueRows=await fetchPagedRows(
+        bounds,
+        generation,
+        controller,
+        buildVenueDataUrl,
+        "catalogue-static-fallback",
+        DATA_PAGE_BATCH
+      );
+      mode="viewport-rest-fallback";
+    }
+  } else {
+    venueRows=await fetchPagedRows(
       bounds,
       generation,
       controller,
       buildVenueDataUrl,
       "catalogue",
       DATA_PAGE_BATCH
-    ),
-    fetchPagedRows(
-      bounds,
-      generation,
-      controller,
-      buildStateDataUrl,
-      "state",
-      2
-    )
-  ]);
+    );
+  }
 
-  if (!pair[0] || !pair[1]) return null;
+  if (!venueRows) return null;
 
-  var joined=mergeCatalogueWithStates(pair[0],pair[1]);
+  var realtime=applyRealtimeScheduleStates(venueRows);
 
   console.log(
-    "[MAP_RENDER][JOIN] generation="+generation+
-    " catalogue="+pair[0].length+
-    " states="+pair[1].length+
-    " knownStates="+joined.knownStates+
-    " merged="+joined.rows.length
+    "[MAP_RENDER][SCHEDULE_STATE] generation="+generation+
+    " mode="+mode+
+    " catalogue="+venueRows.length+
+    " knownStates="+realtime.knownStates+
+    " barlive="+realtime.barliveStates+
+    " osm="+realtime.osmStates+
+    " business="+realtime.businessStates+
+    " merged="+realtime.rows.length
   );
 
-  return joined.rows;
+  return {
+    rows:realtime.rows,
+    mode:mode
+  };
 }
 
 async function refreshCanonicalStates() {
+  if (shouldUseHybridRenderer() || rendererMode === "hybrid") return;
+
   if (
     !map ||
     !map.getSource(VENUE_SOURCE) ||
@@ -757,69 +1683,88 @@ async function refreshCanonicalStates() {
     !activeRows.length
   ) return;
 
+  // A viewport replacement owns the canonical dataset while it is in flight.
+  if (viewportRequestInFlight) {
+    console.log(
+      "[MAP_RENDER][STATE_REFRESH_SKIPPED] reason=viewport-in-flight"+
+      " generation="+requestGeneration
+    );
+    return;
+  }
+
+  if (activeDatasetMode === "national-static") {
+    var nationalAge=Date.now()-lastNationalStateRefreshAt;
+    if (nationalAge < 5*60*1000) {
+      console.log(
+        "[MAP_RENDER][STATE_REFRESH_SKIPPED] reason=national-static-fresh"+
+        " ageMs="+nationalAge
+      );
+      return;
+    }
+  }
+
   var coverage=activeCoverage;
   var generation=++requestGeneration;
-  lastRequestReason="state-refresh";
+  lastRequestReason="state-refresh-local";
 
-  if (requestAbortController) {
-    try { requestAbortController.abort(); } catch (_) {}
-  }
+  var realtime=applyRealtimeScheduleStates(activeRows);
 
-  var controller=new AbortController();
-  requestAbortController=controller;
+  console.log(
+    "[MAP_RENDER][STATE_REFRESH_LOCAL] generation="+generation+
+    " knownStates="+realtime.knownStates+
+    " barlive="+realtime.barliveStates+
+    " osm="+realtime.osmStates+
+    " business="+realtime.businessStates
+  );
 
-  try {
-    var stateRows=await fetchPagedRows(
-      coverage,
-      generation,
-      controller,
-      buildStateDataUrl,
-      "state",
-      2
-    );
-    if (!stateRows) return;
-
-    if (
-      controller.signal.aborted ||
-      generation !== requestGeneration ||
-      coverage !== activeCoverage
-    ) return;
-
-    var joined=mergeCatalogueWithStates(activeRows,stateRows);
-    commitVenueRows(
-      joined.rows,
-      coverage,
-      generation,
-      "state-refresh"
-    );
-  } catch (error) {
-    if (error && error.name === "AbortError") return;
-    if (generation !== requestGeneration) return;
-
-    console.warn(
-      "[MAP_RENDER][STATE_REFRESH_ERROR] generation="+generation,
-      String(error && error.message || error)
-    );
-  }
+  commitVenueRows(
+    realtime.rows,
+    coverage,
+    generation,
+    "state-refresh-local"
+  );
 }
 
 async function requestCanonicalViewport(force,reason) {
   if (!map || !map.getSource(VENUE_SOURCE)) return;
 
+  if (shouldUseHybridRenderer()) {
+    lastRequestReason=String(reason || "hybrid");
+    enterHybridTileMode(lastRequestReason);
+    scheduleDiagnostics("hybrid-tile-only");
+    return;
+  }
+
   var current=getCurrentBounds();
   if (!current) return;
 
+  var zoom=map.getZoom();
+  var wantsNational=zoom<=NATIONAL_SNAPSHOT_MAX_ZOOM;
+  var wantsStaticViewport=
+    !wantsNational &&
+    zoom>=VIEWPORT_TILE_MIN_MAP_ZOOM;
+  var desiredMode=wantsNational
+    ? "national-static"
+    : wantsStaticViewport
+      ? "viewport-static"
+      : "viewport";
+  var modeMatches=activeDatasetMode===desiredMode;
+
   if (
     !force &&
+    modeMatches &&
     activeCoverage &&
     activeVenueById.size &&
     boundsContain(activeCoverage,current)
   ) {
+    activateCanonicalRenderer("coverage-hit");
     scheduleDiagnostics("coverage-hit");
     return;
   }
 
-  var coverage=paddedBounds(current);
+  var coverage=wantsNational
+    ? NATIONAL_COVERAGE
+    : paddedBounds(current);
   var generation=++requestGeneration;
   lastRequestReason=String(reason || "viewport");
 
@@ -829,6 +1774,7 @@ async function requestCanonicalViewport(force,reason) {
 
   var controller=new AbortController();
   requestAbortController=controller;
+  viewportRequestInFlight=true;
 
   console.log(
     "[MAP_RENDER][VIEWPORT_REQUEST] generation="+generation+
@@ -843,8 +1789,14 @@ async function requestCanonicalViewport(force,reason) {
   );
 
   try {
-    var rows=await fetchCanonicalRows(coverage,generation,controller);
-    if (!rows) return;
+    var fetched=await fetchCanonicalRows(
+      coverage,
+      generation,
+      controller,
+      wantsNational,
+      wantsStaticViewport
+    );
+    if (!fetched || !fetched.rows) return;
 
     if (
       controller.signal.aborted ||
@@ -858,7 +1810,18 @@ async function requestCanonicalViewport(force,reason) {
       return;
     }
 
-    commitVenueRows(rows,coverage,generation,"network");
+    var sourceLabel=wantsNational
+      ? "national-static"
+      : fetched.mode==="viewport-static"
+        ? "viewport-static"
+        : "network";
+
+    commitVenueRows(
+      fetched.rows,
+      coverage,
+      generation,
+      sourceLabel
+    );
   } catch (error) {
     if (error && error.name === "AbortError") return;
     if (generation !== requestGeneration) return;
@@ -875,6 +1838,11 @@ async function requestCanonicalViewport(force,reason) {
 
     // Keep the previous committed FeatureCollection untouched. No fallback
     // renderer is activated and no grey replacement dataset is created.
+  } finally {
+    if (requestAbortController === controller) {
+      requestAbortController=null;
+      viewportRequestInFlight=false;
+    }
   }
 }
 
@@ -1016,7 +1984,12 @@ window.applyAdvancedFilters=function(criteria){
   applyAdvancedFeatureState();
   applyFilters();
 
-  if (advancedFilterActive) requestAdvancedViewport();
+  if (advancedFilterActive) {
+    requestCanonicalViewport(true,"advanced-filter");
+    requestAdvancedViewport();
+  } else if (shouldUseHybridRenderer()) {
+    enterHybridTileMode("advanced-filter-cleared");
+  }
 };
 
 window.setLocalesFromNative=function(locales,mediaRows,meta){
@@ -1042,14 +2015,37 @@ window.filtrarCategoria=function(category){
 window.setCategoryFilter=window.filtrarCategoria;
 
 window.setLiveEvents=function(live,upcoming){
+  var previousIds=new Set();
+  liveIds.forEach(function(id){previousIds.add(id);});
+  upcomingIds.forEach(function(id){previousIds.add(id);});
+
   liveIds=new Set((live||[]).map(String));
   upcomingIds=new Set((upcoming||[]).map(String));
+
+  // Clear only venues that used to be decorated and no longer are.
+  previousIds.forEach(function(id) {
+    if (!liveIds.has(id) && !upcomingIds.has(id)) {
+      setVenueFeatureState(id,{eventState:"none"});
+    }
+  });
+
   applyEventFeatureState();
+  applyFilters();
 };
 
 window.setActivePromos=function(promos){
+  var previousIds=new Set(promoIds);
   promoIds=new Set(Object.keys(promos||{}).map(String));
+
+  // Clear only promotions that disappeared; do not rewrite every venue.
+  previousIds.forEach(function(id) {
+    if (!promoIds.has(id)) {
+      setVenueFeatureState(id,{hasPromo:false});
+    }
+  });
+
   applyPromoFeatureState();
+  applyFilters();
 };
 
 window.updateUserLocation=function(lat,lng){
@@ -1198,6 +2194,57 @@ function registerCategoryIcons() {
   });
 }
 
+function addHybridSourceAndLayer() {
+  map.addSource(HYBRID_SOURCE,{
+    type:"vector",
+    tiles:[HYBRID_TILE_URL],
+    minzoom:4,
+    maxzoom:HYBRID_SOURCE_MAX_ZOOM,
+    promoteId:"id"
+  });
+
+  map.addLayer({
+    id:HYBRID_LAYER,
+    type:"circle",
+    source:HYBRID_SOURCE,
+    "source-layer":"locales",
+    minzoom:4,
+    layout:{visibility:"visible"},
+    paint:{
+      "circle-radius":[
+        "interpolate",["linear"],["zoom"],
+        4,1.6,
+        7,2.3,
+        9,3.2,
+        10.5,7.4,
+        13,10.5,
+        16,13,
+        20,14
+      ],
+      "circle-color":[
+        "match",
+        ["get","estado"],
+        "abierto","#22C55E",
+        "cerrado","#EF4444",
+        "#94A3B8"
+      ],
+      "circle-opacity":1,
+      "circle-stroke-width":[
+        "interpolate",["linear"],["zoom"],
+        4,["case",["==",["get","destacado"],true],3,0],
+        10.5,["case",["==",["get","destacado"],true],3,2],
+        20,["case",["==",["get","destacado"],true],3,2]
+      ],
+      "circle-stroke-color":[
+        "case",
+        ["==",["get","destacado"],true],
+        "#F59E0B",
+        "#FFFFFF"
+      ]
+    }
+  });
+}
+
 function addVenueSourceAndLayers() {
   map.addSource(VENUE_SOURCE,{
     type:"geojson",
@@ -1212,6 +2259,7 @@ function addVenueSourceAndLayers() {
     type:"circle",
     source:VENUE_SOURCE,
     minzoom:10.5,
+    layout:{visibility:"none"},
     paint:{
       "circle-radius":[
         "interpolate",["linear"],["zoom"],
@@ -1228,6 +2276,7 @@ function addVenueSourceAndLayers() {
     type:"circle",
     source:VENUE_SOURCE,
     minzoom:10.5,
+    layout:{visibility:"none"},
     paint:{
       "circle-radius":[
         "interpolate",["linear"],["zoom"],
@@ -1244,6 +2293,7 @@ function addVenueSourceAndLayers() {
     type:"circle",
     source:VENUE_SOURCE,
     minzoom:10.5,
+    layout:{visibility:"none"},
     paint:{
       "circle-radius":[
         "interpolate",["linear"],["zoom"],
@@ -1260,6 +2310,7 @@ function addVenueSourceAndLayers() {
     type:"circle",
     source:VENUE_SOURCE,
     minzoom:4,
+    layout:{visibility:"none"},
     paint:{
       "circle-radius":[
         "interpolate",["linear"],["zoom"],
@@ -1298,8 +2349,12 @@ function addVenueSourceAndLayers() {
     id:ICON_LAYER,
     type:"symbol",
     source:VENUE_SOURCE,
-    minzoom:10.5,
+    // At medium/far zoom every venue remains visible as its coloured circle.
+    // Rendering thousands of category glyphs before they are legible adds a
+    // large symbol-layout cost, so the inner glyph starts at z13.
+    minzoom:13,
     layout:{
+      visibility:"none",
       "icon-image":[
         "case",
         ["==",["get","category"],"cafeteria"],"cat-cafeteria",
@@ -1311,7 +2366,6 @@ function addVenueSourceAndLayers() {
       ],
       "icon-size":[
         "interpolate",["linear"],["zoom"],
-        10.5,0.42,
         13,0.50,
         16,0.58,
         20,0.62
@@ -1361,15 +2415,33 @@ function requestPopupFromFeature(feature){
     feature.id ||
     ""
   );
+  if (!id) return;
 
   var venue=activeVenueById.get(id);
-  if (!venue || !venueIsVisible(venue)) return;
+  var props=feature.properties||{};
+  var featureCategory=canonicalCategory(props.category||props.tipo);
+  var featureState=normalizeMarkerState(
+    props.markerState!=null ? props.markerState : props.estado
+  );
+
+  if (venue) {
+    if (!venueIsVisible(venue)) return;
+  } else {
+    if (
+      categoryFilter !== "todas" &&
+      featureCategory !== canonicalCategory(categoryFilter)
+    ) return;
+    if (
+      stateFilterMode === "no_cerrados" &&
+      featureState !== "open"
+    ) return;
+  }
 
   var coords=feature.geometry && feature.geometry.coordinates;
 
   post("map_popup_request",{
     id:id,
-    markerState:venue.markerState,
+    markerState:venue ? venue.markerState : featureState,
     coordinates:Array.isArray(coords)
       ? {lng:Number(coords[0]),lat:Number(coords[1])}
       : null
@@ -1403,6 +2475,19 @@ function handleMapError(event) {
 
   console.warn("[MAP_RENDER][MAP_ERROR]",message);
 
+  if (
+    event &&
+    event.sourceId===HYBRID_SOURCE &&
+    !hybridTileFailed
+  ) {
+    hybridTileFailed=true;
+    setHybridVisibility(false);
+    console.warn("[MAP_RENDER][HYBRID_FALLBACK]",message);
+    setTimeout(function(){
+      requestCanonicalViewport(true,"hybrid-tile-error");
+    },0);
+  }
+
   post("map_error",{
     message:message,
     recoverable:true,
@@ -1412,9 +2497,20 @@ function handleMapError(event) {
 
 function setupMapEvents(){
   map.on("sourcedata",function(event){
-    if(event.sourceId!==VENUE_SOURCE) return;
-    reapplyAuxiliaryFeatureState();
-    scheduleDiagnostics("sourcedata");
+    if(event.sourceId===VENUE_SOURCE) {
+      reapplyAuxiliaryFeatureState();
+      scheduleDiagnostics("sourcedata");
+      return;
+    }
+    if(event.sourceId===HYBRID_SOURCE) {
+      scheduleDiagnostics("hybrid-sourcedata");
+    }
+  });
+
+  map.on("zoom",function(){
+    if (shouldUseHybridRenderer()) {
+      enterHybridTileMode("zoom");
+    }
   });
 
   map.on("moveend",function(){
@@ -1432,6 +2528,12 @@ function setupMapEvents(){
     scheduleDiagnostics("idle");
   });
 
+  map.on("click",HYBRID_LAYER,function(event){
+    requestPopupFromFeature(
+      event.features && event.features[0]
+    );
+  });
+
   map.on("click",VENUE_LAYER,function(event){
     requestPopupFromFeature(
       event.features && event.features[0]
@@ -1442,6 +2544,14 @@ function setupMapEvents(){
     requestPopupFromFeature(
       event.features && event.features[0]
     );
+  });
+
+  map.on("mouseenter",HYBRID_LAYER,function(){
+    map.getCanvas().style.cursor="pointer";
+  });
+
+  map.on("mouseleave",HYBRID_LAYER,function(){
+    map.getCanvas().style.cursor="";
   });
 
   map.on("mouseenter",VENUE_LAYER,function(){
@@ -1478,6 +2588,19 @@ function init(){
   window.__barliveMap=map;
   map.on("error",handleMapError);
 
+  if (${a}>=VIEWPORT_TILE_MIN_MAP_ZOOM) {
+    try {
+      var startupBounds=getCurrentBounds();
+      if (startupBounds) {
+        startupPrewarmPromise=prewarmStaticViewportTiles(
+          paddedBounds(startupBounds)
+        );
+      }
+    } catch (_) {
+      startupPrewarmPromise=null;
+    }
+  }
+
   try {
     map.addControl(
       new maplibregl.AttributionControl({compact:true}),
@@ -1485,30 +2608,97 @@ function init(){
     );
   } catch (_) {}
 
-  map.on("load",function(){
+  var didBootstrapCanonicalMap=false;
+
+  function bootstrapCanonicalMap(trigger) {
+    if (didBootstrapCanonicalMap) return;
+
+    // MapLibre's public isStyleLoaded() waits for base-style sources/tiles.
+    // BarLive only needs the style object itself to accept our GeoJSON source
+    // and layers. The internal _loaded flag becomes true much earlier and was
+    // verified in-browser to accept addSource/addLayer safely.
+    if (!map || !(map.style && map.style._loaded)) return;
+
+    didBootstrapCanonicalMap=true;
+
     try {
       registerCategoryIcons();
     } catch (error) {
       console.warn("[MAP_RENDER][ICON_WARNING]",error);
     }
 
+    addHybridSourceAndLayer();
     addVenueSourceAndLayers();
     setupMapEvents();
 
+    if (shouldUseHybridRenderer()) {
+      enterHybridTileMode("bootstrap");
+    } else {
+      rendererMode="hybrid";
+      setHybridVisibility(true);
+      setCanonicalVisibility(false);
+    }
+
     // Cache is only a warm-start input to the SAME canonical source.
-    // Network reconciliation writes to that exact source as one atomic commit.
-    restoreViewportCache();
-    requestCanonicalViewport(true,"load");
+    // On direct refresh (national fallback shell), restore the last real
+    // viewport first so markers and schedule colours paint immediately.
+    var warmRestored=restoreViewportCache(${a<=6?'true':'false'});
+
+    // The exact startup viewport tiles begin downloading as soon as MapLibre
+    // exists. If that prewarm is still in flight, let it finish before the
+    // canonical request so both paths share the same in-memory tile cache and
+    // never duplicate CDN requests.
+    var startCanonicalRequest=function() {
+      requestCanonicalViewport(
+        true,
+        warmRestored ? "early-cache-reconcile" : "early-style-ready"
+      );
+    };
+
+    if (startupPrewarmPromise) {
+      var pendingPrewarm=startupPrewarmPromise;
+      startupPrewarmPromise=null;
+      Promise.resolve(pendingPrewarm).then(
+        startCanonicalRequest,
+        startCanonicalRequest
+      );
+    } else {
+      startCanonicalRequest();
+    }
 
     refreshTimer=setInterval(function(){
       refreshCanonicalStates();
     },60000);
 
+    console.log(
+      "[MAP_RENDER][BOOTSTRAP] event="+String(trigger||"unknown")+
+      " zoom="+map.getZoom().toFixed(2)
+    );
+
     post("map_ready",{
-      engine:"barlive-single-geojson-catalogue-v2"
+      engine:"barlive-hybrid-mvt-geojson-v1"
     });
 
-    scheduleDiagnostics("load");
+    scheduleDiagnostics("bootstrap-"+String(trigger||"unknown"));
+  }
+
+  // First attempt immediately: in MapLibre 3.6 the style object is already
+  // internally ready by the time the constructor returns in modern browsers.
+  bootstrapCanonicalMap("internal-ready");
+
+  // If a runtime is slightly slower, styledata is the earliest safe retry.
+  map.on("styledata",function(){
+    bootstrapCanonicalMap("styledata");
+  });
+
+  // Public events remain defensive fallbacks for native WebViews and future
+  // MapLibre versions. didBootstrapCanonicalMap keeps this strictly once-only.
+  map.on("style.load",function(){
+    bootstrapCanonicalMap("style.load");
+  });
+
+  map.on("load",function(){
+    bootstrapCanonicalMap("load");
   });
 }
 
