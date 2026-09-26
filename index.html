@@ -76,19 +76,20 @@
   <link rel="manifest" href="/manifest.json"><link rel="icon" href="/favicon.ico"><meta name="theme-color" content="#14B8A6">
 
 
-<style id="barlive-web-desktop-ui-v3">
+
+<style id="barlive-web-desktop-ui-v4">
 @media (min-width: 1100px) and (min-height: 650px) and (orientation: landscape) {
   html, body, #root { background: #F4F7F6 !important; }
   body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 
-  .barlive-web-desktop-header-v3 {
+  .barlive-web-desktop-header-v4 {
     box-sizing: border-box !important;
     max-width: none !important;
     border-radius: 0 !important;
   }
 
-  .barlive-web-overflow-bridge-v3 { overflow: visible !important; }
-  .barlive-web-right-rail-v3 { box-sizing: border-box !important; }
+  .barlive-web-overflow-bridge-v4 { overflow: visible !important; }
+  .barlive-web-right-rail-v4 { box-sizing: border-box !important; }
 
   img[data-barlive-logo-fixed="1"] {
     object-fit: contain !important;
@@ -112,7 +113,7 @@
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
   <script src="/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v24-popup-restored-df05423-20260926" defer></script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=40',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});}</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=41',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});}</script>
 <script id="barlive-web-rbac-guest-guard">
 (function(){
   "use strict";
@@ -372,11 +373,12 @@
 
 
 
-<script id="barlive-web-desktop-ui-v3">
+
+<script id="barlive-web-desktop-ui-v4">
 (function(){
   "use strict";
 
-  var VERSION="desktop-ui-v3-20260926";
+  var VERSION="desktop-ui-v4-20260926";
   window.__barliveDesktopUiVersion=VERSION;
 
   var touchedHeaders=[];
@@ -388,10 +390,8 @@
   var brandSvg=
     'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22168%22 height=%2248%22 viewBox=%220 0 168 48%22%3E%3Crect x=%220%22 y=%224%22 width=%2240%22 height=%2240%22 rx=%2212%22 fill=%22%23641B73%22/%3E%3Ctext x=%2220%22 y=%2231%22 text-anchor=%22middle%22 font-family=%22Arial,sans-serif%22 font-size=%2223%22 font-weight=%22900%22 fill=%22white%22%3EB%3C/text%3E%3Ctext x=%2252%22 y=%2231%22 font-family=%22Arial,sans-serif%22 font-size=%2224%22 font-weight=%22800%22 fill=%22%23641B73%22%3EBarLive%3C/text%3E%3C/svg%3E';
 
-  function isDesktop(){
-    return innerWidth>=1100 &&
-      innerHeight>=650 &&
-      innerWidth>innerHeight;
+  function desktop(){
+    return innerWidth>=1100 && innerHeight>=650 && innerWidth>innerHeight;
   }
 
   function save(el,prop,key){
@@ -410,26 +410,26 @@
   function restoreAll(){
     touchedHeaders.forEach(function(h){
       if(!h || !h.style) return;
-      restore(h,"width","data-bl3-width");
-      restore(h,"max-width","data-bl3-maxw");
-      restore(h,"margin-left","data-bl3-ml");
-      restore(h,"padding-left","data-bl3-pl");
-      restore(h,"padding-right","data-bl3-pr");
-      restore(h,"box-sizing","data-bl3-box");
-      restore(h,"border-radius","data-bl3-radius");
-      h.classList.remove("barlive-web-desktop-header-v3");
+      restore(h,"width","data-bl4-width");
+      restore(h,"max-width","data-bl4-maxw");
+      restore(h,"margin-left","data-bl4-ml");
+      restore(h,"padding-left","data-bl4-pl");
+      restore(h,"padding-right","data-bl4-pr");
+      restore(h,"box-sizing","data-bl4-box");
+      restore(h,"border-radius","data-bl4-radius");
+      h.classList.remove("barlive-web-desktop-header-v4");
     });
 
     touchedOverflow.forEach(function(o){
       if(!o || !o.style) return;
-      restore(o,"overflow","data-bl3-overflow");
-      o.classList.remove("barlive-web-overflow-bridge-v3");
+      restore(o,"overflow","data-bl4-overflow");
+      o.classList.remove("barlive-web-overflow-bridge-v4");
     });
 
     touchedRails.forEach(function(r){
       if(!r || !r.style) return;
-      restore(r,"padding-top","data-bl3-pt");
-      r.classList.remove("barlive-web-right-rail-v3");
+      restore(r,"padding-top","data-bl4-pt");
+      r.classList.remove("barlive-web-right-rail-v4");
     });
 
     touchedHeaders=[];
@@ -438,11 +438,9 @@
   }
 
   function fixLogo(){
-    if(!isDesktop()) return;
-    var logos=document.querySelectorAll('img[alt="BarLive"], img[alt="Barlive"], img[alt="barlive"]');
-    logos.forEach(function(img){
-      var src=String(img.getAttribute("src")||"");
-      if(src===brandSvg) return;
+    if(!desktop()) return;
+    document.querySelectorAll('img[alt="BarLive"],img[alt="Barlive"],img[alt="barlive"]').forEach(function(img){
+      if(img.getAttribute("src")===brandSvg) return;
       img.setAttribute("src",brandSvg);
       img.setAttribute("data-barlive-logo-fixed","1");
     });
@@ -453,7 +451,7 @@
     return m?[+m[1],+m[2],+m[3]]:null;
   }
 
-  function isBrandHeader(el,style,rect){
+  function brandHeader(el,style,rect){
     if(!rect || rect.width<300 || rect.height<36 || rect.height>290) return false;
     if(rect.top<-190 || rect.top>220) return false;
 
@@ -465,11 +463,10 @@
       var r=c[0],g=c[1],b=c[2];
       if(g>115 && b>95 && r<105 && g>r*1.18) return true;
     }
-
     return false;
   }
 
-  function findHeaders(){
+  function headers(){
     var nodes=document.querySelectorAll("header,div");
     var found=[];
 
@@ -481,105 +478,90 @@
       }catch(_){ continue; }
 
       if(rect.right<=0 || rect.left>=innerWidth) continue;
-      if(!isBrandHeader(el,cs,rect)) continue;
+      if(!brandHeader(el,cs,rect)) continue;
 
       var parent=el.parentElement;
       var parentEligible=false;
       if(parent){
         try{
-          parentEligible=isBrandHeader(parent,getComputedStyle(parent),parent.getBoundingClientRect());
+          parentEligible=brandHeader(parent,getComputedStyle(parent),parent.getBoundingClientRect());
         }catch(_){}
       }
-
       if(!parentEligible) found.push(el);
     }
 
     found.sort(function(a,b){
-      var ar=a.getBoundingClientRect();
-      var br=b.getBoundingClientRect();
+      var ar=a.getBoundingClientRect(), br=b.getBoundingClientRect();
       if(Math.abs(ar.top-br.top)>4) return ar.top-br.top;
       return br.width-ar.width;
     });
 
     var selected=[];
-    for(var j=0;j<found.length;j++){
-      var fr=found[j].getBoundingClientRect();
-      var duplicate=false;
-
-      for(var x=0;x<selected.length;x++){
-        var sr=selected[x].getBoundingClientRect();
-        if(Math.abs(fr.top-sr.top)<8 && Math.abs(fr.bottom-sr.bottom)<20){
-          duplicate=true;
-          break;
-        }
-      }
-
-      if(!duplicate) selected.push(found[j]);
-    }
+    found.forEach(function(el){
+      var r=el.getBoundingClientRect();
+      var duplicate=selected.some(function(other){
+        var o=other.getBoundingClientRect();
+        return Math.abs(r.top-o.top)<8 && Math.abs(r.bottom-o.bottom)<20;
+      });
+      if(!duplicate) selected.push(el);
+    });
 
     return selected.slice(0,2);
   }
 
-  function findShell(header){
-    var el=header;
-    var best=null;
+  function globalSidebarEdge(headerRect){
+    var nodes=document.querySelectorAll("div,aside,nav");
+    var best=0;
 
-    while(el && el!==document.body){
-      var p=el.parentElement;
-      if(!p) break;
+    for(var i=0;i<nodes.length;i++){
+      var r;
+      try{ r=nodes[i].getBoundingClientRect(); }catch(_){ continue; }
 
-      try{
-        var r=p.getBoundingClientRect();
-        if(r.width>innerWidth*.78 && r.height>innerHeight*.72) best=p;
-      }catch(_){}
+      if(r.height<innerHeight*.72) continue;
+      if(r.width<60 || r.width>340) continue;
+      if(r.left>4) continue;
+      if(r.right>headerRect.left+18) continue;
 
-      el=p;
+      best=Math.max(best,r.right);
     }
 
     return best;
   }
 
-  function sidebarEdge(shell,headerRect){
-    if(!shell) return 0;
-    var kids=shell.children||[];
-    var edge=0;
+  function globalRightRail(headerRect){
+    var nodes=document.querySelectorAll("div,aside");
+    var best=null;
+    var bestScore=-1;
 
-    for(var i=0;i<kids.length;i++){
+    for(var i=0;i<nodes.length;i++){
       var r;
-      try{ r=kids[i].getBoundingClientRect(); }catch(_){ continue; }
+      try{ r=nodes[i].getBoundingClientRect(); }catch(_){ continue; }
 
-      if(r.height<innerHeight*.68) continue;
-      if(r.left<=3 && r.right<=headerRect.left+12 && r.width>=60 && r.width<=340){
-        edge=Math.max(edge,r.right);
+      if(r.height<innerHeight*.60) continue;
+      if(r.width<180 || r.width>440) continue;
+      if(r.left<=headerRect.right+24) continue;
+      if(r.right<innerWidth-16) continue;
+
+      var score=r.height-(Math.abs(r.top)*2);
+      if(score>bestScore){
+        bestScore=score;
+        best=nodes[i];
       }
     }
 
-    return edge;
+    return best;
   }
 
-  function findRightRail(shell,headerRect){
-    if(!shell) return null;
-    var kids=shell.children||[];
-
-    for(var i=0;i<kids.length;i++){
-      var r;
-      try{ r=kids[i].getBoundingClientRect(); }catch(_){ continue; }
-
-      if(r.height<innerHeight*.62) continue;
-      if(r.width<180 || r.width>430) continue;
-      if(r.left>headerRect.right+24 && r.right>=innerWidth-12) return kids[i];
-    }
-
-    return null;
-  }
-
-  function allowHorizontalBleed(header,shell){
+  function allowBleed(header){
     var el=header.parentElement;
     var depth=0;
 
-    while(el && el!==shell && el!==document.body && depth<8){
-      var cs;
-      try{ cs=getComputedStyle(el); }catch(_){ break; }
+    while(el && el!==document.body && depth<10){
+      var r, cs;
+      try{
+        r=el.getBoundingClientRect();
+        cs=getComputedStyle(el);
+      }catch(_){ break; }
 
       if(
         cs.overflow==="hidden" ||
@@ -587,63 +569,61 @@
         cs.overflowX==="hidden" ||
         cs.overflowX==="clip"
       ){
-        save(el,"overflow","data-bl3-overflow");
-        el.classList.add("barlive-web-overflow-bridge-v3");
+        save(el,"overflow","data-bl4-overflow");
+        el.classList.add("barlive-web-overflow-bridge-v4");
         touchedOverflow.push(el);
       }
 
+      if(r.width>innerWidth*.94) break;
       el=el.parentElement;
       depth++;
     }
   }
 
-  function expandHeader(header){
+  function expand(header){
     var rect=header.getBoundingClientRect();
-    var shell=findShell(header);
-    var sidebar=sidebarEdge(shell,rect);
-
+    var sidebar=globalSidebarEdge(rect);
     var targetLeft=sidebar || rect.left;
     var targetRight=innerWidth;
 
-    var deltaLeft=Math.max(0,rect.left-targetLeft);
-    var deltaRight=Math.max(0,targetRight-rect.right);
-
-    if(deltaLeft<4 && deltaRight<4) return;
+    var dl=Math.max(0,rect.left-targetLeft);
+    var dr=Math.max(0,targetRight-rect.right);
+    if(dl<4 && dr<4) return;
 
     var cs=getComputedStyle(header);
     var pl=parseFloat(cs.paddingLeft)||0;
     var pr=parseFloat(cs.paddingRight)||0;
 
-    save(header,"width","data-bl3-width");
-    save(header,"max-width","data-bl3-maxw");
-    save(header,"margin-left","data-bl3-ml");
-    save(header,"padding-left","data-bl3-pl");
-    save(header,"padding-right","data-bl3-pr");
-    save(header,"box-sizing","data-bl3-box");
-    save(header,"border-radius","data-bl3-radius");
+    save(header,"width","data-bl4-width");
+    save(header,"max-width","data-bl4-maxw");
+    save(header,"margin-left","data-bl4-ml");
+    save(header,"padding-left","data-bl4-pl");
+    save(header,"padding-right","data-bl4-pr");
+    save(header,"box-sizing","data-bl4-box");
+    save(header,"border-radius","data-bl4-radius");
 
-    header.classList.add("barlive-web-desktop-header-v3");
+    header.classList.add("barlive-web-desktop-header-v4");
     header.style.setProperty("box-sizing","border-box","important");
     header.style.setProperty("max-width","none","important");
-    header.style.setProperty("width",(rect.width+deltaLeft+deltaRight)+"px","important");
-    header.style.setProperty("margin-left",(-deltaLeft)+"px","important");
-    header.style.setProperty("padding-left",(pl+deltaLeft)+"px","important");
-    header.style.setProperty("padding-right",(pr+deltaRight)+"px","important");
+    header.style.setProperty("width",(rect.width+dl+dr)+"px","important");
+    header.style.setProperty("margin-left",(-dl)+"px","important");
+    header.style.setProperty("padding-left",(pl+dl)+"px","important");
+    header.style.setProperty("padding-right",(pr+dr)+"px","important");
     header.style.setProperty("border-radius","0","important");
     touchedHeaders.push(header);
 
-    allowHorizontalBleed(header,shell);
+    allowBleed(header);
 
-    var rail=findRightRail(shell,rect);
+    var rail=globalRightRail(rect);
     if(rail){
-      var railStyle=getComputedStyle(rail);
-      var pt=parseFloat(railStyle.paddingTop)||0;
+      var rcs=getComputedStyle(rail);
+      var pt=parseFloat(rcs.paddingTop)||0;
 
-      save(rail,"padding-top","data-bl3-pt");
-      rail.classList.add("barlive-web-right-rail-v3");
+      save(rail,"padding-top","data-bl4-pt");
+      rail.classList.add("barlive-web-right-rail-v4");
       rail.style.setProperty(
         "padding-top",
-        (pt+Math.max(0,rect.height+Math.max(0,rect.top)))+"px",
+        (pt+Math.max(0,rect.top)+rect.height)+"px",
         "important"
       );
       touchedRails.push(rail);
@@ -651,14 +631,8 @@
   }
 
   function observe(){
-    if(!observer){
-      observer=new MutationObserver(function(){ schedule(); });
-    }
-
-    observer.observe(document.documentElement,{
-      subtree:true,
-      childList:true
-    });
+    if(!observer) observer=new MutationObserver(schedule);
+    observer.observe(document.documentElement,{subtree:true,childList:true});
   }
 
   function apply(){
@@ -667,9 +641,8 @@
     restoreAll();
     fixLogo();
 
-    if(isDesktop()){
-      var headers=findHeaders();
-      headers.forEach(expandHeader);
+    if(desktop()){
+      headers().forEach(expand);
     }
 
     observe();
@@ -678,7 +651,6 @@
   function schedule(){
     if(queued) return;
     queued=true;
-
     requestAnimationFrame(function(){
       queued=false;
       apply();
@@ -696,7 +668,7 @@
       setTimeout(schedule,280);
     },true);
 
-    setInterval(schedule,2500);
+    setInterval(schedule,5000);
   }
 
   if(document.readyState==="loading"){
