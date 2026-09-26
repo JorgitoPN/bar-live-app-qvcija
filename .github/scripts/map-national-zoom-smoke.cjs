@@ -104,6 +104,40 @@ const { chromium } = require('playwright');
   console.log('NATIONAL_LOAD_MS=' + elapsed);
   console.log('NATIONAL=' + JSON.stringify(national));
 
+  await frame.evaluate(() => window.setStateFilter('no_cerrados'));
+  await frame.waitForTimeout(300);
+  const nationalOpenOnly = await frame.evaluate(() => window.__barliveTestSnapshot());
+  console.log('NATIONAL_OPEN_ONLY=' + JSON.stringify(nationalOpenOnly));
+
+  await frame.evaluate(() => window.setStateFilter('todos'));
+  await frame.waitForTimeout(300);
+  const nationalRestored = await frame.evaluate(() => window.__barliveTestSnapshot());
+  console.log('NATIONAL_RESTORED=' + JSON.stringify(nationalRestored));
+
+  if (
+    nationalOpenOnly.total !== national.snap.total ||
+    nationalOpenOnly.open !== national.snap.open ||
+    nationalOpenOnly.closed !== national.snap.closed ||
+    nationalOpenOnly.unknown !== national.snap.unknown ||
+    nationalOpenOnly.sourceFeatures !== national.snap.sourceFeatures
+  ) {
+    throw new Error('national Abiertos filter mutated canonical data');
+  }
+
+  if (nationalOpenOnly.expected !== nationalOpenOnly.open) {
+    throw new Error('national Abiertos expected count mismatch');
+  }
+
+  if (
+    nationalRestored.total !== national.snap.total ||
+    nationalRestored.open !== national.snap.open ||
+    nationalRestored.closed !== national.snap.closed ||
+    nationalRestored.unknown !== national.snap.unknown ||
+    nationalRestored.sourceFeatures !== national.snap.sourceFeatures
+  ) {
+    throw new Error('national Todos restore mutated canonical data');
+  }
+
   if (!sawNationalStatic) throw new Error('national zoom did not use static snapshot');
   if (elapsed > 15000) throw new Error('national static zoom exceeded 15s: '+elapsed);
   if (Number(national.snap?.sourceFeatures || 0) < 100000) {
