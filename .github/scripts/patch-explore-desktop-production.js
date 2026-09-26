@@ -204,11 +204,31 @@ function walk(dir) {
   return out;
 }
 
-let htmlUpdates = 0;
+const escapedBase = sourceEntry
+  .replace(/\.js$/, '')
+  .replace(/[.*+?^\${}()|[\]\\]/g, '\\let htmlUpdates = 0;
 for (const html of walk(siteRoot)) {
   const original = fs.readFileSync(html, 'utf8');
   if (!original.includes(sourceEntry)) continue;
   fs.writeFileSync(html, original.split(sourceEntry).join(newEntry), 'utf8');
+  htmlUpdates++;
+}
+if (!htmlUpdates) throw new Error('No HTML entry references were updated');
+');
+const entryPattern = new RegExp(
+  escapedBase + '(?:-explore-fixed-20260926-\\d+)?\\.js',
+  'g'
+);
+let htmlUpdates = 0;
+for (const html of walk(siteRoot)) {
+  const original = fs.readFileSync(html, 'utf8');
+  entryPattern.lastIndex = 0;
+  if (!entryPattern.test(original)) continue;
+  entryPattern.lastIndex = 0;
+  const next = original.replace(entryPattern, newEntry);
+  entryPattern.lastIndex = 0;
+  if (next === original) continue;
+  fs.writeFileSync(html, next, 'utf8');
   htmlUpdates++;
 }
 if (!htmlUpdates) throw new Error('No HTML entry references were updated');
