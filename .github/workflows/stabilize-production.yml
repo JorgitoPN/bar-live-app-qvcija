@@ -35,11 +35,16 @@ jobs:
           grep -Fq '__BARLIVE_STABLE_WEB_V43__' "$BUNDLE"
           grep -Fq 'R=e/Math.max(h,1),D=e>=1280&&h>=650&&R>=1.45' "$BUNDLE"
           grep -Fq "L||e.splice(0,e.length,...e.filter" "$BUNDLE"
-          grep -Fq 'stable-web-v43-20260926' index.html
-          grep -Fq 'barlive-header-span-v43' index.html
-          grep -Fq 'barlive-route-guard-v43' index.html
-          ! grep -Fq 'barlive-web-desktop-ui-v5' index.html
-          ! grep -Fq 'serviceWorker.register' index.html
+
+          for HTML in index.html 404.html; do
+            grep -Fq 'stable-web-v43-20260926' "$HTML"
+            grep -Fq 'barlive-cache-reset-v43' "$HTML"
+            grep -Fq 'barlive-header-span-v43' "$HTML"
+            grep -Fq 'barlive-route-guard-v43' "$HTML"
+            ! grep -Fq 'barlive-web-desktop-ui-' "$HTML"
+            ! grep -Fq 'barlive-web-rbac-guest-guard' "$HTML"
+            ! grep -Fq 'serviceWorker.register' "$HTML"
+          done
 
       - name: Commit stabilized production
         shell: bash
