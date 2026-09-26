@@ -4,7 +4,19 @@ const bundlePath = '_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.j
 const templatePath = 'scripts/barlive-single-source-map-template.html';
 
 let bundle = fs.readFileSync(bundlePath, 'utf8');
+
 const template = fs.readFileSync(templatePath, 'utf8');
+
+// Security invariant: the production web bundle must never read a Google
+// Places/Street View API key from Expo config. Paid Google calls are allowed
+// only through the owner-authenticated BarLive backend.
+const googleClientKeyExpr = "c=s.default?.expoConfig?.extra?.googlePlacesApiKey||''";
+if (bundle.includes(googleClientKeyExpr)) {
+  bundle = bundle.replace(googleClientKeyExpr, "c=''");
+}
+if (bundle.includes("expoConfig?.extra?.googlePlacesApiKey")) {
+  throw new Error('Client Google Places key access is still present in production bundle');
+}
 
 let cursor = -1;
 let mainStart = -1;
