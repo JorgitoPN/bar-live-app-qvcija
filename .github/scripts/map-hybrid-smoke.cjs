@@ -198,6 +198,15 @@ const { chromium } = require('playwright');
 
   console.log('V23_NATIONAL_MS=' + (Date.now() - nationalStarted));
   console.log('V23_NATIONAL=' + JSON.stringify(national));
+  console.log('V23_NETWORK_NATIONAL=' + JSON.stringify({
+    hybridTileRequests: requests.hybridTiles.length,
+    viewportStaticRequests: requests.viewportStatic.length,
+    nationalSnapshotRequests: requests.nationalSnapshot.length,
+    localesRestRequests: requests.localesRest.length,
+    viewportStaticUrls: requests.viewportStatic,
+    nationalSnapshotUrls: requests.nationalSnapshot,
+    localesRestUrls: requests.localesRest,
+  }));
 
   if (national.diagnostics?.rendererMode !== 'hybrid') {
     throw new Error('national zoom left hybrid renderer');
