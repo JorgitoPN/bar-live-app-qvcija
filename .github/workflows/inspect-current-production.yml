@@ -20,20 +20,16 @@ jobs:
           ref: gh-pages
           fetch-depth: 1
 
-      - name: Inspect desktop minimap module
+      - name: Inspect minimap module 1253
         run: |
           node <<'NODE'
           const fs = require('fs');
           const cp = require('child_process');
           const bundle = cp.execSync("find _expo/static/js/web -maxdepth 1 -type f -name 'entry-*.js' | head -n 1", {encoding:'utf8'}).trim();
           const code = fs.readFileSync(bundle, 'utf8');
-          const needles = ['onVenuePress','mapLegend','selectedCategory:j','center:N'];
-          for (const needle of needles) {
-            let p=0, n=0;
-            while ((p=code.indexOf(needle,p)) >= 0 && n < 20) {
-              console.log('\n===== '+needle+' #'+n+' @ '+p+' =====');
-              console.log(code.slice(Math.max(0,p-10000), Math.min(code.length,p+14000)));
-              p += needle.length; n++;
-            }
-          }
+          const start = code.indexOf("__d(function(g,r,i,a,m,_e,d){\"use strict\";function e(e){return e&&e.__esModule?e:{default:e}}Object.defineProperty(_e,'__esModule',{value:!0}),Object.defineProperty(_e,\"default\",{enumerable:!0,get:function(){return u}})");
+          console.log('START', start);
+          const end = code.indexOf('},1253,', start);
+          console.log('END', end);
+          console.log(code.slice(start, end > start ? end + 300 : start + 70000));
           NODE
