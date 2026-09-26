@@ -70,6 +70,23 @@ const fail = (message, details) => {
     fail('first markers exceeded 30 seconds', firstMarkersMs);
   }
 
+  // v8 can paint the national static snapshot before geolocation resolves.
+  // Wait until the local viewport has atomically replaced that 120k dataset
+  // before running source/filter/cache assertions.
+  await frame.waitForFunction(
+    () => {
+      const d = window.__barliveLastDiagnostics;
+      return d &&
+        Number(d.requestGeneration || 0) > 0 &&
+        Number(d.datasetGeneration || 0) === Number(d.requestGeneration || 0) &&
+        Number(d.sourceFeatures || 0) > 0 &&
+        Number(d.sourceFeatures || 0) < 20000 &&
+        Number(window.__barliveMap?.getZoom?.() || 0) >= 10;
+    },
+    null,
+    { timeout: 45000 }
+  );
+
   const snapshot = async () => frame.evaluate(() => window.__barliveTestSnapshot());
 
   const baseline = await snapshot();
