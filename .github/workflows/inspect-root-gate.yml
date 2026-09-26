@@ -35,7 +35,13 @@ jobs:
             'showLoadingScreen',
             'initialLoadingProgress',
             'app_initialization',
-            'tanstack-query-cache-v378.8.2'
+            'tanstack-query-cache-v378.8.2',
+            'device_tokens',
+            'PresenceTracker',
+            'FlyerPopup',
+            'LogroUnlocked',
+            'AgeVerification',
+            'ToastRenderer'
           ]
           for n in needles:
               i=s.find(n)
