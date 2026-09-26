@@ -1395,6 +1395,10 @@ var PROMO_LAYER = "barlive-venues-promo";
 var VENUE_DATA_URL = "https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/locales";
 var NATIONAL_SNAPSHOT_URL = "https://barliveapp.es/map-data/national-venues-v1.json";
 var NATIONAL_SNAPSHOT_MAX_ZOOM = 7;
+var VIEWPORT_TILE_ROOT = "https://barliveapp.es/map-data/viewport-z9-v1";
+var VIEWPORT_TILE_Z = 9;
+var VIEWPORT_TILE_MIN_MAP_ZOOM = 10;
+var VIEWPORT_TILE_MAX_REQUESTS = 36;
 var NATIONAL_COVERAGE = {
   south:27.45,
   west:-18.25,
@@ -1424,6 +1428,8 @@ var activeCoverage = null;
 var activeDatasetGeneration = 0;
 var activeDatasetMode = "none";
 var nationalSnapshotCompact = null;
+var viewportTileManifest = null;
+var viewportTileCache = new Map();
 var lastNationalStateRefreshAt = 0;
 var requestGeneration = 0;
 var requestAbortController = null;
@@ -2301,6 +2307,8 @@ function commitVenueRows(rows,coverage,generation,sourceLabel) {
   if (sourceLabel === "national-static") {
     activeDatasetMode="national-static";
     lastNationalStateRefreshAt=Date.now();
+  } else if (sourceLabel === "viewport-static") {
+    activeDatasetMode="viewport-static";
   } else if (
     sourceLabel === "state-refresh-local" &&
     activeDatasetMode === "national-static"
@@ -2517,6 +2525,189 @@ function decodeNationalSnapshotRows(compactRows) {
   return decoded;
 }
 
+function lonToTileX(lon,z) {
+  var n=Math.pow(2,z);
+  return Math.floor((Number(lon)+180)/360*n);
+}
+
+function latToTileY(lat,z) {
+  var n=Math.pow(2,z);
+  var clipped=Math.max(-85.05112878,Math.min(85.05112878,Number(lat)));
+  var rad=clipped*Math.PI/180;
+  return Math.floor((1-Math.asinh(Math.tan(rad))/Math.PI)/2*n);
+}
+
+function rememberViewportTile(key,rows) {
+  if (viewportTileCache.has(key)) viewportTileCache.delete(key);
+  viewportTileCache.set(key,rows);
+
+  while (viewportTileCache.size>24) {
+    var oldest=viewportTileCache.keys().next().value;
+    viewportTileCache.delete(oldest);
+  }
+}
+
+async function getViewportTileManifest(controller) {
+  if (viewportTileManifest) return viewportTileManifest;
+
+  var response=await fetch(VIEWPORT_TILE_ROOT+"/manifest.json",{
+    method:"GET",
+    cache:"no-cache",
+    signal:controller.signal,
+    headers:{Accept:"application/json"}
+  });
+
+  if (!response.ok) {
+    throw new Error("viewport tile manifest HTTP "+response.status);
+  }
+
+  var manifest=await response.json();
+  if (
+    !manifest ||
+    Number(manifest.v)!==1 ||
+    Number(manifest.z)!==VIEWPORT_TILE_Z ||
+    !manifest.tiles ||
+    typeof manifest.tiles!=="object"
+  ) {
+    throw new Error("invalid viewport tile manifest");
+  }
+
+  viewportTileManifest=manifest;
+  return manifest;
+}
+
+function viewportTileKeys(bounds,manifest) {
+  var minX=Math.min(
+    lonToTileX(bounds.west,VIEWPORT_TILE_Z),
+    lonToTileX(bounds.east,VIEWPORT_TILE_Z)
+  );
+  var maxX=Math.max(
+    lonToTileX(bounds.west,VIEWPORT_TILE_Z),
+    lonToTileX(bounds.east,VIEWPORT_TILE_Z)
+  );
+  var minY=Math.min(
+    latToTileY(bounds.north,VIEWPORT_TILE_Z),
+    latToTileY(bounds.south,VIEWPORT_TILE_Z)
+  );
+  var maxY=Math.max(
+    latToTileY(bounds.north,VIEWPORT_TILE_Z),
+    latToTileY(bounds.south,VIEWPORT_TILE_Z)
+  );
+
+  var keys=[];
+  for (var x=minX;x<=maxX;x+=1) {
+    for (var y=minY;y<=maxY;y+=1) {
+      var key=x+"/"+y;
+      if (manifest.tiles[key]) keys.push(key);
+    }
+  }
+  return keys;
+}
+
+async function fetchStaticViewportRows(bounds,generation,controller) {
+  var started=Date.now();
+  var manifest=await getViewportTileManifest(controller);
+
+  if (
+    controller.signal.aborted ||
+    generation!==requestGeneration
+  ) return null;
+
+  var keys=viewportTileKeys(bounds,manifest);
+  if (keys.length>VIEWPORT_TILE_MAX_REQUESTS) {
+    throw new Error(
+      "viewport tile request count exceeds "+VIEWPORT_TILE_MAX_REQUESTS+
+      ": "+keys.length
+    );
+  }
+
+  var cacheHits=0;
+  var version=String(manifest.sourceSnapshotSha256||"").slice(0,12);
+
+  var pages=await Promise.all(keys.map(async function(key) {
+    if (viewportTileCache.has(key)) {
+      cacheHits+=1;
+      return viewportTileCache.get(key);
+    }
+
+    var parts=key.split("/");
+    var response=await fetch(
+      VIEWPORT_TILE_ROOT+"/"+parts[0]+"/"+parts[1]+".json?v="+encodeURIComponent(version),
+      {
+        method:"GET",
+        cache:"force-cache",
+        signal:controller.signal,
+        headers:{Accept:"application/json"}
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        "viewport tile HTTP "+response.status+" key="+key
+      );
+    }
+
+    var payload=await response.json();
+    if (!payload || !Array.isArray(payload.rows)) {
+      throw new Error("invalid viewport tile payload key="+key);
+    }
+
+    rememberViewportTile(key,payload.rows);
+    return payload.rows;
+  }));
+
+  if (
+    controller.signal.aborted ||
+    generation!==requestGeneration
+  ) return null;
+
+  var byId=new Map();
+  pages.forEach(function(rows) {
+    (Array.isArray(rows)?rows:[]).forEach(function(item) {
+      if (!Array.isArray(item) || item.length<8) return;
+
+      var id=String(item[0]||"");
+      var lat=Number(item[1]);
+      var lng=Number(item[2]);
+      if (
+        !id ||
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng) ||
+        lat<bounds.south ||
+        lat>bounds.north ||
+        lng<bounds.west ||
+        lng>bounds.east
+      ) return;
+
+      var category=NATIONAL_CATEGORY_BY_CODE[Number(item[3])];
+      if (!category) return;
+
+      byId.set(id,{
+        id:id,
+        latitud:lat,
+        longitud:lng,
+        barlive_type:category,
+        destacado:Number(item[4]||0)===1,
+        horarios_completos:item[5] == null ? null : item[5],
+        google_business_status:item[6] == null ? null : item[6],
+        osm_opening_hours:item[7] == null ? null : item[7]
+      });
+    });
+  });
+
+  var rows=Array.from(byId.values());
+
+  console.log(
+    "[MAP_RENDER][VIEWPORT_STATIC_FETCH] generation="+generation+
+    " tiles="+keys.length+
+    " cacheHits="+cacheHits+
+    " rows="+rows.length+
+    " elapsedMs="+(Date.now()-started)
+  );
+
+  return rows;
+}
+
 async function fetchNationalVenueRows(bounds,generation,controller) {
   try {
     if (!nationalSnapshotCompact) {
@@ -2581,21 +2772,59 @@ async function fetchNationalVenueRows(bounds,generation,controller) {
   }
 }
 
-async function fetchCanonicalRows(bounds,generation,controller,useNationalSnapshot) {
-  var venueRows=useNationalSnapshot
-    ? await fetchNationalVenueRows(
+async function fetchCanonicalRows(
+  bounds,
+  generation,
+  controller,
+  useNationalSnapshot,
+  useStaticViewport
+) {
+  var venueRows=null;
+  var mode="viewport-rest";
+
+  if (useNationalSnapshot) {
+    venueRows=await fetchNationalVenueRows(
+      bounds,
+      generation,
+      controller
+    );
+    mode="national";
+  } else if (useStaticViewport) {
+    try {
+      venueRows=await fetchStaticViewportRows(
         bounds,
         generation,
         controller
-      )
-    : await fetchPagedRows(
+      );
+      mode="viewport-static";
+    } catch (error) {
+      if (error && error.name==="AbortError") throw error;
+
+      console.warn(
+        "[MAP_RENDER][VIEWPORT_STATIC_FALLBACK] generation="+generation,
+        String(error && error.message || error)
+      );
+
+      venueRows=await fetchPagedRows(
         bounds,
         generation,
         controller,
         buildVenueDataUrl,
-        "catalogue",
+        "catalogue-static-fallback",
         DATA_PAGE_BATCH
       );
+      mode="viewport-rest-fallback";
+    }
+  } else {
+    venueRows=await fetchPagedRows(
+      bounds,
+      generation,
+      controller,
+      buildVenueDataUrl,
+      "catalogue",
+      DATA_PAGE_BATCH
+    );
+  }
 
   if (!venueRows) return null;
 
@@ -2603,7 +2832,7 @@ async function fetchCanonicalRows(bounds,generation,controller,useNationalSnapsh
 
   console.log(
     "[MAP_RENDER][SCHEDULE_STATE] generation="+generation+
-    " mode="+(useNationalSnapshot ? "national" : "viewport")+
+    " mode="+mode+
     " catalogue="+venueRows.length+
     " knownStates="+realtime.knownStates+
     " barlive="+realtime.barliveStates+
@@ -2612,7 +2841,10 @@ async function fetchCanonicalRows(bounds,generation,controller,useNationalSnapsh
     " merged="+realtime.rows.length
   );
 
-  return realtime.rows;
+  return {
+    rows:realtime.rows,
+    mode:mode
+  };
 }
 
 async function refreshCanonicalStates() {
@@ -2671,10 +2903,17 @@ async function requestCanonicalViewport(force,reason) {
   var current=getCurrentBounds();
   if (!current) return;
 
-  var wantsNational=map.getZoom()<=NATIONAL_SNAPSHOT_MAX_ZOOM;
-  var modeMatches=wantsNational
-    ? activeDatasetMode==="national-static"
-    : activeDatasetMode!=="national-static";
+  var zoom=map.getZoom();
+  var wantsNational=zoom<=NATIONAL_SNAPSHOT_MAX_ZOOM;
+  var wantsStaticViewport=
+    !wantsNational &&
+    zoom>=VIEWPORT_TILE_MIN_MAP_ZOOM;
+  var desiredMode=wantsNational
+    ? "national-static"
+    : wantsStaticViewport
+      ? "viewport-static"
+      : "viewport";
+  var modeMatches=activeDatasetMode===desiredMode;
 
   if (
     !force &&
@@ -2714,13 +2953,14 @@ async function requestCanonicalViewport(force,reason) {
   );
 
   try {
-    var rows=await fetchCanonicalRows(
+    var fetched=await fetchCanonicalRows(
       coverage,
       generation,
       controller,
-      wantsNational
+      wantsNational,
+      wantsStaticViewport
     );
-    if (!rows) return;
+    if (!fetched || !fetched.rows) return;
 
     if (
       controller.signal.aborted ||
@@ -2734,11 +2974,17 @@ async function requestCanonicalViewport(force,reason) {
       return;
     }
 
+    var sourceLabel=wantsNational
+      ? "national-static"
+      : fetched.mode==="viewport-static"
+        ? "viewport-static"
+        : "network";
+
     commitVenueRows(
-      rows,
+      fetched.rows,
       coverage,
       generation,
-      wantsNational ? "national-static" : "network"
+      sourceLabel
     );
   } catch (error) {
     if (error && error.name === "AbortError") return;
