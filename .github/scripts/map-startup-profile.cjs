@@ -35,7 +35,7 @@ const { chromium } = require('playwright');
   });
 
   const response=await page.goto(
-    'https://barliveapp.es/explorar/mapa?lat=40.4168&lng=-3.7038&startup-profile=20260926-v12-location',
+    'https://barliveapp.es/explorar/mapa?lat=40.4168&lng=-3.7038&startup-profile=20260926-v13-location',
     {waitUntil:'domcontentloaded',timeout:60000}
   );
   console.log('OUTER_DOMCONTENTLOADED_MS='+(Date.now()-navStart));
