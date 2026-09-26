@@ -27,9 +27,10 @@ jobs:
           const cp = require('child_process');
           const bundle = cp.execSync("find _expo/static/js/web -maxdepth 1 -type f -name 'entry-*.js' | head -n 1", {encoding:'utf8'}).trim();
           const code = fs.readFileSync(bundle, 'utf8');
-          const start = code.indexOf("__d(function(g,r,i,a,m,_e,d){\"use strict\";function e(e){return e&&e.__esModule?e:{default:e}}Object.defineProperty(_e,'__esModule',{value:!0}),Object.defineProperty(_e,\"default\",{enumerable:!0,get:function(){return u}})");
-          console.log('START', start);
-          const end = code.indexOf('},1253,', start);
-          console.log('END', end);
-          console.log(code.slice(start, end > start ? end + 300 : start + 70000));
+          const desktopEnd = code.indexOf('},1252,[');
+          console.log('DESKTOP_END', desktopEnd);
+          const start = code.indexOf('__d(function', desktopEnd + 1);
+          const end = code.indexOf('},1253,[', start);
+          console.log('START', start, 'END', end, 'LEN', end-start);
+          console.log(code.slice(start, end > start ? end + 500 : start + 90000));
           NODE
