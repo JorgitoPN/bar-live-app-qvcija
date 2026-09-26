@@ -37,10 +37,12 @@ jobs:
           grep -Fq "L||e.splice(0,e.length,...e.filter" "$BUNDLE"
 
           for HTML in index.html 404.html; do
-            grep -Fq 'stable-web-v43-20260926' "$HTML"
+            grep -Fq 'stable-web-v44-20260926' "$HTML"
             grep -Fq 'barlive-cache-reset-v43' "$HTML"
-            grep -Fq 'barlive-header-span-v43' "$HTML"
+            grep -Fq 'barlive-header-stretch-v44' "$HTML"
             grep -Fq 'barlive-route-guard-v43' "$HTML"
+            ! grep -Fq 'barlive-header-span-v43' "$HTML"
+            ! grep -Fq 'barlive-header-backdrop-v43' "$HTML"
             ! grep -Fq 'barlive-web-desktop-ui-' "$HTML"
             ! grep -Fq 'barlive-web-rbac-guest-guard' "$HTML"
             ! grep -Fq 'serviceWorker.register' "$HTML"
