@@ -41,12 +41,13 @@ jobs:
             'FlyerPopup',
             'LogroUnlocked',
             'AgeVerification',
-            'ToastRenderer'
+            'ToastRenderer',
+            'return O&&!mapFastPath?'
           ]
           for n in needles:
               i=s.find(n)
               print('\nNEEDLE',n,'INDEX',i)
               if i>=0:
-                  a=max(0,i-1800); b=min(len(s),i+2800)
+                  a=max(0,i-2500); b=min(len(s),i+9000)
                   print(s[a:b])
           PY
