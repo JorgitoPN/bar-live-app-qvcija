@@ -1,0 +1,46 @@
+name: Inspect production root gate
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/inspect-root-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout bundle
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          sparse-checkout: |
+            _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          sparse-checkout-cone-mode: false
+      - name: Print root loading gate contexts
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js')
+          s=p.read_text(encoding='utf-8')
+          needles=[
+            'InitialLoadingScreen',
+            'showLoadingScreen',
+            'initialLoadingProgress',
+            'app_initialization',
+            'tanstack-query-cache-v378.8.2'
+          ]
+          for n in needles:
+              i=s.find(n)
+              print('\nNEEDLE',n,'INDEX',i)
+              if i>=0:
+                  a=max(0,i-1800); b=min(len(s),i+2800)
+                  print(s[a:b])
+          PY
