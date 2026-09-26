@@ -219,6 +219,93 @@ const { chromium } = require('playwright');
     throw new Error('street startup requested no static MVT tiles');
   }
 
+  // Regression: clicking a coloured marker must use the full live venue row for
+  // the popup and preserve the rich pre-hybrid popup design/information.
+  const popupTarget = await frame.evaluate(() => {
+    const map = window.__barliveMap;
+    const features = map.querySourceFeatures(
+      'barlive-hybrid-venues',
+      { sourceLayer: 'locales' }
+    ) || [];
+
+    for (const feature of features) {
+      const props = feature?.properties || {};
+      const id = String(props.i || '');
+      const sid = Number(props.s ?? feature?.id);
+      const coords = feature?.geometry?.coordinates;
+      if (!id || !Number.isFinite(sid) || !Array.isArray(coords)) continue;
+
+      let state = 'unknown';
+      try {
+        state = String(map.getFeatureState({
+          source:'barlive-hybrid-venues',
+          sourceLayer:'locales',
+          id:sid
+        })?.markerState || 'unknown');
+      } catch (_) {}
+
+      if (state !== 'open' && state !== 'closed') continue;
+
+      return {
+        id,
+        state,
+        coordinates: {
+          lng:Number(coords[0]),
+          lat:Number(coords[1])
+        }
+      };
+    }
+    return null;
+  });
+
+  if (!popupTarget) {
+    throw new Error('No real coloured venue available for popup regression');
+  }
+
+  await frame.evaluate((target) => {
+    window.ReactNativeWebView.postMessage(JSON.stringify({
+      type:'map_popup_request',
+      id:target.id,
+      markerState:target.state,
+      coordinates:target.coordinates
+    }));
+  }, popupTarget);
+
+  await frame.waitForSelector('.custom-popup .popup-info', { timeout: 12000 });
+  await frame.waitForSelector('.custom-popup .popup-btn', { timeout: 12000 });
+
+  const popupAudit = await frame.evaluate(() => {
+    const popup = document.querySelector('.custom-popup');
+    const title = popup?.querySelector('.popup-title')?.textContent?.trim() || '';
+    const category = popup?.querySelector('.popup-category')?.textContent?.trim() || '';
+    const button = popup?.querySelector('.popup-btn')?.textContent?.trim() || '';
+    const text = popup?.textContent?.replace(/\s+/g, ' ').trim() || '';
+    const info = !!popup?.querySelector('.popup-info');
+    const richImageClass =
+      !!popup?.querySelector('.popup-img') ||
+      !popup?.querySelector('img');
+    return { title, category, button, text, info, richImageClass };
+  });
+
+  console.log('V24_POPUP_TARGET=' + JSON.stringify(popupTarget));
+  console.log('V24_POPUP_AUDIT=' + JSON.stringify(popupAudit));
+
+  if (!popupAudit.info || !popupAudit.title || !popupAudit.category) {
+    throw new Error('Rich popup structure/information was not restored');
+  }
+  if (!/Ver detalles/i.test(popupAudit.button)) {
+    throw new Error('Restored popup detail button is missing');
+  }
+  if (/Sin información de horario/i.test(popupAudit.text)) {
+    throw new Error(
+      'Popup says no schedule for a marker whose live map state is ' +
+      popupTarget.state
+    );
+  }
+  if (!popupAudit.richImageClass) {
+    throw new Error('Popup image does not use restored rich popup class');
+  }
+
   const beforeNational = {
     tiles: requests.hybridTiles.length,
     viewport: requests.viewportStatic.length,
