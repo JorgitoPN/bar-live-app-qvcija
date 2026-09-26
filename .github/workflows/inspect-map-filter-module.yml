@@ -1,0 +1,44 @@
+name: Inspect compiled map filter module
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/inspect-map-filter-module.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout bundle
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          sparse-checkout: |
+            _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          sparse-checkout-cone-mode: false
+      - name: Print filter contexts
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js').read_text(encoding='utf-8')
+          needles=[
+            'Opening advanced filters',
+            '/explorar/filtros-avanzados',
+            'FiltrosAvanzados',
+            'setMostrarFiltros',
+            'visible:'
+          ]
+          for n in needles:
+              i=s.find(n)
+              print('\nNEEDLE',n,'INDEX',i)
+              if i>=0:
+                  print(s[max(0,i-3500):min(len(s),i+6500)])
+          PY
