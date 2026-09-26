@@ -89,6 +89,7 @@
 .barlive-header-stretch-v45::before{content:"";position:absolute;pointer-events:none;z-index:-1;top:0;bottom:0;left:var(--bl45-extend-left,0px);right:var(--bl45-extend-right,0px);background-color:var(--bl45-bg-color,transparent);background-image:var(--bl45-bg-image,none);background-size:var(--bl45-bg-size,auto);background-position:var(--bl45-bg-position,0% 0%);background-repeat:var(--bl45-bg-repeat,no-repeat);box-shadow:0 1px 0 rgba(15,23,42,.06)}
 </style>
 
+
 <style id="barlive-stable-web-v44">@media (min-width:768px){html,body,#root{background:#F4F7F6!important}body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}*{scrollbar-width:thin;scrollbar-color:rgba(100,116,139,.32) transparent}*::-webkit-scrollbar{width:8px;height:8px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:rgba(100,116,139,.26);border-radius:999px}}.barlive-header-stretch-v44{position:relative!important;z-index:41!important;isolation:isolate!important;overflow:visible!important}.barlive-header-stretch-v44::before{content:"";position:absolute;pointer-events:none;z-index:-1;top:0;bottom:0;left:var(--bl44-extend-left,0px);right:var(--bl44-extend-right,0px);background-color:var(--bl44-bg-color,transparent);background-image:var(--bl44-bg-image,none);background-size:var(--bl44-bg-size,auto);background-position:var(--bl44-bg-position,0% 0%);background-repeat:var(--bl44-bg-repeat,no-repeat);box-shadow:0 1px 0 rgba(15,23,42,.06)}@media (max-width:767px),(orientation:portrait){html,body,#root{background:#fff!important}}</style>
 </head>
 
@@ -152,6 +153,9 @@ function apply(){clear();var old=document.getElementById("barlive-header-backdro
 function schedule(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;apply()})}
 function start(){apply();obs=new MutationObserver(schedule);obs.observe(document.documentElement,{subtree:true,childList:true});addEventListener("resize",schedule,{passive:true});addEventListener("popstate",function(){setTimeout(schedule,0)});addEventListener("hashchange",function(){setTimeout(schedule,0)});document.addEventListener("click",function(){setTimeout(schedule,80)},true);setTimeout(schedule,250);setTimeout(schedule,900)}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start()})();</script>
+
+
+
 
 
 
