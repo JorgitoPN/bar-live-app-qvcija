@@ -39,7 +39,7 @@ jobs:
       - name: Verify production signatures
         run: |
           set -euo pipefail
-          ENTRY="$(find site/_expo/static/js/web -maxdepth 1 -type f -name '*explore-fixed-20260926-4.js' | head -n 1)"
+          ENTRY="$(find site/_expo/static/js/web -maxdepth 1 -type f -name '*explore-fixed-20260926-5.js' | head -n 1)"
           test -n "$ENTRY"
           grep -Fq "Ver local" "$ENTRY"
           grep -Fq "Desplázate para ver más" "$ENTRY"
