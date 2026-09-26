@@ -151,8 +151,9 @@ function fixLogo(){
     var src=String(img.getAttribute("src")||"").toLowerCase();
     var broken=img.complete&&img.naturalWidth===0;
     var sidebarish=r&&r.left<380&&r.top<120&&r.width<260&&r.height<100;
-    if(alt.indexOf("barlive")!==-1||src.indexOf("barlive")!==-1||(broken&&sidebarish)){
-      if(img.src!==LOGO)img.src=LOGO;
+    var isLogoCandidate=sidebarish&&(alt.indexOf("barlive")!==-1||broken||src.indexOf("/assets/barlive-logo")!==-1);
+    if(isLogoCandidate){
+      if(img.src!==new URL(LOGO,location.origin).href)img.src=LOGO;
       img.alt="BarLive";
       img.style.objectFit="contain";
       img.style.width="180px";
@@ -270,6 +271,27 @@ function safeStoredImages(local){
   return out;
 }
 
+function loadVenueByName(name){
+  name=String(name||"").trim();
+  if(!name)return Promise.resolve(null);
+  var url=SUPABASE_REST+"?nombre=eq."+encodeURIComponent(name)+"&select=*&limit=1";
+  return fetch(url,{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY}})
+    .then(function(r){if(!r.ok)throw new Error("venue-name "+r.status);return r.json()})
+    .then(function(rows){
+      var local=rows&&rows[0]||null;
+      if(local){
+        local.__popupImages=safeStoredImages(local);
+        local.__popupSchedule={
+          estaAbierto:local.esta_abierto===true?true:local.esta_abierto===false?false:null,
+          text:local.esta_abierto===true?"Abierto ahora":local.esta_abierto===false?"Cerrado":"Sin información de horario",
+          color:local.esta_abierto===true?"#22C55E":local.esta_abierto===false?"#EF4444":"#9CA3AF"
+        };
+        venueCache.set(String(local.id||""),local);
+      }
+      return local;
+    }).catch(function(){return null});
+}
+
 function loadVenue(id){
   id=String(id||"");
   if(!id)return Promise.resolve(null);
@@ -326,6 +348,52 @@ function installMiniPopupBridge(){
         }
       }catch(_){}
     });
+  });
+}
+
+var lastAutoPopupName="";
+function syncSelectedVenuePopup(){
+  if(!/^\/explorar\/?$/.test(location.pathname.replace(/^\/\(tabs\)/,"")))return;
+  var buttons=document.querySelectorAll("button,[role=button]");
+  var overlay=null,name="";
+  for(var i=0;i<buttons.length;i++){
+    if(txt(buttons[i])!=="Ver local")continue;
+    var p=buttons[i];
+    for(var d=0;d<6&&p;d++,p=p.parentElement){
+      var r=null;try{r=p.getBoundingClientRect()}catch(_){}
+      if(!r||r.width<250||r.width>700||r.height<55||r.height>180)continue;
+      if(r.top<80||r.left<300)continue;
+      var kids=p.querySelectorAll("div,span");
+      for(var k=0;k<kids.length;k++){
+        var t=txt(kids[k]);
+        if(t&&t!=="Ver local"&&!PROVINCES.has(t)&&t.length<100){
+          try{
+            var cs=getComputedStyle(kids[k]),fs=parseFloat(cs.fontSize||"0"),fw=parseInt(cs.fontWeight||"0",10);
+            if(fs>=13&&fw>=700){name=t;break}
+          }catch(_){}
+        }
+      }
+      if(name){overlay=p;break}
+    }
+    if(overlay)break;
+  }
+  if(!overlay||!name)return;
+  overlay.style.display="none";
+  if(lastAutoPopupName===name)return;
+  lastAutoPopupName=name;
+  loadVenueByName(name).then(function(local){
+    if(!local)return;
+    var fs=frames();
+    if(!fs.length)return;
+    var lat=Number(local.latitud),lng=Number(local.longitud);
+    if(!isFinite(lat)||!isFinite(lng))return;
+    try{
+      var w=fs[0].contentWindow;
+      if(w&&typeof w.flyToLocation==="function")w.flyToLocation(lat,lng,16);
+      if(w&&typeof w.showPopupFromNative==="function"){
+        w.showPopupFromNative(local,{lng:lng,lat:lat});
+      }
+    }catch(_){}
   });
 }
 
@@ -392,6 +460,7 @@ function afterUi(){
   installMiniCenter();
   installMiniPopupBridge();
   hydrateCardAddresses();
+  syncSelectedVenuePopup();
   installMiniPopupBridge();
   hydrateCardAddresses();
 }
@@ -404,10 +473,10 @@ function start(){
   setTimeout(afterUi,1200);
   setTimeout(function(){if(lastCoords)applyCoords(lastCoords,13)},2200);
   document.addEventListener("click",function(){
-    setTimeout(function(){raiseProvince();fixLogo();installMiniCenter();hydrateCardAddresses()},30);
+    setTimeout(function(){raiseProvince();fixLogo();installMiniCenter();hydrateCardAddresses();syncSelectedVenuePopup()},30);
   },true);
   new MutationObserver(function(){
-    setTimeout(function(){fixLogo();installMiniCenter();hydrateCardAddresses()},0);
+    setTimeout(function(){fixLogo();installMiniCenter();hydrateCardAddresses();syncSelectedVenuePopup()},0);
   }).observe(document.documentElement,{subtree:true,childList:true});
   addEventListener("resize",function(){setTimeout(afterUi,80)},{passive:true});
   addEventListener("popstate",function(){setTimeout(afterUi,100)});
