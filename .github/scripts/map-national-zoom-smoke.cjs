@@ -9,13 +9,17 @@ const { chromium } = require('playwright');
   });
   const page = await context.newPage();
 
+  let sawNationalStatic = false;
   page.on('console', msg => {
     const text = msg.text();
+    if (text.includes('[MAP_RENDER][NATIONAL_STATIC_FETCH]') || text.includes('[MAP_RENDER][NATIONAL_STATIC_MEMORY]')) {
+      sawNationalStatic = true;
+    }
     if (text.includes('[MAP_RENDER]')) console.log('BROWSER:', text);
   });
 
   const response = await page.goto(
-    'https://barliveapp.es/explorar/mapa?national-zoom-smoke=20260926-v7',
+    'https://barliveapp.es/explorar/mapa?national-zoom-smoke=20260926-v8',
     { waitUntil: 'domcontentloaded', timeout: 60000 }
   );
   if (!response || response.status() !== 200) {
@@ -100,7 +104,8 @@ const { chromium } = require('playwright');
   console.log('NATIONAL_LOAD_MS=' + elapsed);
   console.log('NATIONAL=' + JSON.stringify(national));
 
-  if (elapsed > 60000) throw new Error('national zoom exceeded 60s: '+elapsed);
+  if (!sawNationalStatic) throw new Error('national zoom did not use static snapshot');
+  if (elapsed > 15000) throw new Error('national static zoom exceeded 15s: '+elapsed);
   if (Number(national.snap?.sourceFeatures || 0) < 100000) {
     throw new Error('national source incomplete: '+JSON.stringify(national.snap));
   }
