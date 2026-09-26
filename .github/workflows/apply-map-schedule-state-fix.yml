@@ -1,0 +1,45 @@
+name: Apply BarLive map schedule state fix
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/apply-map-schedule-state-fix.yml'
+      - '.github/scripts/apply-map-schedule-state-fix.js'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: barlive-map-schedule-state-fix
+  cancel-in-progress: false
+
+jobs:
+  patch-production-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: Patch canonical map bundle
+        run: node .github/scripts/apply-map-schedule-state-fix.js
+
+      - name: Commit production schedule state fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(web-map): derive states from venue schedules"
+          git push origin HEAD:gh-pages
