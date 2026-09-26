@@ -1,6 +1,6 @@
 const { chromium } = require('playwright');
 
-const URL = 'https://barliveapp.es/explorar/mapa?runtime-smoke=20260926-decoration-perf-v6';
+const URL = 'https://barliveapp.es/explorar/mapa?runtime-smoke=20260926-warm-cache-v7';
 
 const fail = (message, details) => {
   console.error('RUNTIME_SMOKE_FAIL:', message, details || '');
@@ -18,9 +18,11 @@ const fail = (message, details) => {
   const page = await context.newPage();
 
   const consoleErrors = [];
+  let cacheRestoreCount = 0;
   page.on('console', msg => {
     const text = msg.text();
     if (msg.type() === 'error') consoleErrors.push(text);
+    if (text.includes('[MAP_RENDER][CACHE_RESTORE]')) cacheRestoreCount += 1;
     if (text.includes('[MAP_RENDER]')) console.log('BROWSER:', text);
   });
   page.on('pageerror', err => consoleErrors.push(String(err)));
@@ -167,9 +169,44 @@ const fail = (message, details) => {
     fail('returning to Todos changed canonical state totals', { baseline, restored });
   }
 
+  const refreshStarted = Date.now();
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
   frame = await getFrame();
   await waitForDataset(frame, true);
+
+  const refreshMarkersMs = Date.now() - refreshStarted;
+  const cachedRefresh = await snapshot();
+  console.log('REFRESH_MARKERS_MS=' + refreshMarkersMs);
+  console.log('REFRESH_CACHE=' + JSON.stringify(cachedRefresh));
+  console.log('CACHE_RESTORE_COUNT=' + cacheRestoreCount);
+
+  if (cacheRestoreCount <= 0) {
+    fail('refresh did not restore canonical viewport cache');
+  }
+  if (
+    cachedRefresh.total <= 0 ||
+    cachedRefresh.sourceFeatures <= 0 ||
+    (cachedRefresh.open + cachedRefresh.closed) <= 0
+  ) {
+    fail('cache refresh lost canonical venues or schedule states', cachedRefresh);
+  }
+  if ((cachedRefresh.open + cachedRefresh.closed + cachedRefresh.unknown) !== cachedRefresh.total) {
+    fail('cache refresh state totals do not add up', cachedRefresh);
+  }
+
+  // Let the network reconciliation finish before movement tests. The cache is
+  // first paint only; the same canonical source is then atomically refreshed.
+  await frame.waitForFunction(
+    () => {
+      const d = window.__barliveLastDiagnostics;
+      return d &&
+        Number(d.requestGeneration || 0) > 0 &&
+        Number(d.datasetGeneration || 0) === Number(d.requestGeneration || 0);
+    },
+    null,
+    { timeout: 45000 }
+  );
+
   const refreshed = await snapshot();
   console.log('REFRESHED=' + JSON.stringify(refreshed));
 
@@ -178,10 +215,10 @@ const fail = (message, details) => {
     refreshed.sourceFeatures <= 0 ||
     (refreshed.open + refreshed.closed) <= 0
   ) {
-    fail('refresh lost canonical venues or schedule states', refreshed);
+    fail('refresh reconciliation lost canonical venues or schedule states', refreshed);
   }
   if ((refreshed.open + refreshed.closed + refreshed.unknown) !== refreshed.total) {
-    fail('refresh state totals do not add up', refreshed);
+    fail('refresh reconciliation state totals do not add up', refreshed);
   }
 
   const beforeMoveGeneration = Number(refreshed.requestGeneration || 0);
