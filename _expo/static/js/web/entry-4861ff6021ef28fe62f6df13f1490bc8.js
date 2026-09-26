@@ -1848,20 +1848,15 @@ function deriveRealtimeMarkerState(row,clock) {
     businessStatus==="CLOSED_TEMPORARILY"
   ) return {state:"closed",source:"business-status"};
 
+  // Only schedules that BarLive can present as real venue hours may colour a
+  // marker. OSM opening_hours remains enrichment input, not an "open now"
+  // source while the venue UI says it has no schedule information.
   var barliveSchedule=weeklyScheduleFromBarLive(
     row && row.horarios_completos
   );
   var state=markerStateFromWeeklySchedule(barliveSchedule,clock);
   if (state!=="unknown") {
     return {state:state,source:"barlive-schedule"};
-  }
-
-  var osmSchedule=weeklyScheduleFromOsm(
-    row && row.osm_opening_hours
-  );
-  state=markerStateFromWeeklySchedule(osmSchedule,clock);
-  if (state!=="unknown") {
-    return {state:state,source:"osm-opening-hours"};
   }
 
   return {state:"unknown",source:"none"};
@@ -2097,8 +2092,10 @@ function refreshHybridVisibleStates(reason) {
     if (!Number.isFinite(sid) || sid<=0) return;
 
     var hasSchedulePayload =
-      (props.h!=null && String(props.h).trim()!=="" && String(props.h).trim()!=="{}" && String(props.h).trim()!=="[]") ||
-      (props.o!=null && String(props.o).trim()!=="");
+      props.h!=null &&
+      String(props.h).trim()!=="" &&
+      String(props.h).trim()!=="{}" &&
+      String(props.h).trim()!=="[]";
     var businessStatus=String(props.b==null ? "" : props.b).trim().toUpperCase();
     var hasExplicitClosedStatus =
       businessStatus==="CLOSED_PERMANENTLY" ||
