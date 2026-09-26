@@ -30,6 +30,40 @@ const { chromium } = require('playwright');
   await frame.waitForFunction(()=>window.__barliveMap,{timeout:30000});
   console.log('MAP_OBJECT_MS='+(Date.now()-started));
 
+  const probe=await frame.evaluate(()=>{
+    const map=window.__barliveMap;
+    const result={
+      internalLoaded:!!(map.style&&map.style._loaded),
+      styleLoaded:map.isStyleLoaded(),
+      loaded:map.loaded(),
+      addSource:false,
+      addLayer:false,
+      error:null
+    };
+    try{
+      map.addSource('__barlive_style_probe__',{
+        type:'geojson',
+        data:{type:'FeatureCollection',features:[]}
+      });
+      result.addSource=!!map.getSource('__barlive_style_probe__');
+      map.addLayer({
+        id:'__barlive_style_probe_layer__',
+        type:'circle',
+        source:'__barlive_style_probe__',
+        paint:{'circle-radius':1,'circle-color':'#000000'}
+      });
+      result.addLayer=!!map.getLayer('__barlive_style_probe_layer__');
+      if(map.getLayer('__barlive_style_probe_layer__')) map.removeLayer('__barlive_style_probe_layer__');
+      if(map.getSource('__barlive_style_probe__')) map.removeSource('__barlive_style_probe__');
+    }catch(err){
+      result.error=String(err&&err.message||err);
+      try{if(map.getLayer('__barlive_style_probe_layer__')) map.removeLayer('__barlive_style_probe_layer__');}catch(_){}
+      try{if(map.getSource('__barlive_style_probe__')) map.removeSource('__barlive_style_probe__');}catch(_){}
+    }
+    return result;
+  });
+  console.log('EARLY_STYLE_PROBE='+JSON.stringify(probe));
+
   const marks=await frame.evaluate(async()=>{
     const map=window.__barliveMap;
     const t0=performance.now();
