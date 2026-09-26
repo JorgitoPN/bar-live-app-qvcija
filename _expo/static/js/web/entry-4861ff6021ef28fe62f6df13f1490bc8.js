@@ -2301,6 +2301,11 @@ function commitVenueRows(rows,coverage,generation,sourceLabel) {
   if (sourceLabel === "national-static") {
     activeDatasetMode="national-static";
     lastNationalStateRefreshAt=Date.now();
+  } else if (
+    sourceLabel === "state-refresh-local" &&
+    activeDatasetMode === "national-static"
+  ) {
+    lastNationalStateRefreshAt=Date.now();
   } else if (sourceLabel === "network" || sourceLabel === "local-cache") {
     activeDatasetMode="viewport";
   }
