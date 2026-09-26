@@ -1,6 +1,6 @@
-// BarLive neutral service worker v36.
+// BarLive neutral service worker v37.
 // Marker/data/rendering logic lives exclusively in the application bundle.
-// This worker only retires obsolete runtime-patch caches during migration.
+// This worker retires obsolete caches and activates the current production security shell.
 
 self.addEventListener('install', () => self.skipWaiting());
 
