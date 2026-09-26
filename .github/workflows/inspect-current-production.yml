@@ -27,17 +27,17 @@ jobs:
           const cp = require('child_process');
           const bundle = cp.execSync("find _expo/static/js/web -maxdepth 1 -type f -name 'entry-*.js' | head -n 1", {encoding:'utf8'}).trim();
           const code = fs.readFileSync(bundle, 'utf8');
-          const needles = [
-            'openstreetmap.org/export/embed.html',
-            'Ver todos los locales',
-            'Cargar más locales',
-            'Cómo llegar',
-            'Mapa cercano',
-            'Locales cerca de ti'
-          ];
-          for (const needle of needles) {
-            const i = code.indexOf(needle);
-            console.log('\n===== '+needle+' @ '+i+' =====');
-            if (i >= 0) console.log(code.slice(Math.max(0,i-3500), Math.min(code.length,i+6500)));
+          const i = code.indexOf('Ver todos los locales');
+          console.log('\n===== DESKTOP DECLARATIONS =====');
+          console.log(code.slice(Math.max(0,i-18000), Math.max(0,i-3500)));
+          console.log('\n===== DESKTOP RENDER =====');
+          console.log(code.slice(Math.max(0,i-3500), Math.min(code.length,i+8500)));
+          const s = code.indexOf("A.displayName='EmptyImage';const R=", Math.max(0,i-10000));
+          console.log('\n===== DESKTOP STYLES =====');
+          console.log(code.slice(s, Math.min(code.length,s+16000)));
+          for (const needle of ['window.flyToLocation','window.showPopupFromNative','map_popup_request']) {
+            const p=code.indexOf(needle);
+            console.log('\n===== '+needle+' @ '+p+' =====');
+            console.log(p>=0?code.slice(Math.max(0,p-3000),Math.min(code.length,p+6000)):'NOT FOUND');
           }
           NODE
