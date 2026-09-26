@@ -109,11 +109,12 @@
   [data-barlive-province-parent="1"]{z-index:2147482000!important;overflow:visible!important;position:relative!important}
 }
 #barlive-mini-center-v48{
-  position:absolute;right:14px;bottom:14px;width:42px;height:42px;border-radius:50%;
-  border:1px solid #e2e8f0;background:rgba(255,255,255,.97);z-index:2147482000;
+  position:absolute;right:16px;bottom:16px;width:56px;height:56px;border-radius:50%;
+  border:0;background:#fff;z-index:2147482000;padding:0;
   display:flex;align-items:center;justify-content:center;cursor:pointer;
-  box-shadow:0 2px 10px rgba(15,23,42,.18);font:700 22px/1 system-ui;color:#0ea5a8
+  box-shadow:0 4px 10px rgba(0,0,0,.22);color:#14b8a6
 }
+#barlive-mini-center-v48 svg{width:25px;height:25px;display:block}
 #barlive-mini-center-v48:hover{background:#fff}
 </style>
 <script id="barlive-explore-runtime-v48">
@@ -121,6 +122,13 @@
 var LOGO="/assets/barlive-logo-user.webp?v=20260927-logo1";
 var geoBusy=false;
 var lastCoords=null;
+var SUPABASE_REST="https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/locales";
+var SUPABASE_KEY="sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2";
+var venueCache=new Map();
+var addressCache=new Map();
+var addressFetchBusy=false;
+var addressTimer=0;
+var PROVINCES=new Set(["A Coruña","Álava","Albacete","Alicante","Almería","Asturias","Ávila","Badajoz","Barcelona","Bizkaia","Burgos","Cáceres","Cádiz","Cantabria","Castellón","Ceuta","Ciudad Real","Córdoba","Cuenca","Gipuzkoa","Girona","Granada","Guadalajara","Huelva","Huesca","Illes Balears","Jaén","La Rioja","Las Palmas","León","Lleida","Lugo","Madrid","Málaga","Melilla","Murcia","Navarra","Ourense","Palencia","Pontevedra","Salamanca","Santa Cruz de Tenerife","Segovia","Sevilla","Soria","Tarragona","Teruel","Toledo","Valencia","Valladolid","Zamora","Zaragoza"]);
 try{
   var raw=localStorage.getItem("barlive:last-web-location-v1");
   if(raw){
@@ -231,16 +239,159 @@ function installMiniCenter(){
     b.type="button";
     b.title="Centrar en mi ubicación";
     b.setAttribute("aria-label","Centrar en mi ubicación");
-    b.textContent="⌾";
+    b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/></svg>';
     b.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();requestLocation(true)});
     parent.appendChild(b);
     break;
   }
 }
 
+
+function safeStoredImages(local){
+  var out=[];
+  function add(v){
+    if(!v)return;
+    if(Array.isArray(v)){v.forEach(add);return}
+    if(typeof v!=="string")return;
+    var s=v.trim();
+    if(!s||out.indexOf(s)!==-1)return;
+    try{
+      var u=new URL(s,location.origin),h=u.hostname.toLowerCase(),p=u.pathname.toLowerCase();
+      if(h==="places.googleapis.com")return;
+      if(h==="maps.googleapis.com"&&(p.indexOf("/maps/api/place/photo")===0||p.indexOf("/maps/api/streetview")===0))return;
+    }catch(_){}
+    out.push(s);
+  }
+  add(local.portada_url);add(local.imagen_url);add(local.imagenes);
+  add(local.galeria_urls);add(local.galeria_fotos);add(local.fotos_google);
+  add(local.r2_media_urls);add(local.legacy_media_urls);
+  return out;
+}
+
+function loadVenue(id){
+  id=String(id||"");
+  if(!id)return Promise.resolve(null);
+  if(venueCache.has(id))return Promise.resolve(venueCache.get(id));
+  var url=SUPABASE_REST+"?id=eq."+encodeURIComponent(id)+"&select=*";
+  return fetch(url,{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY}})
+    .then(function(r){if(!r.ok)throw new Error("venue "+r.status);return r.json()})
+    .then(function(rows){
+      var local=rows&&rows[0]||null;
+      if(local){
+        local.__popupImages=safeStoredImages(local);
+        local.__popupSchedule={
+          estaAbierto:local.esta_abierto===true?true:local.esta_abierto===false?false:null,
+          text:local.esta_abierto===true?"Abierto ahora":local.esta_abierto===false?"Cerrado":"Sin información de horario",
+          color:local.esta_abierto===true?"#22C55E":local.esta_abierto===false?"#EF4444":"#9CA3AF"
+        };
+        venueCache.set(id,local);
+      }
+      return local;
+    }).catch(function(){return null});
+}
+
+function installMiniPopupBridge(){
+  if(window.__barliveMiniPopupBridgeV49)return;
+  window.__barliveMiniPopupBridgeV49=true;
+  window.addEventListener("message",function(ev){
+    var frame=null;
+    var fs=frames();
+    for(var i=0;i<fs.length;i++){if(fs[i].contentWindow===ev.source){frame=fs[i];break}}
+    if(!frame)return;
+    var data=ev.data;
+    if(typeof data==="string"){try{data=JSON.parse(data)}catch(_){return}}
+    if(!data||data.type!=="map_popup_request"||!data.id)return;
+    var coords=data.coordinates||{};
+    loadVenue(data.id).then(function(local){
+      if(!local)return;
+      try{
+        var w=frame.contentWindow;
+        if(w&&typeof w.showPopupFromNative==="function"){
+          w.showPopupFromNative(local,{lng:Number(coords.lng),lat:Number(coords.lat)});
+          setTimeout(function(){
+            try{
+              var doc=frame.contentDocument||w.document;
+              var pc=doc.querySelector(".maplibregl-popup-content");
+              if(pc){pc.style.width="240px";pc.style.minWidth="240px";pc.style.maxWidth="240px";pc.style.borderRadius="12px";pc.style.boxShadow="0 4px 12px rgba(0,0,0,.3)"}
+              var info=doc.querySelector(".popup-info");if(info)info.style.padding="12px";
+              var title=doc.querySelector(".popup-title");if(title){title.style.fontSize="16px";title.style.marginBottom="8px";title.style.lineHeight="1.25"}
+              var img=doc.querySelector(".popup-img");if(img){img.style.height="110px";img.style.minHeight="110px";img.style.maxHeight="110px"}
+              var cat=doc.querySelector(".popup-category");if(cat){cat.style.display="block";cat.style.fontSize="11px";cat.style.marginBottom="8px"}
+              var rating=doc.querySelector(".popup-rating");if(rating){rating.style.display="flex";rating.style.fontSize="13px";rating.style.marginBottom="10px"}
+              var btn=doc.querySelector(".popup-btn");if(btn){btn.style.padding="10px";btn.style.borderRadius="8px";btn.style.fontSize="13px"}
+            }catch(_){}
+          },0);
+        }
+      }catch(_){}
+    });
+  });
+}
+
+function findVenueCards(){
+  var found=[];
+  var nodes=document.querySelectorAll("div,span");
+  for(var i=0;i<nodes.length;i++){
+    var t=txt(nodes[i]);
+    if(t.indexOf("Descubre su ambiente, sus eventos y todo lo que ofrece este local.")!==0)continue;
+    var card=nodes[i];
+    for(var d=0;d<7&&card;d++,card=card.parentElement){
+      var r=null;try{r=card.getBoundingClientRect()}catch(_){}
+      if(!r||r.width<420||r.width>1100||r.height<80||r.height>260)continue;
+      var kids=card.querySelectorAll("div,span");
+      var title=null,provinceNode=null;
+      for(var k=0;k<kids.length;k++){
+        var kt=txt(kids[k]);
+        if(!provinceNode&&PROVINCES.has(kt))provinceNode=kids[k];
+        if(!title&&kt&&kt.length<=90&&!PROVINCES.has(kt)&&kt!=="Bar"&&kt!=="Pub"&&kt!=="Café"&&kt!=="Restaurante"&&kt!=="Discoteca"&&kt!=="Coctelería"){
+          try{
+            var cs=getComputedStyle(kids[k]),fs=parseFloat(cs.fontSize||"0"),fw=parseInt(cs.fontWeight||"0",10);
+            if(fs>=13&&fs<=20&&fw>=800&&!/^(Abierto|Cerrado|\d)/i.test(kt))title=kt;
+          }catch(_){}
+        }
+      }
+      if(title&&provinceNode){found.push({name:title,node:provinceNode});break}
+    }
+  }
+  return found;
+}
+
+function hydrateCardAddresses(){
+  clearTimeout(addressTimer);
+  addressTimer=setTimeout(function(){
+    if(addressFetchBusy)return;
+    var cards=findVenueCards();
+    if(!cards.length)return;
+    cards.forEach(function(c){
+      var a=addressCache.get(c.name.toLowerCase());
+      if(a)c.node.textContent=a;
+    });
+    var names=[];
+    cards.forEach(function(c){if(!addressCache.has(c.name.toLowerCase())&&names.indexOf(c.name)===-1)names.push(c.name)});
+    if(!names.length)return;
+    addressFetchBusy=true;
+    var quoted=names.slice(0,30).map(function(n){return '"'+String(n).replace(/\\/g,"\\\\").replace(/"/g,'\\\"')+'"'}).join(",");
+    var url=SUPABASE_REST+"?select=nombre,direccion,ciudad,provincia&nombre=in.("+encodeURIComponent(quoted)+")";
+    fetch(url,{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY}})
+      .then(function(r){if(!r.ok)throw new Error("address "+r.status);return r.json()})
+      .then(function(rows){
+        (rows||[]).forEach(function(v){
+          var a=String(v.direccion||"").trim();
+          if(a)addressCache.set(String(v.nombre||"").trim().toLowerCase(),a);
+        });
+      }).catch(function(){}).finally(function(){
+        addressFetchBusy=false;
+        cards.forEach(function(c){var a=addressCache.get(c.name.toLowerCase());if(a)c.node.textContent=a});
+      });
+  },180);
+}
+
 function afterUi(){
   fixLogo();
   installMiniCenter();
+  installMiniPopupBridge();
+  hydrateCardAddresses();
+  installMiniPopupBridge();
+  hydrateCardAddresses();
 }
 function start(){
   fixLogo();
@@ -251,10 +402,10 @@ function start(){
   setTimeout(afterUi,1200);
   setTimeout(function(){if(lastCoords)applyCoords(lastCoords,13)},2200);
   document.addEventListener("click",function(){
-    setTimeout(function(){raiseProvince();fixLogo();installMiniCenter()},30);
+    setTimeout(function(){raiseProvince();fixLogo();installMiniCenter();hydrateCardAddresses()},30);
   },true);
   new MutationObserver(function(){
-    setTimeout(function(){fixLogo();installMiniCenter()},0);
+    setTimeout(function(){fixLogo();installMiniCenter();hydrateCardAddresses()},0);
   }).observe(document.documentElement,{subtree:true,childList:true});
   addEventListener("resize",function(){setTimeout(afterUi,80)},{passive:true});
   addEventListener("popstate",function(){setTimeout(afterUi,100)});
