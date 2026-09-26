@@ -1,0 +1,71 @@
+name: Analyze static viewport tile sizes
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/analyze-viewport-tiles.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout national snapshot
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          sparse-checkout: |
+            map-data/national-venues-v1.json
+          sparse-checkout-cone-mode: false
+      - name: Analyze z8-z11 distributions
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, math, gzip
+          from collections import defaultdict
+          with open('map-data/national-venues-v1.json',encoding='utf-8') as f:
+              rows=json.load(f)['rows']
+
+          def tile(lon,lat,z):
+              n=2**z
+              x=int((lon+180.0)/360.0*n)
+              lat=max(-85.05112878,min(85.05112878,lat))
+              r=math.radians(lat)
+              y=int((1.0-math.asinh(math.tan(r))/math.pi)/2.0*n)
+              return x,y
+
+          for z in (8,9,10,11):
+              groups=defaultdict(list)
+              for r in rows:
+                  groups[tile(float(r[2]),float(r[1]),z)].append(r)
+              counts=sorted((len(v) for v in groups.values()),reverse=True)
+              payload_sizes=[]
+              gzip_sizes=[]
+              max_key=None
+              max_count=0
+              for k,v in groups.items():
+                  b=json.dumps({'v':1,'z':z,'x':k[0],'y':k[1],'rows':v},separators=(',',':')).encode()
+                  payload_sizes.append(len(b))
+                  gzip_sizes.append(len(gzip.compress(b,9)))
+                  if len(v)>max_count:
+                      max_count=len(v); max_key=k
+              payload_sizes.sort(reverse=True); gzip_sizes.sort(reverse=True)
+              print('TILE_ANALYSIS',json.dumps({
+                  'z':z,
+                  'tiles':len(groups),
+                  'maxRows':counts[0],
+                  'p95Rows':counts[max(0,int(len(counts)*0.05)-1)],
+                  'medianRows':counts[len(counts)//2],
+                  'maxTile':max_key,
+                  'maxJsonBytes':payload_sizes[0],
+                  'maxGzipBytes':gzip_sizes[0],
+                  'totalJsonBytes':sum(payload_sizes),
+                  'totalGzipBytes':sum(gzip_sizes)
+              }))
+          PY
