@@ -17,20 +17,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify custom domain serves canonical map v3 schedules
+      - name: Verify custom domain serves canonical map v6 performance runtime
         shell: bash
         run: |
           set -euo pipefail
           HTML='https://barliveapp.es/?map-smoke=v3-20260926'
-          ASSET='https://barliveapp.es/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v3-schedules-557748d-20260926'
+          ASSET='https://barliveapp.es/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v6-decoration-perf-a9ee082-20260926'
           ROUTE='https://barliveapp.es/explorar/mapa?map-smoke=v3-20260926'
 
           curl --fail --silent --show-error --location --compressed \
             -H 'Cache-Control: no-cache' "$HTML" -o /tmp/index.html
 
-          grep -Fq 'canonical-map-v3-schedules-557748d-20260926' /tmp/index.html
-          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v3-schedules-557748d-20260926' /tmp/index.html
-          grep -Fq '/sw.js?v=16' /tmp/index.html
+          grep -Fq 'canonical-map-v6-decoration-perf-a9ee082-20260926' /tmp/index.html
+          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v6-decoration-perf-a9ee082-20260926' /tmp/index.html
+          grep -Fq '/sw.js?v=19' /tmp/index.html
 
           curl --fail --silent --show-error --location --compressed \
             -H 'Cache-Control: no-cache' "$ASSET" -o /tmp/bundle.js
@@ -39,6 +39,8 @@ jobs:
           grep -Fq 'applyRealtimeScheduleStates' /tmp/bundle.js
           grep -Fq 'osm_opening_hours:osm_tags->>opening_hours' /tmp/bundle.js
           grep -Fq '[MAP_RENDER][STATE_REFRESH_LOCAL]' /tmp/bundle.js
+          grep -Fq 'decoratedFilterExpression' /tmp/bundle.js
+          grep -Fq 'minzoom:13' /tmp/bundle.js
           grep -Fq 'viewportRequestInFlight' /tmp/bundle.js
           grep -Fq '[MAP_RENDER][STATE_REFRESH_SKIPPED]' /tmp/bundle.js
 
@@ -53,8 +55,8 @@ jobs:
 
           route_code="$(curl --silent --show-error --location --compressed \
             -H 'Cache-Control: no-cache' -o /tmp/route.html -w '%{http_code}' "$ROUTE")"
-          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v3-schedules-557748d-20260926' /tmp/route.html
+          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v6-decoration-perf-a9ee082-20260926' /tmp/route.html
           test "$route_code" = "200"
 
           echo "DOMAIN_ROUTE_HTTP=$route_code"
-          echo "DOMAIN_MAP_V3_SCHEDULES_OK"
+          echo "DOMAIN_MAP_V6_OK"
