@@ -1361,6 +1361,55 @@ __d(function(e,n,a,t,i,r,o){"use strict";function s(e){return e&&e.__esModule?e:
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<script>
+(function(){
+  try {
+    var initialZoom=${a};
+    if (initialZoom<10) return;
+
+    var root="https://barliveapp.es/map-data/viewport-z9-v1";
+    var z=9;
+    var n=Math.pow(2,z);
+    var lon=${n};
+    var lat=${e};
+    var x=Math.floor((lon+180)/360*n);
+    var clipped=Math.max(-85.05112878,Math.min(85.05112878,lat));
+    var rad=clipped*Math.PI/180;
+    var y=Math.floor((1-Math.asinh(Math.tan(rad))/Math.PI)/2*n);
+
+    fetch(root+"/manifest.json",{
+      method:"GET",
+      cache:"no-cache",
+      headers:{Accept:"application/json"}
+    })
+      .then(function(response){return response.ok?response.json():null;})
+      .then(function(manifest){
+        if(!manifest||!manifest.tiles) return;
+        var version=String(manifest.sourceSnapshotSha256||"").slice(0,12);
+        var jobs=[];
+        for(var dx=-1;dx<=1;dx+=1){
+          for(var dy=-1;dy<=1;dy+=1){
+            var tx=x+dx, ty=y+dy;
+            var key=tx+"/"+ty;
+            if(!manifest.tiles[key]) continue;
+            jobs.push(
+              fetch(
+                root+"/"+tx+"/"+ty+".json?v="+encodeURIComponent(version),
+                {
+                  method:"GET",
+                  cache:"force-cache",
+                  headers:{Accept:"application/json"}
+                }
+              ).catch(function(){return null;})
+            );
+          }
+        }
+        return Promise.allSettled(jobs);
+      })
+      .catch(function(){});
+  } catch (_) {}
+})();
+</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.2/dist/maplibre-gl.css"/>
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
 <style>
@@ -3687,6 +3736,10 @@ function init(){
 
   map.on("style.load",function(){
     bootstrapCanonicalMap("style.load");
+  });
+
+  map.on("styledata",function(){
+    bootstrapCanonicalMap("styledata");
   });
 
   map.on("load",function(){
