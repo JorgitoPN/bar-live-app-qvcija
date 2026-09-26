@@ -2240,11 +2240,17 @@ function scheduleDiagnostics(reason) {
 function persistViewportCache(rows,coverage) {
   if (!Array.isArray(rows) || rows.length > 12000) return;
   try {
+    var center=map ? map.getCenter() : null;
     localStorage.setItem(
       DATA_CACHE_KEY,
       JSON.stringify({
         savedAt:Date.now(),
         coverage:coverage,
+        view:center && map ? {
+          lng:Number(center.lng),
+          lat:Number(center.lat),
+          zoom:Number(map.getZoom())
+        } : null,
         rows:rows
       })
     );
@@ -2306,7 +2312,7 @@ function commitVenueRows(rows,coverage,generation,sourceLabel) {
   return true;
 }
 
-function restoreViewportCache() {
+function restoreViewportCache(recenter) {
   try {
     var raw=localStorage.getItem(DATA_CACHE_KEY);
     if (!raw) return false;
@@ -2320,16 +2326,41 @@ function restoreViewportCache() {
       Date.now()-Number(payload.savedAt||0) > DATA_CACHE_MAX_AGE
     ) return false;
 
+    if (
+      recenter === true &&
+      payload.view &&
+      Number.isFinite(Number(payload.view.lng)) &&
+      Number.isFinite(Number(payload.view.lat)) &&
+      Number.isFinite(Number(payload.view.zoom))
+    ) {
+      map.jumpTo({
+        center:[Number(payload.view.lng),Number(payload.view.lat)],
+        zoom:Math.max(4,Math.min(20,Number(payload.view.zoom)))
+      });
+    }
+
     var current=getCurrentBounds();
     if (!boundsContain(payload.coverage,current)) return false;
 
+    var realtime=applyRealtimeScheduleStates(payload.rows);
     var generation=requestGeneration;
-    return commitVenueRows(
-      payload.rows,
+
+    var restored=commitVenueRows(
+      realtime.rows,
       payload.coverage,
       generation,
       "local-cache"
     );
+
+    if (restored) {
+      console.log(
+        "[MAP_RENDER][CACHE_RESTORE] generation="+generation+
+        " total="+realtime.rows.length+
+        " knownStates="+realtime.knownStates
+      );
+    }
+
+    return restored;
   } catch (_) {
     return false;
   }
@@ -3218,9 +3249,12 @@ function init(){
     setupMapEvents();
 
     // Cache is only a warm-start input to the SAME canonical source.
+    // On direct refresh (national fallback shell), restore the last real
+    // viewport first so markers and schedule colours paint immediately.
+    var warmRestored=restoreViewportCache(true);
+
     // Network reconciliation writes to that exact source as one atomic commit.
-    restoreViewportCache();
-    requestCanonicalViewport(true,"load");
+    requestCanonicalViewport(true,warmRestored ? "load-cache-reconcile" : "load");
 
     refreshTimer=setInterval(function(){
       refreshCanonicalStates();
