@@ -1,6 +1,6 @@
 const { chromium } = require('playwright');
 
-const URL = 'https://barliveapp.es/explorar/mapa?runtime-smoke=20260926-warm-cache-v7';
+const URL = 'https://barliveapp.es/explorar/mapa?runtime-smoke=20260926-national-static-v8';
 
 const fail = (message, details) => {
   console.error('RUNTIME_SMOKE_FAIL:', message, details || '');
