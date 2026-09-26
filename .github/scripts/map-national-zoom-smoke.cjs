@@ -198,6 +198,83 @@ const { chromium } = require('playwright');
     throw new Error('duplicate ids after national-to-local transition');
   }
 
+  const firstLocalGeneration = Number(localAfterNational.snap?.requestGeneration || 0);
+  const secondCycleStarted = Date.now();
+
+  await frame.evaluate(() => {
+    window.__barliveMap.jumpTo({
+      center: [-3.5, 39.8],
+      zoom: 5.35
+    });
+  });
+
+  await frame.waitForFunction(
+    previous => {
+      const d = window.__barliveLastDiagnostics;
+      return d &&
+        Number(d.requestGeneration || 0) > previous &&
+        Number(d.datasetGeneration || 0) === Number(d.requestGeneration || 0) &&
+        Number(d.sourceFeatures || 0) > 100000;
+    },
+    firstLocalGeneration,
+    { timeout: 45000 }
+  );
+
+  const secondNational = await frame.evaluate(() => window.__barliveTestSnapshot());
+  console.log('SECOND_NATIONAL=' + JSON.stringify(secondNational));
+
+  const secondNationalGeneration = Number(secondNational.requestGeneration || 0);
+
+  await frame.evaluate(() => {
+    window.__barliveMap.jumpTo({
+      center: [-3.7038, 40.4168],
+      zoom: 13
+    });
+  });
+
+  await frame.waitForFunction(
+    previous => {
+      const d = window.__barliveLastDiagnostics;
+      return d &&
+        Number(d.requestGeneration || 0) > previous &&
+        Number(d.datasetGeneration || 0) === Number(d.requestGeneration || 0) &&
+        Number(d.sourceFeatures || 0) > 0 &&
+        Number(d.sourceFeatures || 0) < 20000;
+    },
+    secondNationalGeneration,
+    { timeout: 45000 }
+  );
+
+  const secondLocal = await frame.evaluate(() => {
+    const snap = window.__barliveTestSnapshot();
+    const source = window.__barliveMap.getSource('barlive-venues');
+    let raw = source && source._data;
+    if ((!raw || typeof raw !== 'object') && source && typeof source.serialize === 'function') {
+      try { raw = source.serialize()?.data; } catch (_) {}
+    }
+    const features = raw?.type === 'FeatureCollection' && Array.isArray(raw.features)
+      ? raw.features
+      : [];
+    const ids = features
+      .map(f => String((f.properties && (f.properties.venueId || f.properties.id)) || f.id || ''))
+      .filter(Boolean);
+    return {
+      snap,
+      rawFeatureCount: ids.length,
+      uniqueIds: new Set(ids).size
+    };
+  });
+
+  console.log('SECOND_CYCLE_MS=' + (Date.now()-secondCycleStarted));
+  console.log('SECOND_LOCAL=' + JSON.stringify(secondLocal));
+
+  if (secondLocal.rawFeatureCount !== secondLocal.uniqueIds) {
+    throw new Error('duplicate ids after repeated national-local cycle');
+  }
+  if (Number(secondLocal.snap?.sourceFeatures || 0) >= 20000) {
+    throw new Error('national dataset remained after repeated local zoom');
+  }
+
   console.log('NATIONAL_ZOOM_SMOKE_OK');
   await browser.close();
 })().catch(err => {
