@@ -1,4 +1,4 @@
-# canonical-map-v14 exact prewarm domain verification 20260926
+# canonical-map-v15 early style domain verification 20260926
 name: BarLive production domain map smoke
 
 on:
@@ -17,19 +17,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify custom domain serves canonical map v14 runtime
+      - name: Verify custom domain serves canonical map v15 runtime
         shell: bash
         run: |
           set -euo pipefail
-          HTML='https://barliveapp.es/?map-smoke=v14-20260926'
-          ASSET='https://barliveapp.es/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v14-exact-prewarm-d2a11bc-20260926'
-          ROUTE='https://barliveapp.es/explorar/mapa?map-smoke=v14-20260926'
-          MANIFEST='https://barliveapp.es/map-data/viewport-z9-v1/manifest.json?map-smoke=v14-20260926'
+          HTML='https://barliveapp.es/?map-smoke=v15-20260926'
+          ASSET='https://barliveapp.es/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v15-early-style-11fa1d5-20260926'
+          ROUTE='https://barliveapp.es/explorar/mapa?map-smoke=v15-20260926'
+          MANIFEST='https://barliveapp.es/map-data/viewport-z9-v1/manifest.json?map-smoke=v15-20260926'
 
           curl --fail --silent --show-error --location --compressed -H 'Cache-Control: no-cache' "$HTML" -o /tmp/index.html
-          grep -Fq 'canonical-map-v14-exact-prewarm-d2a11bc-20260926' /tmp/index.html
-          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v14-exact-prewarm-d2a11bc-20260926' /tmp/index.html
-          grep -Fq '/sw.js?v=27' /tmp/index.html
+          grep -Fq 'canonical-map-v15-early-style-11fa1d5-20260926' /tmp/index.html
+          grep -Fq 'entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v15-early-style-11fa1d5-20260926' /tmp/index.html
+          grep -Fq '/sw.js?v=28' /tmp/index.html
 
           curl --fail --silent --show-error --location --compressed -H 'Cache-Control: no-cache' "$ASSET" -o /tmp/bundle.js
           grep -Fq '[MAP_RENDER][VIEWPORT_STATIC_PREWARM]' /tmp/bundle.js
@@ -40,14 +40,18 @@ jobs:
           grep -Fq '[MAP_RENDER][NATIONAL_STATIC_FETCH]' /tmp/bundle.js
           grep -Fq 'barlive-single-geojson-catalogue-v2' /tmp/bundle.js
           grep -Fq 'return O&&!mapFastPath?' /tmp/bundle.js
-          if grep -Fq 'bootstrapCanonicalMap("styledata")' /tmp/bundle.js; then exit 1; fi
+          grep -Fq 'startupPrewarmPromise' /tmp/bundle.js
+          grep -Fq 'map.style && map.style._loaded' /tmp/bundle.js
+          grep -Fq 'bootstrapCanonicalMap("internal-ready")' /tmp/bundle.js
+          grep -Fq 'bootstrapCanonicalMap("styledata")' /tmp/bundle.js
+          grep -Fq 'early-style-ready' /tmp/bundle.js
 
           route_code="$(curl --silent --show-error --location --compressed -H 'Cache-Control: no-cache' -o /tmp/route.html -w '%{http_code}' "$ROUTE")"
           test "$route_code" = "200"
-          grep -Fq 'map-v14-exact-prewarm-d2a11bc-20260926' /tmp/route.html
+          grep -Fq 'map-v15-early-style-11fa1d5-20260926' /tmp/route.html
 
           curl --fail --silent --show-error --location --compressed "$MANIFEST" -o /tmp/manifest.json
           node -e "const m=require('/tmp/manifest.json'); if(m.z!==9||m.tileCount!==202||m.totalRows!==120841) process.exit(1); console.log('VIEWPORT_TILE_COUNT='+m.tileCount)"
 
           echo "DOMAIN_ROUTE_HTTP=$route_code"
-          echo "DOMAIN_MAP_V14_OK"
+          echo "DOMAIN_MAP_V15_OK"
