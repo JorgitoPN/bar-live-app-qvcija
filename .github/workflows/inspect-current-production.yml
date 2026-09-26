@@ -1,0 +1,43 @@
+name: Inspect current BarLive production bundle
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/inspect-current-production.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current production
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+
+      - name: Inspect Explore signatures
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const cp = require('child_process');
+          const bundle = cp.execSync("find _expo/static/js/web -maxdepth 1 -type f -name 'entry-*.js' | head -n 1", {encoding:'utf8'}).trim();
+          const code = fs.readFileSync(bundle, 'utf8');
+          const needles = [
+            'openstreetmap.org/export/embed.html',
+            'Ver todos los locales',
+            'Cargar más locales',
+            'Cómo llegar',
+            'Mapa cercano',
+            'Locales cerca de ti'
+          ];
+          for (const needle of needles) {
+            const i = code.indexOf(needle);
+            console.log('\n===== '+needle+' @ '+i+' =====');
+            if (i >= 0) console.log(code.slice(Math.max(0,i-3500), Math.min(code.length,i+6500)));
+          }
+          NODE
