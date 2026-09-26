@@ -2397,9 +2397,32 @@ function collectPopupImages(value,output,depth){
   return output;
 }
 
+function isBlockedPopupImageUrl(value){
+  try{
+    var parsed=new URL(String(value||""));
+    var host=String(parsed.hostname||"").toLowerCase();
+    var pathname=String(parsed.pathname||"").toLowerCase();
+
+    if(host==="places.googleapis.com") return true;
+    if(
+      host==="maps.googleapis.com" &&
+      (
+        pathname.indexOf("/maps/api/place/photo")===0 ||
+        pathname.indexOf("/maps/api/streetview")===0
+      )
+    ) return true;
+
+    return false;
+  }catch(_){
+    return true;
+  }
+}
+
 function popupImagesForLocal(local){
   if(Array.isArray(local&&local.__popupImages)&&local.__popupImages.length){
-    return local.__popupImages.slice();
+    return local.__popupImages.filter(function(value){
+      return !isBlockedPopupImageUrl(value);
+    });
   }
   var out=[];
   [
@@ -2418,7 +2441,9 @@ function popupImagesForLocal(local){
   ].forEach(function(value){
     collectPopupImages(value,out,0);
   });
-  return out;
+  return out.filter(function(value){
+    return !isBlockedPopupImageUrl(value);
+  });
 }
 
 function popupCategoryValues(local){
