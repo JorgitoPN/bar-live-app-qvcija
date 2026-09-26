@@ -20,17 +20,19 @@ jobs:
           ref: gh-pages
           fetch-depth: 1
 
-      - name: Inspect minimap module 1253
+      - name: Identify full map module
         run: |
           node <<'NODE'
           const fs = require('fs');
           const cp = require('child_process');
           const bundle = cp.execSync("find _expo/static/js/web -maxdepth 1 -type f -name 'entry-*.js' | head -n 1", {encoding:'utf8'}).trim();
           const code = fs.readFileSync(bundle, 'utf8');
-          const desktopEnd = code.indexOf('},1252,[');
-          console.log('DESKTOP_END', desktopEnd);
-          const start = code.indexOf('__d(function', desktopEnd + 1);
-          const end = code.indexOf('},1253,[', start);
-          console.log('START', start, 'END', end, 'LEN', end-start);
-          console.log(code.slice(start, end > start ? end + 500 : start + 90000));
+          const p = code.indexOf('window.flyToLocation');
+          const start = code.lastIndexOf('__d(function', p);
+          const tail = code.slice(p);
+          const match = tail.match(/\},(\d+),\[[^\]]*\]\);/);
+          const end = match ? p + match.index + match[0].length : -1;
+          console.log('POS',p,'START',start,'END',end,'MODULE',match&&match[1],'LEN',end-start);
+          console.log('\nHEAD\n'+code.slice(start,start+12000));
+          console.log('\nTAIL\n'+code.slice(Math.max(start,end-12000),end));
           NODE
