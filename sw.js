@@ -1,4 +1,4 @@
-// BarLive neutral service worker v41.\n// BarLive neutral service worker v38.
+// BarLive neutral service worker v42.\n// BarLive neutral service worker v38.
 // Marker/data/rendering logic lives exclusively in the application bundle.
 // This worker retires obsolete caches and activates the current production security shell.
 
