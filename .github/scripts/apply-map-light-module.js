@@ -19,10 +19,10 @@ if(moduleStart<0||moduleEnd<0) throw new Error('map module boundaries missing');
 let mod=bundle.slice(moduleStart,moduleEnd);
 
 function replaceOnce(source,oldText,newText,label){
-  if(source.includes(newText)) return source;
   const count=source.split(oldText).length-1;
-  if(count!==1) throw new Error(label+' anchor count='+count);
-  return source.replace(oldText,newText);
+  if(count===1) return source.replace(oldText,newText);
+  if(count===0 && newText && source.includes(newText)) return source;
+  throw new Error(label+' anchor count='+count);
 }
 
 mod=replaceOnce(
