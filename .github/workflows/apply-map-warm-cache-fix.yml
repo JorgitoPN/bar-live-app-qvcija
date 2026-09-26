@@ -1,0 +1,51 @@
+name: Apply BarLive map warm-cache fix
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - '.github/workflows/apply-map-warm-cache-fix.yml'
+      - '.github/scripts/apply-map-warm-cache-fix.js'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-production-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+
+      - name: Patch canonical map bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/scripts/apply-map-warm-cache-fix.js
+          grep -Fq 'canonical-map-v7-warm-cache-6a3c353-20260926' index.html
+          grep -Fq '[MAP_RENDER][CACHE_RESTORE]' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq 'view:center && map ?' _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js
+          grep -Fq '/sw.js?v=20' index.html
+          grep -Fq 'canonical-map-v7-warm-cache' version.json
+
+      - name: Commit v7 production bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet; then
+            echo 'No production changes needed.'
+            exit 0
+          fi
+          git add _expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js \
+            index.html 404.html explorar/mapa/index.html sw.js version.json
+          git add explorar/index.html detalle/local/index.html 2>/dev/null || true
+          git commit -m 'perf(web-map): warm-start refresh from canonical cache'
+          git push origin gh-pages
