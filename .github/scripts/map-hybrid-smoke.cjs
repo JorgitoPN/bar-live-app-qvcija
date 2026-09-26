@@ -13,7 +13,9 @@ const { chromium } = require('playwright');
     hybridTiles: [],
     nationalSnapshot: [],
     localesRest: [],
+    markerLocalesRest: [],
     viewportStatic: [],
+    googlePlaces: [],
   };
 
   page.on('request', request => {
@@ -26,9 +28,26 @@ const { chromium } = require('playwright');
     }
     if (url.includes('supabase.co/rest/v1/locales')) {
       requests.localesRest.push(url);
+      const decoded = decodeURIComponent(url);
+      if (
+        decoded.includes('latitud') &&
+        decoded.includes('longitud') &&
+        (
+          decoded.includes('horarios_completos') ||
+          decoded.includes('osm_opening_hours') ||
+          decoded.includes('barlive_type')
+        )
+      ) {
+        requests.markerLocalesRest.push(url);
+      }
     }
     if (url.includes('/map-data/viewport-z9-v1/')) {
       requests.viewportStatic.push(url);
+    }
+    if (
+      /maps\.googleapis\.com|places\.googleapis\.com|maps\.google\.com/i.test(url)
+    ) {
+      requests.googlePlaces.push(url);
     }
   });
 
@@ -132,8 +151,11 @@ const { chromium } = require('playwright');
     viewportStaticRequests: requests.viewportStatic.length,
     nationalSnapshotRequests: requests.nationalSnapshot.length,
     localesRestRequests: requests.localesRest.length,
+    markerLocalesRestRequests: requests.markerLocalesRest.length,
+    googlePlacesRequests: requests.googlePlaces.length,
   }));
   console.log('V23_LOCALES_REST_URLS=' + JSON.stringify(requests.localesRest));
+  console.log('V23_MARKER_REST_URLS=' + JSON.stringify(requests.markerLocalesRest));
 
   if (local.diagnostics?.rendererMode !== 'hybrid') {
     throw new Error('street zoom is not using hybrid renderer');
@@ -153,9 +175,12 @@ const { chromium } = require('playwright');
   if (
     requests.viewportStatic.length !== 0 ||
     requests.nationalSnapshot.length !== 0 ||
-    requests.localesRest.length !== 0
+    requests.markerLocalesRest.length !== 0
   ) {
     throw new Error('street startup used legacy marker data path');
+  }
+  if (requests.googlePlaces.length !== 0) {
+    throw new Error('street startup made a Google Maps/Places request');
   }
   if (requests.hybridTiles.length <= 0) {
     throw new Error('street startup requested no static MVT tiles');
@@ -165,7 +190,8 @@ const { chromium } = require('playwright');
     tiles: requests.hybridTiles.length,
     viewport: requests.viewportStatic.length,
     national: requests.nationalSnapshot.length,
-    rest: requests.localesRest.length,
+    rest: requests.markerLocalesRest.length,
+    googlePlaces: requests.googlePlaces.length,
   };
 
   const nationalStarted = Date.now();
@@ -203,9 +229,12 @@ const { chromium } = require('playwright');
     viewportStaticRequests: requests.viewportStatic.length,
     nationalSnapshotRequests: requests.nationalSnapshot.length,
     localesRestRequests: requests.localesRest.length,
+    markerLocalesRestRequests: requests.markerLocalesRest.length,
+    googlePlacesRequests: requests.googlePlaces.length,
     viewportStaticUrls: requests.viewportStatic,
     nationalSnapshotUrls: requests.nationalSnapshot,
     localesRestUrls: requests.localesRest,
+    markerLocalesRestUrls: requests.markerLocalesRest,
   }));
 
   if (national.diagnostics?.rendererMode !== 'hybrid') {
@@ -217,9 +246,12 @@ const { chromium } = require('playwright');
   if (
     requests.viewportStatic.length !== beforeNational.viewport ||
     requests.nationalSnapshot.length !== beforeNational.national ||
-    requests.localesRest.length !== beforeNational.rest
+    requests.markerLocalesRest.length !== beforeNational.rest
   ) {
     throw new Error('national transition used legacy marker data path');
+  }
+  if (requests.googlePlaces.length !== beforeNational.googlePlaces) {
+    throw new Error('national transition made a Google Maps/Places request');
   }
 
   const tileCountBeforeFilter = requests.hybridTiles.length;
@@ -241,9 +273,12 @@ const { chromium } = require('playwright');
   if (
     requests.viewportStatic.length !== 0 ||
     requests.nationalSnapshot.length !== 0 ||
-    requests.localesRest.length !== 0
+    requests.markerLocalesRest.length !== 0
   ) {
     throw new Error('Todos/Abiertos triggered legacy marker requests');
+  }
+  if (requests.googlePlaces.length !== 0) {
+    throw new Error('Todos/Abiertos triggered a Google Maps/Places request');
   }
   if (requests.hybridTiles.length !== tileCountBeforeFilter) {
     console.log(
@@ -290,6 +325,8 @@ const { chromium } = require('playwright');
     viewportStaticRequests: requests.viewportStatic.length,
     nationalSnapshotRequests: requests.nationalSnapshot.length,
     localesRestRequests: requests.localesRest.length,
+    markerLocalesRestRequests: requests.markerLocalesRest.length,
+    googlePlacesRequests: requests.googlePlaces.length,
   }));
 
   if (
@@ -303,9 +340,12 @@ const { chromium } = require('playwright');
   if (
     requests.viewportStatic.length !== 0 ||
     requests.nationalSnapshot.length !== 0 ||
-    requests.localesRest.length !== 0
+    requests.markerLocalesRest.length !== 0
   ) {
     throw new Error('normal browse made a legacy marker request');
+  }
+  if (requests.googlePlaces.length !== 0) {
+    throw new Error('normal browse made a Google Maps/Places request');
   }
 
   console.log('HYBRID_MAP_V23_SMOKE_OK');
