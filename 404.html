@@ -82,5 +82,262 @@
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
   <script src="/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8.js?v=map-v24-popup-restored-df05423-20260926" defer></script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=36',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});}</script></body>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=37',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});}</script>
+<script id="barlive-web-rbac-guest-guard">
+(function(){
+  "use strict";
+  var VERSION="web-rbac-guest-v1-20260926";
+  window.__barliveWebRbacVersion=VERSION;
+
+  function parseMaybe(raw){
+    if(!raw) return null;
+    try { return JSON.parse(raw); } catch(_) { return null; }
+  }
+
+  function unwrapSession(value){
+    if(!value) return null;
+    if(value.access_token && value.user) return value;
+    if(value.currentSession && value.currentSession.access_token) return value.currentSession;
+    if(value.session && value.session.access_token) return value.session;
+    if(value.data && value.data.session && value.data.session.access_token) return value.data.session;
+    return null;
+  }
+
+  function validSession(session){
+    if(!session || !session.access_token) return false;
+    var exp = Number(session.expires_at || 0);
+    if(exp && exp * 1000 <= Date.now() - 30000) return false;
+    return true;
+  }
+
+  function readSession(){
+    var stores=[];
+    try { stores.push(window.localStorage); } catch(_){}
+    try { stores.push(window.sessionStorage); } catch(_){}
+
+    for(var s=0;s<stores.length;s++){
+      var store=stores[s];
+      if(!store) continue;
+
+      try {
+        var direct=unwrapSession(parseMaybe(store.getItem("user_session_v8.0")));
+        if(validSession(direct)) return direct;
+      } catch(_){}
+
+      try {
+        for(var i=0;i<store.length;i++){
+          var key=store.key(i) || "";
+          var lk=key.toLowerCase();
+          if(lk.indexOf("auth-token") === -1 && lk.indexOf("supabase.auth") === -1) continue;
+          var candidate=unwrapSession(parseMaybe(store.getItem(key)));
+          if(validSession(candidate)) return candidate;
+        }
+      } catch(_){}
+    }
+    return null;
+  }
+
+  function isAuthenticated(){
+    return !!readSession();
+  }
+
+  function cleanPath(raw){
+    try {
+      var u=new URL(String(raw || location.href), location.href);
+      var p=u.pathname || "/";
+      p=p.replace(/^\/\(tabs\)/,"");
+      return p || "/";
+    } catch(_) {
+      return location.pathname || "/";
+    }
+  }
+
+  function isPublicProfile(path){
+    return path==="/perfil/usuario" ||
+      path.indexOf("/perfil/usuario/")===0 ||
+      path==="/perfil/local" ||
+      path.indexOf("/perfil/local/")===0;
+  }
+
+  function isPrivatePath(raw){
+    var p=cleanPath(raw);
+    if(p.indexOf("/auth")===0 || p.indexOf("/legal")===0 || p==="/access-denied") return false;
+    if(isPublicProfile(p)) return false;
+
+    if(
+      p==="/perfil" || p.indexOf("/perfil/")===0 ||
+      p==="/favoritos" || p.indexOf("/favoritos/")===0 ||
+      p==="/chat" || p.indexOf("/chat/")===0 ||
+      p==="/crear" || p.indexOf("/crear/")===0 ||
+      p==="/editar" || p.indexOf("/editar/")===0 ||
+      p==="/solicitudes" || p.indexOf("/solicitudes/")===0 ||
+      p==="/gestion" || p.indexOf("/gestion/")===0 ||
+      p==="/admin" || p.indexOf("/admin/")===0 ||
+      p==="/eventos/mis-asistencias"
+    ) return true;
+
+    return false;
+  }
+
+  function loginUrl(returnTo){
+    var rt=cleanPath(returnTo || location.href);
+    return "/auth/login?returnTo="+encodeURIComponent(rt);
+  }
+
+  var redirecting=false;
+  function enforceRoute(raw){
+    if(redirecting || isAuthenticated() || !isPrivatePath(raw)) return false;
+    redirecting=true;
+    var target=loginUrl(raw);
+    if(location.pathname+location.search !== target){
+      location.replace(target);
+    } else {
+      redirecting=false;
+    }
+    return true;
+  }
+
+  function normText(el){
+    return String(el && el.textContent || "").replace(/\s+/g," ").trim();
+  }
+
+  function navContainer(el){
+    if(!el) return null;
+    var clickable=el.closest && el.closest('a,[role="button"],button');
+    if(clickable) return clickable;
+    var p=el.parentElement;
+    for(var i=0;p && i<3;i++,p=p.parentElement){
+      var t=normText(p);
+      if(t && t.length<80) return p;
+    }
+    return el.parentElement;
+  }
+
+  var PRIVATE_LABELS={
+    "Mensajes":1,
+    "Notificaciones":1,
+    "Crear":1,
+    "Perfil":1,
+    "Más":1
+  };
+
+  function setHidden(node,hidden){
+    if(!node || !node.style) return;
+    if(hidden){
+      if(node.getAttribute("data-barlive-rbac-hidden")!=="1"){
+        node.setAttribute("data-barlive-rbac-display",node.style.display || "");
+        node.setAttribute("data-barlive-rbac-hidden","1");
+      }
+      node.style.setProperty("display","none","important");
+      node.setAttribute("aria-hidden","true");
+    }else if(node.getAttribute("data-barlive-rbac-hidden")==="1"){
+      var prev=node.getAttribute("data-barlive-rbac-display") || "";
+      if(prev) node.style.display=prev; else node.style.removeProperty("display");
+      node.removeAttribute("aria-hidden");
+      node.removeAttribute("data-barlive-rbac-hidden");
+      node.removeAttribute("data-barlive-rbac-display");
+    }
+  }
+
+  function applyUI(){
+    var authed=isAuthenticated();
+    var all=document.querySelectorAll("body *");
+
+    for(var i=0;i<all.length;i++){
+      var el=all[i];
+      if(el.children && el.children.length>0) continue;
+      var txt=normText(el);
+
+      if(txt==="Momentos"){
+        el.textContent="Social";
+        txt="Social";
+      }
+
+      if(PRIVATE_LABELS[txt]){
+        var row=navContainer(el);
+        if(row) setHidden(row,!authed);
+      }
+    }
+
+    if(authed){
+      var hidden=document.querySelectorAll('[data-barlive-rbac-hidden="1"]');
+      for(var h=0;h<hidden.length;h++) setHidden(hidden[h],false);
+    }
+  }
+
+  var nativePush=history.pushState;
+  var nativeReplace=history.replaceState;
+
+  history.pushState=function(state,title,url){
+    if(url && !isAuthenticated() && isPrivatePath(url)){
+      return nativeReplace.call(history,state,title,loginUrl(url));
+    }
+    var out=nativePush.apply(history,arguments);
+    setTimeout(function(){ enforceRoute(location.href); applyUI(); },0);
+    return out;
+  };
+
+  history.replaceState=function(state,title,url){
+    if(url && !isAuthenticated() && isPrivatePath(url)){
+      url=loginUrl(url);
+      arguments[2]=url;
+    }
+    var out=nativeReplace.apply(history,arguments);
+    setTimeout(function(){ enforceRoute(location.href); applyUI(); },0);
+    return out;
+  };
+
+  document.addEventListener("click",function(ev){
+    if(isAuthenticated()) return;
+    var node=ev.target && ev.target.closest ? ev.target.closest('a,[role="button"],button') : null;
+    if(!node) return;
+    var href=node.getAttribute && node.getAttribute("href");
+    if(href && isPrivatePath(href)){
+      ev.preventDefault();
+      ev.stopPropagation();
+      location.assign(loginUrl(href));
+      return;
+    }
+    var label=normText(node);
+    if(PRIVATE_LABELS[label]){
+      ev.preventDefault();
+      ev.stopPropagation();
+      location.assign("/auth/login");
+    }
+  },true);
+
+  window.addEventListener("popstate",function(){
+    setTimeout(function(){ enforceRoute(location.href); applyUI(); },0);
+  });
+
+  var scheduled=false;
+  var observer=new MutationObserver(function(){
+    if(scheduled) return;
+    scheduled=true;
+    requestAnimationFrame(function(){
+      scheduled=false;
+      applyUI();
+    });
+  });
+
+  function start(){
+    enforceRoute(location.href);
+    applyUI();
+    if(document.documentElement){
+      observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true});
+    }
+    setInterval(function(){
+      enforceRoute(location.href);
+      applyUI();
+    },1200);
+  }
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",start,{once:true});
+  }else{
+    start();
+  }
+})();
+</script>
+</body>
 </html>
