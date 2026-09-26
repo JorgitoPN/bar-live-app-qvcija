@@ -133,6 +133,7 @@ const { chromium } = require('playwright');
     nationalSnapshotRequests: requests.nationalSnapshot.length,
     localesRestRequests: requests.localesRest.length,
   }));
+  console.log('V23_LOCALES_REST_URLS=' + JSON.stringify(requests.localesRest));
 
   if (local.diagnostics?.rendererMode !== 'hybrid') {
     throw new Error('street zoom is not using hybrid renderer');
