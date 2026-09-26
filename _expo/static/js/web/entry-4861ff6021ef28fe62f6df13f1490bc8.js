@@ -3394,7 +3394,14 @@ function init(){
     );
   } catch (_) {}
 
-  map.on("load",function(){
+  var didBootstrapCanonicalMap=false;
+
+  function bootstrapCanonicalMap(trigger) {
+    if (didBootstrapCanonicalMap) return;
+    if (!map || !map.isStyleLoaded()) return;
+
+    didBootstrapCanonicalMap=true;
+
     try {
       registerCategoryIcons();
     } catch (error) {
@@ -3409,19 +3416,40 @@ function init(){
     // viewport first so markers and schedule colours paint immediately.
     var warmRestored=restoreViewportCache(true);
 
-    // Network reconciliation writes to that exact source as one atomic commit.
-    requestCanonicalViewport(true,warmRestored ? "load-cache-reconcile" : "load");
+    // Start BarLive data as soon as the style object is ready. We do not wait
+    // for all OpenFreeMap base tiles/glyphs to finish before painting markers.
+    requestCanonicalViewport(
+      true,
+      warmRestored ? "style-cache-reconcile" : "style-ready"
+    );
 
     refreshTimer=setInterval(function(){
       refreshCanonicalStates();
     },60000);
 
+    console.log(
+      "[MAP_RENDER][BOOTSTRAP] event="+String(trigger||"unknown")+
+      " zoom="+map.getZoom().toFixed(2)
+    );
+
     post("map_ready",{
       engine:"barlive-single-geojson-catalogue-v2"
     });
 
-    scheduleDiagnostics("load");
+    scheduleDiagnostics("bootstrap-"+String(trigger||"unknown"));
+  }
+
+  map.on("style.load",function(){
+    bootstrapCanonicalMap("style.load");
   });
+
+  map.on("load",function(){
+    bootstrapCanonicalMap("load");
+  });
+
+  if (map.isStyleLoaded()) {
+    bootstrapCanonicalMap("sync");
+  }
 }
 
 window.addEventListener("beforeunload",function(){
