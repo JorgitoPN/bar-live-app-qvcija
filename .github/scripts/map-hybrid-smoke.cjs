@@ -617,6 +617,68 @@ const { chromium } = require('playwright');
     throw new Error('normal browse made a Google Maps/Places request');
   }
 
+  // Public-cost regression: normal Explore and Venue Detail browsing must
+  // never reach billable Google Places/Street View API endpoints.
+  const paidGoogleRequests = [];
+  const isPaidGoogleUrl = (url) => {
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.toLowerCase();
+      const path = parsed.pathname.toLowerCase();
+      if (host === 'places.googleapis.com') return true;
+      return host === 'maps.googleapis.com' &&
+        (path.startsWith('/maps/api/place/') || path.startsWith('/maps/api/streetview'));
+    } catch (_) {
+      return false;
+    }
+  };
+
+  const explorePage = await context.newPage();
+  explorePage.on('request', req => {
+    if (isPaidGoogleUrl(req.url())) paidGoogleRequests.push(req.url());
+  });
+  await explorePage.goto(
+    'https://barliveapp.es/explorar?google-cost-smoke=20260926',
+    { waitUntil:'domcontentloaded', timeout:60000 }
+  );
+  await explorePage.waitForTimeout(2500);
+  const exploreGuard = await explorePage.evaluate(() =>
+    typeof window.__barliveGooglePaidApiBlocked === 'function'
+  );
+
+  const detailPage = await context.newPage();
+  detailPage.on('request', req => {
+    if (isPaidGoogleUrl(req.url())) paidGoogleRequests.push(req.url());
+  });
+  await detailPage.goto(
+    'https://barliveapp.es/detalle/local?id=' +
+      encodeURIComponent(openPopupTarget.id) +
+      '&google-cost-smoke=20260926',
+    { waitUntil:'domcontentloaded', timeout:60000 }
+  );
+  await detailPage.waitForTimeout(3000);
+  const detailGuard = await detailPage.evaluate(() =>
+    typeof window.__barliveGooglePaidApiBlocked === 'function'
+  );
+
+  console.log('PUBLIC_GOOGLE_COST_GUARD=' + JSON.stringify({
+    exploreGuard,
+    detailGuard,
+    paidGoogleRequestCount: paidGoogleRequests.length,
+    paidGoogleRequests,
+  }));
+
+  if (!exploreGuard || !detailGuard) {
+    throw new Error('Public Google paid-API browser guard is missing');
+  }
+  if (paidGoogleRequests.length !== 0) {
+    throw new Error(
+      'Public Explore/Detail made paid Google requests: ' +
+      JSON.stringify(paidGoogleRequests)
+    );
+  }
+
+  console.log('PUBLIC_GOOGLE_COST_SMOKE_OK');
   console.log('HYBRID_MAP_V23_SMOKE_OK');
   await browser.close();
 })().catch(err => {
