@@ -1,8 +1,9 @@
 name: Stabilize BarLive production web
 
+# Manual emergency tool only. Automatic execution on every gh-pages push was
+# reverting newer production fixes back to stable-web-v43.
 on:
-  push:
-    branches: [gh-pages]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -13,7 +14,7 @@ concurrency:
 
 jobs:
   stabilize:
-    if: ${{ !contains(github.event.head_commit.message, '[stable-web-v43]') }}
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
