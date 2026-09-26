@@ -1973,6 +1973,9 @@ function datasetFilterExpression() {
 }
 
 function advancedVisibleExpression() {
+  // When advanced filters are inactive, ignore any stale feature-state from a
+  // previous filter session instead of rewriting every venue back to true.
+  if (!advancedFilterActive) return true;
   return ["boolean",["feature-state","advancedVisible"],true];
 }
 
@@ -2049,27 +2052,37 @@ function setVenueFeatureState(id, patch) {
 }
 
 function applyAdvancedFeatureState() {
+  // Default map browsing must never enqueue one feature-state mutation per
+  // venue. Missing advancedVisible already means visible.
+  if (!advancedFilterActive) return;
+
   activeVenueById.forEach(function(_venue,id) {
-    var visible =
-      !advancedFilterActive ||
-      !!(advancedAllowedIds && advancedAllowedIds.has(id));
+    var visible=!!(advancedAllowedIds && advancedAllowedIds.has(id));
     setVenueFeatureState(id,{advancedVisible:visible});
   });
 }
 
 function applyEventFeatureState() {
-  activeVenueById.forEach(function(_venue,id) {
-    var eventState =
-      liveIds.has(id) ? "live" :
-      upcomingIds.has(id) ? "upcoming" :
-      "none";
-    setVenueFeatureState(id,{eventState:eventState});
+  // Only decorated venues need feature-state. Writing "none" to every venue
+  // creates thousands of unnecessary MapLibre mutations after each setData().
+  liveIds.forEach(function(id) {
+    if (activeVenueById.has(id)) {
+      setVenueFeatureState(id,{eventState:"live"});
+    }
+  });
+  upcomingIds.forEach(function(id) {
+    if (!liveIds.has(id) && activeVenueById.has(id)) {
+      setVenueFeatureState(id,{eventState:"upcoming"});
+    }
   });
 }
 
 function applyPromoFeatureState() {
-  activeVenueById.forEach(function(_venue,id) {
-    setVenueFeatureState(id,{hasPromo:promoIds.has(id)});
+  // Same rule as events: touch only venues that actually have a promotion.
+  promoIds.forEach(function(id) {
+    if (activeVenueById.has(id)) {
+      setVenueFeatureState(id,{hasPromo:true});
+    }
   });
 }
 
@@ -2708,13 +2721,32 @@ window.filtrarCategoria=function(category){
 window.setCategoryFilter=window.filtrarCategoria;
 
 window.setLiveEvents=function(live,upcoming){
+  var previousIds=new Set();
+  liveIds.forEach(function(id){previousIds.add(id);});
+  upcomingIds.forEach(function(id){previousIds.add(id);});
+
   liveIds=new Set((live||[]).map(String));
   upcomingIds=new Set((upcoming||[]).map(String));
+
+  previousIds.forEach(function(id) {
+    if (!liveIds.has(id) && !upcomingIds.has(id)) {
+      setVenueFeatureState(id,{eventState:"none"});
+    }
+  });
+
   applyEventFeatureState();
 };
 
 window.setActivePromos=function(promos){
+  var previousIds=new Set(promoIds);
   promoIds=new Set(Object.keys(promos||{}).map(String));
+
+  previousIds.forEach(function(id) {
+    if (!promoIds.has(id)) {
+      setVenueFeatureState(id,{hasPromo:false});
+    }
+  });
+
   applyPromoFeatureState();
 };
 
