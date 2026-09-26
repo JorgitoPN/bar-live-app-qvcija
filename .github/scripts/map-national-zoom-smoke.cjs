@@ -191,6 +191,29 @@ const { chromium } = require('playwright');
   console.log('LOCAL_AFTER_NATIONAL_MS=' + (Date.now()-localStarted));
   console.log('LOCAL_AFTER_NATIONAL=' + JSON.stringify(localAfterNational));
 
+  const localRenderedDiag = await frame.evaluate(() => {
+    const rendered = window.__barliveMap.queryRenderedFeatures();
+    const venueFeatures = rendered.filter(f =>
+      f?.source === 'barlive-venues' || f?.layer?.source === 'barlive-venues'
+    );
+    const byLayer = {};
+    const ids = [];
+    for (const f of venueFeatures) {
+      const layerId = String(f?.layer?.id || 'unknown');
+      byLayer[layerId] = (byLayer[layerId] || 0) + 1;
+      const id = String((f?.properties && (f.properties.venueId || f.properties.id)) || f?.id || '');
+      if (id) ids.push(id);
+    }
+    return {
+      renderedVenueFeatures: venueFeatures.length,
+      renderedVenueIds: ids.length,
+      uniqueRenderedVenueIds: new Set(ids).size,
+      duplicateRenderedVenueIds: ids.length - new Set(ids).size,
+      byLayer
+    };
+  });
+  console.log('LOCAL_RENDERED_DIAG=' + JSON.stringify(localRenderedDiag));
+
   if (Number(localAfterNational.snap?.sourceFeatures || 0) >= 20000) {
     throw new Error('national dataset remained active after local zoom');
   }
