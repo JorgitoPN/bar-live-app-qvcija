@@ -27,7 +27,7 @@ var lastNationalStateRefreshAt = 0;`,
 );
 
 replaceOnce(
-`  if (${a}>=VIEWPORT_TILE_MIN_MAP_ZOOM) {
+`  if (\${a}>=VIEWPORT_TILE_MIN_MAP_ZOOM) {
     try {
       var startupBounds=getCurrentBounds();
       if (startupBounds) {
@@ -37,7 +37,7 @@ replaceOnce(
       }
     } catch (_) {}
   }`,
-`  if (${a}>=VIEWPORT_TILE_MIN_MAP_ZOOM) {
+`  if (\${a}>=VIEWPORT_TILE_MIN_MAP_ZOOM) {
     try {
       var startupBounds=getCurrentBounds();
       if (startupBounds) {
