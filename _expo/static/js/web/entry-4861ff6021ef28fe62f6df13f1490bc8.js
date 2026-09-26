@@ -2096,7 +2096,34 @@ function refreshHybridVisibleStates(reason) {
     var sid=Number(props.s != null ? props.s : feature && feature.id);
     if (!Number.isFinite(sid) || sid<=0) return;
 
-    if (props.h==null && props.b==null && props.o==null) return;
+    var hasSchedulePayload =
+      (props.h!=null && String(props.h).trim()!=="" && String(props.h).trim()!=="{}" && String(props.h).trim()!=="[]") ||
+      (props.o!=null && String(props.o).trim()!=="");
+    var businessStatus=String(props.b==null ? "" : props.b).trim().toUpperCase();
+    var hasExplicitClosedStatus =
+      businessStatus==="CLOSED_PERMANENTLY" ||
+      businessStatus==="CLOSED_TEMPORARILY";
+
+    if (!hasSchedulePayload && !hasExplicitClosedStatus) {
+      var previousState=hybridStateBySid.get(sid);
+      if (previousState && previousState!=="unknown") {
+        hybridStateBySid.set(sid,"unknown");
+        try {
+          map.setFeatureState(
+            {
+              source:HYBRID_SOURCE,
+              sourceLayer:"locales",
+              id:sid
+            },
+            {markerState:"unknown"}
+          );
+        } catch (_) {}
+      } else if (previousState===undefined) {
+        hybridStateBySid.set(sid,"unknown");
+      }
+      return;
+    }
+
     if (!bySid.has(sid)) bySid.set(sid,feature);
   });
 
@@ -2306,10 +2333,16 @@ function applyFilters() {
 
   if (map.getLayer(HYBRID_LAYER)) {
     map.setFilter(HYBRID_LAYER,hybridFilter);
+    var hybridVisibility=hybridOpacityExpression();
     map.setPaintProperty(
       HYBRID_LAYER,
       "circle-opacity",
-      hybridOpacityExpression()
+      hybridVisibility
+    );
+    map.setPaintProperty(
+      HYBRID_LAYER,
+      "circle-stroke-opacity",
+      hybridVisibility
     );
   }
   if (map.getLayer(HYBRID_ICON_LAYER)) {
@@ -3563,6 +3596,11 @@ window.requestViewportData=requestAdvancedViewport;
 
 window.setStateFilter=function(mode){
   stateFilterMode=mode==="no_cerrados" ? "no_cerrados" : "todos";
+
+  if (rendererMode==="hybrid" && map && map.getSource(HYBRID_SOURCE)) {
+    refreshHybridVisibleStates("state-filter");
+  }
+
   applyFilters();
   scheduleDiagnostics("state-filter");
 };
@@ -3795,6 +3833,7 @@ function addHybridSourceAndLayer() {
         "#94A3B8"
       ],
       "circle-opacity":1,
+      "circle-stroke-opacity":1,
       "circle-stroke-width":[
         "interpolate",["linear"],["zoom"],
         4,["case",["==",["get","d"],1],3,0],
