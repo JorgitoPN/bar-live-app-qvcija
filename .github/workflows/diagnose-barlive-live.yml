@@ -13,14 +13,14 @@ permissions:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: main
 
-      - name: Inspect live origin
+      - name: Inspect live origin and rendered DOM
         shell: bash
         run: |
           set +e
@@ -38,14 +38,14 @@ jobs:
             echo "=== DNS NS ==="
             dig +short NS barliveapp.es
             echo
-            for URL in "https://barliveapp.es/" "https://www.barliveapp.es/" "https://jorgitopn.github.io/bar-live-app-qvcija/"; do
+            for URL in "https://barliveapp.es/" "https://barliveapp.es/explorar/" "https://barliveapp.es/explorar/mapa/"; do
               echo "=== URL: $URL ==="
               TMPH=$(mktemp)
               TMPB=$(mktemp)
               curl -sS -L --max-time 30 -D "$TMPH" -o "$TMPB" "$URL"
               RC=$?
               echo "curl_rc=$RC"
-              sed -n '1,40p' "$TMPH"
+              sed -n '1,35p' "$TMPH"
               echo "--- signatures ---"
               grep -o 'barlive-production:[^<]*' "$TMPB" | head -n 5
               grep -o 'stable-web-v[0-9A-Za-z-]*' "$TMPB" | sort -u | head -n 20
@@ -57,6 +57,32 @@ jobs:
               echo
               rm -f "$TMPH" "$TMPB"
             done
+
+            echo "=== HEADLESS CHROME ==="
+            CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+            echo "chrome=$CHROME"
+            if [ -n "$CHROME" ]; then
+              for PATHNAME in explorar explorar/mapa; do
+                DOM="/tmp/dom-$(echo "$PATHNAME" | tr '/' '-').html"
+                "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage                   --window-size=1440,1000 --virtual-time-budget=15000                   --dump-dom "https://barliveapp.es/$PATHNAME/" > "$DOM" 2>/tmp/chrome.err
+                echo "--- rendered /$PATHNAME/ ---"
+                echo -n "dom_bytes="; wc -c < "$DOM"
+                echo -n "surface_count="; grep -o 'barlive-global-header-surface-v68' "$DOM" | wc -l
+                echo -n "header_class_count="; grep -o 'barlive-global-web-header-v68' "$DOM" | wc -l
+                echo -n "wide_true_count="; grep -o 'data-barlive-wide="true"' "$DOM" | wc -l
+                echo -n "wide_false_count="; grep -o 'data-barlive-wide="false"' "$DOM" | wc -l
+                echo -n "slot_count="; grep -o 'barlive-web-header-slot' "$DOM" | wc -l
+                echo -n "stage_count="; grep -o 'barlive-main-stage' "$DOM" | wc -l
+                echo -n "content_frame_count="; grep -o 'barlive-content-frame' "$DOM" | wc -l
+                echo -n "purple_rendered="; grep -io '#641B73\|rgb(100, 27, 115)' "$DOM" | wc -l
+                echo -n "teal_rendered="; grep -io '#14B8A6\|rgb(20, 184, 166)' "$DOM" | wc -l
+                grep -o 'class="[^"]*barlive-global-web-header-v68[^"]*"' "$DOM" | head -n 5
+                grep -o 'id="barlive-global-header-surface-v68"[^>]*' "$DOM" | head -n 5
+                echo
+              done
+              echo "--- chrome stderr tail ---"
+              tail -n 40 /tmp/chrome.err
+            fi
           } > "$OUT" 2>&1
 
       - name: Commit diagnostic
@@ -65,5 +91,5 @@ jobs:
           git config user.name "barlive-diagnostic-bot"
           git config user.email "actions@users.noreply.github.com"
           git add diagnostics/live-origin.txt
-          git commit -m "diagnostic: capture live BarLive origin [skip ci]" || exit 0
+          git commit -m "diagnostic: capture rendered BarLive header state [skip ci]" || exit 0
           git push origin HEAD:main
