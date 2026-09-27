@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- barlive-production: stable-web-v69-explore-header-20260927 -->
+<!-- barlive-production: stable-web-v70-ui-master-20260927 -->
 <html lang="es">
   <head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <script id="barlive-google-cost-guard">
@@ -372,16 +372,16 @@
 @media (max-width:1023px){#barlive-fixed-logo-v51{display:none!important}}
 </style>
 
-<script src="/_expo/static/js/web/barlive-v67-part1.js?v=20260927-header-v69" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part2.js?v=20260927-header-v69" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part3.js?v=20260927-header-v69" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part4.js?v=20260927-header-v69" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part5.js?v=20260927-header-v69" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part6.js?v=20260927-header-v69" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part7.js?v=20260927-header-v69" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part8.js?v=20260927-header-v69" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part9.js?v=20260927-header-v69" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part10.js?v=20260927-header-v69" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part1.js?v=20260927-ui-v70" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part2.js?v=20260927-ui-v70" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part3.js?v=20260927-ui-v70" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part4.js?v=20260927-ui-v70" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part5.js?v=20260927-ui-v70" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part6.js?v=20260927-ui-v70" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part7.js?v=20260927-ui-v70" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part8.js?v=20260927-ui-v70" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part9.js?v=20260927-ui-v70" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part10.js?v=20260927-ui-v70" defer></script>
 
 
 
@@ -890,5 +890,147 @@ function start(){
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start();
 })();
 </script>
+
+<style id="barlive-ui-master-v70-style">
+@media (min-width:768px){
+  html,body,#root{background:#F6F8F9!important}
+  [data-barlive-page-canvas-v70="true"]{background:#F6F8F9!important}
+  [data-barlive-map-category-header-v70="true"]{
+    background:#FFFFFF!important;
+    border-bottom:1px solid #E4EAF0!important;
+    box-shadow:0 2px 10px rgba(15,35,72,.04)!important;
+    padding:12px 16px 10px!important;
+  }
+  [data-barlive-map-title-v70="true"]{
+    display:flex!important;align-items:flex-end!important;justify-content:space-between!important;
+    gap:16px!important;margin:0 0 10px!important;padding:0!important;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif!important;
+  }
+  [data-barlive-map-title-v70="true"] .barlive-map-title-v70{
+    color:#122348!important;font-size:22px!important;line-height:26px!important;font-weight:900!important;letter-spacing:-.5px!important;
+  }
+  [data-barlive-map-title-v70="true"] .barlive-map-subtitle-v70{
+    color:#71809E!important;font-size:11px!important;line-height:15px!important;font-weight:600!important;margin-top:2px!important;
+  }
+  [data-barlive-contrast-control-v70="true"]{
+    border:1px solid #E4EAF0!important;
+    box-shadow:none!important;
+  }
+}
+</style>
+<script id="barlive-ui-master-v70">
+(function(){
+  "use strict";
+  if(window.__BARLIVE_UI_MASTER_V70__)return;
+  window.__BARLIVE_UI_MASTER_V70__=true;
+  var mq=matchMedia("(min-width:768px)"),queued=false,applying=false;
+
+  function rgb(v){
+    var m=String(v||"").match(/rgba?\(\s*(\d+)\s*[, ]\s*(\d+)\s*[, ]\s*(\d+)(?:\s*[,/]\s*([\d.]+))?\s*\)/i);
+    return m?{r:+m[1],g:+m[2],b:+m[3],a:m[4]==null?1:+m[4]}:null;
+  }
+  function transparent(v){var c=rgb(v);return !c||c.a<.06}
+  function nearWhite(v){var c=rgb(v);return !!c&&c.a>.08&&c.r>238&&c.g>238&&c.b>238}
+  function light(v){
+    var c=rgb(v);if(!c||c.a<.08)return false;
+    function lin(n){n/=255;return n<=.03928?n/12.92:Math.pow((n+.055)/1.055,2.4)}
+    return .2126*lin(c.r)+.7152*lin(c.g)+.0722*lin(c.b)>.78;
+  }
+  function saturated(v){
+    var c=rgb(v);if(!c||c.a<.12)return false;
+    return Math.max(c.r,c.g,c.b)-Math.min(c.r,c.g,c.b)>46;
+  }
+  function effectiveBg(el,stop){
+    var p=el,d=0;
+    while(p&&d<12){
+      var cs=getComputedStyle(p);
+      if(!transparent(cs.backgroundColor))return cs.backgroundColor;
+      if(p===stop)break;
+      p=p.parentElement;d++;
+    }
+    return "rgb(246, 248, 249)";
+  }
+  function coloredAncestor(el,stop){
+    var p=el,d=0;
+    while(p&&p!==stop&&d<8){
+      var cs=getComputedStyle(p);
+      if(saturated(cs.backgroundColor)&&!light(cs.backgroundColor))return true;
+      p=p.parentElement;d++;
+    }
+    return false;
+  }
+  function text(el){return String(el&&el.textContent||"").replace(/\s+/g," ").trim()}
+  function commonAncestor(nodes){
+    if(!nodes.length)return null;
+    var p=nodes[0],depth=0;
+    while(p&&p!==document.body&&depth<10){
+      var count=0;
+      for(var i=0;i<nodes.length;i++)if(p.contains(nodes[i]))count++;
+      var r=p.getBoundingClientRect();
+      if(count>=5&&r.width>innerWidth*.45&&r.height<180)return p;
+      p=p.parentElement;depth++;
+    }
+    return null;
+  }
+  function mapHeader(){
+    if(location.pathname.indexOf("/explorar/mapa")<0)return;
+    var wanted={Todos:1,Bares:1,Restaurantes:1,"Cafeterías":1,Pubs:1,Discotecas:1,"Coctelería":1};
+    var nodes=[].slice.call(document.querySelectorAll("button,[role=button]")).filter(function(el){
+      var t=text(el),r=el.getBoundingClientRect();
+      return wanted[t]&&r.top<250&&r.width>40&&r.height>28;
+    });
+    if(nodes.length<5)return;
+    var row=commonAncestor(nodes);if(!row)return;
+    var shell=row;
+    var p=row.parentElement,rr=row.getBoundingClientRect();
+    if(p){
+      var pr=p.getBoundingClientRect();
+      if(pr.width>=rr.width*.96&&pr.height<210&&pr.top<160)shell=p;
+    }
+    shell.setAttribute("data-barlive-map-category-header-v70","true");
+    if(!shell.querySelector('[data-barlive-map-title-v70="true"]')){
+      var title=document.createElement("div");
+      title.setAttribute("data-barlive-map-title-v70","true");
+      title.innerHTML='<div><div class="barlive-map-title-v70">Mapa</div><div class="barlive-map-subtitle-v70">Explora locales por categoría y disponibilidad</div></div>';
+      shell.insertBefore(title,shell.firstChild);
+    }
+  }
+  function contrast(){
+    var frame=document.querySelector('[data-testid="barlive-content-frame"]')||document.getElementById("root");
+    if(!frame)return;
+    var fr=frame.getBoundingClientRect();
+    [].slice.call(frame.children||[]).forEach(function(ch){
+      if(!(ch instanceof HTMLElement))return;
+      var r=ch.getBoundingClientRect(),cs=getComputedStyle(ch);
+      if(r.width>=fr.width*.88&&r.height>=fr.height*.58&&nearWhite(cs.backgroundColor)){
+        ch.setAttribute("data-barlive-page-canvas-v70","true");
+      }
+    });
+    var nodes=frame.querySelectorAll("*");
+    for(var i=0;i<nodes.length;i++){
+      var el=nodes[i];if(!(el instanceof HTMLElement))continue;
+      if(el.closest('[data-barlive-map-category-header-v70="true"]'))continue;
+      var cs=getComputedStyle(el),bg=effectiveBg(el,frame),r=el.getBoundingClientRect();
+      if(nearWhite(cs.color)&&light(bg)&&!coloredAncestor(el,frame)){
+        el.style.setProperty("color","#122348","important");
+      }
+      var interactive=el.matches("button,a,input,select,textarea,[role=button]");
+      if(interactive&&r.width>=28&&r.height>=28&&nearWhite(cs.backgroundColor)){
+        var pb=el.parentElement?effectiveBg(el.parentElement,frame):"rgb(246,248,249)";
+        var borderInvisible=parseFloat(cs.borderTopWidth||"0")<.5||nearWhite(cs.borderTopColor)||transparent(cs.borderTopColor);
+        if(light(pb)&&borderInvisible)el.setAttribute("data-barlive-contrast-control-v70","true");
+      }
+    }
+  }
+  function run(){queued=false;if(applying||!mq.matches)return;applying=true;try{mapHeader();contrast()}finally{applying=false}}
+  function schedule(){if(queued)return;queued=true;requestAnimationFrame(run)}
+  var mo=new MutationObserver(schedule);
+  mo.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:["class"]});
+  addEventListener("resize",schedule,{passive:true});
+  if(mq.addEventListener)mq.addEventListener("change",schedule);
+  [0,80,220,600,1400,2800].forEach(function(ms){setTimeout(schedule,ms)});
+})();
+</script>
+
 </body>
 </html>
