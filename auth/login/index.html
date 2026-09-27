@@ -140,7 +140,7 @@
 @media (max-width:1023px){#barlive-fixed-logo-v51{display:none!important}}
 </style>
 
-<script src="/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8-explore-fixed-20260926-9.js?v=stable-web-v64-20260927" defer></script>
+<script src="/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8-explore-fixed-20260926-9.js?v=stable-web-v65-20260927" defer></script>
 
 
 
@@ -561,16 +561,40 @@ function popupStyle(frame){
     if(!w.__BARLIVE_POPUP_V64__&&typeof w.showPopupFromNative==="function"){
       w.__BARLIVE_POPUP_V64__=true;
       var orig=w.showPopupFromNative;
-      w.showPopupFromNative=function(v,co){
-        var exactId=String(v&&v.id||"");
+
+      function renderExact(payload,co){
+        if(!payload||!payload.id)return null;
+        var exactId=String(payload.id);
+        var exactLng=Number(payload.longitud),exactLat=Number(payload.latitud);
+        var exactCoords=
+          isFinite(exactLng)&&isFinite(exactLat)
+            ? {lng:exactLng,lat:exactLat}
+            : co;
+
         try{
           var p=d.querySelectorAll(".maplibregl-popup");
           for(var i=0;i<p.length;i++)p[i].remove();
           if(w.currentPopup){try{w.currentPopup.remove()}catch(_){}w.currentPopup=null}
         }catch(_){}
-        var z=orig.call(w,v,co);
-        [0,25,80,180].forEach(function(ms){setTimeout(function(){prune();bindExactDetails(exactId)},ms)});
+
+        var z=orig.call(w,enrich(payload),exactCoords);
+        [0,25,80,180].forEach(function(ms){
+          setTimeout(function(){prune();bindExactDetails(exactId)},ms)
+        });
         return z;
+      }
+
+      w.showPopupFromNative=function(v,co){
+        var exactId=String(v&&v.id||"");
+        if(!exactId)return renderExact(enrich(v),co);
+
+        // Every popup path (list selection and marker click) is hydrated from
+        // Supabase by its UUID before rendering. This prevents stale schedule,
+        // missing media and mixed identity payloads from reaching the popup.
+        loadById(exactId).then(function(full){
+          renderExact(full||enrich(v),co);
+        });
+        return null;
       };
       new w.MutationObserver(prune).observe(d.body,{subtree:true,childList:true});
     }
