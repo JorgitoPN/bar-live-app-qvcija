@@ -84,7 +84,7 @@
 
 
 
-<style id="barlive-stable-web-v66">
+<style id="barlive-stable-web-v67">
 @media (min-width:768px){
   html,body,#root{background:#F4F7F6!important}
   body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
@@ -99,101 +99,6 @@
 </style>
 
 
-<style id="barlive-explore-header-surface-v66-style">
-@media (min-width:768px){
-  .barlive-explore-content-unclip-v66{overflow:visible!important}
-}
-</style>
-<script id="barlive-explore-header-surface-v66">
-(function(){"use strict";
-  var CLASS="barlive-explore-content-unclip-v66";
-  var queued=false;
-
-  function txt(el){
-    return String(el&&el.textContent||"").replace(/\s+/g," ").trim().toLowerCase();
-  }
-
-  function findHeader(){
-    var inputs=document.querySelectorAll(
-      'input[placeholder*="Buscar bares" i],input[placeholder*="Buscar" i]'
-    );
-    for(var i=0;i<inputs.length;i++){
-      var p=inputs[i];
-      for(var d=0;d<10&&p;d++,p=p.parentElement){
-        var t=txt(p);
-        if(
-          t.indexOf("explorar")!==-1 &&
-          t.indexOf("todos")!==-1 &&
-          t.indexOf("bares")!==-1 &&
-          t.indexOf("restaurantes")!==-1
-        ){
-          var r;
-          try{r=p.getBoundingClientRect()}catch(_){r=null}
-          if(r&&r.height>=70&&r.height<=220)return p;
-        }
-      }
-    }
-    return null;
-  }
-
-  function sync(){
-    queued=false;
-    var header=findHeader();
-    var marked=document.querySelectorAll("."+CLASS);
-
-    if(!header){
-      for(var m=0;m<marked.length;m++)marked[m].classList.remove(CLASS);
-      return;
-    }
-
-    for(var k=0;k<marked.length;k++){
-      if(marked[k].contains(header))return;
-      marked[k].classList.remove(CLASS);
-    }
-
-    var p=header.parentElement;
-    for(var d=0;d<10&&p;d++,p=p.parentElement){
-      var s,r;
-      try{
-        s=getComputedStyle(p);
-        r=p.getBoundingClientRect();
-      }catch(_){continue}
-
-      var clipped=
-        s.overflow==="hidden"||s.overflow==="clip"||
-        s.overflowX==="hidden"||s.overflowX==="clip"||
-        s.overflowY==="hidden"||s.overflowY==="clip";
-
-      if(
-        clipped &&
-        r.width>=500 &&
-        r.width<=1500 &&
-        r.height>=Math.max(300,innerHeight*.6)
-      ){
-        p.classList.add(CLASS);
-        return;
-      }
-    }
-  }
-
-  function schedule(){
-    if(queued)return;
-    queued=true;
-    requestAnimationFrame(sync);
-  }
-
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",schedule,{once:true});
-  }else{
-    schedule();
-  }
-
-  new MutationObserver(schedule).observe(document.documentElement,{
-    subtree:true,
-    childList:true
-  });
-})();
-</script>
 <style id="barlive-runtime-v54-style">
 #barlive-mini-center-v54{
   position:absolute;right:16px;bottom:16px;width:56px;height:56px;border-radius:50%;
@@ -233,7 +138,16 @@
 @media (max-width:1023px){#barlive-fixed-logo-v51{display:none!important}}
 </style>
 
-<script src="/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8-explore-fixed-20260926-9.js?v=stable-web-v66-header-20260927" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part1.js?v=20260927-header-v67" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part2.js?v=20260927-header-v67" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part3.js?v=20260927-header-v67" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part4.js?v=20260927-header-v67" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part5.js?v=20260927-header-v67" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part6.js?v=20260927-header-v67" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part7.js?v=20260927-header-v67" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part8.js?v=20260927-header-v67" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part9.js?v=20260927-header-v67" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part10.js?v=20260927-header-v67" defer></script>
 
 
 
