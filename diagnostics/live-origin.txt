@@ -1,0 +1,181 @@
+UTC: 2026-09-27T04:25:56Z
+
+=== DNS A ===
+104.21.66.208
+172.67.164.93
+=== DNS AAAA ===
+2606:4700:3037::ac43:a45d
+2606:4700:3035::6815:42d0
+=== DNS CNAME ===
+=== DNS NS ===
+olga.ns.cloudflare.com.
+frank.ns.cloudflare.com.
+
+=== URL: https://barliveapp.es/ ===
+curl_rc=0
+HTTP/2 200 
+date: Sun, 27 Sep 2026 04:25:56 GMT
+content-type: text/html; charset=utf-8
+server: cloudflare
+last-modified: Sun, 27 Sep 2026 04:06:04 GMT
+access-control-allow-origin: *
+cf-cache-status: DYNAMIC
+expires: Sun, 27 Sep 2026 04:35:56 GMT
+cache-control: max-age=600
+x-proxy-cache: MISS
+x-github-request-id: 9B00:26F8A8:2E5ACD0:319E337:6AB89AD4
+x-github-edge-region: iad
+age: 0
+via: 1.1 varnish
+x-served-by: cache-ewr-kewr1740062-EWR
+x-cache: MISS
+x-cache-hits: 0
+x-timer: S1790483157.532941,VS0,VE29
+vary: Accept-Encoding
+x-fastly-request-id: c770de148c58644f4b93dcf0209ea630239af6f8
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=jLKEwDoU64fGbf8XJVrHLeO2NqWQJ%2FgY%2FBXnEZPXBaBtZeogcl9yY4rD9oiVpGqfp%2FWg0UA8Symu%2FYRLSwgIjo1th%2FjjO2r6JXChyJpfNpiRE2BEGlWYA4oikeQAl21i"}]}
+cf-ray: a417bf502ccfe642-IAD
+alt-svc: h3=":443"; ma=86400
+
+--- signatures ---
+barlive-production: stable-web-v68-brand-restored-20260927 -->
+stable-web-v68-allheaders-20260927
+stable-web-v68-brand-restored-20260927
+_expo/static/js/web/barlive-v67-part1.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part2.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part3.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part4.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part5.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part6.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part7.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part8.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part9.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part10.js?v=20260927-header-v67
+purple_count=0
+teal_count=4
+bytes=40747
+sha256=14ae527e982eae35da4f0a0274fe4d2b1df7ad56c597d263df707c69e62c523e
+
+=== URL: https://www.barliveapp.es/ ===
+curl_rc=0
+HTTP/2 301 
+date: Sun, 27 Sep 2026 04:25:56 GMT
+content-type: text/html
+location: https://barliveapp.es/
+server: cloudflare
+x-github-request-id: 3BA4:BB031:2B9FC1C:2EE47D6:6AB89AD4
+x-github-edge-region: iad
+accept-ranges: bytes
+age: 0
+via: 1.1 varnish
+x-served-by: cache-nyc-kteb1890024-NYC
+x-cache: MISS
+x-cache-hits: 0
+x-timer: S1790483157.690748,VS0,VE22
+vary: Accept-Encoding
+x-fastly-request-id: 516aef37096ae2c68878db8a95ba5620a63d609d
+cf-cache-status: DYNAMIC
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Mso2iyj32LSfXTU7oEuUKiIUZp914DA6jEzaqmJSowVPj0MXKYYFuWvc1JzFHCy365JGISACAmBd1PqobekUhK8eWZPgZvKdjDH2gQO%2Fnt2m8yOpuN5TgzRmZSSAh45bD5Sfhg%3D%3D"}]}
+cf-ray: a417bf511b230a98-IAD
+alt-svc: h3=":443"; ma=86400
+
+HTTP/2 200 
+date: Sun, 27 Sep 2026 04:25:56 GMT
+content-type: text/html; charset=utf-8
+server: cloudflare
+last-modified: Sun, 27 Sep 2026 04:06:04 GMT
+access-control-allow-origin: *
+expires: Sun, 27 Sep 2026 04:35:56 GMT
+cache-control: max-age=600
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Glqs%2Fpm1LCTSS%2FQBZrGIPPxPPKJ0k%2B9Mmi1joRFsz%2FjU6JTnyP0u6F1zXdKsVXFlMrXQydiEp7M3WUvs9HKrKvohPwYuqKMtgHa02F0QQQVdkEdv1i%2FzjmOJFKh5Z83e"}]}
+x-proxy-cache: MISS
+x-github-request-id: 9B00:26F8A8:2E5ACD0:319E337:6AB89AD4
+x-github-edge-region: iad
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+via: 1.1 varnish
+age: 0
+x-served-by: cache-ewr-kewr1740073-EWR
+x-cache: HIT
+x-cache-hits: 1
+--- signatures ---
+barlive-production: stable-web-v68-brand-restored-20260927 -->
+stable-web-v68-allheaders-20260927
+stable-web-v68-brand-restored-20260927
+_expo/static/js/web/barlive-v67-part1.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part2.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part3.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part4.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part5.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part6.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part7.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part8.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part9.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part10.js?v=20260927-header-v67
+purple_count=0
+teal_count=4
+bytes=40747
+sha256=14ae527e982eae35da4f0a0274fe4d2b1df7ad56c597d263df707c69e62c523e
+
+=== URL: https://jorgitopn.github.io/bar-live-app-qvcija/ ===
+curl_rc=0
+HTTP/2 301 
+server: GitHub.com
+content-type: text/html
+location: http://barliveapp.es/
+x-github-request-id: EF9A:9F81E:1732D49:1CDDFB2:6AB89AD3
+x-github-edge-region: iad
+accept-ranges: bytes
+age: 0
+date: Sun, 27 Sep 2026 04:25:56 GMT
+via: 1.1 varnish
+x-served-by: cache-iad-kiad7000072-IAD
+x-cache: MISS
+x-cache-hits: 0
+x-timer: S1790483157.853215,VS0,VE10
+vary: Accept-Encoding
+x-fastly-request-id: 85c0fb547d203d0ecf9bb9f153944f6df0c6eec0
+content-length: 162
+
+HTTP/1.1 301 Moved Permanently
+Date: Sun, 27 Sep 2026 04:25:56 GMT
+Content-Type: text/html; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Location: https://barliveapp.es/
+Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=0QCufO0K0z3XVjTuDtxnmjfsAQUuKFdHK1DbvRB3tI2m13tX1vYfJcq%2B2jfG058YJPqHdw176Nf3cSWKfI2pEub6Gku3qFa3kmWa2Z8boTG48zixwR8esPqDk%2FiHHwZP"}]}
+Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+Server: cloudflare
+CF-RAY: a417bf526ae93982-IAD
+alt-svc: h3=":443"; ma=86400
+
+HTTP/2 200 
+date: Sun, 27 Sep 2026 04:25:56 GMT
+content-type: text/html; charset=utf-8
+server: cloudflare
+last-modified: Sun, 27 Sep 2026 04:06:04 GMT
+access-control-allow-origin: *
+expires: Sun, 27 Sep 2026 04:35:56 GMT
+cache-control: max-age=600
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=U%2B26QxH4Es2c%2F98Yg8dgV1slilo4Ou3%2FLwib4pkYwqcIDk2F%2BhzLkf99oKu3HbTb5fyKrEgAE0qlZhyKUXORSaWZNMBteNqgdYByPoV4dor8AQM%2BfRUSNXAkPsEDCGP8"}]}
+x-proxy-cache: MISS
+--- signatures ---
+barlive-production: stable-web-v68-brand-restored-20260927 -->
+stable-web-v68-allheaders-20260927
+stable-web-v68-brand-restored-20260927
+_expo/static/js/web/barlive-v67-part1.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part2.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part3.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part4.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part5.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part6.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part7.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part8.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part9.js?v=20260927-header-v67
+_expo/static/js/web/barlive-v67-part10.js?v=20260927-header-v67
+purple_count=0
+teal_count=4
+bytes=40747
+sha256=14ae527e982eae35da4f0a0274fe4d2b1df7ad56c597d263df707c69e62c523e
+
