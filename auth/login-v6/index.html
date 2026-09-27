@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- barlive-production: stable-web-v70-ui-master-20260927 -->
+<!-- barlive-production: stable-web-v70-ui-master-safe-20260927 -->
 <html lang="es">
   <head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <script id="barlive-google-cost-guard">
@@ -955,6 +955,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     while(p&&p!==stop&&d<8){
       var cs=getComputedStyle(p);
       if(saturated(cs.backgroundColor)&&!light(cs.backgroundColor))return true;
+      if(cs.backgroundImage&&cs.backgroundImage!=="none")return true;
       p=p.parentElement;d++;
     }
     return false;
@@ -1018,7 +1019,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       if(interactive&&r.width>=28&&r.height>=28&&nearWhite(cs.backgroundColor)){
         var pb=el.parentElement?effectiveBg(el.parentElement,frame):"rgb(246,248,249)";
         var borderInvisible=parseFloat(cs.borderTopWidth||"0")<.5||nearWhite(cs.borderTopColor)||transparent(cs.borderTopColor);
-        if(light(pb)&&borderInvisible)el.setAttribute("data-barlive-contrast-control-v70","true");
+        if(light(pb)&&borderInvisible&&!coloredAncestor(el,frame))el.setAttribute("data-barlive-contrast-control-v70","true");
       }
     }
   }
