@@ -31,9 +31,13 @@ jobs:
             CC=$(grep -o 'data-barlive-contrast-control-v70="true"' "$CLEAN" | wc -l || true)
             PC=$(grep -o 'data-barlive-page-canvas-v70="true"' "$CLEAN" | wc -l || true)
             PP=$(grep -Eio '#(641B73|53155F|45114F|F4EAF6|EADAF0|8E4C99|7C3AED|EDE9FE|6D28D9|8B5CF6|A855F7|9333EA|5B21B6|4C1D95|312E81|1E1B4B|6366F1|4F46E5|C4B5FD|DDD6FE|F5F3FF)' "$CLEAN" | wc -l || true)
-            echo "map_header=$MH map_title=$MT contrast_controls=$CC page_canvas=$PC purple_known=$PP"
+            MC=$(grep -o 'data-barlive-map-category-v71="true"' "$CLEAN" | wc -l || true)
+            MS=$(grep -o 'data-barlive-map-category-selected-v71="true"' "$CLEAN" | wc -l || true)
+            echo "map_header=$MH map_title=$MT map_categories=$MC map_selected=$MS contrast_controls=$CC page_canvas=$PC purple_known=$PP"
             if [ "$ROUTE" = "explorar/mapa" ]; then
               python3 -c 'import sys; s=open(sys.argv[1],encoding="utf-8",errors="ignore").read(); needles=["Todos","Bares","Restaurantes","Cafeterías","Pubs","Discotecas","Coctelería"]; print("label_counts="+",".join(n+":"+str(s.count(n)) for n in needles)); i=s.find("Todos"); print("TODOS_CONTEXT="+s[max(0,i-1200):i+2600] if i>=0 else "NO_TODOS")' "$CLEAN"
             fi
           done
           exit 0
+
+# final-v71-verification-trigger
