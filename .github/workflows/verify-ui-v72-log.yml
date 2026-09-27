@@ -1,0 +1,40 @@
+name: Verify BarLive UI v72 log
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-ui-v72-log.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect rendered DOM
+        shell: bash
+        run: |
+          set +e
+          CHROME="$(command -v google-chrome || command -v chromium || true)"
+          echo "UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          curl -sSL --max-time 30 https://barliveapp.es/ -o /tmp/root.html
+          grep -o 'barlive-production:[^<]*' /tmp/root.html | head -n 1 || true
+          for ROUTE in explorar/mapa explorar perfil eventos social; do
+            DOM="/tmp/dom-$(echo "$ROUTE" | tr '/' '-').html"
+            CLEAN="$DOM.clean"
+            "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1440,1000 --virtual-time-budget=12000 --dump-dom "https://barliveapp.es/$ROUTE/" > "$DOM" 2>/dev/null
+            python3 -c 'import re,sys; raw=open(sys.argv[1],encoding="utf-8",errors="ignore").read(); raw=re.sub(r"<script\\b[^>]*>.*?</script>","",raw,flags=re.I|re.S); raw=re.sub(r"<style\\b[^>]*>.*?</style>","",raw,flags=re.I|re.S); open(sys.argv[2],"w",encoding="utf-8").write(raw)' "$DOM" "$CLEAN"
+            echo "=== /$ROUTE/ ==="
+            MH=$(grep -o 'data-barlive-map-category-header-v70="true"' "$CLEAN" | wc -l || true)
+            MT=$(grep -o 'data-barlive-map-title-v70="true"' "$CLEAN" | wc -l || true)
+            MB=$(grep -o 'barlive-map-back-v72' "$CLEAN" | wc -l || true)
+            MC=$(grep -o 'data-barlive-map-category-v71="true"' "$CLEAN" | wc -l || true)
+            MS=$(grep -o 'data-barlive-map-category-selected-v71="true"' "$CLEAN" | wc -l || true)
+            CC=$(grep -o 'data-barlive-contrast-control-v70="true"' "$CLEAN" | wc -l || true)
+            PC=$(grep -o 'data-barlive-page-canvas-v70="true"' "$CLEAN" | wc -l || true)
+            SF=$(grep -o 'data-barlive-surface-v72="true"' "$CLEAN" | wc -l || true)
+            PP=$(grep -Eio '#(641B73|53155F|45114F|F4EAF6|EADAF0|8E4C99|7C3AED|EDE9FE|6D28D9|8B5CF6|A855F7|9333EA|5B21B6|4C1D95|312E81|1E1B4B|6366F1|4F46E5|C4B5FD|DDD6FE|F5F3FF)' "$CLEAN" | wc -l || true)
+            echo "map_header=$MH map_title=$MT map_back=$MB map_categories=$MC map_selected=$MS contrast_controls=$CC page_canvas=$PC surfaces=$SF purple_known=$PP"
+          done
+          exit 0
