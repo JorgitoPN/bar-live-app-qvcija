@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- barlive-production: stable-web-v70-ui-master-safe-20260927 -->
+<!-- barlive-production: stable-web-v71-map-header-20260927 -->
 <html lang="es">
   <head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <script id="barlive-google-cost-guard">
@@ -372,16 +372,16 @@
 @media (max-width:1023px){#barlive-fixed-logo-v51{display:none!important}}
 </style>
 
-<script src="/_expo/static/js/web/barlive-v67-part1.js?v=20260927-ui-v70" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part2.js?v=20260927-ui-v70" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part3.js?v=20260927-ui-v70" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part4.js?v=20260927-ui-v70" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part5.js?v=20260927-ui-v70" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part6.js?v=20260927-ui-v70" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part7.js?v=20260927-ui-v70" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part8.js?v=20260927-ui-v70" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part9.js?v=20260927-ui-v70" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part10.js?v=20260927-ui-v70" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part1.js?v=20260927-ui-v71" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part2.js?v=20260927-ui-v71" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part3.js?v=20260927-ui-v71" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part4.js?v=20260927-ui-v71" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part5.js?v=20260927-ui-v71" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part6.js?v=20260927-ui-v71" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part7.js?v=20260927-ui-v71" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part8.js?v=20260927-ui-v71" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part9.js?v=20260927-ui-v71" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part10.js?v=20260927-ui-v71" defer></script>
 
 
 
@@ -976,25 +976,65 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   function mapHeader(){
     if(location.pathname.indexOf("/explorar/mapa")<0)return;
     var wanted={Todos:1,Bares:1,Restaurantes:1,"Cafeterías":1,Pubs:1,Discotecas:1,"Coctelería":1};
-    var nodes=[].slice.call(document.querySelectorAll("button,[role=button]")).filter(function(el){
+    var nodes=[].slice.call(document.querySelectorAll("button,[role=button],[tabindex='0']")).filter(function(el){
       var t=text(el),r=el.getBoundingClientRect();
-      return wanted[t]&&r.top<250&&r.width>40&&r.height>28;
+      return wanted[t]&&r.top<260&&r.width>40&&r.height>28&&r.height<100;
     });
     if(nodes.length<5)return;
+
     var row=commonAncestor(nodes);if(!row)return;
     var shell=row;
     var p=row.parentElement,rr=row.getBoundingClientRect();
     if(p){
       var pr=p.getBoundingClientRect();
-      if(pr.width>=rr.width*.96&&pr.height<210&&pr.top<160)shell=p;
+      if(pr.width>=rr.width*.92&&pr.height<230&&pr.top<170)shell=p;
     }
+
     shell.setAttribute("data-barlive-map-category-header-v70","true");
+    shell.style.setProperty("background-image","none","important");
+    shell.style.setProperty("background-color","#FFFFFF","important");
+    shell.style.setProperty("border-bottom","1px solid #E4EAF0","important");
+    shell.style.setProperty("box-shadow","0 2px 10px rgba(15,35,72,.04)","important");
+
     if(!shell.querySelector('[data-barlive-map-title-v70="true"]')){
       var title=document.createElement("div");
       title.setAttribute("data-barlive-map-title-v70","true");
       title.innerHTML='<div><div class="barlive-map-title-v70">Mapa</div><div class="barlive-map-subtitle-v70">Explora locales por categoría y disponibilidad</div></div>';
       shell.insertBefore(title,shell.firstChild);
     }
+
+    nodes.forEach(function(control){
+      var selected=!!control.querySelector('[style*="background-image"]');
+      control.setAttribute("data-barlive-map-category-v71","true");
+      control.setAttribute("data-barlive-map-category-selected-v71",selected?"true":"false");
+      control.style.setProperty("width","auto","important");
+      control.style.setProperty("min-width","112px","important");
+      control.style.setProperty("height","42px","important");
+      control.style.setProperty("border-radius","10px","important");
+      control.style.setProperty("border","1px solid "+(selected?"#14B8A6":"#E4EAF0"),"important");
+      control.style.setProperty("background-color",selected?"#14B8A6":"#FFFFFF","important");
+      control.style.setProperty("flex-direction","row","important");
+      control.style.setProperty("gap","8px","important");
+      control.style.setProperty("padding","0 16px","important");
+
+      [].slice.call(control.querySelectorAll('[style*="background-image"]')).forEach(function(layer){
+        layer.style.setProperty("display","none","important");
+      });
+
+      [].slice.call(control.querySelectorAll("[dir='auto']")).forEach(function(label){
+        var cs=getComputedStyle(label);
+        var isIcon=String(cs.fontFamily||"").toLowerCase().indexOf("material")>=0;
+        label.style.setProperty(
+          "color",
+          selected?"#FFFFFF":(isIcon?"#14B8A6":"#4F638C"),
+          "important"
+        );
+        if(!isIcon){
+          label.style.setProperty("font-size","11px","important");
+          label.style.setProperty("font-weight","800","important");
+        }
+      });
+    });
   }
   function contrast(){
     var frame=document.querySelector('[data-testid="barlive-content-frame"]')||document.getElementById("root");
