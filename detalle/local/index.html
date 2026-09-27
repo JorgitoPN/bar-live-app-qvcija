@@ -117,7 +117,7 @@
 </style>
 </head>
 
-  <body>
+  <body><div id="barlive-logo-v54"></div>
     <!-- Use static rendering with Expo Router to support running without JavaScript. -->
     <noscript>
       You need to enable JavaScript to run this app.
@@ -346,7 +346,7 @@ function start(){
   ensureLogo();maintain();
   try{var raw=localStorage.getItem("barlive:last-web-location-v1"),j=raw&&JSON.parse(raw);if(j&&isFinite(Number(j.latitude))&&isFinite(Number(j.longitude)))setTimeout(function(){applyCoords({latitude:Number(j.latitude),longitude:Number(j.longitude)})},350)}catch(_){}
   setTimeout(locate,700);
-  document.addEventListener("click",function(e){var sel=selectionFromCard(e.target);if(sel){e.stopImmediatePropagation();setTimeout(function(){openExact(sel)},0)}setTimeout(function(){raiseProvince();maintain()},40)},true);
+  document.addEventListener("click",function(e){var sel=selectionFromCard(e.target);if(sel){setTimeout(function(){openExact(sel)},0)}setTimeout(function(){raiseProvince();maintain()},40)},true);
   var q=false;new MutationObserver(function(){if(q)return;q=true;setTimeout(function(){q=false;maintain()},90)}).observe(document.documentElement,{subtree:true,childList:true});
   [250,700,1500,3000,6000].forEach(function(ms){setTimeout(maintain,ms)});
   addEventListener("resize",function(){setTimeout(maintain,100)},{passive:true});
