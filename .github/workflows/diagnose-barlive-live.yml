@@ -1,0 +1,51 @@
+name: Diagnose BarLive live origin
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/diagnose-barlive-live.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect DNS and live HTML
+        shell: bash
+        run: |
+          set -u
+          echo "=== UTC ==="
+          date -u
+          echo
+          echo "=== DNS A ==="
+          dig +short A barliveapp.es || true
+          echo "=== DNS AAAA ==="
+          dig +short AAAA barliveapp.es || true
+          echo "=== DNS CNAME ==="
+          dig +short CNAME barliveapp.es || true
+          echo "=== DNS NS ==="
+          dig +short NS barliveapp.es || true
+          echo
+          echo "=== HTTPS RESPONSE ==="
+          curl -sS --max-time 30 -D /tmp/headers.txt -o /tmp/index.html https://barliveapp.es/ || true
+          cat /tmp/headers.txt 2>/dev/null || true
+          echo
+          echo "=== LIVE HTML SIGNATURES ==="
+          grep -o 'barlive-production:[^<]*' /tmp/index.html 2>/dev/null | head -n 5 || true
+          grep -o 'stable-web-v[0-9A-Za-z-]*' /tmp/index.html 2>/dev/null | sort -u | head -n 20 || true
+          grep -o '_expo/static/js/web/[^"''' ]*' /tmp/index.html 2>/dev/null | head -n 30 || true
+          echo -n "purple_count="
+          grep -o '#641B73' /tmp/index.html 2>/dev/null | wc -l || true
+          echo -n "teal_count="
+          grep -o '#14B8A6' /tmp/index.html 2>/dev/null | wc -l || true
+          echo
+          echo "=== LIVE HTML HASH ==="
+          sha256sum /tmp/index.html 2>/dev/null || true
+          echo
+          echo "=== HTTP RESPONSE ==="
+          curl -sSIL --max-time 30 http://barliveapp.es/ || true
