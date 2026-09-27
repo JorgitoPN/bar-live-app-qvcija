@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- barlive-production: stable-web-v71-map-header-20260927 -->
+<!-- barlive-production: stable-web-v72-ui-master-20260927 -->
 <html lang="es">
   <head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <script id="barlive-google-cost-guard">
@@ -86,7 +86,7 @@
 
 <style id="barlive-stable-web-v68-allheaders-20260927">
 @media (min-width:768px){
-  html,body,#root{background:#F7F7F8!important}
+  html,body,#root{background:#F6F8F9!important}
   body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
   *{scrollbar-width:thin;scrollbar-color:rgba(100,116,139,.32) transparent}
   *::-webkit-scrollbar{width:8px;height:8px}
@@ -269,6 +269,10 @@
       var el=nodes[i],er=rect(el);if(!er)continue;
       var cs;try{cs=getComputedStyle(el)}catch(_){continue}
       var bgc=rgba(cs.backgroundColor),fgc=rgba(cs.color);
+      var padTop=parseFloat(cs.paddingTop||"0");
+      if(er.width>hr.width*.65&&padTop>24&&er.top<=hr.top+12&&er.height<220){
+        el.style.setProperty("padding-top","12px","important");
+      }
       var purpleBg=bgc&&bgc.a>.1&&bgc.b>bgc.g+34&&bgc.r>bgc.g+24&&bgc.b>92;
       var purpleFg=fgc&&fgc.a>.1&&fgc.b>fgc.g+34&&fgc.r>fgc.g+24&&fgc.b>92;
       if(purpleBg)el.style.setProperty("background-color",isOwnInteractive(el)?"#14B8A6":"#ECFBF8","important");
@@ -372,16 +376,16 @@
 @media (max-width:1023px){#barlive-fixed-logo-v51{display:none!important}}
 </style>
 
-<script src="/_expo/static/js/web/barlive-v67-part1.js?v=20260927-ui-v71" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part2.js?v=20260927-ui-v71" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part3.js?v=20260927-ui-v71" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part4.js?v=20260927-ui-v71" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part5.js?v=20260927-ui-v71" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part6.js?v=20260927-ui-v71" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part7.js?v=20260927-ui-v71" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part8.js?v=20260927-ui-v71" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part9.js?v=20260927-ui-v71" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part10.js?v=20260927-ui-v71" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part1.js?v=20260927-ui-v72" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part2.js?v=20260927-ui-v72" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part3.js?v=20260927-ui-v72" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part4.js?v=20260927-ui-v72" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part5.js?v=20260927-ui-v72" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part6.js?v=20260927-ui-v72" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part7.js?v=20260927-ui-v72" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part8.js?v=20260927-ui-v72" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part9.js?v=20260927-ui-v72" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part10.js?v=20260927-ui-v72" defer></script>
 
 
 
@@ -916,6 +920,20 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     border:1px solid #E4EAF0!important;
     box-shadow:none!important;
   }
+  [data-barlive-surface-v72="true"]{
+    border:1px solid #E4EAF0!important;
+    box-shadow:0 1px 3px rgba(15,35,72,.025)!important;
+  }
+  .barlive-map-back-v72{
+    width:40px!important;height:40px!important;border-radius:10px!important;
+    border:1px solid #E4EAF0!important;background:#FFFFFF!important;
+    color:#122348!important;display:flex!important;align-items:center!important;
+    justify-content:center!important;cursor:pointer!important;flex:0 0 auto!important;
+    padding:0!important;font-size:20px!important;line-height:1!important;
+  }
+  .barlive-map-title-wrap-v72{
+    display:flex!important;align-items:center!important;gap:12px!important;min-width:0!important;
+  }
 }
 </style>
 <script id="barlive-ui-master-v70">
@@ -939,6 +957,20 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   function saturated(v){
     var c=rgb(v);if(!c||c.a<.12)return false;
     return Math.max(c.r,c.g,c.b)-Math.min(c.r,c.g,c.b)>46;
+  }
+  function purple(v){
+    var c=rgb(v);if(!c||c.a<.08)return false;
+    return c.b>c.g+28&&c.r>c.g+18&&c.b>86;
+  }
+  function remapPurpleRgb(match,r,g,b,a){
+    r=+r;g=+g;b=+b;
+    if(!(b>g+28&&r>g+18&&b>86))return match;
+    var alpha=a==null?"":","+a;
+    return "rgba(20,184,166"+alpha+")";
+  }
+  function remapGradient(value){
+    if(!value||value==="none")return value;
+    return String(value).replace(/rgba?\(\s*(\d+)\s*[, ]\s*(\d+)\s*[, ]\s*(\d+)(?:\s*[,/]\s*([\d.]+))?\s*\)/gi,remapPurpleRgb);
   }
   function effectiveBg(el,stop){
     var p=el,d=0;
@@ -999,12 +1031,16 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     if(!shell.querySelector('[data-barlive-map-title-v70="true"]')){
       var title=document.createElement("div");
       title.setAttribute("data-barlive-map-title-v70","true");
-      title.innerHTML='<div><div class="barlive-map-title-v70">Mapa</div><div class="barlive-map-subtitle-v70">Explora locales por categoría y disponibilidad</div></div>';
+      title.innerHTML='<div class="barlive-map-title-wrap-v72"><button type="button" class="barlive-map-back-v72" aria-label="Volver">‹</button><div><div class="barlive-map-title-v70">Mapa</div><div class="barlive-map-subtitle-v70">Explora locales por categoría y disponibilidad</div></div></div>';
+      var back=title.querySelector(".barlive-map-back-v72");
+      if(back)back.onclick=function(e){e.preventDefault();e.stopPropagation();if(history.length>1)history.back();else location.assign("/explorar/")};
       shell.insertBefore(title,shell.firstChild);
     }
 
     nodes.forEach(function(control){
-      var selected=!!control.querySelector('[style*="background-image"]');
+      var selected=control.getAttribute("data-barlive-map-category-selected-v71")==="true"||
+        !!control.querySelector('[style*="background-image"]')||
+        /20,\s*184,\s*166/.test(getComputedStyle(control).backgroundColor||"");
       control.setAttribute("data-barlive-map-category-v71","true");
       control.setAttribute("data-barlive-map-category-selected-v71",selected?"true":"false");
       control.style.setProperty("width","auto","important");
@@ -1039,27 +1075,68 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   function contrast(){
     var frame=document.querySelector('[data-testid="barlive-content-frame"]')||document.getElementById("root");
     if(!frame)return;
-    var fr=frame.getBoundingClientRect();
-    [].slice.call(frame.children||[]).forEach(function(ch){
-      if(!(ch instanceof HTMLElement))return;
+    var fr=frame.getBoundingClientRect(),frameArea=Math.max(1,fr.width*fr.height);
+
+    var all=[].slice.call(frame.querySelectorAll("*"));
+    var top=[].slice.call(frame.children||[]);
+
+    // Convert only genuinely page-sized white wrappers into the shared grey canvas.
+    top.concat(all.slice(0,140)).forEach(function(ch){
+      if(!(ch instanceof HTMLElement)||ch.closest('[data-barlive-map-category-header-v70="true"]'))return;
       var r=ch.getBoundingClientRect(),cs=getComputedStyle(ch);
-      if(r.width>=fr.width*.88&&r.height>=fr.height*.58&&nearWhite(cs.backgroundColor)){
+      var large=r.width>=fr.width*.86&&r.height>=fr.height*.48;
+      var noMedia=!cs.backgroundImage||cs.backgroundImage==="none";
+      if(large&&noMedia&&nearWhite(cs.backgroundColor)){
         ch.setAttribute("data-barlive-page-canvas-v70","true");
       }
     });
-    var nodes=frame.querySelectorAll("*");
-    for(var i=0;i<nodes.length;i++){
-      var el=nodes[i];if(!(el instanceof HTMLElement))continue;
+
+    for(var i=0;i<all.length;i++){
+      var el=all[i];if(!(el instanceof HTMLElement))continue;
       if(el.closest('[data-barlive-map-category-header-v70="true"]'))continue;
+
       var cs=getComputedStyle(el),bg=effectiveBg(el,frame),r=el.getBoundingClientRect();
-      if(nearWhite(cs.color)&&light(bg)&&!coloredAncestor(el,frame)){
+      var interactive=el.matches("button,a,input,select,textarea,[role=button]");
+      var filled=coloredAncestor(el,frame);
+
+      // Remove legacy purple UI from solid fills, text, borders and CSS gradients.
+      if(purple(cs.backgroundColor)){
+        el.style.setProperty("background-color",interactive?"#14B8A6":"#ECFBF8","important");
+      }
+      if(purple(cs.color))el.style.setProperty("color","#14B8A6","important");
+      if(purple(cs.borderTopColor))el.style.setProperty("border-color","#14B8A6","important");
+      if(cs.backgroundImage&&cs.backgroundImage!=="none"){
+        var mapped=remapGradient(cs.backgroundImage);
+        if(mapped!==cs.backgroundImage)el.style.setProperty("background-image",mapped,"important");
+      }
+
+      // Objective white-on-light contrast failure.
+      if(nearWhite(cs.color)&&light(bg)&&!filled){
         el.style.setProperty("color","#122348","important");
       }
-      var interactive=el.matches("button,a,input,select,textarea,[role=button]");
+
+      // White semantic controls on a light parent get an explicit edge.
       if(interactive&&r.width>=28&&r.height>=28&&nearWhite(cs.backgroundColor)){
         var pb=el.parentElement?effectiveBg(el.parentElement,frame):"rgb(246,248,249)";
         var borderInvisible=parseFloat(cs.borderTopWidth||"0")<.5||nearWhite(cs.borderTopColor)||transparent(cs.borderTopColor);
-        if(light(pb)&&borderInvisible&&!coloredAncestor(el,frame))el.setAttribute("data-barlive-contrast-control-v70","true");
+        if(light(pb)&&borderInvisible&&!filled)el.setAttribute("data-barlive-contrast-control-v70","true");
+      }
+
+      // Distinguish white cards/panels from the grey page canvas. This is
+      // intentionally limited to rounded structural containers, never images.
+      if(
+        !interactive&&
+        (el.tagName==="DIV"||el.tagName==="SECTION"||el.tagName==="ARTICLE")&&
+        nearWhite(cs.backgroundColor)&&
+        (!cs.backgroundImage||cs.backgroundImage==="none")&&
+        parseFloat(cs.borderRadius||"0")>=6&&
+        r.width>=120&&r.height>=48&&
+        r.width*r.height<frameArea*.72&&
+        el.children.length>=2
+      ){
+        var parentBg=el.parentElement?effectiveBg(el.parentElement,frame):"rgb(246,248,249)";
+        var noBorder=parseFloat(cs.borderTopWidth||"0")<.5||nearWhite(cs.borderTopColor)||transparent(cs.borderTopColor);
+        if(light(parentBg)&&noBorder)el.setAttribute("data-barlive-surface-v72","true");
       }
     }
   }
