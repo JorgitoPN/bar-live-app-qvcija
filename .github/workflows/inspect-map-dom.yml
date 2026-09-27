@@ -1,0 +1,59 @@
+name: Inspect BarLive map DOM
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/inspect-map-dom.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect rendered map DOM
+        shell: bash
+        run: |
+          set +e
+          mkdir -p diagnostics
+          OUT=diagnostics/map-dom.txt
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          DOM=/tmp/map.html
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage             --window-size=1600,1000 --virtual-time-budget=16000             --dump-dom "https://barliveapp.es/explorar/mapa/" > "$DOM" 2>/tmp/chrome.err
+          {
+            echo "UTC: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "DOM_BYTES=$(wc -c < "$DOM")"
+            echo "=== BODY START ==="
+            grep -o '<body[^>]*>.*' "$DOM" | head -c 6000
+            echo
+            echo "=== CATEGORY TEXT CONTEXT ==="
+            python3 - <<'PY'
+from pathlib import Path
+s=Path('/tmp/map.html').read_text(errors='ignore')
+for needle in ['Cafeterías','Discotecas','Coctelería','Todos','Abiertos']:
+    i=s.find(needle)
+    print('\nNEEDLE', needle, 'AT', i)
+    if i>=0:
+        print(s[max(0,i-5000):i+8000])
+PY
+            echo
+            echo "=== DATA TESTIDS / IDS ==="
+            grep -o 'data-testid="[^"]*"' "$DOM" | sort -u | head -n 120
+            grep -o 'id="[^"]*"' "$DOM" | sort -u | head -n 120
+            echo
+            echo "=== CHROME ERR TAIL ==="
+            tail -n 25 /tmp/chrome.err
+          } > "$OUT" 2>&1
+      - name: Commit diagnostic
+        shell: bash
+        run: |
+          git config user.name "barlive-diagnostic-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add diagnostics/map-dom.txt
+          git commit -m "diagnostic: capture map DOM [skip ci]" || exit 0
+          git push origin HEAD:main
