@@ -140,7 +140,7 @@
 @media (max-width:1023px){#barlive-fixed-logo-v51{display:none!important}}
 </style>
 
-<script src="/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8-explore-fixed-20260926-9.js?v=stable-web-v62-20260927" defer></script>
+<script src="/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8-explore-fixed-20260926-9.js?v=stable-web-v63-20260927" defer></script>
 
 
 
@@ -322,14 +322,36 @@ function popupStyle(frame){
   }catch(_){}
 }
 function hideSmallOverlay(frame){
-  if(!frame)return;var fr;try{fr=frame.getBoundingClientRect()}catch(_){return}
-  var bs=document.querySelectorAll("button,[role=button]");
-  for(var i=0;i<bs.length;i++){if(tx(bs[i]).indexOf("Ver local")!==0)continue;var r;try{r=bs[i].getBoundingClientRect()}catch(_){continue}
-    var x=r.left+r.width/2,y=r.top+r.height/2;if(x<fr.left||x>fr.right||y<fr.top||y>fr.bottom)continue;
-    var p=bs[i];for(var j=0;j<8&&p;j++,p=p.parentElement){var q;try{q=p.getBoundingClientRect()}catch(_){continue}
-      if(q.width>=180&&q.width<=700&&q.height>=45&&q.height<=220){p.style.setProperty("display","none","important");break}}
+  var fr=null;
+  if(frame){try{fr=frame.getBoundingClientRect()}catch(_){}}
+  var nodes=document.querySelectorAll("div,span,button,a,[role=button]");
+  for(var i=0;i<nodes.length;i++){
+    if(tx(nodes[i])!=="Ver local")continue;
+    var p=nodes[i];
+    for(var j=0;j<9&&p;j++,p=p.parentElement){
+      var r=null,cs=null;try{r=p.getBoundingClientRect();cs=getComputedStyle(p)}catch(_){}
+      if(!r)continue;
+      if(r.width<190||r.width>560||r.height<52||r.height>190)continue;
+
+      var insideMap=false;
+      if(fr){
+        var cx=r.left+r.width/2,cy=r.top+r.height/2;
+        insideMap=cx>=fr.left-30&&cx<=fr.right+30&&cy>=fr.top-30&&cy<=fr.bottom+30;
+      }
+      var positioned=cs&&(cs.position==="absolute"||cs.position==="fixed");
+      var looksLikeLegacyCard=insideMap||positioned;
+      if(!looksLikeLegacyCard)continue;
+
+      // This is the obsolete React mini-popup (title + province + "Ver local").
+      // The canonical MapLibre popup lives inside the iframe and is therefore
+      // not part of this parent-document query.
+      p.style.setProperty("display","none","important");
+      p.setAttribute("data-barlive-legacy-mini-popup","hidden");
+      break;
+    }
   }
 }
+
 function openExact(sel){
   var key=norm(sel.name)+"|"+norm(sel.address);selectedKey=key;
   loadExact(sel).then(function(v){if(!v||selectedKey!==key)return;var tries=0;(function go(){tries++;var f=mini();if(f){popupStyle(f);hideSmallOverlay(f);
@@ -353,14 +375,14 @@ function raiseProvince(){
     for(var d=0;d<6&&p;d++,p=p.parentElement){var r;try{r=p.getBoundingClientRect()}catch(_){continue}
       if(r.width>=180&&r.width<=460&&r.height>=120){p.style.zIndex="2147483000";var a=p.parentElement;for(var k=0;k<5&&a;k++,a=a.parentElement){a.style.overflow="visible";a.style.position=a.style.position||"relative";a.style.zIndex=String(2147482000-k)}return}}}
 }
-function maintain(){ensureLogo();centerButton();var f=mini();if(f){popupStyle(f);hideSmallOverlay(f)}}
+function maintain(){ensureLogo();centerButton();var f=mini();hideSmallOverlay(f);if(f){popupStyle(f);hideSmallOverlay(f)}}
 function start(){
   ensureLogo();maintain();
   try{var raw=localStorage.getItem("barlive:last-web-location-v1"),j=raw&&JSON.parse(raw);if(j&&isFinite(Number(j.latitude))&&isFinite(Number(j.longitude)))setTimeout(function(){applyCoords({latitude:Number(j.latitude),longitude:Number(j.longitude)})},350)}catch(_){}
   setTimeout(locate,700);
   document.addEventListener("click",function(e){var sel=selectionFromCard(e.target);if(sel){setTimeout(function(){openExact(sel)},0)}setTimeout(function(){raiseProvince();maintain()},40)},true);
   var q=false;new MutationObserver(function(){if(q)return;q=true;setTimeout(function(){q=false;maintain()},90)}).observe(document.documentElement,{subtree:true,childList:true});
-  [250,700,1500,3000,6000].forEach(function(ms){setTimeout(maintain,ms)});
+  [0,80,180,350,700,1200,2000,3500,6000].forEach(function(ms){setTimeout(maintain,ms)});
   addEventListener("resize",function(){setTimeout(maintain,100)},{passive:true});
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start();
