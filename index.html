@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- barlive-production: canonical-map-v24-popup-restored-df05423-20260926 -->
+<!-- barlive-production: stable-web-v68-corrected-20260927 -->
 <html lang="es">
   <head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <script id="barlive-google-cost-guard">
@@ -73,7 +73,7 @@
         flex: 1;
       }
     </style>
-  <link rel="manifest" href="/manifest.json"><link rel="icon" href="/favicon.ico"><meta name="theme-color" content="#14B8A6">
+  <link rel="manifest" href="/manifest.json"><link rel="icon" href="/favicon.ico"><meta name="theme-color" content="#641B73">
 
 
 
@@ -86,7 +86,7 @@
 
 <style id="barlive-stable-web-v68-allheaders-20260927">
 @media (min-width:768px){
-  html,body,#root{background:#F4F7F6!important}
+  html,body,#root{background:#F7F7F8!important}
   body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
   *{scrollbar-width:thin;scrollbar-color:rgba(100,116,139,.32) transparent}
   *::-webkit-scrollbar{width:8px;height:8px}
@@ -114,7 +114,7 @@
     position:absolute;
     left:0;right:0;
     background:#fff;
-    border-bottom:1px solid #E8EEF2;
+    border-bottom:1px solid #E5E5E8;
     box-shadow:0 2px 10px rgba(15,23,42,.025);
     pointer-events:none;
     z-index:3;
@@ -127,11 +127,15 @@
   }
   .barlive-global-web-header-v68[data-barlive-wide="true"]{
     background-color:#fff!important;
-    border-bottom-color:#E8EEF2!important;
+    border-bottom-color:#E5E5E8!important;
   }
   .barlive-header-soft-control-v68{
-    background-color:#F3F7F8!important;
-    border-color:#DCE6EA!important;
+    background-color:#F4EAF6!important;
+    border-color:#D6D7DC!important;
+  }
+  .barlive-header-soft-control-v68,
+  .barlive-header-soft-control-v68 *{
+    color:#641B73!important;
   }
 }
 </style>
@@ -164,6 +168,18 @@
     var max=Math.max(c.r,c.g,c.b),min=Math.min(c.r,c.g,c.b);
     return max-min>38 && max<245;
   }
+  function isOwnInteractive(el){
+    if(!el||!el.matches)return false;
+    return el.matches("button,a,input,select,textarea,[role=button]");
+  }
+  function insideInteractive(el,header){
+    var p=el,n=0;
+    while(p&&p!==header&&n<7){
+      if(isOwnInteractive(p))return true;
+      p=p.parentElement;n++;
+    }
+    return false;
+  }
   function findSidebar(){
     var nodes=document.querySelectorAll("aside,nav,div");
     var best=null,bestScore=-1;
@@ -182,14 +198,17 @@
   function candidateScore(el,sideRight){
     var r=rect(el);if(!r)return -1;
     var avail=innerWidth-sideRight;
-    if(r.left<sideRight-8||r.top<-8||r.top>190||r.height<34||r.height>245)return -1;
+    if(r.left<sideRight-8||r.top<-8||r.top>150||r.height<34||r.height>210)return -1;
     if(r.width<Math.max(300,avail*.42))return -1;
     var cs;try{cs=getComputedStyle(el)}catch(_){return -1}
     var id=String(el.getAttribute("data-testid")||"").toLowerCase();
-    var t=txt(el),controls=el.querySelectorAll("button,input,[role=button],a").length;
+    var explicit=el.tagName==="HEADER"||id.indexOf("header")>=0;
+    var gradient=cs.backgroundImage&&cs.backgroundImage!=="none";
+    if(!explicit&&!gradient)return -1;
+    var t=txt(el),controls=el.querySelectorAll("button,input,select,[role=button],a").length;
     var score=190-Math.max(0,r.top)*.7;
-    if(id.indexOf("header")>=0)score+=180;
-    if(cs.backgroundImage&&cs.backgroundImage!=="none")score+=60;
+    if(explicit)score+=220;
+    if(gradient)score+=80;
     if(!transparent(cs.backgroundColor))score+=24;
     if(controls)score+=Math.min(controls,6)*8;
     if(t.length>=2&&t.length<=500)score+=12;
@@ -206,7 +225,7 @@
       var s=candidateScore(el,sideRight);
       if(s>bestScore){bestScore=s;best=el}
     }
-    return bestScore>80?best:null;
+    return bestScore>120?best:null;
   }
   function findStage(header,sideRight){
     var p=header,best=null,bestDepth=999,depth=0;
@@ -252,10 +271,10 @@
         el.style.setProperty("background-image","none","important");
         el.style.setProperty("background-color","transparent","important");
       }
-      if(whiteish(cs.color)&&!preserveAccent(el,header)){
+      if(whiteish(cs.color)&&!insideInteractive(el,header)&&!preserveAccent(el,header)){
         el.style.setProperty("color","#0F172A","important");
       }
-      if(pale(cs.backgroundColor)&&er.height<=64&&er.width<=420){
+      if(isOwnInteractive(el)&&pale(cs.backgroundColor)&&!saturated(cs.backgroundColor)&&er.height<=64&&er.width<=420){
         el.classList.add("barlive-header-soft-control-v68");
       }
     }
@@ -310,10 +329,10 @@
   }
 
   var mo=new MutationObserver(schedule);
-  mo.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:["style","data-testid","class"]});
+  mo.observe(document.documentElement,{subtree:true,childList:true});
   if(mq.addEventListener)mq.addEventListener("change",schedule);else if(mq.addListener)mq.addListener(schedule);
   document.addEventListener("visibilitychange",schedule,{passive:true});
-  [0,80,250,700,1400,3000].forEach(function(ms){setTimeout(schedule,ms)});
+  [0,100,300,900,2200].forEach(function(ms){setTimeout(schedule,ms)});
 })();
 </script>
 </head>
