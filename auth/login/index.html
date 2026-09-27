@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- barlive-production: stable-web-v68-brand-restored-20260927 -->
+<!-- barlive-production: stable-web-v69-explore-header-20260927 -->
 <html lang="es">
   <head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <script id="barlive-google-cost-guard">
@@ -130,12 +130,13 @@
     border-bottom-color:#E5E5E8!important;
   }
   .barlive-header-soft-control-v68{
-    background-color:#ECFBF8!important;
-    border-color:#D6D7DC!important;
+    background-color:#F3F7F8!important;
+    border:1px solid #E4EAF0!important;
+    box-shadow:none!important;
   }
   .barlive-header-soft-control-v68,
   .barlive-header-soft-control-v68 *{
-    color:#14B8A6!important;
+    color:#122348!important;
   }
 }
 </style>
@@ -251,6 +252,7 @@
     while(p&&p!==header&&n<4){
       var cs;try{cs=getComputedStyle(p)}catch(_){break}
       if(!transparent(cs.backgroundColor)&&saturated(cs.backgroundColor))return true;
+      if(cs.backgroundImage&&cs.backgroundImage!=="none")return true;
       p=p.parentElement;n++;
     }
     return false;
@@ -266,15 +268,20 @@
     for(var i=0;i<nodes.length;i++){
       var el=nodes[i],er=rect(el);if(!er)continue;
       var cs;try{cs=getComputedStyle(el)}catch(_){continue}
+      var bgc=rgba(cs.backgroundColor),fgc=rgba(cs.color);
+      var purpleBg=bgc&&bgc.a>.1&&bgc.b>bgc.g+34&&bgc.r>bgc.g+24&&bgc.b>92;
+      var purpleFg=fgc&&fgc.a>.1&&fgc.b>fgc.g+34&&fgc.r>fgc.g+24&&fgc.b>92;
+      if(purpleBg)el.style.setProperty("background-color",isOwnInteractive(el)?"#14B8A6":"#ECFBF8","important");
+      if(purpleFg)el.style.setProperty("color","#14B8A6","important");
       // Only flatten large gradient layers, never chips/buttons/cards.
       if(cs.backgroundImage&&cs.backgroundImage!=="none"&&er.width>hr.width*.72&&er.height>hr.height*.55){
         el.style.setProperty("background-image","none","important");
         el.style.setProperty("background-color","transparent","important");
       }
-      if(whiteish(cs.color)&&!insideInteractive(el,header)&&!preserveAccent(el,header)){
+      if(whiteish(cs.color)&&!preserveAccent(el,header)){
         el.style.setProperty("color","#0F172A","important");
       }
-      if(isOwnInteractive(el)&&pale(cs.backgroundColor)&&!saturated(cs.backgroundColor)&&er.height<=64&&er.width<=420){
+      if(isOwnInteractive(el)&&(pale(cs.backgroundColor)||transparent(cs.backgroundColor))&&!saturated(cs.backgroundColor)&&er.height<=64&&er.width<=420){
         el.classList.add("barlive-header-soft-control-v68");
       }
     }
@@ -365,16 +372,16 @@
 @media (max-width:1023px){#barlive-fixed-logo-v51{display:none!important}}
 </style>
 
-<script src="/_expo/static/js/web/barlive-v67-part1.js?v=20260927-header-v67" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part2.js?v=20260927-header-v67" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part3.js?v=20260927-header-v67" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part4.js?v=20260927-header-v67" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part5.js?v=20260927-header-v67" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part6.js?v=20260927-header-v67" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part7.js?v=20260927-header-v67" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part8.js?v=20260927-header-v67" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part9.js?v=20260927-header-v67" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part10.js?v=20260927-header-v67" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part1.js?v=20260927-header-v69" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part2.js?v=20260927-header-v69" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part3.js?v=20260927-header-v69" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part4.js?v=20260927-header-v69" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part5.js?v=20260927-header-v69" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part6.js?v=20260927-header-v69" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part7.js?v=20260927-header-v69" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part8.js?v=20260927-header-v69" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part9.js?v=20260927-header-v69" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part10.js?v=20260927-header-v69" defer></script>
 
 
 
