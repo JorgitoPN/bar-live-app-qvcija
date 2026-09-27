@@ -140,7 +140,7 @@
 @media (max-width:1023px){#barlive-fixed-logo-v51{display:none!important}}
 </style>
 
-<script src="/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8-explore-fixed-20260926-9.js?v=stable-web-v63-20260927" defer></script>
+<script src="/_expo/static/js/web/entry-4861ff6021ef28fe62f6df13f1490bc8-explore-fixed-20260926-9.js?v=stable-web-v64-20260927" defer></script>
 
 
 
@@ -211,7 +211,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 
 <script id="barlive-runtime-v54">
 (function(){"use strict";
-if(window.__BARLIVE_V54__)return;window.__BARLIVE_V54__=true;
+if(window.__BARLIVE_V64__)return;window.__BARLIVE_V64__=true;
 var REST="https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/locales";
 var KEY="sb_publishable_ffrXoLqKentwGrBXq3ZTDg_WxsX2y_2";
 var LOGO_URL_V62="/assets/barlive-logo-sidebar-v62.webp?v=20260927-v62";
@@ -259,68 +259,325 @@ function ensureLogo(){
 }
 
 function persistedImages(v){
-  var out=[];function add(x){if(!x)return;if(Array.isArray(x)){x.forEach(add);return}
-    if(typeof x!=="string")return;var s=x.trim();if(!s||out.indexOf(s)>=0)return;
-    if(/places\.googleapis\.com|maps\.googleapis\.com\/maps\/api\/(place\/photo|streetview)/i.test(s))return;out.push(s)}
-  add(v.portada_url);add(v.imagen_url);add(v.imagenes);add(v.galeria_urls);add(v.galeria_fotos);add(v.fotos_google);add(v.r2_media_urls);add(v.legacy_media_urls);return out;
+  var out=[];
+  function add(x){
+    if(!x)return;
+    if(Array.isArray(x)){x.forEach(add);return}
+    if(typeof x!=="string")return;
+    var s=x.trim();
+    if(!s||out.indexOf(s)>=0)return;
+    if(/places\.googleapis\.com|maps\.googleapis\.com\/maps\/api\/(place\/photo|streetview)/i.test(s))return;
+    out.push(s);
+  }
+  add(v.imagen_url);
+  add(v.portada_url);
+  add(v.foto_principal);
+  add(v.r2_media_urls);
+  add(v.galeria_urls);
+  add(v.galeria_fotos);
+  add(v.legacy_media_urls);
+  add(v.imagenes);
+  add(v.fotos);
+  add(v.photos);
+  add(v.fotos_google);
+  add(v.cover_url);
+  return out;
 }
-function enrich(v){
-  if(!v)return v;v.__popupImages=persistedImages(v);
-  var o=v.esta_abierto===true,c=v.esta_abierto===false;
-  v.__popupSchedule={estaAbierto:o?true:c?false:null,text:o?"Abierto ahora":c?"Cerrado":"Sin información de horario",badge:o?"Abierto ahora":c?"Cerrado":"Sin información de horario",color:o?"#22C55E":c?"#EF4444":"#9CA3AF"};
-  return v;
+function madridClock(){
+  try{
+    var parts=new Intl.DateTimeFormat("es-ES",{
+      timeZone:"Europe/Madrid",
+      weekday:"long",
+      hour:"2-digit",
+      minute:"2-digit",
+      hourCycle:"h23"
+    }).formatToParts(new Date());
+    var x={};
+    parts.forEach(function(p){if(p.type!=="literal")x[p.type]=p.value});
+    return{day:norm(x.weekday),minutes:Number(x.hour)*60+Number(x.minute)};
+  }catch(_){
+    var n=new Date(),days=["domingo","lunes","martes","miercoles","jueves","viernes","sabado"];
+    return{day:days[n.getDay()],minutes:n.getHours()*60+n.getMinutes()};
+  }
 }
-function selectionFromCard(target){
-  var p=target;
-  for(var d=0;d<11&&p;d++,p=p.parentElement){
-    var all=tx(p);
-    if(all.indexOf("Descubre su ambiente, sus eventos y todo lo que ofrece este local.")<0)continue;
-    var r;try{r=p.getBoundingClientRect()}catch(_){continue}
-    if(r.width<420||r.height<80||r.height>300)continue;
-    var kids=p.querySelectorAll("div,span,p");
-    var name="",address="";
-    for(var i=0;i<kids.length;i++){
-      var t=tx(kids[i]);if(!t||t.length>180)continue;
-      if(!name&&!/^(Abierto|Cerrado|Bar$|Pub$|Café$|Restaurante$|Discoteca$|Coctelería$|Rooftop$|Descubre su ambiente|\d+\s*km)/i.test(t)){
-        try{var cs=getComputedStyle(kids[i]),fs=parseFloat(cs.fontSize||0),fw=parseInt(cs.fontWeight||0,10);if(fs>=14&&fw>=700){name=t;continue}}catch(_){}
-      }
-      if(!address&&t!==name&&t.indexOf("Descubre su ambiente")!==0&&t.length>=6){
-        if(/[0-9]|,|avenida|avda|rúa|rua|calle|praza|plaza|playa|carretera|camino|paseo|s\/n/i.test(t))address=t;
-      }
+function scheduleRanges(v,day){
+  var raw=v&&v.horarios_completos&&v.horarios_completos[day];
+  if(!raw)return[];
+  return Array.isArray(raw)?raw:[raw];
+}
+function is24h(raw){
+  var s=norm(raw).replace(/\s+/g," ");
+  return s==="24 horas"||s==="24h"||s==="abierto 24 horas"||s.indexOf("abierto 24")>=0||
+    s==="00:00-24:00"||s==="00:00–24:00"||s==="00:00-23:59"||s==="00:00–23:59";
+}
+function parseTimeRange(raw){
+  var s=String(raw||"").trim();
+  var p=s.split(/[–-]/);
+  if(p.length<2)return null;
+  function mins(x){
+    x=String(x||"").trim();
+    if(x==="24:00")x="23:59";
+    var m=x.match(/^(\d{1,2}):(\d{2})$/);
+    if(!m)return null;
+    var h=Number(m[1]),n=Number(m[2]);
+    if(h<0||h>23||n<0||n>59)return null;
+    return h*60+n;
+  }
+  var a=mins(p[0]),b=mins(p[1]);
+  return a==null||b==null?null:{open:a,close:b};
+}
+function fmtDuration(mins){
+  mins=Math.max(0,Math.round(Number(mins)||0));
+  if(mins<60)return mins+" min";
+  var h=Math.floor(mins/60),m=mins%60;
+  if(h>=24){var d=Math.floor(h/24),rh=h%24;return d+" "+(d===1?"día":"días")+(rh?" "+rh+" h":"")+(m?" "+m+" min":"")}
+  return h+" h"+(m?" "+m+" min":"");
+}
+function nextOpening(v,clock){
+  var days=["domingo","lunes","martes","miercoles","jueves","viernes","sabado"];
+  var idx=days.indexOf(clock.day);
+  if(idx<0)return null;
+  for(var offset=0;offset<=7;offset++){
+    var day=days[(idx+offset)%7],ranges=scheduleRanges(v,day);
+    for(var i=0;i<ranges.length;i++){
+      var raw=String(ranges[i]||"");
+      if(norm(raw)==="cerrado"||is24h(raw))continue;
+      var pr=parseTimeRange(raw);if(!pr)continue;
+      var delta=offset*1440+pr.open-clock.minutes;
+      if(offset===0&&delta<=0)continue;
+      if(delta>0)return{time:String(Math.floor(pr.open/60)).padStart(2,"0")+":"+String(pr.open%60).padStart(2,"0"),minutes:delta};
     }
-    if(name)return{name:name,address:address};
   }
   return null;
 }
+function canonicalSchedule(v){
+  var clock=madridClock(),day=clock.day,minute=clock.minutes;
+  var status=String(v&& (v.estado_negocio||v.google_business_status)||"").toUpperCase();
+  if(status==="CLOSED_PERMANENTLY")return{estaAbierto:false,text:"Cerrado permanentemente",badge:"Cerrado permanentemente",color:"#EF4444"};
+  if(status==="CLOSED_TEMPORARILY")return{estaAbierto:false,text:"Cerrado temporalmente",badge:"Cerrado temporalmente",color:"#F97316"};
+  var h=v&&v.horarios_completos;
+  if(!h||typeof h!=="object"||Object.keys(h).length===0)return{estaAbierto:null,text:"Sin información de horario",badge:"Sin información de horario",color:"#9CA3AF"};
+
+  var days=["domingo","lunes","martes","miercoles","jueves","viernes","sabado"];
+  var all24=days.every(function(d){var r=scheduleRanges(v,d);return r.length&&r.some(is24h)});
+  if(all24)return{estaAbierto:true,text:"Abierto 24h",badge:"Abierto 24h",color:"#22C55E"};
+
+  function openState(left){
+    if(left!=null&&left<=60)return{estaAbierto:true,text:"Cierra pronto",badge:"Cierra pronto",tiempoRestante:fmtDuration(left),color:"#F97316"};
+    return{estaAbierto:true,text:"Abierto ahora",badge:"Abierto ahora",tiempoRestante:left==null?null:fmtDuration(left),color:"#22C55E"};
+  }
+
+  var today=scheduleRanges(v,day);
+  for(var i=0;i<today.length;i++){
+    var raw=String(today[i]||"");
+    if(norm(raw)==="cerrado")continue;
+    if(is24h(raw))return openState(null);
+    var pr=parseTimeRange(raw);if(!pr)continue;
+    if(pr.open===0&&pr.close===0)return openState(null);
+    if(pr.open<pr.close&&minute>=pr.open&&minute<pr.close)return openState(pr.close-minute);
+    if(pr.open>pr.close&&minute>=pr.open)return openState((1440-minute)+pr.close);
+  }
+
+  var idx=days.indexOf(day),prev=days[(idx-1+7)%7],prevRanges=scheduleRanges(v,prev);
+  for(var j=0;j<prevRanges.length;j++){
+    var pr2=parseTimeRange(String(prevRanges[j]||""));if(!pr2)continue;
+    if(pr2.open>pr2.close&&minute<pr2.close)return openState(pr2.close-minute);
+  }
+
+  var next=nextOpening(v,clock);
+  if(next&&next.minutes<=30)return{estaAbierto:false,text:"Abre pronto",badge:"Abre pronto",tiempoRestante:fmtDuration(next.minutes),color:"#EAB308"};
+  return{
+    estaAbierto:false,
+    text:next?"Abre a las "+next.time:"Cerrado ahora",
+    badge:next?"Abre a las "+next.time:"Cerrado ahora",
+    tiempoRestante:next?fmtDuration(next.minutes):null,
+    color:"#EF4444"
+  };
+}
+function enrich(v){
+  if(!v)return v;
+  v.__popupImages=persistedImages(v);
+  v.__popupSchedule=canonicalSchedule(v);
+  return v;
+}
+function haversineKm(a,b,c,d){
+  function rad(x){return x*Math.PI/180}
+  var R=6371,dp=rad(c-a),dl=rad(d-b);
+  var q=Math.sin(dp/2)*Math.sin(dp/2)+Math.cos(rad(a))*Math.cos(rad(c))*Math.sin(dl/2)*Math.sin(dl/2);
+  return R*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q));
+}
+function selectionFromCard(target){
+  var p=target;
+  for(var d=0;d<12&&p;d++,p=p.parentElement){
+    var tid=String(p.getAttribute&&p.getAttribute("data-testid")||"");
+    if(tid.indexOf("barlive-venue-card-")===0){
+      return{id:tid.slice("barlive-venue-card-".length)};
+    }
+    var all=tx(p);
+    if(all.indexOf("Descubre su ambiente, sus eventos y todo lo que ofrece este local.")<0)continue;
+    var r;try{r=p.getBoundingClientRect()}catch(_){continue}
+    if(r.width<420||r.height<80||r.height>320)continue;
+
+    var kids=p.querySelectorAll("div,span,p"),name="",address="",distanceKm=null,category="";
+    for(var i=0;i<kids.length;i++){
+      var t=tx(kids[i]);if(!t||t.length>220)continue;
+      var dm=t.match(/(\d+(?:[.,]\d+)?)\s*km\b/i);
+      if(distanceKm==null&&dm)distanceKm=Number(dm[1].replace(",","."));
+      if(!category&&/^(Bar|Pub|Café|Cafe|Restaurante|Discoteca|Coctelería|Rooftop)$/i.test(t))category=norm(t);
+      if(!name&&!/^(Abierto|Cerrado|Bar$|Pub$|Café$|Cafe$|Restaurante$|Discoteca$|Coctelería$|Rooftop$|Descubre su ambiente|\d+(?:[.,]\d+)?\s*km)/i.test(t)){
+        try{
+          var cs=getComputedStyle(kids[i]),fs=parseFloat(cs.fontSize||0),fw=parseInt(cs.fontWeight||0,10);
+          if(fs>=14&&fw>=700){name=t;continue}
+        }catch(_){}
+      }
+      if(!address&&t!==name&&t.indexOf("Descubre su ambiente")!==0&&t.length>=4){
+        if(/[0-9]|,|avenida|avda|rúa|rua|calle|praza|plaza|playa|lugar|carretera|camino|paseo|s\/n/i.test(t))address=t;
+      }
+    }
+    if(name)return{name:name,address:address,distanceKm:distanceKm,category:category};
+  }
+  return null;
+}
+function fetchJson(url){
+  return fetch(url,{cache:"no-store",headers:{apikey:KEY,Authorization:"Bearer "+KEY}})
+    .then(function(r){if(!r.ok)throw new Error("REST "+r.status);return r.json()});
+}
+function hydrateMedia(v){
+  if(!v||!v.id)return Promise.resolve(enrich(v));
+  var u="https://embntaqwlwmgazvrglaf.supabase.co/rest/v1/local_media_assets?local_id=eq."+
+    encodeURIComponent(String(v.id))+
+    "&select=public_url,is_cover,created_at&order=is_cover.desc,created_at.desc";
+  return fetchJson(u).then(function(rows){
+    var r2=(rows||[]).map(function(row){return typeof row.public_url==="string"?row.public_url.trim():""}).filter(Boolean);
+    v.r2_media_urls=r2;
+    return enrich(v);
+  }).catch(function(){return enrich(v)});
+}
+function loadById(id){
+  id=String(id||"").trim();if(!id)return Promise.resolve(null);
+  var key="id:"+id;if(cache.has(key))return Promise.resolve(cache.get(key));
+  var u=REST+"?id=eq."+encodeURIComponent(id)+"&select=*&limit=1";
+  return fetchJson(u).then(function(rows){
+    var v=rows&&rows[0]||null;
+    return hydrateMedia(v).then(function(full){if(full)cache.set(key,full);return full});
+  }).catch(function(){return null});
+}
 function loadExact(sel){
-  var key=norm(sel.name)+"|"+norm(sel.address);if(cache.has(key))return Promise.resolve(cache.get(key));
+  if(sel&&sel.id)return loadById(sel.id);
+  var key=norm(sel&&sel.name)+"|"+norm(sel&&sel.address)+"|"+String(sel&&sel.distanceKm||"");
+  if(cache.has(key))return Promise.resolve(cache.get(key));
+  if(!sel||!sel.name)return Promise.resolve(null);
+
   var u=REST+"?nombre=eq."+encodeURIComponent(sel.name)+"&select=*&limit=50";
-  return fetch(u,{headers:{apikey:KEY,Authorization:"Bearer "+KEY}}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(rows){
+  return fetchJson(u).then(function(rows){
     if(!rows||!rows.length)return null;
-    var a=norm(sel.address),best=null,score=-1;
+    var a=norm(sel.address),loc=null;
+    try{loc=JSON.parse(localStorage.getItem("barlive:last-web-location-v1")||"null")}catch(_){}
+    var best=null,bestScore=-Infinity;
+
     rows.forEach(function(v){
-      var s=0,dir=norm(v.direccion),prov=norm(v.provincia),city=norm(v.ciudad);
-      if(a&&dir){if(a===dir)s+=1000;else if(a.indexOf(dir)>=0||dir.indexOf(a)>=0)s+=700}
-      if(a&&prov&&a.indexOf(prov)>=0)s+=200;
-      if(a&&city&&a.indexOf(city)>=0)s+=120;
-      if(s>score){score=s;best=v}
+      var score=0,dir=norm(v.direccion),prov=norm(v.provincia),city=norm(v.ciudad);
+      if(a&&dir){
+        if(a===dir)score+=10000;
+        else if(a.indexOf(dir)>=0||dir.indexOf(a)>=0)score+=4500;
+      }
+      if(a&&city&&a.indexOf(city)>=0)score+=900;
+      if(a&&prov&&a.indexOf(prov)>=0)score+=700;
+
+      if(sel.category){
+        var cats=[v.barlive_type].concat(Array.isArray(v.barlive_types)?v.barlive_types:[]).map(norm);
+        if(cats.some(function(x){return x===sel.category||(sel.category==="cafe"&&x==="cafeteria")}))score+=350;
+      }
+
+      if(
+        sel.distanceKm!=null&&loc&&
+        isFinite(Number(loc.latitude))&&isFinite(Number(loc.longitude))&&
+        isFinite(Number(v.latitud))&&isFinite(Number(v.longitud))
+      ){
+        var actual=haversineKm(Number(loc.latitude),Number(loc.longitude),Number(v.latitud),Number(v.longitud));
+        score+=Math.max(0,1800-Math.abs(actual-Number(sel.distanceKm))*300);
+      }
+
+      if(score>bestScore){bestScore=score;best=v}
     });
-    best=enrich(best||rows[0]);if(best)cache.set(key,best);return best;
+
+    // Do not invent an identity when duplicate names have no discriminating
+    // address/distance/category evidence. A missing popup is safer than opening
+    // the wrong venue and navigating to the wrong detail page.
+    if(rows.length>1&&!a&&sel.distanceKm==null&&!sel.category)return null;
+
+    return hydrateMedia(best||rows[0]).then(function(full){
+      if(full){cache.set(key,full);cache.set("id:"+String(full.id),full)}
+      return full;
+    });
   }).catch(function(){return null});
 }
 function popupStyle(frame){
-  try{var w=frame.contentWindow,d=frame.contentDocument||w.document;if(!d||!d.head||!d.body)return;
-    if(!d.getElementById("barlive-popup-v54-style")){var s=d.createElement("style");s.id="barlive-popup-v54-style";
+  try{
+    var w=frame.contentWindow,d=frame.contentDocument||w.document;
+    if(!d||!d.head||!d.body)return;
+
+    if(!d.getElementById("barlive-popup-v64-style")){
+      var s=d.createElement("style");s.id="barlive-popup-v64-style";
       s.textContent=".maplibregl-popup-content{border-radius:12px!important;padding:0!important;width:240px!important;min-width:240px!important;max-width:240px!important;box-shadow:0 4px 12px rgba(0,0,0,.3)!important;overflow:hidden!important}.popup-info{padding:12px!important}.popup-title{font-size:16px!important;font-weight:750!important;margin-bottom:8px!important}.popup-img{height:110px!important;min-height:110px!important;max-height:110px!important;width:100%!important;object-fit:cover!important}.popup-rating{display:flex!important;font-size:13px!important;margin-bottom:10px!important}.popup-category{display:block!important;font-size:11px!important;margin-bottom:8px!important}.popup-btn{padding:10px!important;border-radius:8px!important;font-size:13px!important}.popup-banner{padding:8px 12px!important;font-size:12px!important}.maplibregl-popup{z-index:9999!important}";
-      d.head.appendChild(s)}
-    function prune(){var p=d.querySelectorAll(".maplibregl-popup");if(p.length>1)for(var i=0;i<p.length-1;i++)p[i].remove()}
-    if(!w.__BARLIVE_DEDUPE_V54__){w.__BARLIVE_DEDUPE_V54__=true;new w.MutationObserver(prune).observe(d.body,{subtree:true,childList:true});
-      if(typeof w.showPopupFromNative==="function"){var orig=w.showPopupFromNative;w.showPopupFromNative=function(v,co){
-        try{var p=d.querySelectorAll(".maplibregl-popup");for(var i=0;i<p.length;i++)p[i].remove();if(w.currentPopup){try{w.currentPopup.remove()}catch(_){}w.currentPopup=null}}catch(_){}
-        var z=orig.call(w,v,co);setTimeout(prune,0);setTimeout(prune,80);return z}}
-    }prune();
+      d.head.appendChild(s);
+    }
+
+    function prune(){
+      var p=d.querySelectorAll(".maplibregl-popup");
+      if(p.length>1)for(var i=0;i<p.length-1;i++)p[i].remove();
+    }
+
+    function bindExactDetails(venueId){
+      venueId=String(venueId||"");if(!venueId)return;
+      var root=null;
+      try{
+        root=w.currentPopup&&typeof w.currentPopup.getElement==="function"
+          ? w.currentPopup.getElement()
+          : null;
+      }catch(_){}
+      if(!root){
+        var all=d.querySelectorAll(".maplibregl-popup");
+        root=all.length?all[all.length-1]:null;
+      }
+      if(!root||root.getAttribute("data-barlive-bound-id")===venueId)return;
+      root.setAttribute("data-barlive-bound-id",venueId);
+      root.addEventListener("click",function(ev){
+        var t=ev.target&&ev.target.closest?ev.target.closest(".popup-btn"):null;
+        if(!t)return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();
+        try{
+          if(w.ReactNativeWebView&&typeof w.ReactNativeWebView.postMessage==="function"){
+            w.ReactNativeWebView.postMessage(JSON.stringify({type:"navigate",id:venueId}));
+            return;
+          }
+        }catch(_){}
+        try{window.top.location.href="/detalle/local?id="+encodeURIComponent(venueId)}catch(_){}
+      },true);
+    }
+
+    if(!w.__BARLIVE_POPUP_V64__&&typeof w.showPopupFromNative==="function"){
+      w.__BARLIVE_POPUP_V64__=true;
+      var orig=w.showPopupFromNative;
+      w.showPopupFromNative=function(v,co){
+        var exactId=String(v&&v.id||"");
+        try{
+          var p=d.querySelectorAll(".maplibregl-popup");
+          for(var i=0;i<p.length;i++)p[i].remove();
+          if(w.currentPopup){try{w.currentPopup.remove()}catch(_){}w.currentPopup=null}
+        }catch(_){}
+        var z=orig.call(w,v,co);
+        [0,25,80,180].forEach(function(ms){setTimeout(function(){prune();bindExactDetails(exactId)},ms)});
+        return z;
+      };
+      new w.MutationObserver(prune).observe(d.body,{subtree:true,childList:true});
+    }
+    prune();
   }catch(_){}
 }
+
 function hideSmallOverlay(frame){
   var fr=null;
   if(frame){try{fr=frame.getBoundingClientRect()}catch(_){}}
@@ -353,13 +610,39 @@ function hideSmallOverlay(frame){
 }
 
 function openExact(sel){
-  var key=norm(sel.name)+"|"+norm(sel.address);selectedKey=key;
-  loadExact(sel).then(function(v){if(!v||selectedKey!==key)return;var tries=0;(function go(){tries++;var f=mini();if(f){popupStyle(f);hideSmallOverlay(f);
-      var la=Number(v.latitud),lo=Number(v.longitud);try{var w=f.contentWindow;if(isFinite(la)&&isFinite(lo)&&w&&typeof w.showPopupFromNative==="function"){
-        try{var d=f.contentDocument||w.document,p=d.querySelectorAll(".maplibregl-popup");for(var i=0;i<p.length;i++)p[i].remove();if(w.currentPopup){try{w.currentPopup.remove()}catch(_){}w.currentPopup=null}}catch(_){}
-        if(typeof w.flyToLocation==="function")w.flyToLocation(la,lo,16);w.showPopupFromNative(v,{lng:lo,lat:la});setTimeout(function(){popupStyle(f);hideSmallOverlay(f)},40);return}}catch(_){}}
-      if(tries<30)setTimeout(go,150)})()});
+  var key=sel&&sel.id?"id:"+String(sel.id):norm(sel&&sel.name)+"|"+norm(sel&&sel.address)+"|"+String(sel&&sel.distanceKm||"");
+  selectedKey=key;
+  loadExact(sel).then(function(v){
+    if(!v||selectedKey!==key)return;
+    var exactId=String(v.id||"");if(!exactId)return;
+    var tries=0;
+    (function go(){
+      tries++;
+      var f=mini();
+      if(f){
+        popupStyle(f);
+        hideSmallOverlay(f);
+        var la=Number(v.latitud),lo=Number(v.longitud);
+        try{
+          var w=f.contentWindow;
+          if(isFinite(la)&&isFinite(lo)&&w&&typeof w.showPopupFromNative==="function"){
+            try{
+              var d=f.contentDocument||w.document,p=d.querySelectorAll(".maplibregl-popup");
+              for(var i=0;i<p.length;i++)p[i].remove();
+              if(w.currentPopup){try{w.currentPopup.remove()}catch(_){}w.currentPopup=null}
+            }catch(_){}
+            if(typeof w.flyToLocation==="function")w.flyToLocation(la,lo,16);
+            w.showPopupFromNative(v,{lng:lo,lat:la});
+            setTimeout(function(){popupStyle(f);hideSmallOverlay(f)},40);
+            return;
+          }
+        }catch(_){}
+      }
+      if(tries<30)setTimeout(go,150);
+    })();
+  });
 }
+
 function applyCoords(c){var f=mini();if(!f||!c)return;try{var w=f.contentWindow;if(typeof w.updateUserLocation==="function")w.updateUserLocation(c.latitude,c.longitude);if(typeof w.flyToLocation==="function")w.flyToLocation(c.latitude,c.longitude,13)}catch(_){}}
 function locate(){
   if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(function(p){var c={latitude:Number(p.coords.latitude),longitude:Number(p.coords.longitude)};try{localStorage.setItem("barlive:last-web-location-v1",JSON.stringify({latitude:c.latitude,longitude:c.longitude,accuracy:p.coords.accuracy,timestamp:Date.now()}))}catch(_){}applyCoords(c)},function(){},{enableHighAccuracy:false,timeout:10000,maximumAge:300000});
