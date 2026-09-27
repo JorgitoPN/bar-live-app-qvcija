@@ -1,0 +1,69 @@
+name: Diagnose BarLive live origin
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/diagnose-barlive-live.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Inspect live origin
+        shell: bash
+        run: |
+          set +e
+          mkdir -p diagnostics
+          OUT=diagnostics/live-origin.txt
+          {
+            echo "UTC: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo
+            echo "=== DNS A ==="
+            dig +short A barliveapp.es
+            echo "=== DNS AAAA ==="
+            dig +short AAAA barliveapp.es
+            echo "=== DNS CNAME ==="
+            dig +short CNAME barliveapp.es
+            echo "=== DNS NS ==="
+            dig +short NS barliveapp.es
+            echo
+            for URL in "https://barliveapp.es/" "https://www.barliveapp.es/" "https://jorgitopn.github.io/bar-live-app-qvcija/"; do
+              echo "=== URL: $URL ==="
+              TMPH=$(mktemp)
+              TMPB=$(mktemp)
+              curl -sS -L --max-time 30 -D "$TMPH" -o "$TMPB" "$URL"
+              RC=$?
+              echo "curl_rc=$RC"
+              sed -n '1,40p' "$TMPH"
+              echo "--- signatures ---"
+              grep -o 'barlive-production:[^<]*' "$TMPB" | head -n 5
+              grep -o 'stable-web-v[0-9A-Za-z-]*' "$TMPB" | sort -u | head -n 20
+              grep -o '_expo/static/js/web/[^"'"'"' ]*' "$TMPB" | head -n 20
+              echo -n "purple_count="; grep -o '#641B73' "$TMPB" | wc -l
+              echo -n "teal_count="; grep -io '#14B8A6' "$TMPB" | wc -l
+              echo -n "bytes="; wc -c < "$TMPB"
+              echo -n "sha256="; sha256sum "$TMPB" | awk '{print $1}'
+              echo
+              rm -f "$TMPH" "$TMPB"
+            done
+          } > "$OUT" 2>&1
+
+      - name: Commit diagnostic
+        shell: bash
+        run: |
+          git config user.name "barlive-diagnostic-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add diagnostics/live-origin.txt
+          git commit -m "diagnostic: capture live BarLive origin [skip ci]" || exit 0
+          git push origin HEAD:main
