@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- barlive-production: stable-web-v81-selector-match-legend-20260930 -->
+<!-- barlive-production: stable-web-v82-eventos-header-20260930 -->
 <html lang="es">
   <head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <script id="barlive-google-cost-guard">
@@ -378,7 +378,7 @@
 
 <script src="/_expo/static/js/web/barlive-v67-part1.js?v=20260927-ui-v72" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part2.js?v=20260927-ui-v72" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part3.js?v=20260927-ui-v72" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part3-v82.js?v=1" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part4-v81.js?v=1" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part5.js?v=20260927-ui-v72" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part6.js?v=20260927-ui-v72" defer></script>
@@ -1468,5 +1468,232 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 })();
 </script>
 
+
+<style id="barlive-eventos-header-v82-style">
+@media (min-width:768px){
+  [data-barlive-eventos-header-v82="true"]{
+    background:#fff!important;
+    border-bottom:1px solid #E4EAF0!important;
+    box-shadow:0 2px 10px rgba(15,35,72,.03)!important;
+  }
+  [data-barlive-eventos-toolbar-v82="true"]{
+    display:flex!important;
+    align-items:center!important;
+    gap:10px!important;
+    margin-bottom:0!important;
+  }
+  [data-barlive-eventos-search-v82="true"]{
+    height:42px!important;
+    min-height:42px!important;
+    flex:1 1 320px!important;
+    border:1px solid #E4EAF0!important;
+    border-radius:10px!important;
+    background:#fff!important;
+    box-shadow:none!important;
+  }
+  [data-barlive-eventos-tabs-v82="true"]{
+    width:220px!important;
+    max-width:220px!important;
+    min-width:220px!important;
+    min-height:42px!important;
+    margin:10px 0 0 0!important;
+    padding:3px!important;
+    gap:4px!important;
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    border:1px solid #E4EAF0!important;
+    border-radius:11px!important;
+    background:#F4F7F9!important;
+    box-sizing:border-box!important;
+  }
+  [data-barlive-eventos-tabs-v82="true"] > *{
+    flex:1 1 0!important;
+    min-width:0!important;
+    height:34px!important;
+    min-height:34px!important;
+    padding:0 12px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    border-radius:8px!important;
+    box-sizing:border-box!important;
+  }
+  [data-barlive-eventos-category-row-v82="true"]{
+    display:flex!important;
+    flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    align-items:center!important;
+    gap:8px!important;
+    padding:0!important;
+    margin-top:10px!important;
+    width:max-content!important;
+    min-width:100%!important;
+  }
+  [data-barlive-eventos-category-v82="true"]{
+    width:auto!important;
+    min-width:112px!important;
+    max-width:none!important;
+    height:40px!important;
+    min-height:40px!important;
+    padding:0 14px!important;
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:7px!important;
+    border-radius:10px!important;
+    border:1px solid #E4EAF0!important;
+    box-sizing:border-box!important;
+    overflow:hidden!important;
+    white-space:nowrap!important;
+  }
+  [data-barlive-eventos-category-v82="true"] *{
+    white-space:nowrap!important;
+  }
+}
+</style>
+<script id="barlive-eventos-header-v82">
+(function(){
+  "use strict";
+  if(window.__BARLIVE_EVENTOS_HEADER_V82__)return;
+  window.__BARLIVE_EVENTOS_HEADER_V82__=true;
+
+  var queued=false;
+  var valid=["Todos","Bares","Restaurantes","Cafeterías","Pubs","Discotecas","Coctelería"];
+  var invalid=["Tabernas","Cervecerías","Lounge","Rooftop","Chiringuitos","Karaoke"];
+
+  function txt(el){return String(el&&el.textContent||"").replace(/\s+/g," ").trim()}
+  function rect(el){try{return el&&el.getBoundingClientRect?el.getBoundingClientRect():null}catch(_){return null}}
+  function buttons(root){
+    return [].slice.call((root||document).querySelectorAll("button,[role=button],[tabindex='0']"));
+  }
+  function exact(root,label){
+    var all=buttons(root);
+    for(var i=0;i<all.length;i++)if(txt(all[i])===label)return all[i];
+    return null;
+  }
+  function common(a,b){
+    if(!a||!b)return null;
+    var p=a;
+    while(p&&p!==document.body){
+      if(p.contains(b))return p;
+      p=p.parentElement;
+    }
+    return null;
+  }
+  function eventosRoute(){
+    return /^\/eventos\/?$/.test(location.pathname||"");
+  }
+
+  function apply(){
+    queued=false;
+    if(innerWidth<768||!eventosRoute())return;
+
+    var input=null,ins=document.querySelectorAll("input");
+    for(var i=0;i<ins.length;i++){
+      if(String(ins[i].getAttribute("placeholder")||"")==="Buscar eventos..."){input=ins[i];break}
+    }
+    if(!input)return;
+
+    var search=input.parentElement,depth=0;
+    while(search&&depth<5){
+      var sr=rect(search);
+      if(sr&&sr.height>=32&&sr.height<=70&&search.querySelector("input"))break;
+      search=search.parentElement;depth++;
+    }
+    if(!search)return;
+
+    var toolbar=search.parentElement;
+    depth=0;
+    while(toolbar&&depth<5){
+      var tr=rect(toolbar);
+      if(tr&&tr.height<=90&&toolbar.querySelector("input")&&buttons(toolbar).length>=2)break;
+      toolbar=toolbar.parentElement;depth++;
+    }
+    if(!toolbar)return;
+
+    var header=toolbar,found=false;
+    for(depth=0;header&&depth<8;header=header.parentElement,depth++){
+      var ht=txt(header);
+      if(ht.indexOf("Hoy")>=0&&ht.indexOf("Próximos")>=0&&ht.indexOf("Bares")>=0){
+        found=true;break;
+      }
+    }
+    if(!found||!header)return;
+
+    header.setAttribute("data-barlive-eventos-header-v82","true");
+    header.style.setProperty("background-image","none","important");
+    header.style.setProperty("background-color","#FFFFFF","important");
+    header.style.setProperty("padding","12px 20px","important");
+    header.style.setProperty("box-sizing","border-box","important");
+
+    toolbar.setAttribute("data-barlive-eventos-toolbar-v82","true");
+    search.setAttribute("data-barlive-eventos-search-v82","true");
+
+    var direct=toolbar.children||[];
+    for(i=0;i<direct.length;i++){
+      var child=direct[i];
+      if(child===search)continue;
+      var cr=rect(child);
+      if(cr&&cr.width>=30&&cr.width<=80&&cr.height>=30&&cr.height<=80){
+        child.style.setProperty("width","42px","important");
+        child.style.setProperty("height","42px","important");
+        child.style.setProperty("min-width","42px","important");
+        child.style.setProperty("min-height","42px","important");
+        child.style.setProperty("border-radius","10px","important");
+        child.style.setProperty("border","1px solid #E4EAF0","important");
+        child.style.setProperty("background","#FFFFFF","important");
+        child.style.setProperty("box-shadow","none","important");
+        child.style.setProperty("flex","0 0 42px","important");
+      }
+    }
+
+    var hoy=exact(header,"Hoy"),proximos=exact(header,"Próximos");
+    var tabs=common(hoy,proximos);
+    if(tabs){
+      while(tabs.parentElement&&tabs.parentElement!==header&&
+            buttons(tabs).filter(function(b){var t=txt(b);return t==="Hoy"||t==="Próximos"}).length<2){
+        tabs=tabs.parentElement;
+      }
+      tabs.setAttribute("data-barlive-eventos-tabs-v82","true");
+    }
+
+    invalid.forEach(function(name){
+      buttons(header).forEach(function(b){
+        if(txt(b)===name)b.style.setProperty("display","none","important");
+      });
+    });
+
+    var cats=[];
+    valid.forEach(function(name){
+      var b=exact(header,name);
+      if(b){b.setAttribute("data-barlive-eventos-category-v82","true");cats.push(b)}
+    });
+    if(cats.length){
+      var row=cats[0].parentElement;
+      for(i=1;i<cats.length;i++)row=common(row,cats[i])||row;
+      if(row){
+        row.setAttribute("data-barlive-eventos-category-row-v82","true");
+        if(row.parentElement){
+          row.parentElement.style.setProperty("overflow-x","auto","important");
+          row.parentElement.style.setProperty("overflow-y","hidden","important");
+          row.parentElement.style.setProperty("max-width","100%","important");
+        }
+      }
+    }
+  }
+
+  function queue(){
+    if(queued)return;
+    queued=true;
+    requestAnimationFrame(apply);
+  }
+  new MutationObserver(queue).observe(document.documentElement,{childList:true,subtree:true,attributes:true});
+  addEventListener("resize",queue,{passive:true});
+  addEventListener("popstate",queue,{passive:true});
+  setTimeout(queue,0);setTimeout(queue,120);setTimeout(queue,500);
+})();
+</script>
 </body>
 </html>
