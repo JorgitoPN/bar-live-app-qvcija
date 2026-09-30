@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- barlive-production: stable-web-v74-map-header-spa-20260930 -->
+<!-- barlive-production: stable-web-v75-map-back-favicon-20260930 -->
 <html lang="es">
   <head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <script id="barlive-google-cost-guard">
@@ -73,7 +73,7 @@
         flex: 1;
       }
     </style>
-  <link rel="manifest" href="/manifest.json"><link rel="icon" href="/favicon.ico"><meta name="theme-color" content="#14B8A6">
+  <link rel="manifest" href="/manifest.json"><link rel="icon" type="image/png" sizes="any" href="/favicon-barlive.png?v=20260930-v75"><link rel="shortcut icon" type="image/png" href="/favicon-barlive.png?v=20260930-v75"><link rel="apple-touch-icon" href="/favicon-barlive.png?v=20260930-v75"><meta name="theme-color" content="#14B8A6">
 
 
 
@@ -1102,6 +1102,31 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     var shell=mapHeaderShell(nodes);if(!shell)return false;
     return !!shell.querySelector('[data-barlive-map-title-v70="true"]');
   }
+  function positionNativeMapControls(shell){
+    if(!shell)return;
+    var sr=visibleRect(shell);if(!sr)return;
+    var all=[].slice.call(document.querySelectorAll("div"));
+    var best=null,bestScore=-1;
+    for(var i=0;i<all.length;i++){
+      var el=all[i];if(shell.contains(el))continue;
+      var r=visibleRect(el);if(!r)continue;
+      var cs=getComputedStyle(el);
+      if(cs.position!=="absolute"&&cs.position!=="fixed")continue;
+      if(r.left>140||r.width>120||r.width<32||r.height<72||r.height>210)continue;
+      var buttons=el.querySelectorAll("button,[role=button],[tabindex='0']");
+      if(buttons.length<2)continue;
+      var score=buttons.length*10-Math.abs(r.left-16)-Math.abs(r.top-100)*.05;
+      if(score>bestScore){best=el;bestScore=score}
+    }
+    if(!best)return;
+    var offset=best.offsetParent&&best.offsetParent.getBoundingClientRect
+      ? best.offsetParent.getBoundingClientRect().top
+      : 0;
+    var desired=Math.ceil(sr.bottom+14-offset);
+    best.style.setProperty("top",desired+"px","important");
+    best.style.setProperty("z-index","25","important");
+    best.setAttribute("data-barlive-map-left-controls-v75","true");
+  }
   function mapHeader(){
     if(!fullMapActive())return;
     var nodes=categoryControls();
@@ -1118,13 +1143,17 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     row.style.setProperty("background-image","none","important");
     row.style.setProperty("background-color","#FFFFFF","important");
 
+    positionNativeMapControls(shell);
+
     if(!shell.querySelector('[data-barlive-map-title-v70="true"]')){
       var title=document.createElement("div");
       title.setAttribute("data-barlive-map-title-v70","true");
-      title.innerHTML='<div class="barlive-map-title-wrap-v72"><button type="button" class="barlive-map-back-v72" aria-label="Volver">‹</button><div><div class="barlive-map-title-v70">Mapa</div><div class="barlive-map-subtitle-v70">Explora locales por categoría y disponibilidad</div></div></div>';
-      var back=title.querySelector(".barlive-map-back-v72");
-      if(back)back.onclick=function(e){e.preventDefault();e.stopPropagation();if(history.length>1)history.back();else location.assign("/explorar/")};
+      title.innerHTML='<div class="barlive-map-title-wrap-v72"><div><div class="barlive-map-title-v70">Mapa</div><div class="barlive-map-subtitle-v70">Explora locales por categoría y disponibilidad</div></div></div>';
       shell.insertBefore(title,shell.firstChild);
+      positionNativeMapControls(shell);
+      requestAnimationFrame(function(){positionNativeMapControls(shell)});
+    } else {
+      positionNativeMapControls(shell);
     }
 
     nodes.forEach(function(control){
