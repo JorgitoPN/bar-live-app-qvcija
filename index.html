@@ -1102,14 +1102,98 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     var shell=mapHeaderShell(nodes);if(!shell)return false;
     return !!shell.querySelector('[data-barlive-map-title-v70="true"]');
   }
+  function compactMapStateSelectorV77(){
+    if(!fullMapActive())return;
+    var controls=[].slice.call(document.querySelectorAll("button,[role=button],[tabindex='0']"));
+    var openControls=controls.filter(function(el){return text(el)==="Abiertos"});
+    for(var i=0;i<openControls.length;i++){
+      var open=openControls[i],or=visibleRect(open);
+      if(!or||or.top>320||or.width<30||or.width>180)continue;
+
+      var parent=open.parentElement,depth=0,selector=null,todos=null;
+      while(parent&&parent!==document.body&&depth<6){
+        var pr=visibleRect(parent);
+        if(pr&&pr.width<=320&&pr.height<=100){
+          var inside=[].slice.call(parent.querySelectorAll("button,[role=button],[tabindex='0']"));
+          todos=inside.find(function(el){return text(el)==="Todos"})||null;
+          var abiertos=inside.find(function(el){return text(el)==="Abiertos"})||null;
+          if(todos&&abiertos){selector=parent;open=abiertos;break}
+        }
+        parent=parent.parentElement;depth++;
+      }
+      if(!selector||!todos||!open)continue;
+
+      selector.style.setProperty("width","fit-content","important");
+      selector.style.setProperty("min-width","0","important");
+      selector.style.setProperty("max-width","120px","important");
+      selector.style.setProperty("align-items","center","important");
+      selector.style.setProperty("justify-content","center","important");
+      selector.style.setProperty("flex-shrink","0","important");
+      selector.style.setProperty("overflow","visible","important");
+
+      [todos,open].forEach(function(control){
+        control.style.setProperty("width","auto","important");
+        control.style.setProperty("min-width","50px","important");
+        control.style.setProperty("max-width","58px","important");
+        control.style.setProperty("min-height","30px","important");
+        control.style.setProperty("height","30px","important");
+        control.style.setProperty("padding","0 8px","important");
+        control.style.setProperty("margin","0","important");
+        control.style.setProperty("box-sizing","border-box","important");
+        control.style.setProperty("display","flex","important");
+        control.style.setProperty("align-items","center","important");
+        control.style.setProperty("justify-content","center","important");
+        control.style.setProperty("flex","0 0 auto","important");
+        control.style.setProperty("transform","none","important");
+        control.style.setProperty("white-space","nowrap","important");
+        control.style.setProperty("text-align","center","important");
+        control.style.setProperty("font-size","11px","important");
+        control.style.setProperty("line-height","14px","important");
+        control.style.setProperty("overflow","hidden","important");
+
+        var descendants=control.querySelectorAll("span,div");
+        for(var d=0;d<descendants.length;d++){
+          var child=descendants[d],label=text(child);
+          if(label!=="Todos"&&label!=="Abiertos")continue;
+          child.style.setProperty("width","100%","important");
+          child.style.setProperty("max-width","100%","important");
+          child.style.setProperty("white-space","nowrap","important");
+          child.style.setProperty("text-align","center","important");
+          child.style.setProperty("font-size","11px","important");
+          child.style.setProperty("line-height","14px","important");
+          child.style.setProperty("overflow","hidden","important");
+          child.style.setProperty("text-overflow","clip","important");
+        }
+      });
+
+      selector.setAttribute("data-barlive-state-selector-v77","true");
+      break;
+    }
+  }
   function positionNativeMapControls(shell){
     if(!shell)return;
 
     function placeNativeMapControls(){
       var sr=visibleRect(shell);if(!sr)return;
-      var all=[].slice.call(document.querySelectorAll("div"));
+      compactMapStateSelectorV77();
+
       var left=null,leftScore=-1,right=null,rightScore=-1;
 
+      // Prefer the explicit standalone map back button. The previous detector
+      // only recognized a multi-button stack, so the single web back button
+      // could remain underneath the header.
+      var explicitBacks=[].slice.call(document.querySelectorAll(
+        '[data-testid="barlive-map-web-back-button"],[aria-label="Volver"]'
+      ));
+      for(var b=0;b<explicitBacks.length;b++){
+        var back=explicitBacks[b];
+        if(shell.contains(back))continue;
+        var br=visibleRect(back);if(!br)continue;
+        if(br.left>220||br.width<30||br.width>80||br.height<30||br.height>80)continue;
+        left=back;leftScore=100000;break;
+      }
+
+      var all=[].slice.call(document.querySelectorAll("div"));
       for(var i=0;i<all.length;i++){
         var el=all[i];if(shell.contains(el))continue;
         var r=visibleRect(el);if(!r)continue;
@@ -1119,8 +1203,9 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
         var buttons=el.querySelectorAll("button,[role=button],[tabindex='0']");
         var label=text(el);
 
-        // Native left stack: back + filters (+ optional clear filters).
+        // Fallback for older builds that still render back + filters as one stack.
         if(
+          leftScore<100000&&
           r.left<=180&&
           r.width>=32&&r.width<=150&&
           r.height>=72&&r.height<=260&&
@@ -1163,29 +1248,25 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
           var op=el.offsetParent;
           if(op&&op.getBoundingClientRect)offset=op.getBoundingClientRect().top;
         }catch(_){}
-        // Always reserve a real safe area below the final header. Never use a
-        // fixed top value because the title/category header can grow after SPA navigation.
-        var desired=Math.max(0,Math.ceil(sr.bottom+14-offset));
+        var desired=Math.max(0,Math.ceil(sr.bottom+16-offset));
+        el.style.setProperty("position","absolute","important");
         el.style.setProperty("top",desired+"px","important");
         el.style.setProperty("z-index","25","important");
         el.setAttribute(attr,"true");
       }
 
-      place(left,"data-barlive-map-left-controls-v76");
-      place(right,"data-barlive-map-right-controls-v76");
+      place(left,"data-barlive-map-left-controls-v77");
+      place(right,"data-barlive-map-right-controls-v77");
     }
 
     placeNativeMapControls();
 
-    // The custom map title is injected at runtime. Its height can change one
-    // frame later, so follow the header's real rendered height instead of
-    // racing the initial layout.
-    if(window.ResizeObserver&&!shell.__barliveMapControlsObserverV76){
+    if(window.ResizeObserver&&!shell.__barliveMapControlsObserverV77){
       try{
-        shell.__barliveMapControlsObserverV76=new ResizeObserver(function(){
+        shell.__barliveMapControlsObserverV77=new ResizeObserver(function(){
           requestAnimationFrame(placeNativeMapControls);
         });
-        shell.__barliveMapControlsObserverV76.observe(shell);
+        shell.__barliveMapControlsObserverV77.observe(shell);
       }catch(_){}
     }
   }
