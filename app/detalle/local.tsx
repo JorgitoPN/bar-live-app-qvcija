@@ -1222,18 +1222,38 @@ export default function DetalleLocalScreen() {
               onPress={handleToggleFavorito} 
               disabled={loadingFavorite}
             >
-              <BlurView intensity={80} tint="dark" style={styles.favoritoBlur}>
-                {loadingFavorite ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <IconSymbol
-                    ios_icon_name={localIsFavorite ? 'heart.fill' : 'heart'}
-                    android_material_icon_name={localIsFavorite ? 'favorite' : 'favorite_border'}
-                    size={Platform.OS === 'android' ? 18 : 22}
-                    color={localIsFavorite ? '#EF4444' : '#FFFFFF'}
-                  />
-                )}
-              </BlurView>
+              {Platform.OS === 'web' ? (
+                <View
+                  style={[
+                    styles.favoritoBlur,
+                    { borderRadius: coverPhotoButtonSize / 2 },
+                  ]}
+                >
+                  {loadingFavorite ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <IconSymbol
+                      ios_icon_name={localIsFavorite ? 'heart.fill' : 'heart'}
+                      android_material_icon_name={localIsFavorite ? 'favorite' : 'favorite_border'}
+                      size={22}
+                      color={localIsFavorite ? '#EF4444' : '#FFFFFF'}
+                    />
+                  )}
+                </View>
+              ) : (
+                <BlurView intensity={80} tint="dark" style={styles.favoritoBlur}>
+                  {loadingFavorite ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <IconSymbol
+                      ios_icon_name={localIsFavorite ? 'heart.fill' : 'heart'}
+                      android_material_icon_name={localIsFavorite ? 'favorite' : 'favorite_border'}
+                      size={Platform.OS === 'android' ? 18 : 22}
+                      color={localIsFavorite ? '#EF4444' : '#FFFFFF'}
+                    />
+                  )}
+                </BlurView>
+              )}
             </TouchableOpacity>
           </View>
         )}
@@ -2152,6 +2172,8 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 999,
+    overflow: 'hidden',
     backgroundColor: 'rgba(25, 25, 25, 0.62)',
   },
   gallerySection: {
