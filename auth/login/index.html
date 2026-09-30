@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- barlive-production: stable-web-v72-ui-master-20260927 -->
+<!-- barlive-production: stable-web-v88-unified-spa-shell-20260930 -->
 <html lang="es">
   <head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <script id="barlive-google-cost-guard">
@@ -73,7 +73,7 @@
         flex: 1;
       }
     </style>
-  <link rel="manifest" href="/manifest.json"><link rel="icon" href="/favicon.ico"><meta name="theme-color" content="#14B8A6">
+  <link rel="manifest" href="/manifest.json"><link rel="icon" type="image/png" sizes="any" href="/favicon-barlive.png?v=20260930-v75"><link rel="shortcut icon" type="image/png" href="/favicon-barlive.png?v=20260930-v75"><link rel="apple-touch-icon" href="/favicon-barlive.png?v=20260930-v75"><meta name="theme-color" content="#14B8A6">
 
 
 
@@ -376,16 +376,16 @@
 @media (max-width:1023px){#barlive-fixed-logo-v51{display:none!important}}
 </style>
 
-<script src="/_expo/static/js/web/barlive-v67-part1.js?v=20260927-ui-v72" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part2.js?v=20260927-ui-v72" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part3.js?v=20260927-ui-v72" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part4.js?v=20260930-profilegridfix1" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part5.js?v=20260927-ui-v72" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part6.js?v=20260927-ui-v72" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part7.js?v=20260927-ui-v72" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part8.js?v=20260930-photocounterfix2" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part9.js?v=20260927-ui-v72" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part10.js?v=20260927-ui-v72" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part1.js?v=20260930-spa-v88" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part2.js?v=20260930-spa-v88" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part3-v82.js?v=20260930-spa-v88" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part4-v84.js?v=20260930-spa-v88" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part5.js?v=20260930-spa-v88" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part6-v83.js?v=20260930-spa-v88" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part7.js?v=20260930-spa-v88" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part8.js?v=20260930-spa-v88" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part9.js?v=20260930-spa-v88" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part10.js?v=20260930-spa-v88" defer></script>
 
 
 
@@ -871,6 +871,14 @@ function locate(){
   if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(function(p){var c={latitude:Number(p.coords.latitude),longitude:Number(p.coords.longitude)};try{localStorage.setItem("barlive:last-web-location-v1",JSON.stringify({latitude:c.latitude,longitude:c.longitude,accuracy:p.coords.accuracy,timestamp:Date.now()}))}catch(_){}applyCoords(c)},function(){},{enableHighAccuracy:false,timeout:10000,maximumAge:300000});
 }
 function centerButton(){
+  // Full map already renders its own canonical location control. The runtime
+  // helper is only for the Explore minimap; keeping it alive on /explorar/mapa
+  // produced the duplicate button visible after SPA navigation.
+  if(location.pathname.indexOf("/explorar/mapa")>=0){
+    var stale=document.getElementById("barlive-mini-center-v54");
+    if(stale&&stale.parentElement)stale.parentElement.removeChild(stale);
+    return;
+  }
   var f=mini();if(!f)return;var p=f.parentElement;if(!p)return;if(getComputedStyle(p).position==="static")p.style.position="relative";
   if(p.querySelector("#barlive-mini-center-v54"))return;var b=document.createElement("button");b.id="barlive-mini-center-v54";b.type="button";b.title="Centrar en mi ubicación";b.setAttribute("aria-label","Centrar en mi ubicación");
   b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/></svg>';
@@ -881,7 +889,37 @@ function raiseProvince(){
     for(var d=0;d<6&&p;d++,p=p.parentElement){var r;try{r=p.getBoundingClientRect()}catch(_){continue}
       if(r.width>=180&&r.width<=460&&r.height>=120){p.style.zIndex="2147483000";var a=p.parentElement;for(var k=0;k<5&&a;k++,a=a.parentElement){a.style.overflow="visible";a.style.position=a.style.position||"relative";a.style.zIndex=String(2147482000-k)}return}}}
 }
-function maintain(){ensureLogo();centerButton();var f=mini();hideSmallOverlay(f);if(f){popupStyle(f);hideSmallOverlay(f)}}
+function mapAttribution(){
+  var frames=document.querySelectorAll("iframe");
+  for(var n=0;n<frames.length;n++){
+    var f=frames[n];
+    try{
+      if(!f.getAttribute("data-barlive-attrib-listener-v73")){
+        f.setAttribute("data-barlive-attrib-listener-v73","1");
+        f.addEventListener("load",function(){setTimeout(mapAttribution,40)},{passive:true});
+      }
+      var d=f.contentDocument||(f.contentWindow&&f.contentWindow.document);
+      if(!d||!d.querySelector(".maplibregl-map,#map"))continue;
+      var style=d.getElementById("barlive-attribution-v73-style");
+      if(!style){
+        style=d.createElement("style");
+        style.id="barlive-attribution-v73-style";
+        style.textContent=".maplibregl-ctrl-attrib,.maplibregl-ctrl-attrib-button{display:none!important}.barlive-attribution-text-v73{position:absolute;right:6px;bottom:4px;z-index:30;padding:2px 5px;border-radius:5px;background:rgba(255,255,255,.72);font:500 9px/1.2 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;color:#64748B;white-space:nowrap}.barlive-attribution-text-v73 a{color:#64748B;text-decoration:none}";
+        (d.head||d.documentElement).appendChild(style);
+      }
+      var map=d.getElementById("map")||d.querySelector(".maplibregl-map");
+      if(map&&!d.getElementById("barlive-attribution-text-v73")){
+        var a=d.createElement("div");
+        a.id="barlive-attribution-text-v73";
+        a.className="barlive-attribution-text-v73";
+        a.setAttribute("aria-label","Atribución del mapa");
+        a.innerHTML='<a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap</a>';
+        map.appendChild(a);
+      }
+    }catch(_){}
+  }
+}
+function maintain(){ensureLogo();centerButton();mapAttribution();var f=mini();hideSmallOverlay(f);if(f){popupStyle(f);hideSmallOverlay(f)}}
 function start(){
   ensureLogo();maintain();
   try{var raw=localStorage.getItem("barlive:last-web-location-v1"),j=raw&&JSON.parse(raw);if(j&&isFinite(Number(j.latitude))&&isFinite(Number(j.longitude)))setTimeout(function(){applyCoords({latitude:Number(j.latitude),longitude:Number(j.longitude)})},350)}catch(_){}
@@ -896,7 +934,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 </script>
 
 <style id="barlive-ui-master-v70-style">
-@media (min-width:768px){
+@media (min-width:1024px) and (hover:hover) and (pointer:fine){
   html,body,#root{background:#F6F8F9!important}
   [data-barlive-page-canvas-v70="true"]{background:#F6F8F9!important}
   [data-barlive-map-category-header-v70="true"]{
@@ -941,7 +979,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   "use strict";
   if(window.__BARLIVE_UI_MASTER_V70__)return;
   window.__BARLIVE_UI_MASTER_V70__=true;
-  var mq=matchMedia("(min-width:768px)"),queued=false,applying=false;
+  var mq=matchMedia("(min-width:1024px) and (hover:hover) and (pointer:fine)"),queued=false,applying=false;
 
   function rgb(v){
     var m=String(v||"").match(/rgba?\(\s*(\d+)\s*[, ]\s*(\d+)\s*[, ]\s*(\d+)(?:\s*[,/]\s*([\d.]+))?\s*\)/i);
@@ -993,48 +1031,297 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     return false;
   }
   function text(el){return String(el&&el.textContent||"").replace(/\s+/g," ").trim()}
+  function visibleRect(el){
+    if(!el||!el.getBoundingClientRect)return null;
+    var r=el.getBoundingClientRect();
+    if(r.width<1||r.height<1||r.bottom<0||r.top>innerHeight)return null;
+    return r;
+  }
+  function fullMapActive(){
+    if(location.pathname.indexOf("/explorar/mapa")>=0)return true;
+    var frames=document.querySelectorAll("iframe");
+    for(var i=0;i<frames.length;i++){
+      var r=visibleRect(frames[i]);if(!r)continue;
+      if(r.width>innerWidth*.55&&r.height>innerHeight*.55)return true;
+    }
+    return false;
+  }
+  function categoryControls(){
+    var names=["Todos","Bares","Restaurantes","Cafeterías","Pubs","Discotecas","Coctelería"];
+    var all=[].slice.call(document.querySelectorAll("button,[role=button],[tabindex='0']"));
+    var out=[];
+    for(var i=0;i<all.length;i++){
+      var el=all[i],r=visibleRect(el);if(!r||r.top>280||r.width<35||r.height<24||r.height>110)continue;
+      var t=text(el),ok=false;
+      for(var n=0;n<names.length;n++){
+        var label=names[n];
+        if(t===label||t.endsWith(label)||t.indexOf(label)>=0){ok=true;break}
+      }
+      if(ok&&out.indexOf(el)<0)out.push(el);
+    }
+    return out;
+  }
   function commonAncestor(nodes){
     if(!nodes.length)return null;
     var p=nodes[0],depth=0;
-    while(p&&p!==document.body&&depth<10){
+    while(p&&p!==document.body&&depth<12){
       var count=0;
       for(var i=0;i<nodes.length;i++)if(p.contains(nodes[i]))count++;
-      var r=p.getBoundingClientRect();
-      if(count>=5&&r.width>innerWidth*.45&&r.height<180)return p;
+      var r=visibleRect(p);
+      if(r&&count>=5&&r.width>innerWidth*.42&&r.height<220)return p;
       p=p.parentElement;depth++;
     }
     return null;
   }
+  function mapHeaderShell(nodes){
+    if(!nodes.length)return null;
+    for(var i=0;i<nodes.length;i++){
+      var p=nodes[i],depth=0;
+      while(p&&p!==document.body&&depth<10){
+        var count=0;
+        for(var j=0;j<nodes.length;j++)if(p.contains(nodes[j]))count++;
+        var r=visibleRect(p);
+        if(r&&count>=5&&r.top<180&&r.width>innerWidth*.42&&r.height<230){
+          var pos=getComputedStyle(p).position;
+          if(pos==="absolute"||pos==="fixed")return p;
+        }
+        p=p.parentElement;depth++;
+      }
+    }
+    var row=commonAncestor(nodes);if(!row)return null;
+    var shell=row,p=row.parentElement,rr=visibleRect(row);
+    if(p&&rr){
+      var pr=visibleRect(p);
+      if(pr&&pr.width>=rr.width*.92&&pr.height<250&&pr.top<190)shell=p;
+    }
+    return shell;
+  }
+  function currentMapHeaderReady(){
+    if(!fullMapActive())return true;
+    var nodes=categoryControls();if(nodes.length<5)return false;
+    var shell=mapHeaderShell(nodes);if(!shell)return false;
+    return !!shell.querySelector('[data-barlive-map-title-v70="true"]');
+  }
+  function compactMapStateSelectorV77(){
+    if(!fullMapActive())return;
+    var controls=[].slice.call(document.querySelectorAll("button,[role=button],[tabindex='0']"));
+    var openControls=controls.filter(function(el){return text(el)==="Abiertos"});
+    for(var i=0;i<openControls.length;i++){
+      var open=openControls[i],or=visibleRect(open);
+      if(!or||or.top>320||or.width<30||or.width>180)continue;
+
+      var parent=open.parentElement,depth=0,selector=null,todos=null;
+      while(parent&&parent!==document.body&&depth<6){
+        var pr=visibleRect(parent);
+        if(pr&&pr.width<=320&&pr.height<=100){
+          var inside=[].slice.call(parent.querySelectorAll("button,[role=button],[tabindex='0']"));
+          todos=inside.find(function(el){return text(el)==="Todos"})||null;
+          var abiertos=inside.find(function(el){return text(el)==="Abiertos"})||null;
+          if(todos&&abiertos){selector=parent;open=abiertos;break}
+        }
+        parent=parent.parentElement;depth++;
+      }
+      if(!selector||!todos||!open)continue;
+
+      var selectorContainer=selector.parentElement;
+      var stack=selectorContainer&&selectorContainer.parentElement;
+      var legendWidth=0;
+      if(stack){
+        var siblings=[].slice.call(stack.children||[]);
+        for(var s=0;s<siblings.length;s++){
+          var sibling=siblings[s],siblingText=text(sibling);
+          if(
+            sibling!==selectorContainer&&
+            siblingText.indexOf("Abierto")>=0&&
+            siblingText.indexOf("Cerrado")>=0&&
+            siblingText.indexOf("S/Info")>=0
+          ){
+            var lr=visibleRect(sibling);
+            if(lr&&lr.width>0){legendWidth=Math.ceil(lr.width);break}
+          }
+        }
+      }
+      if(legendWidth<1)legendWidth=196;
+
+      if(selectorContainer){
+        selectorContainer.style.setProperty("width",legendWidth+"px","important");
+        selectorContainer.style.setProperty("max-width",legendWidth+"px","important");
+        selectorContainer.style.setProperty("align-self","stretch","important");
+      }
+      selector.style.setProperty("width",legendWidth+"px","important");
+      selector.style.setProperty("min-width",legendWidth+"px","important");
+      selector.style.setProperty("max-width",legendWidth+"px","important");
+      selector.style.setProperty("align-items","center","important");
+      selector.style.setProperty("justify-content","center","important");
+      selector.style.setProperty("flex-shrink","0","important");
+      selector.style.setProperty("overflow","hidden","important");
+
+      [todos,open].forEach(function(control){
+        control.style.setProperty("width","auto","important");
+        control.style.setProperty("min-width","0","important");
+        control.style.setProperty("max-width","none","important");
+        control.style.setProperty("min-height","22px","important");
+        control.style.setProperty("height","22px","important");
+        control.style.setProperty("padding","0 6px","important");
+        control.style.setProperty("margin","0","important");
+        control.style.setProperty("box-sizing","border-box","important");
+        control.style.setProperty("display","flex","important");
+        control.style.setProperty("align-items","center","important");
+        control.style.setProperty("justify-content","center","important");
+        control.style.setProperty("flex","1 1 0","important");
+        control.style.setProperty("transform","none","important");
+        control.style.setProperty("white-space","nowrap","important");
+        control.style.setProperty("text-align","center","important");
+        control.style.setProperty("font-size","9px","important");
+        control.style.setProperty("line-height","11px","important");
+        control.style.setProperty("overflow","hidden","important");
+
+        var descendants=control.querySelectorAll("span,div");
+        for(var d=0;d<descendants.length;d++){
+          var child=descendants[d],label=text(child);
+          if(label!=="Todos"&&label!=="Abiertos")continue;
+          child.style.setProperty("width","100%","important");
+          child.style.setProperty("max-width","100%","important");
+          child.style.setProperty("white-space","nowrap","important");
+          child.style.setProperty("text-align","center","important");
+          child.style.setProperty("font-size","9px","important");
+          child.style.setProperty("line-height","11px","important");
+          child.style.setProperty("overflow","hidden","important");
+          child.style.setProperty("text-overflow","clip","important");
+        }
+      });
+
+      selector.setAttribute("data-barlive-state-selector-v81","true");
+      break;
+    }
+  }
+  function positionNativeMapControls(shell){
+    if(!shell)return;
+
+    function placeNativeMapControls(){
+      var sr=visibleRect(shell);if(!sr)return;
+      compactMapStateSelectorV77();
+
+      var left=null,leftScore=-1,right=null,rightScore=-1;
+
+      // Prefer the explicit standalone map back button. The previous detector
+      // only recognized a multi-button stack, so the single web back button
+      // could remain underneath the header.
+      var explicitBacks=[].slice.call(document.querySelectorAll(
+        '[data-testid="barlive-map-web-back-button"],[aria-label="Volver"]'
+      ));
+      for(var b=0;b<explicitBacks.length;b++){
+        var back=explicitBacks[b];
+        if(shell.contains(back))continue;
+        var br=visibleRect(back);if(!br)continue;
+        if(br.left>220||br.width<30||br.width>80||br.height<30||br.height>80)continue;
+        left=back;leftScore=100000;break;
+      }
+
+      var all=[].slice.call(document.querySelectorAll("div"));
+      for(var i=0;i<all.length;i++){
+        var el=all[i];if(shell.contains(el))continue;
+        var r=visibleRect(el);if(!r)continue;
+        var cs=getComputedStyle(el);
+        if(cs.position!=="absolute"&&cs.position!=="fixed")continue;
+
+        var buttons=el.querySelectorAll("button,[role=button],[tabindex='0']");
+        var label=text(el);
+
+        // Fallback for older builds that still render back + filters as one stack.
+        if(
+          leftScore<100000&&
+          r.left<=180&&
+          r.width>=32&&r.width<=150&&
+          r.height>=72&&r.height<=260&&
+          buttons.length>=2
+        ){
+          var lScore=
+            buttons.length*12-
+            Math.abs(r.left-16)-
+            Math.abs(r.width-40)*.2;
+          if(lScore>leftScore){left=el;leftScore=lScore}
+        }
+
+        // Native right stack: Todos/Abiertos + status legend.
+        var stateSelector=
+          label.indexOf("Todos")>=0&&
+          label.indexOf("Abiertos")>=0&&
+          (
+            label.indexOf("S/Info")>=0||
+            (label.indexOf("Abierto")>=0&&label.indexOf("Cerrado")>=0)
+          );
+        if(
+          stateSelector&&
+          r.right>=innerWidth-460&&
+          r.width>=100&&r.width<=420&&
+          r.height>=50&&r.height<=260&&
+          buttons.length>=2
+        ){
+          var rScore=
+            buttons.length*14-
+            Math.abs(innerWidth-r.right)*.3-
+            Math.abs(r.width-150)*.05;
+          if(rScore>rightScore){right=el;rightScore=rScore}
+        }
+      }
+
+      function place(el,attr){
+        if(!el)return;
+        var offset=0;
+        try{
+          var op=el.offsetParent;
+          if(op&&op.getBoundingClientRect)offset=op.getBoundingClientRect().top;
+        }catch(_){}
+        var desired=Math.max(0,Math.ceil(sr.bottom+22-offset));
+        el.style.setProperty("position","absolute","important");
+        el.style.setProperty("top",desired+"px","important");
+        el.style.setProperty("z-index","25","important");
+        el.setAttribute(attr,"true");
+      }
+
+      place(left,"data-barlive-map-left-controls-v81");
+      place(right,"data-barlive-map-right-controls-v81");
+    }
+
+    placeNativeMapControls();
+
+    if(window.ResizeObserver&&!shell.__barliveMapControlsObserverV81){
+      try{
+        shell.__barliveMapControlsObserverV81=new ResizeObserver(function(){
+          requestAnimationFrame(placeNativeMapControls);
+        });
+        shell.__barliveMapControlsObserverV81.observe(shell);
+      }catch(_){}
+    }
+  }
   function mapHeader(){
-    if(location.pathname.indexOf("/explorar/mapa")<0)return;
-    var wanted={Todos:1,Bares:1,Restaurantes:1,"Cafeterías":1,Pubs:1,Discotecas:1,"Coctelería":1};
-    var nodes=[].slice.call(document.querySelectorAll("button,[role=button],[tabindex='0']")).filter(function(el){
-      var t=text(el),r=el.getBoundingClientRect();
-      return wanted[t]&&r.top<260&&r.width>40&&r.height>28&&r.height<100;
-    });
+    if(!fullMapActive())return;
+    var nodes=categoryControls();
     if(nodes.length<5)return;
 
-    var row=commonAncestor(nodes);if(!row)return;
-    var shell=row;
-    var p=row.parentElement,rr=row.getBoundingClientRect();
-    if(p){
-      var pr=p.getBoundingClientRect();
-      if(pr.width>=rr.width*.92&&pr.height<230&&pr.top<170)shell=p;
-    }
+    var shell=mapHeaderShell(nodes);if(!shell)return;
+    var row=commonAncestor(nodes)||shell;
 
     shell.setAttribute("data-barlive-map-category-header-v70","true");
     shell.style.setProperty("background-image","none","important");
     shell.style.setProperty("background-color","#FFFFFF","important");
     shell.style.setProperty("border-bottom","1px solid #E4EAF0","important");
     shell.style.setProperty("box-shadow","0 2px 10px rgba(15,35,72,.04)","important");
+    row.style.setProperty("background-image","none","important");
+    row.style.setProperty("background-color","#FFFFFF","important");
+
+    positionNativeMapControls(shell);
 
     if(!shell.querySelector('[data-barlive-map-title-v70="true"]')){
       var title=document.createElement("div");
       title.setAttribute("data-barlive-map-title-v70","true");
-      title.innerHTML='<div class="barlive-map-title-wrap-v72"><button type="button" class="barlive-map-back-v72" aria-label="Volver">‹</button><div><div class="barlive-map-title-v70">Mapa</div><div class="barlive-map-subtitle-v70">Explora locales por categoría y disponibilidad</div></div></div>';
-      var back=title.querySelector(".barlive-map-back-v72");
-      if(back)back.onclick=function(e){e.preventDefault();e.stopPropagation();if(history.length>1)history.back();else location.assign("/explorar/")};
+      title.innerHTML='<div class="barlive-map-title-wrap-v72"><div><div class="barlive-map-title-v70">Mapa</div><div class="barlive-map-subtitle-v70">Explora locales por categoría y disponibilidad</div></div></div>';
       shell.insertBefore(title,shell.firstChild);
+      positionNativeMapControls(shell);
+      requestAnimationFrame(function(){positionNativeMapControls(shell)});
+    } else {
+      positionNativeMapControls(shell);
     }
 
     nodes.forEach(function(control){
@@ -1145,10 +1432,269 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   var mo=new MutationObserver(schedule);
   mo.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:["class"]});
   addEventListener("resize",schedule,{passive:true});
+  addEventListener("popstate",schedule,{passive:true});
+  ["pushState","replaceState"].forEach(function(name){
+    var original=history[name];
+    if(typeof original!=="function"||original.__barliveRoutePatchedV73)return;
+    var wrapped=function(){
+      var out=original.apply(history,arguments);
+      setTimeout(schedule,0);
+      setTimeout(schedule,60);
+      setTimeout(schedule,180);
+      setTimeout(schedule,420);
+      return out;
+    };
+    wrapped.__barliveRoutePatchedV73=true;
+    history[name]=wrapped;
+  });
   if(mq.addEventListener)mq.addEventListener("change",schedule);
+
+  // Expo Router can swap nested screens without producing a reliable browser
+  // history event for our legacy production bundle. Reconcile the current map
+  // header until the visible map shell owns the canonical title row.
+  var lastRoute=location.pathname;
+  setInterval(function(){
+    var now=location.pathname;
+    if(now!==lastRoute){
+      lastRoute=now;
+      [0,60,160,320,650,1100,1800].forEach(function(ms){setTimeout(schedule,ms)});
+    }
+    if(mq.matches&&fullMapActive()&&!currentMapHeaderReady()){
+      mapHeader();
+    }
+  },250);
+
   [0,80,220,600,1400,2800].forEach(function(ms){setTimeout(schedule,ms)});
 })();
 </script>
 
+
+<style id="barlive-eventos-header-v82-style">
+@media (min-width:768px){
+  [data-barlive-eventos-header-v82="true"]{
+    background:#fff!important;
+    border-bottom:1px solid #E4EAF0!important;
+    box-shadow:0 2px 10px rgba(15,35,72,.03)!important;
+  }
+  [data-barlive-eventos-toolbar-v82="true"]{
+    display:flex!important;
+    align-items:center!important;
+    gap:10px!important;
+    margin-bottom:0!important;
+  }
+  [data-barlive-eventos-search-v82="true"]{
+    height:42px!important;
+    min-height:42px!important;
+    flex:1 1 320px!important;
+    border:1px solid #E4EAF0!important;
+    border-radius:10px!important;
+    background:#fff!important;
+    box-shadow:none!important;
+  }
+  [data-barlive-eventos-tabs-v82="true"]{
+    width:220px!important;
+    max-width:220px!important;
+    min-width:220px!important;
+    min-height:42px!important;
+    margin:10px 0 0 0!important;
+    padding:3px!important;
+    gap:4px!important;
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    border:1px solid #E4EAF0!important;
+    border-radius:11px!important;
+    background:#F4F7F9!important;
+    box-sizing:border-box!important;
+  }
+  [data-barlive-eventos-tabs-v82="true"] > *{
+    flex:1 1 0!important;
+    min-width:0!important;
+    height:34px!important;
+    min-height:34px!important;
+    padding:0 12px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    border-radius:8px!important;
+    box-sizing:border-box!important;
+  }
+  [data-barlive-eventos-category-row-v82="true"]{
+    display:flex!important;
+    flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    align-items:center!important;
+    gap:8px!important;
+    padding:0!important;
+    margin-top:10px!important;
+    width:max-content!important;
+    min-width:100%!important;
+  }
+  [data-barlive-eventos-category-v82="true"]{
+    width:auto!important;
+    min-width:112px!important;
+    max-width:none!important;
+    height:40px!important;
+    min-height:40px!important;
+    padding:0 14px!important;
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:7px!important;
+    border-radius:10px!important;
+    border:1px solid #E4EAF0!important;
+    box-sizing:border-box!important;
+    overflow:hidden!important;
+    white-space:nowrap!important;
+  }
+  [data-barlive-eventos-category-v82="true"] *{
+    white-space:nowrap!important;
+  }
+}
+</style>
+<script id="barlive-eventos-header-v82">
+(function(){
+  "use strict";
+  if(window.__BARLIVE_EVENTOS_HEADER_V82__)return;
+  window.__BARLIVE_EVENTOS_HEADER_V82__=true;
+
+  var queued=false;
+  var valid=["Todos","Bares","Restaurantes","Cafeterías","Pubs","Discotecas","Coctelería"];
+  var invalid=["Tabernas","Cervecerías","Lounge","Rooftop","Chiringuitos","Karaoke"];
+
+  function txt(el){return String(el&&el.textContent||"").replace(/\s+/g," ").trim()}
+  function rect(el){try{return el&&el.getBoundingClientRect?el.getBoundingClientRect():null}catch(_){return null}}
+  function buttons(root){
+    return [].slice.call((root||document).querySelectorAll("button,[role=button],[tabindex='0']"));
+  }
+  function exact(root,label){
+    var all=buttons(root);
+    for(var i=0;i<all.length;i++)if(txt(all[i])===label)return all[i];
+    return null;
+  }
+  function common(a,b){
+    if(!a||!b)return null;
+    var p=a;
+    while(p&&p!==document.body){
+      if(p.contains(b))return p;
+      p=p.parentElement;
+    }
+    return null;
+  }
+  function eventosRoute(){
+    return /^\/eventos\/?$/.test(location.pathname||"");
+  }
+
+  function apply(){
+    queued=false;
+    if(innerWidth<768||!eventosRoute())return;
+
+    var input=null,ins=document.querySelectorAll("input");
+    for(var i=0;i<ins.length;i++){
+      if(String(ins[i].getAttribute("placeholder")||"")==="Buscar eventos..."){input=ins[i];break}
+    }
+    if(!input)return;
+
+    var search=input.parentElement,depth=0;
+    while(search&&depth<5){
+      var sr=rect(search);
+      if(sr&&sr.height>=32&&sr.height<=70&&search.querySelector("input"))break;
+      search=search.parentElement;depth++;
+    }
+    if(!search)return;
+
+    var toolbar=search.parentElement;
+    depth=0;
+    while(toolbar&&depth<5){
+      var tr=rect(toolbar);
+      if(tr&&tr.height<=90&&toolbar.querySelector("input")&&buttons(toolbar).length>=2)break;
+      toolbar=toolbar.parentElement;depth++;
+    }
+    if(!toolbar)return;
+
+    var header=toolbar,found=false;
+    for(depth=0;header&&depth<8;header=header.parentElement,depth++){
+      var ht=txt(header);
+      if(ht.indexOf("Hoy")>=0&&ht.indexOf("Próximos")>=0&&ht.indexOf("Bares")>=0){
+        found=true;break;
+      }
+    }
+    if(!found||!header)return;
+
+    header.setAttribute("data-barlive-eventos-header-v82","true");
+    header.style.setProperty("background-image","none","important");
+    header.style.setProperty("background-color","#FFFFFF","important");
+    header.style.setProperty("padding","12px 20px","important");
+    header.style.setProperty("box-sizing","border-box","important");
+
+    toolbar.setAttribute("data-barlive-eventos-toolbar-v82","true");
+    search.setAttribute("data-barlive-eventos-search-v82","true");
+
+    var direct=toolbar.children||[];
+    for(i=0;i<direct.length;i++){
+      var child=direct[i];
+      if(child===search)continue;
+      var cr=rect(child);
+      if(cr&&cr.width>=30&&cr.width<=80&&cr.height>=30&&cr.height<=80){
+        child.style.setProperty("width","42px","important");
+        child.style.setProperty("height","42px","important");
+        child.style.setProperty("min-width","42px","important");
+        child.style.setProperty("min-height","42px","important");
+        child.style.setProperty("border-radius","10px","important");
+        child.style.setProperty("border","1px solid #E4EAF0","important");
+        child.style.setProperty("background","#FFFFFF","important");
+        child.style.setProperty("box-shadow","none","important");
+        child.style.setProperty("flex","0 0 42px","important");
+      }
+    }
+
+    var hoy=exact(header,"Hoy"),proximos=exact(header,"Próximos");
+    var tabs=common(hoy,proximos);
+    if(tabs){
+      while(tabs.parentElement&&tabs.parentElement!==header&&
+            buttons(tabs).filter(function(b){var t=txt(b);return t==="Hoy"||t==="Próximos"}).length<2){
+        tabs=tabs.parentElement;
+      }
+      tabs.setAttribute("data-barlive-eventos-tabs-v82","true");
+    }
+
+    invalid.forEach(function(name){
+      buttons(header).forEach(function(b){
+        if(txt(b)===name)b.style.setProperty("display","none","important");
+      });
+    });
+
+    var cats=[];
+    valid.forEach(function(name){
+      var b=exact(header,name);
+      if(b){b.setAttribute("data-barlive-eventos-category-v82","true");cats.push(b)}
+    });
+    if(cats.length){
+      var row=cats[0].parentElement;
+      for(i=1;i<cats.length;i++)row=common(row,cats[i])||row;
+      if(row){
+        row.setAttribute("data-barlive-eventos-category-row-v82","true");
+        if(row.parentElement){
+          row.parentElement.style.setProperty("overflow-x","auto","important");
+          row.parentElement.style.setProperty("overflow-y","hidden","important");
+          row.parentElement.style.setProperty("max-width","100%","important");
+        }
+      }
+    }
+  }
+
+  function queue(){
+    if(queued)return;
+    queued=true;
+    requestAnimationFrame(apply);
+  }
+  new MutationObserver(queue).observe(document.documentElement,{childList:true,subtree:true});
+  addEventListener("resize",queue,{passive:true});
+  addEventListener("popstate",queue,{passive:true});
+  setTimeout(queue,0);setTimeout(queue,120);setTimeout(queue,500);
+})();
+</script>
+<script src="/mobile-touch-scroll-v86.js?v=20260930-spa-v88"></script>
 </body>
 </html>
