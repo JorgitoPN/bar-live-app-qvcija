@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- barlive-production: stable-web-v75-map-back-favicon-20260930 -->
+<!-- barlive-production: stable-web-v78-map-controls-20260930 -->
 <html lang="es">
   <head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <script id="barlive-google-cost-guard">
@@ -379,7 +379,7 @@
 <script src="/_expo/static/js/web/barlive-v67-part1.js?v=20260927-ui-v72" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part2.js?v=20260927-ui-v72" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part3.js?v=20260927-ui-v72" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part4.js?v=20260927-ui-v72" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part4.js?v=20260930-map-controls-v78" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part5.js?v=20260927-ui-v72" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part6.js?v=20260927-ui-v72" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part7.js?v=20260927-ui-v72" defer></script>
@@ -1125,7 +1125,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 
       selector.style.setProperty("width","fit-content","important");
       selector.style.setProperty("min-width","0","important");
-      selector.style.setProperty("max-width","120px","important");
+      selector.style.setProperty("max-width","128px","important");
       selector.style.setProperty("align-items","center","important");
       selector.style.setProperty("justify-content","center","important");
       selector.style.setProperty("flex-shrink","0","important");
@@ -1133,7 +1133,8 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 
       [todos,open].forEach(function(control){
         control.style.setProperty("width","auto","important");
-        control.style.setProperty("min-width","50px","important");
+        control.style.setProperty("min-width","58px","important");
+        control.style.setProperty("width","58px","important");
         control.style.setProperty("max-width","58px","important");
         control.style.setProperty("min-height","30px","important");
         control.style.setProperty("height","30px","important");
@@ -1248,7 +1249,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
           var op=el.offsetParent;
           if(op&&op.getBoundingClientRect)offset=op.getBoundingClientRect().top;
         }catch(_){}
-        var desired=Math.max(0,Math.ceil(sr.bottom+16-offset));
+        var desired=Math.max(0,Math.ceil(sr.bottom+22-offset));
         el.style.setProperty("position","absolute","important");
         el.style.setProperty("top",desired+"px","important");
         el.style.setProperty("z-index","25","important");
