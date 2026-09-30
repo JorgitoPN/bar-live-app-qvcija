@@ -1689,7 +1689,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     queued=true;
     requestAnimationFrame(apply);
   }
-  new MutationObserver(queue).observe(document.documentElement,{childList:true,subtree:true,attributes:true});
+  new MutationObserver(queue).observe(document.documentElement,{childList:true,subtree:true});
   addEventListener("resize",queue,{passive:true});
   addEventListener("popstate",queue,{passive:true});
   setTimeout(queue,0);setTimeout(queue,120);setTimeout(queue,500);
