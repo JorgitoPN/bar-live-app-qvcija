@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- barlive-production: stable-web-v79-map-selector-20260930 -->
+<!-- barlive-production: stable-web-v80-map-selector-20260930 -->
 <html lang="es">
   <head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <script id="barlive-google-cost-guard">
@@ -379,7 +379,7 @@
 <script src="/_expo/static/js/web/barlive-v67-part1.js?v=20260927-ui-v72" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part2.js?v=20260927-ui-v72" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part3.js?v=20260927-ui-v72" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part4.js?v=20260930-map-controls-v79" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part4-v80.js?v=1" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part5.js?v=20260927-ui-v72" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part6.js?v=20260927-ui-v72" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part7.js?v=20260927-ui-v72" defer></script>
@@ -1125,20 +1125,20 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 
       selector.style.setProperty("width","fit-content","important");
       selector.style.setProperty("min-width","0","important");
-      selector.style.setProperty("max-width","112px","important");
+      selector.style.setProperty("max-width","104px","important");
       selector.style.setProperty("align-items","center","important");
       selector.style.setProperty("justify-content","center","important");
       selector.style.setProperty("flex-shrink","0","important");
-      selector.style.setProperty("overflow","visible","important");
+      selector.style.setProperty("overflow","hidden","important");
 
       [todos,open].forEach(function(control){
         control.style.setProperty("width","auto","important");
-        control.style.setProperty("min-width","54px","important");
-        control.style.setProperty("width","54px","important");
-        control.style.setProperty("max-width","54px","important");
-        control.style.setProperty("min-height","24px","important");
-        control.style.setProperty("height","24px","important");
-        control.style.setProperty("padding","0 4px","important");
+        control.style.setProperty("min-width","50px","important");
+        control.style.setProperty("width","50px","important");
+        control.style.setProperty("max-width","50px","important");
+        control.style.setProperty("min-height","22px","important");
+        control.style.setProperty("height","22px","important");
+        control.style.setProperty("padding","0 3px","important");
         control.style.setProperty("margin","0","important");
         control.style.setProperty("box-sizing","border-box","important");
         control.style.setProperty("display","flex","important");
@@ -1148,8 +1148,8 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
         control.style.setProperty("transform","none","important");
         control.style.setProperty("white-space","nowrap","important");
         control.style.setProperty("text-align","center","important");
-        control.style.setProperty("font-size","10px","important");
-        control.style.setProperty("line-height","12px","important");
+        control.style.setProperty("font-size","9px","important");
+        control.style.setProperty("line-height","11px","important");
         control.style.setProperty("overflow","hidden","important");
 
         var descendants=control.querySelectorAll("span,div");
@@ -1160,14 +1160,14 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
           child.style.setProperty("max-width","100%","important");
           child.style.setProperty("white-space","nowrap","important");
           child.style.setProperty("text-align","center","important");
-          child.style.setProperty("font-size","10px","important");
-          child.style.setProperty("line-height","12px","important");
+          child.style.setProperty("font-size","9px","important");
+          child.style.setProperty("line-height","11px","important");
           child.style.setProperty("overflow","hidden","important");
           child.style.setProperty("text-overflow","clip","important");
         }
       });
 
-      selector.setAttribute("data-barlive-state-selector-v77","true");
+      selector.setAttribute("data-barlive-state-selector-v80","true");
       break;
     }
   }
@@ -1256,18 +1256,18 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
         el.setAttribute(attr,"true");
       }
 
-      place(left,"data-barlive-map-left-controls-v77");
-      place(right,"data-barlive-map-right-controls-v77");
+      place(left,"data-barlive-map-left-controls-v80");
+      place(right,"data-barlive-map-right-controls-v80");
     }
 
     placeNativeMapControls();
 
-    if(window.ResizeObserver&&!shell.__barliveMapControlsObserverV77){
+    if(window.ResizeObserver&&!shell.__barliveMapControlsObserverV80){
       try{
-        shell.__barliveMapControlsObserverV77=new ResizeObserver(function(){
+        shell.__barliveMapControlsObserverV80=new ResizeObserver(function(){
           requestAnimationFrame(placeNativeMapControls);
         });
-        shell.__barliveMapControlsObserverV77.observe(shell);
+        shell.__barliveMapControlsObserverV80.observe(shell);
       }catch(_){}
     }
   }
