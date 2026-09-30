@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- barlive-production: stable-web-v72-ui-master-20260927 -->
+<!-- barlive-production: stable-web-v73-map-spa-controls-20260930 -->
 <html lang="es">
   <head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <script id="barlive-google-cost-guard">
@@ -871,6 +871,14 @@ function locate(){
   if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(function(p){var c={latitude:Number(p.coords.latitude),longitude:Number(p.coords.longitude)};try{localStorage.setItem("barlive:last-web-location-v1",JSON.stringify({latitude:c.latitude,longitude:c.longitude,accuracy:p.coords.accuracy,timestamp:Date.now()}))}catch(_){}applyCoords(c)},function(){},{enableHighAccuracy:false,timeout:10000,maximumAge:300000});
 }
 function centerButton(){
+  // Full map already renders its own canonical location control. The runtime
+  // helper is only for the Explore minimap; keeping it alive on /explorar/mapa
+  // produced the duplicate button visible after SPA navigation.
+  if(location.pathname.indexOf("/explorar/mapa")>=0){
+    var stale=document.getElementById("barlive-mini-center-v54");
+    if(stale&&stale.parentElement)stale.parentElement.removeChild(stale);
+    return;
+  }
   var f=mini();if(!f)return;var p=f.parentElement;if(!p)return;if(getComputedStyle(p).position==="static")p.style.position="relative";
   if(p.querySelector("#barlive-mini-center-v54"))return;var b=document.createElement("button");b.id="barlive-mini-center-v54";b.type="button";b.title="Centrar en mi ubicación";b.setAttribute("aria-label","Centrar en mi ubicación");
   b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/></svg>';
@@ -881,7 +889,37 @@ function raiseProvince(){
     for(var d=0;d<6&&p;d++,p=p.parentElement){var r;try{r=p.getBoundingClientRect()}catch(_){continue}
       if(r.width>=180&&r.width<=460&&r.height>=120){p.style.zIndex="2147483000";var a=p.parentElement;for(var k=0;k<5&&a;k++,a=a.parentElement){a.style.overflow="visible";a.style.position=a.style.position||"relative";a.style.zIndex=String(2147482000-k)}return}}}
 }
-function maintain(){ensureLogo();centerButton();var f=mini();hideSmallOverlay(f);if(f){popupStyle(f);hideSmallOverlay(f)}}
+function mapAttribution(){
+  var frames=document.querySelectorAll("iframe");
+  for(var n=0;n<frames.length;n++){
+    var f=frames[n];
+    try{
+      if(!f.getAttribute("data-barlive-attrib-listener-v73")){
+        f.setAttribute("data-barlive-attrib-listener-v73","1");
+        f.addEventListener("load",function(){setTimeout(mapAttribution,40)},{passive:true});
+      }
+      var d=f.contentDocument||(f.contentWindow&&f.contentWindow.document);
+      if(!d||!d.querySelector(".maplibregl-map,#map"))continue;
+      var style=d.getElementById("barlive-attribution-v73-style");
+      if(!style){
+        style=d.createElement("style");
+        style.id="barlive-attribution-v73-style";
+        style.textContent=".maplibregl-ctrl-attrib,.maplibregl-ctrl-attrib-button{display:none!important}.barlive-attribution-text-v73{position:absolute;right:6px;bottom:4px;z-index:30;padding:2px 5px;border-radius:5px;background:rgba(255,255,255,.72);font:500 9px/1.2 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;color:#64748B;white-space:nowrap}.barlive-attribution-text-v73 a{color:#64748B;text-decoration:none}";
+        (d.head||d.documentElement).appendChild(style);
+      }
+      var map=d.getElementById("map")||d.querySelector(".maplibregl-map");
+      if(map&&!d.getElementById("barlive-attribution-text-v73")){
+        var a=d.createElement("div");
+        a.id="barlive-attribution-text-v73";
+        a.className="barlive-attribution-text-v73";
+        a.setAttribute("aria-label","Atribución del mapa");
+        a.innerHTML='<a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap</a>';
+        map.appendChild(a);
+      }
+    }catch(_){}
+  }
+}
+function maintain(){ensureLogo();centerButton();mapAttribution();var f=mini();hideSmallOverlay(f);if(f){popupStyle(f);hideSmallOverlay(f)}}
 function start(){
   ensureLogo();maintain();
   try{var raw=localStorage.getItem("barlive:last-web-location-v1"),j=raw&&JSON.parse(raw);if(j&&isFinite(Number(j.latitude))&&isFinite(Number(j.longitude)))setTimeout(function(){applyCoords({latitude:Number(j.latitude),longitude:Number(j.longitude)})},350)}catch(_){}
@@ -1145,6 +1183,21 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   var mo=new MutationObserver(schedule);
   mo.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:["class"]});
   addEventListener("resize",schedule,{passive:true});
+  addEventListener("popstate",schedule,{passive:true});
+  ["pushState","replaceState"].forEach(function(name){
+    var original=history[name];
+    if(typeof original!=="function"||original.__barliveRoutePatchedV73)return;
+    var wrapped=function(){
+      var out=original.apply(history,arguments);
+      setTimeout(schedule,0);
+      setTimeout(schedule,60);
+      setTimeout(schedule,180);
+      setTimeout(schedule,420);
+      return out;
+    };
+    wrapped.__barliveRoutePatchedV73=true;
+    history[name]=wrapped;
+  });
   if(mq.addEventListener)mq.addEventListener("change",schedule);
   [0,80,220,600,1400,2800].forEach(function(ms){setTimeout(schedule,ms)});
 })();
