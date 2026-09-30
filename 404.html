@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- barlive-production: stable-web-v73-map-spa-controls-20260930 -->
+<!-- barlive-production: stable-web-v74-map-header-spa-20260930 -->
 <html lang="es">
   <head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <script id="barlive-google-cost-guard">
@@ -1031,40 +1031,92 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     return false;
   }
   function text(el){return String(el&&el.textContent||"").replace(/\s+/g," ").trim()}
+  function visibleRect(el){
+    if(!el||!el.getBoundingClientRect)return null;
+    var r=el.getBoundingClientRect();
+    if(r.width<1||r.height<1||r.bottom<0||r.top>innerHeight)return null;
+    return r;
+  }
+  function fullMapActive(){
+    if(location.pathname.indexOf("/explorar/mapa")>=0)return true;
+    var frames=document.querySelectorAll("iframe");
+    for(var i=0;i<frames.length;i++){
+      var r=visibleRect(frames[i]);if(!r)continue;
+      if(r.width>innerWidth*.55&&r.height>innerHeight*.55)return true;
+    }
+    return false;
+  }
+  function categoryControls(){
+    var names=["Todos","Bares","Restaurantes","Cafeterías","Pubs","Discotecas","Coctelería"];
+    var all=[].slice.call(document.querySelectorAll("button,[role=button],[tabindex='0']"));
+    var out=[];
+    for(var i=0;i<all.length;i++){
+      var el=all[i],r=visibleRect(el);if(!r||r.top>280||r.width<35||r.height<24||r.height>110)continue;
+      var t=text(el),ok=false;
+      for(var n=0;n<names.length;n++){
+        var label=names[n];
+        if(t===label||t.endsWith(label)||t.indexOf(label)>=0){ok=true;break}
+      }
+      if(ok&&out.indexOf(el)<0)out.push(el);
+    }
+    return out;
+  }
   function commonAncestor(nodes){
     if(!nodes.length)return null;
     var p=nodes[0],depth=0;
-    while(p&&p!==document.body&&depth<10){
+    while(p&&p!==document.body&&depth<12){
       var count=0;
       for(var i=0;i<nodes.length;i++)if(p.contains(nodes[i]))count++;
-      var r=p.getBoundingClientRect();
-      if(count>=5&&r.width>innerWidth*.45&&r.height<180)return p;
+      var r=visibleRect(p);
+      if(r&&count>=5&&r.width>innerWidth*.42&&r.height<220)return p;
       p=p.parentElement;depth++;
     }
     return null;
   }
+  function mapHeaderShell(nodes){
+    if(!nodes.length)return null;
+    for(var i=0;i<nodes.length;i++){
+      var p=nodes[i],depth=0;
+      while(p&&p!==document.body&&depth<10){
+        var count=0;
+        for(var j=0;j<nodes.length;j++)if(p.contains(nodes[j]))count++;
+        var r=visibleRect(p);
+        if(r&&count>=5&&r.top<180&&r.width>innerWidth*.42&&r.height<230){
+          var pos=getComputedStyle(p).position;
+          if(pos==="absolute"||pos==="fixed")return p;
+        }
+        p=p.parentElement;depth++;
+      }
+    }
+    var row=commonAncestor(nodes);if(!row)return null;
+    var shell=row,p=row.parentElement,rr=visibleRect(row);
+    if(p&&rr){
+      var pr=visibleRect(p);
+      if(pr&&pr.width>=rr.width*.92&&pr.height<250&&pr.top<190)shell=p;
+    }
+    return shell;
+  }
+  function currentMapHeaderReady(){
+    if(!fullMapActive())return true;
+    var nodes=categoryControls();if(nodes.length<5)return false;
+    var shell=mapHeaderShell(nodes);if(!shell)return false;
+    return !!shell.querySelector('[data-barlive-map-title-v70="true"]');
+  }
   function mapHeader(){
-    if(location.pathname.indexOf("/explorar/mapa")<0)return;
-    var wanted={Todos:1,Bares:1,Restaurantes:1,"Cafeterías":1,Pubs:1,Discotecas:1,"Coctelería":1};
-    var nodes=[].slice.call(document.querySelectorAll("button,[role=button],[tabindex='0']")).filter(function(el){
-      var t=text(el),r=el.getBoundingClientRect();
-      return wanted[t]&&r.top<260&&r.width>40&&r.height>28&&r.height<100;
-    });
+    if(!fullMapActive())return;
+    var nodes=categoryControls();
     if(nodes.length<5)return;
 
-    var row=commonAncestor(nodes);if(!row)return;
-    var shell=row;
-    var p=row.parentElement,rr=row.getBoundingClientRect();
-    if(p){
-      var pr=p.getBoundingClientRect();
-      if(pr.width>=rr.width*.92&&pr.height<230&&pr.top<170)shell=p;
-    }
+    var shell=mapHeaderShell(nodes);if(!shell)return;
+    var row=commonAncestor(nodes)||shell;
 
     shell.setAttribute("data-barlive-map-category-header-v70","true");
     shell.style.setProperty("background-image","none","important");
     shell.style.setProperty("background-color","#FFFFFF","important");
     shell.style.setProperty("border-bottom","1px solid #E4EAF0","important");
     shell.style.setProperty("box-shadow","0 2px 10px rgba(15,35,72,.04)","important");
+    row.style.setProperty("background-image","none","important");
+    row.style.setProperty("background-color","#FFFFFF","important");
 
     if(!shell.querySelector('[data-barlive-map-title-v70="true"]')){
       var title=document.createElement("div");
@@ -1199,6 +1251,22 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     history[name]=wrapped;
   });
   if(mq.addEventListener)mq.addEventListener("change",schedule);
+
+  // Expo Router can swap nested screens without producing a reliable browser
+  // history event for our legacy production bundle. Reconcile the current map
+  // header until the visible map shell owns the canonical title row.
+  var lastRoute=location.pathname;
+  setInterval(function(){
+    var now=location.pathname;
+    if(now!==lastRoute){
+      lastRoute=now;
+      [0,60,160,320,650,1100,1800].forEach(function(ms){setTimeout(schedule,ms)});
+    }
+    if(mq.matches&&fullMapActive()&&!currentMapHeaderReady()){
+      mapHeader();
+    }
+  },250);
+
   [0,80,220,600,1400,2800].forEach(function(ms){setTimeout(schedule,ms)});
 })();
 </script>
