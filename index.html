@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- barlive-production: stable-web-v80-map-selector-20260930 -->
+<!-- barlive-production: stable-web-v81-selector-match-legend-20260930 -->
 <html lang="es">
   <head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <script id="barlive-google-cost-guard">
@@ -379,7 +379,7 @@
 <script src="/_expo/static/js/web/barlive-v67-part1.js?v=20260927-ui-v72" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part2.js?v=20260927-ui-v72" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part3.js?v=20260927-ui-v72" defer></script>
-<script src="/_expo/static/js/web/barlive-v67-part4-v80.js?v=1" defer></script>
+<script src="/_expo/static/js/web/barlive-v67-part4-v81.js?v=1" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part5.js?v=20260927-ui-v72" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part6.js?v=20260927-ui-v72" defer></script>
 <script src="/_expo/static/js/web/barlive-v67-part7.js?v=20260927-ui-v72" defer></script>
@@ -1123,9 +1123,34 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       }
       if(!selector||!todos||!open)continue;
 
-      selector.style.setProperty("width","fit-content","important");
-      selector.style.setProperty("min-width","0","important");
-      selector.style.setProperty("max-width","104px","important");
+      var selectorContainer=selector.parentElement;
+      var stack=selectorContainer&&selectorContainer.parentElement;
+      var legendWidth=0;
+      if(stack){
+        var siblings=[].slice.call(stack.children||[]);
+        for(var s=0;s<siblings.length;s++){
+          var sibling=siblings[s],siblingText=text(sibling);
+          if(
+            sibling!==selectorContainer&&
+            siblingText.indexOf("Abierto")>=0&&
+            siblingText.indexOf("Cerrado")>=0&&
+            siblingText.indexOf("S/Info")>=0
+          ){
+            var lr=visibleRect(sibling);
+            if(lr&&lr.width>0){legendWidth=Math.ceil(lr.width);break}
+          }
+        }
+      }
+      if(legendWidth<1)legendWidth=196;
+
+      if(selectorContainer){
+        selectorContainer.style.setProperty("width",legendWidth+"px","important");
+        selectorContainer.style.setProperty("max-width",legendWidth+"px","important");
+        selectorContainer.style.setProperty("align-self","stretch","important");
+      }
+      selector.style.setProperty("width",legendWidth+"px","important");
+      selector.style.setProperty("min-width",legendWidth+"px","important");
+      selector.style.setProperty("max-width",legendWidth+"px","important");
       selector.style.setProperty("align-items","center","important");
       selector.style.setProperty("justify-content","center","important");
       selector.style.setProperty("flex-shrink","0","important");
@@ -1133,18 +1158,17 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 
       [todos,open].forEach(function(control){
         control.style.setProperty("width","auto","important");
-        control.style.setProperty("min-width","50px","important");
-        control.style.setProperty("width","50px","important");
-        control.style.setProperty("max-width","50px","important");
+        control.style.setProperty("min-width","0","important");
+        control.style.setProperty("max-width","none","important");
         control.style.setProperty("min-height","22px","important");
         control.style.setProperty("height","22px","important");
-        control.style.setProperty("padding","0 3px","important");
+        control.style.setProperty("padding","0 6px","important");
         control.style.setProperty("margin","0","important");
         control.style.setProperty("box-sizing","border-box","important");
         control.style.setProperty("display","flex","important");
         control.style.setProperty("align-items","center","important");
         control.style.setProperty("justify-content","center","important");
-        control.style.setProperty("flex","0 0 auto","important");
+        control.style.setProperty("flex","1 1 0","important");
         control.style.setProperty("transform","none","important");
         control.style.setProperty("white-space","nowrap","important");
         control.style.setProperty("text-align","center","important");
@@ -1167,7 +1191,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
         }
       });
 
-      selector.setAttribute("data-barlive-state-selector-v80","true");
+      selector.setAttribute("data-barlive-state-selector-v81","true");
       break;
     }
   }
@@ -1256,18 +1280,18 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
         el.setAttribute(attr,"true");
       }
 
-      place(left,"data-barlive-map-left-controls-v80");
-      place(right,"data-barlive-map-right-controls-v80");
+      place(left,"data-barlive-map-left-controls-v81");
+      place(right,"data-barlive-map-right-controls-v81");
     }
 
     placeNativeMapControls();
 
-    if(window.ResizeObserver&&!shell.__barliveMapControlsObserverV80){
+    if(window.ResizeObserver&&!shell.__barliveMapControlsObserverV81){
       try{
-        shell.__barliveMapControlsObserverV80=new ResizeObserver(function(){
+        shell.__barliveMapControlsObserverV81=new ResizeObserver(function(){
           requestAnimationFrame(placeNativeMapControls);
         });
-        shell.__barliveMapControlsObserverV80.observe(shell);
+        shell.__barliveMapControlsObserverV81.observe(shell);
       }catch(_){}
     }
   }
