@@ -1,12 +1,12 @@
-name: Deploy Explore desktop fix
+name: LEGACY — Patch Explore production bundle
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/scripts/patch-explore-desktop-production.js"
-      - ".github/workflows/deploy-explore-desktop-fix.yml"
   workflow_dispatch:
+    inputs:
+      confirm_legacy_patch:
+        description: "Type PATCH_LEGACY_BUNDLE to run this emergency-only bundle patch."
+        required: true
+        default: ""
 
 permissions:
   contents: write
@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   patch-production:
+    if: ${{ inputs.confirm_legacy_patch == 'PATCH_LEGACY_BUNDLE' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout patcher
