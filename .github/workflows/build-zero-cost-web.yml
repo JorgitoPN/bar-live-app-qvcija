@@ -1,7 +1,12 @@
-name: Build zero-cost BarLive web
+name: LEGACY — Build public source to gh-pages
 
 on:
   workflow_dispatch:
+    inputs:
+      confirm_stale_public_source:
+        description: "Type DEPLOY_STALE_PUBLIC_SOURCE only if the public source has been manually resynced with Barlive-2/main."
+        required: true
+        default: ""
 
 permissions:
   contents: write
@@ -12,12 +17,22 @@ concurrency:
 
 jobs:
   build-and-publish:
+    if: ${{ inputs.confirm_stale_public_source == 'DEPLOY_STALE_PUBLIC_SOURCE' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Refuse known stale public source
+        run: |
+          set -euo pipefail
+          test -f "app/(tabs)/explorar/mapa.tsx"
+          grep -Fq "MapFrame" "app/(tabs)/explorar/mapa.tsx" || {
+            echo "::error::Public main is not synchronized with canonical Barlive-2/main. Refusing to overwrite production."
+            exit 1
+          }
+
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
