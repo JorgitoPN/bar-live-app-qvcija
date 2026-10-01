@@ -1,12 +1,12 @@
 name: Enable GitHub Pages for BarLive
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/publish-emergency-pages.yml"
-      - ".github/workflows/build-zero-cost-web.yml"
   workflow_dispatch:
+    inputs:
+      confirm_legacy_pages:
+        description: "Type ENABLE_LEGACY_PAGES only for an explicit rollback."
+        required: true
+        default: ""
 
 permissions:
   contents: read
@@ -14,6 +14,7 @@ permissions:
 
 jobs:
   enable:
+    if: ${{ inputs.confirm_legacy_pages == 'ENABLE_LEGACY_PAGES' }}
     runs-on: ubuntu-latest
     steps:
       - name: Enable or update Pages from gh-pages
